@@ -166,6 +166,12 @@ public class DocumentRow : AuditableEntity
     [NotMapped]
     [Display(Name = "Discount Total", Description = "Total discount applied to the row.")]
     public decimal DiscountTotal => Math.Round((UnitPrice * Quantity) * (LineDiscount / 100), 2);
+
+    /// <summary>
+    /// Gets or sets the collection of summary links that include this document row.
+    /// </summary>
+    [NotMapped]
+    public ICollection<DocumentSummaryLink> IncludedInSummaries { get; set; } = new List<DocumentSummaryLink>();
 }
 
 /// <summary>

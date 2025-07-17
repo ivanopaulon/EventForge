@@ -19,13 +19,6 @@ public class DocumentSummaryLink : AuditableEntity
     public DocumentHeader? SummaryDocument { get; set; }
 
     /// <summary>
-    /// ID of the detailed document (e.g., delivery note).
-    /// </summary>
-    [Required(ErrorMessage = "The detailed document ID is required.")]
-    [Display(Name = "Detailed Document", Description = "ID of the detailed document (e.g., delivery note).")]
-    public Guid DetailedDocumentId { get; set; }
-
-    /// <summary>
     /// Navigation property for the detailed document.
     /// </summary>
     [Display(Name = "Detailed Document", Description = "Navigation property for the detailed document.")]

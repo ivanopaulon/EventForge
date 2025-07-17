@@ -60,6 +60,40 @@ public class EventForgeDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        // DocumentHeader - importi e prezzi
+        modelBuilder.Entity<DocumentHeader>().Property(x => x.AmountPaid).HasPrecision(18, 6);
+        modelBuilder.Entity<DocumentHeader>().Property(x => x.BaseCurrencyAmount).HasPrecision(18, 6);
+        modelBuilder.Entity<DocumentHeader>().Property(x => x.ExchangeRate).HasPrecision(18, 6);
+        modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalDiscount).HasPrecision(18, 6);
+        modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalDiscountAmount).HasPrecision(18, 6);
+        modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalGrossAmount).HasPrecision(18, 6);
+        modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalNetAmount).HasPrecision(18, 6);
+        modelBuilder.Entity<DocumentHeader>().Property(x => x.VatAmount).HasPrecision(18, 6);
+
+        // DocumentRow - prezzi e quantità
+        modelBuilder.Entity<DocumentRow>().Property(x => x.UnitPrice).HasPrecision(18, 6);
+        modelBuilder.Entity<DocumentRow>().Property(x => x.Quantity).HasPrecision(18, 6);
+        modelBuilder.Entity<DocumentRow>().Property(x => x.LineDiscount).HasPrecision(5, 2); // percentuale
+        modelBuilder.Entity<DocumentRow>().Property(x => x.VatRate).HasPrecision(5, 2); // percentuale
+
+        // PriceListEntry - prezzi
+        modelBuilder.Entity<PriceListEntry>().Property(x => x.Price).HasPrecision(18, 6);
+
+        // Product - prezzi
+        modelBuilder.Entity<Product>().Property(x => x.DefaultPrice).HasPrecision(18, 6);
+
+        // Promotion - importi
+        modelBuilder.Entity<Promotion>().Property(x => x.MinOrderAmount).HasPrecision(18, 6);
+
+        // PromotionRule - importi e percentuali
+        modelBuilder.Entity<PromotionRule>().Property(x => x.DiscountAmount).HasPrecision(18, 6);
+        modelBuilder.Entity<PromotionRule>().Property(x => x.DiscountPercentage).HasPrecision(5, 2);
+        modelBuilder.Entity<PromotionRule>().Property(x => x.FixedPrice).HasPrecision(18, 6);
+        modelBuilder.Entity<PromotionRule>().Property(x => x.MinOrderAmount).HasPrecision(18, 6);
+
+        // VatRate - percentuale
+        modelBuilder.Entity<VatRate>().Property(x => x.Percentage).HasPrecision(5, 2);
+
         // DocumentHeader → BusinessParty
         modelBuilder.Entity<DocumentHeader>()
             .HasOne(d => d.BusinessParty)
@@ -74,14 +108,14 @@ public class EventForgeDbContext : DbContext
 
         // DocumentSummaryLink → DocumentHeader (Summary and Detailed)
         modelBuilder.Entity<DocumentSummaryLink>()
-            .HasOne<DocumentHeader>()
-            .WithMany()
+            .HasOne(l => l.SummaryDocument)
+            .WithMany(h => h.SummaryDocuments)
             .HasForeignKey(l => l.SummaryDocumentId)
             .OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<DocumentSummaryLink>()
-            .HasOne<DocumentHeader>()
-            .WithMany()
-            .HasForeignKey(l => l.DetailedDocumentId)
+            .HasOne(l => l.DetailedDocument)
+            .WithMany(h => h.IncludedInSummaries)
+            .HasForeignKey("DetailedDocumentId")
             .OnDelete(DeleteBehavior.Restrict);
 
         // Event → Team
