@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
 
 /// <summary>
 /// Represents a business entity (customer, supplier, or both).
@@ -64,13 +65,13 @@ public class BusinessParty : AuditableEntity
     /// <summary>
     /// Contacts associated with the business party.
     /// </summary>
-    [Display(Name = "Contacts", Description = "Contacts associated with the business party.")]
+    [Display(Name = "Contacts", Description = "General contacts.")]
     public ICollection<Contact> Contacts { get; set; } = new List<Contact>();
 
     /// <summary>
     /// Reference persons associated with the business party.
     /// </summary>
-    [Display(Name = "References", Description = "Reference persons associated with the business party.")]
+    [Display(Name = "References", Description = "Reference persons.")]
     public ICollection<Reference> References { get; set; } = new List<Reference>();
 }
 
