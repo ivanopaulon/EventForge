@@ -1,4 +1,5 @@
 using Dapper;
+using EventForge.DTOs.Logs;
 using Microsoft.Data.SqlClient;
 
 namespace EventForge.Services.Logs;

@@ -69,7 +69,8 @@ builder.Services.AddSwaggerGen(c =>
             ["status"] = new() { Type = "integer", Example = new Microsoft.OpenApi.Any.OpenApiInteger(400) },
             ["detail"] = new() { Type = "string", Example = new Microsoft.OpenApi.Any.OpenApiString("See the errors property for details.") },
             ["instance"] = new() { Type = "string", Example = new Microsoft.OpenApi.Any.OpenApiString("/api/v1/events") },
-            ["errors"] = new() { 
+            ["errors"] = new()
+            {
                 Type = "object",
                 AdditionalProperties = new OpenApiSchema
                 {

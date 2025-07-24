@@ -1,4 +1,3 @@
-using EventForge.DTOs.Audit;
 using EventForge.DTOs.Warehouse;
 using Microsoft.EntityFrameworkCore;
 
@@ -151,7 +150,7 @@ public class StorageLocationService : IStorageLocationService
 
         var query = _context.StorageLocations
             .Include(sl => sl.Warehouse)
-            .Where(sl => sl.IsActive && 
+            .Where(sl => sl.IsActive &&
                         (sl.Capacity == null || sl.Occupancy == null || sl.Occupancy < sl.Capacity));
 
         if (warehouseId.HasValue)
@@ -199,7 +198,7 @@ public class StorageLocationService : IStorageLocationService
         // Validate warehouse exists
         var warehouseExists = await _context.StorageFacilities
             .AnyAsync(sf => sf.Id == createDto.WarehouseId, cancellationToken);
-        
+
         if (!warehouseExists)
         {
             throw new ArgumentException($"Warehouse with ID {createDto.WarehouseId} not found.");
@@ -208,7 +207,7 @@ public class StorageLocationService : IStorageLocationService
         // Check for duplicate code within the same warehouse
         var codeExists = await _context.StorageLocations
             .AnyAsync(sl => sl.Code == createDto.Code && sl.WarehouseId == createDto.WarehouseId, cancellationToken);
-        
+
         if (codeExists)
         {
             throw new ArgumentException($"Storage location with code '{createDto.Code}' already exists in this warehouse.");
@@ -246,7 +245,7 @@ public class StorageLocationService : IStorageLocationService
         _logger.LogInformation("Created storage location: {Id} - {Code}", location.Id, location.Code);
 
         // Return the created location with warehouse info
-        return await GetStorageLocationByIdAsync(location.Id, cancellationToken) 
+        return await GetStorageLocationByIdAsync(location.Id, cancellationToken)
                ?? throw new InvalidOperationException("Failed to retrieve created storage location.");
     }
 
@@ -265,7 +264,7 @@ public class StorageLocationService : IStorageLocationService
         {
             var warehouseExists = await _context.StorageFacilities
                 .AnyAsync(sf => sf.Id == updateDto.WarehouseId.Value, cancellationToken);
-            
+
             if (!warehouseExists)
             {
                 throw new ArgumentException($"Warehouse with ID {updateDto.WarehouseId} not found.");
@@ -278,7 +277,7 @@ public class StorageLocationService : IStorageLocationService
             var warehouseIdToCheck = updateDto.WarehouseId ?? location.WarehouseId;
             var codeExists = await _context.StorageLocations
                 .AnyAsync(sl => sl.Code == updateDto.Code && sl.WarehouseId == warehouseIdToCheck && sl.Id != id, cancellationToken);
-            
+
             if (codeExists)
             {
                 throw new ArgumentException($"Storage location with code '{updateDto.Code}' already exists in this warehouse.");
@@ -288,7 +287,7 @@ public class StorageLocationService : IStorageLocationService
         // Validate occupancy doesn't exceed capacity
         var newCapacity = updateDto.Capacity ?? location.Capacity;
         var newOccupancy = updateDto.Occupancy ?? location.Occupancy;
-        
+
         if (newCapacity.HasValue && newOccupancy.HasValue && newOccupancy > newCapacity)
         {
             throw new ArgumentException("Occupancy cannot exceed capacity.");

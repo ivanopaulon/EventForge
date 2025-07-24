@@ -34,7 +34,7 @@ public class ProblemDetailsMiddleware
     private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         var problemDetails = CreateProblemDetails(context, exception);
-        
+
         context.Response.StatusCode = problemDetails.Status ?? (int)HttpStatusCode.InternalServerError;
         context.Response.ContentType = "application/problem+json";
 
@@ -50,7 +50,7 @@ public class ProblemDetailsMiddleware
     private static ProblemDetails CreateProblemDetails(HttpContext context, Exception exception)
     {
         var correlationId = context.Items["CorrelationId"]?.ToString() ?? Guid.NewGuid().ToString();
-        
+
         var problemDetails = new ProblemDetails
         {
             Instance = context.Request.Path
@@ -109,7 +109,7 @@ public class ProblemDetailsMiddleware
                 problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1";
                 problemDetails.Title = "Internal Server Error";
                 problemDetails.Detail = "An unexpected error occurred";
-                
+
                 // Only include exception details in development
                 var isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
                 if (isDevelopment)

@@ -1,4 +1,3 @@
-using EventForge.DTOs.Audit;
 using EventForge.DTOs.Common;
 using EventForge.Filters;
 using EventForge.Services.Common;

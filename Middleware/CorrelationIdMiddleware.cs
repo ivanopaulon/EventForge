@@ -21,18 +21,18 @@ public class CorrelationIdMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         var correlationId = GetOrGenerateCorrelationId(context);
-        
+
         // Add correlation ID to response headers
         context.Response.Headers[CorrelationIdHeaderName] = correlationId;
-        
+
         // Add correlation ID to logging context
         using (LogContext.PushProperty("CorrelationId", correlationId))
         {
             // Add correlation ID to HttpContext for access throughout the request
             context.Items["CorrelationId"] = correlationId;
-            
+
             _logger.LogDebug("Processing request with Correlation ID: {CorrelationId}", correlationId);
-            
+
             await _next(context);
         }
     }

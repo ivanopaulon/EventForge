@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using EventForge.Data.Entities.Audit;
 
 namespace EventForge.Data;
 
@@ -80,7 +79,7 @@ public class EventForgeDbContext : DbContext
                 var method = typeof(EventForgeDbContext)
                     .GetMethod(nameof(GetSoftDeleteFilter), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
                     ?.MakeGenericMethod(entityType.ClrType);
-                
+
                 var filter = method?.Invoke(null, new object[] { });
                 if (filter != null)
                 {

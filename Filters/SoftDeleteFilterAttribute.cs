@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace EventForge.Filters;
@@ -14,12 +13,12 @@ public class SoftDeleteFilterAttribute : ActionFilterAttribute
         if (context.HttpContext.Request.Query.TryGetValue("deleted", out var deletedValues))
         {
             var deletedValue = deletedValues.FirstOrDefault()?.ToLowerInvariant();
-            
+
             // Store the deleted parameter value in HttpContext for use by services
             context.HttpContext.Items["IncludeDeleted"] = deletedValue switch
             {
                 "all" => "all",
-                "true" => "true", 
+                "true" => "true",
                 "false" => "false",
                 _ => "false" // Default to excluding deleted items
             };

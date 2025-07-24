@@ -1,4 +1,3 @@
-using EventForge.DTOs.Audit;
 using EventForge.DTOs.Common;
 using Microsoft.EntityFrameworkCore;
 
@@ -156,7 +155,7 @@ public class ClassificationNodeService : IClassificationNodeService
         {
             var parentExists = await _context.ClassificationNodes
                 .AnyAsync(cn => cn.Id == createDto.ParentId.Value, cancellationToken);
-            
+
             if (!parentExists)
             {
                 throw new ArgumentException($"Parent classification node with ID {createDto.ParentId} not found.");
@@ -168,7 +167,7 @@ public class ClassificationNodeService : IClassificationNodeService
         {
             var codeExists = await _context.ClassificationNodes
                 .AnyAsync(cn => cn.Code == createDto.Code, cancellationToken);
-            
+
             if (codeExists)
             {
                 throw new ArgumentException($"Classification node with code '{createDto.Code}' already exists.");
@@ -235,7 +234,7 @@ public class ClassificationNodeService : IClassificationNodeService
 
             var parentExists = await _context.ClassificationNodes
                 .AnyAsync(cn => cn.Id == updateDto.ParentId.Value, cancellationToken);
-            
+
             if (!parentExists)
             {
                 throw new ArgumentException($"Parent classification node with ID {updateDto.ParentId} not found.");
@@ -247,7 +246,7 @@ public class ClassificationNodeService : IClassificationNodeService
         {
             var codeExists = await _context.ClassificationNodes
                 .AnyAsync(cn => cn.Code == updateDto.Code && cn.Id != id, cancellationToken);
-            
+
             if (codeExists)
             {
                 throw new ArgumentException($"Classification node with code '{updateDto.Code}' already exists.");
@@ -310,7 +309,7 @@ public class ClassificationNodeService : IClassificationNodeService
         // Check if it has children
         var hasChildren = await _context.ClassificationNodes
             .AnyAsync(cn => cn.ParentId == id, cancellationToken);
-        
+
         if (hasChildren)
         {
             throw new InvalidOperationException("Cannot delete classification node that has children. Delete or reassign children first.");

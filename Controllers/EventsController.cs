@@ -1,6 +1,5 @@
-using EventForge.Services.Events;
-using EventForge.DTOs.Events;
 using EventForge.Filters;
+using EventForge.Services.Events;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Controllers;

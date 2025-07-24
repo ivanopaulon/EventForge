@@ -1,3 +1,4 @@
+using EventForge.DTOs.Logs;
 using EventForge.Services.Logs;
 using Microsoft.AspNetCore.Mvc;
 

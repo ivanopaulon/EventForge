@@ -15,4 +15,3 @@ global using EventForge.Data.Entities.Teams;
 global using EventForge.Data.Entities.Warehouse;
 global using EventForge.DTOs.Audit;
 global using EventForge.DTOs.Events;
-global using EventForge.DTOs.Logs;
