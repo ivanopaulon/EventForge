@@ -56,9 +56,10 @@ public interface IEventService
     /// </summary>
     /// <param name="id">Event ID</param>
     /// <param name="currentUser">Current user name</param>
+    /// <param name="rowVersion">Row version for concurrency control</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if deleted, false if not found</returns>
-    Task<bool> DeleteEventAsync(Guid id, string currentUser, CancellationToken cancellationToken = default);
+    Task<bool> DeleteEventAsync(Guid id, string currentUser, byte[] rowVersion, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Checks if an event exists.
