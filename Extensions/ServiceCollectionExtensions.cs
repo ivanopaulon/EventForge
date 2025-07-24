@@ -8,6 +8,7 @@ using EventForge.Services.PriceLists;
 using EventForge.Services.Products;
 using EventForge.Services.Business;
 using EventForge.Services.Store;
+using EventForge.Services.Station;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
@@ -128,8 +129,10 @@ public static class ServiceCollectionExtensions
         // Register store user services
         services.AddScoped<IStoreUserService, StoreUserService>();
 
+        // Register station services
+        services.AddScoped<IStationService, StationService>();
+
         // TODO: Complete implementation for:
-        // - IStationService, StationService (grouped service for Station + Printer)
         // - IBusinessPartyService, BusinessPartyService (grouped service for BusinessParty + BusinessPartyAccounting)
         // - Common services: Address, Contact, ClassificationNode, Reference
         // - Warehouse services: StorageFacility, StorageLocation
