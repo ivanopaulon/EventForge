@@ -1,4 +1,6 @@
 using EventForge.Services.Events;
+using EventForge.DTOs.Events;
+using EventForge.Filters;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Controllers;
@@ -6,10 +8,8 @@ namespace EventForge.Controllers;
 /// <summary>
 /// REST API controller for event management.
 /// </summary>
-[ApiController]
-[Route("api/[controller]")]
-[Produces("application/json")]
-public class EventsController : ControllerBase
+[Route("api/v1/[controller]")]
+public class EventsController : BaseApiController
 {
     private readonly IEventService _eventService;
 
@@ -25,26 +25,36 @@ public class EventsController : ControllerBase
     /// </summary>
     /// <param name="page">Page number (1-based)</param>
     /// <param name="pageSize">Number of items per page</param>
+    /// <param name="deleted">Filter for soft-deleted items: 'false' (default), 'true', or 'all'</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of events</returns>
     /// <response code="200">Returns the paginated list of events</response>
     /// <response code="400">If the query parameters are invalid</response>
     [HttpGet]
+    [SoftDeleteFilter]
     [ProducesResponseType(typeof(PagedResult<EventDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PagedResult<EventDto>>> GetEvents(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] string deleted = "false",
         CancellationToken cancellationToken = default)
     {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
         if (page < 1)
         {
-            return BadRequest(new { message = "Page number must be greater than 0." });
+            ModelState.AddModelError(nameof(page), "Page number must be greater than 0.");
+            return CreateValidationProblemDetails();
         }
 
         if (pageSize < 1 || pageSize > 100)
         {
-            return BadRequest(new { message = "Page size must be between 1 and 100." });
+            ModelState.AddModelError(nameof(pageSize), "Page size must be between 1 and 100.");
+            return CreateValidationProblemDetails();
         }
 
         try
@@ -69,7 +79,7 @@ public class EventsController : ControllerBase
     /// <response code="404">If the event is not found</response>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(EventDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<EventDto>> GetEvent(
         Guid id,
         CancellationToken cancellationToken = default)
@@ -80,7 +90,7 @@ public class EventsController : ControllerBase
 
             if (eventEntity == null)
             {
-                return NotFound(new { message = $"Event with ID {id} not found." });
+                return CreateNotFoundProblem($"Event with ID {id} not found.");
             }
 
             return Ok(eventEntity);
@@ -135,14 +145,14 @@ public class EventsController : ControllerBase
     /// <response code="400">If the event data is invalid</response>
     [HttpPost]
     [ProducesResponseType(typeof(EventDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<EventDto>> CreateEvent(
         [FromBody] CreateEventDto createEventDto,
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
 
         try
@@ -253,23 +263,6 @@ public class EventsController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "An error occurred while deleting the event.", error = ex.Message });
         }
-    }
-
-    #endregion
-
-    #region Helper Methods
-
-    /// <summary>
-    /// Gets the current user from the request context.
-    /// For demonstration purposes, this returns a default user.
-    /// In a real application, this would extract the user from JWT claims or similar.
-    /// </summary>
-    /// <returns>Current user identifier</returns>
-    private string GetCurrentUser()
-    {
-        // In a real application, you would extract this from JWT claims, session, etc.
-        // For now, we'll use a default user
-        return User?.Identity?.Name ?? "system";
     }
 
     #endregion

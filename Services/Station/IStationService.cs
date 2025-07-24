@@ -1,4 +1,4 @@
-using EventForge.Models.Station;
+using EventForge.DTOs.Station;
 
 namespace EventForge.Services.Station;
 

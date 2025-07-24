@@ -1,4 +1,4 @@
-using EventForge.Models.Common;
+using EventForge.DTOs.Common;
 using EventForge.Services.Common;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,10 +7,8 @@ namespace EventForge.Controllers;
 /// <summary>
 /// REST API controller for common entities management (Address, Contact, Reference, ClassificationNode).
 /// </summary>
-[ApiController]
-[Route("api/[controller]")]
-[Produces("application/json")]
-public class AddressesController : ControllerBase
+[Route("api/v1/[controller]")]
+public class AddressesController : BaseApiController
 {
     private readonly IAddressService _addressService;
 

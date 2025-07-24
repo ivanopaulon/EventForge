@@ -1,4 +1,4 @@
-using EventForge.Models.VatRates;
+using EventForge.DTOs.VatRates;
 using EventForge.Services.VatRates;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,10 +7,8 @@ namespace EventForge.Controllers;
 /// <summary>
 /// REST API controller for VAT rate management.
 /// </summary>
-[ApiController]
-[Route("api/[controller]")]
-[Produces("application/json")]
-public class VatRatesController : ControllerBase
+[Route("api/v1/[controller]")]
+public class VatRatesController : BaseApiController
 {
     private readonly IVatRateService _vatRateService;
 

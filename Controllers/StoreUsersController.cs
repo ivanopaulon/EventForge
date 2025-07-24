@@ -1,4 +1,4 @@
-using EventForge.Models.Store;
+using EventForge.DTOs.Store;
 using EventForge.Services.Store;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,10 +7,8 @@ namespace EventForge.Controllers;
 /// <summary>
 /// REST API controller for store user management.
 /// </summary>
-[ApiController]
-[Route("api/[controller]")]
-[Produces("application/json")]
-public class StoreUsersController : ControllerBase
+[Route("api/v1/[controller]")]
+public class StoreUsersController : BaseApiController
 {
     private readonly IStoreUserService _storeUserService;
 

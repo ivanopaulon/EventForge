@@ -1,0 +1,87 @@
+namespace EventForge.DTOs.PriceLists;
+
+/// <summary>
+/// DTO for detailed PriceList display including entries.
+/// </summary>
+public class PriceListDetailDto
+{
+    /// <summary>
+    /// Unique identifier for the price list.
+    /// </summary>
+    public Guid Id { get; set; }
+
+    /// <summary>
+    /// Name of the price list.
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Description of the price list.
+    /// </summary>
+    public string Description { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Start date of the price list validity.
+    /// </summary>
+    public DateTime? ValidFrom { get; set; }
+
+    /// <summary>
+    /// End date of the price list validity.
+    /// </summary>
+    public DateTime? ValidTo { get; set; }
+
+    /// <summary>
+    /// Additional notes for the price list.
+    /// </summary>
+    public string Notes { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Status of the price list.
+    /// </summary>
+    public PriceListStatus Status { get; set; }
+
+    /// <summary>
+    /// Indicates if this is the default price list for the event.
+    /// </summary>
+    public bool IsDefault { get; set; }
+
+    /// <summary>
+    /// Priority of the price list (0 = highest priority).
+    /// </summary>
+    public int Priority { get; set; }
+
+    /// <summary>
+    /// Associated event ID.
+    /// </summary>
+    public Guid EventId { get; set; }
+
+    /// <summary>
+    /// Event name (for display purposes).
+    /// </summary>
+    public string? EventName { get; set; }
+
+    /// <summary>
+    /// Price list entries.
+    /// </summary>
+    public IEnumerable<PriceListEntryDto> Entries { get; set; } = new List<PriceListEntryDto>();
+
+    /// <summary>
+    /// Date and time when the price list was created (UTC).
+    /// </summary>
+    public DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    /// User who created the price list.
+    /// </summary>
+    public string? CreatedBy { get; set; }
+
+    /// <summary>
+    /// Date and time when the price list was last modified (UTC).
+    /// </summary>
+    public DateTime? ModifiedAt { get; set; }
+
+    /// <summary>
+    /// User who last modified the price list.
+    /// </summary>
+    public string? ModifiedBy { get; set; }
+}

@@ -7,10 +7,8 @@ namespace EventForge.Controllers;
 /// REST API controller for application log consultation (read-only).
 /// Positioned in the observability/monitoring area.
 /// </summary>
-[ApiController]
-[Route("api/[controller]")]
-[Produces("application/json")]
-public class ApplicationLogController : ControllerBase
+[Route("api/v1/[controller]")]
+public class ApplicationLogController : BaseApiController
 {
     private readonly IApplicationLogService _applicationLogService;
 

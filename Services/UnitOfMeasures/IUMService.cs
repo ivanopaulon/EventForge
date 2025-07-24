@@ -1,4 +1,4 @@
-using EventForge.Models.UnitOfMeasures;
+using EventForge.DTOs.UnitOfMeasures;
 
 namespace EventForge.Services.UnitOfMeasures;
 

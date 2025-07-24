@@ -1,4 +1,4 @@
-using EventForge.Models.PriceLists;
+using EventForge.DTOs.PriceLists;
 using EventForge.Services.PriceLists;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,10 +7,8 @@ namespace EventForge.Controllers;
 /// <summary>
 /// REST API controller for price list management.
 /// </summary>
-[ApiController]
-[Route("api/[controller]")]
-[Produces("application/json")]
-public class PriceListsController : ControllerBase
+[Route("api/v1/[controller]")]
+public class PriceListsController : BaseApiController
 {
     private readonly IPriceListService _priceListService;
 
@@ -457,9 +455,4 @@ public class PriceListsController : ControllerBase
     /// In production, this would extract from authentication context.
     /// </summary>
     /// <returns>Current user identifier</returns>
-    private string GetCurrentUser()
-    {
-        // TODO: In production, extract from JWT token or authentication context
-        return User?.Identity?.Name ?? "system";
-    }
 }

@@ -1,4 +1,4 @@
-using EventForge.Models.Products;
+using EventForge.DTOs.Products;
 using EventForge.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 

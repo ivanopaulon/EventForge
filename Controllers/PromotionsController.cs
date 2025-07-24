@@ -1,4 +1,4 @@
-using EventForge.Models.Promotions;
+using EventForge.DTOs.Promotions;
 using EventForge.Services.Promotions;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,10 +7,8 @@ namespace EventForge.Controllers;
 /// <summary>
 /// REST API controller for promotion management.
 /// </summary>
-[ApiController]
-[Route("api/[controller]")]
-[Produces("application/json")]
-public class PromotionsController : ControllerBase
+[Route("api/v1/[controller]")]
+public class PromotionsController : BaseApiController
 {
     private readonly IPromotionService _promotionService;
 
