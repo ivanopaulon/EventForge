@@ -5,6 +5,7 @@ using EventForge.Services.Common;
 using EventForge.Services.Events;
 using EventForge.Services.PriceLists;
 using EventForge.Services.Products;
+using EventForge.Services.Promotions;
 using EventForge.Services.Station;
 using EventForge.Services.Store;
 using EventForge.Services.Teams;
@@ -144,11 +145,17 @@ public static class ServiceCollectionExtensions
         // Register warehouse services
         services.AddScoped<IStorageFacilityService, StorageFacilityService>();
 
+        // Register promotion services
+        services.AddScoped<IPromotionService, PromotionService>();
+
+        // Register document services (interfaces created, implementations pending)
+        // services.AddScoped<IDocumentTypeService, DocumentTypeService>();
+
         // TODO: Complete implementation for:
         // - Common services: ClassificationNode, Reference  
         // - Warehouse services: StorageLocation
-        // - Promotion services: Promotion, PromotionRule, PromotionRuleProduct
-        // - Document services: DocumentHeader, DocumentRow, DocumentSummaryLink, DocumentType
+        // - Promotion services: Promotion, PromotionRule, PromotionRuleProduct (create implementations)
+        // - Document services: DocumentHeader, DocumentRow, DocumentSummaryLink, DocumentType (create implementations)
     }
 
     /// <summary>
