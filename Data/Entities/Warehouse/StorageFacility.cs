@@ -63,12 +63,6 @@ public class StorageFacility : AuditableEntity
     public bool IsFiscal { get; set; }
 
     /// <summary>
-    /// Indicates if the warehouse is active and available for operations.
-    /// </summary>
-    [Display(Name = "Is Active", Description = "Indicates if the warehouse is active and available for operations.")]
-    public bool IsActive { get; set; } = true;
-
-    /// <summary>
     /// Additional notes or description for the warehouse.
     /// </summary>
     [MaxLength(500, ErrorMessage = "The notes cannot exceed 500 characters.")]

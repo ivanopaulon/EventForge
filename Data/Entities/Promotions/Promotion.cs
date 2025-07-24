@@ -36,12 +36,6 @@ public class Promotion : AuditableEntity
     public DateTime EndDate { get; set; }
 
     /// <summary>
-    /// Indicates if the promotion is currently active.
-    /// </summary>
-    [Display(Name = "Is Active", Description = "Indicates if the promotion is currently active.")]
-    public bool IsActive { get; set; } = true;
-
-    /// <summary>
     /// Minimum order amount to activate the promotion.
     /// </summary>
     [Display(Name = "Minimum Order Amount", Description = "Minimum order amount to activate the promotion.")]

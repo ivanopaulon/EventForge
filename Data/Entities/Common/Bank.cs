@@ -74,12 +74,6 @@ public class Bank : AuditableEntity
     public string? Notes { get; set; } = string.Empty;
 
     /// <summary>
-    /// Indicates whether the bank is active.
-    /// </summary>
-    [Display(Name = "Active", Description = "Indicates whether the bank is active.")]
-    public bool IsActive { get; set; } = true;
-
-    /// <summary>
     /// Addresses associated with the bank.
     /// </summary>
     [Display(Name = "Addresses", Description = "Addresses associated with the bank.")]

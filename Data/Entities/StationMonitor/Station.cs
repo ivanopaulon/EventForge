@@ -38,12 +38,6 @@ public class Station : AuditableEntity
     public string? Location { get; set; }
 
     /// <summary>
-    /// Indicates if the station is active and available.
-    /// </summary>
-    [Display(Name = "Active", Description = "Indicates if the station is active.")]
-    public bool IsActive { get; set; } = true;
-
-    /// <summary>
     /// Custom sort order for displaying stations.
     /// </summary>
     [Display(Name = "Sort Order", Description = "Display order of the station.")]
