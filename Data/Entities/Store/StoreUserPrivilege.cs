@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.Store;
+
 /// <summary>
 /// Represents a privilege/permission for cashier operations.
 /// </summary>

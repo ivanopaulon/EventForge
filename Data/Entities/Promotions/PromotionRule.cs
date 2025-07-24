@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.Promotions;
+
 /// <summary>
 /// Represents a single rule or condition for a promotion.
 /// </summary>

@@ -3,6 +3,14 @@ using EventForge.Data.Entities.Events;
 using EventForge.Data.Entities.Teams;
 using EventForge.Data.Entities.Audit;
 using EventForge.Data.Entities.PriceList;
+using EventForge.Data.Entities.Common;
+using EventForge.Data.Entities.Business;
+using EventForge.Data.Entities.Documents;
+using EventForge.Data.Entities.Products;
+using EventForge.Data.Entities.Promotions;
+using EventForge.Data.Entities.StationMonitor;
+using EventForge.Data.Entities.Store;
+using EventForge.Data.Entities.Warehouse;
 
 public class EventForgeDbContext : DbContext
 {

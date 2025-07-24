@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.Business;
+
 /// <summary>
 /// Accounting and banking data associated with a BusinessParty.
 /// </summary>

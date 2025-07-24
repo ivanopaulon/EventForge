@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.Common;
+
 /// <summary>
 /// Defines the type of product classification node.
 /// </summary>

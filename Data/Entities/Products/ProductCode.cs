@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.Products;
+
 /// <summary>
 /// Represents an alias code (e.g., SKU, barcode) for a product.
 /// </summary>

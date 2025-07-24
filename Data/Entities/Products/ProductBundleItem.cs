@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.Products;
+
 /// <summary>
 /// Represents a component of a product bundle.
 /// </summary>

@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.Common;
+
 /// <summary>
 /// Represents a VAT rate entity.
 /// </summary>

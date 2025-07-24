@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.Common;
+
 /// <summary>
 /// Reference person associated with any entity (e.g., BusinessParty, Bank, User).
 /// </summary>

@@ -3,6 +3,7 @@ using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.MSSqlServer;
 using EventForge.Services.Audit;
+using EventForge.Services.Events;
 
 public static class ServiceCollectionExtensions
 {
@@ -91,6 +92,9 @@ public static class ServiceCollectionExtensions
 
         // Register audit services
         services.AddScoped<IAuditLogService, AuditLogService>();
+        
+        // Register event services
+        services.AddScoped<IEventService, EventService>();
     }
 
     /// <summary>

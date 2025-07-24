@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.Common;
+
 /// <summary>
 /// Represents a physical or virtual printer used in the POS system.
 /// </summary>

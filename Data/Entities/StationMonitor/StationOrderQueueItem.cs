@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.StationMonitor;
+
 /// <summary>
 /// Represents an order queue item for a station (e.g., bar, kitchen), managed in FIFO order.
 /// </summary>
