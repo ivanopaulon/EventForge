@@ -1,10 +1,6 @@
 using EventForge.Models.Store;
-using EventForge.Models.Audit;
-using EventForge.Data;
-using EventForge.Data.Entities.Store;
-using Microsoft.EntityFrameworkCore;
 using EventForge.Services.Audit;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Services.Store;
 
@@ -118,7 +114,7 @@ public class StoreUserService : IStoreUserService
 
             await _auditLogService.TrackEntityChangesAsync(storeUser, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Store user {StoreUserName} created with ID {StoreUserId} by {User}", 
+            _logger.LogInformation("Store user {StoreUserName} created with ID {StoreUserId} by {User}",
                 storeUser.Name, storeUser.Id, currentUser);
 
             // Reload with includes
@@ -315,7 +311,7 @@ public class StoreUserService : IStoreUserService
 
             await _auditLogService.TrackEntityChangesAsync(storeUserGroup, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Store user group {StoreUserGroupName} created with ID {StoreUserGroupId} by {User}", 
+            _logger.LogInformation("Store user group {StoreUserGroupName} created with ID {StoreUserGroupId} by {User}",
                 storeUserGroup.Name, storeUserGroup.Id, currentUser);
 
             return MapToStoreUserGroupDto(storeUserGroup, 0, 0);
@@ -530,7 +526,7 @@ public class StoreUserService : IStoreUserService
 
             await _auditLogService.TrackEntityChangesAsync(storeUserPrivilege, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Store user privilege {StoreUserPrivilegeName} created with ID {StoreUserPrivilegeId} by {User}", 
+            _logger.LogInformation("Store user privilege {StoreUserPrivilegeName} created with ID {StoreUserPrivilegeId} by {User}",
                 storeUserPrivilege.Name, storeUserPrivilege.Id, currentUser);
 
             return MapToStoreUserPrivilegeDto(storeUserPrivilege, 0);

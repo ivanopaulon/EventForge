@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using EventForge.Data.Entities.Common;
 
 namespace EventForge.Models.Station;
 

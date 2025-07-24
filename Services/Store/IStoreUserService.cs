@@ -1,5 +1,4 @@
 using EventForge.Models.Store;
-using EventForge.Models.Audit;
 
 namespace EventForge.Services.Store;
 

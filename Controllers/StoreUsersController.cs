@@ -1,5 +1,4 @@
 using EventForge.Models.Store;
-using EventForge.Models.Audit;
 using EventForge.Services.Store;
 using Microsoft.AspNetCore.Mvc;
 

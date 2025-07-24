@@ -1,6 +1,5 @@
-using Microsoft.Data.SqlClient;
-using System.Text;
 using Dapper;
+using Microsoft.Data.SqlClient;
 
 namespace EventForge.Services.Logs;
 

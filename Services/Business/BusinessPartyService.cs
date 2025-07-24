@@ -1,10 +1,6 @@
 using EventForge.Models.Business;
-using EventForge.Models.Audit;
-using EventForge.Data;
-using EventForge.Data.Entities.Business;
-using Microsoft.EntityFrameworkCore;
 using EventForge.Services.Audit;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Services.Business;
 
@@ -154,7 +150,7 @@ public class BusinessPartyService : IBusinessPartyService
 
             await _auditLogService.TrackEntityChangesAsync(businessParty, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Business party {BusinessPartyName} created with ID {BusinessPartyId} by {User}", 
+            _logger.LogInformation("Business party {BusinessPartyName} created with ID {BusinessPartyId} by {User}",
                 businessParty.Name, businessParty.Id, currentUser);
 
             return MapToBusinessPartyDto(businessParty, 0, 0, 0, false);
@@ -380,7 +376,7 @@ public class BusinessPartyService : IBusinessPartyService
 
             await _auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Business party accounting created with ID {BusinessPartyAccountingId} by {User}", 
+            _logger.LogInformation("Business party accounting created with ID {BusinessPartyAccountingId} by {User}",
                 businessPartyAccounting.Id, currentUser);
 
             // Reload with includes

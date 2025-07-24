@@ -1,5 +1,3 @@
-using EventForge.Data.Entities.Store;
-
 namespace EventForge.Models.Store;
 
 /// <summary>

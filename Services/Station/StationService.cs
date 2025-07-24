@@ -1,11 +1,6 @@
 using EventForge.Models.Station;
-using EventForge.Models.Audit;
-using EventForge.Data;
-using EventForge.Data.Entities.StationMonitor;
-using EventForge.Data.Entities.Common;
-using Microsoft.EntityFrameworkCore;
 using EventForge.Services.Audit;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Services.Station;
 
@@ -110,7 +105,7 @@ public class StationService : IStationService
 
             await _auditLogService.TrackEntityChangesAsync(station, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Station {StationName} created with ID {StationId} by {User}", 
+            _logger.LogInformation("Station {StationName} created with ID {StationId} by {User}",
                 station.Name, station.Id, currentUser);
 
             return MapToStationDto(station, 0);
@@ -303,7 +298,7 @@ public class StationService : IStationService
 
             await _auditLogService.TrackEntityChangesAsync(printer, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Printer {PrinterName} created with ID {PrinterId} by {User}", 
+            _logger.LogInformation("Printer {PrinterName} created with ID {PrinterId} by {User}",
                 printer.Name, printer.Id, currentUser);
 
             // Reload with includes

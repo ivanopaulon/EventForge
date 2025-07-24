@@ -1,4 +1,3 @@
-using EventForge.Data.Entities.Common;
 using EventForge.Models.Common;
 using EventForge.Services.Audit;
 using Microsoft.EntityFrameworkCore;

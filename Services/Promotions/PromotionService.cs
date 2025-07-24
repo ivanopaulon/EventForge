@@ -1,4 +1,3 @@
-using EventForge.Data.Entities.Promotions;
 using EventForge.Models.Promotions;
 using EventForge.Services.Audit;
 using Microsoft.EntityFrameworkCore;

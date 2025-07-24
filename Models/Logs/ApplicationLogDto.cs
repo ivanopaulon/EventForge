@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace EventForge.Models.Logs;
 
 /// <summary>
