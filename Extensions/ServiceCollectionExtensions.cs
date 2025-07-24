@@ -1,15 +1,20 @@
 using EventForge.Services.Audit;
 using EventForge.Services.Banks;
 using EventForge.Services.Business;
+using EventForge.Services.Common;
 using EventForge.Services.Events;
 using EventForge.Services.Logs;
 using EventForge.Services.PriceLists;
 using EventForge.Services.Products;
+using EventForge.Services.Promotions;
+using EventForge.Services.Station;
+using EventForge.Services.Store;
 using EventForge.Services.Teams;
 using EventForge.Services.UnitOfMeasures;
 using EventForge.Services.VatRates;
 using EventForge.Services.Store;
 using EventForge.Services.Station;
+using EventForge.Services.Warehouse;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
@@ -139,11 +144,24 @@ public static class ServiceCollectionExtensions
         // Register business party services
         services.AddScoped<IBusinessPartyService, BusinessPartyService>();
 
+        // Register common services
+        services.AddScoped<IAddressService, AddressService>();
+        services.AddScoped<IContactService, ContactService>();
+
+        // Register warehouse services
+        services.AddScoped<IStorageFacilityService, StorageFacilityService>();
+
+        // Register promotion services
+        services.AddScoped<IPromotionService, PromotionService>();
+
+        // Register document services (interfaces created, implementations pending)
+        // services.AddScoped<IDocumentTypeService, DocumentTypeService>();
+
         // TODO: Complete implementation for:
-        // - Common services: Address, Contact, ClassificationNode, Reference
-        // - Warehouse services: StorageFacility, StorageLocation
-        // - Promotion services: Promotion, PromotionRule, PromotionRuleProduct
-        // - Document services: DocumentHeader, DocumentRow, DocumentSummaryLink, DocumentType
+        // - Common services: ClassificationNode, Reference  
+        // - Warehouse services: StorageLocation
+        // - Promotion services: Promotion, PromotionRule, PromotionRuleProduct (create implementations)
+        // - Document services: DocumentHeader, DocumentRow, DocumentSummaryLink, DocumentType (create implementations)
     }
 
     /// <summary>
