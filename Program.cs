@@ -14,9 +14,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { 
-        Title = "EventForge Audit API", 
+        Title = "EventForge API", 
         Version = "v1",
-        Description = "REST API for EventForge audit log consultation"
+        Description = "REST API for EventForge - Event management system with teams, audit logs and more"
     });
     
     // Include XML comments if available
@@ -39,7 +39,7 @@ app.Services.EnsureDatabaseMigrated(); // opzionale, per applicare le migrazioni
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "EventForge Audit API v1");
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "EventForge API v1");
     c.RoutePrefix = string.Empty; // Set Swagger as the homepage
 });
 
@@ -57,7 +57,7 @@ else
 app.UseHttpsRedirection();
 app.UseAntiforgery();
 
-app.MapStaticAssets();
+app.UseStaticFiles();
 
 // Map API Controllers
 app.MapControllers();

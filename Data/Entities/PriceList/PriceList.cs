@@ -1,5 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.PriceList;
+
+
 /// <summary>
 /// Represents a price list that can be used for one or more events.
 /// </summary>

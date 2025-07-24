@@ -1,5 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.Events;
+
+
 /// <summary>
 /// Represents the base class for an event entity in the domain.
 /// This entity contains only domain invariants and business logic that must always be enforced,
@@ -73,7 +76,7 @@ public class Event : AuditableEntity
     /// Price lists associated with the event.
     /// </summary>
     [Display(Name = "Price Lists", Description = "Price lists associated with the event.")]
-    public ICollection<PriceList> PriceLists { get; set; } = new List<PriceList>();
+    public ICollection<EventForge.Data.Entities.PriceList.PriceList> PriceLists { get; set; } = new List<EventForge.Data.Entities.PriceList.PriceList>();
 
     /// <summary>
     /// Checks domain invariants for the event entity.

@@ -1,5 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.Documents;
+
+
 /// <summary>
 /// Configurable document type (e.g., Invoice, Delivery Note, Order, etc.).
 /// </summary>

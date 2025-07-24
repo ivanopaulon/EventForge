@@ -1,14 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace EventForge.Data.Entities.Teams;
+namespace EventForge.Models.Teams;
 
 /// <summary>
-/// Represents a member of a team.
-/// This entity contains only domain invariants and business logic that must always be enforced,
-/// regardless of the data source (API, UI, import, etc.).
-/// All input validation is handled at the DTO layer.
+/// DTO for TeamMember creation operations.
 /// </summary>
-public class TeamMember : AuditableEntity
+public class CreateTeamMemberDto
 {
     /// <summary>
     /// First name of the team member.
@@ -55,25 +52,9 @@ public class TeamMember : AuditableEntity
     public TeamMemberStatus Status { get; set; } = TeamMemberStatus.Active;
 
     /// <summary>
-    /// Foreign key to the owning team.
+    /// Owning team ID.
     /// </summary>
     [Required]
     [Display(Name = "Team", Description = "Owning team.")]
     public Guid TeamId { get; set; }
-
-    /// <summary>
-    /// Navigation property for the owning team.
-    /// </summary>
-    public Team? Team { get; set; }
-}
-
-/// <summary>
-/// Status for the team member.
-/// </summary>
-public enum TeamMemberStatus
-{
-    Active,     // The member is actively participating
-    Suspended,  // The member is temporarily suspended
-    Retired,    // The member has retired from the team
-    Excluded    // The member has been excluded from the team
 }

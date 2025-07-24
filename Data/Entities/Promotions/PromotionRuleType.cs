@@ -1,3 +1,6 @@
+namespace EventForge.Data.Entities.Promotions;
+
+
 /// <summary>
 /// Types of promotion rules.
 /// </summary>

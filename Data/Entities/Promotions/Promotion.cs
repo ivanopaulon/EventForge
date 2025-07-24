@@ -1,5 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.Promotions;
+
+
 /// <summary>
 /// Represents a promotion campaign.
 /// </summary>

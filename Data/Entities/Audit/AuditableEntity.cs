@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.Audit;
+
 /// <summary>
 /// Base class for auditable entities, providing common audit fields and concurrency control.
 /// </summary>

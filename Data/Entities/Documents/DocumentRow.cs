@@ -1,6 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
+namespace EventForge.Data.Entities.Documents;
+
+
 /// <summary>
 /// Represents a line item in the document.
 /// </summary>

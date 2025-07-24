@@ -1,5 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.Common;
+
+
 /// <summary>
 /// Contact associated with any entity (e.g., BusinessParty, Bank, User, Reference).
 /// </summary>

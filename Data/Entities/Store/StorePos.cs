@@ -1,5 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.Store;
+
+
 /// <summary>
 /// Represents a physical or virtual point of sale (POS).
 /// </summary>

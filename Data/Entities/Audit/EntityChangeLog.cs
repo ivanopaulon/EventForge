@@ -1,5 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.Audit;
+
+
 /// <summary>
 /// Represents a log entry for a single field change in an auditable entity.
 /// </summary>
