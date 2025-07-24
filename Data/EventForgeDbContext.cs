@@ -12,7 +12,6 @@ public class EventForgeDbContext : DbContext
     public DbSet<Bank> Banks { get; set; }
     public DbSet<Contact> Contacts { get; set; }
     public DbSet<Reference> References { get; set; }
-    public DbSet<Printer> Printers { get; set; }
 
     // Business
     public DbSet<BusinessParty> BusinessParties { get; set; }
@@ -22,7 +21,7 @@ public class EventForgeDbContext : DbContext
     public DbSet<DocumentRow> DocumentRows { get; set; }
     public DbSet<DocumentSummaryLink> DocumentSummaryLinks { get; set; }
 
-    // Events & Teams
+    // Events
     public DbSet<Event> Events { get; set; }
     public DbSet<Team> Teams { get; set; }
     public DbSet<TeamMember> TeamMembers { get; set; }
@@ -46,8 +45,9 @@ public class EventForgeDbContext : DbContext
     public DbSet<StorageFacility> StorageFacilities { get; set; }
     public DbSet<StorageLocation> StorageLocations { get; set; }
 
-    // Station Monitor
+    // Station
     public DbSet<Station> Stations { get; set; }
+    public DbSet<Printer> Printers { get; set; }
     public DbSet<StationOrderQueueItem> StationOrderQueueItems { get; set; }
 
     // Store
