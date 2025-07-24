@@ -42,7 +42,7 @@ public class StoreUserGroup : AuditableEntity
     /// Cashiers belonging to this group.
     /// </summary>
     [Display(Name = "Cashiers", Description = "Cashiers belonging to this group.")]
-    public ICollection<StoreUser> Cashiers { get; set; } = new List<StoreUser>();   
+    public ICollection<StoreUser> Cashiers { get; set; } = new List<StoreUser>();
 
     /// <summary>
     /// Privileges assigned to this group.

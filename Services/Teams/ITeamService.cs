@@ -1,4 +1,3 @@
-using EventForge.Models.Audit;
 using EventForge.Models.Teams;
 
 namespace EventForge.Services.Teams;
@@ -9,7 +8,7 @@ namespace EventForge.Services.Teams;
 public interface ITeamService
 {
     // Team CRUD operations
-    
+
     /// <summary>
     /// Gets all teams with optional pagination.
     /// </summary>

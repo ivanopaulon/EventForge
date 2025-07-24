@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using EventForge.Models.Teams;
 
 namespace EventForge.Models.Events;

@@ -1,7 +1,5 @@
-using Microsoft.EntityFrameworkCore;
-using EventForge.Models.Audit;
-using EventForge.Models.Events;
 using EventForge.Models.Teams;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Services.Events;
 

@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using System.Reflection;
-using EventForge.Models.Audit;
 
 namespace EventForge.Services.Audit;
 
@@ -161,7 +160,7 @@ public class AuditLogService : IAuditLogService
         if (operationType is "Insert" or "Delete")
         {
             var properties = GetTrackableProperties(entityType);
-            
+
             foreach (var property in properties)
             {
                 var value = property.GetValue(entity)?.ToString();
@@ -176,7 +175,7 @@ public class AuditLogService : IAuditLogService
                     ChangedBy = changedBy,
                     ChangedAt = DateTime.UtcNow
                 };
-                
+
                 changeLogs.Add(changeLog);
             }
         }
@@ -184,12 +183,12 @@ public class AuditLogService : IAuditLogService
         else if (operationType == "Update" && originalValues != null)
         {
             var properties = GetTrackableProperties(entityType);
-            
+
             foreach (var property in properties)
             {
                 var oldValue = property.GetValue(originalValues)?.ToString();
                 var newValue = property.GetValue(entity)?.ToString();
-                
+
                 // Only log if values are different
                 if (!string.Equals(oldValue, newValue, StringComparison.Ordinal))
                 {
@@ -204,7 +203,7 @@ public class AuditLogService : IAuditLogService
                         ChangedBy = changedBy,
                         ChangedAt = DateTime.UtcNow
                     };
-                    
+
                     changeLogs.Add(changeLog);
                 }
             }
@@ -310,23 +309,23 @@ public class AuditLogService : IAuditLogService
 
         return sortBy.ToLowerInvariant() switch
         {
-            "entityname" => isDescending 
-                ? query.OrderByDescending(x => x.EntityName) 
+            "entityname" => isDescending
+                ? query.OrderByDescending(x => x.EntityName)
                 : query.OrderBy(x => x.EntityName),
-            "entityid" => isDescending 
-                ? query.OrderByDescending(x => x.EntityId) 
+            "entityid" => isDescending
+                ? query.OrderByDescending(x => x.EntityId)
                 : query.OrderBy(x => x.EntityId),
-            "propertyname" => isDescending 
-                ? query.OrderByDescending(x => x.PropertyName) 
+            "propertyname" => isDescending
+                ? query.OrderByDescending(x => x.PropertyName)
                 : query.OrderBy(x => x.PropertyName),
-            "operationtype" => isDescending 
-                ? query.OrderByDescending(x => x.OperationType) 
+            "operationtype" => isDescending
+                ? query.OrderByDescending(x => x.OperationType)
                 : query.OrderBy(x => x.OperationType),
-            "changedby" => isDescending 
-                ? query.OrderByDescending(x => x.ChangedBy) 
+            "changedby" => isDescending
+                ? query.OrderByDescending(x => x.ChangedBy)
                 : query.OrderBy(x => x.ChangedBy),
-            "changedat" or _ => isDescending 
-                ? query.OrderByDescending(x => x.ChangedAt) 
+            "changedat" or _ => isDescending
+                ? query.OrderByDescending(x => x.ChangedAt)
                 : query.OrderBy(x => x.ChangedAt)
         };
     }
@@ -348,7 +347,7 @@ public class AuditLogService : IAuditLogService
         };
 
         return entityType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.CanRead && 
+            .Where(p => p.CanRead &&
                        !auditProperties.Contains(p.Name) &&
                        !p.PropertyType.IsSubclassOf(typeof(AuditableEntity)) &&
                        !typeof(System.Collections.IEnumerable).IsAssignableFrom(p.PropertyType) ||

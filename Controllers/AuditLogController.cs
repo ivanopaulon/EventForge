@@ -1,6 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
 using EventForge.Services.Audit;
-using EventForge.Models.Audit;
+using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Controllers;
 
@@ -47,7 +46,7 @@ public class AuditLogController : ControllerBase
         catch (Exception ex)
         {
             // Log the exception (you might want to use ILogger here)
-            return StatusCode(StatusCodes.Status500InternalServerError, 
+            return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "An error occurred while retrieving audit logs.", error = ex.Message });
         }
     }
@@ -70,7 +69,7 @@ public class AuditLogController : ControllerBase
         try
         {
             var auditLog = await _auditLogService.GetLogByIdAsync(id, cancellationToken);
-            
+
             if (auditLog == null)
             {
                 return NotFound(new { message = $"Audit log with ID {id} not found." });
@@ -81,7 +80,7 @@ public class AuditLogController : ControllerBase
         catch (Exception ex)
         {
             // Log the exception (you might want to use ILogger here)
-            return StatusCode(StatusCodes.Status500InternalServerError, 
+            return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "An error occurred while retrieving the audit log.", error = ex.Message });
         }
     }
@@ -107,7 +106,7 @@ public class AuditLogController : ControllerBase
         catch (Exception ex)
         {
             // Log the exception (you might want to use ILogger here)
-            return StatusCode(StatusCodes.Status500InternalServerError, 
+            return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "An error occurred while retrieving entity audit logs.", error = ex.Message });
         }
     }
@@ -140,7 +139,7 @@ public class AuditLogController : ControllerBase
         catch (Exception ex)
         {
             // Log the exception (you might want to use ILogger here)
-            return StatusCode(StatusCodes.Status500InternalServerError, 
+            return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "An error occurred while retrieving entity type audit logs.", error = ex.Message });
         }
     }
@@ -173,7 +172,7 @@ public class AuditLogController : ControllerBase
         catch (Exception ex)
         {
             // Log the exception (you might want to use ILogger here)
-            return StatusCode(StatusCodes.Status500InternalServerError, 
+            return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "An error occurred while retrieving user audit logs.", error = ex.Message });
         }
     }

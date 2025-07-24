@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
 using EventForge.Models.Teams;
 using EventForge.Services.Teams;
+using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Controllers;
 

@@ -1,6 +1,3 @@
-using EventForge.Models.Audit;
-using EventForge.Models.Events;
-
 namespace EventForge.Services.Events;
 
 /// <summary>
@@ -9,7 +6,7 @@ namespace EventForge.Services.Events;
 public interface IEventService
 {
     // Event CRUD operations
-    
+
     /// <summary>
     /// Gets all events with optional pagination.
     /// </summary>

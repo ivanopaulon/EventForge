@@ -1,5 +1,4 @@
 using System.Linq.Expressions;
-using EventForge.Models.Audit;
 
 namespace EventForge.Services.Audit;
 

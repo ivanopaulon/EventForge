@@ -25,7 +25,7 @@ public class PromotionRule : AuditableEntity
     /// </summary>
     [Required(ErrorMessage = "The rule type is required.")]
     [Display(Name = "Rule Type", Description = "Type of the rule (Discount, BuyXGetY, FixedPrice, Bundle, etc.).")]
-    public PromotionRuleType RuleType { get; set; }     
+    public PromotionRuleType RuleType { get; set; }
 
     /// <summary>
     /// Percentage discount (if applicable).
