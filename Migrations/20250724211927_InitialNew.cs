@@ -1,11 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace EventForge.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialNew : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -24,7 +25,6 @@ namespace EventForge.Migrations
                     Phone = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
                     Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     Notes = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     ModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -32,6 +32,7 @@ namespace EventForge.Migrations
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DeletedBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
                     RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true)
                 },
                 constraints: table =>
@@ -100,6 +101,26 @@ namespace EventForge.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "EntityChangeLogs",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    EntityName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    EntityDisplayName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    EntityId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PropertyName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    OperationType = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    OldValue = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    NewValue = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ChangedBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    ChangedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_EntityChangeLogs", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Events",
                 columns: table => new
                 {
@@ -128,6 +149,31 @@ namespace EventForge.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "PaymentTerms",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: true),
+                    DueDays = table.Column<int>(type: "int", nullable: false),
+                    PaymentMethod = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    ModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ModifiedBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DeletedBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PaymentTerms", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Promotions",
                 columns: table => new
                 {
@@ -136,7 +182,6 @@ namespace EventForge.Migrations
                     Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     StartDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     EndDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
                     MinOrderAmount = table.Column<decimal>(type: "decimal(18,6)", precision: 18, scale: 6, nullable: true),
                     MaxUses = table.Column<int>(type: "int", nullable: true),
                     CouponCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
@@ -149,6 +194,7 @@ namespace EventForge.Migrations
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DeletedBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
                     RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true)
                 },
                 constraints: table =>
@@ -165,7 +211,6 @@ namespace EventForge.Migrations
                     Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     Status = table.Column<int>(type: "int", nullable: false),
                     Location = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
                     SortOrder = table.Column<int>(type: "int", nullable: false),
                     Notes = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -175,6 +220,7 @@ namespace EventForge.Migrations
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DeletedBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
                     RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true)
                 },
                 constraints: table =>
@@ -194,7 +240,6 @@ namespace EventForge.Migrations
                     Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     Manager = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     IsFiscal = table.Column<bool>(type: "bit", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
                     Notes = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     AreaSquareMeters = table.Column<int>(type: "int", nullable: true),
                     Capacity = table.Column<int>(type: "int", nullable: true),
@@ -206,6 +251,7 @@ namespace EventForge.Migrations
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DeletedBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
                     RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true)
                 },
                 constraints: table =>
@@ -290,7 +336,7 @@ namespace EventForge.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "UM",
+                name: "UMs",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
@@ -311,11 +357,11 @@ namespace EventForge.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_UM", x => x.Id);
+                    table.PrimaryKey("PK_UMs", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "VatRate",
+                name: "VatRates",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
@@ -337,7 +383,7 @@ namespace EventForge.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_VatRate", x => x.Id);
+                    table.PrimaryKey("PK_VatRates", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -741,14 +787,14 @@ namespace EventForge.Migrations
                         principalTable: "Stations",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_Products_UM_UnitOfMeasureId",
+                        name: "FK_Products_UMs_UnitOfMeasureId",
                         column: x => x.UnitOfMeasureId,
-                        principalTable: "UM",
+                        principalTable: "UMs",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_Products_VatRate_VatRateId",
+                        name: "FK_Products_VatRates_VatRateId",
                         column: x => x.VatRateId,
-                        principalTable: "VatRate",
+                        principalTable: "VatRates",
                         principalColumn: "Id");
                 });
 
@@ -968,9 +1014,9 @@ namespace EventForge.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_ProductUnits_UM_UnitOfMeasureId",
+                        name: "FK_ProductUnits_UMs_UnitOfMeasureId",
                         column: x => x.UnitOfMeasureId,
-                        principalTable: "UM",
+                        principalTable: "UMs",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -1566,6 +1612,12 @@ namespace EventForge.Migrations
                 name: "DocumentSummaryLinks");
 
             migrationBuilder.DropTable(
+                name: "EntityChangeLogs");
+
+            migrationBuilder.DropTable(
+                name: "PaymentTerms");
+
+            migrationBuilder.DropTable(
                 name: "PriceListEntries");
 
             migrationBuilder.DropTable(
@@ -1623,10 +1675,10 @@ namespace EventForge.Migrations
                 name: "Stations");
 
             migrationBuilder.DropTable(
-                name: "UM");
+                name: "UMs");
 
             migrationBuilder.DropTable(
-                name: "VatRate");
+                name: "VatRates");
 
             migrationBuilder.DropTable(
                 name: "Addresses");

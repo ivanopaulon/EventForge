@@ -3,6 +3,7 @@ var builder = WebApplication.CreateBuilder(args);
 // builder.AddCustomSerilogLogging();
 builder.Services.AddConfiguredHttpClient(builder.Configuration);
 builder.Services.AddConfiguredDbContext(builder.Configuration);
+builder.AddCustomSerilogLogging();
 
 // Add API Controllers support
 builder.Services.AddControllers();
