@@ -1,5 +1,3 @@
-using EventForge.Data.Entities.Business;
-
 namespace EventForge.Models.Business;
 
 /// <summary>

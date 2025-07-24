@@ -1,9 +1,6 @@
 using EventForge.Models.PriceLists;
-using EventForge.Data.Entities.PriceList;
-using EventForge.Models.Audit;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using EventForge.Services.Audit;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Services.PriceLists;
 
@@ -326,14 +323,14 @@ public class PriceListService : IPriceListService
             // Audit log for the created entry
             await _auditLogService.TrackEntityChangesAsync(entry, "Create", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Price list entry created with ID {EntryId} for price list {PriceListId} by user {User}.", 
+            _logger.LogInformation("Price list entry created with ID {EntryId} for price list {PriceListId} by user {User}.",
                 entry.Id, createPriceListEntryDto.PriceListId, currentUser);
 
             return MapToPriceListEntryDto(entry);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating price list entry for price list {PriceListId} by user {User}.", 
+            _logger.LogError(ex, "Error creating price list entry for price list {PriceListId} by user {User}.",
                 createPriceListEntryDto.PriceListId, currentUser);
             throw;
         }

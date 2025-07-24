@@ -1,5 +1,4 @@
 using EventForge.Models.Banks;
-using EventForge.Models.Audit;
 
 namespace EventForge.Services.Banks;
 

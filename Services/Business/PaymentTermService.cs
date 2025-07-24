@@ -1,9 +1,6 @@
 using EventForge.Models.Business;
-using EventForge.Data.Entities.Business;
-using EventForge.Models.Audit;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using EventForge.Services.Audit;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Services.Business;
 

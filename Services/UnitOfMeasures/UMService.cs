@@ -1,10 +1,6 @@
 using EventForge.Models.UnitOfMeasures;
-using EventForge.Models.Audit;
-using EventForge.Data;
-using EventForge.Data.Entities.Common;
-using Microsoft.EntityFrameworkCore;
 using EventForge.Services.Audit;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Services.UnitOfMeasures;
 

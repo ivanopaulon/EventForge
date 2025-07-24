@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using EventForge.Data.Entities.Business;
 
 namespace EventForge.Models.Business;
 

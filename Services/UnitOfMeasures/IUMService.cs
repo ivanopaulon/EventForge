@@ -1,5 +1,4 @@
 using EventForge.Models.UnitOfMeasures;
-using EventForge.Models.Audit;
 
 namespace EventForge.Services.UnitOfMeasures;
 

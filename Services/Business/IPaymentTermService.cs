@@ -1,5 +1,4 @@
 using EventForge.Models.Business;
-using EventForge.Models.Audit;
 
 namespace EventForge.Services.Business;
 

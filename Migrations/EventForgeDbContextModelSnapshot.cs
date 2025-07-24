@@ -140,6 +140,67 @@ namespace EventForge.Migrations
                     b.ToTable("BusinessParties");
                 });
 
+            modelBuilder.Entity("EventForge.Data.Entities.Business.PaymentTerm", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<int>("DueDays")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("PaymentMethod")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PaymentTerms");
+                });
+
             modelBuilder.Entity("EventForge.Data.Entities.Common.Address", b =>
                 {
                     b.Property<Guid>("Id")
@@ -671,7 +732,7 @@ namespace EventForge.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("UM");
+                    b.ToTable("UMs");
                 });
 
             modelBuilder.Entity("EventForge.Data.Entities.Common.VatRate", b =>
@@ -736,7 +797,7 @@ namespace EventForge.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("VatRate");
+                    b.ToTable("VatRates");
                 });
 
             modelBuilder.Entity("EventForge.Data.Entities.Documents.DocumentHeader", b =>
