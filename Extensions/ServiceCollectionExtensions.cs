@@ -1,6 +1,7 @@
 using EventForge.Services.Audit;
 using EventForge.Services.Events;
 using EventForge.Services.Teams;
+using EventForge.Services.Banks;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
@@ -99,6 +100,9 @@ public static class ServiceCollectionExtensions
 
         // Register event services
         services.AddScoped<IEventService, EventService>();
+
+        // Register bank services
+        services.AddScoped<IBankService, BankService>();
     }
 
     /// <summary>
