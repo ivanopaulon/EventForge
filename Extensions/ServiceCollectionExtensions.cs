@@ -1,6 +1,10 @@
 using EventForge.Services.Audit;
 using EventForge.Services.Events;
 using EventForge.Services.Teams;
+using EventForge.Services.Banks;
+using EventForge.Services.UnitOfMeasures;
+using EventForge.Services.VatRates;
+using EventForge.Services.PriceLists;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
@@ -99,6 +103,23 @@ public static class ServiceCollectionExtensions
 
         // Register event services
         services.AddScoped<IEventService, EventService>();
+
+        // Register bank services
+        services.AddScoped<IBankService, BankService>();
+
+        // Register unit of measure services
+        services.AddScoped<IUMService, UMService>();
+
+        // Register VAT rate services
+        services.AddScoped<IVatRateService, VatRateService>();
+
+        // TODO: Complete implementation for:
+        // - IPriceListService, PriceListService (grouped service for PriceList + PriceListEntry)
+        // - IStoreUserService, StoreUserService (grouped service for StoreUser + StoreUserGroup + StoreUserPrivilege)
+        // - IStationService, StationService (grouped service for Station + Printer)
+        // - IBusinessPartyService, BusinessPartyService (grouped service for BusinessParty + BusinessPartyAccounting)
+        // - IPaymentTermService, PaymentTermService (standalone service)
+        // - IProductService, ProductService (grouped service for Product + ProductCode + ProductUnit + ProductBundleItem)
     }
 
     /// <summary>

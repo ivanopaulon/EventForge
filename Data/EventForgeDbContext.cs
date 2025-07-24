@@ -15,6 +15,8 @@ public class EventForgeDbContext : DbContext
     public DbSet<Contact> Contacts { get; set; }
     public DbSet<Reference> References { get; set; }
     public DbSet<Printer> Printers { get; set; }
+    public DbSet<UM> UMs { get; set; }
+    public DbSet<VatRate> VatRates { get; set; }
 
     // Business
     public DbSet<BusinessParty> BusinessParties { get; set; }
