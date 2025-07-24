@@ -1,17 +1,16 @@
 using EventForge.Services.Audit;
 using EventForge.Services.Banks;
 using EventForge.Services.Business;
+using EventForge.Services.Common;
 using EventForge.Services.Events;
 using EventForge.Services.PriceLists;
 using EventForge.Services.Products;
+using EventForge.Services.Station;
+using EventForge.Services.Store;
 using EventForge.Services.Teams;
 using EventForge.Services.UnitOfMeasures;
 using EventForge.Services.VatRates;
-using EventForge.Services.PriceLists;
-using EventForge.Services.Products;
-using EventForge.Services.Business;
-using EventForge.Services.Store;
-using EventForge.Services.Station;
+using EventForge.Services.Warehouse;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
@@ -138,9 +137,16 @@ public static class ServiceCollectionExtensions
         // Register business party services
         services.AddScoped<IBusinessPartyService, BusinessPartyService>();
 
+        // Register common services
+        services.AddScoped<IAddressService, AddressService>();
+        services.AddScoped<IContactService, ContactService>();
+
+        // Register warehouse services
+        services.AddScoped<IStorageFacilityService, StorageFacilityService>();
+
         // TODO: Complete implementation for:
-        // - Common services: Address, Contact, ClassificationNode, Reference
-        // - Warehouse services: StorageFacility, StorageLocation
+        // - Common services: ClassificationNode, Reference  
+        // - Warehouse services: StorageLocation
         // - Promotion services: Promotion, PromotionRule, PromotionRuleProduct
         // - Document services: DocumentHeader, DocumentRow, DocumentSummaryLink, DocumentType
     }
