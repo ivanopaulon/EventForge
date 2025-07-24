@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.Teams;
+
 /// <summary>
 /// Represents a member of a team.
 /// This entity contains only domain invariants and business logic that must always be enforced,

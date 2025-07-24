@@ -1,5 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.Common;
+
+
 /// <summary>
 /// Represents a unit of measure entity (e.g., "Kg", "L", "Pcs").
 /// </summary>

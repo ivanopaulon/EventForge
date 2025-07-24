@@ -1,5 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.Business;
+
+
 /// <summary>
 /// Payment term definition (e.g. 30 days, end of month, etc.).
 /// </summary>

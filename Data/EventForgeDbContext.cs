@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
+namespace EventForge.Data;
+
 public class EventForgeDbContext : DbContext
 {
     public EventForgeDbContext(DbContextOptions<EventForgeDbContext> options)

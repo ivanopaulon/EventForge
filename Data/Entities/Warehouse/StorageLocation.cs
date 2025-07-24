@@ -1,5 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.Warehouse;
+
+
 /// <summary>
 /// Represents a specific location or area within a warehouse (e.g., shelf, bin, zone).
 /// </summary>

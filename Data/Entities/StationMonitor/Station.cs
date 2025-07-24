@@ -1,5 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace EventForge.Data.Entities.StationMonitor;
+
+
 /// <summary>
 /// Represents a station (e.g., bar, kitchen, cash register, etc.).
 /// </summary>

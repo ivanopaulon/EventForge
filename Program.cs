@@ -57,7 +57,7 @@ else
 app.UseHttpsRedirection();
 app.UseAntiforgery();
 
-app.MapStaticAssets();
+app.UseStaticFiles();
 
 // Map API Controllers
 app.MapControllers();

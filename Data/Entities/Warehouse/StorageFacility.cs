@@ -3,6 +3,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Collections.Generic;
 
+namespace EventForge.Data.Entities.Warehouse;
+
+
 /// <summary>
 /// Represents a physical warehouse or storage facility in the domain.
 /// This entity contains only domain invariants and business logic that must always be enforced,
