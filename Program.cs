@@ -54,7 +54,30 @@ app.UseHttpsRedirection();
 // Map API Controllers
 app.MapControllers();
 
-// Add a simple health check endpoint for testing
-app.MapGet("/health", () => "EventForge API is running!");
+// Add a comprehensive health check endpoint
+app.MapGet("/health", async (EventForgeDbContext dbContext) =>
+{
+    var response = new
+    {
+        api = "EventForge API is running",
+        database = await GetDatabaseStatusAsync(dbContext),
+        timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
+    };
+    
+    return Results.Json(response);
+});
+
+static async Task<string> GetDatabaseStatusAsync(EventForgeDbContext dbContext)
+{
+    try
+    {
+        var canConnect = await dbContext.Database.CanConnectAsync();
+        return canConnect ? "Healthy" : "Unreachable";
+    }
+    catch (Exception)
+    {
+        return "Error";
+    }
+}
 
 app.Run();
