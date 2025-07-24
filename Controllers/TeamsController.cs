@@ -7,10 +7,8 @@ namespace EventForge.Controllers;
 /// <summary>
 /// REST API controller for team and team member management.
 /// </summary>
-[ApiController]
-[Route("api/[controller]")]
-[Produces("application/json")]
-public class TeamsController : ControllerBase
+[Route("api/v1/[controller]")]
+public class TeamsController : BaseApiController
 {
     private readonly ITeamService _teamService;
 
@@ -451,20 +449,4 @@ public class TeamsController : ControllerBase
 
     #endregion
 
-    #region Helper Methods
-
-    /// <summary>
-    /// Gets the current user from the request context.
-    /// For demonstration purposes, this returns a default user.
-    /// In a real application, this would extract the user from JWT claims or similar.
-    /// </summary>
-    /// <returns>Current user identifier</returns>
-    private string GetCurrentUser()
-    {
-        // In a real application, you would extract this from JWT claims, session, etc.
-        // For now, we'll use a default user
-        return User?.Identity?.Name ?? "system";
-    }
-
-    #endregion
 }

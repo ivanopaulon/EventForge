@@ -7,10 +7,8 @@ namespace EventForge.Controllers;
 /// <summary>
 /// REST API controller for station and printer management.
 /// </summary>
-[ApiController]
-[Route("api/[controller]")]
-[Produces("application/json")]
-public class StationsController : ControllerBase
+[Route("api/v1/[controller]")]
+public class StationsController : BaseApiController
 {
     private readonly IStationService _stationService;
 

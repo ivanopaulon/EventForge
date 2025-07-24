@@ -7,10 +7,8 @@ namespace EventForge.Controllers;
 /// <summary>
 /// REST API controller for bank management.
 /// </summary>
-[ApiController]
-[Route("api/[controller]")]
-[Produces("application/json")]
-public class BanksController : ControllerBase
+[Route("api/v1/[controller]")]
+public class BanksController : BaseApiController
 {
     private readonly IBankService _bankService;
 

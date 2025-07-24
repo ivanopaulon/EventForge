@@ -6,10 +6,8 @@ namespace EventForge.Controllers;
 /// <summary>
 /// REST API controller for audit log consultation.
 /// </summary>
-[ApiController]
-[Route("api/[controller]")]
-[Produces("application/json")]
-public class AuditLogController : ControllerBase
+[Route("api/v1/[controller]")]
+public class AuditLogController : BaseApiController
 {
     private readonly IAuditLogService _auditLogService;
 

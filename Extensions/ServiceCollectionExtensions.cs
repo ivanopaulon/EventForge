@@ -145,6 +145,7 @@ public static class ServiceCollectionExtensions
         // Register common services
         services.AddScoped<IAddressService, AddressService>();
         services.AddScoped<IContactService, ContactService>();
+        services.AddScoped<IClassificationNodeService, ClassificationNodeService>();
 
         // Register warehouse services
         services.AddScoped<IStorageFacilityService, StorageFacilityService>();

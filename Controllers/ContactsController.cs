@@ -7,10 +7,8 @@ namespace EventForge.Controllers;
 /// <summary>
 /// REST API controller for contact management.
 /// </summary>
-[ApiController]
-[Route("api/[controller]")]
-[Produces("application/json")]
-public class ContactsController : ControllerBase
+[Route("api/v1/[controller]")]
+public class ContactsController : BaseApiController
 {
     private readonly IContactService _contactService;
 
