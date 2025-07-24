@@ -6,7 +6,7 @@ using Serilog.Sinks.MSSqlServer;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Configura Serilog con fallback su file se il database non è disponibile.
+    /// Configura Serilog con fallback su file se il database non ï¿½ disponibile.
     /// </summary>
     public static void AddCustomSerilogLogging(this WebApplicationBuilder builder)
     {
@@ -57,6 +57,14 @@ public static class ServiceCollectionExtensions
             client.BaseAddress = httpClientUri;
         });
         services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("Default"));
+    }
+
+    /// <summary>
+    /// Registers audit services for dependency injection.
+    /// </summary>
+    public static void AddAuditServices(this IServiceCollection services)
+    {
+        services.AddScoped<IEntityChangeLogService, EntityChangeLogService>();
     }
 
     /// <summary>

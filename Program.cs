@@ -5,6 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 // builder.AddCustomSerilogLogging();
 builder.Services.AddConfiguredHttpClient(builder.Configuration);
 builder.Services.AddConfiguredDbContext(builder.Configuration);
+builder.Services.AddAuditServices();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -27,7 +28,8 @@ else
 app.UseHttpsRedirection();
 app.UseAntiforgery();
 
-app.MapStaticAssets();
+// Remove MapStaticAssets() as it's not available in .NET 8
+app.UseStaticFiles();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

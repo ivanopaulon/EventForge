@@ -56,6 +56,9 @@ public class EventForgeDbContext : DbContext
     public DbSet<StoreUserGroup> StoreUserGroups { get; set; }
     public DbSet<StoreUserPrivilege> StoreUserPrivileges { get; set; }
 
+    // Audit
+    public DbSet<EntityChangeLog> EntityChangeLogs { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
