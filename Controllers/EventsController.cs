@@ -239,7 +239,7 @@ public class EventsController : ControllerBase
         try
         {
             var currentUser = GetCurrentUser();
-            var result = await _eventService.DeleteEventAsync(id, currentUser, cancellationToken);
+            var result = await _eventService.DeleteEventAsync(id, currentUser, Array.Empty<byte>(), cancellationToken);
 
             if (!result)
             {
