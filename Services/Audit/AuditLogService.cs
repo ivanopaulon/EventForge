@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using System.Reflection;
+using EventForge.Models.Audit;
 
 namespace EventForge.Services.Audit;
 
@@ -216,6 +217,118 @@ public class AuditLogService : IAuditLogService
         }
 
         return changeLogs;
+    }
+
+    /// <summary>
+    /// Gets paginated audit logs with filtering and sorting.
+    /// </summary>
+    public async Task<PagedResult<EntityChangeLog>> GetPagedLogsAsync(
+        AuditLogQueryParameters queryParameters,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(queryParameters);
+
+        var query = _context.EntityChangeLogs.AsQueryable();
+
+        // Apply filters
+        if (!string.IsNullOrWhiteSpace(queryParameters.EntityName))
+        {
+            query = query.Where(log => log.EntityName.Contains(queryParameters.EntityName));
+        }
+
+        if (queryParameters.EntityId.HasValue)
+        {
+            query = query.Where(log => log.EntityId == queryParameters.EntityId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryParameters.ChangedBy))
+        {
+            query = query.Where(log => log.ChangedBy.Contains(queryParameters.ChangedBy));
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryParameters.OperationType))
+        {
+            query = query.Where(log => log.OperationType == queryParameters.OperationType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryParameters.PropertyName))
+        {
+            query = query.Where(log => log.PropertyName.Contains(queryParameters.PropertyName));
+        }
+
+        if (queryParameters.FromDate.HasValue)
+        {
+            query = query.Where(log => log.ChangedAt >= queryParameters.FromDate.Value);
+        }
+
+        if (queryParameters.ToDate.HasValue)
+        {
+            query = query.Where(log => log.ChangedAt <= queryParameters.ToDate.Value);
+        }
+
+        // Get total count before pagination
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        // Apply sorting
+        query = ApplySorting(query, queryParameters.SortBy, queryParameters.SortDirection);
+
+        // Apply pagination
+        var items = await query
+            .Skip(queryParameters.Skip)
+            .Take(queryParameters.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<EntityChangeLog>
+        {
+            Items = items,
+            Page = queryParameters.Page,
+            PageSize = queryParameters.PageSize,
+            TotalCount = totalCount
+        };
+    }
+
+    /// <summary>
+    /// Gets a single audit log by ID.
+    /// </summary>
+    public async Task<EntityChangeLog?> GetLogByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.EntityChangeLogs
+            .FirstOrDefaultAsync(log => log.Id == id, cancellationToken);
+    }
+
+    /// <summary>
+    /// Applies sorting to the query based on sort field and direction.
+    /// </summary>
+    private static IQueryable<EntityChangeLog> ApplySorting(
+        IQueryable<EntityChangeLog> query,
+        string sortBy,
+        string sortDirection)
+    {
+        var isDescending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+        return sortBy.ToLowerInvariant() switch
+        {
+            "entityname" => isDescending 
+                ? query.OrderByDescending(x => x.EntityName) 
+                : query.OrderBy(x => x.EntityName),
+            "entityid" => isDescending 
+                ? query.OrderByDescending(x => x.EntityId) 
+                : query.OrderBy(x => x.EntityId),
+            "propertyname" => isDescending 
+                ? query.OrderByDescending(x => x.PropertyName) 
+                : query.OrderBy(x => x.PropertyName),
+            "operationtype" => isDescending 
+                ? query.OrderByDescending(x => x.OperationType) 
+                : query.OrderBy(x => x.OperationType),
+            "changedby" => isDescending 
+                ? query.OrderByDescending(x => x.ChangedBy) 
+                : query.OrderBy(x => x.ChangedBy),
+            "changedat" or _ => isDescending 
+                ? query.OrderByDescending(x => x.ChangedAt) 
+                : query.OrderBy(x => x.ChangedAt)
+        };
     }
 
     /// <summary>

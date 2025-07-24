@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using EventForge.Models.Audit;
 
 namespace EventForge.Services.Audit;
 
@@ -106,4 +107,24 @@ public interface IAuditLogService
         TEntity? originalValues = null,
         CancellationToken cancellationToken = default)
         where TEntity : AuditableEntity;
+
+    /// <summary>
+    /// Gets paginated audit logs with filtering and sorting.
+    /// </summary>
+    /// <param name="queryParameters">Query parameters for filtering, sorting and pagination</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated audit logs with total count</returns>
+    Task<PagedResult<EntityChangeLog>> GetPagedLogsAsync(
+        AuditLogQueryParameters queryParameters,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a single audit log by ID.
+    /// </summary>
+    /// <param name="id">The audit log ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The audit log entry or null if not found</returns>
+    Task<EntityChangeLog?> GetLogByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken = default);
 }
