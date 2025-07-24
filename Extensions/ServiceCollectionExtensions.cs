@@ -132,8 +132,10 @@ public static class ServiceCollectionExtensions
         // Register station services
         services.AddScoped<IStationService, StationService>();
 
+        // Register business party services
+        services.AddScoped<IBusinessPartyService, BusinessPartyService>();
+
         // TODO: Complete implementation for:
-        // - IBusinessPartyService, BusinessPartyService (grouped service for BusinessParty + BusinessPartyAccounting)
         // - Common services: Address, Contact, ClassificationNode, Reference
         // - Warehouse services: StorageFacility, StorageLocation
         // - Promotion services: Promotion, PromotionRule, PromotionRuleProduct
