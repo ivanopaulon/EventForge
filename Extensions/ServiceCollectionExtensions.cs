@@ -5,6 +5,8 @@ using EventForge.Services.Banks;
 using EventForge.Services.UnitOfMeasures;
 using EventForge.Services.VatRates;
 using EventForge.Services.PriceLists;
+using EventForge.Services.Products;
+using EventForge.Services.Business;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
@@ -113,13 +115,23 @@ public static class ServiceCollectionExtensions
         // Register VAT rate services
         services.AddScoped<IVatRateService, VatRateService>();
 
+        // Register product services
+        services.AddScoped<IProductService, ProductService>();
+
+        // Register price list services
+        services.AddScoped<IPriceListService, PriceListService>();
+
+        // Register payment term services
+        services.AddScoped<IPaymentTermService, PaymentTermService>();
+
         // TODO: Complete implementation for:
-        // - IPriceListService, PriceListService (grouped service for PriceList + PriceListEntry)
         // - IStoreUserService, StoreUserService (grouped service for StoreUser + StoreUserGroup + StoreUserPrivilege)
         // - IStationService, StationService (grouped service for Station + Printer)
         // - IBusinessPartyService, BusinessPartyService (grouped service for BusinessParty + BusinessPartyAccounting)
-        // - IPaymentTermService, PaymentTermService (standalone service)
-        // - IProductService, ProductService (grouped service for Product + ProductCode + ProductUnit + ProductBundleItem)
+        // - Common services: Address, Contact, ClassificationNode, Reference
+        // - Warehouse services: StorageFacility, StorageLocation
+        // - Promotion services: Promotion, PromotionRule, PromotionRuleProduct
+        // - Document services: DocumentHeader, DocumentRow, DocumentSummaryLink, DocumentType
     }
 
     /// <summary>
