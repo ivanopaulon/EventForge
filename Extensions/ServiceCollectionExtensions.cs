@@ -2,14 +2,12 @@ using EventForge.Services.Audit;
 using EventForge.Services.Banks;
 using EventForge.Services.Business;
 using EventForge.Services.Events;
+using EventForge.Services.Logs;
 using EventForge.Services.PriceLists;
 using EventForge.Services.Products;
 using EventForge.Services.Teams;
 using EventForge.Services.UnitOfMeasures;
 using EventForge.Services.VatRates;
-using EventForge.Services.PriceLists;
-using EventForge.Services.Products;
-using EventForge.Services.Business;
 using EventForge.Services.Store;
 using EventForge.Services.Station;
 using Microsoft.EntityFrameworkCore;
@@ -104,6 +102,9 @@ public static class ServiceCollectionExtensions
 
         // Register audit services
         services.AddScoped<IAuditLogService, AuditLogService>();
+
+        // Register application log services
+        services.AddScoped<IApplicationLogService, ApplicationLogService>();
 
         // Register team services
         services.AddScoped<ITeamService, TeamService>();
