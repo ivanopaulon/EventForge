@@ -2,6 +2,8 @@ using EventForge.Services.Audit;
 using EventForge.Services.Events;
 using EventForge.Services.Teams;
 using EventForge.Services.Banks;
+using EventForge.Services.UnitOfMeasures;
+using EventForge.Services.VatRates;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
@@ -103,6 +105,12 @@ public static class ServiceCollectionExtensions
 
         // Register bank services
         services.AddScoped<IBankService, BankService>();
+
+        // Register unit of measure services
+        services.AddScoped<IUMService, UMService>();
+
+        // Register VAT rate services
+        services.AddScoped<IVatRateService, VatRateService>();
     }
 
     /// <summary>
