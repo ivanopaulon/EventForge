@@ -7,6 +7,7 @@ using EventForge.Services.VatRates;
 using EventForge.Services.PriceLists;
 using EventForge.Services.Products;
 using EventForge.Services.Business;
+using EventForge.Services.Store;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
@@ -124,8 +125,10 @@ public static class ServiceCollectionExtensions
         // Register payment term services
         services.AddScoped<IPaymentTermService, PaymentTermService>();
 
+        // Register store user services
+        services.AddScoped<IStoreUserService, StoreUserService>();
+
         // TODO: Complete implementation for:
-        // - IStoreUserService, StoreUserService (grouped service for StoreUser + StoreUserGroup + StoreUserPrivilege)
         // - IStationService, StationService (grouped service for Station + Printer)
         // - IBusinessPartyService, BusinessPartyService (grouped service for BusinessParty + BusinessPartyAccounting)
         // - Common services: Address, Contact, ClassificationNode, Reference
