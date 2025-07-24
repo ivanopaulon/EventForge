@@ -14,3 +14,4 @@ global using EventForge.Data.Entities.Store;
 global using EventForge.Data.Entities.Teams;
 global using EventForge.Data.Entities.Warehouse;
 global using EventForge.Models.Audit;
+global using EventForge.Models.Events;
