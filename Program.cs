@@ -1,5 +1,3 @@
-using EventForge.Components;
-
 var builder = WebApplication.CreateBuilder(args);
 
 // builder.AddCustomSerilogLogging();
@@ -28,9 +26,6 @@ builder.Services.AddSwaggerGen(c =>
     }
 });
 
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
-
 var app = builder.Build();
 
 app.Services.EnsureDatabaseMigrated(); // opzionale, per applicare le migrazioni
@@ -55,14 +50,11 @@ else
 }
 
 app.UseHttpsRedirection();
-app.UseAntiforgery();
-
-app.UseStaticFiles();
 
 // Map API Controllers
 app.MapControllers();
 
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+// Add a simple health check endpoint for testing
+app.MapGet("/health", () => "EventForge API is running!");
 
 app.Run();
