@@ -51,6 +51,11 @@ public class StoreUserDto
     public Guid? CashierGroupId { get; set; }
 
     /// <summary>
+    /// Cashier group name (for display purposes).
+    /// </summary>
+    public string? CashierGroupName { get; set; }
+
+    /// <summary>
     /// Date and time when the store user was created (UTC).
     /// </summary>
     public DateTime CreatedAt { get; set; }

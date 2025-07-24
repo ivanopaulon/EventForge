@@ -20,6 +20,7 @@ public class EventForgeDbContext : DbContext
 
     // Business
     public DbSet<BusinessParty> BusinessParties { get; set; }
+    public DbSet<BusinessPartyAccounting> BusinessPartyAccountings { get; set; }
     public DbSet<PaymentTerm> PaymentTerms { get; set; }
 
     // Documents
