@@ -1,12 +1,12 @@
 using EventForge.Services.Audit;
-using EventForge.Services.Events;
-using EventForge.Services.Teams;
 using EventForge.Services.Banks;
-using EventForge.Services.UnitOfMeasures;
-using EventForge.Services.VatRates;
+using EventForge.Services.Business;
+using EventForge.Services.Events;
 using EventForge.Services.PriceLists;
 using EventForge.Services.Products;
-using EventForge.Services.Business;
+using EventForge.Services.Teams;
+using EventForge.Services.UnitOfMeasures;
+using EventForge.Services.VatRates;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;

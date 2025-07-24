@@ -1,5 +1,4 @@
 using EventForge.Models.UnitOfMeasures;
-using EventForge.Models.Audit;
 using EventForge.Services.UnitOfMeasures;
 using Microsoft.AspNetCore.Mvc;
 

@@ -1,6 +1,5 @@
-using EventForge.Services.Business;
 using EventForge.Models.Business;
-using EventForge.Models.Audit;
+using EventForge.Services.Business;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Controllers;

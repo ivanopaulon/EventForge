@@ -1,5 +1,4 @@
 using EventForge.Models.VatRates;
-using EventForge.Models.Audit;
 
 namespace EventForge.Services.VatRates;
 

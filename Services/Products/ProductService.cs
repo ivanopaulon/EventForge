@@ -1,9 +1,6 @@
 using EventForge.Models.Products;
-using EventForge.Data.Entities.Products;
-using EventForge.Models.Audit;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using EventForge.Services.Audit;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Services.Products;
 
@@ -347,14 +344,14 @@ public class ProductService : IProductService
             // Audit log for the created product code
             await _auditLogService.TrackEntityChangesAsync(productCode, "Create", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Product code created with ID {ProductCodeId} for product {ProductId} by user {User}.", 
+            _logger.LogInformation("Product code created with ID {ProductCodeId} for product {ProductId} by user {User}.",
                 productCode.Id, createProductCodeDto.ProductId, currentUser);
 
             return MapToProductCodeDto(productCode);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating product code for product {ProductId} by user {User}.", 
+            _logger.LogError(ex, "Error creating product code for product {ProductId} by user {User}.",
                 createProductCodeDto.ProductId, currentUser);
             throw;
         }
@@ -524,14 +521,14 @@ public class ProductService : IProductService
             // Audit log for the created product unit
             await _auditLogService.TrackEntityChangesAsync(productUnit, "Create", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Product unit created with ID {ProductUnitId} for product {ProductId} by user {User}.", 
+            _logger.LogInformation("Product unit created with ID {ProductUnitId} for product {ProductId} by user {User}.",
                 productUnit.Id, createProductUnitDto.ProductId, currentUser);
 
             return MapToProductUnitDto(productUnit);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating product unit for product {ProductId} by user {User}.", 
+            _logger.LogError(ex, "Error creating product unit for product {ProductId} by user {User}.",
                 createProductUnitDto.ProductId, currentUser);
             throw;
         }
@@ -706,14 +703,14 @@ public class ProductService : IProductService
             // Audit log for the created bundle item
             await _auditLogService.TrackEntityChangesAsync(bundleItem, "Create", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Bundle item created with ID {BundleItemId} for bundle {BundleProductId} by user {User}.", 
+            _logger.LogInformation("Bundle item created with ID {BundleItemId} for bundle {BundleProductId} by user {User}.",
                 bundleItem.Id, createProductBundleItemDto.BundleProductId, currentUser);
 
             return MapToProductBundleItemDto(bundleItem);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating bundle item for bundle {BundleProductId} by user {User}.", 
+            _logger.LogError(ex, "Error creating bundle item for bundle {BundleProductId} by user {User}.",
                 createProductBundleItemDto.BundleProductId, currentUser);
             throw;
         }
