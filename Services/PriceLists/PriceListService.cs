@@ -1,4 +1,4 @@
-using EventForge.Models.PriceLists;
+using EventForge.DTOs.PriceLists;
 using EventForge.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 

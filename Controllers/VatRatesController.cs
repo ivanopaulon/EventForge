@@ -1,4 +1,4 @@
-using EventForge.Models.VatRates;
+using EventForge.DTOs.VatRates;
 using EventForge.Services.VatRates;
 using Microsoft.AspNetCore.Mvc;
 

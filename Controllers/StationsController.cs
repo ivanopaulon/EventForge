@@ -1,4 +1,4 @@
-using EventForge.Models.Station;
+using EventForge.DTOs.Station;
 using EventForge.Services.Station;
 using Microsoft.AspNetCore.Mvc;
 

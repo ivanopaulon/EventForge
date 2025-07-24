@@ -1,4 +1,4 @@
-using EventForge.Models.Promotions;
+using EventForge.DTOs.Promotions;
 using EventForge.Services.Promotions;
 using Microsoft.AspNetCore.Mvc;
 

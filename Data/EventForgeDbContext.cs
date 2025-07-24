@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using EventForge.Data.Entities.Audit;
 
 namespace EventForge.Data;
 
@@ -68,6 +69,24 @@ public class EventForgeDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Configure global query filters for soft delete
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            // Apply soft delete filter to all entities that inherit from AuditableEntity
+            if (typeof(AuditableEntity).IsAssignableFrom(entityType.ClrType))
+            {
+                var method = typeof(EventForgeDbContext)
+                    .GetMethod(nameof(GetSoftDeleteFilter), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+                    ?.MakeGenericMethod(entityType.ClrType);
+                
+                var filter = method?.Invoke(null, new object[] { });
+                if (filter != null)
+                {
+                    modelBuilder.Entity(entityType.ClrType).HasQueryFilter((System.Linq.Expressions.LambdaExpression)filter);
+                }
+            }
+        }
 
         // DocumentHeader - importi e prezzi
         modelBuilder.Entity<DocumentHeader>().Property(x => x.AmountPaid).HasPrecision(18, 6);
@@ -221,5 +240,27 @@ public class EventForgeDbContext : DbContext
 
         // Bank → Address, Contact, Reference (polymorphic, managed at application/query level)
         // BusinessParty → Address, Contact, Reference (polymorphic, managed at application/query level)
+    }
+
+    /// <summary>
+    /// Creates a soft delete filter for entities that inherit from AuditableEntity.
+    /// </summary>
+    /// <typeparam name="TEntity">The entity type</typeparam>
+    /// <returns>Lambda expression for the filter</returns>
+    private static System.Linq.Expressions.LambdaExpression GetSoftDeleteFilter<TEntity>()
+        where TEntity : AuditableEntity
+    {
+        System.Linq.Expressions.Expression<Func<TEntity, bool>> filter = e => !e.IsDeleted;
+        return filter;
+    }
+
+    /// <summary>
+    /// Includes soft-deleted entities in queries. Use sparingly and only when necessary.
+    /// </summary>
+    /// <typeparam name="T">Entity type</typeparam>
+    /// <returns>Queryable including soft-deleted entities</returns>
+    public IQueryable<T> IncludeDeleted<T>() where T : AuditableEntity
+    {
+        return Set<T>().IgnoreQueryFilters();
     }
 }

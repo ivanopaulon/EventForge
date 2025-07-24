@@ -1,4 +1,4 @@
-using EventForge.Models.Promotions;
+using EventForge.DTOs.Promotions;
 
 namespace EventForge.Services.Promotions;
 

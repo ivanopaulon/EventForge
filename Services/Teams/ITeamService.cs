@@ -1,4 +1,4 @@
-using EventForge.Models.Teams;
+using EventForge.DTOs.Teams;
 
 namespace EventForge.Services.Teams;
 

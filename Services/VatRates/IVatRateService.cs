@@ -1,4 +1,4 @@
-using EventForge.Models.VatRates;
+using EventForge.DTOs.VatRates;
 
 namespace EventForge.Services.VatRates;
 

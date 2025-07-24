@@ -1,4 +1,4 @@
-using EventForge.Models.Banks;
+using EventForge.DTOs.Banks;
 using EventForge.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 

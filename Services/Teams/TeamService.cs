@@ -1,4 +1,4 @@
-using EventForge.Models.Teams;
+using EventForge.DTOs.Teams;
 using EventForge.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 

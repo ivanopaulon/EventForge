@@ -1,4 +1,4 @@
-using EventForge.Models.Store;
+using EventForge.DTOs.Store;
 
 namespace EventForge.Services.Store;
 
