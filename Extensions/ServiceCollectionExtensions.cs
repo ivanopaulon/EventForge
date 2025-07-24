@@ -117,8 +117,10 @@ public static class ServiceCollectionExtensions
         // Register product services
         services.AddScoped<IProductService, ProductService>();
 
+        // Register price list services
+        services.AddScoped<IPriceListService, PriceListService>();
+
         // TODO: Complete implementation for:
-        // - IPriceListService, PriceListService (grouped service for PriceList + PriceListEntry)
         // - IStoreUserService, StoreUserService (grouped service for StoreUser + StoreUserGroup + StoreUserPrivilege)
         // - IStationService, StationService (grouped service for Station + Printer)
         // - IBusinessPartyService, BusinessPartyService (grouped service for BusinessParty + BusinessPartyAccounting)
