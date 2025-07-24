@@ -1,4 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using EventForge.Data.Entities.Events;
+using EventForge.Data.Entities.Teams;
+using EventForge.Data.Entities.Audit;
+using EventForge.Data.Entities.PriceList;
 
 public class EventForgeDbContext : DbContext
 {

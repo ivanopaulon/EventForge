@@ -1,4 +1,7 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.Data.Entities.Teams;
+
+namespace EventForge.Data.Entities.Events;
 
 /// <summary>
 /// Represents the base class for an event entity in the domain.

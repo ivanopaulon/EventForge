@@ -1,4 +1,7 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.Data.Entities.Events;
+
+namespace EventForge.Data.Entities.Teams;
 
 /// <summary>
 /// Represents a team participating in an event.
