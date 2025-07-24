@@ -62,4 +62,10 @@ public class UpdateEventDto
     [Required]
     [Display(Name = "Status", Description = "Event status.")]
     public EventStatus Status { get; set; }
+
+    /// <summary>
+    /// Row version for concurrency control.
+    /// </summary>
+    [Timestamp]
+    public byte[] RowVersion { get; set; } = null!;
 }
