@@ -103,6 +103,9 @@ public class HealthController : BaseApiController
             healthStatus.DatabaseStatus = dbCheckResult.Status;
             healthStatus.DatabaseDetails = dbCheckResult.Details;
 
+            // Get applied migrations - always populate this property
+            healthStatus.AppliedMigrations = await GetAppliedMigrationsAsync(cancellationToken);
+
             // Check authentication system with details
             healthStatus.AuthenticationStatus = GetAuthenticationStatus();
             healthStatus.AuthenticationDetails = GetAuthenticationDetails();
@@ -145,8 +148,29 @@ public class HealthController : BaseApiController
             healthStatus.ApiStatus = "Unhealthy";
             healthStatus.DatabaseStatus = "Error";
             healthStatus.ErrorMessage = ex.Message;
+            
+            // Ensure AppliedMigrations is always populated, even in error cases
+            if (healthStatus.AppliedMigrations == null || !healthStatus.AppliedMigrations.Any())
+            {
+                healthStatus.AppliedMigrations = new List<string>();
+            }
 
             return Ok(healthStatus); // Return 200 even for errors in detailed view
+        }
+    }
+
+    private async Task<IEnumerable<string>> GetAppliedMigrationsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var appliedMigrations = await _dbContext.Database.GetAppliedMigrationsAsync(cancellationToken);
+            _logger.LogDebug("Retrieved {Count} applied migrations", appliedMigrations.Count());
+            return appliedMigrations;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to retrieve applied migrations");
+            return new List<string>();
         }
     }
 
@@ -368,4 +392,9 @@ public class DetailedHealthStatusDto : HealthStatusDto
     /// Authentication configuration details.
     /// </summary>
     public Dictionary<string, object>? AuthenticationDetails { get; set; }
+
+    /// <summary>
+    /// List of all applied database migrations.
+    /// </summary>
+    public IEnumerable<string> AppliedMigrations { get; set; } = new List<string>();
 }

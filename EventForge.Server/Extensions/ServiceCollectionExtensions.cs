@@ -290,8 +290,22 @@ public static class ServiceCollectionExtensions
                 return;
             }
 
+            // Check for pending migrations before applying
+            var pendingMigrations = db.Database.GetPendingMigrations().ToList();
+            
+            if (!pendingMigrations.Any())
+            {
+                Log.Information("Database è già aggiornato. Nessuna migrazione da applicare.");
+                return;
+            }
+
+            Log.Information("Trovate {Count} migrazioni pendenti: {Migrations}", 
+                pendingMigrations.Count, string.Join(", ", pendingMigrations));
+
             db.Database.Migrate();
-            Log.Information("Migrazioni applicate correttamente al database.");
+            
+            Log.Information("Migrazioni applicate correttamente al database: {AppliedMigrations}", 
+                string.Join(", ", pendingMigrations));
         }
         catch (Exception ex)
         {
