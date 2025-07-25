@@ -76,7 +76,7 @@ public class Event : AuditableEntity
     /// Price lists associated with the event.
     /// </summary>
     [Display(Name = "Price Lists", Description = "Price lists associated with the event.")]
-    public ICollection<EventForge.Data.Entities.PriceList.PriceList> PriceLists { get; set; } = new List<EventForge.Data.Entities.PriceList.PriceList>();
+    public ICollection<EventForge.Server.Data.Entities.PriceList.PriceList> PriceLists { get; set; } = new List<EventForge.Server.Data.Entities.PriceList.PriceList>();
 
     /// <summary>
     /// Checks domain invariants for the event entity.
