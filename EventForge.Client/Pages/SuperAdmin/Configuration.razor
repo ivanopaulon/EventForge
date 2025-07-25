@@ -1,0 +1,523 @@
+@page "/superadmin/configuration"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "SuperAdmin")]
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Configurazione - EventForge Super Admin</PageTitle>
+
+<SuperAdminBanner />
+
+@if (_isLoading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else if (!_isAuthorized)
+{
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+        <MudPaper Class="pa-8" Elevation="4">
+            <MudGrid Justify="Justify.Center">
+                <MudItem xs="12">
+                    <div class="d-flex flex-column align-center">
+                        <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
+                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">Accesso Negato</MudText>
+                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
+                            Non hai i permessi per accedere a questa pagina. È richiesto il ruolo Super Amministratore.
+                        </MudText>
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Primary" 
+                                   StartIcon="Icons.Material.Filled.ArrowBack"
+                                   OnClick="@(() => NavigationManager.NavigateTo("/"))">
+                            Torna alla Home
+                        </MudButton>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudContainer>
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+        <MudText Typo="Typo.h3" Class="mb-8">
+            <MudIcon Icon="Icons.Material.Filled.Settings" Class="mr-3" />
+            Configurazione Sistema
+        </MudText>
+
+        <MudGrid>
+            <!-- Configurazioni Generali -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Tune" Class="mr-2" />
+                                Configurazioni Generali
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <div class="d-flex flex-column ga-3">
+                            <MudTextField @bind-Value="_systemName"
+                                          Label="Nome Sistema"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="true"
+                                          HelperText="Nome dell'applicazione" />
+                            
+                            <MudTextField @bind-Value="_systemVersion"
+                                          Label="Versione Sistema"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="true"
+                                          HelperText="Versione corrente dell'applicazione" />
+                            
+                            <MudSelect T="string" @bind-Value="_defaultLanguage" Label="Lingua Predefinita" Variant="Variant.Outlined">
+                                <MudSelectItem Value="@("it-IT")">Italiano</MudSelectItem>
+                                <MudSelectItem Value="@("en-US")">English</MudSelectItem>
+                                <MudSelectItem Value="@("es-ES")">Español</MudSelectItem>
+                            </MudSelect>
+                            
+                            <MudNumericField @bind-Value="_sessionTimeoutMinutes"
+                                             Label="Timeout Sessione (minuti)"
+                                             Variant="Variant.Outlined"
+                                             Min="5"
+                                             Max="480"
+                                             HelperText="Durata massima sessione inattiva" />
+                        </div>
+
+                        <MudAlert Severity="Severity.Warning" Icon="Icons.Material.Filled.Warning" Class="mt-3">
+                            <strong>TODO:</strong> Implementare salvataggio configurazioni sistema con validazione e backup automatico.
+                        </MudAlert>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Configurazioni Sicurezza -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Security" Class="mr-2" />
+                                Configurazioni Sicurezza
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <div class="d-flex flex-column ga-3">
+                            <MudNumericField @bind-Value="_maxLoginAttempts"
+                                             Label="Tentativi Login Massimi"
+                                             Variant="Variant.Outlined"
+                                             Min="3"
+                                             Max="10"
+                                             HelperText="Prima del blocco account" />
+                            
+                            <MudNumericField @bind-Value="_passwordMinLength"
+                                             Label="Lunghezza Minima Password"
+                                             Variant="Variant.Outlined"
+                                             Min="6"
+                                             Max="32"
+                                             HelperText="Caratteri minimi richiesti" />
+                            
+                            <MudSwitch @bind-Value="_requirePasswordComplexity"
+                                       Label="Richiedi Complessità Password"
+                                       Color="Color.Primary"
+                                       UnCheckedColor="Color.Default" />
+                            
+                            <MudSwitch @bind-Value="_enableTwoFactor"
+                                       Label="Abilita Autenticazione 2FA"
+                                       Color="Color.Primary"
+                                       UnCheckedColor="Color.Default" />
+                        </div>
+
+                        <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mt-3">
+                            <strong>TODO:</strong> Implementare validazione e applicazione criteri di sicurezza in tempo reale.
+                        </MudAlert>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Configurazioni Multi-Tenancy -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Business" Class="mr-2" />
+                                Configurazioni Multi-Tenancy
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <div class="d-flex flex-column ga-3">
+                            <MudNumericField @bind-Value="_defaultMaxUsers"
+                                             Label="Utenti Massimi per Tenant"
+                                             Variant="Variant.Outlined"
+                                             Min="1"
+                                             Max="10000"
+                                             HelperText="Limite predefinito nuovi tenant" />
+                            
+                            <MudSwitch @bind-Value="_allowSelfRegistration"
+                                       Label="Consenti Auto-Registrazione Tenant"
+                                       Color="Color.Primary"
+                                       UnCheckedColor="Color.Default" />
+                            
+                            <MudSwitch @bind-Value="_enableTenantIsolation"
+                                       Label="Isolamento Dati Tenant Rigido"
+                                       Color="Color.Primary"
+                                       UnCheckedColor="Color.Default" />
+                            
+                            <MudNumericField @bind-Value="_tenantStorageQuotaGB"
+                                             Label="Quota Storage per Tenant (GB)"
+                                             Variant="Variant.Outlined"
+                                             Min="1"
+                                             Max="1000"
+                                             HelperText="Limite storage dati per tenant" />
+                        </div>
+
+                        <MudAlert Severity="Severity.Warning" Icon="Icons.Material.Filled.Warning" Class="mt-3">
+                            <strong>ATTENZIONE:</strong> Modifiche all'isolamento tenant richiedono riavvio del sistema.
+                        </MudAlert>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Configurazioni Logging e Audit -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Description" Class="mr-2" />
+                                Logging e Audit
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <div class="d-flex flex-column ga-3">
+                            <MudSelect T="string" @bind-Value="_logLevel" Label="Livello Log" Variant="Variant.Outlined">
+                                <MudSelectItem Value="@("Error")">Error</MudSelectItem>
+                                <MudSelectItem Value="@("Warning")">Warning</MudSelectItem>
+                                <MudSelectItem Value="@("Information")">Information</MudSelectItem>
+                                <MudSelectItem Value="@("Debug")">Debug</MudSelectItem>
+                                <MudSelectItem Value="@("Trace")">Trace</MudSelectItem>
+                            </MudSelect>
+                            
+                            <MudNumericField @bind-Value="_logRetentionDays"
+                                             Label="Ritenzione Log (giorni)"
+                                             Variant="Variant.Outlined"
+                                             Min="7"
+                                             Max="3650"
+                                             HelperText="Giorni prima dell'archiviazione automatica" />
+                            
+                            <MudSwitch @bind-Value="_enableAuditTrail"
+                                       Label="Abilita Audit Trail Completo"
+                                       Color="Color.Primary"
+                                       UnCheckedColor="Color.Default" />
+                            
+                            <MudSwitch @bind-Value="_enablePerformanceLogging"
+                                       Label="Abilita Log Performance"
+                                       Color="Color.Primary"
+                                       UnCheckedColor="Color.Default" />
+                        </div>
+
+                        <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mt-3">
+                            <strong>TODO:</strong> Implementare configurazione dinamica del sistema di logging.
+                        </MudAlert>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Configurazioni Email -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Email" Class="mr-2" />
+                                Configurazioni Email
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <div class="d-flex flex-column ga-3">
+                            <MudTextField @bind-Value="_smtpServer"
+                                          Label="Server SMTP"
+                                          Variant="Variant.Outlined"
+                                          Placeholder="smtp.example.com" />
+                            
+                            <MudNumericField @bind-Value="_smtpPort"
+                                             Label="Porta SMTP"
+                                             Variant="Variant.Outlined"
+                                             Min="25"
+                                             Max="65535" />
+                            
+                            <MudTextField @bind-Value="_fromEmail"
+                                          Label="Email Mittente"
+                                          Variant="Variant.Outlined"
+                                          Placeholder="noreply@eventforge.com" />
+                            
+                            <MudSwitch @bind-Value="_enableSsl"
+                                       Label="Abilita SSL/TLS"
+                                       Color="Color.Primary"
+                                       UnCheckedColor="Color.Default" />
+                        </div>
+
+                        <div class="d-flex ga-2 mt-3">
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Primary" 
+                                       StartIcon="Icons.Material.Filled.Send"
+                                       OnClick="@(() => TestEmailConfiguration())">
+                                Test Email
+                            </MudButton>
+                        </div>
+
+                        <MudAlert Severity="Severity.Warning" Icon="Icons.Material.Filled.Warning" Class="mt-3">
+                            <strong>TODO:</strong> Implementare test connessione SMTP e configurazione sicura delle credenziali.
+                        </MudAlert>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Configurazioni Backup -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Backup" Class="mr-2" />
+                                Configurazioni Backup
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <div class="d-flex flex-column ga-3">
+                            <MudSwitch @bind-Value="_enableAutomaticBackup"
+                                       Label="Abilita Backup Automatico"
+                                       Color="Color.Primary"
+                                       UnCheckedColor="Color.Default" />
+                            
+                            <MudSelect T="string" @bind-Value="_backupFrequency" Label="Frequenza Backup" Variant="Variant.Outlined">
+                                <MudSelectItem Value="@("daily")">Giornaliero</MudSelectItem>
+                                <MudSelectItem Value="@("weekly")">Settimanale</MudSelectItem>
+                                <MudSelectItem Value="@("monthly")">Mensile</MudSelectItem>
+                            </MudSelect>
+                            
+                            <MudNumericField @bind-Value="_backupRetentionDays"
+                                             Label="Ritenzione Backup (giorni)"
+                                             Variant="Variant.Outlined"
+                                             Min="7"
+                                             Max="365" />
+                            
+                            <MudTextField @bind-Value="_backupLocation"
+                                          Label="Percorso Backup"
+                                          Variant="Variant.Outlined"
+                                          Placeholder="/backup/eventforge/" />
+                        </div>
+
+                        <div class="d-flex ga-2 mt-3">
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Primary" 
+                                       StartIcon="Icons.Material.Filled.PlayArrow"
+                                       OnClick="@(() => StartManualBackup())">
+                                Backup Manuale
+                            </MudButton>
+                        </div>
+
+                        <MudAlert Severity="Severity.Error" Icon="Icons.Material.Filled.Error" Class="mt-3">
+                            <strong>CRITICO:</strong> Configurare backup prima di andare in produzione!
+                        </MudAlert>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Azioni Globali -->
+            <MudItem xs="12">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Save" Class="mr-2" />
+                                Azioni Configurazione
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mb-4">
+                            <strong>PLACEHOLDER:</strong> Questa è una pagina di configurazione placeholder. 
+                            Tutte le configurazioni mostrate sono di esempio e non vengono salvate.
+                            <br /><br />
+                            <strong>TODO per l'implementazione completa:</strong>
+                            <ul class="mt-2">
+                                <li>Integrazione con sistema di configurazione backend (appsettings, database, etc.)</li>
+                                <li>Validazione avanzata dei valori di configurazione</li>
+                                <li>Backup automatico delle configurazioni prima delle modifiche</li>
+                                <li>Rollback delle configurazioni in caso di errore</li>
+                                <li>Notificazione agli amministratori delle modifiche critiche</li>
+                                <li>Audit trail completo di tutte le modifiche configurazione</li>
+                                <li>Test automatici di configurazione prima dell'applicazione</li>
+                                <li>Configurazioni environment-specific (dev, staging, prod)</li>
+                                <li>Import/Export configurazioni tra ambienti</li>
+                                <li>Validazione dipendenze tra configurazioni</li>
+                            </ul>
+                        </MudAlert>
+
+                        <div class="d-flex ga-2">
+                            <MudButton Variant="Variant.Filled" 
+                                       Color="Color.Primary" 
+                                       StartIcon="Icons.Material.Filled.Save"
+                                       OnClick="@(() => SaveConfiguration())">
+                                Salva Configurazioni
+                            </MudButton>
+                            
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Secondary" 
+                                       StartIcon="Icons.Material.Filled.Refresh"
+                                       OnClick="@(() => ReloadConfiguration())">
+                                Ricarica
+                            </MudButton>
+                            
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Warning" 
+                                       StartIcon="Icons.Material.Filled.RestoreFromTrash"
+                                       OnClick="@(() => ResetToDefault())">
+                                Reset Default
+                            </MudButton>
+                            
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Info" 
+                                       StartIcon="Icons.Material.Filled.Download"
+                                       OnClick="@(() => ExportConfiguration())">
+                                Esporta Config
+                            </MudButton>
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    </MudContainer>
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _isAuthorized = false;
+    private UserDto? _currentUser;
+    
+    // Configurazioni Generali
+    private string _systemName = "EventForge";
+    private string _systemVersion = "1.0.0";
+    private string _defaultLanguage = "it-IT";
+    private int _sessionTimeoutMinutes = 60;
+    
+    // Configurazioni Sicurezza
+    private int _maxLoginAttempts = 5;
+    private int _passwordMinLength = 8;
+    private bool _requirePasswordComplexity = true;
+    private bool _enableTwoFactor = false;
+    
+    // Configurazioni Multi-Tenancy
+    private int _defaultMaxUsers = 100;
+    private bool _allowSelfRegistration = false;
+    private bool _enableTenantIsolation = true;
+    private int _tenantStorageQuotaGB = 10;
+    
+    // Configurazioni Logging
+    private string _logLevel = "Information";
+    private int _logRetentionDays = 90;
+    private bool _enableAuditTrail = true;
+    private bool _enablePerformanceLogging = false;
+    
+    // Configurazioni Email
+    private string _smtpServer = string.Empty;
+    private int _smtpPort = 587;
+    private string _fromEmail = string.Empty;
+    private bool _enableSsl = true;
+    
+    // Configurazioni Backup
+    private bool _enableAutomaticBackup = false;
+    private string _backupFrequency = "daily";
+    private int _backupRetentionDays = 30;
+    private string _backupLocation = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Verifica autenticazione
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                NavigationManager.NavigateTo("/login");
+                return;
+            }
+
+            // Verifica ruolo SuperAdmin
+            var isSuperAdmin = await AuthService.IsSuperAdminAsync();
+            if (!isSuperAdmin)
+            {
+                _isAuthorized = false;
+                _isLoading = false;
+                Snackbar.Add("Accesso negato. È richiesto il ruolo Super Amministratore.", Severity.Warning);
+                return;
+            }
+
+            // Carica informazioni utente corrente
+            _currentUser = await AuthService.GetCurrentUserAsync();
+            _isAuthorized = true;
+
+            // TODO: Caricare configurazioni attuali da backend
+            await LoadCurrentConfiguration();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento della pagina: {ex.Message}", Severity.Error);
+            NavigationManager.NavigateTo("/");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadCurrentConfiguration()
+    {
+        // TODO: Implementare caricamento configurazioni da API
+        await Task.Delay(100); // Placeholder
+    }
+
+    private void SaveConfiguration()
+    {
+        // TODO: Implementare salvataggio configurazioni
+        Snackbar.Add("TODO: Implementare salvataggio configurazioni sistema", Severity.Info);
+    }
+
+    private void ReloadConfiguration()
+    {
+        // TODO: Implementare ricaricamento configurazioni
+        Snackbar.Add("TODO: Implementare ricaricamento configurazioni", Severity.Info);
+    }
+
+    private void ResetToDefault()
+    {
+        // TODO: Implementare reset configurazioni
+        Snackbar.Add("TODO: Implementare reset configurazioni a valori predefiniti", Severity.Info);
+    }
+
+    private void ExportConfiguration()
+    {
+        // TODO: Implementare export configurazioni
+        Snackbar.Add("TODO: Implementare export configurazioni", Severity.Info);
+    }
+
+    private void TestEmailConfiguration()
+    {
+        // TODO: Implementare test configurazione email
+        Snackbar.Add("TODO: Implementare test configurazione SMTP", Severity.Info);
+    }
+
+    private void StartManualBackup()
+    {
+        // TODO: Implementare backup manuale
+        Snackbar.Add("TODO: Implementare avvio backup manuale", Severity.Info);
+    }
+}

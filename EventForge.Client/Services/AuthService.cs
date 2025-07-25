@@ -14,6 +14,7 @@ namespace EventForge.Client.Services
         Task<string?> GetAccessTokenAsync();
         Task<UserDto?> GetCurrentUserAsync();
         Task<bool> IsInRoleAsync(string role);
+        Task<bool> IsSuperAdminAsync();
         event Action? OnAuthenticationStateChanged;
     }
 
@@ -70,6 +71,11 @@ namespace EventForge.Client.Services
         {
             var user = await GetCurrentUserAsync();
             return user?.Roles?.Contains(role, StringComparer.OrdinalIgnoreCase) == true;
+        }
+
+        public async Task<bool> IsSuperAdminAsync()
+        {
+            return await IsInRoleAsync("SuperAdmin");
         }
 
         public async Task<LoginResponseDto?> LoginAsync(LoginRequestDto loginRequest)

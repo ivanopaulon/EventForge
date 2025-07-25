@@ -1,0 +1,30 @@
+@inject IAuthService AuthService
+
+@if (_isSuperAdmin)
+{
+    <MudAlert Severity="Severity.Warning" 
+              Variant="Variant.Filled" 
+              Class="mb-4" 
+              Icon="Icons.Material.Filled.AdminPanelSettings">
+        <div class="d-flex align-center">
+            <MudIcon Icon="Icons.Material.Filled.Warning" Class="mr-2" />
+            <div>
+                <MudText Typo="Typo.subtitle1" Class="font-weight-bold">
+                    Area Super Amministratore
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    Stai operando con privilegi di Super Amministratore. Presta attenzione alle modifiche effettuate.
+                </MudText>
+            </div>
+        </div>
+    </MudAlert>
+}
+
+@code {
+    private bool _isSuperAdmin = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isSuperAdmin = await AuthService.IsSuperAdminAsync();
+    }
+}

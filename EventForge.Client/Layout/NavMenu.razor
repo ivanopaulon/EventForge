@@ -4,9 +4,46 @@
 <MudNavMenu>
     @if (_isAuthenticated)
     {
+        @if (_isSuperAdmin)
+        {
+            <MudNavGroup title="Super Amministrazione" 
+                         Icon="Icons.Material.Filled.AdminPanelSettings" 
+                         Expanded="true">
+                <MudNavLink Href="/superadmin/tenant-management" 
+                            Icon="Icons.Material.Filled.Business" 
+                            Match="NavLinkMatch.All">
+                    Gestione Tenant
+                </MudNavLink>
+                <MudNavLink Href="/superadmin/user-management" 
+                            Icon="Icons.Material.Filled.People" 
+                            Match="NavLinkMatch.All">
+                    Gestione Utenti Tenant
+                </MudNavLink>
+                <MudNavLink Href="/superadmin/tenant-switch" 
+                            Icon="Icons.Material.Filled.SwapHoriz" 
+                            Match="NavLinkMatch.All">
+                    Switch Tenant
+                </MudNavLink>
+                <MudNavLink Href="/superadmin/system-logs" 
+                            Icon="Icons.Material.Filled.Article" 
+                            Match="NavLinkMatch.All">
+                    Log Sistema
+                </MudNavLink>
+                <MudNavLink Href="/superadmin/audit-trail" 
+                            Icon="Icons.Material.Filled.History" 
+                            Match="NavLinkMatch.All">
+                    Audit Trail
+                </MudNavLink>
+                <MudNavLink Href="/superadmin/configuration" 
+                            Icon="Icons.Material.Filled.Settings" 
+                            Match="NavLinkMatch.All">
+                    Configurazione
+                </MudNavLink>
+            </MudNavGroup>
+        }
         @if (_isAdmin)
         {
-            <MudNavLink Href="/admin" Icon="Icons.Material.Filled.AdminPanelSettings" Match="NavLinkMatch.All">
+            <MudNavLink Href="/admin" Icon="Icons.Material.Filled.Dashboard" Match="NavLinkMatch.All">
                 Admin Dashboard
             </MudNavLink>
         }
@@ -22,6 +59,7 @@
 @code {
     private bool _isAuthenticated = false;
     private bool _isAdmin = false;
+    private bool _isSuperAdmin = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -35,10 +73,12 @@
         if (_isAuthenticated)
         {
             _isAdmin = await AuthService.IsInRoleAsync("Admin");
+            _isSuperAdmin = await AuthService.IsSuperAdminAsync();
         }
         else
         {
             _isAdmin = false;
+            _isSuperAdmin = false;
         }
         StateHasChanged();
     }
