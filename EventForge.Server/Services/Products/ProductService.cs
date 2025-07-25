@@ -1,4 +1,5 @@
 using EventForge.Server.DTOs.Products;
+using EventForge.Server.Extensions;
 using EventForge.Server.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,15 +12,18 @@ public class ProductService : IProductService
 {
     private readonly EventForgeDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<ProductService> _logger;
 
     public ProductService(
         EventForgeDbContext context,
         IAuditLogService auditLogService,
+        ITenantContext tenantContext,
         ILogger<ProductService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -27,11 +31,18 @@ public class ProductService : IProductService
 
     public async Task<PagedResult<ProductDto>> GetProductsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
     {
+        // TODO: Add automated tests for tenant isolation in product queries
+        var currentTenantId = _tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for product operations.");
+        }
+
         var query = _context.Products
-            .Where(p => !p.IsDeleted)
-            .Include(p => p.Codes.Where(c => !c.IsDeleted))
-            .Include(p => p.Units.Where(u => !u.IsDeleted))
-            .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted));
+            .WhereActiveTenant(currentTenantId.Value)
+            .Include(p => p.Codes.Where(c => !c.IsDeleted && c.TenantId == currentTenantId.Value))
+            .Include(p => p.Units.Where(u => !u.IsDeleted && u.TenantId == currentTenantId.Value))
+            .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted && bi.TenantId == currentTenantId.Value));
 
         var totalCount = await query.CountAsync(cancellationToken);
         var products = await query
