@@ -1,7 +1,4 @@
 using AutoMapper;
-using EventForge.Data;
-using EventForge.Data.Entities.Common;
-using EventForge.DTOs.Audit;
 using EventForge.DTOs.Common;
 using Microsoft.EntityFrameworkCore;
 

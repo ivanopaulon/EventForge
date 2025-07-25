@@ -1,20 +1,8 @@
 using AutoMapper;
-using EventForge.Data.Entities.Business;
-using EventForge.Data.Entities.Common;
-using EventForge.Data.Entities.Documents;
-using EventForge.Data.Entities.Events;
-using EventForge.Data.Entities.PriceList;
-using EventForge.Data.Entities.Products;
-using EventForge.Data.Entities.Promotions;
-using EventForge.Data.Entities.StationMonitor;
-using EventForge.Data.Entities.Store;
-using EventForge.Data.Entities.Teams;
-using EventForge.Data.Entities.Warehouse;
 using EventForge.DTOs.Banks;
 using EventForge.DTOs.Business;
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
-using EventForge.DTOs.Events;
 using EventForge.DTOs.PriceLists;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.Promotions;
@@ -46,7 +34,7 @@ public class MappingProfile : Profile
         CreateMap<BusinessParty, BusinessPartyDto>().ReverseMap();
         CreateMap<CreateBusinessPartyDto, BusinessParty>();
         CreateMap<UpdateBusinessPartyDto, BusinessParty>();
-        
+
         CreateMap<PaymentTerm, PaymentTermDto>().ReverseMap();
         CreateMap<CreatePaymentTermDto, PaymentTerm>();
         CreateMap<UpdatePaymentTermDto, PaymentTerm>();
@@ -78,7 +66,7 @@ public class MappingProfile : Profile
 
         // Document mappings (if DocumentType exists in DbContext)
         CreateMap<DocumentType, DocumentTypeDto>()
-            .ForMember(dest => dest.DefaultWarehouseName, 
+            .ForMember(dest => dest.DefaultWarehouseName,
                 opt => opt.MapFrom(src => src.DefaultWarehouse != null ? src.DefaultWarehouse.Name : null));
         CreateMap<CreateDocumentTypeDto, DocumentType>();
         CreateMap<UpdateDocumentTypeDto, DocumentType>();
