@@ -158,6 +158,9 @@ else
 
 app.UseHttpsRedirection();
 
+// Serve static files (for uploaded images)
+app.UseStaticFiles();
+
 // Authentication & Authorization
 app.UseAuthentication();
 app.UseAuthorization();

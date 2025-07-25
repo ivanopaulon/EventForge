@@ -827,6 +827,38 @@ public class ProductService : IProductService
         }
     }
 
+    public async Task<ProductDto?> UpdateProductImageAsync(Guid productId, string imageUrl, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var product = await _context.Products
+                .Include(p => p.Codes.Where(c => !c.IsDeleted))
+                .Include(p => p.Units.Where(u => !u.IsDeleted))
+                .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
+                .FirstOrDefaultAsync(p => p.Id == productId && !p.IsDeleted, cancellationToken);
+
+            if (product == null)
+            {
+                _logger.LogWarning("Product {ProductId} not found for image update by user {User}.", productId, currentUser);
+                return null;
+            }
+
+            product.ImageUrl = imageUrl;
+            product.ModifiedAt = DateTime.UtcNow;
+            product.ModifiedBy = currentUser;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Product {ProductId} image updated successfully by user {User}.", productId, currentUser);
+            return MapToProductDto(product);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating image for product {ProductId} by user {User}.", productId, currentUser);
+            throw;
+        }
+    }
+
     public async Task<bool> ProductExistsAsync(Guid productId, CancellationToken cancellationToken = default)
     {
         return await _context.Products
