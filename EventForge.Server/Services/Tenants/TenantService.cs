@@ -1,5 +1,4 @@
 using AutoMapper;
-using EventForge.Server.DTOs.Tenants;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Tenants;
@@ -462,7 +461,7 @@ public class TenantService : ITenantService
     {
         const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
         const string specialChars = "!@#$%&*";
-        
+
         var random = new Random();
         var password = new List<char>();
 

@@ -202,7 +202,7 @@ public static class ServiceCollectionExtensions
         // Register tenant services
         services.AddScoped<ITenantContext, TenantContext>();
         services.AddScoped<ITenantService, TenantService>();
-        
+
         // Configure session for tenant context (required for tenant switching and impersonation)
         services.AddDistributedMemoryCache();
         services.AddSession(options =>
@@ -306,19 +306,19 @@ public static class ServiceCollectionExtensions
 
             // Check for pending migrations before applying
             var pendingMigrations = db.Database.GetPendingMigrations().ToList();
-            
+
             if (!pendingMigrations.Any())
             {
                 Log.Information("Database è già aggiornato. Nessuna migrazione da applicare.");
                 return;
             }
 
-            Log.Information("Trovate {Count} migrazioni pendenti: {Migrations}", 
+            Log.Information("Trovate {Count} migrazioni pendenti: {Migrations}",
                 pendingMigrations.Count, string.Join(", ", pendingMigrations));
 
             db.Database.Migrate();
-            
-            Log.Information("Migrazioni applicate correttamente al database: {AppliedMigrations}", 
+
+            Log.Information("Migrazioni applicate correttamente al database: {AppliedMigrations}",
                 string.Join(", ", pendingMigrations));
         }
         catch (Exception ex)

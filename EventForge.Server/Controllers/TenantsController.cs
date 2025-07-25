@@ -182,8 +182,8 @@ public class TenantsController : ControllerBase
     /// <returns>Admin tenant mapping details</returns>
     [HttpPost("{id}/admins/{userId}")]
     public async Task<ActionResult<AdminTenantResponseDto>> AddTenantAdmin(
-        Guid id, 
-        Guid userId, 
+        Guid id,
+        Guid userId,
         [FromQuery] AdminAccessLevel accessLevel = AdminAccessLevel.TenantAdmin)
     {
         try

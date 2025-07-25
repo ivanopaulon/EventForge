@@ -1,5 +1,3 @@
-using EventForge.Server.DTOs.Tenants;
-
 namespace EventForge.Server.Services.Tenants;
 
 /// <summary>

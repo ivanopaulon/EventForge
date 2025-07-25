@@ -166,7 +166,7 @@ public class TenantContext : ITenantContext
         }
 
         // TODO: Add tenant validation - ensure user belongs to current tenant context
-        
+
         // Store original user info and set impersonation
         httpContext.Session.SetString(OriginalUserIdSessionKey, currentUserId.Value.ToString());
         httpContext.Session.SetString(ImpersonatedUserIdSessionKey, userId.ToString());
@@ -255,9 +255,9 @@ public class TenantContext : ITenantContext
 
         // Super admins can access any tenant they have admin rights to
         var hasAccess = await _context.AdminTenants
-            .AnyAsync(at => at.UserId == currentUserId.Value && 
-                           at.ManagedTenantId == tenantId && 
-                           at.ManagedTenant.IsActive && 
+            .AnyAsync(at => at.UserId == currentUserId.Value &&
+                           at.ManagedTenantId == tenantId &&
+                           at.ManagedTenant.IsActive &&
                            !at.ManagedTenant.IsDeleted);
 
         return hasAccess;
@@ -272,7 +272,7 @@ public class TenantContext : ITenantContext
         string reason)
     {
         var httpContext = _httpContextAccessor.HttpContext;
-        
+
         var auditTrail = new AuditTrail
         {
             TenantId = sourceTenantId ?? Guid.Empty, // Use source tenant or empty for system operations
@@ -290,7 +290,7 @@ public class TenantContext : ITenantContext
         };
 
         _context.AuditTrails.Add(auditTrail);
-        
+
         try
         {
             await _context.SaveChangesAsync();

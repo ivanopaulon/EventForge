@@ -1,5 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using Dapper;
+using Microsoft.EntityFrameworkCore;
 using System.Data;
 
 namespace EventForge.Server.Services.Logs;
@@ -197,7 +197,7 @@ public class ApplicationLogService : IApplicationLogService
     public async Task<IEnumerable<ApplicationLogDto>> GetRecentErrorLogsAsync(CancellationToken cancellationToken = default)
     {
         var fromDate = DateTime.UtcNow.AddHours(-24);
-        
+
         const string query = @"
             SELECT 
                 Id,
@@ -293,43 +293,43 @@ public class ApplicationLogService : IApplicationLogService
             WHERE 1=1";
 
         var conditions = new List<string>();
-        
+
         if (!string.IsNullOrWhiteSpace(queryParameters.Level))
             conditions.Add("Level = @Level");
-        
+
         if (!string.IsNullOrWhiteSpace(queryParameters.Logger))
             conditions.Add("LogEvent LIKE '%' + @Logger + '%'");
-        
+
         if (!string.IsNullOrWhiteSpace(queryParameters.Message))
             conditions.Add("Message LIKE '%' + @Message + '%'");
-        
+
         if (!string.IsNullOrWhiteSpace(queryParameters.MachineName))
             conditions.Add("MachineName = @MachineName");
-        
+
         if (!string.IsNullOrWhiteSpace(queryParameters.Application))
             conditions.Add("Application = @Application");
-        
+
         if (!string.IsNullOrWhiteSpace(queryParameters.Environment))
             conditions.Add("Environment = @Environment");
-        
+
         if (!string.IsNullOrWhiteSpace(queryParameters.CorrelationId))
             conditions.Add("CorrelationId = @CorrelationId");
-        
+
         if (!string.IsNullOrWhiteSpace(queryParameters.UserId))
             conditions.Add("UserId = @UserId");
-        
+
         if (!string.IsNullOrWhiteSpace(queryParameters.RequestPath))
             conditions.Add("RequestPath LIKE '%' + @RequestPath + '%'");
-        
+
         if (!string.IsNullOrWhiteSpace(queryParameters.RequestMethod))
             conditions.Add("RequestMethod = @RequestMethod");
-        
+
         if (queryParameters.StatusCode.HasValue)
             conditions.Add("StatusCode = @StatusCode");
-        
+
         if (queryParameters.FromDate.HasValue)
             conditions.Add("TimeStamp >= @FromDate");
-        
+
         if (queryParameters.ToDate.HasValue)
             conditions.Add("TimeStamp <= @ToDate");
 
@@ -351,43 +351,43 @@ public class ApplicationLogService : IApplicationLogService
         var query = "SELECT COUNT(*) FROM Logs WHERE 1=1";
 
         var conditions = new List<string>();
-        
+
         if (!string.IsNullOrWhiteSpace(queryParameters.Level))
             conditions.Add("Level = @Level");
-        
+
         if (!string.IsNullOrWhiteSpace(queryParameters.Logger))
             conditions.Add("LogEvent LIKE '%' + @Logger + '%'");
-        
+
         if (!string.IsNullOrWhiteSpace(queryParameters.Message))
             conditions.Add("Message LIKE '%' + @Message + '%'");
-        
+
         if (!string.IsNullOrWhiteSpace(queryParameters.MachineName))
             conditions.Add("MachineName = @MachineName");
-        
+
         if (!string.IsNullOrWhiteSpace(queryParameters.Application))
             conditions.Add("Application = @Application");
-        
+
         if (!string.IsNullOrWhiteSpace(queryParameters.Environment))
             conditions.Add("Environment = @Environment");
-        
+
         if (!string.IsNullOrWhiteSpace(queryParameters.CorrelationId))
             conditions.Add("CorrelationId = @CorrelationId");
-        
+
         if (!string.IsNullOrWhiteSpace(queryParameters.UserId))
             conditions.Add("UserId = @UserId");
-        
+
         if (!string.IsNullOrWhiteSpace(queryParameters.RequestPath))
             conditions.Add("RequestPath LIKE '%' + @RequestPath + '%'");
-        
+
         if (!string.IsNullOrWhiteSpace(queryParameters.RequestMethod))
             conditions.Add("RequestMethod = @RequestMethod");
-        
+
         if (queryParameters.StatusCode.HasValue)
             conditions.Add("StatusCode = @StatusCode");
-        
+
         if (queryParameters.FromDate.HasValue)
             conditions.Add("TimeStamp >= @FromDate");
-        
+
         if (queryParameters.ToDate.HasValue)
             conditions.Add("TimeStamp <= @ToDate");
 

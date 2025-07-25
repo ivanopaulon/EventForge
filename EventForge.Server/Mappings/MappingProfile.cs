@@ -197,7 +197,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
             .ForMember(dest => dest.AdminTenants, opt => opt.Ignore());
-        
+
         CreateMap<UpdateTenantDto, Tenant>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.TenantId, opt => opt.Ignore())

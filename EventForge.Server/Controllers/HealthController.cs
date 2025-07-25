@@ -148,7 +148,7 @@ public class HealthController : BaseApiController
             healthStatus.ApiStatus = "Unhealthy";
             healthStatus.DatabaseStatus = "Error";
             healthStatus.ErrorMessage = ex.Message;
-            
+
             // Ensure AppliedMigrations is always populated, even in error cases
             if (healthStatus.AppliedMigrations == null || !healthStatus.AppliedMigrations.Any())
             {
