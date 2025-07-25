@@ -1,7 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using System.Data.Common;
-using System.Diagnostics;
 
 namespace EventForge.Services.Performance;
 
@@ -173,12 +171,12 @@ public class PerformanceMonitoringService : IPerformanceMonitoringService
                 }
 
                 // Log slow query
-                _logger.LogWarning("Slow query detected: {Duration}ms - {Query}", 
+                _logger.LogWarning("Slow query detected: {Duration}ms - {Query}",
                     duration.TotalMilliseconds, SanitizeQuery(query, 200));
             }
             else if (_options.LogAllQueries)
             {
-                _logger.LogDebug("Query executed: {Duration}ms - {Query}", 
+                _logger.LogDebug("Query executed: {Duration}ms - {Query}",
                     duration.TotalMilliseconds, SanitizeQuery(query, 200));
             }
         }
@@ -188,8 +186,8 @@ public class PerformanceMonitoringService : IPerformanceMonitoringService
     {
         lock (_lock)
         {
-            var averageDuration = _totalQueries > 0 
-                ? TimeSpan.FromTicks(_totalDuration.Ticks / _totalQueries) 
+            var averageDuration = _totalQueries > 0
+                ? TimeSpan.FromTicks(_totalDuration.Ticks / _totalQueries)
                 : TimeSpan.Zero;
 
             var statistics = new PerformanceStatistics

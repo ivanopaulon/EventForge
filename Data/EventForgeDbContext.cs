@@ -259,7 +259,7 @@ public class EventForgeDbContext : DbContext
         // BusinessParty → Address, Contact, Reference (polymorphic, managed at application/query level)
 
         // Authentication & Authorization relationships
-        
+
         // User constraints
         modelBuilder.Entity<User>()
             .HasIndex(u => u.Username)
@@ -414,11 +414,11 @@ public class EventForgeDbContext : DbContext
         try
         {
             var httpContext = _httpContextAccessor?.HttpContext;
-            
+
             if (httpContext?.User?.Identity?.IsAuthenticated == true)
             {
-                return httpContext.User.FindFirst("username")?.Value ?? 
-                       httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? 
+                return httpContext.User.FindFirst("username")?.Value ??
+                       httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ??
                        "authenticated_user";
             }
         }
@@ -446,7 +446,7 @@ public class EventForgeDbContext : DbContext
         string operationType = entry.State switch
         {
             EntityState.Added => "Insert",
-            EntityState.Modified => "Update", 
+            EntityState.Modified => "Update",
             EntityState.Deleted => "Delete",
             _ => "Unknown"
         };

@@ -1,6 +1,6 @@
 using EventForge.DTOs.Banks;
-using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.Banks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Controllers;

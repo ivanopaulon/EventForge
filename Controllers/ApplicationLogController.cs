@@ -1,6 +1,5 @@
-using EventForge.DTOs.Logs;
-using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.Logs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Controllers;

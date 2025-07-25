@@ -47,13 +47,13 @@ public class HealthController : BaseApiController
         {
             // Check database connectivity
             healthStatus.DatabaseStatus = await GetDatabaseStatusAsync(cancellationToken);
-            
+
             // Check authentication system
             healthStatus.AuthenticationStatus = GetAuthenticationStatus();
-            
+
             // Determine overall health
             var isHealthy = healthStatus.DatabaseStatus == "Healthy" && healthStatus.AuthenticationStatus == "Healthy";
-            
+
             if (!isHealthy)
             {
                 healthStatus.ApiStatus = "Degraded";
@@ -65,11 +65,11 @@ public class HealthController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred during health check");
-            
+
             healthStatus.ApiStatus = "Unhealthy";
             healthStatus.DatabaseStatus = "Error";
             healthStatus.ErrorMessage = "An error occurred during health check";
-            
+
             return StatusCode(StatusCodes.Status503ServiceUnavailable, healthStatus);
         }
     }
@@ -102,11 +102,11 @@ public class HealthController : BaseApiController
             var dbCheckResult = await GetDetailedDatabaseStatusAsync(cancellationToken);
             healthStatus.DatabaseStatus = dbCheckResult.Status;
             healthStatus.DatabaseDetails = dbCheckResult.Details;
-            
+
             // Check authentication system with details
             healthStatus.AuthenticationStatus = GetAuthenticationStatus();
             healthStatus.AuthenticationDetails = GetAuthenticationDetails();
-            
+
             // Add performance information if available
             if (_performanceService != null)
             {
@@ -127,7 +127,7 @@ public class HealthController : BaseApiController
             {
                 healthStatus.AuthenticationDetails["PerformanceMonitoring"] = "Disabled";
             }
-            
+
             // Add dependency checks here (external APIs, caches, etc.)
             healthStatus.Dependencies = new Dictionary<string, string>
             {
@@ -141,11 +141,11 @@ public class HealthController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred during detailed health check");
-            
+
             healthStatus.ApiStatus = "Unhealthy";
             healthStatus.DatabaseStatus = "Error";
             healthStatus.ErrorMessage = ex.Message;
-            
+
             return Ok(healthStatus); // Return 200 even for errors in detailed view
         }
     }
@@ -167,18 +167,18 @@ public class HealthController : BaseApiController
     private async Task<(string Status, Dictionary<string, object> Details)> GetDetailedDatabaseStatusAsync(CancellationToken cancellationToken)
     {
         var details = new Dictionary<string, object>();
-        
+
         try
         {
             var startTime = DateTime.UtcNow;
             var canConnect = await _dbContext.Database.CanConnectAsync(cancellationToken);
             var responseTime = DateTime.UtcNow - startTime;
-            
+
             details["CanConnect"] = canConnect;
             details["ResponseTimeMs"] = responseTime.TotalMilliseconds;
             details["ConnectionString"] = _dbContext.Database.GetConnectionString()?.Replace(";Password=", ";Password=***") ?? "Unknown";
             details["ProviderName"] = _dbContext.Database.ProviderName ?? "Unknown";
-            
+
             if (canConnect)
             {
                 try
@@ -194,7 +194,7 @@ public class HealthController : BaseApiController
                     details["QueryError"] = queryEx.Message;
                 }
             }
-            
+
             return (canConnect ? "Healthy" : "Unreachable", details);
         }
         catch (Exception ex)
@@ -225,7 +225,7 @@ public class HealthController : BaseApiController
             // Check if JWT configuration is valid
             var jwtSection = HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetSection("Authentication:Jwt");
             var secretKey = jwtSection["SecretKey"];
-            
+
             if (string.IsNullOrEmpty(secretKey))
             {
                 return "Configuration Error";
@@ -255,7 +255,7 @@ public class HealthController : BaseApiController
         {
             var configuration = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
             var jwtSection = configuration.GetSection("Authentication:Jwt");
-            
+
             details["JwtIssuer"] = jwtSection["Issuer"] ?? "Unknown";
             details["JwtAudience"] = jwtSection["Audience"] ?? "Unknown";
             details["JwtExpirationMinutes"] = jwtSection["ExpirationMinutes"] ?? "Unknown";

@@ -46,9 +46,9 @@ public static class QueryExtensions
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated result with total count</returns>
     public static async Task<(IList<T> Items, int TotalCount, int TotalPages)> ToPagedResultAsync<T>(
-        this IQueryable<T> query, 
-        int page, 
-        int pageSize, 
+        this IQueryable<T> query,
+        int page,
+        int pageSize,
         CancellationToken cancellationToken = default) where T : class
     {
         if (page < 1) page = 1;

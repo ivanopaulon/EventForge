@@ -1,7 +1,6 @@
-using EventForge.DTOs.Audit;
-using Microsoft.AspNetCore.Authorization;
 using EventForge.DTOs.Documents;
 using EventForge.Services.Documents;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Controllers;
@@ -72,7 +71,7 @@ public class DocumentHeadersController : BaseApiController
         try
         {
             var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(id, includeRows, cancellationToken);
-            
+
             if (documentHeader == null)
                 return NotFound(new { message = $"Document header with ID {id} not found." });
 
@@ -134,7 +133,7 @@ public class DocumentHeadersController : BaseApiController
         {
             var currentUser = GetCurrentUser(); // Assuming BaseApiController has this method
             var documentHeader = await _documentHeaderService.CreateDocumentHeaderAsync(createDto, currentUser, cancellationToken);
-            
+
             return CreatedAtAction(
                 nameof(GetDocumentHeader),
                 new { id = documentHeader.Id },
@@ -175,7 +174,7 @@ public class DocumentHeadersController : BaseApiController
         {
             var currentUser = GetCurrentUser();
             var documentHeader = await _documentHeaderService.UpdateDocumentHeaderAsync(id, updateDto, currentUser, cancellationToken);
-            
+
             if (documentHeader == null)
                 return NotFound(new { message = $"Document header with ID {id} not found." });
 
@@ -207,7 +206,7 @@ public class DocumentHeadersController : BaseApiController
         {
             var currentUser = GetCurrentUser();
             var deleted = await _documentHeaderService.DeleteDocumentHeaderAsync(id, currentUser, cancellationToken);
-            
+
             if (!deleted)
                 return NotFound(new { message = $"Document header with ID {id} not found." });
 
@@ -238,7 +237,7 @@ public class DocumentHeadersController : BaseApiController
         try
         {
             var documentHeader = await _documentHeaderService.CalculateDocumentTotalsAsync(id, cancellationToken);
-            
+
             if (documentHeader == null)
                 return NotFound(new { message = $"Document header with ID {id} not found." });
 
@@ -270,7 +269,7 @@ public class DocumentHeadersController : BaseApiController
         {
             var currentUser = GetCurrentUser();
             var documentHeader = await _documentHeaderService.ApproveDocumentAsync(id, currentUser, cancellationToken);
-            
+
             if (documentHeader == null)
                 return NotFound(new { message = $"Document header with ID {id} not found." });
 
@@ -302,7 +301,7 @@ public class DocumentHeadersController : BaseApiController
         {
             var currentUser = GetCurrentUser();
             var documentHeader = await _documentHeaderService.CloseDocumentAsync(id, currentUser, cancellationToken);
-            
+
             if (documentHeader == null)
                 return NotFound(new { message = $"Document header with ID {id} not found." });
 

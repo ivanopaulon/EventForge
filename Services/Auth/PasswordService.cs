@@ -203,7 +203,7 @@ public class PasswordService : IPasswordService
             result.Errors.Add("Password must contain at least one digit.");
         }
 
-        if (_passwordPolicy.RequireSpecialCharacters && 
+        if (_passwordPolicy.RequireSpecialCharacters &&
             !password.Any(c => _passwordPolicy.SpecialCharacters.Contains(c)))
         {
             result.Errors.Add($"Password must contain at least one special character: {_passwordPolicy.SpecialCharacters}");

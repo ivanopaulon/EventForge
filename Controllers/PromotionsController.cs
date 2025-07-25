@@ -1,6 +1,6 @@
 using EventForge.DTOs.Promotions;
-using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.Promotions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Controllers;

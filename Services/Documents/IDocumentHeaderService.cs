@@ -1,4 +1,3 @@
-using EventForge.DTOs.Audit;
 using EventForge.DTOs.Documents;
 
 namespace EventForge.Services.Documents;
@@ -26,8 +25,8 @@ public interface IDocumentHeaderService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Document header DTO or null if not found</returns>
     Task<DocumentHeaderDto?> GetDocumentHeaderByIdAsync(
-        Guid id, 
-        bool includeRows = false, 
+        Guid id,
+        bool includeRows = false,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -48,8 +47,8 @@ public interface IDocumentHeaderService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Created document header DTO</returns>
     Task<DocumentHeaderDto> CreateDocumentHeaderAsync(
-        CreateDocumentHeaderDto createDto, 
-        string currentUser, 
+        CreateDocumentHeaderDto createDto,
+        string currentUser,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -61,9 +60,9 @@ public interface IDocumentHeaderService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Updated document header DTO or null if not found</returns>
     Task<DocumentHeaderDto?> UpdateDocumentHeaderAsync(
-        Guid id, 
-        UpdateDocumentHeaderDto updateDto, 
-        string currentUser, 
+        Guid id,
+        UpdateDocumentHeaderDto updateDto,
+        string currentUser,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -74,8 +73,8 @@ public interface IDocumentHeaderService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if deleted, false if not found</returns>
     Task<bool> DeleteDocumentHeaderAsync(
-        Guid id, 
-        string currentUser, 
+        Guid id,
+        string currentUser,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -85,7 +84,7 @@ public interface IDocumentHeaderService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Document header with updated totals or null if not found</returns>
     Task<DocumentHeaderDto?> CalculateDocumentTotalsAsync(
-        Guid id, 
+        Guid id,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -96,8 +95,8 @@ public interface IDocumentHeaderService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Updated document header DTO or null if not found</returns>
     Task<DocumentHeaderDto?> ApproveDocumentAsync(
-        Guid id, 
-        string currentUser, 
+        Guid id,
+        string currentUser,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -108,8 +107,8 @@ public interface IDocumentHeaderService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Updated document header DTO or null if not found</returns>
     Task<DocumentHeaderDto?> CloseDocumentAsync(
-        Guid id, 
-        string currentUser, 
+        Guid id,
+        string currentUser,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -119,6 +118,6 @@ public interface IDocumentHeaderService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if exists, false otherwise</returns>
     Task<bool> DocumentHeaderExistsAsync(
-        Guid id, 
+        Guid id,
         CancellationToken cancellationToken = default);
 }

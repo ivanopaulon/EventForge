@@ -59,7 +59,7 @@ public class PerformanceController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IEnumerable<SlowQueryInfo>>> GetSlowQueries(
-        [FromQuery] int limit = 50, 
+        [FromQuery] int limit = 50,
         CancellationToken cancellationToken = default)
     {
         try
@@ -99,7 +99,7 @@ public class PerformanceController : BaseApiController
         try
         {
             var statistics = await _performanceService.GetStatisticsAsync();
-            
+
             var summary = new PerformanceSummaryDto
             {
                 TotalQueries = statistics.TotalQueries,
@@ -125,13 +125,13 @@ public class PerformanceController : BaseApiController
     {
         if (slowQueryPercentage > 10 || averageQueryDuration.TotalSeconds > 1)
             return "Poor";
-        
+
         if (slowQueryPercentage > 5 || averageQueryDuration.TotalMilliseconds > 500)
             return "Fair";
-        
+
         if (slowQueryPercentage > 2 || averageQueryDuration.TotalMilliseconds > 200)
             return "Good";
-        
+
         return "Excellent";
     }
 }

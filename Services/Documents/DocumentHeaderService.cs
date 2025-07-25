@@ -1,7 +1,5 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
-using EventForge.Data.Entities.Documents;
-using EventForge.DTOs.Audit;
 using EventForge.DTOs.Documents;
 using EventForge.Services.Audit;
 using Microsoft.EntityFrameworkCore;
@@ -137,7 +135,7 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync("DocumentHeader", documentHeader.Id, "Created", "Create", 
+            await _auditLogService.LogEntityChangeAsync("DocumentHeader", documentHeader.Id, "Created", "Create",
                 null, $"Document header {documentHeader.Number} created", currentUser, cancellationToken: cancellationToken);
 
             return _mapper.Map<DocumentHeaderDto>(documentHeader);
@@ -241,7 +239,7 @@ public class DocumentHeaderService : IDocumentHeaderService
             // Apply document-level discounts
             if (documentHeader.TotalDiscount > 0)
                 netTotal -= netTotal * (documentHeader.TotalDiscount / 100m);
-            
+
             netTotal -= documentHeader.TotalDiscountAmount;
 
             documentHeader.TotalNetAmount = Math.Max(0, netTotal);

@@ -1,6 +1,6 @@
 using EventForge.Filters;
-using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.Events;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Controllers;

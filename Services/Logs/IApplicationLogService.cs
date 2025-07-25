@@ -1,4 +1,3 @@
-using EventForge.DTOs.Logs;
 namespace EventForge.Services.Logs;
 
 /// <summary>

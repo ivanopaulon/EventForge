@@ -1,6 +1,6 @@
 using EventForge.DTOs.UnitOfMeasures;
-using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.UnitOfMeasures;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Controllers;

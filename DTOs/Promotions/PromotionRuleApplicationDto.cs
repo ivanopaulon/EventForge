@@ -1,5 +1,3 @@
-using EventForge.Data.Entities.Promotions;
-
 namespace EventForge.DTOs.Promotions;
 
 /// <summary>

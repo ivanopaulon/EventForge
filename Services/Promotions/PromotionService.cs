@@ -256,7 +256,7 @@ public class PromotionService : IPromotionService
         {
             // TODO: Implement comprehensive promotion rule application logic
             // This is a basic implementation that can be expanded
-            
+
             var result = new PromotionApplicationResultDto
             {
                 OriginalTotal = applyDto.CartItems.Sum(item => item.UnitPrice * item.Quantity),
@@ -265,9 +265,9 @@ public class PromotionService : IPromotionService
 
             // Get applicable promotions
             var applicableRules = await GetApplicablePromotionRulesAsync(
-                applyDto.CustomerId, 
-                applyDto.SalesChannel, 
-                applyDto.OrderDateTime, 
+                applyDto.CustomerId,
+                applyDto.SalesChannel,
+                applyDto.OrderDateTime,
                 cancellationToken);
 
             // For now, just copy cart items without applying any rules
@@ -306,18 +306,18 @@ public class PromotionService : IPromotionService
     }
 
     public async Task<IEnumerable<PromotionRuleDto>> GetApplicablePromotionRulesAsync(
-        Guid? customerId = null, 
-        string? salesChannel = null, 
-        DateTime? orderDateTime = null, 
+        Guid? customerId = null,
+        string? salesChannel = null,
+        DateTime? orderDateTime = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
             var checkDateTime = orderDateTime ?? DateTime.UtcNow;
-            
+
             var query = _context.PromotionRules
                 .Include(pr => pr.Promotion)
-                .Where(pr => !pr.IsDeleted && 
+                .Where(pr => !pr.IsDeleted &&
                            !pr.Promotion!.IsDeleted &&
                            pr.Promotion.StartDate <= checkDateTime &&
                            pr.Promotion.EndDate >= checkDateTime);
@@ -325,7 +325,7 @@ public class PromotionService : IPromotionService
             // Apply filters based on parameters
             if (!string.IsNullOrEmpty(salesChannel) && salesChannel != "all")
             {
-                query = query.Where(pr => pr.SalesChannels == null || 
+                query = query.Where(pr => pr.SalesChannels == null ||
                                         pr.SalesChannels.Contains(salesChannel));
             }
 

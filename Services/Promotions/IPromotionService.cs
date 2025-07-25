@@ -59,8 +59,8 @@ public interface IPromotionService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Collection of applicable promotion rules</returns>
     Task<IEnumerable<PromotionRuleDto>> GetApplicablePromotionRulesAsync(
-        Guid? customerId = null, 
-        string? salesChannel = null, 
-        DateTime? orderDateTime = null, 
+        Guid? customerId = null,
+        string? salesChannel = null,
+        DateTime? orderDateTime = null,
         CancellationToken cancellationToken = default);
 }

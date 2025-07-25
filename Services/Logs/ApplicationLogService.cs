@@ -1,5 +1,4 @@
 using Dapper;
-using EventForge.DTOs.Logs;
 using Microsoft.Data.SqlClient;
 
 namespace EventForge.Services.Logs;
@@ -68,7 +67,7 @@ public class ApplicationLogService : IApplicationLogService
             return new PagedResult<ApplicationLogDto>
             {
                 Items = logs,
-                Page =  queryParameters.Page ?? 1,
+                Page = queryParameters.Page ?? 1,
                 PageSize = queryParameters.PageSize ?? 10,
                 TotalCount = totalCount
             };

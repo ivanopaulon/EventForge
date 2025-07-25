@@ -1,5 +1,3 @@
-using EventForge.Data.Entities.Documents;
-
 namespace EventForge.DTOs.Documents;
 
 /// <summary>

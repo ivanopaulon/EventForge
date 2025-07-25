@@ -1,6 +1,6 @@
 using EventForge.DTOs.VatRates;
-using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.VatRates;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Controllers;

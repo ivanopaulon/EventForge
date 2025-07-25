@@ -1,6 +1,6 @@
 using EventForge.DTOs.Products;
-using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.Products;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Controllers;
@@ -832,7 +832,7 @@ public class ProductsController : BaseApiController
         // Validate file format
         var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
         var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        
+
         if (string.IsNullOrEmpty(fileExtension) || !allowedExtensions.Contains(fileExtension))
         {
             return BadRequest(new { message = "Invalid file format. Only JPG, JPEG, PNG, and GIF files are allowed." });

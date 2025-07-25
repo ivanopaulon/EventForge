@@ -1,13 +1,11 @@
 using EventForge.Mappings;
 using EventForge.Services.Audit;
-using EventForge.Services.Auth;
 using EventForge.Services.Banks;
 using EventForge.Services.Business;
 using EventForge.Services.Common;
 using EventForge.Services.Documents;
 using EventForge.Services.Events;
 using EventForge.Services.Logs;
-using EventForge.Services.Performance;
 using EventForge.Services.PriceLists;
 using EventForge.Services.Products;
 using EventForge.Services.Promotions;
@@ -260,11 +258,11 @@ public static class ServiceCollectionExtensions
     public static void AddAuthorization(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddAuthorizationBuilder()
-            .AddPolicy("RequireUser", policy => 
+            .AddPolicy("RequireUser", policy =>
                 policy.RequireAuthenticatedUser())
-            .AddPolicy("RequireAdmin", policy => 
+            .AddPolicy("RequireAdmin", policy =>
                 policy.RequireRole("Admin"))
-            .AddPolicy("RequireManager", policy => 
+            .AddPolicy("RequireManager", policy =>
                 policy.RequireRole("Admin", "Manager"))
             .AddPolicy("CanManageUsers", policy =>
                 policy.RequireClaim("permission", "Users.Users.Create", "Users.Users.Update", "Users.Users.Delete"))
@@ -292,7 +290,7 @@ public static class ServiceCollectionExtensions
                 return;
             }
 
-            db.Database.Migrate();
+            // db.Database.Migrate();
             Log.Information("Migrazioni applicate correttamente al database.");
         }
         catch (Exception ex)

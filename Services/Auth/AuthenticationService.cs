@@ -1,5 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Services.Auth;
 
@@ -161,7 +161,7 @@ public class AuthenticationService : IAuthenticationService
                 if (user.FailedLoginAttempts >= _lockoutOptions.MaxFailedAttempts)
                 {
                     user.LockedUntil = DateTime.UtcNow.AddMinutes(_lockoutOptions.LockoutDurationMinutes);
-                    _logger.LogWarning("Account locked for user {Username} after {FailedAttempts} failed attempts", 
+                    _logger.LogWarning("Account locked for user {Username} after {FailedAttempts} failed attempts",
                         request.Username, user.FailedLoginAttempts);
                 }
 
@@ -219,7 +219,7 @@ public class AuthenticationService : IAuthenticationService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during login for user {Username}", request.Username);
-            
+
             loginAudit.Success = false;
             loginAudit.FailureReason = "Internal error";
             try
@@ -231,7 +231,7 @@ public class AuthenticationService : IAuthenticationService
             {
                 _logger.LogError(saveEx, "Failed to save login audit");
             }
-            
+
             return null;
         }
     }
@@ -263,7 +263,7 @@ public class AuthenticationService : IAuthenticationService
             var validation = _passwordService.ValidatePassword(request.NewPassword);
             if (!validation.IsValid)
             {
-                _logger.LogWarning("Password change failed: New password validation failed for user {Username}: {Errors}", 
+                _logger.LogWarning("Password change failed: New password validation failed for user {Username}: {Errors}",
                     user.Username, string.Join(", ", validation.Errors));
                 return false;
             }

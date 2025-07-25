@@ -1,6 +1,6 @@
 using EventForge.DTOs.Teams;
-using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.Teams;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Controllers;
