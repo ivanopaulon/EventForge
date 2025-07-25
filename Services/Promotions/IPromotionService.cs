@@ -41,4 +41,26 @@ public interface IPromotionService
     /// Checks if a promotion exists.
     /// </summary>
     Task<bool> PromotionExistsAsync(Guid promotionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Applies promotion rules to a cart/order and returns the discount calculations.
+    /// </summary>
+    /// <param name="applyDto">Cart/order data for promotion application</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Result with applied discounts and affected items</returns>
+    Task<PromotionApplicationResultDto> ApplyPromotionRulesAsync(ApplyPromotionRulesDto applyDto, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all available promotion rules for a given context.
+    /// </summary>
+    /// <param name="customerId">Customer ID (optional)</param>
+    /// <param name="salesChannel">Sales channel (optional)</param>
+    /// <param name="orderDateTime">Order date/time for date-based rules</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Collection of applicable promotion rules</returns>
+    Task<IEnumerable<PromotionRuleDto>> GetApplicablePromotionRulesAsync(
+        Guid? customerId = null, 
+        string? salesChannel = null, 
+        DateTime? orderDateTime = null, 
+        CancellationToken cancellationToken = default);
 }

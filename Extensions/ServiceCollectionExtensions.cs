@@ -162,9 +162,10 @@ public static class ServiceCollectionExtensions
 
         // Register document services  
         services.AddScoped<IDocumentTypeService, DocumentTypeService>();
+        services.AddScoped<IDocumentHeaderService, DocumentHeaderService>();
 
         // TODO: Complete implementation for:
-        // - Document services: DocumentHeader, DocumentRow, DocumentSummaryLink (create implementations)
+        // - Document services: DocumentRow, DocumentSummaryLink (create implementations)
         // - PromotionRule, PromotionRuleProduct services (create implementations)
     }
 
