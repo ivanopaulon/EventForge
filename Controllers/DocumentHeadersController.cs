@@ -1,4 +1,5 @@
 using EventForge.DTOs.Audit;
+using Microsoft.AspNetCore.Authorization;
 using EventForge.DTOs.Documents;
 using EventForge.Services.Documents;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +10,7 @@ namespace EventForge.Controllers;
 /// REST API controller for document header management.
 /// </summary>
 [Route("api/v1/[controller]")]
+[Authorize]
 public class DocumentHeadersController : BaseApiController
 {
     private readonly IDocumentHeaderService _documentHeaderService;

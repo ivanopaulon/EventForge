@@ -1,4 +1,5 @@
 using EventForge.DTOs.PriceLists;
+using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.PriceLists;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,7 @@ namespace EventForge.Controllers;
 /// REST API controller for price list management.
 /// </summary>
 [Route("api/v1/[controller]")]
+[Authorize]
 public class PriceListsController : BaseApiController
 {
     private readonly IPriceListService _priceListService;

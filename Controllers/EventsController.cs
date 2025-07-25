@@ -1,4 +1,5 @@
 using EventForge.Filters;
+using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.Events;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,7 @@ namespace EventForge.Controllers;
 /// REST API controller for event management.
 /// </summary>
 [Route("api/v1/[controller]")]
+[Authorize]
 public class EventsController : BaseApiController
 {
     private readonly IEventService _eventService;

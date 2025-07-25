@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
@@ -9,15 +10,18 @@ namespace EventForge.Controllers;
 /// REST API controller for health check and API version information.
 /// </summary>
 [Route("api/v1/[controller]")]
+[AllowAnonymous]
 public class HealthController : BaseApiController
 {
     private readonly EventForgeDbContext _dbContext;
     private readonly ILogger<HealthController> _logger;
+    private readonly IPerformanceMonitoringService? _performanceService;
 
-    public HealthController(EventForgeDbContext dbContext, ILogger<HealthController> logger)
+    public HealthController(EventForgeDbContext dbContext, ILogger<HealthController> logger, IPerformanceMonitoringService? performanceService = null)
     {
         _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _performanceService = performanceService;
     }
 
     /// <summary>
@@ -44,8 +48,11 @@ public class HealthController : BaseApiController
             // Check database connectivity
             healthStatus.DatabaseStatus = await GetDatabaseStatusAsync(cancellationToken);
             
+            // Check authentication system
+            healthStatus.AuthenticationStatus = GetAuthenticationStatus();
+            
             // Determine overall health
-            var isHealthy = healthStatus.DatabaseStatus == "Healthy";
+            var isHealthy = healthStatus.DatabaseStatus == "Healthy" && healthStatus.AuthenticationStatus == "Healthy";
             
             if (!isHealthy)
             {
@@ -96,10 +103,37 @@ public class HealthController : BaseApiController
             healthStatus.DatabaseStatus = dbCheckResult.Status;
             healthStatus.DatabaseDetails = dbCheckResult.Details;
             
+            // Check authentication system with details
+            healthStatus.AuthenticationStatus = GetAuthenticationStatus();
+            healthStatus.AuthenticationDetails = GetAuthenticationDetails();
+            
+            // Add performance information if available
+            if (_performanceService != null)
+            {
+                try
+                {
+                    var perfStats = await _performanceService.GetStatisticsAsync();
+                    healthStatus.AuthenticationDetails["PerformanceMonitoring"] = "Enabled";
+                    healthStatus.AuthenticationDetails["TotalQueries"] = perfStats.TotalQueries;
+                    healthStatus.AuthenticationDetails["SlowQueryPercentage"] = Math.Round(perfStats.SlowQueryPercentage, 2);
+                    healthStatus.AuthenticationDetails["AverageQueryDurationMs"] = Math.Round(perfStats.AverageQueryDuration.TotalMilliseconds, 2);
+                }
+                catch
+                {
+                    healthStatus.AuthenticationDetails["PerformanceMonitoring"] = "Error";
+                }
+            }
+            else
+            {
+                healthStatus.AuthenticationDetails["PerformanceMonitoring"] = "Disabled";
+            }
+            
             // Add dependency checks here (external APIs, caches, etc.)
             healthStatus.Dependencies = new Dictionary<string, string>
             {
-                ["Database"] = healthStatus.DatabaseStatus ?? "Unknown"
+                ["Database"] = healthStatus.DatabaseStatus ?? "Unknown",
+                ["Authentication"] = healthStatus.AuthenticationStatus ?? "Unknown",
+                ["PerformanceMonitoring"] = _performanceService != null ? "Healthy" : "Disabled"
             };
 
             return Ok(healthStatus);
@@ -183,6 +217,75 @@ public class HealthController : BaseApiController
             return "Unknown";
         }
     }
+
+    private string GetAuthenticationStatus()
+    {
+        try
+        {
+            // Check if JWT configuration is valid
+            var jwtSection = HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetSection("Authentication:Jwt");
+            var secretKey = jwtSection["SecretKey"];
+            
+            if (string.IsNullOrEmpty(secretKey))
+            {
+                return "Configuration Error";
+            }
+
+            // Check if bootstrap service is working
+            var bootstrapService = HttpContext.RequestServices.GetService<IBootstrapService>();
+            if (bootstrapService == null)
+            {
+                return "Service Error";
+            }
+
+            return "Healthy";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Authentication health check failed");
+            return "Error";
+        }
+    }
+
+    private Dictionary<string, object> GetAuthenticationDetails()
+    {
+        var details = new Dictionary<string, object>();
+
+        try
+        {
+            var configuration = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+            var jwtSection = configuration.GetSection("Authentication:Jwt");
+            
+            details["JwtIssuer"] = jwtSection["Issuer"] ?? "Unknown";
+            details["JwtAudience"] = jwtSection["Audience"] ?? "Unknown";
+            details["JwtExpirationMinutes"] = jwtSection["ExpirationMinutes"] ?? "Unknown";
+            details["HasSecretKey"] = !string.IsNullOrEmpty(jwtSection["SecretKey"]);
+
+            var passwordSection = configuration.GetSection("Authentication:PasswordPolicy");
+            details["PasswordMinLength"] = passwordSection["MinimumLength"] ?? "Unknown";
+            details["PasswordRequireUppercase"] = passwordSection["RequireUppercase"] ?? "Unknown";
+            details["PasswordRequireDigits"] = passwordSection["RequireDigits"] ?? "Unknown";
+
+            var lockoutSection = configuration.GetSection("Authentication:AccountLockout");
+            details["MaxFailedAttempts"] = lockoutSection["MaxFailedAttempts"] ?? "Unknown";
+            details["LockoutDurationMinutes"] = lockoutSection["LockoutDurationMinutes"] ?? "Unknown";
+
+            var bootstrapSection = configuration.GetSection("Authentication:Bootstrap");
+            details["AutoCreateAdmin"] = bootstrapSection["AutoCreateAdmin"] ?? "Unknown";
+            details["DefaultAdminUsername"] = bootstrapSection["DefaultAdminUsername"] ?? "Unknown";
+
+            details["AuthenticationScheme"] = "JWT Bearer";
+            details["ConfigurationValid"] = true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error getting authentication details");
+            details["Error"] = ex.Message;
+            details["ConfigurationValid"] = false;
+        }
+
+        return details;
+    }
 }
 
 /// <summary>
@@ -214,6 +317,11 @@ public class HealthStatusDto
     /// Error message if any issues occurred.
     /// </summary>
     public string? ErrorMessage { get; set; }
+
+    /// <summary>
+    /// Authentication system status.
+    /// </summary>
+    public string? AuthenticationStatus { get; set; }
 }
 
 /// <summary>
@@ -255,4 +363,9 @@ public class DetailedHealthStatusDto : HealthStatusDto
     /// Status of dependencies.
     /// </summary>
     public Dictionary<string, string>? Dependencies { get; set; }
+
+    /// <summary>
+    /// Authentication configuration details.
+    /// </summary>
+    public Dictionary<string, object>? AuthenticationDetails { get; set; }
 }

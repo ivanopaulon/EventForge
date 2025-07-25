@@ -1,4 +1,5 @@
 using EventForge.DTOs.Warehouse;
+using Microsoft.AspNetCore.Authorization;
 using EventForge.Filters;
 using EventForge.Services.Warehouse;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +10,7 @@ namespace EventForge.Controllers;
 /// REST API controller for storage location management.
 /// </summary>
 [Route("api/v1/[controller]")]
+[Authorize]
 public class StorageLocationsController : BaseApiController
 {
     private readonly IStorageLocationService _storageLocationService;

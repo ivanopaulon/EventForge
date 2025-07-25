@@ -1,4 +1,5 @@
 using EventForge.DTOs.Products;
+using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.Products;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,7 @@ namespace EventForge.Controllers;
 /// REST API controller for product management.
 /// </summary>
 [Route("api/v1/[controller]")]
+[Authorize]
 public class ProductsController : BaseApiController
 {
     private readonly IProductService _productService;

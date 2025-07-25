@@ -1,4 +1,5 @@
 using EventForge.DTOs.Store;
+using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.Store;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,7 @@ namespace EventForge.Controllers;
 /// REST API controller for store user management.
 /// </summary>
 [Route("api/v1/[controller]")]
+[Authorize]
 public class StoreUsersController : BaseApiController
 {
     private readonly IStoreUserService _storeUserService;
