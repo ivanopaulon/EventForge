@@ -67,6 +67,14 @@ public class EventForgeDbContext : DbContext
     // Audit
     public DbSet<EntityChangeLog> EntityChangeLogs { get; set; }
 
+    // Authentication & Authorization
+    public DbSet<User> Users { get; set; }
+    public DbSet<Role> Roles { get; set; }
+    public DbSet<Permission> Permissions { get; set; }
+    public DbSet<UserRole> UserRoles { get; set; }
+    public DbSet<RolePermission> RolePermissions { get; set; }
+    public DbSet<LoginAudit> LoginAudits { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -241,6 +249,59 @@ public class EventForgeDbContext : DbContext
 
         // Bank → Address, Contact, Reference (polymorphic, managed at application/query level)
         // BusinessParty → Address, Contact, Reference (polymorphic, managed at application/query level)
+
+        // Authentication & Authorization relationships
+        
+        // User constraints
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.Username)
+            .IsUnique();
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.Email)
+            .IsUnique();
+
+        // Role constraints
+        modelBuilder.Entity<Role>()
+            .HasIndex(r => r.Name)
+            .IsUnique();
+
+        // Permission constraints
+        modelBuilder.Entity<Permission>()
+            .HasIndex(p => new { p.Category, p.Resource, p.Action })
+            .IsUnique();
+
+        // UserRole relationships
+        modelBuilder.Entity<UserRole>()
+            .HasOne(ur => ur.User)
+            .WithMany(u => u.UserRoles)
+            .HasForeignKey(ur => ur.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<UserRole>()
+            .HasOne(ur => ur.Role)
+            .WithMany(r => r.UserRoles)
+            .HasForeignKey(ur => ur.RoleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // RolePermission relationships
+        modelBuilder.Entity<RolePermission>()
+            .HasOne(rp => rp.Role)
+            .WithMany(r => r.RolePermissions)
+            .HasForeignKey(rp => rp.RoleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<RolePermission>()
+            .HasOne(rp => rp.Permission)
+            .WithMany(p => p.RolePermissions)
+            .HasForeignKey(rp => rp.PermissionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // LoginAudit relationships
+        modelBuilder.Entity<LoginAudit>()
+            .HasOne(la => la.User)
+            .WithMany(u => u.LoginAudits)
+            .HasForeignKey(la => la.UserId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 
     /// <summary>

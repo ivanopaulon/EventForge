@@ -10,6 +10,10 @@ builder.Services.AddConfiguredHttpClient(builder.Configuration);
 builder.Services.AddConfiguredDbContext(builder.Configuration);
 builder.AddCustomSerilogLogging();
 
+// Add Authentication & Authorization services
+builder.Services.AddAuthentication(builder.Configuration);
+builder.Services.AddAuthorization(builder.Configuration);
+
 // Add API Controllers support
 builder.Services.AddControllers();
 
@@ -89,6 +93,31 @@ builder.Services.AddSwaggerGen(c =>
             ["timestamp"] = new() { Type = "string", Example = new Microsoft.OpenApi.Any.OpenApiString("2024-01-01T12:00:00Z") }
         }
     });
+
+    // Add JWT Authentication to Swagger
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
 var app = builder.Build();
@@ -121,6 +150,10 @@ else
 }
 
 app.UseHttpsRedirection();
+
+// Authentication & Authorization
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Map API Controllers
 app.MapControllers();

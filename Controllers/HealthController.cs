@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
@@ -9,6 +10,7 @@ namespace EventForge.Controllers;
 /// REST API controller for health check and API version information.
 /// </summary>
 [Route("api/v1/[controller]")]
+[AllowAnonymous]
 public class HealthController : BaseApiController
 {
     private readonly EventForgeDbContext _dbContext;

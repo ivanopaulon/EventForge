@@ -1,5 +1,6 @@
 using EventForge.Mappings;
 using EventForge.Services.Audit;
+using EventForge.Services.Auth;
 using EventForge.Services.Banks;
 using EventForge.Services.Business;
 using EventForge.Services.Common;
@@ -15,10 +16,13 @@ using EventForge.Services.Teams;
 using EventForge.Services.UnitOfMeasures;
 using EventForge.Services.VatRates;
 using EventForge.Services.Warehouse;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.MSSqlServer;
+using System.Text;
 
 public static class ServiceCollectionExtensions
 {
@@ -167,6 +171,91 @@ public static class ServiceCollectionExtensions
         // TODO: Complete implementation for:
         // - Document services: DocumentRow, DocumentSummaryLink (create implementations)
         // - PromotionRule, PromotionRuleProduct services (create implementations)
+    }
+
+    /// <summary>
+    /// Configures authentication services with JWT bearer token support.
+    /// </summary>
+    public static void AddAuthentication(this IServiceCollection services, IConfiguration configuration)
+    {
+        // Register authentication services
+        services.AddScoped<IPasswordService, PasswordService>();
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<IAuthenticationService, AuthenticationService>();
+
+        // Get JWT configuration
+        var jwtSection = configuration.GetSection("Authentication:Jwt");
+        var jwtOptions = jwtSection.Get<JwtOptions>() ?? new JwtOptions();
+
+        if (string.IsNullOrEmpty(jwtOptions.SecretKey))
+        {
+            throw new InvalidOperationException("JWT SecretKey must be configured in Authentication:Jwt:SecretKey");
+        }
+
+        var key = Encoding.UTF8.GetBytes(jwtOptions.SecretKey);
+
+        // Configure JWT authentication
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.RequireHttpsMetadata = false; // Set to true in production
+            options.SaveToken = true;
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = jwtOptions.Issuer,
+                ValidAudience = jwtOptions.Audience,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ClockSkew = TimeSpan.FromMinutes(jwtOptions.ClockSkewMinutes)
+            };
+
+            options.Events = new JwtBearerEvents
+            {
+                OnAuthenticationFailed = context =>
+                {
+                    Log.Warning("JWT authentication failed: {Error}", context.Exception?.Message);
+                    return Task.CompletedTask;
+                },
+                OnTokenValidated = context =>
+                {
+                    var username = context.Principal?.Identity?.Name;
+                    Log.Debug("JWT token validated for user: {Username}", username);
+                    return Task.CompletedTask;
+                }
+            };
+        });
+
+        Log.Information("JWT Authentication configured successfully");
+    }
+
+    /// <summary>
+    /// Configures authorization services with policy-based authorization.
+    /// </summary>
+    public static void AddAuthorization(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddAuthorizationBuilder()
+            .AddPolicy("RequireUser", policy => 
+                policy.RequireAuthenticatedUser())
+            .AddPolicy("RequireAdmin", policy => 
+                policy.RequireRole("Admin"))
+            .AddPolicy("RequireManager", policy => 
+                policy.RequireRole("Admin", "Manager"))
+            .AddPolicy("CanManageUsers", policy =>
+                policy.RequireClaim("permission", "Users.Users.Create", "Users.Users.Update", "Users.Users.Delete"))
+            .AddPolicy("CanViewReports", policy =>
+                policy.RequireClaim("permission", "Reports.Reports.Read"))
+            .AddPolicy("CanManageEvents", policy =>
+                policy.RequireClaim("permission", "Events.Events.Create", "Events.Events.Update", "Events.Events.Delete"));
+
+        Log.Information("Authorization policies configured successfully");
     }
 
     /// <summary>
