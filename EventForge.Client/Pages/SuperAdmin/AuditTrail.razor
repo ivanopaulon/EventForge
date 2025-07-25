@@ -1,0 +1,424 @@
+@page "/superadmin/audit-trail"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "SuperAdmin")]
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Audit Trail - EventForge Super Admin</PageTitle>
+
+<SuperAdminBanner />
+
+@if (_isLoading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else if (!_isAuthorized)
+{
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+        <MudPaper Class="pa-8" Elevation="4">
+            <MudGrid Justify="Justify.Center">
+                <MudItem xs="12">
+                    <div class="d-flex flex-column align-center">
+                        <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
+                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">Accesso Negato</MudText>
+                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
+                            Non hai i permessi per accedere a questa pagina. È richiesto il ruolo Super Amministratore.
+                        </MudText>
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Primary" 
+                                   StartIcon="Icons.Material.Filled.ArrowBack"
+                                   OnClick="@(() => NavigationManager.NavigateTo("/"))">
+                            Torna alla Home
+                        </MudButton>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudContainer>
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+        <MudText Typo="Typo.h3" Class="mb-8">
+            <MudIcon Icon="Icons.Material.Filled.History" Class="mr-3" />
+            Audit Trail
+        </MudText>
+
+        <MudGrid>
+            <!-- Filtri Avanzati -->
+            <MudItem xs="12" md="8">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.FilterList" Class="mr-2" />
+                                Filtri Audit
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <MudSelect T="string" @bind-Value="_operationType" Label="Tipo Operazione" Variant="Variant.Outlined">
+                                    <MudSelectItem Value="@("all")">Tutte le operazioni</MudSelectItem>
+                                    <MudSelectItem Value="@("login")">Login</MudSelectItem>
+                                    <MudSelectItem Value="@("logout")">Logout</MudSelectItem>
+                                    <MudSelectItem Value="@("tenant_switch")">Switch Tenant</MudSelectItem>
+                                    <MudSelectItem Value="@("impersonation")">Impersonazione</MudSelectItem>
+                                    <MudSelectItem Value="@("user_management")">Gestione Utenti</MudSelectItem>
+                                    <MudSelectItem Value="@("tenant_management")">Gestione Tenant</MudSelectItem>
+                                    <MudSelectItem Value="@("permission_change")">Modifica Permessi</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="_targetUser"
+                                              Label="Utente Target"
+                                              Variant="Variant.Outlined"
+                                              Placeholder="Username o email..." />
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudSelect T="string" @bind-Value="_sourceTenant" Label="Tenant Sorgente" Variant="Variant.Outlined">
+                                    <MudSelectItem Value="@("all")">Tutti i tenant</MudSelectItem>
+                                    <!-- TODO: Popolare con lista tenant -->
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudSelect T="string" @bind-Value="_targetTenant" Label="Tenant Target" Variant="Variant.Outlined">
+                                    <MudSelectItem Value="@("all")">Tutti i tenant</MudSelectItem>
+                                    <!-- TODO: Popolare con lista tenant -->
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudDatePicker Label="Data Inizio" 
+                                               @bind-Date="_startDate" 
+                                               Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudDatePicker Label="Data Fine" 
+                                               @bind-Date="_endDate" 
+                                               Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudSelect T="string" @bind-Value="_auditResult" Label="Risultato" Variant="Variant.Outlined">
+                                    <MudSelectItem Value="@("all")">Tutti i risultati</MudSelectItem>
+                                    <MudSelectItem Value="@("success")">Successo</MudSelectItem>
+                                    <MudSelectItem Value="@("failure")">Fallimento</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                        </MudGrid>
+                        
+                        <div class="d-flex ga-2 mt-3">
+                            <MudButton Variant="Variant.Filled" 
+                                       Color="Color.Primary" 
+                                       StartIcon="Icons.Material.Filled.Search"
+                                       OnClick="@(() => SearchAuditTrail())">
+                                Cerca
+                            </MudButton>
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Secondary" 
+                                       StartIcon="Icons.Material.Filled.Clear"
+                                       OnClick="@(() => ClearFilters())">
+                                Pulisci Filtri
+                            </MudButton>
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Statistiche e Azioni -->
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Analytics" Class="mr-2" />
+                                Statistiche Audit
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <div class="d-flex flex-column ga-3">
+                            <div class="d-flex justify-space-between">
+                                <MudText>Eventi (24h):</MudText>
+                                <MudChip T="string" Color="Color.Info" Size="Size.Small">TODO</MudChip>
+                            </div>
+                            <div class="d-flex justify-space-between">
+                                <MudText>Operazioni Critiche:</MudText>
+                                <MudChip T="string" Color="Color.Warning" Size="Size.Small">TODO</MudChip>
+                            </div>
+                            <div class="d-flex justify-space-between">
+                                <MudText>Tentativi Falliti:</MudText>
+                                <MudChip T="string" Color="Color.Error" Size="Size.Small">TODO</MudChip>
+                            </div>
+                            
+                            <MudDivider />
+                            
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Primary" 
+                                       StartIcon="Icons.Material.Filled.Refresh"
+                                       FullWidth="true"
+                                       OnClick="@(() => RefreshAuditTrail())">
+                                Aggiorna
+                            </MudButton>
+                            
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Secondary" 
+                                       StartIcon="Icons.Material.Filled.Download"
+                                       FullWidth="true"
+                                       OnClick="@(() => ExportAuditTrail())">
+                                Esporta Audit
+                            </MudButton>
+                            
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Warning" 
+                                       StartIcon="Icons.Material.Filled.Notifications"
+                                       FullWidth="true"
+                                       OnClick="@(() => SetupAlerts())">
+                                Configura Alert
+                            </MudButton>
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Operazioni Critiche Recenti -->
+            <MudItem xs="12">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Warning" Class="mr-2" />
+                                Operazioni Critiche Recenti (24h)
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mb-3">
+                            <strong>TODO:</strong> Implementare recupero operazioni critiche recenti:
+                            <ul class="mt-2">
+                                <li>Switch tenant da parte di SuperAdmin</li>
+                                <li>Impersonazioni utente</li>
+                                <li>Modifiche permessi critici</li>
+                                <li>Tentativi di accesso falliti multipli</li>
+                                <li>Operazioni di gestione tenant</li>
+                            </ul>
+                        </MudAlert>
+
+                        <!-- Placeholder per operazioni critiche -->
+                        <div class="d-flex flex-column ga-2">
+                            <div class="d-flex align-center pa-2 border-solid border-1 border-warning rounded">
+                                <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning" Class="mr-2" />
+                                <div class="flex-grow-1">
+                                    <MudText Typo="Typo.body2"><strong>Placeholder:</strong> Switch tenant verso "Acme Corp"</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">SuperAdmin @@admin - 2h fa</MudText>
+                                </div>
+                            </div>
+                            <div class="d-flex align-center pa-2 border-solid border-1 border-error rounded">
+                                <MudIcon Icon="Icons.Material.Filled.Error" Color="Color.Error" Class="mr-2" />
+                                <div class="flex-grow-1">
+                                    <MudText Typo="Typo.body2"><strong>Placeholder:</strong> Tentativo accesso fallito per user123@example.com</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">IP: 192.168.1.100 - 1h fa</MudText>
+                                </div>
+                            </div>
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Tabella Audit Trail -->
+            <MudItem xs="12">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.List" Class="mr-2" />
+                                Cronologia Audit Trail
+                            </MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudToggleIconButton @bind-Toggled="_autoRefresh"
+                                                 Icon="Icons.Material.Filled.PlayArrow"
+                                                 ToggledIcon="Icons.Material.Filled.Pause"
+                                                 Color="Color.Primary"
+                                                 ToggledColor="Color.Secondary" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mb-4">
+                            <strong>TODO:</strong> Implementare integrazione con sistema audit trail.
+                            <br />
+                            Le seguenti funzionalità dovranno essere implementate:
+                            <ul class="mt-2">
+                                <li>Recupero eventi audit da database con filtri avanzati</li>
+                                <li>Correlazione tra eventi correlati (sessioni, transazioni)</li>
+                                <li>Visualizzazione dettagliata di payload e context</li>
+                                <li>Ricerca full-text nei dettagli degli eventi</li>
+                                <li>Export personalizzato per compliance e reporting</li>
+                                <li>Retention policies e archiviazione automatica</li>
+                                <li>Alerting in tempo reale per eventi critici</li>
+                                <li>Dashboard analytics per pattern e anomalie</li>
+                            </ul>
+                        </MudAlert>
+
+                        <!-- Placeholder Table -->
+                        <MudTable T="object" Items="@(new object[0])" Hover="true" Striped="true" Dense="true">
+                            <HeaderContent>
+                                <MudTh>Timestamp</MudTh>
+                                <MudTh>Operazione</MudTh>
+                                <MudTh>Utente</MudTh>
+                                <MudTh>Tenant Sorgente</MudTh>
+                                <MudTh>Target</MudTh>
+                                <MudTh>Risultato</MudTh>
+                                <MudTh>IP</MudTh>
+                                <MudTh>Azioni</MudTh>
+                            </HeaderContent>
+                            <NoRecordsContent>
+                                <MudText>Nessun evento audit trovato. Integrare con sistema audit trail per caricare i dati.</MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+
+                        <!-- Paginazione -->
+                        <div class="d-flex justify-center mt-4">
+                            <MudPagination Count="@_totalPages" 
+                                           @bind-Selected="_currentPage" 
+                                           Color="Color.Primary" 
+                                           Variant="Variant.Filled" />
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Dettagli Evento Selezionato -->
+            @if (_selectedAuditEvent != null)
+            {
+                <MudItem xs="12">
+                    <MudCard Elevation="2">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">
+                                    <MudIcon Icon="Icons.Material.Filled.Info" Class="mr-2" />
+                                    Dettagli Evento Audit
+                                </MudText>
+                            </CardHeaderContent>
+                            <CardHeaderActions>
+                                <MudIconButton Icon="Icons.Material.Filled.Close" 
+                                               Color="Color.Default" 
+                                               OnClick="@(() => _selectedAuditEvent = null)" />
+                            </CardHeaderActions>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudAlert Severity="Severity.Info">
+                                <strong>TODO:</strong> Implementare visualizzazione dettagliata dell'evento audit selezionato con:
+                                <ul class="mt-2">
+                                    <li>Payload completo dell'operazione</li>
+                                    <li>Context data (session ID, correlation ID, user agent)</li>
+                                    <li>Before/After per operazioni di modifica</li>
+                                    <li>Eventi correlati nella stessa sessione</li>
+                                    <li>Geolocalizzazione dell'IP (se disponibile)</li>
+                                    <li>Timeline di eventi correlati</li>
+                                </ul>
+                            </MudAlert>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    </MudContainer>
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _isAuthorized = false;
+    private UserDto? _currentUser;
+    
+    // Filtri
+    private string _operationType = "all";
+    private string _targetUser = string.Empty;
+    private string _sourceTenant = "all";
+    private string _targetTenant = "all";
+    private DateTime? _startDate = DateTime.Today.AddDays(-7);
+    private DateTime? _endDate = DateTime.Today.AddDays(1);
+    private string _auditResult = "all";
+    
+    // Paginazione
+    private int _currentPage = 1;
+    private int _totalPages = 1;
+    
+    // UI State
+    private bool _autoRefresh = false;
+    private object? _selectedAuditEvent = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Verifica autenticazione
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                NavigationManager.NavigateTo("/login");
+                return;
+            }
+
+            // Verifica ruolo SuperAdmin
+            var isSuperAdmin = await AuthService.IsSuperAdminAsync();
+            if (!isSuperAdmin)
+            {
+                _isAuthorized = false;
+                _isLoading = false;
+                Snackbar.Add("Accesso negato. È richiesto il ruolo Super Amministratore.", Severity.Warning);
+                return;
+            }
+
+            // Carica informazioni utente corrente
+            _currentUser = await AuthService.GetCurrentUserAsync();
+            _isAuthorized = true;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento della pagina: {ex.Message}", Severity.Error);
+            NavigationManager.NavigateTo("/");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void SearchAuditTrail()
+    {
+        // TODO: Implementare ricerca audit trail con filtri
+        Snackbar.Add($"TODO: Ricerca audit - Operazione: {_operationType}, Utente: {_targetUser}, Risultato: {_auditResult}", Severity.Info);
+    }
+
+    private void ClearFilters()
+    {
+        _operationType = "all";
+        _targetUser = string.Empty;
+        _sourceTenant = "all";
+        _targetTenant = "all";
+        _startDate = DateTime.Today.AddDays(-7);
+        _endDate = DateTime.Today.AddDays(1);
+        _auditResult = "all";
+        Snackbar.Add("Filtri puliti", Severity.Success);
+    }
+
+    private void RefreshAuditTrail()
+    {
+        // TODO: Implementare refresh audit trail
+        Snackbar.Add("TODO: Refresh audit trail implementato", Severity.Info);
+    }
+
+    private void ExportAuditTrail()
+    {
+        // TODO: Implementare export audit trail
+        Snackbar.Add("TODO: Export audit trail implementato", Severity.Info);
+    }
+
+    private void SetupAlerts()
+    {
+        // TODO: Implementare configurazione alert
+        Snackbar.Add("TODO: Configurazione alert audit implementata", Severity.Info);
+    }
+}

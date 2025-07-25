@@ -1,0 +1,326 @@
+@page "/superadmin/tenant-switch"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "SuperAdmin")]
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Switch Tenant - EventForge Super Admin</PageTitle>
+
+<SuperAdminBanner />
+
+@if (_isLoading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else if (!_isAuthorized)
+{
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+        <MudPaper Class="pa-8" Elevation="4">
+            <MudGrid Justify="Justify.Center">
+                <MudItem xs="12">
+                    <div class="d-flex flex-column align-center">
+                        <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
+                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">Accesso Negato</MudText>
+                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
+                            Non hai i permessi per accedere a questa pagina. È richiesto il ruolo Super Amministratore.
+                        </MudText>
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Primary" 
+                                   StartIcon="Icons.Material.Filled.ArrowBack"
+                                   OnClick="@(() => NavigationManager.NavigateTo("/"))">
+                            Torna alla Home
+                        </MudButton>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudContainer>
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+        <MudText Typo="Typo.h3" Class="mb-8">
+            <MudIcon Icon="Icons.Material.Filled.SwapHoriz" Class="mr-3" />
+            Switch Tenant
+        </MudText>
+
+        <MudGrid>
+            <!-- Stato Corrente -->
+            <MudItem xs="12">
+                <MudCard Elevation="2">
+                    <MudCardContent>
+                        <div class="d-flex align-center">
+                            <MudAvatar Color="Color.Primary" Size="Size.Large" Class="mr-4">
+                                <MudIcon Icon="Icons.Material.Filled.AdminPanelSettings" />
+                            </MudAvatar>
+                            <div>
+                                <MudText Typo="Typo.h5">Stato Corrente</MudText>
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                    Super Amministratore: @(_currentUser?.FullName ?? "N/A")
+                                </MudText>
+                                <div class="d-flex ga-2 mt-2">
+                                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">Super Admin</MudChip>
+                                    @if (_isImpersonating)
+                                    {
+                                        <MudChip T="string" Color="Color.Error" Size="Size.Small">Modalità Impersonazione</MudChip>
+                                    }
+                                    @if (!string.IsNullOrEmpty(_currentTenant))
+                                    {
+                                        <MudChip T="string" Color="Color.Info" Size="Size.Small">Tenant: @_currentTenant</MudChip>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Switch Tenant -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Business" Class="mr-2" />
+                                Cambia Contesto Tenant
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <div class="d-flex flex-column ga-3">
+                            <MudSelect T="string" @bind-Value="_selectedTenantId" Label="Seleziona Tenant" Variant="Variant.Outlined">
+                                <MudSelectItem Value="@("")">Nessun tenant (modalità SuperAdmin)</MudSelectItem>
+                                <!-- TODO: Popolare con lista tenant da API -->
+                            </MudSelect>
+                            
+                            <MudTextField @bind-Value="_switchReason"
+                                          Label="Motivo del cambio (audit)"
+                                          Variant="Variant.Outlined"
+                                          Lines="2"
+                                          Placeholder="Es: Supporto tecnico, verifica configurazione..." />
+
+                            <div class="d-flex ga-2">
+                                <MudButton Variant="Variant.Filled" 
+                                           Color="Color.Primary" 
+                                           StartIcon="Icons.Material.Filled.SwapHoriz"
+                                           OnClick="@(() => SwitchTenant())"
+                                           Disabled="@(string.IsNullOrWhiteSpace(_switchReason))">
+                                    Cambia Tenant
+                                </MudButton>
+                                
+                                @if (!string.IsNullOrEmpty(_currentTenant))
+                                {
+                                    <MudButton Variant="Variant.Outlined" 
+                                               Color="Color.Secondary" 
+                                               StartIcon="Icons.Material.Filled.Restore"
+                                               OnClick="@(() => RestoreOriginalContext())">
+                                        Ripristina Contesto Originale
+                                    </MudButton>
+                                }
+                            </div>
+                        </div>
+
+                        <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mt-3">
+                            <strong>TODO:</strong> Integrare con API per:
+                            <ul class="mt-2">
+                                <li>Recuperare lista tenant gestibili dal SuperAdmin</li>
+                                <li>Effettuare switch di contesto al tenant selezionato</li>
+                                <li>Registrare operazione nell'audit trail</li>
+                            </ul>
+                        </MudAlert>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Impersonazione Utente -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Person" Class="mr-2" />
+                                Impersonazione Utente
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        @if (_isImpersonating)
+                        {
+                            <MudAlert Severity="Severity.Warning" Icon="Icons.Material.Filled.Warning" Class="mb-3">
+                                <strong>Modalità Impersonazione Attiva</strong><br />
+                                Stai operando come un altro utente. Tutte le azioni verranno registrate.
+                            </MudAlert>
+                            
+                            <div class="d-flex flex-column ga-3">
+                                <MudTextField @bind-Value="_endImpersonationReason"
+                                              Label="Motivo fine impersonazione (audit)"
+                                              Variant="Variant.Outlined"
+                                              Lines="2" />
+                                              
+                                <MudButton Variant="Variant.Filled" 
+                                           Color="Color.Error" 
+                                           StartIcon="Icons.Material.Filled.ExitToApp"
+                                           OnClick="@(() => EndImpersonation())"
+                                           Disabled="@(string.IsNullOrWhiteSpace(_endImpersonationReason))">
+                                    Termina Impersonazione
+                                </MudButton>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="d-flex flex-column ga-3">
+                                <MudTextField @bind-Value="_targetUsername"
+                                              Label="Username utente da impersonare"
+                                              Variant="Variant.Outlined"
+                                              Placeholder="Inserisci username..." />
+                                
+                                <MudTextField @bind-Value="_impersonationReason"
+                                              Label="Motivo impersonazione (audit)"
+                                              Variant="Variant.Outlined"
+                                              Lines="2"
+                                              Placeholder="Es: Supporto tecnico urgente..." />
+
+                                <MudButton Variant="Variant.Filled" 
+                                           Color="Color.Warning" 
+                                           StartIcon="Icons.Material.Filled.PersonSearch"
+                                           OnClick="@(() => StartImpersonation())"
+                                           Disabled="@(string.IsNullOrWhiteSpace(_targetUsername) || string.IsNullOrWhiteSpace(_impersonationReason))">
+                                    Inizia Impersonazione
+                                </MudButton>
+                            </div>
+                        }
+
+                        <MudAlert Severity="Severity.Warning" Icon="Icons.Material.Filled.Warning" Class="mt-3">
+                            <strong>ATTENZIONE:</strong> L'impersonazione è una funzionalità critica che deve essere utilizzata solo per supporto tecnico urgente. Tutte le operazioni vengono registrate nell'audit trail.
+                        </MudAlert>
+
+                        <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mt-2">
+                            <strong>TODO:</strong> Implementare API per impersonazione utente con audit completo.
+                        </MudAlert>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Cronologia Recente -->
+            <MudItem xs="12">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.History" Class="mr-2" />
+                                Cronologia Switch Recenti
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mb-4">
+                            <strong>TODO:</strong> Implementare recupero cronologia switch tenant e impersonazioni.
+                            <br />
+                            La cronologia dovrebbe includere:
+                            <ul class="mt-2">
+                                <li>Data e ora dell'operazione</li>
+                                <li>Tipo di operazione (switch tenant, impersonazione)</li>
+                                <li>Tenant/utente target</li>
+                                <li>Motivo dell'operazione</li>
+                                <li>Durata dell'operazione</li>
+                                <li>Indirizzo IP e user agent</li>
+                            </ul>
+                        </MudAlert>
+
+                        <!-- Placeholder Table -->
+                        <MudTable T="object" Items="@(new object[0])" Hover="true" Striped="true">
+                            <HeaderContent>
+                                <MudTh>Data/Ora</MudTh>
+                                <MudTh>Tipo</MudTh>
+                                <MudTh>Target</MudTh>
+                                <MudTh>Motivo</MudTh>
+                                <MudTh>Durata</MudTh>
+                                <MudTh>IP</MudTh>
+                            </HeaderContent>
+                            <NoRecordsContent>
+                                <MudText>Nessuna cronologia disponibile. Integrare con API audit trail.</MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    </MudContainer>
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _isAuthorized = false;
+    private UserDto? _currentUser;
+    private string _selectedTenantId = string.Empty;
+    private string _switchReason = string.Empty;
+    private string _targetUsername = string.Empty;
+    private string _impersonationReason = string.Empty;
+    private string _endImpersonationReason = string.Empty;
+    private string _currentTenant = string.Empty;  // TODO: Recuperare dal contesto
+    private bool _isImpersonating = false;  // TODO: Recuperare dal contesto
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Verifica autenticazione
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                NavigationManager.NavigateTo("/login");
+                return;
+            }
+
+            // Verifica ruolo SuperAdmin
+            var isSuperAdmin = await AuthService.IsSuperAdminAsync();
+            if (!isSuperAdmin)
+            {
+                _isAuthorized = false;
+                _isLoading = false;
+                Snackbar.Add("Accesso negato. È richiesto il ruolo Super Amministratore.", Severity.Warning);
+                return;
+            }
+
+            // Carica informazioni utente corrente
+            _currentUser = await AuthService.GetCurrentUserAsync();
+            _isAuthorized = true;
+
+            // TODO: Recuperare stato corrente di tenant e impersonazione da API
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento della pagina: {ex.Message}", Severity.Error);
+            NavigationManager.NavigateTo("/");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void SwitchTenant()
+    {
+        // TODO: Implementare chiamata API per switch tenant
+        Snackbar.Add($"TODO: Implementare switch al tenant: {_selectedTenantId}. Motivo: {_switchReason}", Severity.Info);
+    }
+
+    private void RestoreOriginalContext()
+    {
+        // TODO: Implementare chiamata API per ripristino contesto originale
+        Snackbar.Add("TODO: Implementare ripristino contesto SuperAdmin originale", Severity.Info);
+    }
+
+    private void StartImpersonation()
+    {
+        // TODO: Implementare chiamata API per inizio impersonazione
+        Snackbar.Add($"TODO: Implementare impersonazione utente: {_targetUsername}. Motivo: {_impersonationReason}", Severity.Info);
+    }
+
+    private void EndImpersonation()
+    {
+        // TODO: Implementare chiamata API per fine impersonazione
+        Snackbar.Add($"TODO: Implementare fine impersonazione. Motivo: {_endImpersonationReason}", Severity.Info);
+    }
+}

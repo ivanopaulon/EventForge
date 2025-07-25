@@ -1,0 +1,373 @@
+@page "/superadmin/system-logs"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "SuperAdmin")]
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Log Sistema - EventForge Super Admin</PageTitle>
+
+<SuperAdminBanner />
+
+@if (_isLoading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else if (!_isAuthorized)
+{
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+        <MudPaper Class="pa-8" Elevation="4">
+            <MudGrid Justify="Justify.Center">
+                <MudItem xs="12">
+                    <div class="d-flex flex-column align-center">
+                        <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
+                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">Accesso Negato</MudText>
+                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
+                            Non hai i permessi per accedere a questa pagina. È richiesto il ruolo Super Amministratore.
+                        </MudText>
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Primary" 
+                                   StartIcon="Icons.Material.Filled.ArrowBack"
+                                   OnClick="@(() => NavigationManager.NavigateTo("/"))">
+                            Torna alla Home
+                        </MudButton>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudContainer>
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+        <MudText Typo="Typo.h3" Class="mb-8">
+            <MudIcon Icon="Icons.Material.Filled.Article" Class="mr-3" />
+            Log Sistema
+        </MudText>
+
+        <MudGrid>
+            <!-- Filtri di Ricerca -->
+            <MudItem xs="12" md="8">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.FilterList" Class="mr-2" />
+                                Filtri e Ricerca
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <MudSelect T="string" @bind-Value="_logLevel" Label="Livello Log" Variant="Variant.Outlined">
+                                    <MudSelectItem Value="@("all")">Tutti i livelli</MudSelectItem>
+                                    <MudSelectItem Value="@("error")">Error</MudSelectItem>
+                                    <MudSelectItem Value="@("warning")">Warning</MudSelectItem>
+                                    <MudSelectItem Value="@("information")">Information</MudSelectItem>
+                                    <MudSelectItem Value="@("debug")">Debug</MudSelectItem>
+                                    <MudSelectItem Value="@("trace")">Trace</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudSelect T="string" @bind-Value="_logSource" Label="Sorgente" Variant="Variant.Outlined">
+                                    <MudSelectItem Value="@("all")">Tutte le sorgenti</MudSelectItem>
+                                    <MudSelectItem Value="@("authentication")">Autenticazione</MudSelectItem>
+                                    <MudSelectItem Value="@("authorization")">Autorizzazione</MudSelectItem>
+                                    <MudSelectItem Value="@("database")">Database</MudSelectItem>
+                                    <MudSelectItem Value="@("api")">API</MudSelectItem>
+                                    <MudSelectItem Value="@("tenancy")">Multi-tenancy</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudDatePicker Label="Data Inizio" 
+                                               @bind-Date="_startDate" 
+                                               Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudDatePicker Label="Data Fine" 
+                                               @bind-Date="_endDate" 
+                                               Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_searchText"
+                                              Label="Cerca nel messaggio o eccezione"
+                                              Variant="Variant.Outlined"
+                                              Adornment="Adornment.End"
+                                              AdornmentIcon="Icons.Material.Filled.Search" />
+                            </MudItem>
+                        </MudGrid>
+                        
+                        <div class="d-flex ga-2 mt-3">
+                            <MudButton Variant="Variant.Filled" 
+                                       Color="Color.Primary" 
+                                       StartIcon="Icons.Material.Filled.Search"
+                                       OnClick="@(() => SearchLogs())">
+                                Cerca
+                            </MudButton>
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Secondary" 
+                                       StartIcon="Icons.Material.Filled.Clear"
+                                       OnClick="@(() => ClearFilters())">
+                                Pulisci Filtri
+                            </MudButton>
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Statistiche e Azioni -->
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Analytics" Class="mr-2" />
+                                Statistiche
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <div class="d-flex flex-column ga-3">
+                            <div class="d-flex justify-space-between">
+                                <MudText>Errori (24h):</MudText>
+                                <MudChip T="string" Color="Color.Error" Size="Size.Small">TODO</MudChip>
+                            </div>
+                            <div class="d-flex justify-space-between">
+                                <MudText>Warning (24h):</MudText>
+                                <MudChip T="string" Color="Color.Warning" Size="Size.Small">TODO</MudChip>
+                            </div>
+                            <div class="d-flex justify-space-between">
+                                <MudText>Info (24h):</MudText>
+                                <MudChip T="string" Color="Color.Info" Size="Size.Small">TODO</MudChip>
+                            </div>
+                            
+                            <MudDivider />
+                            
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Primary" 
+                                       StartIcon="Icons.Material.Filled.Refresh"
+                                       FullWidth="true"
+                                       OnClick="@(() => RefreshLogs())">
+                                Aggiorna
+                            </MudButton>
+                            
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Secondary" 
+                                       StartIcon="Icons.Material.Filled.Download"
+                                       FullWidth="true"
+                                       OnClick="@(() => ExportLogs())">
+                                Esporta Log
+                            </MudButton>
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Grafici Trend (placeholder) -->
+            <MudItem xs="12">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.TrendingUp" Class="mr-2" />
+                                Trend Log (Ultime 24 ore)
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info">
+                            <strong>TODO:</strong> Implementare grafici per visualizzare trend dei log:
+                            <ul class="mt-2">
+                                <li>Distribuzione per livello di log nel tempo</li>
+                                <li>Frequenza errori per sorgente</li>
+                                <li>Picchi di attività e loro correlazioni</li>
+                                <li>Metriche performance (response time, throughput)</li>
+                            </ul>
+                        </MudAlert>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Lista Log -->
+            <MudItem xs="12">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.List" Class="mr-2" />
+                                Log Sistema
+                            </MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudToggleIconButton @bind-Toggled="_autoRefresh"
+                                                 Icon="Icons.Material.Filled.PlayArrow"
+                                                 ToggledIcon="Icons.Material.Filled.Pause"
+                                                 Color="Color.Primary"
+                                                 ToggledColor="Color.Secondary" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mb-4">
+                            <strong>TODO:</strong> Implementare integrazione con sistema di logging per recuperare i log.
+                            <br />
+                            Le seguenti funzionalità dovranno essere implementate:
+                            <ul class="mt-2">
+                                <li>Connessione al sistema di logging (Serilog, NLog, etc.)</li>
+                                <li>Query ottimizzate con paginazione per grandi volumi</li>
+                                <li>Visualizzazione dettagliata di stack trace e context</li>
+                                <li>Correlazione tra log entries (correlation ID, trace ID)</li>
+                                <li>Evidenziazione sintassi per JSON, XML nei messaggi</li>
+                                <li>Export in vari formati (CSV, JSON, TXT)</li>
+                                <li>Alerting automatico per errori critici</li>
+                            </ul>
+                        </MudAlert>
+
+                        <!-- Placeholder Table -->
+                        <MudTable T="object" Items="@(new object[0])" Hover="true" Striped="true" Dense="true">
+                            <HeaderContent>
+                                <MudTh>Timestamp</MudTh>
+                                <MudTh>Livello</MudTh>
+                                <MudTh>Sorgente</MudTh>
+                                <MudTh>Messaggio</MudTh>
+                                <MudTh>Tenant</MudTh>
+                                <MudTh>Utente</MudTh>
+                                <MudTh>Azioni</MudTh>
+                            </HeaderContent>
+                            <NoRecordsContent>
+                                <MudText>Nessun log trovato. Integrare con sistema di logging per caricare i dati.</MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+
+                        <!-- Paginazione -->
+                        <div class="d-flex justify-center mt-4">
+                            <MudPagination Count="@_totalPages" 
+                                           @bind-Selected="_currentPage" 
+                                           Color="Color.Primary" 
+                                           Variant="Variant.Filled" />
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Dettagli Log Selezionato -->
+            @if (_selectedLogEntry != null)
+            {
+                <MudItem xs="12">
+                    <MudCard Elevation="2">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">
+                                    <MudIcon Icon="Icons.Material.Filled.Info" Class="mr-2" />
+                                    Dettagli Log Entry
+                                </MudText>
+                            </CardHeaderContent>
+                            <CardHeaderActions>
+                                <MudIconButton Icon="Icons.Material.Filled.Close" 
+                                               Color="Color.Default" 
+                                               OnClick="@(() => _selectedLogEntry = null)" />
+                            </CardHeaderActions>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudAlert Severity="Severity.Info">
+                                <strong>TODO:</strong> Implementare visualizzazione dettagliata del log entry selezionato con:
+                                <ul class="mt-2">
+                                    <li>Stack trace completo formattato</li>
+                                    <li>Context data (user, tenant, correlation ID)</li>
+                                    <li>Request/Response data se disponibili</li>
+                                    <li>Log entries correlati</li>
+                                </ul>
+                            </MudAlert>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    </MudContainer>
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _isAuthorized = false;
+    private UserDto? _currentUser;
+    
+    // Filtri
+    private string _logLevel = "all";
+    private string _logSource = "all";
+    private DateTime? _startDate = DateTime.Today.AddDays(-1);
+    private DateTime? _endDate = DateTime.Today.AddDays(1);
+    private string _searchText = string.Empty;
+    
+    // Paginazione
+    private int _currentPage = 1;
+    private int _totalPages = 1;
+    
+    // UI State
+    private bool _autoRefresh = false;
+    private object? _selectedLogEntry = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Verifica autenticazione
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                NavigationManager.NavigateTo("/login");
+                return;
+            }
+
+            // Verifica ruolo SuperAdmin
+            var isSuperAdmin = await AuthService.IsSuperAdminAsync();
+            if (!isSuperAdmin)
+            {
+                _isAuthorized = false;
+                _isLoading = false;
+                Snackbar.Add("Accesso negato. È richiesto il ruolo Super Amministratore.", Severity.Warning);
+                return;
+            }
+
+            // Carica informazioni utente corrente
+            _currentUser = await AuthService.GetCurrentUserAsync();
+            _isAuthorized = true;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento della pagina: {ex.Message}", Severity.Error);
+            NavigationManager.NavigateTo("/");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void SearchLogs()
+    {
+        // TODO: Implementare ricerca log con filtri
+        Snackbar.Add($"TODO: Ricerca log - Livello: {_logLevel}, Sorgente: {_logSource}, Testo: {_searchText}", Severity.Info);
+    }
+
+    private void ClearFilters()
+    {
+        _logLevel = "all";
+        _logSource = "all";
+        _startDate = DateTime.Today.AddDays(-1);
+        _endDate = DateTime.Today.AddDays(1);
+        _searchText = string.Empty;
+        Snackbar.Add("Filtri puliti", Severity.Success);
+    }
+
+    private void RefreshLogs()
+    {
+        // TODO: Implementare refresh log
+        Snackbar.Add("TODO: Refresh log implementato", Severity.Info);
+    }
+
+    private void ExportLogs()
+    {
+        // TODO: Implementare export log
+        Snackbar.Add("TODO: Export log implementato", Severity.Info);
+    }
+}

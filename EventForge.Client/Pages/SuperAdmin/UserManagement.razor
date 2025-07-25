@@ -1,0 +1,303 @@
+@page "/superadmin/user-management"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "SuperAdmin")]
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Gestione Utenti Tenant - EventForge Super Admin</PageTitle>
+
+<SuperAdminBanner />
+
+@if (_isLoading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else if (!_isAuthorized)
+{
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+        <MudPaper Class="pa-8" Elevation="4">
+            <MudGrid Justify="Justify.Center">
+                <MudItem xs="12">
+                    <div class="d-flex flex-column align-center">
+                        <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
+                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">Accesso Negato</MudText>
+                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
+                            Non hai i permessi per accedere a questa pagina. È richiesto il ruolo Super Amministratore.
+                        </MudText>
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Primary" 
+                                   StartIcon="Icons.Material.Filled.ArrowBack"
+                                   OnClick="@(() => NavigationManager.NavigateTo("/"))">
+                            Torna alla Home
+                        </MudButton>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudContainer>
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+        <MudText Typo="Typo.h3" Class="mb-8">
+            <MudIcon Icon="Icons.Material.Filled.People" Class="mr-3" />
+            Gestione Utenti Tenant
+        </MudText>
+
+        <MudGrid>
+            <!-- Selezione Tenant -->
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Business" Class="mr-2" />
+                                Seleziona Tenant
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudSelect T="string" @bind-Value="_selectedTenant" Label="Tenant" Variant="Variant.Outlined">
+                            <MudSelectItem Value="@("")">Seleziona un tenant...</MudSelectItem>
+                            <!-- TODO: Popolare con lista tenant da API -->
+                        </MudSelect>
+                        <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mt-3">
+                            <strong>TODO:</strong> Integrare con API per recuperare lista tenant disponibili.
+                        </MudAlert>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Filtri e Ricerca -->
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Search" Class="mr-2" />
+                                Ricerca Utenti
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudTextField @bind-Value="_searchTerm"
+                                      Label="Cerca per nome, email o username"
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="Icons.Material.Filled.Search"
+                                      Class="mb-3" />
+                        <MudSelect T="string" @bind-Value="_roleFilter" Label="Ruolo" Variant="Variant.Outlined">
+                            <MudSelectItem Value="@("all")">Tutti i ruoli</MudSelectItem>
+                            <MudSelectItem Value="@("admin")">Admin</MudSelectItem>
+                            <MudSelectItem Value="@("manager")">Manager</MudSelectItem>
+                            <MudSelectItem Value="@("user")">User</MudSelectItem>
+                        </MudSelect>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Statistiche Utenti -->
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Analytics" Class="mr-2" />
+                                Statistiche Utenti
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <div class="d-flex flex-column ga-3">
+                            <div class="d-flex justify-space-between">
+                                <MudText>Utenti Totali:</MudText>
+                                <MudChip T="string" Color="Color.Info" Size="Size.Small">TODO: API</MudChip>
+                            </div>
+                            <div class="d-flex justify-space-between">
+                                <MudText>Utenti Attivi:</MudText>
+                                <MudChip T="string" Color="Color.Success" Size="Size.Small">TODO: API</MudChip>
+                            </div>
+                            <div class="d-flex justify-space-between">
+                                <MudText>Admin:</MudText>
+                                <MudChip T="string" Color="Color.Warning" Size="Size.Small">TODO: API</MudChip>
+                            </div>
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Gestione Ruoli e Permessi -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Security" Class="mr-2" />
+                                Ruoli e Permessi
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mb-3">
+                            <strong>Modalità Solo Visualizzazione</strong><br />
+                            I ruoli e permessi sono visualizzabili ma non modificabili da questa interfaccia.
+                        </MudAlert>
+                        
+                        <!-- Ruoli Disponibili -->
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">Ruoli Disponibili:</MudText>
+                        <div class="d-flex flex-wrap ga-1 mb-3">
+                            <MudChip T="string" Color="Color.Error" Size="Size.Small">SuperAdmin</MudChip>
+                            <MudChip T="string" Color="Color.Warning" Size="Size.Small">Admin</MudChip>
+                            <MudChip T="string" Color="Color.Info" Size="Size.Small">Manager</MudChip>
+                            <MudChip T="string" Color="Color.Default" Size="Size.Small">User</MudChip>
+                        </div>
+
+                        <MudAlert Severity="Severity.Warning" Icon="Icons.Material.Filled.Warning">
+                            <strong>TODO:</strong> Implementare visualizzazione dettagliata dei permessi associati a ciascun ruolo.
+                        </MudAlert>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Azioni Rapide -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Speed" Class="mr-2" />
+                                Azioni Rapide
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <div class="d-flex flex-column ga-2">
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Primary" 
+                                       StartIcon="Icons.Material.Filled.PersonAdd"
+                                       FullWidth="true"
+                                       OnClick="@(() => Snackbar.Add("TODO: Implementare creazione utente", Severity.Info))">
+                                Crea Nuovo Utente
+                            </MudButton>
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Secondary" 
+                                       StartIcon="Icons.Material.Filled.LockReset"
+                                       FullWidth="true"
+                                       OnClick="@(() => Snackbar.Add("TODO: Implementare reset password bulk", Severity.Info))">
+                                Reset Password Multiplo
+                            </MudButton>
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Info" 
+                                       StartIcon="Icons.Material.Filled.Download"
+                                       FullWidth="true"
+                                       OnClick="@(() => Snackbar.Add("TODO: Implementare export utenti", Severity.Info))">
+                                Esporta Lista Utenti
+                            </MudButton>
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Lista Utenti -->
+            <MudItem xs="12">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.List" Class="mr-2" />
+                                Lista Utenti del Tenant
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        @if (string.IsNullOrEmpty(_selectedTenant))
+                        {
+                            <MudAlert Severity="Severity.Normal" Icon="Icons.Material.Filled.Info">
+                                Seleziona un tenant per visualizzare gli utenti associati.
+                            </MudAlert>
+                        }
+                        else
+                        {
+                            <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mb-4">
+                                <strong>TODO:</strong> Implementare integrazione con API per recuperare utenti del tenant selezionato.
+                                <br />
+                                Le seguenti funzionalità dovranno essere implementate:
+                                <ul class="mt-2">
+                                    <li>Recupero utenti per tenant da API backend</li>
+                                    <li>Visualizzazione ruoli e permessi per utente</li>
+                                    <li>Filtri avanzati (stato, ultimo accesso, ruolo)</li>
+                                    <li>Azioni per utente (visualizza dettagli, impersona, disabilita)</li>
+                                    <li>Modifica ruoli utente (solo visualizzazione al momento)</li>
+                                    <li>Cronologia accessi e attività utente</li>
+                                </ul>
+                            </MudAlert>
+
+                            <!-- Placeholder Table -->
+                            <MudTable T="object" Items="@(new object[0])" Hover="true" Striped="true">
+                                <HeaderContent>
+                                    <MudTh>Nome</MudTh>
+                                    <MudTh>Email</MudTh>
+                                    <MudTh>Username</MudTh>
+                                    <MudTh>Ruoli</MudTh>
+                                    <MudTh>Stato</MudTh>
+                                    <MudTh>Ultimo Accesso</MudTh>
+                                    <MudTh>Azioni</MudTh>
+                                </HeaderContent>
+                                <NoRecordsContent>
+                                    <MudText>Nessun utente trovato. Integrare con API per caricare i dati del tenant selezionato.</MudText>
+                                </NoRecordsContent>
+                            </MudTable>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    </MudContainer>
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _isAuthorized = false;
+    private UserDto? _currentUser;
+    private string _searchTerm = string.Empty;
+    private string _roleFilter = "all";
+    private string _selectedTenant = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Verifica autenticazione
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                NavigationManager.NavigateTo("/login");
+                return;
+            }
+
+            // Verifica ruolo SuperAdmin
+            var isSuperAdmin = await AuthService.IsSuperAdminAsync();
+            if (!isSuperAdmin)
+            {
+                _isAuthorized = false;
+                _isLoading = false;
+                Snackbar.Add("Accesso negato. È richiesto il ruolo Super Amministratore.", Severity.Warning);
+                return;
+            }
+
+            // Carica informazioni utente corrente
+            _currentUser = await AuthService.GetCurrentUserAsync();
+            _isAuthorized = true;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento della pagina: {ex.Message}", Severity.Error);
+            NavigationManager.NavigateTo("/");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}
