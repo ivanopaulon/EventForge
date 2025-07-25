@@ -120,6 +120,17 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy
+            .WithOrigins("https://localhost:7241", "https://localhost:5000", "https://localhost:7009") // aggiungi qui le porte del client Blazor se diverse
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 
 app.Services.EnsureDatabaseMigrated(); // opzionale, per applicare le migrazioni
@@ -166,6 +177,7 @@ app.UseSession();
 
 // Authentication & Authorization
 app.UseAuthentication();
+app.UseCors();
 app.UseAuthorization();
 
 // Map API Controllers

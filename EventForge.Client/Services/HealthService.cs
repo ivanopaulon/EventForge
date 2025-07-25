@@ -24,7 +24,7 @@ namespace EventForge.Client.Services
             {
                 return await _httpClient.GetFromJsonAsync<HealthStatusDto>("api/v1/health");
             }
-            catch (Exception)
+            catch
             {
                 return null;
             }
@@ -36,7 +36,7 @@ namespace EventForge.Client.Services
             {
                 return await _httpClient.GetFromJsonAsync<DetailedHealthStatusDto>("api/v1/health/detailed");
             }
-            catch (Exception)
+            catch
             {
                 return null;
             }

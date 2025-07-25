@@ -4,11 +4,13 @@
     "Projects": [
       {
         "Path": "EventForge.Server\\EventForge.Server.csproj",
-        "Action": "Start"
+        "Action": "Start",
+        "DebugTarget": "https"
       },
       {
         "Path": "EventForge.Client\\EventForge.Client.csproj",
-        "Action": "Start"
+        "Action": "Start",
+        "DebugTarget": "https"
       }
     ]
   }
