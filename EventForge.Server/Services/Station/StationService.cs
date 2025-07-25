@@ -88,7 +88,7 @@ public class StationService : IStationService
     {
         try
         {
-            var station = new EventForge.Data.Entities.StationMonitor.Station
+            var station = new EventForge.Server.Data.Entities.StationMonitor.Station
             {
                 Name = createStationDto.Name,
                 Description = createStationDto.Description,
@@ -414,7 +414,7 @@ public class StationService : IStationService
             .AnyAsync(s => s.Id == stationId && !s.IsDeleted, cancellationToken);
     }
 
-    private static StationDto MapToStationDto(EventForge.Data.Entities.StationMonitor.Station station, int printerCount)
+    private static StationDto MapToStationDto(EventForge.Server.Data.Entities.StationMonitor.Station station, int printerCount)
     {
         return new StationDto
         {
