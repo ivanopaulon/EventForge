@@ -249,4 +249,96 @@ public class PromotionService : IPromotionService
             ModifiedBy = promotion.ModifiedBy
         };
     }
+
+    public async Task<PromotionApplicationResultDto> ApplyPromotionRulesAsync(ApplyPromotionRulesDto applyDto, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // TODO: Implement comprehensive promotion rule application logic
+            // This is a basic implementation that can be expanded
+            
+            var result = new PromotionApplicationResultDto
+            {
+                OriginalTotal = applyDto.CartItems.Sum(item => item.UnitPrice * item.Quantity),
+                Success = true
+            };
+
+            // Get applicable promotions
+            var applicableRules = await GetApplicablePromotionRulesAsync(
+                applyDto.CustomerId, 
+                applyDto.SalesChannel, 
+                applyDto.OrderDateTime, 
+                cancellationToken);
+
+            // For now, just copy cart items without applying any rules
+            result.CartItems = applyDto.CartItems.Select(item => new CartItemResultDto
+            {
+                ProductId = item.ProductId,
+                ProductCode = item.ProductCode,
+                ProductName = item.ProductName,
+                UnitPrice = item.UnitPrice,
+                Quantity = item.Quantity,
+                CategoryIds = item.CategoryIds,
+                ExistingLineDiscount = item.ExistingLineDiscount,
+                OriginalLineTotal = item.UnitPrice * item.Quantity,
+                FinalLineTotal = item.UnitPrice * item.Quantity * (1 - item.ExistingLineDiscount / 100m),
+                PromotionDiscount = 0m,
+                EffectiveDiscountPercentage = item.ExistingLineDiscount,
+                AppliedPromotions = new List<AppliedPromotionDto>()
+            }).ToList();
+
+            result.FinalTotal = result.CartItems.Sum(item => item.FinalLineTotal);
+            result.TotalDiscountAmount = result.OriginalTotal - result.FinalTotal;
+
+            result.Messages.Add("Basic promotion application completed. Enhanced rule logic pending implementation.");
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error applying promotion rules.");
+            return new PromotionApplicationResultDto
+            {
+                Success = false,
+                Messages = { $"Error applying promotions: {ex.Message}" }
+            };
+        }
+    }
+
+    public async Task<IEnumerable<PromotionRuleDto>> GetApplicablePromotionRulesAsync(
+        Guid? customerId = null, 
+        string? salesChannel = null, 
+        DateTime? orderDateTime = null, 
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var checkDateTime = orderDateTime ?? DateTime.UtcNow;
+            
+            var query = _context.PromotionRules
+                .Include(pr => pr.Promotion)
+                .Where(pr => !pr.IsDeleted && 
+                           !pr.Promotion!.IsDeleted &&
+                           pr.Promotion.StartDate <= checkDateTime &&
+                           pr.Promotion.EndDate >= checkDateTime);
+
+            // Apply filters based on parameters
+            if (!string.IsNullOrEmpty(salesChannel) && salesChannel != "all")
+            {
+                query = query.Where(pr => pr.SalesChannels == null || 
+                                        pr.SalesChannels.Contains(salesChannel));
+            }
+
+            var rules = await query.ToListAsync(cancellationToken);
+
+            // TODO: Implement proper DTO mapping for PromotionRule
+            // For now, return empty collection to avoid compilation errors
+            return new List<PromotionRuleDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving applicable promotion rules.");
+            throw;
+        }
+    }
 }
