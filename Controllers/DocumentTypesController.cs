@@ -1,4 +1,5 @@
 using EventForge.DTOs.Documents;
+using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.Documents;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,7 @@ namespace EventForge.Controllers;
 /// REST API controller for document type management
 /// </summary>
 [Route("api/v1/[controller]")]
+[Authorize]
 public class DocumentTypesController : BaseApiController
 {
     private readonly IDocumentTypeService _documentTypeService;

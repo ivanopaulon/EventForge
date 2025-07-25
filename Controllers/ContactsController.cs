@@ -1,4 +1,5 @@
 using EventForge.DTOs.Common;
+using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.Common;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,7 @@ namespace EventForge.Controllers;
 /// REST API controller for contact management.
 /// </summary>
 [Route("api/v1/[controller]")]
+[Authorize]
 public class ContactsController : BaseApiController
 {
     private readonly IContactService _contactService;

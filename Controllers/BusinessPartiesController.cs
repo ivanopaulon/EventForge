@@ -1,4 +1,5 @@
 using EventForge.DTOs.Business;
+using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.Business;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,7 @@ namespace EventForge.Controllers;
 /// REST API controller for business party and business party accounting management.
 /// </summary>
 [Route("api/v1/[controller]")]
+[Authorize]
 public class BusinessPartiesController : BaseApiController
 {
     private readonly IBusinessPartyService _businessPartyService;

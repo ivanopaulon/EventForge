@@ -1,4 +1,5 @@
 using EventForge.DTOs.Teams;
+using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.Teams;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,7 @@ namespace EventForge.Controllers;
 /// REST API controller for team and team member management.
 /// </summary>
 [Route("api/v1/[controller]")]
+[Authorize]
 public class TeamsController : BaseApiController
 {
     private readonly ITeamService _teamService;

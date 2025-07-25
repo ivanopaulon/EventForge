@@ -1,4 +1,5 @@
 using EventForge.DTOs.UnitOfMeasures;
+using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.UnitOfMeasures;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,7 @@ namespace EventForge.Controllers;
 /// REST API controller for unit of measure management.
 /// </summary>
 [Route("api/v1/[controller]")]
+[Authorize]
 public class UnitOfMeasuresController : BaseApiController
 {
     private readonly IUMService _umService;

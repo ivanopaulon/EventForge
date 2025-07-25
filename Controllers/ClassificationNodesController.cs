@@ -1,4 +1,5 @@
 using EventForge.DTOs.Common;
+using Microsoft.AspNetCore.Authorization;
 using EventForge.Filters;
 using EventForge.Services.Common;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +10,7 @@ namespace EventForge.Controllers;
 /// REST API controller for classification node management.
 /// </summary>
 [Route("api/v1/[controller]")]
+[Authorize]
 public class ClassificationNodesController : BaseApiController
 {
     private readonly IClassificationNodeService _classificationNodeService;

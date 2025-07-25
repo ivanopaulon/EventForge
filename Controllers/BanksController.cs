@@ -1,4 +1,5 @@
 using EventForge.DTOs.Banks;
+using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.Banks;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,7 @@ namespace EventForge.Controllers;
 /// REST API controller for bank management.
 /// </summary>
 [Route("api/v1/[controller]")]
+[Authorize]
 public class BanksController : BaseApiController
 {
     private readonly IBankService _bankService;
