@@ -177,4 +177,56 @@ public static class QueryExtensions
     {
         return query.OrderByDescending(e => e.ModifiedAt ?? e.CreatedAt);
     }
+
+    /// <summary>
+    /// Applies tenant filtering for multi-tenant entities.
+    /// </summary>
+    /// <typeparam name="T">Entity type that inherits from AuditableEntity</typeparam>
+    /// <param name="query">The query</param>
+    /// <param name="tenantId">Tenant ID to filter by</param>
+    /// <returns>Query filtered by tenant</returns>
+    public static IQueryable<T> WhereTenant<T>(this IQueryable<T> query, Guid tenantId) where T : AuditableEntity
+    {
+        return query.Where(e => e.TenantId == tenantId);
+    }
+
+    /// <summary>
+    /// Applies tenant filtering with null check for multi-tenant entities.
+    /// </summary>
+    /// <typeparam name="T">Entity type that inherits from AuditableEntity</typeparam>
+    /// <param name="query">The query</param>
+    /// <param name="tenantId">Tenant ID to filter by (nullable)</param>
+    /// <returns>Query filtered by tenant if tenantId is provided</returns>
+    public static IQueryable<T> WhereTenantIfProvided<T>(this IQueryable<T> query, Guid? tenantId) where T : AuditableEntity
+    {
+        return tenantId.HasValue ? query.Where(e => e.TenantId == tenantId.Value) : query;
+    }
+
+    /// <summary>
+    /// Applies combined active and tenant filtering for auditable entities.
+    /// </summary>
+    /// <typeparam name="T">Entity type that inherits from AuditableEntity</typeparam>
+    /// <param name="query">The query</param>
+    /// <param name="tenantId">Tenant ID to filter by</param>
+    /// <returns>Query filtered to active entities within the specified tenant</returns>
+    public static IQueryable<T> WhereActiveTenant<T>(this IQueryable<T> query, Guid tenantId) where T : AuditableEntity
+    {
+        return query.Where(e => e.IsActive && !e.IsDeleted && e.TenantId == tenantId);
+    }
+
+    /// <summary>
+    /// Applies combined active and tenant filtering with null check for auditable entities.
+    /// </summary>
+    /// <typeparam name="T">Entity type that inherits from AuditableEntity</typeparam>
+    /// <param name="query">The query</param>
+    /// <param name="tenantId">Tenant ID to filter by (nullable)</param>
+    /// <returns>Query filtered to active entities within the specified tenant if provided</returns>
+    public static IQueryable<T> WhereActiveTenantIfProvided<T>(this IQueryable<T> query, Guid? tenantId) where T : AuditableEntity
+    {
+        if (tenantId.HasValue)
+        {
+            return query.Where(e => e.IsActive && !e.IsDeleted && e.TenantId == tenantId.Value);
+        }
+        return query.Where(e => e.IsActive && !e.IsDeleted);
+    }
 }
