@@ -216,7 +216,7 @@ public class ApplicationLogService : IApplicationLogService
             ? parameters.SortBy
             : "TimeStamp";
 
-        var sortDirection = parameters.SortDirection.Equals("asc", StringComparison.OrdinalIgnoreCase)
+        var sortDirection = parameters.SortDirection?.Equals("asc", StringComparison.OrdinalIgnoreCase) == true
             ? "ASC"
             : "DESC";
 
