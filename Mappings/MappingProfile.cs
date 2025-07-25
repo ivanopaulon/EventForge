@@ -181,5 +181,11 @@ public class MappingProfile : Profile
         CreateMap<StorageLocation, StorageLocationDto>().ReverseMap();
         CreateMap<CreateStorageLocationDto, StorageLocation>();
         CreateMap<UpdateStorageLocationDto, StorageLocation>();
+
+        // Authentication mappings
+        CreateMap<User, UserDto>()
+            .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.FullName))
+            .ForMember(dest => dest.Roles, opt => opt.Ignore())
+            .ForMember(dest => dest.Permissions, opt => opt.Ignore());
     }
 }

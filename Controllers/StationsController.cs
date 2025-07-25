@@ -1,4 +1,5 @@
 using EventForge.DTOs.Station;
+using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.Station;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,7 @@ namespace EventForge.Controllers;
 /// REST API controller for station and printer management.
 /// </summary>
 [Route("api/v1/[controller]")]
+[Authorize]
 public class StationsController : BaseApiController
 {
     private readonly IStationService _stationService;

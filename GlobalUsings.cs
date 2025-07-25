@@ -2,6 +2,7 @@
 
 global using EventForge.Data;
 global using EventForge.Data.Entities.Audit;
+global using EventForge.Data.Entities.Auth;
 global using EventForge.Data.Entities.Business;
 global using EventForge.Data.Entities.Common;
 global using EventForge.Data.Entities.Documents;
@@ -14,4 +15,8 @@ global using EventForge.Data.Entities.Store;
 global using EventForge.Data.Entities.Teams;
 global using EventForge.Data.Entities.Warehouse;
 global using EventForge.DTOs.Audit;
+global using EventForge.DTOs.Auth;
 global using EventForge.DTOs.Events;
+global using EventForge.DTOs.Logs;
+global using EventForge.Services.Auth;
+global using EventForge.Services.Performance;

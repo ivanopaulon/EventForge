@@ -1,4 +1,5 @@
 using EventForge.DTOs.Warehouse;
+using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.Warehouse;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,7 @@ namespace EventForge.Controllers;
 /// REST API controller for storage facility management.
 /// </summary>
 [Route("api/v1/[controller]")]
+[Authorize]
 public class StorageFacilitiesController : BaseApiController
 {
     private readonly IStorageFacilityService _storageFacilityService;

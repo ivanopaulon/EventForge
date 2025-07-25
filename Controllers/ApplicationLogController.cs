@@ -1,4 +1,5 @@
 using EventForge.DTOs.Logs;
+using Microsoft.AspNetCore.Authorization;
 using EventForge.Services.Logs;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,6 +10,7 @@ namespace EventForge.Controllers;
 /// Positioned in the observability/monitoring area.
 /// </summary>
 [Route("api/v1/[controller]")]
+[Authorize]
 public class ApplicationLogController : BaseApiController
 {
     private readonly IApplicationLogService _applicationLogService;

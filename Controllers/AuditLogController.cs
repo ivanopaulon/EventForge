@@ -1,4 +1,5 @@
 using EventForge.Services.Audit;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Controllers;
@@ -7,6 +8,7 @@ namespace EventForge.Controllers;
 /// REST API controller for audit log consultation.
 /// </summary>
 [Route("api/v1/[controller]")]
+[Authorize]
 public class AuditLogController : BaseApiController
 {
     private readonly IAuditLogService _auditLogService;
