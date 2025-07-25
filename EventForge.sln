@@ -5,6 +5,10 @@ VisualStudioVersion = 17.14.36310.24 d17.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventForge.Server", "EventForge.Server\EventForge.Server.csproj", "{0F7FA136-14A3-4612-8711-5F46EEB15053}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventForge.DTOs", "EventForge.DTOs\EventForge.DTOs.csproj", "{7C8A5E7B-8F2E-4B1D-9A3C-4E5F6A7B8C9D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventForge.Client", "EventForge.Client\EventForge.Client.csproj", "{2A1B3C4D-5E6F-7A8B-9C0D-1E2F3A4B5C6D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{0F7FA136-14A3-4612-8711-5F46EEB15053}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0F7FA136-14A3-4612-8711-5F46EEB15053}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0F7FA136-14A3-4612-8711-5F46EEB15053}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7C8A5E7B-8F2E-4B1D-9A3C-4E5F6A7B8C9D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C8A5E7B-8F2E-4B1D-9A3C-4E5F6A7B8C9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C8A5E7B-8F2E-4B1D-9A3C-4E5F6A7B8C9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C8A5E7B-8F2E-4B1D-9A3C-4E5F6A7B8C9D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2A1B3C4D-5E6F-7A8B-9C0D-1E2F3A4B5C6D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A1B3C4D-5E6F-7A8B-9C0D-1E2F3A4B5C6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A1B3C4D-5E6F-7A8B-9C0D-1E2F3A4B5C6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2A1B3C4D-5E6F-7A8B-9C0D-1E2F3A4B5C6D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
