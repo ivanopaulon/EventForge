@@ -199,10 +199,4 @@ public class PaymentTermsController : BaseApiController
                 new { message = "An error occurred while deleting the payment term.", error = ex.Message });
         }
     }
-
-    /// <summary>
-    /// Gets the current user from the request context.
-    /// In production, this would extract from authentication context.
-    /// </summary>
-    /// <returns>Current user identifier</returns>
 }

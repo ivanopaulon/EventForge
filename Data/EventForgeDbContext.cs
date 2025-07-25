@@ -25,6 +25,7 @@ public class EventForgeDbContext : DbContext
     public DbSet<PaymentTerm> PaymentTerms { get; set; }
 
     // Documents
+    public DbSet<DocumentType> DocumentTypes { get; set; }
     public DbSet<DocumentHeader> DocumentHeaders { get; set; }
     public DbSet<DocumentRow> DocumentRows { get; set; }
     public DbSet<DocumentSummaryLink> DocumentSummaryLinks { get; set; }
