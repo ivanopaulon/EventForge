@@ -68,8 +68,8 @@ public class ApplicationLogService : IApplicationLogService
             return new PagedResult<ApplicationLogDto>
             {
                 Items = logs,
-                Page = queryParameters.Page,
-                PageSize = queryParameters.PageSize,
+                Page =  queryParameters.Page ?? 1,
+                PageSize = queryParameters.PageSize ?? 10,
                 TotalCount = totalCount
             };
         }

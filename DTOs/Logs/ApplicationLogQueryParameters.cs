@@ -4,10 +4,17 @@
     {
         public int? Page { get; set; }
         public int? PageSize { get; set; }
+
+        public int? Skip { get; set; }
         public string? Level { get; set; }
         public string? User { get; set; }
-        public DateTime? From { get; set; }
-        public DateTime? To { get; set; }
-        // Altri parametri di ricerca se necessario
+        public string? Message { get; set; }
+        public DateTime? FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
+
+        public bool? HasException { get; set; }
+
+        public string? SortBy { get; set; }
+        public string? SortDirection { get; set; }
     }
 }
