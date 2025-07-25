@@ -31,59 +31,82 @@ public class ProductService : IProductService
 
     public async Task<PagedResult<ProductDto>> GetProductsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
     {
-        // TODO: Add automated tests for tenant isolation in product queries
-        var currentTenantId = _tenantContext.CurrentTenantId;
-        if (!currentTenantId.HasValue)
+        try
         {
-            throw new InvalidOperationException("Tenant context is required for product operations.");
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for product operations.");
+            }
+
+            var query = _context.Products
+                .WhereActiveTenant(currentTenantId.Value)
+                .Include(p => p.Codes.Where(c => !c.IsDeleted && c.TenantId == currentTenantId.Value))
+                .Include(p => p.Units.Where(u => !u.IsDeleted && u.TenantId == currentTenantId.Value))
+                .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted && bi.TenantId == currentTenantId.Value));
+
+            var totalCount = await query.CountAsync(cancellationToken);
+            var products = await query
+                .OrderBy(p => p.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            var productDtos = products.Select(MapToProductDto);
+
+            return new PagedResult<ProductDto>
+            {
+                Items = productDtos,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
         }
-
-        var query = _context.Products
-            .WhereActiveTenant(currentTenantId.Value)
-            .Include(p => p.Codes.Where(c => !c.IsDeleted && c.TenantId == currentTenantId.Value))
-            .Include(p => p.Units.Where(u => !u.IsDeleted && u.TenantId == currentTenantId.Value))
-            .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted && bi.TenantId == currentTenantId.Value));
-
-        var totalCount = await query.CountAsync(cancellationToken);
-        var products = await query
-            .OrderBy(p => p.Name)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
-
-        var productDtos = products.Select(MapToProductDto);
-
-        return new PagedResult<ProductDto>
+        catch (Exception ex)
         {
-            Items = productDtos,
-            Page = page,
-            PageSize = pageSize,
-            TotalCount = totalCount
-        };
+            _logger.LogError(ex, "Error retrieving products.");
+            throw;
+        }
     }
 
     public async Task<ProductDto?> GetProductByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var product = await _context.Products
-            .Where(p => p.Id == id && !p.IsDeleted)
-            .Include(p => p.Codes.Where(c => !c.IsDeleted))
-            .Include(p => p.Units.Where(u => !u.IsDeleted))
-            .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
-            .FirstOrDefaultAsync(cancellationToken);
+        try
+        {
+            var product = await _context.Products
+                .Where(p => p.Id == id && !p.IsDeleted)
+                .Include(p => p.Codes.Where(c => !c.IsDeleted))
+                .Include(p => p.Units.Where(u => !u.IsDeleted))
+                .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
+                .FirstOrDefaultAsync(cancellationToken);
 
-        return product != null ? MapToProductDto(product) : null;
+            return product != null ? MapToProductDto(product) : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product {ProductId}.", id);
+            throw;
+        }
     }
 
     public async Task<ProductDetailDto?> GetProductDetailAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var product = await _context.Products
-            .Where(p => p.Id == id && !p.IsDeleted)
-            .Include(p => p.Codes.Where(c => !c.IsDeleted))
-            .Include(p => p.Units.Where(u => !u.IsDeleted))
-            .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
-            .FirstOrDefaultAsync(cancellationToken);
+        try
+        {
+            var product = await _context.Products
+                .Where(p => p.Id == id && !p.IsDeleted)
+                .Include(p => p.Codes.Where(c => !c.IsDeleted))
+                .Include(p => p.Units.Where(u => !u.IsDeleted))
+                .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
+                .FirstOrDefaultAsync(cancellationToken);
 
-        return product != null ? MapToProductDetailDto(product) : null;
+            return product != null ? MapToProductDetailDto(product) : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product detail {ProductId}.", id);
+            throw;
+        }
     }
 
     public async Task<ProductDto> CreateProductAsync(CreateProductDto createProductDto, string currentUser, CancellationToken cancellationToken = default)
@@ -307,22 +330,38 @@ public class ProductService : IProductService
 
     public async Task<IEnumerable<ProductCodeDto>> GetProductCodesAsync(Guid productId, CancellationToken cancellationToken = default)
     {
-        var codes = await _context.ProductCodes
-            .Where(pc => pc.ProductId == productId && !pc.IsDeleted)
-            .OrderBy(pc => pc.CodeType)
-            .ThenBy(pc => pc.Code)
-            .ToListAsync(cancellationToken);
+        try
+        {
+            var codes = await _context.ProductCodes
+                .Where(pc => pc.ProductId == productId && !pc.IsDeleted)
+                .OrderBy(pc => pc.CodeType)
+                .ThenBy(pc => pc.Code)
+                .ToListAsync(cancellationToken);
 
-        return codes.Select(MapToProductCodeDto);
+            return codes.Select(MapToProductCodeDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product codes for product {ProductId}.", productId);
+            throw;
+        }
     }
 
     public async Task<ProductCodeDto?> GetProductCodeByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var code = await _context.ProductCodes
-            .Where(pc => pc.Id == id && !pc.IsDeleted)
-            .FirstOrDefaultAsync(cancellationToken);
+        try
+        {
+            var code = await _context.ProductCodes
+                .Where(pc => pc.Id == id && !pc.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
 
-        return code != null ? MapToProductCodeDto(code) : null;
+            return code != null ? MapToProductCodeDto(code) : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product code {ProductCodeId}.", id);
+            throw;
+        }
     }
 
     public async Task<ProductCodeDto> AddProductCodeAsync(CreateProductCodeDto createProductCodeDto, string currentUser, CancellationToken cancellationToken = default)
@@ -483,22 +522,38 @@ public class ProductService : IProductService
 
     public async Task<IEnumerable<ProductUnitDto>> GetProductUnitsAsync(Guid productId, CancellationToken cancellationToken = default)
     {
-        var units = await _context.ProductUnits
-            .Where(pu => pu.ProductId == productId && !pu.IsDeleted)
-            .OrderBy(pu => pu.UnitType)
-            .ThenBy(pu => pu.ConversionFactor)
-            .ToListAsync(cancellationToken);
+        try
+        {
+            var units = await _context.ProductUnits
+                .Where(pu => pu.ProductId == productId && !pu.IsDeleted)
+                .OrderBy(pu => pu.UnitType)
+                .ThenBy(pu => pu.ConversionFactor)
+                .ToListAsync(cancellationToken);
 
-        return units.Select(MapToProductUnitDto);
+            return units.Select(MapToProductUnitDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product units for product {ProductId}.", productId);
+            throw;
+        }
     }
 
     public async Task<ProductUnitDto?> GetProductUnitByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var unit = await _context.ProductUnits
-            .Where(pu => pu.Id == id && !pu.IsDeleted)
-            .FirstOrDefaultAsync(cancellationToken);
+        try
+        {
+            var unit = await _context.ProductUnits
+                .Where(pu => pu.Id == id && !pu.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
 
-        return unit != null ? MapToProductUnitDto(unit) : null;
+            return unit != null ? MapToProductUnitDto(unit) : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product unit {ProductUnitId}.", id);
+            throw;
+        }
     }
 
     public async Task<ProductUnitDto> AddProductUnitAsync(CreateProductUnitDto createProductUnitDto, string currentUser, CancellationToken cancellationToken = default)
@@ -663,21 +718,37 @@ public class ProductService : IProductService
 
     public async Task<IEnumerable<ProductBundleItemDto>> GetProductBundleItemsAsync(Guid bundleProductId, CancellationToken cancellationToken = default)
     {
-        var bundleItems = await _context.ProductBundleItems
-            .Where(pbi => pbi.BundleProductId == bundleProductId && !pbi.IsDeleted)
-            .OrderBy(pbi => pbi.ComponentProductId)
-            .ToListAsync(cancellationToken);
+        try
+        {
+            var bundleItems = await _context.ProductBundleItems
+                .Where(pbi => pbi.BundleProductId == bundleProductId && !pbi.IsDeleted)
+                .OrderBy(pbi => pbi.ComponentProductId)
+                .ToListAsync(cancellationToken);
 
-        return bundleItems.Select(MapToProductBundleItemDto);
+            return bundleItems.Select(MapToProductBundleItemDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving bundle items for bundle {BundleProductId}.", bundleProductId);
+            throw;
+        }
     }
 
     public async Task<ProductBundleItemDto?> GetProductBundleItemByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var bundleItem = await _context.ProductBundleItems
-            .Where(pbi => pbi.Id == id && !pbi.IsDeleted)
-            .FirstOrDefaultAsync(cancellationToken);
+        try
+        {
+            var bundleItem = await _context.ProductBundleItems
+                .Where(pbi => pbi.Id == id && !pbi.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
 
-        return bundleItem != null ? MapToProductBundleItemDto(bundleItem) : null;
+            return bundleItem != null ? MapToProductBundleItemDto(bundleItem) : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving bundle item {BundleItemId}.", id);
+            throw;
+        }
     }
 
     public async Task<ProductBundleItemDto> AddProductBundleItemAsync(CreateProductBundleItemDto createProductBundleItemDto, string currentUser, CancellationToken cancellationToken = default)
@@ -870,12 +941,6 @@ public class ProductService : IProductService
         }
     }
 
-    public async Task<bool> ProductExistsAsync(Guid productId, CancellationToken cancellationToken = default)
-    {
-        return await _context.Products
-            .AnyAsync(p => p.Id == productId && !p.IsDeleted, cancellationToken);
-    }
-
     // Private mapping methods
 
     private static ProductDto MapToProductDto(Product product)
@@ -986,5 +1051,19 @@ public class ProductService : IProductService
             ModifiedAt = bundleItem.ModifiedAt,
             ModifiedBy = bundleItem.ModifiedBy
         };
+    }
+
+    public async Task<bool> ProductExistsAsync(Guid productId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _context.Products
+                .AnyAsync(p => p.Id == productId && !p.IsDeleted, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking if product {ProductId} exists.", productId);
+            throw;
+        }
     }
 }

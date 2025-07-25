@@ -25,33 +25,49 @@ public class PaymentTermService : IPaymentTermService
 
     public async Task<PagedResult<PaymentTermDto>> GetPaymentTermsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
     {
-        var query = _context.PaymentTerms.Where(pt => !pt.IsDeleted);
-
-        var totalCount = await query.CountAsync(cancellationToken);
-        var paymentTerms = await query
-            .OrderBy(pt => pt.Name)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
-
-        var paymentTermDtos = paymentTerms.Select(MapToPaymentTermDto);
-
-        return new PagedResult<PaymentTermDto>
+        try
         {
-            Items = paymentTermDtos,
-            Page = page,
-            PageSize = pageSize,
-            TotalCount = totalCount
-        };
+            var query = _context.PaymentTerms.Where(pt => !pt.IsDeleted);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+            var paymentTerms = await query
+                .OrderBy(pt => pt.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            var paymentTermDtos = paymentTerms.Select(MapToPaymentTermDto);
+
+            return new PagedResult<PaymentTermDto>
+            {
+                Items = paymentTermDtos,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving payment terms.");
+            throw;
+        }
     }
 
     public async Task<PaymentTermDto?> GetPaymentTermByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var paymentTerm = await _context.PaymentTerms
-            .Where(pt => pt.Id == id && !pt.IsDeleted)
-            .FirstOrDefaultAsync(cancellationToken);
+        try
+        {
+            var paymentTerm = await _context.PaymentTerms
+                .Where(pt => pt.Id == id && !pt.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
 
-        return paymentTerm != null ? MapToPaymentTermDto(paymentTerm) : null;
+            return paymentTerm != null ? MapToPaymentTermDto(paymentTerm) : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving payment term {PaymentTermId}.", id);
+            throw;
+        }
     }
 
     public async Task<PaymentTermDto> CreatePaymentTermAsync(CreatePaymentTermDto createPaymentTermDto, string currentUser, CancellationToken cancellationToken = default)
@@ -96,6 +112,17 @@ public class PaymentTermService : IPaymentTermService
             ArgumentNullException.ThrowIfNull(updatePaymentTermDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var originalPaymentTerm = await _context.PaymentTerms
+                .AsNoTracking()
+                .Where(pt => pt.Id == id && !pt.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (originalPaymentTerm == null)
+            {
+                _logger.LogWarning("Payment term with ID {PaymentTermId} not found for update by user {User}.", id, currentUser);
+                return null;
+            }
+
             var paymentTerm = await _context.PaymentTerms
                 .Where(pt => pt.Id == id && !pt.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -105,21 +132,6 @@ public class PaymentTermService : IPaymentTermService
                 _logger.LogWarning("Payment term with ID {PaymentTermId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
-
-            // Store original for audit
-            var originalPaymentTerm = new PaymentTerm
-            {
-                Id = paymentTerm.Id,
-                Name = paymentTerm.Name,
-                Description = paymentTerm.Description,
-                DueDays = paymentTerm.DueDays,
-                PaymentMethod = paymentTerm.PaymentMethod,
-                Status = paymentTerm.Status,
-                CreatedBy = paymentTerm.CreatedBy,
-                CreatedAt = paymentTerm.CreatedAt,
-                ModifiedBy = paymentTerm.ModifiedBy,
-                ModifiedAt = paymentTerm.ModifiedAt
-            };
 
             // Update properties
             paymentTerm.Name = updatePaymentTermDto.Name;
@@ -152,6 +164,17 @@ public class PaymentTermService : IPaymentTermService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var originalPaymentTerm = await _context.PaymentTerms
+                .AsNoTracking()
+                .Where(pt => pt.Id == id && !pt.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (originalPaymentTerm == null)
+            {
+                _logger.LogWarning("Payment term with ID {PaymentTermId} not found for deletion by user {User}.", id, currentUser);
+                return false;
+            }
+
             var paymentTerm = await _context.PaymentTerms
                 .Where(pt => pt.Id == id && !pt.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -161,24 +184,6 @@ public class PaymentTermService : IPaymentTermService
                 _logger.LogWarning("Payment term with ID {PaymentTermId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
-
-            // Store original for audit
-            var originalPaymentTerm = new PaymentTerm
-            {
-                Id = paymentTerm.Id,
-                Name = paymentTerm.Name,
-                Description = paymentTerm.Description,
-                DueDays = paymentTerm.DueDays,
-                PaymentMethod = paymentTerm.PaymentMethod,
-                Status = paymentTerm.Status,
-                CreatedBy = paymentTerm.CreatedBy,
-                CreatedAt = paymentTerm.CreatedAt,
-                ModifiedBy = paymentTerm.ModifiedBy,
-                ModifiedAt = paymentTerm.ModifiedAt,
-                IsDeleted = paymentTerm.IsDeleted,
-                DeletedBy = paymentTerm.DeletedBy,
-                DeletedAt = paymentTerm.DeletedAt
-            };
 
             // Soft delete the payment term
             paymentTerm.IsDeleted = true;
@@ -203,8 +208,16 @@ public class PaymentTermService : IPaymentTermService
 
     public async Task<bool> PaymentTermExistsAsync(Guid paymentTermId, CancellationToken cancellationToken = default)
     {
-        return await _context.PaymentTerms
-            .AnyAsync(pt => pt.Id == paymentTermId && !pt.IsDeleted, cancellationToken);
+        try
+        {
+            return await _context.PaymentTerms
+                .AnyAsync(pt => pt.Id == paymentTermId && !pt.IsDeleted, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking if payment term {PaymentTermId} exists.", paymentTermId);
+            throw;
+        }
     }
 
     // Private mapping method

@@ -6,9 +6,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Documents;
 
-/// <summary>
-/// Service implementation for managing document headers.
-/// </summary>
 public class DocumentHeaderService : IDocumentHeaderService
 {
     private readonly EventForgeDbContext _context;
@@ -39,7 +36,7 @@ public class DocumentHeaderService : IDocumentHeaderService
             var totalCount = await query.CountAsync(cancellationToken);
 
             var items = await query
-                .OrderByDescending(dh => dh.Date)  // Default order
+                .OrderByDescending(dh => dh.Date)
                 .Skip(queryParameters.Skip)
                 .Take(queryParameters.PageSize)
                 .ProjectTo<DocumentHeaderDto>(_mapper.ConfigurationProvider)
@@ -77,7 +74,13 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             var documentHeader = await query.FirstOrDefaultAsync(cancellationToken);
 
-            return documentHeader == null ? null : _mapper.Map<DocumentHeaderDto>(documentHeader);
+            if (documentHeader == null)
+            {
+                _logger.LogWarning("Document header with ID {Id} not found.", id);
+                return null;
+            }
+
+            return _mapper.Map<DocumentHeaderDto>(documentHeader);
         }
         catch (Exception ex)
         {
@@ -120,7 +123,6 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             _context.DocumentHeaders.Add(documentHeader);
 
-            // Create rows if provided
             if (createDto.Rows?.Any() == true)
             {
                 foreach (var rowDto in createDto.Rows)
@@ -135,8 +137,9 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync("DocumentHeader", documentHeader.Id, "Created", "Create",
-                null, $"Document header {documentHeader.Number} created", currentUser, cancellationToken: cancellationToken);
+            await _auditLogService.TrackEntityChangesAsync(documentHeader, "Insert", currentUser, null, cancellationToken);
+
+            _logger.LogInformation("Document header {DocumentHeaderId} created by {User}.", documentHeader.Id, currentUser);
 
             return _mapper.Map<DocumentHeaderDto>(documentHeader);
         }
@@ -155,11 +158,24 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
+            var originalHeader = await _context.DocumentHeaders
+                .AsNoTracking()
+                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+
+            if (originalHeader == null)
+            {
+                _logger.LogWarning("Document header with ID {Id} not found for update.", id);
+                return null;
+            }
+
             var documentHeader = await _context.DocumentHeaders
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
             if (documentHeader == null)
+            {
+                _logger.LogWarning("Document header with ID {Id} not found for update.", id);
                 return null;
+            }
 
             _mapper.Map(updateDto, documentHeader);
             documentHeader.ModifiedBy = currentUser;
@@ -167,8 +183,9 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync("DocumentHeader", id, "Updated", "Update",
-                null, $"Document header {documentHeader.Number} updated", currentUser, cancellationToken: cancellationToken);
+            await _auditLogService.TrackEntityChangesAsync(documentHeader, "Update", currentUser, originalHeader, cancellationToken);
+
+            _logger.LogInformation("Document header {DocumentHeaderId} updated by {User}.", id, currentUser);
 
             return _mapper.Map<DocumentHeaderDto>(documentHeader);
         }
@@ -186,14 +203,27 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
+            var originalHeader = await _context.DocumentHeaders
+                .AsNoTracking()
+                .Include(dh => dh.Rows)
+                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+
+            if (originalHeader == null)
+            {
+                _logger.LogWarning("Document header with ID {Id} not found for deletion.", id);
+                return false;
+            }
+
             var documentHeader = await _context.DocumentHeaders
                 .Include(dh => dh.Rows)
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
             if (documentHeader == null)
+            {
+                _logger.LogWarning("Document header with ID {Id} not found for deletion.", id);
                 return false;
+            }
 
-            // Soft delete the header and all its rows
             documentHeader.IsDeleted = true;
             documentHeader.ModifiedBy = currentUser;
             documentHeader.ModifiedAt = DateTime.UtcNow;
@@ -207,8 +237,9 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync("DocumentHeader", id, "Deleted", "Delete",
-                null, $"Document header {documentHeader.Number} deleted", currentUser, cancellationToken: cancellationToken);
+            await _auditLogService.TrackEntityChangesAsync(documentHeader, "Delete", currentUser, originalHeader, cancellationToken);
+
+            _logger.LogInformation("Document header {DocumentHeaderId} deleted by {User}.", id, currentUser);
 
             return true;
         }
@@ -230,13 +261,14 @@ public class DocumentHeaderService : IDocumentHeaderService
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
             if (documentHeader == null)
+            {
+                _logger.LogWarning("Document header with ID {Id} not found for total calculation.", id);
                 return null;
+            }
 
-            // Calculate totals based on document rows
             var netTotal = documentHeader.Rows.Sum(r => r.UnitPrice * r.Quantity * (1 - r.LineDiscount / 100m));
             var vatTotal = documentHeader.Rows.Sum(r => (r.UnitPrice * r.Quantity * (1 - r.LineDiscount / 100m)) * (r.VatRate / 100m));
 
-            // Apply document-level discounts
             if (documentHeader.TotalDiscount > 0)
                 netTotal -= netTotal * (documentHeader.TotalDiscount / 100m);
 
@@ -247,6 +279,8 @@ public class DocumentHeaderService : IDocumentHeaderService
             documentHeader.TotalGrossAmount = documentHeader.TotalNetAmount + documentHeader.VatAmount;
 
             await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Calculated totals for document header {DocumentHeaderId}.", id);
 
             return _mapper.Map<DocumentHeaderDto>(documentHeader);
         }
@@ -264,11 +298,24 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
+            var originalHeader = await _context.DocumentHeaders
+                .AsNoTracking()
+                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+
+            if (originalHeader == null)
+            {
+                _logger.LogWarning("Document header with ID {Id} not found for approval.", id);
+                return null;
+            }
+
             var documentHeader = await _context.DocumentHeaders
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
             if (documentHeader == null)
+            {
+                _logger.LogWarning("Document header with ID {Id} not found for approval.", id);
                 return null;
+            }
 
             documentHeader.ApprovalStatus = ApprovalStatus.Approved;
             documentHeader.ApprovedBy = currentUser;
@@ -278,8 +325,9 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync("DocumentHeader", id, "Approved", "Update",
-                null, $"Document header {documentHeader.Number} approved", currentUser, cancellationToken: cancellationToken);
+            await _auditLogService.TrackEntityChangesAsync(documentHeader, "Approve", currentUser, originalHeader, cancellationToken);
+
+            _logger.LogInformation("Document header {DocumentHeaderId} approved by {User}.", id, currentUser);
 
             return _mapper.Map<DocumentHeaderDto>(documentHeader);
         }
@@ -297,11 +345,24 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
+            var originalHeader = await _context.DocumentHeaders
+                .AsNoTracking()
+                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+
+            if (originalHeader == null)
+            {
+                _logger.LogWarning("Document header with ID {Id} not found for closing.", id);
+                return null;
+            }
+
             var documentHeader = await _context.DocumentHeaders
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
             if (documentHeader == null)
+            {
+                _logger.LogWarning("Document header with ID {Id} not found for closing.", id);
                 return null;
+            }
 
             documentHeader.Status = DocumentStatus.Closed;
             documentHeader.ClosedAt = DateTime.UtcNow;
@@ -310,8 +371,9 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync("DocumentHeader", id, "Closed", "Update",
-                null, $"Document header {documentHeader.Number} closed", currentUser, cancellationToken: cancellationToken);
+            await _auditLogService.TrackEntityChangesAsync(documentHeader, "Close", currentUser, originalHeader, cancellationToken);
+
+            _logger.LogInformation("Document header {DocumentHeaderId} closed by {User}.", id, currentUser);
 
             return _mapper.Map<DocumentHeaderDto>(documentHeader);
         }

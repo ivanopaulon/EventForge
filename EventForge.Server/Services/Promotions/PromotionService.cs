@@ -59,7 +59,13 @@ public class PromotionService : IPromotionService
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return promotion == null ? null : MapToPromotionDto(promotion);
+            if (promotion == null)
+            {
+                _logger.LogWarning("Promotion with ID {PromotionId} not found.", id);
+                return null;
+            }
+
+            return MapToPromotionDto(promotion);
         }
         catch (Exception ex)
         {
@@ -140,13 +146,21 @@ public class PromotionService : IPromotionService
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalPromotion == null) return null;
+            if (originalPromotion == null)
+            {
+                _logger.LogWarning("Promotion with ID {PromotionId} not found for update by user {User}.", id, currentUser);
+                return null;
+            }
 
             var promotion = await _context.Promotions
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (promotion == null) return null;
+            if (promotion == null)
+            {
+                _logger.LogWarning("Promotion with ID {PromotionId} not found for update by user {User}.", id, currentUser);
+                return null;
+            }
 
             promotion.Name = updateDto.Name;
             promotion.Description = updateDto.Description;
@@ -186,13 +200,21 @@ public class PromotionService : IPromotionService
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalPromotion == null) return false;
+            if (originalPromotion == null)
+            {
+                _logger.LogWarning("Promotion with ID {PromotionId} not found for deletion by user {User}.", id, currentUser);
+                return false;
+            }
 
             var promotion = await _context.Promotions
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (promotion == null) return false;
+            if (promotion == null)
+            {
+                _logger.LogWarning("Promotion with ID {PromotionId} not found for deletion by user {User}.", id, currentUser);
+                return false;
+            }
 
             promotion.IsDeleted = true;
             promotion.DeletedAt = DateTime.UtcNow;

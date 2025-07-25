@@ -63,7 +63,13 @@ public class StoreUserService : IStoreUserService
                 .Where(su => su.Id == id && !su.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return storeUser != null ? MapToStoreUserDto(storeUser) : null;
+            if (storeUser == null)
+            {
+                _logger.LogWarning("Store user with ID {StoreUserId} not found.", id);
+                return null;
+            }
+
+            return MapToStoreUserDto(storeUser);
         }
         catch (Exception ex)
         {
@@ -141,16 +147,20 @@ public class StoreUserService : IStoreUserService
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalStoreUser == null)
+            {
+                _logger.LogWarning("Store user with ID {StoreUserId} not found for update by user {User}.", id, currentUser);
                 return null;
+            }
 
             var storeUser = await _context.StoreUsers
                 .Where(su => su.Id == id && !su.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (storeUser == null)
+            {
+                _logger.LogWarning("Store user with ID {StoreUserId} not found for update by user {User}.", id, currentUser);
                 return null;
-
-            var originalName = storeUser.Name;
+            }
 
             storeUser.Name = updateStoreUserDto.Name;
             storeUser.Username = updateStoreUserDto.Username;
@@ -193,14 +203,20 @@ public class StoreUserService : IStoreUserService
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalStoreUser == null)
+            {
+                _logger.LogWarning("Store user with ID {StoreUserId} not found for deletion by user {User}.", id, currentUser);
                 return false;
+            }
 
             var storeUser = await _context.StoreUsers
                 .Where(su => su.Id == id && !su.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (storeUser == null)
+            {
+                _logger.LogWarning("Store user with ID {StoreUserId} not found for deletion by user {User}.", id, currentUser);
                 return false;
+            }
 
             storeUser.IsDeleted = true;
             storeUser.DeletedAt = DateTime.UtcNow;
@@ -276,7 +292,10 @@ public class StoreUserService : IStoreUserService
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (storeUserGroup == null)
+            {
+                _logger.LogWarning("Store user group with ID {StoreUserGroupId} not found.", id);
                 return null;
+            }
 
             var cashierCount = await _context.StoreUsers
                 .CountAsync(su => su.CashierGroupId == id && !su.IsDeleted, cancellationToken);
@@ -333,16 +352,20 @@ public class StoreUserService : IStoreUserService
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalStoreUserGroup == null)
+            {
+                _logger.LogWarning("Store user group with ID {StoreUserGroupId} not found for update by user {User}.", id, currentUser);
                 return null;
+            }
 
             var storeUserGroup = await _context.StoreUserGroups
                 .Where(sug => sug.Id == id && !sug.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (storeUserGroup == null)
+            {
+                _logger.LogWarning("Store user group with ID {StoreUserGroupId} not found for update by user {User}.", id, currentUser);
                 return null;
-
-            var originalName = storeUserGroup.Name;
+            }
 
             storeUserGroup.Code = updateStoreUserGroupDto.Code;
             storeUserGroup.Name = updateStoreUserGroupDto.Name;
@@ -381,14 +404,20 @@ public class StoreUserService : IStoreUserService
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalStoreUserGroup == null)
+            {
+                _logger.LogWarning("Store user group with ID {StoreUserGroupId} not found for deletion by user {User}.", id, currentUser);
                 return false;
+            }
 
             var storeUserGroup = await _context.StoreUserGroups
                 .Where(sug => sug.Id == id && !sug.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (storeUserGroup == null)
+            {
+                _logger.LogWarning("Store user group with ID {StoreUserGroupId} not found for deletion by user {User}.", id, currentUser);
                 return false;
+            }
 
             storeUserGroup.IsDeleted = true;
             storeUserGroup.DeletedAt = DateTime.UtcNow;
@@ -463,7 +492,10 @@ public class StoreUserService : IStoreUserService
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (storeUserPrivilege == null)
+            {
+                _logger.LogWarning("Store user privilege with ID {StoreUserPrivilegeId} not found.", id);
                 return null;
+            }
 
             var groupCount = await _context.StoreUserGroups
                 .CountAsync(sug => sug.Privileges.Any(p => p.Id == id) && !sug.IsDeleted, cancellationToken);
@@ -548,16 +580,20 @@ public class StoreUserService : IStoreUserService
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalStoreUserPrivilege == null)
+            {
+                _logger.LogWarning("Store user privilege with ID {StoreUserPrivilegeId} not found for update by user {User}.", id, currentUser);
                 return null;
+            }
 
             var storeUserPrivilege = await _context.StoreUserPrivileges
                 .Where(sup => sup.Id == id && !sup.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (storeUserPrivilege == null)
+            {
+                _logger.LogWarning("Store user privilege with ID {StoreUserPrivilegeId} not found for update by user {User}.", id, currentUser);
                 return null;
-
-            var originalName = storeUserPrivilege.Name;
+            }
 
             storeUserPrivilege.Code = updateStoreUserPrivilegeDto.Code;
             storeUserPrivilege.Name = updateStoreUserPrivilegeDto.Name;
@@ -596,14 +632,20 @@ public class StoreUserService : IStoreUserService
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalStoreUserPrivilege == null)
+            {
+                _logger.LogWarning("Store user privilege with ID {StoreUserPrivilegeId} not found for deletion by user {User}.", id, currentUser);
                 return false;
+            }
 
             var storeUserPrivilege = await _context.StoreUserPrivileges
                 .Where(sup => sup.Id == id && !sup.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (storeUserPrivilege == null)
+            {
+                _logger.LogWarning("Store user privilege with ID {StoreUserPrivilegeId} not found for deletion by user {User}.", id, currentUser);
                 return false;
+            }
 
             storeUserPrivilege.IsDeleted = true;
             storeUserPrivilege.DeletedAt = DateTime.UtcNow;

@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using Microsoft.Extensions.Logging;
+using EventForge.Server.Data.Entities.Auth;
+using AuthAuditOperationType = EventForge.Server.Data.Entities.Auth.AuditOperationType;
 
 namespace EventForge.Server.Services.Tenants;
 
@@ -10,6 +13,7 @@ public class TenantContext : ITenantContext
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly EventForgeDbContext _context;
+    private readonly ILogger<TenantContext> _logger;
 
     // Session keys for tenant context
     private const string TenantIdSessionKey = "CurrentTenantId";
@@ -17,10 +21,11 @@ public class TenantContext : ITenantContext
     private const string ImpersonatedUserIdSessionKey = "ImpersonatedUserId";
     private const string IsImpersonatingSessionKey = "IsImpersonating";
 
-    public TenantContext(IHttpContextAccessor httpContextAccessor, EventForgeDbContext context)
+    public TenantContext(IHttpContextAccessor httpContextAccessor, EventForgeDbContext context, ILogger<TenantContext> logger)
     {
         _httpContextAccessor = httpContextAccessor;
         _context = context;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public Guid? CurrentTenantId
@@ -99,172 +104,217 @@ public class TenantContext : ITenantContext
 
     public async Task SetTenantContextAsync(Guid tenantId, string auditReason)
     {
-        if (!IsSuperAdmin)
+        try
         {
-            throw new UnauthorizedAccessException("Only super administrators can switch tenant context.");
-        }
+            if (!IsSuperAdmin)
+            {
+                _logger.LogWarning("Tentativo di cambio tenant non autorizzato da parte dell'utente {UserId}.", CurrentUserId);
+                throw new UnauthorizedAccessException("Only super administrators can switch tenant context.");
+            }
 
-        var httpContext = _httpContextAccessor.HttpContext;
-        if (httpContext?.Session == null)
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext?.Session == null)
+            {
+                _logger.LogError("Sessione non disponibile per il cambio tenant.");
+                throw new InvalidOperationException("Session is not available for tenant switching.");
+            }
+
+            var canAccess = await CanAccessTenantAsync(tenantId);
+            if (!canAccess)
+            {
+                _logger.LogWarning("Accesso negato al tenant {TenantId} per l'utente {UserId}.", tenantId, CurrentUserId);
+                throw new UnauthorizedAccessException($"Access denied to tenant {tenantId}.");
+            }
+
+            var currentUserId = CurrentUserId;
+            if (!currentUserId.HasValue)
+            {
+                _logger.LogError("Impossibile determinare l'ID utente corrente durante il cambio tenant.");
+                throw new InvalidOperationException("Unable to determine current user ID.");
+            }
+
+            var currentTenantId = CurrentTenantId;
+
+            httpContext.Session.SetString(TenantIdSessionKey, tenantId.ToString());
+
+            await CreateAuditTrailAsync(
+                (AuthAuditOperationType)AuthAuditOperationType.TenantSwitch,
+                currentUserId.Value,
+                currentTenantId,
+                tenantId,
+                null,
+                auditReason);
+        }
+        catch (Exception ex)
         {
-            throw new InvalidOperationException("Session is not available for tenant switching.");
+            _logger.LogError(ex, "Errore durante il cambio tenant.");
+            throw;
         }
-
-        // Validate that the tenant exists and is accessible
-        var canAccess = await CanAccessTenantAsync(tenantId);
-        if (!canAccess)
-        {
-            throw new UnauthorizedAccessException($"Access denied to tenant {tenantId}.");
-        }
-
-        var currentUserId = CurrentUserId;
-        if (!currentUserId.HasValue)
-        {
-            throw new InvalidOperationException("Unable to determine current user ID.");
-        }
-
-        var currentTenantId = CurrentTenantId;
-
-        // Set new tenant context in session
-        httpContext.Session.SetString(TenantIdSessionKey, tenantId.ToString());
-
-        // Create audit trail entry
-        await CreateAuditTrailAsync(
-            AuditOperationType.TenantSwitch,
-            currentUserId.Value,
-            currentTenantId,
-            tenantId,
-            null,
-            auditReason);
     }
 
     public async Task StartImpersonationAsync(Guid userId, string auditReason)
     {
-        if (!IsSuperAdmin)
+        try
         {
-            throw new UnauthorizedAccessException("Only super administrators can impersonate users.");
-        }
+            if (!IsSuperAdmin)
+            {
+                _logger.LogWarning("Tentativo di impersonificazione non autorizzato da parte dell'utente {UserId}.", CurrentUserId);
+                throw new UnauthorizedAccessException("Only super administrators can impersonate users.");
+            }
 
-        var httpContext = _httpContextAccessor.HttpContext;
-        if (httpContext?.Session == null)
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext?.Session == null)
+            {
+                _logger.LogError("Sessione non disponibile per impersonificazione.");
+                throw new InvalidOperationException("Session is not available for impersonation.");
+            }
+
+            var currentUserId = CurrentUserId;
+            if (!currentUserId.HasValue)
+            {
+                _logger.LogError("Impossibile determinare l'ID utente corrente durante impersonificazione.");
+                throw new InvalidOperationException("Unable to determine current user ID.");
+            }
+
+            var targetUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == userId);
+            if (targetUser == null)
+            {
+                _logger.LogWarning("Utente {UserId} non trovato per impersonificazione.", userId);
+                throw new ArgumentException($"User {userId} not found.");
+            }
+
+            // TODO: Add tenant validation - ensure user belongs to current tenant context
+
+            httpContext.Session.SetString(OriginalUserIdSessionKey, currentUserId.Value.ToString());
+            httpContext.Session.SetString(ImpersonatedUserIdSessionKey, userId.ToString());
+            httpContext.Session.SetString(IsImpersonatingSessionKey, "true");
+
+            await CreateAuditTrailAsync(
+                (AuthAuditOperationType)AuthAuditOperationType.ImpersonationStart,
+                currentUserId.Value,
+                CurrentTenantId,
+                targetUser.TenantId,
+                userId,
+                auditReason);
+        }
+        catch (Exception ex)
         {
-            throw new InvalidOperationException("Session is not available for impersonation.");
+            _logger.LogError(ex, "Errore durante l'inizio dell'impersonificazione.");
+            throw;
         }
-
-        var currentUserId = CurrentUserId;
-        if (!currentUserId.HasValue)
-        {
-            throw new InvalidOperationException("Unable to determine current user ID.");
-        }
-
-        // Validate that the target user exists
-        var targetUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == userId);
-        if (targetUser == null)
-        {
-            throw new ArgumentException($"User {userId} not found.");
-        }
-
-        // TODO: Add tenant validation - ensure user belongs to current tenant context
-
-        // Store original user info and set impersonation
-        httpContext.Session.SetString(OriginalUserIdSessionKey, currentUserId.Value.ToString());
-        httpContext.Session.SetString(ImpersonatedUserIdSessionKey, userId.ToString());
-        httpContext.Session.SetString(IsImpersonatingSessionKey, "true");
-
-        // Create audit trail entry
-        await CreateAuditTrailAsync(
-            AuditOperationType.ImpersonationStart,
-            currentUserId.Value,
-            CurrentTenantId,
-            targetUser.TenantId,
-            userId,
-            auditReason);
     }
 
     public async Task EndImpersonationAsync(string auditReason)
     {
-        if (!IsImpersonating)
+        try
         {
-            throw new InvalidOperationException("Not currently impersonating a user.");
-        }
+            if (!IsImpersonating)
+            {
+                _logger.LogWarning("Tentativo di terminare impersonificazione quando non attiva.");
+                throw new InvalidOperationException("Not currently impersonating a user.");
+            }
 
-        var httpContext = _httpContextAccessor.HttpContext;
-        if (httpContext?.Session == null)
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext?.Session == null)
+            {
+                _logger.LogError("Sessione non disponibile per terminare impersonificazione.");
+                throw new InvalidOperationException("Session is not available.");
+            }
+
+            var originalUserIdString = httpContext.Session.GetString(OriginalUserIdSessionKey);
+            var impersonatedUserIdString = httpContext.Session.GetString(ImpersonatedUserIdSessionKey);
+
+            if (!Guid.TryParse(originalUserIdString, out var originalUserId) ||
+                !Guid.TryParse(impersonatedUserIdString, out var impersonatedUserId))
+            {
+                _logger.LogError("Stato sessione impersonificazione non valido.");
+                throw new InvalidOperationException("Invalid impersonation session state.");
+            }
+
+            await CreateAuditTrailAsync(
+                (AuthAuditOperationType)AuthAuditOperationType.ImpersonationEnd,
+                originalUserId,
+                CurrentTenantId,
+                CurrentTenantId,
+                impersonatedUserId,
+                auditReason);
+
+            httpContext.Session.Remove(OriginalUserIdSessionKey);
+            httpContext.Session.Remove(ImpersonatedUserIdSessionKey);
+            httpContext.Session.Remove(IsImpersonatingSessionKey);
+        }
+        catch (Exception ex)
         {
-            throw new InvalidOperationException("Session is not available.");
+            _logger.LogError(ex, "Errore durante la fine dell'impersonificazione.");
+            throw;
         }
-
-        var originalUserIdString = httpContext.Session.GetString(OriginalUserIdSessionKey);
-        var impersonatedUserIdString = httpContext.Session.GetString(ImpersonatedUserIdSessionKey);
-
-        if (!Guid.TryParse(originalUserIdString, out var originalUserId) ||
-            !Guid.TryParse(impersonatedUserIdString, out var impersonatedUserId))
-        {
-            throw new InvalidOperationException("Invalid impersonation session state.");
-        }
-
-        // Create audit trail entry before clearing session
-        await CreateAuditTrailAsync(
-            AuditOperationType.ImpersonationEnd,
-            originalUserId,
-            CurrentTenantId,
-            CurrentTenantId,
-            impersonatedUserId,
-            auditReason);
-
-        // Clear impersonation session data
-        httpContext.Session.Remove(OriginalUserIdSessionKey);
-        httpContext.Session.Remove(ImpersonatedUserIdSessionKey);
-        httpContext.Session.Remove(IsImpersonatingSessionKey);
     }
 
     public async Task<IEnumerable<Guid>> GetManageableTenantsAsync()
     {
-        if (!IsSuperAdmin)
+        try
         {
-            return Enumerable.Empty<Guid>();
-        }
+            if (!IsSuperAdmin)
+            {
+                _logger.LogWarning("Utente {UserId} ha tentato di accedere ai tenant gestibili senza permessi.", CurrentUserId);
+                return Enumerable.Empty<Guid>();
+            }
 
-        var currentUserId = CurrentUserId;
-        if (!currentUserId.HasValue)
+            var currentUserId = CurrentUserId;
+            if (!currentUserId.HasValue)
+            {
+                _logger.LogWarning("Impossibile determinare l'ID utente corrente per tenant gestibili.");
+                return Enumerable.Empty<Guid>();
+            }
+
+            var adminTenants = await _context.AdminTenants
+                .Where(at => at.UserId == currentUserId.Value && at.ManagedTenant.IsActive && !at.ManagedTenant.IsDeleted)
+                .Select(at => at.ManagedTenantId)
+                .ToListAsync();
+
+            return adminTenants;
+        }
+        catch (Exception ex)
         {
-            return Enumerable.Empty<Guid>();
+            _logger.LogError(ex, "Errore durante il recupero dei tenant gestibili.");
+            throw;
         }
-
-        var adminTenants = await _context.AdminTenants
-            .Where(at => at.UserId == currentUserId.Value && at.ManagedTenant.IsActive && !at.ManagedTenant.IsDeleted)
-            .Select(at => at.ManagedTenantId)
-            .ToListAsync();
-
-        return adminTenants;
     }
 
     public async Task<bool> CanAccessTenantAsync(Guid tenantId)
     {
-        if (!IsSuperAdmin)
+        try
         {
-            return CurrentTenantId == tenantId;
-        }
+            if (!IsSuperAdmin)
+            {
+                return CurrentTenantId == tenantId;
+            }
 
-        var currentUserId = CurrentUserId;
-        if (!currentUserId.HasValue)
+            var currentUserId = CurrentUserId;
+            if (!currentUserId.HasValue)
+            {
+                _logger.LogWarning("Impossibile determinare l'ID utente corrente per verifica accesso tenant.");
+                return false;
+            }
+
+            var hasAccess = await _context.AdminTenants
+                .AnyAsync(at => at.UserId == currentUserId.Value &&
+                               at.ManagedTenantId == tenantId &&
+                               at.ManagedTenant.IsActive &&
+                               !at.ManagedTenant.IsDeleted);
+
+            return hasAccess;
+        }
+        catch (Exception ex)
         {
-            return false;
+            _logger.LogError(ex, "Errore durante la verifica di accesso al tenant {TenantId}.", tenantId);
+            throw;
         }
-
-        // Super admins can access any tenant they have admin rights to
-        var hasAccess = await _context.AdminTenants
-            .AnyAsync(at => at.UserId == currentUserId.Value &&
-                           at.ManagedTenantId == tenantId &&
-                           at.ManagedTenant.IsActive &&
-                           !at.ManagedTenant.IsDeleted);
-
-        return hasAccess;
     }
 
     private async Task CreateAuditTrailAsync(
-        AuditOperationType operationType,
+        AuthAuditOperationType operationType,
         Guid performedByUserId,
         Guid? sourceTenantId,
         Guid? targetTenantId,
@@ -275,7 +325,7 @@ public class TenantContext : ITenantContext
 
         var auditTrail = new AuditTrail
         {
-            TenantId = sourceTenantId ?? Guid.Empty, // Use source tenant or empty for system operations
+            TenantId = sourceTenantId ?? Guid.Empty,
             OperationType = operationType,
             PerformedByUserId = performedByUserId,
             SourceTenantId = sourceTenantId,
@@ -297,9 +347,7 @@ public class TenantContext : ITenantContext
         }
         catch (Exception ex)
         {
-            // Log the error but don't fail the operation
-            // TODO: Add proper logging when ILogger is injected
-            Console.WriteLine($"Failed to create audit trail: {ex.Message}");
+            _logger.LogError(ex, "Impossibile salvare l'audit trail per l'operazione {OperationType}.", operationType);
         }
     }
 }

@@ -140,5 +140,20 @@ public enum AuditOperationType
     /// <summary>
     /// Tenant was disabled/enabled.
     /// </summary>
-    TenantStatusChanged = 5
+    TenantStatusChanged = 5,
+
+    /// <summary>
+    /// Tenant was created.
+    /// </summary>
+    TenantCreated = 6,
+
+    /// <summary>
+    /// Tenant was updated.
+    /// </summary>
+    TenantUpdated = 7,
+
+    /// <summary>
+    /// Forced password change for a user.
+    /// </summary>
+    ForcePasswordChange = 8
 }

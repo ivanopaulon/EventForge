@@ -4,9 +4,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.PriceLists;
 
-/// <summary>
-/// Service implementation for managing price lists and price list entries.
-/// </summary>
 public class PriceListService : IPriceListService
 {
     private readonly EventForgeDbContext _context;
@@ -23,63 +20,93 @@ public class PriceListService : IPriceListService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    // PriceList CRUD operations
-
     public async Task<PagedResult<PriceListDto>> GetPriceListsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
     {
-        var query = _context.PriceLists
-            .Where(pl => !pl.IsDeleted)
-            .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted));
-
-        var totalCount = await query.CountAsync(cancellationToken);
-        var priceLists = await query
-            .OrderBy(pl => pl.Priority)
-            .ThenBy(pl => pl.Name)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
-
-        var priceListDtos = priceLists.Select(MapToPriceListDto);
-
-        return new PagedResult<PriceListDto>
+        try
         {
-            Items = priceListDtos,
-            Page = page,
-            PageSize = pageSize,
-            TotalCount = totalCount
-        };
+            var query = _context.PriceLists
+                .Where(pl => !pl.IsDeleted)
+                .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted));
+
+            var totalCount = await query.CountAsync(cancellationToken);
+            var priceLists = await query
+                .OrderBy(pl => pl.Priority)
+                .ThenBy(pl => pl.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            var priceListDtos = priceLists.Select(MapToPriceListDto);
+
+            return new PagedResult<PriceListDto>
+            {
+                Items = priceListDtos,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving price lists.");
+            throw;
+        }
     }
 
     public async Task<IEnumerable<PriceListDto>> GetPriceListsByEventAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
-        var priceLists = await _context.PriceLists
-            .Where(pl => pl.EventId == eventId && !pl.IsDeleted)
-            .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
-            .OrderBy(pl => pl.Priority)
-            .ThenBy(pl => pl.Name)
-            .ToListAsync(cancellationToken);
+        try
+        {
+            var priceLists = await _context.PriceLists
+                .Where(pl => pl.EventId == eventId && !pl.IsDeleted)
+                .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
+                .OrderBy(pl => pl.Priority)
+                .ThenBy(pl => pl.Name)
+                .ToListAsync(cancellationToken);
 
-        return priceLists.Select(MapToPriceListDto);
+            return priceLists.Select(MapToPriceListDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving price lists for event {EventId}.", eventId);
+            throw;
+        }
     }
 
     public async Task<PriceListDto?> GetPriceListByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var priceList = await _context.PriceLists
-            .Where(pl => pl.Id == id && !pl.IsDeleted)
-            .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
-            .FirstOrDefaultAsync(cancellationToken);
+        try
+        {
+            var priceList = await _context.PriceLists
+                .Where(pl => pl.Id == id && !pl.IsDeleted)
+                .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
+                .FirstOrDefaultAsync(cancellationToken);
 
-        return priceList != null ? MapToPriceListDto(priceList) : null;
+            return priceList != null ? MapToPriceListDto(priceList) : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving price list {PriceListId}.", id);
+            throw;
+        }
     }
 
     public async Task<PriceListDetailDto?> GetPriceListDetailAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var priceList = await _context.PriceLists
-            .Where(pl => pl.Id == id && !pl.IsDeleted)
-            .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
-            .FirstOrDefaultAsync(cancellationToken);
+        try
+        {
+            var priceList = await _context.PriceLists
+                .Where(pl => pl.Id == id && !pl.IsDeleted)
+                .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
+                .FirstOrDefaultAsync(cancellationToken);
 
-        return priceList != null ? MapToPriceListDetailDto(priceList) : null;
+            return priceList != null ? MapToPriceListDetailDto(priceList) : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving price list detail {PriceListId}.", id);
+            throw;
+        }
     }
 
     public async Task<PriceListDto> CreatePriceListAsync(CreatePriceListDto createPriceListDto, string currentUser, CancellationToken cancellationToken = default)
@@ -89,7 +116,6 @@ public class PriceListService : IPriceListService
             ArgumentNullException.ThrowIfNull(createPriceListDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            // Check if event exists
             if (!await EventExistsAsync(createPriceListDto.EventId, cancellationToken))
             {
                 throw new ArgumentException($"Event with ID {createPriceListDto.EventId} does not exist.");
@@ -113,7 +139,6 @@ public class PriceListService : IPriceListService
             _context.PriceLists.Add(priceList);
             await _context.SaveChangesAsync(cancellationToken);
 
-            // Audit log for the created price list
             await _auditLogService.TrackEntityChangesAsync(priceList, "Create", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Price list created with ID {PriceListId} by user {User}.", priceList.Id, currentUser);
@@ -134,10 +159,19 @@ public class PriceListService : IPriceListService
             ArgumentNullException.ThrowIfNull(updatePriceListDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var originalPriceList = await _context.PriceLists
+                .AsNoTracking()
+                .FirstOrDefaultAsync(pl => pl.Id == id && !pl.IsDeleted, cancellationToken);
+
+            if (originalPriceList == null)
+            {
+                _logger.LogWarning("Price list with ID {PriceListId} not found for update by user {User}.", id, currentUser);
+                return null;
+            }
+
             var priceList = await _context.PriceLists
-                .Where(pl => pl.Id == id && !pl.IsDeleted)
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
-                .FirstOrDefaultAsync(cancellationToken);
+                .FirstOrDefaultAsync(pl => pl.Id == id && !pl.IsDeleted, cancellationToken);
 
             if (priceList == null)
             {
@@ -145,26 +179,6 @@ public class PriceListService : IPriceListService
                 return null;
             }
 
-            // Store original for audit
-            var originalPriceList = new Data.Entities.PriceList.PriceList
-            {
-                Id = priceList.Id,
-                Name = priceList.Name,
-                Description = priceList.Description,
-                ValidFrom = priceList.ValidFrom,
-                ValidTo = priceList.ValidTo,
-                Notes = priceList.Notes,
-                Status = priceList.Status,
-                IsDefault = priceList.IsDefault,
-                Priority = priceList.Priority,
-                EventId = priceList.EventId,
-                CreatedBy = priceList.CreatedBy,
-                CreatedAt = priceList.CreatedAt,
-                ModifiedBy = priceList.ModifiedBy,
-                ModifiedAt = priceList.ModifiedAt
-            };
-
-            // Update properties
             priceList.Name = updatePriceListDto.Name;
             priceList.Description = updatePriceListDto.Description;
             priceList.ValidFrom = updatePriceListDto.ValidFrom;
@@ -178,7 +192,6 @@ public class PriceListService : IPriceListService
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            // Audit log for the updated price list
             await _auditLogService.TrackEntityChangesAsync(priceList, "Update", currentUser, originalPriceList, cancellationToken);
 
             _logger.LogInformation("Price list {PriceListId} updated by user {User}.", id, currentUser);
@@ -198,10 +211,20 @@ public class PriceListService : IPriceListService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var priceList = await _context.PriceLists
-                .Where(pl => pl.Id == id && !pl.IsDeleted)
+            var originalPriceList = await _context.PriceLists
+                .AsNoTracking()
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
-                .FirstOrDefaultAsync(cancellationToken);
+                .FirstOrDefaultAsync(pl => pl.Id == id && !pl.IsDeleted, cancellationToken);
+
+            if (originalPriceList == null)
+            {
+                _logger.LogWarning("Price list with ID {PriceListId} not found for deletion by user {User}.", id, currentUser);
+                return false;
+            }
+
+            var priceList = await _context.PriceLists
+                .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
+                .FirstOrDefaultAsync(pl => pl.Id == id && !pl.IsDeleted, cancellationToken);
 
             if (priceList == null)
             {
@@ -209,34 +232,10 @@ public class PriceListService : IPriceListService
                 return false;
             }
 
-            // Store original for audit
-            var originalPriceList = new Data.Entities.PriceList.PriceList
-            {
-                Id = priceList.Id,
-                Name = priceList.Name,
-                Description = priceList.Description,
-                ValidFrom = priceList.ValidFrom,
-                ValidTo = priceList.ValidTo,
-                Notes = priceList.Notes,
-                Status = priceList.Status,
-                IsDefault = priceList.IsDefault,
-                Priority = priceList.Priority,
-                EventId = priceList.EventId,
-                CreatedBy = priceList.CreatedBy,
-                CreatedAt = priceList.CreatedAt,
-                ModifiedBy = priceList.ModifiedBy,
-                ModifiedAt = priceList.ModifiedAt,
-                IsDeleted = priceList.IsDeleted,
-                DeletedBy = priceList.DeletedBy,
-                DeletedAt = priceList.DeletedAt
-            };
-
-            // Soft delete the price list and all related entries
             priceList.IsDeleted = true;
             priceList.DeletedBy = currentUser;
             priceList.DeletedAt = DateTime.UtcNow;
 
-            // Soft delete related entries
             foreach (var entry in priceList.ProductPrices.Where(ple => !ple.IsDeleted))
             {
                 entry.IsDeleted = true;
@@ -246,7 +245,6 @@ public class PriceListService : IPriceListService
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            // Audit log for the deleted price list
             await _auditLogService.TrackEntityChangesAsync(priceList, "Delete", currentUser, originalPriceList, cancellationToken);
 
             _logger.LogInformation("Price list {PriceListId} deleted by user {User}.", id, currentUser);
@@ -260,25 +258,39 @@ public class PriceListService : IPriceListService
         }
     }
 
-    // PriceListEntry management operations
-
     public async Task<IEnumerable<PriceListEntryDto>> GetPriceListEntriesAsync(Guid priceListId, CancellationToken cancellationToken = default)
     {
-        var entries = await _context.PriceListEntries
-            .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
-            .OrderBy(ple => ple.ProductId)
-            .ToListAsync(cancellationToken);
+        try
+        {
+            var entries = await _context.PriceListEntries
+                .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
+                .OrderBy(ple => ple.ProductId)
+                .ToListAsync(cancellationToken);
 
-        return entries.Select(MapToPriceListEntryDto);
+            return entries.Select(MapToPriceListEntryDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving price list entries for price list {PriceListId}.", priceListId);
+            throw;
+        }
     }
 
     public async Task<PriceListEntryDto?> GetPriceListEntryByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var entry = await _context.PriceListEntries
-            .Where(ple => ple.Id == id && !ple.IsDeleted)
-            .FirstOrDefaultAsync(cancellationToken);
+        try
+        {
+            var entry = await _context.PriceListEntries
+                .Where(ple => ple.Id == id && !ple.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
 
-        return entry != null ? MapToPriceListEntryDto(entry) : null;
+            return entry != null ? MapToPriceListEntryDto(entry) : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving price list entry {EntryId}.", id);
+            throw;
+        }
     }
 
     public async Task<PriceListEntryDto> AddPriceListEntryAsync(CreatePriceListEntryDto createPriceListEntryDto, string currentUser, CancellationToken cancellationToken = default)
@@ -288,13 +300,11 @@ public class PriceListService : IPriceListService
             ArgumentNullException.ThrowIfNull(createPriceListEntryDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            // Check if price list exists
             if (!await PriceListExistsAsync(createPriceListEntryDto.PriceListId, cancellationToken))
             {
                 throw new ArgumentException($"Price list with ID {createPriceListEntryDto.PriceListId} does not exist.");
             }
 
-            // Check if product exists
             if (!await ProductExistsAsync(createPriceListEntryDto.ProductId, cancellationToken))
             {
                 throw new ArgumentException($"Product with ID {createPriceListEntryDto.ProductId} does not exist.");
@@ -320,7 +330,6 @@ public class PriceListService : IPriceListService
             _context.PriceListEntries.Add(entry);
             await _context.SaveChangesAsync(cancellationToken);
 
-            // Audit log for the created entry
             await _auditLogService.TrackEntityChangesAsync(entry, "Create", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Price list entry created with ID {EntryId} for price list {PriceListId} by user {User}.",
@@ -343,9 +352,18 @@ public class PriceListService : IPriceListService
             ArgumentNullException.ThrowIfNull(updatePriceListEntryDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var originalEntry = await _context.PriceListEntries
+                .AsNoTracking()
+                .FirstOrDefaultAsync(ple => ple.Id == id && !ple.IsDeleted, cancellationToken);
+
+            if (originalEntry == null)
+            {
+                _logger.LogWarning("Price list entry with ID {EntryId} not found for update by user {User}.", id, currentUser);
+                return null;
+            }
+
             var entry = await _context.PriceListEntries
-                .Where(ple => ple.Id == id && !ple.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
+                .FirstOrDefaultAsync(ple => ple.Id == id && !ple.IsDeleted, cancellationToken);
 
             if (entry == null)
             {
@@ -353,28 +371,6 @@ public class PriceListService : IPriceListService
                 return null;
             }
 
-            // Store original for audit
-            var originalEntry = new PriceListEntry
-            {
-                Id = entry.Id,
-                ProductId = entry.ProductId,
-                PriceListId = entry.PriceListId,
-                Price = entry.Price,
-                Currency = entry.Currency,
-                Score = entry.Score,
-                IsEditableInFrontend = entry.IsEditableInFrontend,
-                IsDiscountable = entry.IsDiscountable,
-                Status = entry.Status,
-                MinQuantity = entry.MinQuantity,
-                MaxQuantity = entry.MaxQuantity,
-                Notes = entry.Notes,
-                CreatedBy = entry.CreatedBy,
-                CreatedAt = entry.CreatedAt,
-                ModifiedBy = entry.ModifiedBy,
-                ModifiedAt = entry.ModifiedAt
-            };
-
-            // Update properties
             entry.Price = updatePriceListEntryDto.Price;
             entry.Currency = updatePriceListEntryDto.Currency;
             entry.Score = updatePriceListEntryDto.Score;
@@ -389,7 +385,6 @@ public class PriceListService : IPriceListService
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            // Audit log for the updated entry
             await _auditLogService.TrackEntityChangesAsync(entry, "Update", currentUser, originalEntry, cancellationToken);
 
             _logger.LogInformation("Price list entry {EntryId} updated by user {User}.", id, currentUser);
@@ -409,9 +404,18 @@ public class PriceListService : IPriceListService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var originalEntry = await _context.PriceListEntries
+                .AsNoTracking()
+                .FirstOrDefaultAsync(ple => ple.Id == id && !ple.IsDeleted, cancellationToken);
+
+            if (originalEntry == null)
+            {
+                _logger.LogWarning("Price list entry with ID {EntryId} not found for deletion by user {User}.", id, currentUser);
+                return false;
+            }
+
             var entry = await _context.PriceListEntries
-                .Where(ple => ple.Id == id && !ple.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
+                .FirstOrDefaultAsync(ple => ple.Id == id && !ple.IsDeleted, cancellationToken);
 
             if (entry == null)
             {
@@ -419,38 +423,12 @@ public class PriceListService : IPriceListService
                 return false;
             }
 
-            // Store original for audit
-            var originalEntry = new PriceListEntry
-            {
-                Id = entry.Id,
-                ProductId = entry.ProductId,
-                PriceListId = entry.PriceListId,
-                Price = entry.Price,
-                Currency = entry.Currency,
-                Score = entry.Score,
-                IsEditableInFrontend = entry.IsEditableInFrontend,
-                IsDiscountable = entry.IsDiscountable,
-                Status = entry.Status,
-                MinQuantity = entry.MinQuantity,
-                MaxQuantity = entry.MaxQuantity,
-                Notes = entry.Notes,
-                CreatedBy = entry.CreatedBy,
-                CreatedAt = entry.CreatedAt,
-                ModifiedBy = entry.ModifiedBy,
-                ModifiedAt = entry.ModifiedAt,
-                IsDeleted = entry.IsDeleted,
-                DeletedBy = entry.DeletedBy,
-                DeletedAt = entry.DeletedAt
-            };
-
-            // Soft delete the entry
             entry.IsDeleted = true;
             entry.DeletedBy = currentUser;
             entry.DeletedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            // Audit log for the deleted entry
             await _auditLogService.TrackEntityChangesAsync(entry, "Delete", currentUser, originalEntry, cancellationToken);
 
             _logger.LogInformation("Price list entry {EntryId} deleted by user {User}.", id, currentUser);
@@ -464,24 +442,46 @@ public class PriceListService : IPriceListService
         }
     }
 
-    // Helper methods
-
     public async Task<bool> PriceListExistsAsync(Guid priceListId, CancellationToken cancellationToken = default)
     {
-        return await _context.PriceLists
-            .AnyAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
+        try
+        {
+            return await _context.PriceLists
+                .AnyAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking if price list {PriceListId} exists.", priceListId);
+            throw;
+        }
     }
 
     public async Task<bool> EventExistsAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
-        return await _context.Events
-            .AnyAsync(e => e.Id == eventId && !e.IsDeleted, cancellationToken);
+        try
+        {
+            return await _context.Events
+                .AnyAsync(e => e.Id == eventId && !e.IsDeleted, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking if event {EventId} exists.", eventId);
+            throw;
+        }
     }
 
     public async Task<bool> ProductExistsAsync(Guid productId, CancellationToken cancellationToken = default)
     {
-        return await _context.Products
-            .AnyAsync(p => p.Id == productId && !p.IsDeleted, cancellationToken);
+        try
+        {
+            return await _context.Products
+                .AnyAsync(p => p.Id == productId && !p.IsDeleted, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking if product {ProductId} exists.", productId);
+            throw;
+        }
     }
 
     // Private mapping methods

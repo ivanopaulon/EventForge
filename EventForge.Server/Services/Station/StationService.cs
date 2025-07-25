@@ -70,7 +70,10 @@ public class StationService : IStationService
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (station == null)
+            {
+                _logger.LogWarning("Station with ID {StationId} not found.", id);
                 return null;
+            }
 
             var printerCount = await _context.Printers
                 .CountAsync(p => p.StationId == id && !p.IsDeleted, cancellationToken);
@@ -127,14 +130,20 @@ public class StationService : IStationService
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalStation == null)
+            {
+                _logger.LogWarning("Station with ID {StationId} not found for update by user {User}.", id, currentUser);
                 return null;
+            }
 
             var station = await _context.Stations
                 .Where(s => s.Id == id && !s.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (station == null)
+            {
+                _logger.LogWarning("Station with ID {StationId} not found for update by user {User}.", id, currentUser);
                 return null;
+            }
 
             station.Name = updateStationDto.Name;
             station.Description = updateStationDto.Description;
@@ -173,14 +182,20 @@ public class StationService : IStationService
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalStation == null)
+            {
+                _logger.LogWarning("Station with ID {StationId} not found for deletion by user {User}.", id, currentUser);
                 return false;
+            }
 
             var station = await _context.Stations
                 .Where(s => s.Id == id && !s.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (station == null)
+            {
+                _logger.LogWarning("Station with ID {StationId} not found for deletion by user {User}.", id, currentUser);
                 return false;
+            }
 
             station.IsDeleted = true;
             station.DeletedAt = DateTime.UtcNow;
@@ -248,7 +263,13 @@ public class StationService : IStationService
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return printer != null ? MapToPrinterDto(printer) : null;
+            if (printer == null)
+            {
+                _logger.LogWarning("Printer with ID {PrinterId} not found.", id);
+                return null;
+            }
+
+            return MapToPrinterDto(printer);
         }
         catch (Exception ex)
         {
@@ -325,14 +346,20 @@ public class StationService : IStationService
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalPrinter == null)
+            {
+                _logger.LogWarning("Printer with ID {PrinterId} not found for update by user {User}.", id, currentUser);
                 return null;
+            }
 
             var printer = await _context.Printers
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (printer == null)
+            {
+                _logger.LogWarning("Printer with ID {PrinterId} not found for update by user {User}.", id, currentUser);
                 return null;
+            }
 
             printer.Name = updatePrinterDto.Name;
             printer.Type = updatePrinterDto.Type;
@@ -374,14 +401,20 @@ public class StationService : IStationService
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalPrinter == null)
+            {
+                _logger.LogWarning("Printer with ID {PrinterId} not found for deletion by user {User}.", id, currentUser);
                 return false;
+            }
 
             var printer = await _context.Printers
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (printer == null)
+            {
+                _logger.LogWarning("Printer with ID {PrinterId} not found for deletion by user {User}.", id, currentUser);
                 return false;
+            }
 
             printer.IsDeleted = true;
             printer.DeletedAt = DateTime.UtcNow;

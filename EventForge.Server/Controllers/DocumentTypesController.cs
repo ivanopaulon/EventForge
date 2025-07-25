@@ -102,7 +102,7 @@ public class DocumentTypesController : BaseApiController
 
         try
         {
-            var documentType = await _documentTypeService.CreateAsync(createDto, cancellationToken);
+            var documentType = await _documentTypeService.CreateAsync(createDto, GetCurrentUser(), cancellationToken);
             return CreatedAtAction(nameof(GetDocumentType), new { id = documentType.Id }, documentType);
         }
         catch (Exception ex)
@@ -139,7 +139,7 @@ public class DocumentTypesController : BaseApiController
 
         try
         {
-            var documentType = await _documentTypeService.UpdateAsync(id, updateDto, cancellationToken);
+            var documentType = await _documentTypeService.UpdateAsync(id, updateDto, GetCurrentUser(), cancellationToken);
 
             if (documentType == null)
             {
@@ -171,7 +171,7 @@ public class DocumentTypesController : BaseApiController
     {
         try
         {
-            var deleted = await _documentTypeService.DeleteAsync(id, cancellationToken);
+            var deleted = await _documentTypeService.DeleteAsync(id, GetCurrentUser(), cancellationToken);
 
             if (!deleted)
             {

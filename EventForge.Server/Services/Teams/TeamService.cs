@@ -29,7 +29,6 @@ public class TeamService : ITeamService
     {
         try
         {
-            // TODO: Add automated tests for tenant isolation in team queries
             var currentTenantId = _tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
@@ -95,7 +94,13 @@ public class TeamService : ITeamService
                 .Include(t => t.Members.Where(m => !m.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return team != null ? MapToTeamDto(team) : null;
+            if (team == null)
+            {
+                _logger.LogWarning("Team con ID {TeamId} non trovato.", id);
+                return null;
+            }
+
+            return MapToTeamDto(team);
         }
         catch (Exception ex)
         {
@@ -114,7 +119,13 @@ public class TeamService : ITeamService
                 .Include(t => t.Members.Where(m => !m.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return team != null ? MapToTeamDetailDto(team) : null;
+            if (team == null)
+            {
+                _logger.LogWarning("Team con ID {TeamId} non trovato per dettagli.", id);
+                return null;
+            }
+
+            return MapToTeamDetailDto(team);
         }
         catch (Exception ex)
         {
@@ -179,26 +190,17 @@ public class TeamService : ITeamService
                 .Include(t => t.Members.Where(m => !m.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (team == null) return null;
-
-            // Recupera i valori originali per l'audit
-            var originalTeam = new Team
+            if (team == null)
             {
-                Id = team.Id,
-                Name = team.Name,
-                ShortDescription = team.ShortDescription,
-                LongDescription = team.LongDescription,
-                Email = team.Email,
-                Status = team.Status,
-                EventId = team.EventId,
-                CreatedBy = team.CreatedBy,
-                CreatedAt = team.CreatedAt,
-                ModifiedBy = team.ModifiedBy,
-                ModifiedAt = team.ModifiedAt,
-                DeletedBy = team.DeletedBy,
-                DeletedAt = team.DeletedAt,
-                IsDeleted = team.IsDeleted
-            };
+                _logger.LogWarning("Team con ID {TeamId} non trovato per update da parte di {User}.", id, currentUser);
+                return null;
+            }
+
+            // Recupera i valori originali per l'audit (preferibilmente AsNoTracking)
+            var originalTeam = await _context.Teams
+                .AsNoTracking()
+                .Where(t => t.Id == id && !t.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
 
             team.Name = updateTeamDto.Name;
             team.ShortDescription = updateTeamDto.ShortDescription;
@@ -232,26 +234,16 @@ public class TeamService : ITeamService
                 .Where(t => t.Id == id && !t.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (team == null) return false;
-
-            // Audit: copia originale prima della modifica
-            var originalTeam = new Team
+            if (team == null)
             {
-                Id = team.Id,
-                Name = team.Name,
-                ShortDescription = team.ShortDescription,
-                LongDescription = team.LongDescription,
-                Email = team.Email,
-                Status = team.Status,
-                EventId = team.EventId,
-                CreatedBy = team.CreatedBy,
-                CreatedAt = team.CreatedAt,
-                ModifiedBy = team.ModifiedBy,
-                ModifiedAt = team.ModifiedAt,
-                DeletedBy = team.DeletedBy,
-                DeletedAt = team.DeletedAt,
-                IsDeleted = team.IsDeleted
-            };
+                _logger.LogWarning("Team con ID {TeamId} non trovato per cancellazione da parte di {User}.", id, currentUser);
+                return false;
+            }
+
+            var originalTeam = await _context.Teams
+                .AsNoTracking()
+                .Where(t => t.Id == id && !t.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
 
             team.IsDeleted = true;
             team.DeletedBy = currentUser;
@@ -306,7 +298,13 @@ public class TeamService : ITeamService
             .Include(m => m.Team)
             .FirstOrDefaultAsync(cancellationToken);
 
-        return member != null ? MapToTeamMemberDto(member) : null;
+        if (member == null)
+        {
+            _logger.LogWarning("Team member con ID {MemberId} non trovato.", id);
+            return null;
+        }
+
+        return MapToTeamMemberDto(member);
     }
 
     public async Task<TeamMemberDto> AddTeamMemberAsync(CreateTeamMemberDto createTeamMemberDto, string currentUser, CancellationToken cancellationToken = default)
@@ -364,27 +362,16 @@ public class TeamService : ITeamService
                 .Include(m => m.Team)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (member == null) return null;
-
-            // Audit: copia originale
-            var originalMember = new TeamMember
+            if (member == null)
             {
-                Id = member.Id,
-                FirstName = member.FirstName,
-                LastName = member.LastName,
-                Email = member.Email,
-                Role = member.Role,
-                DateOfBirth = member.DateOfBirth,
-                Status = member.Status,
-                TeamId = member.TeamId,
-                CreatedBy = member.CreatedBy,
-                CreatedAt = member.CreatedAt,
-                ModifiedBy = member.ModifiedBy,
-                ModifiedAt = member.ModifiedAt,
-                DeletedBy = member.DeletedBy,
-                DeletedAt = member.DeletedAt,
-                IsDeleted = member.IsDeleted
-            };
+                _logger.LogWarning("Team member con ID {MemberId} non trovato per update da parte di {User}.", id, currentUser);
+                return null;
+            }
+
+            var originalMember = await _context.TeamMembers
+                .AsNoTracking()
+                .Where(m => m.Id == id && !m.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
 
             member.FirstName = updateTeamMemberDto.FirstName;
             member.LastName = updateTeamMemberDto.LastName;
@@ -419,27 +406,16 @@ public class TeamService : ITeamService
                 .Where(m => m.Id == id && !m.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (member == null) return false;
-
-            // Audit: copia originale
-            var originalMember = new TeamMember
+            if (member == null)
             {
-                Id = member.Id,
-                FirstName = member.FirstName,
-                LastName = member.LastName,
-                Email = member.Email,
-                Role = member.Role,
-                DateOfBirth = member.DateOfBirth,
-                Status = member.Status,
-                TeamId = member.TeamId,
-                CreatedBy = member.CreatedBy,
-                CreatedAt = member.CreatedAt,
-                ModifiedBy = member.ModifiedBy,
-                ModifiedAt = member.ModifiedAt,
-                DeletedBy = member.DeletedBy,
-                DeletedAt = member.DeletedAt,
-                IsDeleted = member.IsDeleted
-            };
+                _logger.LogWarning("Team member con ID {MemberId} non trovato per cancellazione da parte di {User}.", id, currentUser);
+                return false;
+            }
+
+            var originalMember = await _context.TeamMembers
+                .AsNoTracking()
+                .Where(m => m.Id == id && !m.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
 
             member.IsDeleted = true;
             member.DeletedBy = currentUser;
