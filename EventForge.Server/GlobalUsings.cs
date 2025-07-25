@@ -18,5 +18,7 @@ global using EventForge.Server.DTOs.Audit;
 global using EventForge.Server.DTOs.Auth;
 global using EventForge.Server.DTOs.Events;
 global using EventForge.Server.DTOs.Logs;
+global using EventForge.Server.DTOs.Tenants;
 global using EventForge.Server.Services.Auth;
 global using EventForge.Server.Services.Performance;
+global using EventForge.Server.Services.Tenants;
