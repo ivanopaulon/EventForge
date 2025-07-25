@@ -4,9 +4,17 @@ namespace EventForge.Data;
 
 public class EventForgeDbContext : DbContext
 {
+    private readonly IHttpContextAccessor? _httpContextAccessor;
+
     public EventForgeDbContext(DbContextOptions<EventForgeDbContext> options)
         : base(options)
     {
+    }
+
+    public EventForgeDbContext(DbContextOptions<EventForgeDbContext> options, IHttpContextAccessor? httpContextAccessor)
+        : base(options)
+    {
+        _httpContextAccessor = httpContextAccessor;
     }
 
     // Common
@@ -324,5 +332,183 @@ public class EventForgeDbContext : DbContext
     public IQueryable<T> IncludeDeleted<T>() where T : AuditableEntity
     {
         return Set<T>().IgnoreQueryFilters();
+    }
+
+    /// <summary>
+    /// Saves changes with automatic audit tracking for auditable entities.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Number of entities written to the database</returns>
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        var auditEntries = new List<EntityChangeLog>();
+
+        // Process auditable entities before saving
+        var auditableEntries = ChangeTracker.Entries<AuditableEntity>()
+            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted)
+            .ToList();
+
+        foreach (var entry in auditableEntries)
+        {
+            var entity = entry.Entity;
+            var entityName = entity.GetType().Name;
+            var entityId = entity.Id;
+
+            // Update audit fields
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    entity.CreatedAt = DateTime.UtcNow;
+                    entity.CreatedBy = currentUser;
+                    entity.IsActive = true;
+                    break;
+
+                case EntityState.Modified:
+                    entity.ModifiedAt = DateTime.UtcNow;
+                    entity.ModifiedBy = currentUser;
+                    break;
+
+                case EntityState.Deleted:
+                    // Implement soft delete
+                    entry.State = EntityState.Modified;
+                    entity.IsDeleted = true;
+                    entity.DeletedAt = DateTime.UtcNow;
+                    entity.DeletedBy = currentUser;
+                    break;
+            }
+
+            // Generate audit log entries
+            auditEntries.AddRange(CreateAuditEntries(entry, currentUser));
+        }
+
+        // Save changes first
+        var result = await base.SaveChangesAsync(cancellationToken);
+
+        // Then save audit entries (to avoid self-referencing issues)
+        if (auditEntries.Any())
+        {
+            EntityChangeLogs.AddRange(auditEntries);
+            await base.SaveChangesAsync(cancellationToken);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Saves changes with automatic audit tracking for auditable entities (synchronous).
+    /// </summary>
+    /// <returns>Number of entities written to the database</returns>
+    public override int SaveChanges()
+    {
+        return SaveChangesAsync().GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    /// Gets the current user from the HTTP context or returns system user.
+    /// </summary>
+    /// <returns>Current user identifier</returns>
+    private string GetCurrentUser()
+    {
+        // Try to get user from HTTP context
+        try
+        {
+            var httpContext = _httpContextAccessor?.HttpContext;
+            
+            if (httpContext?.User?.Identity?.IsAuthenticated == true)
+            {
+                return httpContext.User.FindFirst("username")?.Value ?? 
+                       httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? 
+                       "authenticated_user";
+            }
+        }
+        catch
+        {
+            // Ignore errors when getting HTTP context (e.g., during migrations)
+        }
+
+        return "system";
+    }
+
+    /// <summary>
+    /// Creates audit log entries for an entity change.
+    /// </summary>
+    /// <param name="entry">The entity entry</param>
+    /// <param name="currentUser">Current user</param>
+    /// <returns>List of audit log entries</returns>
+    private List<EntityChangeLog> CreateAuditEntries(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<AuditableEntity> entry, string currentUser)
+    {
+        var auditEntries = new List<EntityChangeLog>();
+        var entity = entry.Entity;
+        var entityName = entity.GetType().Name;
+        var entityId = entity.Id;
+
+        string operationType = entry.State switch
+        {
+            EntityState.Added => "Insert",
+            EntityState.Modified => "Update", 
+            EntityState.Deleted => "Delete",
+            _ => "Unknown"
+        };
+
+        if (entry.State == EntityState.Added)
+        {
+            // For new entities, log all properties
+            foreach (var property in entry.Properties)
+            {
+                if (property.CurrentValue != null)
+                {
+                    auditEntries.Add(new EntityChangeLog
+                    {
+                        EntityName = entityName,
+                        EntityId = entityId,
+                        PropertyName = property.Metadata.Name,
+                        OperationType = operationType,
+                        OldValue = null,
+                        NewValue = property.CurrentValue.ToString(),
+                        ChangedBy = currentUser,
+                        ChangedAt = DateTime.UtcNow
+                    });
+                }
+            }
+        }
+        else if (entry.State == EntityState.Modified)
+        {
+            // For modified entities, log only changed properties
+            foreach (var property in entry.Properties)
+            {
+                if (property.IsModified)
+                {
+                    auditEntries.Add(new EntityChangeLog
+                    {
+                        EntityName = entityName,
+                        EntityId = entityId,
+                        PropertyName = property.Metadata.Name,
+                        OperationType = operationType,
+                        OldValue = property.OriginalValue?.ToString(),
+                        NewValue = property.CurrentValue?.ToString(),
+                        ChangedBy = currentUser,
+                        ChangedAt = DateTime.UtcNow
+                    });
+                }
+            }
+        }
+        else if (entry.State == EntityState.Deleted)
+        {
+            // For deleted entities, log the deletion
+            auditEntries.Add(new EntityChangeLog
+            {
+                EntityName = entityName,
+                EntityId = entityId,
+                PropertyName = "Entity",
+                OperationType = operationType,
+                OldValue = "Active",
+                NewValue = "Deleted",
+                ChangedBy = currentUser,
+                ChangedAt = DateTime.UtcNow
+            });
+        }
+
+        return auditEntries;
     }
 }

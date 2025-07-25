@@ -88,6 +88,9 @@ public static class ServiceCollectionExtensions
         var provider = configuration["DatabaseProvider"] ?? "SqlServer";
         Log.Information("Configurazione DbContext: provider selezionato = {Provider}", provider);
 
+        // Register HTTP context accessor first for audit tracking
+        services.AddHttpContextAccessor();
+
         try
         {
             if (provider == "Sqlite")
