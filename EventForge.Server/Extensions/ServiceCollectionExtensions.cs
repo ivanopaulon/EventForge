@@ -290,7 +290,7 @@ public static class ServiceCollectionExtensions
                 return;
             }
 
-            // db.Database.Migrate();
+            db.Database.Migrate();
             Log.Information("Migrazioni applicate correttamente al database.");
         }
         catch (Exception ex)
