@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "Nuovo profilo",
+    "Projects": [
+      {
+        "Path": "EventForge.Server\\EventForge.Server.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "EventForge.Client\\EventForge.Client.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]
