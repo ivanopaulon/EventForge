@@ -1,0 +1,215 @@
+@page "/admin"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Admin Dashboard - EventForge</PageTitle>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else if (!_isAuthorized)
+{
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+        <MudPaper Class="pa-8" Elevation="4">
+            <MudGrid Justify="Justify.Center">
+                <MudItem xs="12">
+                    <div class="d-flex flex-column align-center">
+                        <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
+                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">Access Denied</MudText>
+                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
+                            You don't have permission to access this page. Administrator role is required.
+                        </MudText>
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Primary" 
+                                   StartIcon="Icons.Material.Filled.ArrowBack"
+                                   OnClick="@(() => NavigationManager.NavigateTo("/login"))">
+                            Return to Login
+                        </MudButton>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudContainer>
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+        <MudText Typo="Typo.h3" Class="mb-8">
+            <MudIcon Icon="Icons.Material.Filled.AdminPanelSettings" Class="mr-3" />
+            Admin Dashboard
+        </MudText>
+
+        <MudGrid>
+            <!-- Welcome Card -->
+            <MudItem xs="12">
+                <MudCard Elevation="2">
+                    <MudCardContent>
+                        <div class="d-flex align-center">
+                            <MudAvatar Color="Color.Primary" Size="Size.Large" Class="mr-4">
+                                <MudIcon Icon="Icons.Material.Filled.Person" />
+                            </MudAvatar>
+                            <div>
+                                <MudText Typo="Typo.h5">Welcome back, @(_currentUser?.FullName ?? "Administrator")!</MudText>
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                    You are logged in as: @(_currentUser?.Username)
+                                </MudText>
+                                <MudChip T="string" Color="Color.Success" Size="Size.Small" Class="mt-2">Admin User</MudChip>
+                            </div>
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- User Information Card -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.AccountCircle" Class="mr-2" />
+                                User Information
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        @if (_currentUser != null)
+                        {
+                            <div class="d-flex flex-column ga-3">
+                                <div>
+                                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">Username</MudText>
+                                    <MudText>@_currentUser.Username</MudText>
+                                </div>
+                                <div>
+                                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">Email</MudText>
+                                    <MudText>@_currentUser.Email</MudText>
+                                </div>
+                                <div>
+                                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">Full Name</MudText>
+                                    <MudText>@_currentUser.FullName</MudText>
+                                </div>
+                                <div>
+                                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">Last Login</MudText>
+                                    <MudText>@(_currentUser.LastLoginAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A")</MudText>
+                                </div>
+                            </div>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Roles and Permissions Card -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Security" Class="mr-2" />
+                                Roles & Permissions
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        @if (_currentUser != null)
+                        {
+                            <div class="mb-4">
+                                <MudText Typo="Typo.subtitle2" Class="mud-text-secondary mb-2">Roles</MudText>
+                                <div class="d-flex flex-wrap ga-1">
+                                    @foreach (var role in _currentUser.Roles)
+                                    {
+                                        <MudChip T="string" Color="Color.Primary" Size="Size.Small">@role</MudChip>
+                                    }
+                                </div>
+                            </div>
+                            
+                            @if (_currentUser.Permissions.Any())
+                            {
+                                <div>
+                                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary mb-2">Permissions</MudText>
+                                    <div class="d-flex flex-wrap ga-1">
+                                        @foreach (var permission in _currentUser.Permissions.Take(10))
+                                        {
+                                            <MudChip T="string" Color="Color.Secondary" Size="Size.Small">@permission</MudChip>
+                                        }
+                                        @if (_currentUser.Permissions.Count > 10)
+                                        {
+                                            <MudChip T="string" Color="Color.Default" Size="Size.Small">+@(_currentUser.Permissions.Count - 10) more</MudChip>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Admin Actions Card -->
+            <MudItem xs="12">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Settings" Class="mr-2" />
+                                Admin Actions
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudText Typo="Typo.body1" Class="mb-4">
+                            This is the admin dashboard. Here you can manage system settings, users, and other administrative tasks.
+                        </MudText>
+                        <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info">
+                            Admin functionality is under development. More features will be available soon.
+                        </MudAlert>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    </MudContainer>
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _isAuthorized = false;
+    private UserDto? _currentUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Check if user is authenticated
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                NavigationManager.NavigateTo("/login");
+                return;
+            }
+
+            // Check if user has Admin role
+            var isAdmin = await AuthService.IsInRoleAsync("Admin");
+            if (!isAdmin)
+            {
+                _isAuthorized = false;
+                _isLoading = false;
+                Snackbar.Add("Access denied. Administrator role required.", Severity.Warning);
+                return;
+            }
+
+            // Load current user information
+            _currentUser = await AuthService.GetCurrentUserAsync();
+            _isAuthorized = true;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading admin page: {ex.Message}", Severity.Error);
+            NavigationManager.NavigateTo("/login");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}
