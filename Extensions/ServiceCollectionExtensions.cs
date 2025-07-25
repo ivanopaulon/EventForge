@@ -7,6 +7,7 @@ using EventForge.Services.Common;
 using EventForge.Services.Documents;
 using EventForge.Services.Events;
 using EventForge.Services.Logs;
+using EventForge.Services.Performance;
 using EventForge.Services.PriceLists;
 using EventForge.Services.Products;
 using EventForge.Services.Promotions;
@@ -91,18 +92,28 @@ public static class ServiceCollectionExtensions
         // Register HTTP context accessor first for audit tracking
         services.AddHttpContextAccessor();
 
+        // Register performance monitoring
+        services.AddSingleton<IPerformanceMonitoringService, PerformanceMonitoringService>();
+        services.AddScoped<QueryPerformanceInterceptor>();
+
         try
         {
             if (provider == "Sqlite")
             {
-                services.AddDbContext<EventForgeDbContext>(options =>
-                    options.UseSqlite(configuration.GetConnectionString("Sqlite")));
+                services.AddDbContext<EventForgeDbContext>((serviceProvider, options) =>
+                {
+                    options.UseSqlite(configuration.GetConnectionString("Sqlite"))
+                           .AddInterceptors(serviceProvider.GetRequiredService<QueryPerformanceInterceptor>());
+                });
                 Log.Information("DbContext configurato per SQLite.");
             }
             else // Default: SQL Server
             {
-                services.AddDbContext<EventForgeDbContext>(options =>
-                    options.UseSqlServer(configuration.GetConnectionString("SqlServer")));
+                services.AddDbContext<EventForgeDbContext>((serviceProvider, options) =>
+                {
+                    options.UseSqlServer(configuration.GetConnectionString("SqlServer"))
+                           .AddInterceptors(serviceProvider.GetRequiredService<QueryPerformanceInterceptor>());
+                });
                 Log.Information("DbContext configurato per SQL Server.");
             }
         }

@@ -15,11 +15,13 @@ public class HealthController : BaseApiController
 {
     private readonly EventForgeDbContext _dbContext;
     private readonly ILogger<HealthController> _logger;
+    private readonly IPerformanceMonitoringService? _performanceService;
 
-    public HealthController(EventForgeDbContext dbContext, ILogger<HealthController> logger)
+    public HealthController(EventForgeDbContext dbContext, ILogger<HealthController> logger, IPerformanceMonitoringService? performanceService = null)
     {
         _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _performanceService = performanceService;
     }
 
     /// <summary>
@@ -105,11 +107,33 @@ public class HealthController : BaseApiController
             healthStatus.AuthenticationStatus = GetAuthenticationStatus();
             healthStatus.AuthenticationDetails = GetAuthenticationDetails();
             
+            // Add performance information if available
+            if (_performanceService != null)
+            {
+                try
+                {
+                    var perfStats = await _performanceService.GetStatisticsAsync();
+                    healthStatus.AuthenticationDetails["PerformanceMonitoring"] = "Enabled";
+                    healthStatus.AuthenticationDetails["TotalQueries"] = perfStats.TotalQueries;
+                    healthStatus.AuthenticationDetails["SlowQueryPercentage"] = Math.Round(perfStats.SlowQueryPercentage, 2);
+                    healthStatus.AuthenticationDetails["AverageQueryDurationMs"] = Math.Round(perfStats.AverageQueryDuration.TotalMilliseconds, 2);
+                }
+                catch
+                {
+                    healthStatus.AuthenticationDetails["PerformanceMonitoring"] = "Error";
+                }
+            }
+            else
+            {
+                healthStatus.AuthenticationDetails["PerformanceMonitoring"] = "Disabled";
+            }
+            
             // Add dependency checks here (external APIs, caches, etc.)
             healthStatus.Dependencies = new Dictionary<string, string>
             {
                 ["Database"] = healthStatus.DatabaseStatus ?? "Unknown",
-                ["Authentication"] = healthStatus.AuthenticationStatus ?? "Unknown"
+                ["Authentication"] = healthStatus.AuthenticationStatus ?? "Unknown",
+                ["PerformanceMonitoring"] = _performanceService != null ? "Healthy" : "Disabled"
             };
 
             return Ok(healthStatus);

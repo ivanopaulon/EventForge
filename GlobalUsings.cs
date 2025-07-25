@@ -19,3 +19,4 @@ global using EventForge.DTOs.Auth;
 global using EventForge.DTOs.Events;
 global using EventForge.DTOs.Logs;
 global using EventForge.Services.Auth;
+global using EventForge.Services.Performance;
