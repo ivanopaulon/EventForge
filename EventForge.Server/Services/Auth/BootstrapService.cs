@@ -182,6 +182,26 @@ public class BootstrapService : IBootstrapService
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
 
+            // Assign SuperAdmin role
+            var superAdminRole = await _dbContext.Roles
+                .FirstOrDefaultAsync(r => r.Name == "SuperAdmin", cancellationToken);
+
+            if (superAdminRole != null)
+            {
+                var userRole = new UserRole
+                {
+                    UserId = adminUser.Id,
+                    RoleId = superAdminRole.Id,
+                    GrantedBy = "system",
+                    GrantedAt = DateTime.UtcNow,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _dbContext.UserRoles.Add(userRole);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+
             _logger.LogInformation("Default admin user created: {Username} ({Email})", username, email);
             _logger.LogWarning("SECURITY: Default admin password is being used. Please change it immediately after first login!");
 
@@ -253,6 +273,7 @@ public class BootstrapService : IBootstrapService
             // Define default roles
             var defaultRoles = new[]
             {
+                new Role { Name = "SuperAdmin", DisplayName = "Super Administrator", Description = "Full unrestricted system access", IsSystemRole = true },
                 new Role { Name = "Admin", DisplayName = "System Administrator", Description = "Full system access", IsSystemRole = true },
                 new Role { Name = "Manager", DisplayName = "Manager", Description = "Management level access", IsSystemRole = true },
                 new Role { Name = "User", DisplayName = "Standard User", Description = "Basic user access", IsSystemRole = true },
