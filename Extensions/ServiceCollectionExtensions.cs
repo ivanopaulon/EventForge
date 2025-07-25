@@ -123,8 +123,11 @@ public static class ServiceCollectionExtensions
             throw;
         }
 
-        // Register AutoMapper
-        services.AddAutoMapper(typeof(MappingProfile));
+        // Register AutoMapper manually
+        services.AddAutoMapper(config =>
+        {
+            config.AddProfile<MappingProfile>();
+        });
 
         // Register audit services
         services.AddScoped<IAuditLogService, AuditLogService>();

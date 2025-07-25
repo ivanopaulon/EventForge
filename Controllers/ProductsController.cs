@@ -794,4 +794,107 @@ public class ProductsController : BaseApiController
     }
 
     #endregion
+
+    #region Image Upload Operations
+
+    /// <summary>
+    /// Uploads an image for a product.
+    /// </summary>
+    /// <param name="id">Product ID</param>
+    /// <param name="file">Image file to upload</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated product with new image URL</returns>
+    /// <response code="200">Returns the updated product with new image URL</response>
+    /// <response code="400">If the file is invalid or validation fails</response>
+    /// <response code="404">If the product is not found</response>
+    [HttpPost("{id:guid}/image")]
+    [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProductDto>> UploadProductImage(
+        Guid id,
+        IFormFile file,
+        CancellationToken cancellationToken = default)
+    {
+        // Validate file presence
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { message = "No file was uploaded." });
+        }
+
+        // Validate file size (max 5MB)
+        const long maxFileSize = 5 * 1024 * 1024; // 5MB
+        if (file.Length > maxFileSize)
+        {
+            return BadRequest(new { message = "File size exceeds the maximum limit of 5MB." });
+        }
+
+        // Validate file format
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+        var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        
+        if (string.IsNullOrEmpty(fileExtension) || !allowedExtensions.Contains(fileExtension))
+        {
+            return BadRequest(new { message = "Invalid file format. Only JPG, JPEG, PNG, and GIF files are allowed." });
+        }
+
+        // Validate content type
+        var allowedContentTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif" };
+        if (!allowedContentTypes.Contains(file.ContentType.ToLowerInvariant()))
+        {
+            return BadRequest(new { message = "Invalid file content type. Only image files are allowed." });
+        }
+
+        try
+        {
+            // Check if product exists
+            if (!await _productService.ProductExistsAsync(id, cancellationToken))
+            {
+                return NotFound(new { message = $"Product with ID {id} not found." });
+            }
+
+            // Create directory if it doesn't exist
+            var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "products");
+            if (!Directory.Exists(uploadsPath))
+            {
+                Directory.CreateDirectory(uploadsPath);
+            }
+
+            // Generate unique filename
+            var uniqueFileName = $"{id}_{Guid.NewGuid()}{fileExtension}";
+            var filePath = Path.Combine(uploadsPath, uniqueFileName);
+
+            // Save file to disk
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream, cancellationToken);
+            }
+
+            // Generate relative URL for the image
+            var relativeUrl = $"/images/products/{uniqueFileName}";
+
+            // Update product with new image URL
+            var currentUser = GetCurrentUser();
+            var updatedProduct = await _productService.UpdateProductImageAsync(id, relativeUrl, currentUser, cancellationToken);
+
+            if (updatedProduct == null)
+            {
+                // Clean up uploaded file if product update failed
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                }
+                return NotFound(new { message = $"Product with ID {id} not found." });
+            }
+
+            return Ok(updatedProduct);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "An error occurred while uploading the image.", error = ex.Message });
+        }
+    }
+
+    #endregion
 }
