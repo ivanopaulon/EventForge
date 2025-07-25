@@ -880,9 +880,9 @@ public class ProductsController : BaseApiController
             if (updatedProduct == null)
             {
                 // Clean up uploaded file if product update failed
-                if (File.Exists(filePath))
+                if (System.IO.File.Exists(filePath))
                 {
-                    File.Delete(filePath);
+                    System.IO.File.Delete(filePath);
                 }
                 return NotFound(new { message = $"Product with ID {id} not found." });
             }
