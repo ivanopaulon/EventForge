@@ -1,7 +1,10 @@
 @page "/login"
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
 @inject IAuthService AuthService
 @inject IHealthService HealthService
 @inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
 
 <PageTitle>Login - EventForge</PageTitle>
 
@@ -215,6 +218,16 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Check if user is already authenticated
+        var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        if (isAuthenticated)
+        {
+            // Check if user is admin and redirect accordingly
+            var isAdmin = await AuthService.IsInRoleAsync("Admin");
+            NavigationManager.NavigateTo(isAdmin ? "/admin" : "/admin");
+            return;
+        }
+        
         await LoadHealthStatus();
     }
 
@@ -246,7 +259,10 @@
             if (result != null)
             {
                 Snackbar.Add("Login successful!", Severity.Success);
-                // Here you would typically navigate to the main application
+                
+                // Check if user is admin and redirect accordingly
+                var isAdmin = await AuthService.IsInRoleAsync("Admin");
+                NavigationManager.NavigateTo(isAdmin ? "/admin" : "/admin");
             }
             else
             {
