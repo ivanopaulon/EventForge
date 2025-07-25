@@ -73,4 +73,39 @@ public abstract class BaseApiController : ControllerBase
 
         return NotFound(problemDetails);
     }
+
+    /// <summary>
+    /// Creates a ProblemDetails response for internal server errors.
+    /// </summary>
+    /// <param name="message">The error message</param>
+    /// <param name="ex">The exception</param>
+    /// <returns>InternalServerError result with ProblemDetails</returns>
+    protected ActionResult CreateInternalServerErrorProblem(string message, Exception ex)
+    {
+        var problemDetails = new ProblemDetails
+        {
+            Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1",
+            Title = "Internal Server Error",
+            Status = StatusCodes.Status500InternalServerError,
+            Detail = message,
+            Instance = HttpContext.Request.Path
+        };
+
+        // Add correlation ID if available
+        if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId))
+        {
+            problemDetails.Extensions["correlationId"] = correlationId;
+        }
+
+        problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+        // In development, include exception details
+        if (HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment())
+        {
+            problemDetails.Extensions["exception"] = ex.Message;
+            problemDetails.Extensions["stackTrace"] = ex.StackTrace;
+        }
+
+        return StatusCode(StatusCodes.Status500InternalServerError, problemDetails);
+    }
 }

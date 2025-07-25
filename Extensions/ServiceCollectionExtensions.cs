@@ -1,7 +1,9 @@
+using EventForge.Mappings;
 using EventForge.Services.Audit;
 using EventForge.Services.Banks;
 using EventForge.Services.Business;
 using EventForge.Services.Common;
+using EventForge.Services.Documents;
 using EventForge.Services.Events;
 using EventForge.Services.Logs;
 using EventForge.Services.PriceLists;
@@ -103,6 +105,9 @@ public static class ServiceCollectionExtensions
             throw;
         }
 
+        // Register AutoMapper
+        services.AddAutoMapper(typeof(MappingProfile));
+
         // Register audit services
         services.AddScoped<IAuditLogService, AuditLogService>();
 
@@ -146,6 +151,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAddressService, AddressService>();
         services.AddScoped<IContactService, ContactService>();
         services.AddScoped<IClassificationNodeService, ClassificationNodeService>();
+        services.AddScoped<IReferenceService, ReferenceService>();
 
         // Register warehouse services
         services.AddScoped<IStorageFacilityService, StorageFacilityService>();
@@ -154,14 +160,12 @@ public static class ServiceCollectionExtensions
         // Register promotion services
         services.AddScoped<IPromotionService, PromotionService>();
 
-        // Register document services (interfaces created, implementations pending)
-        // services.AddScoped<IDocumentTypeService, DocumentTypeService>();
+        // Register document services  
+        services.AddScoped<IDocumentTypeService, DocumentTypeService>();
 
         // TODO: Complete implementation for:
-        // - Common services: ClassificationNode, Reference  
-        // - Warehouse services: StorageLocation
-        // - Promotion services: Promotion, PromotionRule, PromotionRuleProduct (create implementations)
-        // - Document services: DocumentHeader, DocumentRow, DocumentSummaryLink, DocumentType (create implementations)
+        // - Document services: DocumentHeader, DocumentRow, DocumentSummaryLink (create implementations)
+        // - PromotionRule, PromotionRuleProduct services (create implementations)
     }
 
     /// <summary>
