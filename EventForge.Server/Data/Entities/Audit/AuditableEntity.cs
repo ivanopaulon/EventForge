@@ -15,6 +15,13 @@ public abstract class AuditableEntity
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
+    /// Tenant identifier for multi-tenancy support. Required for all entities.
+    /// </summary>
+    [Required]
+    [Display(Name = "Tenant ID", Description = "Tenant identifier for multi-tenancy support.")]
+    public Guid TenantId { get; set; }
+
+    /// <summary>
     /// Date and time when the entity was created (UTC).
     /// </summary>
     [Required]
