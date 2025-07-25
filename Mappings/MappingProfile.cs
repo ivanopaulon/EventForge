@@ -64,12 +64,63 @@ public class MappingProfile : Profile
         CreateMap<CreateVatRateDto, VatRate>();
         CreateMap<UpdateVatRateDto, VatRate>();
 
-        // Document mappings (if DocumentType exists in DbContext)
+        // Document mappings
         CreateMap<DocumentType, DocumentTypeDto>()
             .ForMember(dest => dest.DefaultWarehouseName,
                 opt => opt.MapFrom(src => src.DefaultWarehouse != null ? src.DefaultWarehouse.Name : null));
         CreateMap<CreateDocumentTypeDto, DocumentType>();
         CreateMap<UpdateDocumentTypeDto, DocumentType>();
+
+        CreateMap<DocumentHeader, DocumentHeaderDto>()
+            .ForMember(dest => dest.DocumentTypeName,
+                opt => opt.MapFrom(src => src.DocumentType != null ? src.DocumentType.Name : null))
+            .ForMember(dest => dest.BusinessPartyName,
+                opt => opt.MapFrom(src => src.BusinessParty != null ? src.BusinessParty.Name : null))
+            .ForMember(dest => dest.SourceWarehouseName,
+                opt => opt.MapFrom(src => src.SourceWarehouse != null ? src.SourceWarehouse.Name : null))
+            .ForMember(dest => dest.DestinationWarehouseName,
+                opt => opt.MapFrom(src => src.DestinationWarehouse != null ? src.DestinationWarehouse.Name : null))
+            .ForMember(dest => dest.TeamMemberName,
+                opt => opt.MapFrom(src => src.TeamMember != null ? $"{src.TeamMember.FirstName} {src.TeamMember.LastName}" : null))
+            .ForMember(dest => dest.TeamName,
+                opt => opt.MapFrom(src => src.Team != null ? src.Team.Name : null))
+            .ForMember(dest => dest.EventName,
+                opt => opt.MapFrom(src => src.Event != null ? src.Event.Name : null))
+            .ForMember(dest => dest.CashierName,
+                opt => opt.MapFrom(src => src.Cashier != null ? src.Cashier.Name : null))
+            .ForMember(dest => dest.TotalBeforeDiscount,
+                opt => opt.MapFrom(src => src.TotalBeforeDiscount))
+            .ForMember(dest => dest.TotalAfterDiscount,
+                opt => opt.MapFrom(src => src.TotalAfterDiscount));
+        CreateMap<CreateDocumentHeaderDto, DocumentHeader>();
+        CreateMap<UpdateDocumentHeaderDto, DocumentHeader>();
+
+        CreateMap<DocumentRow, DocumentRowDto>()
+            .ForMember(dest => dest.SourceWarehouseName,
+                opt => opt.MapFrom(src => src.SourceWarehouse != null ? src.SourceWarehouse.Name : null))
+            .ForMember(dest => dest.DestinationWarehouseName,
+                opt => opt.MapFrom(src => src.DestinationWarehouse != null ? src.DestinationWarehouse.Name : null))
+            .ForMember(dest => dest.StationName,
+                opt => opt.MapFrom(src => src.Station != null ? src.Station.Name : null))
+            .ForMember(dest => dest.LineTotal,
+                opt => opt.MapFrom(src => src.LineTotal))
+            .ForMember(dest => dest.VatTotal,
+                opt => opt.MapFrom(src => src.VatTotal))
+            .ForMember(dest => dest.DiscountTotal,
+                opt => opt.MapFrom(src => src.DiscountTotal));
+        CreateMap<CreateDocumentRowDto, DocumentRow>();
+        CreateMap<UpdateDocumentRowDto, DocumentRow>();
+
+        CreateMap<DocumentSummaryLink, DocumentSummaryLinkDto>()
+            .ForMember(dest => dest.SummaryDocumentNumber,
+                opt => opt.MapFrom(src => src.SummaryDocument != null ? src.SummaryDocument.Number : null))
+            .ForMember(dest => dest.SummaryDocumentDate,
+                opt => opt.MapFrom(src => src.SummaryDocument != null ? src.SummaryDocument.Date : (DateTime?)null))
+            .ForMember(dest => dest.DetailedDocumentNumber,
+                opt => opt.MapFrom(src => src.DetailedDocument != null ? src.DetailedDocument.Number : null))
+            .ForMember(dest => dest.DetailedDocumentDate,
+                opt => opt.MapFrom(src => src.DetailedDocument != null ? src.DetailedDocument.Date : (DateTime?)null));
+        CreateMap<CreateDocumentSummaryLinkDto, DocumentSummaryLink>();
 
         // Event mappings
         CreateMap<Event, EventDto>().ReverseMap();
