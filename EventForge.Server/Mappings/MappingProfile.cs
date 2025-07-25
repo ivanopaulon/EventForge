@@ -187,37 +187,5 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.FullName))
             .ForMember(dest => dest.Roles, opt => opt.Ignore())
             .ForMember(dest => dest.Permissions, opt => opt.Ignore());
-
-        // Tenant mappings
-        CreateMap<Tenant, TenantResponseDto>();
-        CreateMap<CreateTenantDto, Tenant>()
-            .ForMember(dest => dest.Id, opt => opt.Ignore())
-            .ForMember(dest => dest.TenantId, opt => opt.Ignore())
-            .ForMember(dest => dest.IsEnabled, opt => opt.MapFrom(src => true))
-            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-            .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
-            .ForMember(dest => dest.AdminTenants, opt => opt.Ignore());
-        
-        CreateMap<UpdateTenantDto, Tenant>()
-            .ForMember(dest => dest.Id, opt => opt.Ignore())
-            .ForMember(dest => dest.TenantId, opt => opt.Ignore())
-            .ForMember(dest => dest.Name, opt => opt.Ignore())
-            .ForMember(dest => dest.IsEnabled, opt => opt.Ignore())
-            .ForMember(dest => dest.SubscriptionExpiresAt, opt => opt.Ignore())
-            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-            .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
-            .ForMember(dest => dest.AdminTenants, opt => opt.Ignore());
-
-        CreateMap<AdminTenant, AdminTenantResponseDto>()
-            .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.User.Username))
-            .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.User.Email))
-            .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.User.FullName))
-            .ForMember(dest => dest.TenantName, opt => opt.MapFrom(src => src.ManagedTenant.Name));
-
-        CreateMap<AuditTrail, AuditTrailResponseDto>()
-            .ForMember(dest => dest.PerformedByUsername, opt => opt.MapFrom(src => src.PerformedByUser.Username))
-            .ForMember(dest => dest.SourceTenantName, opt => opt.MapFrom(src => src.SourceTenant != null ? src.SourceTenant.Name : null))
-            .ForMember(dest => dest.TargetTenantName, opt => opt.MapFrom(src => src.TargetTenant != null ? src.TargetTenant.Name : null))
-            .ForMember(dest => dest.TargetUsername, opt => opt.MapFrom(src => src.TargetUser != null ? src.TargetUser.Username : null));
     }
 }

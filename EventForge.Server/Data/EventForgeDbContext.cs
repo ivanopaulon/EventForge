@@ -82,15 +82,12 @@ public class EventForgeDbContext : DbContext
     public DbSet<UserRole> UserRoles { get; set; }
     public DbSet<RolePermission> RolePermissions { get; set; }
     public DbSet<LoginAudit> LoginAudits { get; set; }
-    public DbSet<Tenant> Tenants { get; set; }
-    public DbSet<AdminTenant> AdminTenants { get; set; }
-    public DbSet<AuditTrail> AuditTrails { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configure global query filters for soft delete and tenant isolation
+        // Configure global query filters for soft delete
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             // Apply soft delete filter to all entities that inherit from AuditableEntity
@@ -105,9 +102,6 @@ public class EventForgeDbContext : DbContext
                 {
                     modelBuilder.Entity(entityType.ClrType).HasQueryFilter((System.Linq.Expressions.LambdaExpression)filter);
                 }
-
-                // TODO: Add tenant filtering when ITenantContext is implemented
-                // For now, we'll add tenant filtering manually in services/repositories
             }
         }
 
@@ -266,12 +260,12 @@ public class EventForgeDbContext : DbContext
 
         // Authentication & Authorization relationships
 
-        // User constraints - updated for tenant-aware uniqueness
+        // User constraints
         modelBuilder.Entity<User>()
-            .HasIndex(u => new { u.Username, u.TenantId })
+            .HasIndex(u => u.Username)
             .IsUnique();
         modelBuilder.Entity<User>()
-            .HasIndex(u => new { u.Email, u.TenantId })
+            .HasIndex(u => u.Email)
             .IsUnique();
 
         // Role constraints
@@ -316,56 +310,6 @@ public class EventForgeDbContext : DbContext
             .WithMany(u => u.LoginAudits)
             .HasForeignKey(la => la.UserId)
             .OnDelete(DeleteBehavior.SetNull);
-
-        // Multi-tenancy entity configurations
-
-        // Tenant constraints
-        modelBuilder.Entity<Tenant>()
-            .HasIndex(t => t.Name)
-            .IsUnique();
-
-        // AdminTenant relationships
-        modelBuilder.Entity<AdminTenant>()
-            .HasOne(at => at.User)
-            .WithMany(u => u.AdminTenants)
-            .HasForeignKey(at => at.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<AdminTenant>()
-            .HasOne(at => at.ManagedTenant)
-            .WithMany(t => t.AdminTenants)
-            .HasForeignKey(at => at.ManagedTenantId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // AdminTenant composite index for uniqueness
-        modelBuilder.Entity<AdminTenant>()
-            .HasIndex(at => new { at.UserId, at.ManagedTenantId })
-            .IsUnique();
-
-        // AuditTrail relationships
-        modelBuilder.Entity<AuditTrail>()
-            .HasOne(at => at.PerformedByUser)
-            .WithMany(u => u.PerformedAuditTrails)
-            .HasForeignKey(at => at.PerformedByUserId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<AuditTrail>()
-            .HasOne(at => at.SourceTenant)
-            .WithMany()
-            .HasForeignKey(at => at.SourceTenantId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<AuditTrail>()
-            .HasOne(at => at.TargetTenant)
-            .WithMany()
-            .HasForeignKey(at => at.TargetTenantId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<AuditTrail>()
-            .HasOne(at => at.TargetUser)
-            .WithMany(u => u.TargetedAuditTrails)
-            .HasForeignKey(at => at.TargetUserId)
-            .OnDelete(DeleteBehavior.Restrict);
     }
 
     /// <summary>
@@ -418,8 +362,6 @@ public class EventForgeDbContext : DbContext
                     entity.CreatedAt = DateTime.UtcNow;
                     entity.CreatedBy = currentUser;
                     entity.IsActive = true;
-                    // TODO: Set TenantId from ITenantContext when implemented
-                    // For now, TenantId must be set explicitly by the service layer
                     break;
 
                 case EntityState.Modified:

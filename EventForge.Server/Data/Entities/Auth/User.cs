@@ -109,19 +109,4 @@ public class User : AuditableEntity
     /// Navigation property: Login history for this user.
     /// </summary>
     public virtual ICollection<LoginAudit> LoginAudits { get; set; } = new List<LoginAudit>();
-
-    /// <summary>
-    /// Navigation property: Admin tenant mappings for this user (if super admin).
-    /// </summary>
-    public virtual ICollection<AdminTenant> AdminTenants { get; set; } = new List<AdminTenant>();
-
-    /// <summary>
-    /// Navigation property: Audit trail entries performed by this user.
-    /// </summary>
-    public virtual ICollection<AuditTrail> PerformedAuditTrails { get; set; } = new List<AuditTrail>();
-
-    /// <summary>
-    /// Navigation property: Audit trail entries targeting this user (impersonation).
-    /// </summary>
-    public virtual ICollection<AuditTrail> TargetedAuditTrails { get; set; } = new List<AuditTrail>();
 }

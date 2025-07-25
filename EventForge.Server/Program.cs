@@ -161,9 +161,6 @@ app.UseHttpsRedirection();
 // Serve static files (for uploaded images)
 app.UseStaticFiles();
 
-// Enable session support for tenant context
-app.UseSession();
-
 // Authentication & Authorization
 app.UseAuthentication();
 app.UseAuthorization();

@@ -199,20 +199,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuthenticationService, AuthenticationService>();
         services.AddScoped<IBootstrapService, BootstrapService>();
 
-        // Register tenant services
-        services.AddScoped<ITenantContext, TenantContext>();
-        services.AddScoped<ITenantService, TenantService>();
-        
-        // Configure session for tenant context (required for tenant switching and impersonation)
-        services.AddDistributedMemoryCache();
-        services.AddSession(options =>
-        {
-            options.IdleTimeout = TimeSpan.FromHours(8); // Session timeout
-            options.Cookie.HttpOnly = true;
-            options.Cookie.IsEssential = true;
-            options.Cookie.Name = "EventForge.Session";
-        });
-
         // Get JWT configuration
         var jwtSection = configuration.GetSection("Authentication:Jwt");
         var jwtOptions = jwtSection.Get<JwtOptions>() ?? new JwtOptions();
