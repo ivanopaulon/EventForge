@@ -1,5 +1,4 @@
 using EventForge.Server.DTOs.Teams;
-using EventForge.Server.Extensions;
 using EventForge.Server.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,14 +11,12 @@ public class TeamService : ITeamService
 {
     private readonly EventForgeDbContext _context;
     private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
     private readonly ILogger<TeamService> _logger;
 
-    public TeamService(EventForgeDbContext context, IAuditLogService auditLogService, ITenantContext tenantContext, ILogger<TeamService> logger)
+    public TeamService(EventForgeDbContext context, IAuditLogService auditLogService, ILogger<TeamService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -29,17 +26,10 @@ public class TeamService : ITeamService
     {
         try
         {
-            // TODO: Add automated tests for tenant isolation in team queries
-            var currentTenantId = _tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for team operations.");
-            }
-
             var query = _context.Teams
-                .WhereActiveTenant(currentTenantId.Value)
+                .Where(t => !t.IsDeleted)
                 .Include(t => t.Event)
-                .Include(t => t.Members.Where(m => !m.IsDeleted && m.TenantId == currentTenantId.Value));
+                .Include(t => t.Members.Where(m => !m.IsDeleted));
 
             var totalCount = await query.CountAsync(cancellationToken);
             var teams = await query

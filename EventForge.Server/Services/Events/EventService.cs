@@ -1,5 +1,4 @@
 using EventForge.Server.DTOs.Teams;
-using EventForge.Server.Extensions;
 using EventForge.Server.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,18 +11,15 @@ public class EventService : IEventService
 {
     private readonly EventForgeDbContext _context;
     private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
     private readonly ILogger<EventService> _logger;
 
     public EventService(
         EventForgeDbContext context,
         IAuditLogService auditLogService,
-        ITenantContext tenantContext,
         ILogger<EventService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -31,16 +27,9 @@ public class EventService : IEventService
 
     public async Task<PagedResult<EventDto>> GetEventsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
     {
-        // TODO: Add automated tests for tenant isolation in event queries
-        var currentTenantId = _tenantContext.CurrentTenantId;
-        if (!currentTenantId.HasValue)
-        {
-            throw new InvalidOperationException("Tenant context is required for event operations.");
-        }
-
         var query = _context.Events
-            .WhereActiveTenant(currentTenantId.Value)
-            .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value));
+            .Where(e => !e.IsDeleted)
+            .Include(e => e.Teams.Where(t => !t.IsDeleted));
 
         var totalCount = await query.CountAsync(cancellationToken);
         var events = await query
@@ -63,16 +52,9 @@ public class EventService : IEventService
 
     public async Task<EventDto?> GetEventByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        // TODO: Add automated tests for tenant isolation in event retrieval
-        var currentTenantId = _tenantContext.CurrentTenantId;
-        if (!currentTenantId.HasValue)
-        {
-            throw new InvalidOperationException("Tenant context is required for event operations.");
-        }
-
         var eventEntity = await _context.Events
-            .Where(e => e.Id == id && e.TenantId == currentTenantId.Value && !e.IsDeleted)
-            .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value))
+            .Where(e => e.Id == id && !e.IsDeleted)
+            .Include(e => e.Teams.Where(t => !t.IsDeleted))
             .FirstOrDefaultAsync(cancellationToken);
 
         return eventEntity != null ? MapToEventDto(eventEntity) : null;
@@ -80,17 +62,10 @@ public class EventService : IEventService
 
     public async Task<EventDetailDto?> GetEventDetailAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        // TODO: Add automated tests for tenant isolation in event detail retrieval
-        var currentTenantId = _tenantContext.CurrentTenantId;
-        if (!currentTenantId.HasValue)
-        {
-            throw new InvalidOperationException("Tenant context is required for event operations.");
-        }
-
         var eventEntity = await _context.Events
-            .Where(e => e.Id == id && e.TenantId == currentTenantId.Value && !e.IsDeleted)
-            .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value))
-                .ThenInclude(t => t.Members.Where(m => !m.IsDeleted && m.TenantId == currentTenantId.Value))
+            .Where(e => e.Id == id && !e.IsDeleted)
+            .Include(e => e.Teams.Where(t => !t.IsDeleted))
+                .ThenInclude(t => t.Members.Where(m => !m.IsDeleted))
             .FirstOrDefaultAsync(cancellationToken);
 
         return eventEntity != null ? MapToEventDetailDto(eventEntity) : null;
@@ -103,16 +78,8 @@ public class EventService : IEventService
             ArgumentNullException.ThrowIfNull(createEventDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            // TODO: Add automated tests for tenant isolation in event creation
-            var currentTenantId = _tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for event operations.");
-            }
-
             var eventEntity = new Event
             {
-                TenantId = currentTenantId.Value,
                 Name = createEventDto.Name,
                 ShortDescription = createEventDto.ShortDescription,
                 LongDescription = createEventDto.LongDescription,
@@ -155,16 +122,9 @@ public class EventService : IEventService
             ArgumentNullException.ThrowIfNull(updateEventDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            // TODO: Add automated tests for tenant isolation in event updates
-            var currentTenantId = _tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for event operations.");
-            }
-
             var eventEntity = await _context.Events
-                .Where(e => e.Id == id && e.TenantId == currentTenantId.Value && !e.IsDeleted)
-                .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value))
+                .Where(e => e.Id == id && !e.IsDeleted)
+                .Include(e => e.Teams.Where(t => !t.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (eventEntity == null) return null;
@@ -173,7 +133,6 @@ public class EventService : IEventService
             var originalEvent = new Event
             {
                 Id = eventEntity.Id,
-                TenantId = eventEntity.TenantId,
                 Name = eventEntity.Name,
                 ShortDescription = eventEntity.ShortDescription,
                 LongDescription = eventEntity.LongDescription,
@@ -217,7 +176,7 @@ public class EventService : IEventService
             catch (DbUpdateConcurrencyException ex)
             {
                 _logger.LogWarning(ex, "Conflitto di concorrenza durante l'aggiornamento dell'evento {EventId}.", id);
-                throw new InvalidOperationException("L'evento ï¿½ stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+                throw new InvalidOperationException("L'evento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
             await _auditLogService.TrackEntityChangesAsync(eventEntity, "Update", currentUser, originalEvent, cancellationToken);
@@ -237,15 +196,8 @@ public class EventService : IEventService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            // TODO: Add automated tests for tenant isolation in event deletion
-            var currentTenantId = _tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for event operations.");
-            }
-
             var eventEntity = await _context.Events
-                .Where(e => e.Id == id && e.TenantId == currentTenantId.Value && !e.IsDeleted)
+                .Where(e => e.Id == id && !e.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (eventEntity == null) return false;
@@ -254,7 +206,6 @@ public class EventService : IEventService
             var originalEvent = new Event
             {
                 Id = eventEntity.Id,
-                TenantId = eventEntity.TenantId,
                 Name = eventEntity.Name,
                 ShortDescription = eventEntity.ShortDescription,
                 LongDescription = eventEntity.LongDescription,

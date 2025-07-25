@@ -17,12 +17,12 @@ namespace EventForge.Server.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.8")
+                .HasAnnotation("ProductVersion", "8.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Audit.EntityChangeLog", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Audit.EntityChangeLog", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -69,167 +69,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("EntityChangeLogs");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Auth.AdminTenant", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("AccessLevel")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("ExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("GrantedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("ManagedTenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ManagedTenantId");
-
-                    b.HasIndex("UserId", "ManagedTenantId")
-                        .IsUnique();
-
-                    b.ToTable("AdminTenants");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Auth.AuditTrail", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Details")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("IpAddress")
-                        .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("OperationType")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("PerformedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("PerformedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<string>("SessionId")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<Guid?>("SourceTenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("TargetTenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("TargetUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("UserAgent")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<bool>("WasSuccessful")
-                        .HasColumnType("bit");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PerformedByUserId");
-
-                    b.HasIndex("SourceTenantId");
-
-                    b.HasIndex("TargetTenantId");
-
-                    b.HasIndex("TargetUserId");
-
-                    b.ToTable("AuditTrails");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Auth.LoginAudit", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Auth.LoginAudit", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -296,9 +136,6 @@ namespace EventForge.Server.Migrations
                     b.Property<bool>("Success")
                         .HasColumnType("bit");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("UserAgent")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -318,7 +155,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("LoginAudits");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Auth.Permission", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Auth.Permission", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -387,9 +224,6 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("Category", "Resource", "Action")
@@ -399,7 +233,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("Permissions");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Auth.Role", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Auth.Role", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -454,9 +288,6 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("Name")
@@ -465,7 +296,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("Roles");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Auth.RolePermission", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Auth.RolePermission", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -516,9 +347,6 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("PermissionId");
@@ -528,88 +356,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("RolePermissions");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Auth.Tenant", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ContactEmail")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("DisplayName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("Domain")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("MaxUsers")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<DateTime?>("SubscriptionExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("Tenants");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Auth.User", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Auth.User", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -688,9 +435,6 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -698,16 +442,16 @@ namespace EventForge.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Email", "TenantId")
+                    b.HasIndex("Email")
                         .IsUnique();
 
-                    b.HasIndex("Username", "TenantId")
+                    b.HasIndex("Username")
                         .IsUnique();
 
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Auth.UserRole", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Auth.UserRole", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -758,9 +502,6 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
@@ -773,7 +514,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("UserRoles");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Business.BusinessParty", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Business.BusinessParty", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -835,9 +576,6 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("VatNumber")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
@@ -847,7 +585,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("BusinessParties");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Business.BusinessPartyAccounting", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Business.BusinessPartyAccounting", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -905,9 +643,6 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("BankId");
@@ -917,7 +652,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("BusinessPartyAccountings");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Business.PaymentTerm", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Business.PaymentTerm", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -973,15 +708,12 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.ToTable("PaymentTerms");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.Address", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Common.Address", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1056,9 +788,6 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("ZipCode")
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
@@ -1072,7 +801,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("Addresses");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.Bank", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Common.Bank", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1147,15 +876,12 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.ToTable("Banks");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.ClassificationNode", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Common.ClassificationNode", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1218,9 +944,6 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<int>("Type")
                         .HasColumnType("int");
 
@@ -1231,7 +954,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("ClassificationNodes");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.Contact", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Common.Contact", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1293,9 +1016,6 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("Value")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1312,7 +1032,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("Contacts");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.Printer", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Common.Printer", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1373,9 +1093,6 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -1388,7 +1105,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("Printers");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.Reference", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Common.Reference", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1458,9 +1175,6 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("BankId");
@@ -1470,7 +1184,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("References");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.UM", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Common.UM", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1528,15 +1242,12 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.ToTable("UMs");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.VatRate", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Common.VatRate", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1590,9 +1301,6 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime?>("ValidFrom")
                         .HasColumnType("datetime2");
 
@@ -1604,7 +1312,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("VatRates");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Documents.DocumentHeader", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Documents.DocumentHeader", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1781,9 +1489,6 @@ namespace EventForge.Server.Migrations
                     b.Property<Guid?>("TeamMemberId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<decimal>("TotalDiscount")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)");
@@ -1835,7 +1540,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("DocumentHeaders");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Documents.DocumentRow", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Documents.DocumentRow", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1921,9 +1626,6 @@ namespace EventForge.Server.Migrations
                     b.Property<Guid?>("StationId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("UnitOfMeasure")
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
@@ -1953,7 +1655,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("DocumentRows");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Documents.DocumentSummaryLink", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Documents.DocumentSummaryLink", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1997,9 +1699,6 @@ namespace EventForge.Server.Migrations
                     b.Property<Guid>("SummaryDocumentId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("DetailedDocumentId");
@@ -2009,7 +1708,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("DocumentSummaryLinks");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Documents.DocumentType", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Documents.DocumentType", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -2070,9 +1769,6 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("DefaultWarehouseId");
@@ -2080,7 +1776,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("DocumentTypes");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Events.Event", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Events.Event", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -2149,15 +1845,12 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.ToTable("Events");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.PriceList.PriceList", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.PriceList.PriceList", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -2222,9 +1915,6 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime?>("ValidFrom")
                         .HasColumnType("datetime2");
 
@@ -2238,7 +1928,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("PriceLists");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.PriceList.PriceListEntry", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.PriceList.PriceListEntry", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -2313,9 +2003,6 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("PriceListId");
@@ -2325,7 +2012,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("PriceListEntries");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Products.Product", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Products.Product", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -2412,9 +2099,6 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<Guid?>("UnitOfMeasureId")
                         .HasColumnType("uniqueidentifier");
 
@@ -2438,7 +2122,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("Products");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Products.ProductBundleItem", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Products.ProductBundleItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -2485,9 +2169,6 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("BundleProductId");
@@ -2497,7 +2178,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("ProductBundleItems");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Products.ProductCode", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Products.ProductCode", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -2555,9 +2236,6 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId");
@@ -2565,7 +2243,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("ProductCodes");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Products.ProductUnit", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Products.ProductUnit", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -2616,9 +2294,6 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<Guid>("UnitOfMeasureId")
                         .HasColumnType("uniqueidentifier");
 
@@ -2636,7 +2311,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("ProductUnits");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Promotions.Promotion", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Promotions.Promotion", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -2706,15 +2381,12 @@ namespace EventForge.Server.Migrations
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.ToTable("Promotions");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Promotions.PromotionRule", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Promotions.PromotionRule", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -2798,9 +2470,6 @@ namespace EventForge.Server.Migrations
                     b.Property<TimeSpan?>("StartTime")
                         .HasColumnType("time");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("ValidDays")
                         .HasColumnType("nvarchar(max)");
 
@@ -2811,7 +2480,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("PromotionRules");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Promotions.PromotionRuleProduct", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Promotions.PromotionRuleProduct", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -2855,9 +2524,6 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId");
@@ -2867,7 +2533,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("PromotionRuleProducts");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.StationMonitor.Station", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.StationMonitor.Station", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -2928,15 +2594,12 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.ToTable("Stations");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.StationMonitor.StationOrderQueueItem", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.StationMonitor.StationOrderQueueItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -3011,9 +2674,6 @@ namespace EventForge.Server.Migrations
                     b.Property<Guid?>("TeamMemberId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("DocumentHeaderId");
@@ -3029,7 +2689,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("StationOrderQueueItems");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.StorePos", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Store.StorePos", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -3090,15 +2750,12 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.ToTable("StorePoses");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.StoreUser", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Store.StoreUser", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -3166,9 +2823,6 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -3181,7 +2835,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("StoreUsers");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.StoreUserGroup", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Store.StoreUserGroup", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -3236,15 +2890,12 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.ToTable("StoreUserGroups");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.StoreUserPrivilege", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Store.StoreUserPrivilege", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -3306,15 +2957,12 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.ToTable("StoreUserPrivileges");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Teams.Team", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Teams.Team", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -3377,9 +3025,6 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("EventId");
@@ -3387,7 +3032,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("Teams");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Teams.TeamMember", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Teams.TeamMember", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -3452,9 +3097,6 @@ namespace EventForge.Server.Migrations
                     b.Property<Guid>("TeamId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("TeamId");
@@ -3462,7 +3104,7 @@ namespace EventForge.Server.Migrations
                     b.ToTable("TeamMembers");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Warehouse.StorageFacility", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Warehouse.StorageFacility", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -3542,15 +3184,12 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.ToTable("StorageFacilities");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Warehouse.StorageLocation", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Warehouse.StorageLocation", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -3629,9 +3268,6 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<Guid>("WarehouseId")
                         .HasColumnType("uniqueidentifier");
 
@@ -3661,60 +3297,9 @@ namespace EventForge.Server.Migrations
                     b.ToTable("StoreUserGroupStoreUserPrivilege");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Auth.AdminTenant", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Auth.LoginAudit", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Auth.Tenant", "ManagedTenant")
-                        .WithMany("AdminTenants")
-                        .HasForeignKey("ManagedTenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("EventForge.Server.Data.Entities.Auth.User", "User")
-                        .WithMany("AdminTenants")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ManagedTenant");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Auth.AuditTrail", b =>
-                {
-                    b.HasOne("EventForge.Server.Data.Entities.Auth.User", "PerformedByUser")
-                        .WithMany("PerformedAuditTrails")
-                        .HasForeignKey("PerformedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("EventForge.Server.Data.Entities.Auth.Tenant", "SourceTenant")
-                        .WithMany()
-                        .HasForeignKey("SourceTenantId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("EventForge.Server.Data.Entities.Auth.Tenant", "TargetTenant")
-                        .WithMany()
-                        .HasForeignKey("TargetTenantId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("EventForge.Server.Data.Entities.Auth.User", "TargetUser")
-                        .WithMany("TargetedAuditTrails")
-                        .HasForeignKey("TargetUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("PerformedByUser");
-
-                    b.Navigation("SourceTenant");
-
-                    b.Navigation("TargetTenant");
-
-                    b.Navigation("TargetUser");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Auth.LoginAudit", b =>
-                {
-                    b.HasOne("EventForge.Server.Data.Entities.Auth.User", "User")
+                    b.HasOne("EventForge.Data.Entities.Auth.User", "User")
                         .WithMany("LoginAudits")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -3722,15 +3307,15 @@ namespace EventForge.Server.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Auth.RolePermission", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Auth.RolePermission", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Auth.Permission", "Permission")
+                    b.HasOne("EventForge.Data.Entities.Auth.Permission", "Permission")
                         .WithMany("RolePermissions")
                         .HasForeignKey("PermissionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EventForge.Server.Data.Entities.Auth.Role", "Role")
+                    b.HasOne("EventForge.Data.Entities.Auth.Role", "Role")
                         .WithMany("RolePermissions")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -3741,15 +3326,15 @@ namespace EventForge.Server.Migrations
                     b.Navigation("Role");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Auth.UserRole", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Auth.UserRole", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Auth.Role", "Role")
+                    b.HasOne("EventForge.Data.Entities.Auth.Role", "Role")
                         .WithMany("UserRoles")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EventForge.Server.Data.Entities.Auth.User", "User")
+                    b.HasOne("EventForge.Data.Entities.Auth.User", "User")
                         .WithMany("UserRoles")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -3760,13 +3345,13 @@ namespace EventForge.Server.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Business.BusinessPartyAccounting", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Business.BusinessPartyAccounting", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Common.Bank", "Bank")
+                    b.HasOne("EventForge.Data.Entities.Common.Bank", "Bank")
                         .WithMany()
                         .HasForeignKey("BankId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.Business.PaymentTerm", "PaymentTerm")
+                    b.HasOne("EventForge.Data.Entities.Business.PaymentTerm", "PaymentTerm")
                         .WithMany()
                         .HasForeignKey("PaymentTermId");
 
@@ -3775,108 +3360,108 @@ namespace EventForge.Server.Migrations
                     b.Navigation("PaymentTerm");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.Address", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Common.Address", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Common.Bank", null)
+                    b.HasOne("EventForge.Data.Entities.Common.Bank", null)
                         .WithMany("Addresses")
                         .HasForeignKey("BankId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.Business.BusinessParty", null)
+                    b.HasOne("EventForge.Data.Entities.Business.BusinessParty", null)
                         .WithMany("Addresses")
                         .HasForeignKey("BusinessPartyId");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.ClassificationNode", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Common.ClassificationNode", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Common.ClassificationNode", "Parent")
+                    b.HasOne("EventForge.Data.Entities.Common.ClassificationNode", "Parent")
                         .WithMany("Children")
                         .HasForeignKey("ParentId");
 
                     b.Navigation("Parent");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.Contact", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Common.Contact", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Common.Bank", null)
+                    b.HasOne("EventForge.Data.Entities.Common.Bank", null)
                         .WithMany("Contacts")
                         .HasForeignKey("BankId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.Business.BusinessParty", null)
+                    b.HasOne("EventForge.Data.Entities.Business.BusinessParty", null)
                         .WithMany("Contacts")
                         .HasForeignKey("BusinessPartyId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.Common.Reference", null)
+                    b.HasOne("EventForge.Data.Entities.Common.Reference", null)
                         .WithMany("Contacts")
                         .HasForeignKey("ReferenceId");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.Printer", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Common.Printer", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.StationMonitor.Station", "Station")
+                    b.HasOne("EventForge.Data.Entities.StationMonitor.Station", "Station")
                         .WithMany("Printers")
                         .HasForeignKey("StationId");
 
                     b.Navigation("Station");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.Reference", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Common.Reference", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Common.Bank", null)
+                    b.HasOne("EventForge.Data.Entities.Common.Bank", null)
                         .WithMany("References")
                         .HasForeignKey("BankId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.Business.BusinessParty", null)
+                    b.HasOne("EventForge.Data.Entities.Business.BusinessParty", null)
                         .WithMany("References")
                         .HasForeignKey("BusinessPartyId");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Documents.DocumentHeader", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Documents.DocumentHeader", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Common.Address", "BusinessPartyAddress")
+                    b.HasOne("EventForge.Data.Entities.Common.Address", "BusinessPartyAddress")
                         .WithMany()
                         .HasForeignKey("BusinessPartyAddressId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.Business.BusinessParty", "BusinessParty")
+                    b.HasOne("EventForge.Data.Entities.Business.BusinessParty", "BusinessParty")
                         .WithMany()
                         .HasForeignKey("BusinessPartyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EventForge.Server.Data.Entities.Store.StorePos", "CashRegister")
+                    b.HasOne("EventForge.Data.Entities.Store.StorePos", "CashRegister")
                         .WithMany("Receipts")
                         .HasForeignKey("CashRegisterId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.Store.StoreUser", "Cashier")
+                    b.HasOne("EventForge.Data.Entities.Store.StoreUser", "Cashier")
                         .WithMany()
                         .HasForeignKey("CashierId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.Warehouse.StorageFacility", "DestinationWarehouse")
+                    b.HasOne("EventForge.Data.Entities.Warehouse.StorageFacility", "DestinationWarehouse")
                         .WithMany()
                         .HasForeignKey("DestinationWarehouseId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.Documents.DocumentType", "DocumentType")
+                    b.HasOne("EventForge.Data.Entities.Documents.DocumentType", "DocumentType")
                         .WithMany()
                         .HasForeignKey("DocumentTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EventForge.Server.Data.Entities.Events.Event", "Event")
+                    b.HasOne("EventForge.Data.Entities.Events.Event", "Event")
                         .WithMany()
                         .HasForeignKey("EventId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.Documents.DocumentHeader", "ReferenceDocument")
+                    b.HasOne("EventForge.Data.Entities.Documents.DocumentHeader", "ReferenceDocument")
                         .WithMany()
                         .HasForeignKey("ReferenceDocumentId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.Warehouse.StorageFacility", "SourceWarehouse")
+                    b.HasOne("EventForge.Data.Entities.Warehouse.StorageFacility", "SourceWarehouse")
                         .WithMany()
                         .HasForeignKey("SourceWarehouseId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.Teams.Team", "Team")
+                    b.HasOne("EventForge.Data.Entities.Teams.Team", "Team")
                         .WithMany()
                         .HasForeignKey("TeamId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.Teams.TeamMember", "TeamMember")
+                    b.HasOne("EventForge.Data.Entities.Teams.TeamMember", "TeamMember")
                         .WithMany()
                         .HasForeignKey("TeamMemberId");
 
@@ -3903,23 +3488,23 @@ namespace EventForge.Server.Migrations
                     b.Navigation("TeamMember");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Documents.DocumentRow", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Documents.DocumentRow", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Warehouse.StorageFacility", "DestinationWarehouse")
+                    b.HasOne("EventForge.Data.Entities.Warehouse.StorageFacility", "DestinationWarehouse")
                         .WithMany()
                         .HasForeignKey("DestinationWarehouseId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.Documents.DocumentHeader", "DocumentHeader")
+                    b.HasOne("EventForge.Data.Entities.Documents.DocumentHeader", "DocumentHeader")
                         .WithMany("Rows")
                         .HasForeignKey("DocumentHeaderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EventForge.Server.Data.Entities.Warehouse.StorageFacility", "SourceWarehouse")
+                    b.HasOne("EventForge.Data.Entities.Warehouse.StorageFacility", "SourceWarehouse")
                         .WithMany()
                         .HasForeignKey("SourceWarehouseId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.StationMonitor.Station", "Station")
+                    b.HasOne("EventForge.Data.Entities.StationMonitor.Station", "Station")
                         .WithMany()
                         .HasForeignKey("StationId");
 
@@ -3932,14 +3517,14 @@ namespace EventForge.Server.Migrations
                     b.Navigation("Station");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Documents.DocumentSummaryLink", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Documents.DocumentSummaryLink", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Documents.DocumentHeader", "DetailedDocument")
+                    b.HasOne("EventForge.Data.Entities.Documents.DocumentHeader", "DetailedDocument")
                         .WithMany("IncludedInSummaries")
                         .HasForeignKey("DetailedDocumentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("EventForge.Server.Data.Entities.Documents.DocumentHeader", "SummaryDocument")
+                    b.HasOne("EventForge.Data.Entities.Documents.DocumentHeader", "SummaryDocument")
                         .WithMany("SummaryDocuments")
                         .HasForeignKey("SummaryDocumentId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -3950,18 +3535,18 @@ namespace EventForge.Server.Migrations
                     b.Navigation("SummaryDocument");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Documents.DocumentType", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Documents.DocumentType", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Warehouse.StorageFacility", "DefaultWarehouse")
+                    b.HasOne("EventForge.Data.Entities.Warehouse.StorageFacility", "DefaultWarehouse")
                         .WithMany()
                         .HasForeignKey("DefaultWarehouseId");
 
                     b.Navigation("DefaultWarehouse");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.PriceList.PriceList", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.PriceList.PriceList", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Events.Event", "Event")
+                    b.HasOne("EventForge.Data.Entities.Events.Event", "Event")
                         .WithMany("PriceLists")
                         .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -3970,15 +3555,15 @@ namespace EventForge.Server.Migrations
                     b.Navigation("Event");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.PriceList.PriceListEntry", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.PriceList.PriceListEntry", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.PriceList.PriceList", "PriceList")
+                    b.HasOne("EventForge.Data.Entities.PriceList.PriceList", "PriceList")
                         .WithMany("ProductPrices")
                         .HasForeignKey("PriceListId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EventForge.Server.Data.Entities.Products.Product", "Product")
+                    b.HasOne("EventForge.Data.Entities.Products.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -3989,29 +3574,29 @@ namespace EventForge.Server.Migrations
                     b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Products.Product", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Products.Product", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Common.ClassificationNode", "CategoryNode")
+                    b.HasOne("EventForge.Data.Entities.Common.ClassificationNode", "CategoryNode")
                         .WithMany()
                         .HasForeignKey("CategoryNodeId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.Common.ClassificationNode", "FamilyNode")
+                    b.HasOne("EventForge.Data.Entities.Common.ClassificationNode", "FamilyNode")
                         .WithMany()
                         .HasForeignKey("FamilyNodeId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.Common.ClassificationNode", "GroupNode")
+                    b.HasOne("EventForge.Data.Entities.Common.ClassificationNode", "GroupNode")
                         .WithMany()
                         .HasForeignKey("GroupNodeId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.StationMonitor.Station", "Station")
+                    b.HasOne("EventForge.Data.Entities.StationMonitor.Station", "Station")
                         .WithMany()
                         .HasForeignKey("StationId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.Common.UM", "UnitOfMeasure")
+                    b.HasOne("EventForge.Data.Entities.Common.UM", "UnitOfMeasure")
                         .WithMany("Products")
                         .HasForeignKey("UnitOfMeasureId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.Common.VatRate", "VatRate")
+                    b.HasOne("EventForge.Data.Entities.Common.VatRate", "VatRate")
                         .WithMany("Products")
                         .HasForeignKey("VatRateId");
 
@@ -4028,15 +3613,15 @@ namespace EventForge.Server.Migrations
                     b.Navigation("VatRate");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Products.ProductBundleItem", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Products.ProductBundleItem", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Products.Product", "BundleProduct")
+                    b.HasOne("EventForge.Data.Entities.Products.Product", "BundleProduct")
                         .WithMany("BundleItems")
                         .HasForeignKey("BundleProductId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("EventForge.Server.Data.Entities.Products.Product", "ComponentProduct")
+                    b.HasOne("EventForge.Data.Entities.Products.Product", "ComponentProduct")
                         .WithMany("IncludedInBundles")
                         .HasForeignKey("ComponentProductId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -4047,9 +3632,9 @@ namespace EventForge.Server.Migrations
                     b.Navigation("ComponentProduct");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Products.ProductCode", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Products.ProductCode", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Products.Product", "Product")
+                    b.HasOne("EventForge.Data.Entities.Products.Product", "Product")
                         .WithMany("Codes")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -4058,15 +3643,15 @@ namespace EventForge.Server.Migrations
                     b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Products.ProductUnit", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Products.ProductUnit", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Products.Product", "Product")
+                    b.HasOne("EventForge.Data.Entities.Products.Product", "Product")
                         .WithMany("Units")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EventForge.Server.Data.Entities.Common.UM", "UnitOfMeasure")
+                    b.HasOne("EventForge.Data.Entities.Common.UM", "UnitOfMeasure")
                         .WithMany()
                         .HasForeignKey("UnitOfMeasureId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -4077,9 +3662,9 @@ namespace EventForge.Server.Migrations
                     b.Navigation("UnitOfMeasure");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Promotions.PromotionRule", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Promotions.PromotionRule", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Promotions.Promotion", "Promotion")
+                    b.HasOne("EventForge.Data.Entities.Promotions.Promotion", "Promotion")
                         .WithMany("Rules")
                         .HasForeignKey("PromotionId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -4088,15 +3673,15 @@ namespace EventForge.Server.Migrations
                     b.Navigation("Promotion");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Promotions.PromotionRuleProduct", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Promotions.PromotionRuleProduct", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Products.Product", "Product")
+                    b.HasOne("EventForge.Data.Entities.Products.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EventForge.Server.Data.Entities.Promotions.PromotionRule", "PromotionRule")
+                    b.HasOne("EventForge.Data.Entities.Promotions.PromotionRule", "PromotionRule")
                         .WithMany("Products")
                         .HasForeignKey("PromotionRuleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -4107,31 +3692,31 @@ namespace EventForge.Server.Migrations
                     b.Navigation("PromotionRule");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.StationMonitor.StationOrderQueueItem", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.StationMonitor.StationOrderQueueItem", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Documents.DocumentHeader", "DocumentHeader")
+                    b.HasOne("EventForge.Data.Entities.Documents.DocumentHeader", "DocumentHeader")
                         .WithMany()
                         .HasForeignKey("DocumentHeaderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EventForge.Server.Data.Entities.Documents.DocumentRow", "DocumentRow")
+                    b.HasOne("EventForge.Data.Entities.Documents.DocumentRow", "DocumentRow")
                         .WithMany()
                         .HasForeignKey("DocumentRowId");
 
-                    b.HasOne("EventForge.Server.Data.Entities.Products.Product", "Product")
+                    b.HasOne("EventForge.Data.Entities.Products.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EventForge.Server.Data.Entities.StationMonitor.Station", "Station")
+                    b.HasOne("EventForge.Data.Entities.StationMonitor.Station", "Station")
                         .WithMany()
                         .HasForeignKey("StationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EventForge.Server.Data.Entities.Teams.TeamMember", "TeamMember")
+                    b.HasOne("EventForge.Data.Entities.Teams.TeamMember", "TeamMember")
                         .WithMany()
                         .HasForeignKey("TeamMemberId");
 
@@ -4146,18 +3731,18 @@ namespace EventForge.Server.Migrations
                     b.Navigation("TeamMember");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.StoreUser", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Store.StoreUser", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Store.StoreUserGroup", "CashierGroup")
+                    b.HasOne("EventForge.Data.Entities.Store.StoreUserGroup", "CashierGroup")
                         .WithMany("Cashiers")
                         .HasForeignKey("CashierGroupId");
 
                     b.Navigation("CashierGroup");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Teams.Team", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Teams.Team", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Events.Event", "Event")
+                    b.HasOne("EventForge.Data.Entities.Events.Event", "Event")
                         .WithMany("Teams")
                         .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -4166,9 +3751,9 @@ namespace EventForge.Server.Migrations
                     b.Navigation("Event");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Teams.TeamMember", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Teams.TeamMember", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Teams.Team", "Team")
+                    b.HasOne("EventForge.Data.Entities.Teams.Team", "Team")
                         .WithMany("Members")
                         .HasForeignKey("TeamId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -4177,9 +3762,9 @@ namespace EventForge.Server.Migrations
                     b.Navigation("Team");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Warehouse.StorageLocation", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Warehouse.StorageLocation", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Warehouse.StorageFacility", "Warehouse")
+                    b.HasOne("EventForge.Data.Entities.Warehouse.StorageFacility", "Warehouse")
                         .WithMany("Locations")
                         .HasForeignKey("WarehouseId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -4190,50 +3775,39 @@ namespace EventForge.Server.Migrations
 
             modelBuilder.Entity("StoreUserGroupStoreUserPrivilege", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Store.StoreUserGroup", null)
+                    b.HasOne("EventForge.Data.Entities.Store.StoreUserGroup", null)
                         .WithMany()
                         .HasForeignKey("GroupsId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EventForge.Server.Data.Entities.Store.StoreUserPrivilege", null)
+                    b.HasOne("EventForge.Data.Entities.Store.StoreUserPrivilege", null)
                         .WithMany()
                         .HasForeignKey("PrivilegesId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Auth.Permission", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Auth.Permission", b =>
                 {
                     b.Navigation("RolePermissions");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Auth.Role", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Auth.Role", b =>
                 {
                     b.Navigation("RolePermissions");
 
                     b.Navigation("UserRoles");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Auth.Tenant", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Auth.User", b =>
                 {
-                    b.Navigation("AdminTenants");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Auth.User", b =>
-                {
-                    b.Navigation("AdminTenants");
-
                     b.Navigation("LoginAudits");
 
-                    b.Navigation("PerformedAuditTrails");
-
-                    b.Navigation("TargetedAuditTrails");
-
                     b.Navigation("UserRoles");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Business.BusinessParty", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Business.BusinessParty", b =>
                 {
                     b.Navigation("Addresses");
 
@@ -4242,7 +3816,7 @@ namespace EventForge.Server.Migrations
                     b.Navigation("References");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.Bank", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Common.Bank", b =>
                 {
                     b.Navigation("Addresses");
 
@@ -4251,27 +3825,27 @@ namespace EventForge.Server.Migrations
                     b.Navigation("References");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.ClassificationNode", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Common.ClassificationNode", b =>
                 {
                     b.Navigation("Children");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.Reference", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Common.Reference", b =>
                 {
                     b.Navigation("Contacts");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.UM", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Common.UM", b =>
                 {
                     b.Navigation("Products");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.VatRate", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Common.VatRate", b =>
                 {
                     b.Navigation("Products");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Documents.DocumentHeader", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Documents.DocumentHeader", b =>
                 {
                     b.Navigation("IncludedInSummaries");
 
@@ -4280,19 +3854,19 @@ namespace EventForge.Server.Migrations
                     b.Navigation("SummaryDocuments");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Events.Event", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Events.Event", b =>
                 {
                     b.Navigation("PriceLists");
 
                     b.Navigation("Teams");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.PriceList.PriceList", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.PriceList.PriceList", b =>
                 {
                     b.Navigation("ProductPrices");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Products.Product", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Products.Product", b =>
                 {
                     b.Navigation("BundleItems");
 
@@ -4303,37 +3877,37 @@ namespace EventForge.Server.Migrations
                     b.Navigation("Units");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Promotions.Promotion", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Promotions.Promotion", b =>
                 {
                     b.Navigation("Rules");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Promotions.PromotionRule", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Promotions.PromotionRule", b =>
                 {
                     b.Navigation("Products");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.StationMonitor.Station", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.StationMonitor.Station", b =>
                 {
                     b.Navigation("Printers");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.StorePos", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Store.StorePos", b =>
                 {
                     b.Navigation("Receipts");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.StoreUserGroup", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Store.StoreUserGroup", b =>
                 {
                     b.Navigation("Cashiers");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Teams.Team", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Teams.Team", b =>
                 {
                     b.Navigation("Members");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Warehouse.StorageFacility", b =>
+            modelBuilder.Entity("EventForge.Data.Entities.Warehouse.StorageFacility", b =>
                 {
                     b.Navigation("Locations");
                 });
