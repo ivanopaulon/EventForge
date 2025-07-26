@@ -18,6 +18,9 @@ builder.Services.AddMudServices();
 // Add custom services
 builder.Services.AddScoped<IHealthService, HealthService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<SignalRService>();
+builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
+builder.Services.AddScoped<IBackupService, BackupService>();
 
 // Add authentication services
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
