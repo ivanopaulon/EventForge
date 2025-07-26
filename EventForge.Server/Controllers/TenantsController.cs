@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using EventForge.Server.Services.Tenants;
 using EventForge.Server.DTOs.Tenants;
 using EventForge.Server.DTOs.SuperAdmin;
+using EventForge.Server.Data;
+using AuthAuditOperationType = EventForge.Server.Data.Entities.Auth.AuditOperationType;
 
 namespace EventForge.Server.Controllers;
 
@@ -16,11 +19,13 @@ public class TenantsController : ControllerBase
 {
     private readonly ITenantService _tenantService;
     private readonly ITenantContext _tenantContext;
+    private readonly EventForgeDbContext _context;
 
-    public TenantsController(ITenantService tenantService, ITenantContext tenantContext)
+    public TenantsController(ITenantService tenantService, ITenantContext tenantContext, EventForgeDbContext context)
     {
         _tenantService = tenantService;
         _tenantContext = tenantContext;
+        _context = context;
     }
 
     /// <summary>
@@ -384,4 +389,218 @@ public class TenantsController : ControllerBase
             return StatusCode(500, new { message = "Error updating tenant limits", error = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Gets live tenant statistics with real-time updates.
+    /// </summary>
+    /// <returns>Live tenant statistics including active users, current sessions, and usage metrics</returns>
+    [HttpGet("statistics/live")]
+    public async Task<ActionResult<object>> GetLiveStatistics()
+    {
+        try
+        {
+            // Get basic statistics
+            var statistics = await _tenantService.GetTenantStatisticsAsync();
+            
+            // Get additional live metrics
+            var liveStats = new
+            {
+                // Basic statistics from service
+                BasicStats = statistics,
+                
+                // Live metrics calculated in real-time
+                CurrentTimestamp = DateTime.UtcNow,
+                ActiveSessions = await GetActiveSessionsCount(),
+                RecentActivity = await GetRecentActivitySummary(),
+                SystemHealth = await GetSystemHealthMetrics(),
+                TenantUsage = await GetTenantUsageMetrics()
+            };
+
+            return Ok(liveStats);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving live tenant statistics", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Gets real-time tenant activity stream for monitoring.
+    /// </summary>
+    /// <param name="tenantId">Optional tenant ID filter</param>
+    /// <param name="limit">Number of recent activities to return</param>
+    /// <returns>Real-time activity stream</returns>
+    [HttpGet("activity/live")]
+    public async Task<ActionResult<object>> GetLiveActivity([FromQuery] Guid? tenantId = null, [FromQuery] int limit = 50)
+    {
+        try
+        {
+            var activities = await GetRecentActivities(tenantId, limit);
+            
+            var result = new
+            {
+                Timestamp = DateTime.UtcNow,
+                TenantId = tenantId,
+                Activities = activities,
+                Count = activities.Count(),
+                HasMore = activities.Count() >= limit
+            };
+
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving live activity", error = ex.Message });
+        }
+    }
+
+    #region Private Helper Methods for Live Statistics
+
+    private async Task<int> GetActiveSessionsCount()
+    {
+        // Get count of active user sessions from the last hour
+        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        return await _context.AuditTrails
+            .Where(at => at.PerformedAt >= oneHourAgo && 
+                        (at.OperationType == AuthAuditOperationType.TenantSwitch || 
+                         at.OperationType == AuthAuditOperationType.ImpersonationStart))
+            .Select(at => at.PerformedByUserId)
+            .Distinct()
+            .CountAsync();
+    }
+
+    private async Task<object> GetRecentActivitySummary()
+    {
+        var fifteenMinutesAgo = DateTime.UtcNow.AddMinutes(-15);
+        
+        var activities = await _context.AuditTrails
+            .Where(at => at.PerformedAt >= fifteenMinutesAgo)
+            .GroupBy(at => at.OperationType)
+            .Select(g => new { 
+                OperationType = g.Key.ToString(), 
+                Count = g.Count() 
+            })
+            .ToListAsync();
+
+        return new
+        {
+            TimeWindow = "Last 15 minutes",
+            Activities = activities,
+            TotalOperations = activities.Sum(a => a.Count)
+        };
+    }
+
+    private async Task<object> GetSystemHealthMetrics()
+    {
+        var now = DateTime.UtcNow;
+        var oneDayAgo = now.AddDays(-1);
+
+        // Calculate system health metrics
+        var totalTenants = await _context.Tenants.CountAsync(t => !t.IsDeleted);
+        var activeTenants = await _context.Tenants.CountAsync(t => t.IsActive && !t.IsDeleted);
+        var totalUsers = await _context.Users.CountAsync(u => !u.IsDeleted);
+        var activeUsers = await _context.Users.CountAsync(u => u.IsActive && !u.IsDeleted);
+        
+        var recentErrors = await _context.AuditTrails
+            .Where(at => at.PerformedAt >= oneDayAgo && !at.WasSuccessful)
+            .CountAsync();
+
+        return new
+        {
+            TenantsHealth = new { Total = totalTenants, Active = activeTenants, HealthPercentage = totalTenants > 0 ? (activeTenants * 100.0 / totalTenants) : 0 },
+            UsersHealth = new { Total = totalUsers, Active = activeUsers, HealthPercentage = totalUsers > 0 ? (activeUsers * 100.0 / totalUsers) : 0 },
+            ErrorRate = new { Last24Hours = recentErrors, Status = recentErrors < 10 ? "Healthy" : recentErrors < 50 ? "Warning" : "Critical" },
+            Timestamp = now
+        };
+    }
+
+    private async Task<object> GetTenantUsageMetrics()
+    {
+        var tenantUsage = await _context.Tenants
+            .Where(t => t.IsActive && !t.IsDeleted)
+            .Select(t => new
+            {
+                TenantId = t.Id,
+                TenantName = t.Name,
+                UserCount = _context.Users.Count(u => u.TenantId == t.Id && !u.IsDeleted),
+                ActiveUserCount = _context.Users.Count(u => u.TenantId == t.Id && u.IsActive && !u.IsDeleted),
+                MaxUsers = t.MaxUsers,
+                LastActivity = _context.AuditTrails
+                    .Where(at => at.SourceTenantId == t.Id || at.TargetTenantId == t.Id)
+                    .OrderByDescending(at => at.PerformedAt)
+                    .Select(at => (DateTime?)at.PerformedAt)
+                    .FirstOrDefault()
+            })
+            .ToListAsync();
+
+        return new
+        {
+            TotalTenants = tenantUsage.Count,
+            TenantUsage = tenantUsage.Select(tu => new
+            {
+                tu.TenantId,
+                tu.TenantName,
+                tu.UserCount,
+                tu.ActiveUserCount,
+                tu.MaxUsers,
+                UsagePercentage = tu.MaxUsers > 0 ? (tu.UserCount * 100.0 / tu.MaxUsers) : 0,
+                tu.LastActivity,
+                Status = tu.LastActivity.HasValue && tu.LastActivity > DateTime.UtcNow.AddDays(-7) ? "Active" : "Inactive"
+            })
+        };
+    }
+
+    private async Task<IEnumerable<object>> GetRecentActivities(Guid? tenantId, int limit)
+    {
+        var query = _context.AuditTrails.AsQueryable();
+        
+        if (tenantId.HasValue)
+        {
+            query = query.Where(at => at.SourceTenantId == tenantId || at.TargetTenantId == tenantId);
+        }
+
+        var activities = await query
+            .OrderByDescending(at => at.PerformedAt)
+            .Take(limit)
+            .Select(at => new
+            {
+                at.Id,
+                at.OperationType,
+                at.PerformedAt,
+                at.PerformedByUserId,
+                at.SourceTenantId,
+                at.TargetTenantId,
+                at.TargetUserId,
+                at.WasSuccessful,
+                at.Details,
+                at.IpAddress,
+                UserName = _context.Users
+                    .Where(u => u.Id == at.PerformedByUserId)
+                    .Select(u => u.Username)
+                    .FirstOrDefault(),
+                SourceTenantName = at.SourceTenantId.HasValue ? 
+                    _context.Tenants
+                        .Where(t => t.Id == at.SourceTenantId)
+                        .Select(t => t.Name)
+                        .FirstOrDefault() : null,
+                TargetTenantName = at.TargetTenantId.HasValue ? 
+                    _context.Tenants
+                        .Where(t => t.Id == at.TargetTenantId)
+                        .Select(t => t.Name)
+                        .FirstOrDefault() : null
+            })
+            .ToListAsync();
+
+        return activities;
+    }
+
+    #endregion
 }

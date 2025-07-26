@@ -1,5 +1,7 @@
 using EventForge.Server.DTOs.Common;
 using EventForge.Server.Services.Audit;
+using EventForge.Server.Services.Tenants;
+using EventForge.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -12,15 +14,18 @@ public class ClassificationNodeService : IClassificationNodeService
 {
     private readonly EventForgeDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<ClassificationNodeService> _logger;
 
     public ClassificationNodeService(
         EventForgeDbContext context,
         IAuditLogService auditLogService,
+        ITenantContext tenantContext,
         ILogger<ClassificationNodeService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -28,6 +33,12 @@ public class ClassificationNodeService : IClassificationNodeService
     {
         try
         {
+            // TODO: Add automated tests for tenant isolation in classification node queries
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for classification node operations.");
+            }
             _logger.LogDebug("Getting classification nodes: page={Page}, pageSize={PageSize}, parentId={ParentId}", page, pageSize, parentId);
 
             var query = _context.ClassificationNodes.AsQueryable();

@@ -1,5 +1,7 @@
 using EventForge.Server.DTOs.Banks;
 using EventForge.Server.Services.Audit;
+using EventForge.Server.Services.Tenants;
+using EventForge.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Banks;
@@ -11,12 +13,14 @@ public class BankService : IBankService
 {
     private readonly EventForgeDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<BankService> _logger;
 
-    public BankService(EventForgeDbContext context, IAuditLogService auditLogService, ILogger<BankService> logger)
+    public BankService(EventForgeDbContext context, IAuditLogService auditLogService, ITenantContext tenantContext, ILogger<BankService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -24,8 +28,17 @@ public class BankService : IBankService
     {
         try
         {
+            // TODO: Add automated tests for tenant isolation in bank queries
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for bank operations.");
+            }
+
             var query = _context.Banks
-                .Where(b => !b.IsDeleted);
+                .WhereActiveTenant(currentTenantId.Value)
+                .Include(b => b.Addresses.Where(a => !a.IsDeleted && a.TenantId == currentTenantId.Value))
+                .Include(b => b.Contacts.Where(c => !c.IsDeleted && c.TenantId == currentTenantId.Value));
 
             var totalCount = await query.CountAsync(cancellationToken);
             var banks = await query

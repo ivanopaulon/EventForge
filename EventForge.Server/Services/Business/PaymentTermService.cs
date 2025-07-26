@@ -1,5 +1,7 @@
 using EventForge.Server.DTOs.Business;
 using EventForge.Server.Services.Audit;
+using EventForge.Server.Services.Tenants;
+using EventForge.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Business;
@@ -11,15 +13,18 @@ public class PaymentTermService : IPaymentTermService
 {
     private readonly EventForgeDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<PaymentTermService> _logger;
 
     public PaymentTermService(
         EventForgeDbContext context,
         IAuditLogService auditLogService,
+        ITenantContext tenantContext,
         ILogger<PaymentTermService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -27,7 +32,14 @@ public class PaymentTermService : IPaymentTermService
     {
         try
         {
-            var query = _context.PaymentTerms.Where(pt => !pt.IsDeleted);
+            // TODO: Add automated tests for tenant isolation in payment term queries
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for payment term operations.");
+            }
+
+            var query = _context.PaymentTerms.WhereActiveTenant(currentTenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);
             var paymentTerms = await query
@@ -57,8 +69,14 @@ public class PaymentTermService : IPaymentTermService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for payment term operations.");
+            }
+
             var paymentTerm = await _context.PaymentTerms
-                .Where(pt => pt.Id == id && !pt.IsDeleted)
+                .Where(pt => pt.Id == id && pt.TenantId == currentTenantId.Value && !pt.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             return paymentTerm != null ? MapToPaymentTermDto(paymentTerm) : null;
@@ -77,8 +95,15 @@ public class PaymentTermService : IPaymentTermService
             ArgumentNullException.ThrowIfNull(createPaymentTermDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for payment term operations.");
+            }
+
             var paymentTerm = new PaymentTerm
             {
+                TenantId = currentTenantId.Value,
                 Name = createPaymentTermDto.Name,
                 Description = createPaymentTermDto.Description,
                 DueDays = createPaymentTermDto.DueDays,

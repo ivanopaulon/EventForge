@@ -1,5 +1,7 @@
 using EventForge.Server.DTOs.Common;
 using EventForge.Server.Services.Audit;
+using EventForge.Server.Services.Tenants;
+using EventForge.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Common;
@@ -11,12 +13,14 @@ public class ContactService : IContactService
 {
     private readonly EventForgeDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<ContactService> _logger;
 
-    public ContactService(EventForgeDbContext context, IAuditLogService auditLogService, ILogger<ContactService> logger)
+    public ContactService(EventForgeDbContext context, IAuditLogService auditLogService, ITenantContext tenantContext, ILogger<ContactService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -24,8 +28,15 @@ public class ContactService : IContactService
     {
         try
         {
+            // TODO: Add automated tests for tenant isolation in contact queries
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for contact operations.");
+            }
+
             var query = _context.Contacts
-                .Where(c => !c.IsDeleted);
+                .WhereActiveTenant(currentTenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);
             var contacts = await query

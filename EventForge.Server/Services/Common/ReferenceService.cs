@@ -1,6 +1,8 @@
 using AutoMapper;
 using EventForge.Server.DTOs.Common;
 using EventForge.Server.Services.Audit;
+using EventForge.Server.Services.Tenants;
+using EventForge.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -14,6 +16,7 @@ public class ReferenceService : IReferenceService
     private readonly EventForgeDbContext _context;
     private readonly IMapper _mapper;
     private readonly IAuditLogService _auditLogService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<ReferenceService> _logger;
 
     /// <summary>
@@ -22,16 +25,19 @@ public class ReferenceService : IReferenceService
     /// <param name="context">Database context</param>
     /// <param name="mapper">AutoMapper instance</param>
     /// <param name="auditLogService">Audit log service</param>
+    /// <param name="tenantContext">Tenant context service</param>
     /// <param name="logger">Logger instance</param>
     public ReferenceService(
         EventForgeDbContext context,
         IMapper mapper,
         IAuditLogService auditLogService,
+        ITenantContext tenantContext,
         ILogger<ReferenceService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -40,12 +46,21 @@ public class ReferenceService : IReferenceService
     {
         try
         {
+            // TODO: Add automated tests for tenant isolation in reference queries
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for reference operations.");
+            }
+
             var skip = (page - 1) * pageSize;
 
             var totalCount = await _context.References
+                .WhereActiveTenant(currentTenantId.Value)
                 .LongCountAsync(cancellationToken);
 
             var entities = await _context.References
+                .WhereActiveTenant(currentTenantId.Value)
                 .OrderBy(r => r.LastName)
                 .ThenBy(r => r.FirstName)
                 .Skip(skip)
