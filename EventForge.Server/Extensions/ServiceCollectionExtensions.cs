@@ -202,6 +202,10 @@ public static class ServiceCollectionExtensions
         // Register tenant services
         services.AddScoped<ITenantContext, TenantContext>();
         services.AddScoped<ITenantService, TenantService>();
+        
+        // Register SuperAdmin services
+        services.AddScoped<IConfigurationService, ConfigurationService>();
+        services.AddScoped<IBackupService, BackupService>();
 
         // Configure session for tenant context (required for tenant switching and impersonation)
         services.AddDistributedMemoryCache();

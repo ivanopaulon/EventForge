@@ -17,6 +17,9 @@ builder.Services.AddAuthorization(builder.Configuration);
 // Add API Controllers support
 builder.Services.AddControllers();
 
+// Add SignalR for real-time communication
+builder.Services.AddSignalR();
+
 // Add Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -182,5 +185,8 @@ app.UseAuthorization();
 
 // Map API Controllers
 app.MapControllers();
+
+// Map SignalR hubs
+app.MapHub<AuditLogHub>("/hubs/audit-log");
 
 app.Run();
