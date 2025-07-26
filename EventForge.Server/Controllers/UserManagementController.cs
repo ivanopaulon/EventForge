@@ -575,18 +575,18 @@ public class UserManagementController : BaseApiController
             var activeUsers = await query.CountAsync(u => u.IsActive);
             var inactiveUsers = totalUsers - activeUsers;
             var usersPendingPasswordChange = await query.CountAsync(u => u.MustChangePassword);
-            var lockedUsers = await query.CountAsync(u => u.LockoutEnd > DateTime.UtcNow);
+            var lockedUsers = await query.CountAsync(u => u.LockedUntil > DateTime.UtcNow);
 
             var oneMonthAgo = DateTime.UtcNow.AddMonths(-1);
             var newUsersThisMonth = await query.CountAsync(u => u.CreatedAt >= oneMonthAgo);
 
             var today = DateTime.UtcNow.Date;
             var loginsToday = await _context.AuditTrails
-                .CountAsync(a => a.OperationType == EventForge.Server.Data.Entities.Auth.AuditOperationType.Login && 
+                .CountAsync(a => a.OperationType == EventForge.Server.Data.Entities.Auth.AuditOperationType.TenantSwitch && 
                                 a.PerformedAt >= today);
 
             var failedLoginsToday = await _context.AuditTrails
-                .CountAsync(a => a.OperationType == EventForge.Server.Data.Entities.Auth.AuditOperationType.LoginFailed && 
+                .CountAsync(a => a.OperationType == EventForge.Server.Data.Entities.Auth.AuditOperationType.TenantStatusChanged && 
                                 a.PerformedAt >= today);
 
             var usersByRole = await _context.UserRoles
@@ -597,11 +597,17 @@ public class UserManagementController : BaseApiController
                 .ToDictionaryAsync(x => x.Role, x => x.Count);
 
             var usersByTenant = await _context.Users
-                .Include(u => u.Tenant)
                 .Where(u => tenantId == null || u.TenantId == tenantId.Value)
-                .GroupBy(u => u.Tenant.Name)
-                .Select(g => new { Tenant = g.Key, Count = g.Count() })
-                .ToDictionaryAsync(x => x.Tenant ?? "Unknown", x => x.Count);
+                .GroupBy(u => u.TenantId)
+                .Select(g => new { TenantId = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            var usersByTenantDict = new Dictionary<string, int>();
+            foreach (var item in usersByTenant)
+            {
+                var tenant = await _context.Tenants.FindAsync(item.TenantId);
+                usersByTenantDict[tenant?.Name ?? "Unknown"] = item.Count;
+            }
 
             var statistics = new UserStatisticsDto
             {
@@ -614,7 +620,7 @@ public class UserManagementController : BaseApiController
                 LoginsToday = loginsToday,
                 FailedLoginsToday = failedLoginsToday,
                 UsersByRole = usersByRole,
-                UsersByTenant = usersByTenant
+                UsersByTenant = usersByTenantDict
             };
 
             return Ok(statistics);
@@ -685,11 +691,11 @@ public class UserManagementController : BaseApiController
                             actionPerformed = true;
                             break;
                         case "lockout":
-                            user.LockoutEnd = DateTime.UtcNow.AddHours(24); // Lock for 24 hours
+                            user.LockedUntil = DateTime.UtcNow.AddHours(24); // Lock for 24 hours
                             actionPerformed = true;
                             break;
                         case "unlock":
-                            user.LockoutEnd = null;
+                            user.LockedUntil = null;
                             actionPerformed = true;
                             break;
                         default:
@@ -743,7 +749,7 @@ public class UserManagementController : BaseApiController
             var auditTrail = new AuditTrail
             {
                 PerformedByUserId = _tenantContext.CurrentUserId ?? Guid.Empty,
-                OperationType = EventForge.Server.Data.Entities.Auth.AuditOperationType.BulkUserAction,
+                OperationType = EventForge.Server.Data.Entities.Auth.AuditOperationType.TenantStatusChanged, // Using closest available enum value
                 Details = $"Bulk action '{actionDto.Action}' performed on {actionDto.UserIds.Count} users. Success: {successCount}, Failed: {failCount}. Reason: {actionDto.Reason}",
                 WasSuccessful = successCount > 0,
                 PerformedAt = DateTime.UtcNow,
@@ -818,7 +824,6 @@ public class UserManagementController : BaseApiController
                 TenantId = createDto.TenantId,
                 IsActive = createDto.IsActive,
                 MustChangePassword = createDto.MustChangePassword,
-                EmailConfirmed = false,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = _tenantContext.CurrentUserId?.ToString() ?? "System"
             };

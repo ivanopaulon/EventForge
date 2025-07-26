@@ -805,7 +805,15 @@ public class TenantService : ITenantService
             CreatedBy = tenant.CreatedBy,
             ModifiedAt = tenant.ModifiedAt,
             ModifiedBy = tenant.ModifiedBy,
-            Admins = admins.ToList(),
+            Admins = admins.Select(a => new TenantAdminResponseDto
+            {
+                UserId = a.UserId,
+                Username = a.Username,
+                Email = a.Email,
+                FullName = a.FullName,
+                MustChangePassword = false, // Default value since not available in AdminTenantResponseDto
+                GeneratedPassword = null // Only for creation
+            }).ToList(),
             Limits = limits ?? new TenantLimitsDto { TenantId = tenantId },
             UsageStats = usageStats,
             RecentActivities = recentActivities
@@ -894,12 +902,12 @@ public class TenantService : ITenantService
 
         var today = DateTime.UtcNow.Date;
         var loginAttemptsToday = await _context.AuditTrails
-            .CountAsync(a => a.OperationType == AuthAuditOperationType.Login && 
+            .CountAsync(a => a.OperationType == AuthAuditOperationType.TenantSwitch && 
                            a.PerformedAt >= today &&
                            a.SourceTenantId == tenantId);
 
         var failedLoginsToday = await _context.AuditTrails
-            .CountAsync(a => a.OperationType == AuthAuditOperationType.LoginFailed && 
+            .CountAsync(a => a.OperationType == AuthAuditOperationType.TenantStatusChanged && 
                            a.PerformedAt >= today &&
                            a.SourceTenantId == tenantId);
 
