@@ -1,5 +1,7 @@
 using EventForge.Server.DTOs.UnitOfMeasures;
 using EventForge.Server.Services.Audit;
+using EventForge.Server.Services.Tenants;
+using EventForge.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.UnitOfMeasures;
@@ -11,12 +13,18 @@ public class UMService : IUMService
 {
     private readonly EventForgeDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<UMService> _logger;
 
-    public UMService(EventForgeDbContext context, IAuditLogService auditLogService, ILogger<UMService> logger)
+    public UMService(
+        EventForgeDbContext context, 
+        IAuditLogService auditLogService, 
+        ITenantContext tenantContext,
+        ILogger<UMService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -24,7 +32,15 @@ public class UMService : IUMService
     {
         try
         {
+            // TODO: Add automated tests for tenant isolation in UM queries
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for unit of measure operations.");
+            }
+
             var query = _context.UMs
+                .WhereActiveTenant(currentTenantId.Value)
                 .Where(u => !u.IsDeleted);
 
             var totalCount = await query.CountAsync(cancellationToken);
@@ -55,8 +71,14 @@ public class UMService : IUMService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for unit of measure operations.");
+            }
+
             var um = await _context.UMs
-                .Where(u => u.Id == id && !u.IsDeleted)
+                .Where(u => u.Id == id && u.TenantId == currentTenantId.Value && !u.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             return um != null ? MapToUMDto(um) : null;
@@ -75,9 +97,16 @@ public class UMService : IUMService
             ArgumentNullException.ThrowIfNull(createUMDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for unit of measure operations.");
+            }
+
             var um = new UM
             {
                 Id = Guid.NewGuid(),
+                TenantId = currentTenantId.Value,
                 Name = createUMDto.Name,
                 Symbol = createUMDto.Symbol,
                 Description = createUMDto.Description,

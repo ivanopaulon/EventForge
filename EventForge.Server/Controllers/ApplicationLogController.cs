@@ -1,6 +1,7 @@
 using EventForge.Server.Services.Logs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using EventForge.Server.DTOs.SuperAdmin;
 
 namespace EventForge.Server.Controllers;
 
@@ -156,4 +157,230 @@ public class ApplicationLogController : BaseApiController
 
     // Note: This controller intentionally does not include POST, PUT, DELETE methods
     // to ensure logs remain read-only via the API as per requirements.
+
+    /// <summary>
+    /// Searches system logs with advanced filtering (SuperAdmin only).
+    /// </summary>
+    /// <param name="searchDto">Search criteria</param>
+    /// <returns>Paginated system log results</returns>
+    [HttpPost("search")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<ActionResult<PaginatedResponse<SystemLogDto>>> SearchSystemLogs([FromBody] SystemLogSearchDto searchDto)
+    {
+        try
+        {
+            // Convert SystemLogSearchDto to ApplicationLogQueryParameters
+            var queryParameters = new ApplicationLogQueryParameters
+            {
+                Page = searchDto.PageNumber,
+                PageSize = searchDto.PageSize,
+                FromDate = searchDto.FromDate,
+                ToDate = searchDto.ToDate,
+                Level = searchDto.Level
+                // Map other properties as available in ApplicationLogQueryParameters
+            };
+
+            var result = await _applicationLogService.GetPagedLogsAsync(queryParameters);
+
+            // Convert ApplicationLogDto to SystemLogDto
+            var systemLogs = result.Items.Select(log => new SystemLogDto
+            {
+                Id = Guid.NewGuid(), // ApplicationLog likely uses int ID, create a Guid for API consistency
+                Timestamp = log.Timestamp,
+                Level = log.Level,
+                Message = log.Message,
+                Category = log.Logger,
+                Source = log.Logger,
+                // Map other properties as available
+                Properties = new Dictionary<string, object>()
+            });
+
+            var response = new PaginatedResponse<SystemLogDto>
+            {
+                Items = systemLogs,
+                TotalCount = (int)result.TotalCount,
+                PageNumber = searchDto.PageNumber,
+                PageSize = searchDto.PageSize
+            };
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Error searching system logs", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Gets system log statistics (SuperAdmin only).
+    /// </summary>
+    /// <returns>System log statistics</returns>
+    [HttpGet("statistics")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<ActionResult<object>> GetSystemLogStatistics()
+    {
+        try
+        {
+            // This would need to be implemented in the ApplicationLogService
+            // For now, returning a basic implementation
+            var today = DateTime.UtcNow.Date;
+            var yesterday = today.AddDays(-1);
+            var thisWeek = today.AddDays(-7);
+
+            var todayLogs = await _applicationLogService.GetLogsInDateRangeAsync(today, DateTime.UtcNow);
+            var yesterdayLogs = await _applicationLogService.GetLogsInDateRangeAsync(yesterday, today);
+            var weekLogs = await _applicationLogService.GetLogsInDateRangeAsync(thisWeek, DateTime.UtcNow);
+
+            var statistics = new
+            {
+                LogsToday = todayLogs.Count(),
+                LogsYesterday = yesterdayLogs.Count(),
+                LogsThisWeek = weekLogs.Count(),
+                LogsByLevel = weekLogs.GroupBy(l => l.Level ?? "Unknown").ToDictionary(g => g.Key, g => g.Count()),
+                LogsBySource = weekLogs.GroupBy(l => l.Logger ?? "Unknown").ToDictionary(g => g.Key, g => g.Count()),
+                ErrorsToday = todayLogs.Count(l => l.Level == "Error"),
+                WarningsToday = todayLogs.Count(l => l.Level == "Warning"),
+                LastUpdated = DateTime.UtcNow
+            };
+
+            return Ok(statistics);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Error retrieving system log statistics", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Exports system logs (SuperAdmin only).
+    /// </summary>
+    /// <param name="exportDto">Export parameters</param>
+    /// <returns>Export result</returns>
+    [HttpPost("export")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<ActionResult<ExportResultDto>> ExportSystemLogs([FromBody] ExportRequestDto exportDto)
+    {
+        try
+        {
+            // Validate format
+            if (!new[] { "JSON", "CSV", "TXT" }.Contains(exportDto.Format.ToUpper()))
+            {
+                return BadRequest(new { message = "Invalid format. Supported formats: JSON, CSV, TXT" });
+            }
+
+            // Create export result (in a real implementation, this would be queued for processing)
+            var exportResult = new ExportResultDto
+            {
+                Id = Guid.NewGuid(),
+                Type = "systemlogs",
+                Format = exportDto.Format,
+                Status = "Processing",
+                RequestedAt = DateTime.UtcNow,
+                RequestedBy = "SuperAdmin" // Should get from current user context
+            };
+
+            return Ok(exportResult);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Error starting system logs export", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Gets real-time log monitoring configuration (SuperAdmin only).
+    /// </summary>
+    /// <returns>Current monitoring configuration</returns>
+    [HttpGet("monitoring/config")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<ActionResult<LogMonitoringConfigDto>> GetMonitoringConfig()
+    {
+        try
+        {
+            // This would normally be retrieved from configuration storage
+            var config = new LogMonitoringConfigDto
+            {
+                EnableRealTimeUpdates = true,
+                UpdateIntervalSeconds = 5,
+                MonitoredLevels = new List<string> { "Warning", "Error", "Critical" },
+                MonitoredSources = new List<string>(),
+                MaxLiveEntries = 100,
+                AlertOnCritical = true,
+                AlertOnErrors = false
+            };
+
+            return Ok(config);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Error retrieving monitoring configuration", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Updates real-time log monitoring configuration (SuperAdmin only).
+    /// </summary>
+    /// <param name="configDto">Updated monitoring configuration</param>
+    /// <returns>Updated configuration</returns>
+    [HttpPut("monitoring/config")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<ActionResult<LogMonitoringConfigDto>> UpdateMonitoringConfig([FromBody] LogMonitoringConfigDto configDto)
+    {
+        try
+        {
+            // This would normally save to configuration storage
+            // For now, just return the provided configuration
+            return Ok(configDto);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Error updating monitoring configuration", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Gets recent critical/error logs for real-time monitoring (SuperAdmin only).
+    /// </summary>
+    /// <param name="limit">Maximum number of logs to return</param>
+    /// <returns>Recent critical/error logs</returns>
+    [HttpGet("monitoring/recent")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<ActionResult<IEnumerable<SystemLogDto>>> GetRecentCriticalLogs([FromQuery] int limit = 50)
+    {
+        try
+        {
+            var queryParameters = new ApplicationLogQueryParameters
+            {
+                Page = 1,
+                PageSize = limit,
+                Level = "Error", // Would need to support multiple levels
+                FromDate = DateTime.UtcNow.AddHours(-24) // Last 24 hours
+            };
+
+            var result = await _applicationLogService.GetPagedLogsAsync(queryParameters);
+            
+            var systemLogs = result.Items.Select(log => new SystemLogDto
+            {
+                Id = Guid.NewGuid(),
+                Timestamp = log.Timestamp,
+                Level = log.Level,
+                Message = log.Message,
+                Category = log.Logger,
+                Source = log.Logger,
+                Properties = new Dictionary<string, object>()
+            });
+
+            return Ok(systemLogs);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Error retrieving recent critical logs", error = ex.Message });
+        }
+    }
 }

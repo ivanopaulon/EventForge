@@ -1,6 +1,7 @@
 using EventForge.Server.Services.Audit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using EventForge.Server.DTOs.SuperAdmin;
 
 namespace EventForge.Server.Controllers;
 
@@ -323,5 +324,181 @@ public class AuditLogController : BaseApiController
     {
         if (value == null) return "";
         return value.Replace("\"", "\"\"");
+    }
+
+    /// <summary>
+    /// Searches audit trail entries with advanced filtering (SuperAdmin only).
+    /// </summary>
+    /// <param name="searchDto">Search criteria</param>
+    /// <returns>Paginated audit trail results</returns>
+    [HttpPost("audit-trail/search")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<ActionResult<PaginatedResponse<AuditTrailResponseDto>>> SearchAuditTrail([FromBody] AuditTrailSearchDto searchDto)
+    {
+        try
+        {
+            // This would need to be implemented in the audit service or a separate audit trail service
+            // For now, returning a placeholder implementation
+            var results = new PaginatedResponse<AuditTrailResponseDto>
+            {
+                Items = new List<AuditTrailResponseDto>(),
+                TotalCount = 0,
+                PageNumber = searchDto.PageNumber,
+                PageSize = searchDto.PageSize
+            };
+
+            return Ok(results);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Error searching audit trail", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Gets audit trail statistics (SuperAdmin only).
+    /// </summary>
+    /// <returns>Audit trail statistics</returns>
+    [HttpGet("audit-trail/statistics")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<ActionResult<AuditTrailStatisticsDto>> GetAuditTrailStatistics()
+    {
+        try
+        {
+            // This would need to be implemented in a dedicated service
+            // For now, returning a placeholder implementation
+            var statistics = new AuditTrailStatisticsDto
+            {
+                TotalOperations = 0,
+                SuccessfulOperations = 0,
+                FailedOperations = 0,
+                CriticalOperations = 0,
+                OperationsToday = 0,
+                OperationsThisWeek = 0,
+                OperationsThisMonth = 0
+            };
+
+            return Ok(statistics);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Error retrieving audit trail statistics", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Exports data in various formats (SuperAdmin only).
+    /// </summary>
+    /// <param name="exportDto">Export request parameters</param>
+    /// <returns>Export result with download information</returns>
+    [HttpPost("export-advanced")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<ActionResult<ExportResultDto>> ExportAdvanced([FromBody] ExportRequestDto exportDto)
+    {
+        try
+        {
+            // Validate export request
+            if (!new[] { "JSON", "CSV", "EXCEL" }.Contains(exportDto.Format.ToUpper()))
+            {
+                return BadRequest(new { message = "Invalid format. Supported formats: JSON, CSV, EXCEL" });
+            }
+
+            if (!new[] { "audit", "systemlogs", "users", "tenants" }.Contains(exportDto.Type.ToLower()))
+            {
+                return BadRequest(new { message = "Invalid type. Supported types: audit, systemlogs, users, tenants" });
+            }
+
+            // Create export result (in a real implementation, this would be queued for processing)
+            var exportResult = new ExportResultDto
+            {
+                Id = Guid.NewGuid(),
+                Type = exportDto.Type,
+                Format = exportDto.Format,
+                Status = "Processing",
+                RequestedAt = DateTime.UtcNow,
+                RequestedBy = "SuperAdmin" // Should get from current user context
+            };
+
+            // In a real implementation, you would:
+            // 1. Queue the export job for background processing
+            // 2. Return the export ID for status checking
+            // 3. Provide a separate endpoint to check export status and download
+
+            return Ok(exportResult);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Error starting export", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Gets the status of an export operation (SuperAdmin only).
+    /// </summary>
+    /// <param name="exportId">Export operation ID</param>
+    /// <returns>Export status information</returns>
+    [HttpGet("export/{exportId}/status")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<ActionResult<ExportResultDto>> GetExportStatus(Guid exportId)
+    {
+        try
+        {
+            // In a real implementation, this would check the status of the export job
+            var exportResult = new ExportResultDto
+            {
+                Id = exportId,
+                Type = "audit",
+                Format = "JSON",
+                Status = "Completed",
+                TotalRecords = 150,
+                FileName = $"audit_export_{exportId:N}.json",
+                DownloadUrl = $"/api/v1/auditlog/export/{exportId}/download",
+                FileSizeBytes = 1024 * 50, // 50KB
+                RequestedAt = DateTime.UtcNow.AddMinutes(-5),
+                CompletedAt = DateTime.UtcNow.AddMinutes(-2),
+                RequestedBy = "SuperAdmin",
+                ExpiresAt = DateTime.UtcNow.AddDays(7)
+            };
+
+            return Ok(exportResult);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Error retrieving export status", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Downloads a completed export file (SuperAdmin only).
+    /// </summary>
+    /// <param name="exportId">Export operation ID</param>
+    /// <returns>Export file for download</returns>
+    [HttpGet("export/{exportId}/download")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<IActionResult> DownloadExport(Guid exportId)
+    {
+        try
+        {
+            // In a real implementation, this would:
+            // 1. Verify the export exists and is completed
+            // 2. Check user permissions
+            // 3. Return the actual file
+
+            // For now, return a placeholder
+            var content = "Export file content would be here";
+            var bytes = System.Text.Encoding.UTF8.GetBytes(content);
+            var fileName = $"export_{exportId:N}.json";
+
+            return File(bytes, "application/json", fileName);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Error downloading export", error = ex.Message });
+        }
     }
 }
