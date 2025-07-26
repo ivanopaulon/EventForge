@@ -219,5 +219,22 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.SourceTenantName, opt => opt.MapFrom(src => src.SourceTenant != null ? src.SourceTenant.Name : null))
             .ForMember(dest => dest.TargetTenantName, opt => opt.MapFrom(src => src.TargetTenant != null ? src.TargetTenant.Name : null))
             .ForMember(dest => dest.TargetUsername, opt => opt.MapFrom(src => src.TargetUser != null ? src.TargetUser.Username : null));
+
+        // SuperAdmin Configuration mappings
+        CreateMap<SystemConfiguration, ConfigurationDto>().ReverseMap();
+        CreateMap<CreateConfigurationDto, SystemConfiguration>();
+        CreateMap<UpdateConfigurationDto, SystemConfiguration>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.Key, opt => opt.Ignore())
+            .ForMember(dest => dest.Category, opt => opt.Ignore())
+            .ForMember(dest => dest.IsEncrypted, opt => opt.Ignore())
+            .ForMember(dest => dest.IsReadOnly, opt => opt.Ignore())
+            .ForMember(dest => dest.DefaultValue, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedBy, opt => opt.Ignore());
+
+        // Backup operation mappings
+        CreateMap<BackupOperation, BackupStatusDto>()
+            .ForMember(dest => dest.StartedBy, opt => opt.Ignore()); // Will be filled manually in service
     }
 }

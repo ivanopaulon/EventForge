@@ -176,4 +176,152 @@ public class AuditLogController : BaseApiController
                 new { message = "An error occurred while retrieving user audit logs.", error = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Exports audit logs in the specified format (SuperAdmin only).
+    /// </summary>
+    /// <param name="exportDto">Export parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Exported audit logs file</returns>
+    /// <response code="200">Returns the exported file</response>
+    /// <response code="400">If export parameters are invalid</response>
+    [HttpPost("export")]
+    [Authorize(Roles = "SuperAdmin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ExportAuditLogs(
+        [FromBody] AuditLogExportDto exportDto,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (!new[] { "JSON", "CSV", "TXT" }.Contains(exportDto.Format.ToUpper()))
+            {
+                return BadRequest(new { message = "Invalid format. Supported formats: JSON, CSV, TXT" });
+            }
+
+            // Build query parameters for filtering
+            var queryParameters = new AuditLogQueryParameters
+            {
+                Page = 1,
+                PageSize = int.MaxValue // Export all matching records
+            };
+
+            // Apply filters
+            if (exportDto.FromDate.HasValue)
+            {
+                queryParameters.FromDate = exportDto.FromDate.Value;
+            }
+
+            if (exportDto.ToDate.HasValue)
+            {
+                queryParameters.ToDate = exportDto.ToDate.Value;
+            }
+
+            if (!string.IsNullOrEmpty(exportDto.UserId?.ToString()))
+            {
+                queryParameters.ChangedBy = exportDto.UserId.ToString();
+            }
+
+            // Get the filtered audit logs
+            var result = await _auditLogService.GetPagedLogsAsync(queryParameters, cancellationToken);
+            var auditLogs = result.Items;
+
+            // Generate file content based on format
+            byte[] fileContent;
+            string fileName;
+            string contentType;
+
+            switch (exportDto.Format.ToUpper())
+            {
+                case "JSON":
+                    var jsonContent = System.Text.Json.JsonSerializer.Serialize(auditLogs, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                    fileContent = System.Text.Encoding.UTF8.GetBytes(jsonContent);
+                    fileName = $"audit_logs_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json";
+                    contentType = "application/json";
+                    break;
+
+                case "CSV":
+                    var csvContent = GenerateCsvContent(auditLogs);
+                    fileContent = System.Text.Encoding.UTF8.GetBytes(csvContent);
+                    fileName = $"audit_logs_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
+                    contentType = "text/csv";
+                    break;
+
+                case "TXT":
+                    var txtContent = GenerateTxtContent(auditLogs);
+                    fileContent = System.Text.Encoding.UTF8.GetBytes(txtContent);
+                    fileName = $"audit_logs_{DateTime.UtcNow:yyyyMMdd_HHmmss}.txt";
+                    contentType = "text/plain";
+                    break;
+
+                default:
+                    return BadRequest(new { message = "Unsupported format" });
+            }
+
+            return File(fileContent, contentType, fileName);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "An error occurred while exporting audit logs.", error = ex.Message });
+        }
+    }
+
+    private string GenerateCsvContent(IEnumerable<EntityChangeLog> auditLogs)
+    {
+        var csv = new System.Text.StringBuilder();
+        
+        // Add header
+        csv.AppendLine("Id,EntityName,EntityId,PropertyName,OperationType,OldValue,NewValue,ChangedBy,ChangedAt,EntityDisplayName");
+        
+        // Add data rows
+        foreach (var log in auditLogs)
+        {
+            csv.AppendLine($"{log.Id}," +
+                          $"\"{log.EntityName}\"," +
+                          $"{log.EntityId}," +
+                          $"\"{log.PropertyName}\"," +
+                          $"\"{log.OperationType}\"," +
+                          $"\"{EscapeCsvValue(log.OldValue)}\"," +
+                          $"\"{EscapeCsvValue(log.NewValue)}\"," +
+                          $"\"{log.ChangedBy}\"," +
+                          $"{log.ChangedAt:yyyy-MM-dd HH:mm:ss}," +
+                          $"\"{log.EntityDisplayName}\"");
+        }
+        
+        return csv.ToString();
+    }
+
+    private string GenerateTxtContent(IEnumerable<EntityChangeLog> auditLogs)
+    {
+        var txt = new System.Text.StringBuilder();
+        
+        txt.AppendLine("AUDIT LOG EXPORT");
+        txt.AppendLine($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+        txt.AppendLine(new string('=', 50));
+        txt.AppendLine();
+        
+        foreach (var log in auditLogs)
+        {
+            txt.AppendLine($"ID: {log.Id}");
+            txt.AppendLine($"Entity: {log.EntityName} ({log.EntityId})");
+            txt.AppendLine($"Property: {log.PropertyName}");
+            txt.AppendLine($"Operation: {log.OperationType}");
+            txt.AppendLine($"Old Value: {log.OldValue ?? "null"}");
+            txt.AppendLine($"New Value: {log.NewValue ?? "null"}");
+            txt.AppendLine($"Changed By: {log.ChangedBy}");
+            txt.AppendLine($"Changed At: {log.ChangedAt:yyyy-MM-dd HH:mm:ss} UTC");
+            txt.AppendLine($"Display Name: {log.EntityDisplayName ?? "N/A"}");
+            txt.AppendLine(new string('-', 30));
+        }
+        
+        return txt.ToString();
+    }
+
+    private string EscapeCsvValue(string? value)
+    {
+        if (value == null) return "";
+        return value.Replace("\"", "\"\"");
+    }
 }
