@@ -1,3 +1,6 @@
+using EventForge.Server.DTOs.SuperAdmin;
+using EventForge.Server.DTOs.Tenants;
+
 namespace EventForge.Server.Services.Tenants;
 
 /// <summary>
@@ -83,6 +86,41 @@ public interface ITenantService
         AuditOperationType? operationType = null,
         int pageNumber = 1,
         int pageSize = 50);
+
+    /// <summary>
+    /// Gets tenant statistics for the dashboard.
+    /// </summary>
+    /// <returns>Tenant statistics</returns>
+    Task<TenantStatisticsDto> GetTenantStatisticsAsync();
+
+    /// <summary>
+    /// Searches tenants with advanced filtering.
+    /// </summary>
+    /// <param name="searchDto">Search criteria</param>
+    /// <returns>Paginated tenant results</returns>
+    Task<PaginatedResponse<TenantResponseDto>> SearchTenantsAsync(TenantSearchDto searchDto);
+
+    /// <summary>
+    /// Gets detailed information for a tenant including limits and usage.
+    /// </summary>
+    /// <param name="tenantId">Tenant ID</param>
+    /// <returns>Detailed tenant information</returns>
+    Task<TenantDetailDto?> GetTenantDetailsAsync(Guid tenantId);
+
+    /// <summary>
+    /// Gets tenant limits and usage information.
+    /// </summary>
+    /// <param name="tenantId">Tenant ID</param>
+    /// <returns>Tenant limits information</returns>
+    Task<TenantLimitsDto?> GetTenantLimitsAsync(Guid tenantId);
+
+    /// <summary>
+    /// Updates tenant limits.
+    /// </summary>
+    /// <param name="tenantId">Tenant ID</param>
+    /// <param name="updateDto">Updated limits data</param>
+    /// <returns>Updated limits information</returns>
+    Task<TenantLimitsDto> UpdateTenantLimitsAsync(Guid tenantId, UpdateTenantLimitsDto updateDto);
 }
 
 /// <summary>

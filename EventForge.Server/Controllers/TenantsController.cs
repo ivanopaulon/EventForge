@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using EventForge.Server.Services.Tenants;
+using EventForge.Server.DTOs.Tenants;
+using EventForge.Server.DTOs.SuperAdmin;
 
 namespace EventForge.Server.Controllers;
 
@@ -248,6 +251,137 @@ public class TenantsController : ControllerBase
         catch (ArgumentException ex)
         {
             return NotFound(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Gets tenant statistics for the dashboard.
+    /// </summary>
+    /// <returns>Tenant statistics</returns>
+    [HttpGet("statistics")]
+    public async Task<ActionResult<TenantStatisticsDto>> GetTenantStatistics()
+    {
+        try
+        {
+            var statistics = await _tenantService.GetTenantStatisticsAsync();
+            return Ok(statistics);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving tenant statistics", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Searches tenants with advanced filtering.
+    /// </summary>
+    /// <param name="searchDto">Search criteria</param>
+    /// <returns>Paginated tenant results</returns>
+    [HttpPost("search")]
+    public async Task<ActionResult<PaginatedResponse<TenantResponseDto>>> SearchTenants([FromBody] TenantSearchDto searchDto)
+    {
+        try
+        {
+            var results = await _tenantService.SearchTenantsAsync(searchDto);
+            return Ok(results);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error searching tenants", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Gets detailed information for a tenant including limits and usage.
+    /// </summary>
+    /// <param name="id">Tenant ID</param>
+    /// <returns>Detailed tenant information</returns>
+    [HttpGet("{id}/details")]
+    public async Task<ActionResult<TenantDetailDto>> GetTenantDetails(Guid id)
+    {
+        try
+        {
+            var details = await _tenantService.GetTenantDetailsAsync(id);
+            if (details == null)
+            {
+                return NotFound($"Tenant {id} not found.");
+            }
+            return Ok(details);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving tenant details", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Gets tenant limits and usage information.
+    /// </summary>
+    /// <param name="id">Tenant ID</param>
+    /// <returns>Tenant limits information</returns>
+    [HttpGet("{id}/limits")]
+    public async Task<ActionResult<TenantLimitsDto>> GetTenantLimits(Guid id)
+    {
+        try
+        {
+            var limits = await _tenantService.GetTenantLimitsAsync(id);
+            if (limits == null)
+            {
+                return NotFound($"Tenant {id} not found.");
+            }
+            return Ok(limits);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving tenant limits", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Updates tenant limits.
+    /// </summary>
+    /// <param name="id">Tenant ID</param>
+    /// <param name="updateDto">Updated limits data</param>
+    /// <returns>Updated limits information</returns>
+    [HttpPut("{id}/limits")]
+    public async Task<ActionResult<TenantLimitsDto>> UpdateTenantLimits(Guid id, [FromBody] UpdateTenantLimitsDto updateDto)
+    {
+        try
+        {
+            var result = await _tenantService.UpdateTenantLimitsAsync(id, updateDto);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error updating tenant limits", error = ex.Message });
         }
     }
 }
