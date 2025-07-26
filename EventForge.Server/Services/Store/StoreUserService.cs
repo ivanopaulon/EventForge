@@ -39,7 +39,7 @@ public class StoreUserService : IStoreUserService
 
             var query = _context.StoreUsers
                 .WhereActiveTenant(currentTenantId.Value)
-                .Include(su => su.CashierGroup.Where(cg => !cg.IsDeleted && cg.TenantId == currentTenantId.Value))
+                .Include(su => su.CashierGroup)
                 .Where(su => !su.IsDeleted);
 
             var totalCount = await query.CountAsync(cancellationToken);
