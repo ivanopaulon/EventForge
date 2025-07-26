@@ -198,7 +198,7 @@ public class ApplicationLogController : BaseApiController
             var response = new PaginatedResponse<SystemLogDto>
             {
                 Items = systemLogs,
-                TotalCount = result.TotalCount,
+                TotalCount = (int)result.TotalCount,
                 PageNumber = searchDto.PageNumber,
                 PageSize = searchDto.PageSize
             };

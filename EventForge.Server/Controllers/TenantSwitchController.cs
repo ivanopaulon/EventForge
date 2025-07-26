@@ -8,6 +8,7 @@ using EventForge.Server.Services.Audit;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Auth;
 using EventForge.Server.Hubs;
+using AuthAuditOperationType = EventForge.Server.Data.Entities.Auth.AuditOperationType;
 
 namespace EventForge.Server.Controllers;
 
@@ -225,7 +226,7 @@ public class TenantSwitchController : BaseApiController
                 var auditTrail = new AuditTrail
                 {
                     PerformedByUserId = currentUserId.Value,
-                    OperationType = AuditOperationType.TenantSwitch,
+                    OperationType = AuthAuditOperationType.TenantSwitch,
                     SourceTenantId = originalTenantId,
                     TargetTenantId = switchDto.TenantId,
                     SessionId = HttpContext.Session.Id,
@@ -325,7 +326,7 @@ public class TenantSwitchController : BaseApiController
                 var auditTrail = new AuditTrail
                 {
                     PerformedByUserId = currentUserId.Value,
-                    OperationType = AuditOperationType.ImpersonationStart,
+                    OperationType = AuthAuditOperationType.ImpersonationStart,
                     SourceTenantId = currentUser.TenantId,
                     TargetTenantId = impersonationDto.TargetTenantId ?? targetUser.TenantId,
                     TargetUserId = targetUser.Id,
@@ -359,8 +360,8 @@ public class TenantSwitchController : BaseApiController
                 });
 
             // Return context as impersonated user
-            var targetTenant = targetUser.TenantId.HasValue ? 
-                await _context.Tenants.FindAsync(targetUser.TenantId.Value) : null;
+            var targetTenant = targetUser.TenantId != Guid.Empty ? 
+                await _context.Tenants.FindAsync(targetUser.TenantId) : null;
 
             var context = new CurrentContextDto
             {
@@ -416,7 +417,7 @@ public class TenantSwitchController : BaseApiController
             var auditTrail = new AuditTrail
             {
                 PerformedByUserId = currentUserId.Value,
-                OperationType = AuditOperationType.ImpersonationEnd,
+                OperationType = AuthAuditOperationType.ImpersonationEnd,
                 SourceTenantId = currentUser.TenantId,
                 SessionId = HttpContext.Session.Id,
                 IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
@@ -482,7 +483,7 @@ public class TenantSwitchController : BaseApiController
         try
         {
             var query = _context.AuditTrails
-                .Where(a => a.OperationType == AuditOperationType.TenantSwitch)
+                .Where(a => a.OperationType == AuthAuditOperationType.TenantSwitch)
                 .AsQueryable();
 
             // Apply filters
@@ -576,7 +577,7 @@ public class TenantSwitchController : BaseApiController
         try
         {
             var query = _context.AuditTrails
-                .Where(a => a.OperationType == AuditOperationType.ImpersonationStart || a.OperationType == AuditOperationType.ImpersonationEnd)
+                .Where(a => a.OperationType == AuthAuditOperationType.ImpersonationStart || a.OperationType == AuthAuditOperationType.ImpersonationEnd)
                 .AsQueryable();
 
             // Apply filters similar to tenant switch history
@@ -608,8 +609,8 @@ public class TenantSwitchController : BaseApiController
 
             foreach (var group in grouped)
             {
-                var startOperation = group.FirstOrDefault(a => a.OperationType == AuditOperationType.ImpersonationStart);
-                var endOperation = group.FirstOrDefault(a => a.OperationType == AuditOperationType.ImpersonationEnd);
+                var startOperation = group.FirstOrDefault(a => a.OperationType == AuthAuditOperationType.ImpersonationStart);
+                var endOperation = group.FirstOrDefault(a => a.OperationType == AuthAuditOperationType.ImpersonationEnd);
 
                 if (startOperation != null)
                 {
@@ -669,11 +670,11 @@ public class TenantSwitchController : BaseApiController
             var oneMonthAgo = today.AddMonths(-1);
 
             var tenantSwitches = await _context.AuditTrails
-                .Where(a => a.OperationType == AuditOperationType.TenantSwitch)
+                .Where(a => a.OperationType == AuthAuditOperationType.TenantSwitch)
                 .ToListAsync();
 
             var impersonations = await _context.AuditTrails
-                .Where(a => a.OperationType == AuditOperationType.ImpersonationStart)
+                .Where(a => a.OperationType == AuthAuditOperationType.ImpersonationStart)
                 .ToListAsync();
 
             var summary = new OperationSummaryDto
@@ -689,9 +690,9 @@ public class TenantSwitchController : BaseApiController
 
             // Get recent operations
             var recentOperations = await _context.AuditTrails
-                .Where(a => a.OperationType == AuditOperationType.TenantSwitch || 
-                           a.OperationType == AuditOperationType.ImpersonationStart ||
-                           a.OperationType == AuditOperationType.ImpersonationEnd)
+                .Where(a => a.OperationType == AuthAuditOperationType.TenantSwitch || 
+                           a.OperationType == AuthAuditOperationType.ImpersonationStart ||
+                           a.OperationType == AuthAuditOperationType.ImpersonationEnd)
                 .OrderByDescending(a => a.PerformedAt)
                 .Take(10)
                 .ToListAsync();
