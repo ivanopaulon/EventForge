@@ -1,5 +1,7 @@
 using EventForge.Server.DTOs.Store;
 using EventForge.Server.Services.Audit;
+using EventForge.Server.Services.Tenants;
+using EventForge.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Store;
@@ -11,12 +13,14 @@ public class StoreUserService : IStoreUserService
 {
     private readonly EventForgeDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<StoreUserService> _logger;
 
-    public StoreUserService(EventForgeDbContext context, IAuditLogService auditLogService, ILogger<StoreUserService> logger)
+    public StoreUserService(EventForgeDbContext context, IAuditLogService auditLogService, ITenantContext tenantContext, ILogger<StoreUserService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -26,8 +30,16 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
+            // TODO: Add automated tests for tenant isolation in store user queries
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user operations.");
+            }
+
             var query = _context.StoreUsers
-                .Include(su => su.CashierGroup)
+                .WhereActiveTenant(currentTenantId.Value)
+                .Include(su => su.CashierGroup.Where(cg => !cg.IsDeleted && cg.TenantId == currentTenantId.Value))
                 .Where(su => !su.IsDeleted);
 
             var totalCount = await query.CountAsync(cancellationToken);
