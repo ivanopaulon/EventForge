@@ -1,0 +1,511 @@
+@using MudBlazor
+@using EventForge.DTOs.SuperAdmin
+@using EventForge.DTOs.Tenants
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Constants
+@inject ISuperAdminService SuperAdminService
+@inject ISnackbar Snackbar
+@inject ILogger<UserDrawer> Logger
+
+<EntityDrawer @bind-IsOpen="@IsOpen"
+              @bind-Mode="@Mode"
+              EntityName="Utente"
+              Model="@_model"
+              OnSave="@HandleSave"
+              OnCancel="@HandleCancel"
+              OnClose="@HandleClose"
+              CustomTitle="@_customTitle"
+              AllowEdit="@AllowEdit"
+              Width="700px">
+    
+    <FormContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.FirstName"
+                              Label="Nome *"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="Il nome è obbligatorio"
+                              MaxLength="100"
+                              aria-describedby="firstName-help" />
+                <MudText id="firstName-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    Inserisci il nome della persona
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.LastName"
+                              Label="Cognome *"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="Il cognome è obbligatorio"
+                              MaxLength="100"
+                              aria-describedby="lastName-help" />
+                <MudText id="lastName-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    Inserisci il cognome della persona
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.Username"
+                              Label="Username *"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="L'username è obbligatorio"
+                              MaxLength="100"
+                              ReadOnly="@(Mode == EntityDrawerMode.Edit)"
+                              aria-describedby="username-help" />
+                <MudText id="username-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @(Mode == EntityDrawerMode.Edit ? "L'username non può essere modificato" : "Username univoco per l'accesso")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.Email"
+                              Label="Email *"
+                              Variant="Variant.Outlined"
+                              InputType="InputType.Email"
+                              Required="true"
+                              RequiredError="L'email è obbligatoria"
+                              MaxLength="256"
+                              aria-describedby="email-help" />
+                <MudText id="email-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    Indirizzo email valido
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudSelect T="Guid?" 
+                           @bind-Value="_model.TenantId" 
+                           Label="Tenant *" 
+                           Variant="Variant.Outlined" 
+                           Required="true"
+                           Disabled="@(Mode == EntityDrawerMode.Edit)"
+                           aria-describedby="tenant-help">
+                    @foreach (var tenant in _tenants)
+                    {
+                        <MudSelectItem T="Guid?" Value="@tenant.Id">@tenant.DisplayName</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudText id="tenant-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @(Mode == EntityDrawerMode.Edit ? "Il tenant non può essere modificato" : "Seleziona il tenant di appartenenza")
+                </MudText>
+            </MudItem>
+            
+            @if (Mode == EntityDrawerMode.Create)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_password"
+                                  Label="Password *"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Password"
+                                  Required="true"
+                                  RequiredError="La password è obbligatoria"
+                                  aria-describedby="password-help" />
+                    <MudText id="password-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                        Minimo 8 caratteri
+                    </MudText>
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_confirmPassword"
+                                  Label="Conferma Password *"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Password"
+                                  Required="true"
+                                  RequiredError="La conferma password è obbligatoria"
+                                  Validation="@(new Func<string, string?>(ValidatePasswordConfirmation))"
+                                  aria-describedby="confirmPassword-help" />
+                    <MudText id="confirmPassword-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                        Deve corrispondere alla password
+                    </MudText>
+                </MudItem>
+            }
+            
+            @if (Mode == EntityDrawerMode.Edit)
+            {
+                <MudItem xs="12" md="6">
+                    <MudSwitch T="bool" 
+                               @bind-Checked="_model.IsActive"
+                               Label="Utente Attivo"
+                               Color="Color.Primary"
+                               aria-describedby="active-help" />
+                    <MudText id="active-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                        Determina se l'utente può accedere al sistema
+                    </MudText>
+                </MudItem>
+            }
+            
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle1" Class="mb-3">Ruoli</MudText>
+                <fieldset aria-labelledby="roles-legend">
+                    <legend id="roles-legend" style="display: none;">Seleziona i ruoli dell'utente</legend>
+                    <MudGrid>
+                        @foreach (var role in _availableRoles)
+                        {
+                            <MudItem xs="12" sm="6" md="4">
+                                <MudCheckBox @bind-Value="_selectedRoles[role]"
+                                             Color="Color.Primary"
+                                             Label="@role"
+                                             aria-describedby="@($"role-{role}-help")" />
+                                <MudText id="@($"role-{role}-help")" Typo="Typo.caption" Class="mud-input-helper-text">
+                                    @GetRoleDescription(role)
+                                </MudText>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                </fieldset>
+            </MudItem>
+            
+            @if (Mode == EntityDrawerMode.Edit && OriginalUser != null)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalUser.Id.ToString()"
+                                  Label="ID Utente"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="Identificativo univoco dell'utente" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalUser.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                  Label="Data Creazione"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="Data e ora di creazione dell'utente" />
+                </MudItem>
+            }
+        </MudGrid>
+    </FormContent>
+    
+    <ViewContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalUser?.FirstName ?? "")"
+                              Label="Nome"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              aria-label="Nome dell'utente" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalUser?.LastName ?? "")"
+                              Label="Cognome"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              aria-label="Cognome dell'utente" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalUser?.Username ?? "")"
+                              Label="Username"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              aria-label="Username dell'utente" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalUser?.Email ?? "")"
+                              Label="Email"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              aria-label="Email dell'utente" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalUser?.TenantName ?? "N/A")"
+                              Label="Tenant"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              aria-label="Tenant di appartenenza" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudChip T="string" 
+                         Color="@(OriginalUser?.IsActive == true ? Color.Success : Color.Error)" 
+                         Size="Size.Medium"
+                         aria-label="@($"Stato utente: {(OriginalUser?.IsActive == true ? "Attivo" : "Inattivo")}")">
+                    @(OriginalUser?.IsActive == true ? "Attivo" : "Inattivo")
+                </MudChip>
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle1" Class="mb-3">Ruoli</MudText>
+                <div class="d-flex flex-wrap gap-2" role="list" aria-label="Ruoli assegnati all'utente">
+                    @if (OriginalUser?.Roles?.Any() == true)
+                    {
+                        @foreach (var role in OriginalUser.Roles)
+                        {
+                            <MudChip T="string" 
+                                     Color="@GetRoleColor(role)" 
+                                     Size="Size.Small"
+                                     role="listitem"
+                                     aria-label="@($"Ruolo: {role}")">
+                                @role
+                            </MudChip>
+                        }
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Class="text-muted">Nessun ruolo assegnato</MudText>
+                    }
+                </div>
+            </MudItem>
+            
+            @if (OriginalUser != null)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalUser.Id.ToString()"
+                                  Label="ID Utente"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="Identificativo univoco dell'utente" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalUser.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                  Label="Data Creazione"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="Data e ora di creazione dell'utente" />
+                </MudItem>
+                
+                <MudItem xs="12">
+                    <MudTextField Value="@(OriginalUser.LastLoginAt?.ToString("dd/MM/yyyy HH:mm") ?? "Mai effettuato")"
+                                  Label="Ultimo Accesso"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="Data e ora dell'ultimo accesso" />
+                </MudItem>
+            }
+        </MudGrid>
+    </ViewContent>
+    
+</EntityDrawer>
+
+@code {
+    private UserManagementDto _model = new();
+    private string _password = "";
+    private string _confirmPassword = "";
+    private string? _customTitle;
+    
+    private List<TenantResponseDto> _tenants = new();
+    private readonly List<string> _availableRoles = new() { "User", "Manager", "Admin" };
+    private Dictionary<string, bool> _selectedRoles = new();
+
+    /// <summary>
+    /// Whether the drawer is open.
+    /// </summary>
+    [Parameter] public bool IsOpen { get; set; }
+    
+    /// <summary>
+    /// Event callback for when IsOpen changes.
+    /// </summary>
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    
+    /// <summary>
+    /// The current mode of the drawer.
+    /// </summary>
+    [Parameter] public EntityDrawerMode Mode { get; set; } = EntityDrawerMode.Create;
+    
+    /// <summary>
+    /// Event callback for when Mode changes.
+    /// </summary>
+    [Parameter] public EventCallback<EntityDrawerMode> ModeChanged { get; set; }
+    
+    /// <summary>
+    /// The user being edited/viewed (for Edit/View modes).
+    /// </summary>
+    [Parameter] public UserManagementDto? OriginalUser { get; set; }
+    
+    /// <summary>
+    /// Whether editing is allowed.
+    /// </summary>
+    [Parameter] public bool AllowEdit { get; set; } = true;
+    
+    /// <summary>
+    /// Event callback when a user is created.
+    /// </summary>
+    [Parameter] public EventCallback<UserManagementDto> OnUserCreated { get; set; }
+    
+    /// <summary>
+    /// Event callback when a user is updated.
+    /// </summary>
+    [Parameter] public EventCallback<UserManagementDto> OnUserUpdated { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _tenants = (await SuperAdminService.GetTenantsAsync()).ToList();
+            InitializeRoles();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to initialize UserDrawer");
+            Snackbar.Add($"Errore nel caricamento dei dati: {ex.Message}", Severity.Error);
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (Mode == EntityDrawerMode.Edit && OriginalUser != null)
+        {
+            // Initialize model for editing
+            _model = new UserManagementDto
+            {
+                Id = OriginalUser.Id,
+                FirstName = OriginalUser.FirstName,
+                LastName = OriginalUser.LastName,
+                Username = OriginalUser.Username,
+                Email = OriginalUser.Email,
+                TenantId = OriginalUser.TenantId,
+                TenantName = OriginalUser.TenantName,
+                IsActive = OriginalUser.IsActive,
+                Roles = OriginalUser.Roles.ToList(),
+                CreatedAt = OriginalUser.CreatedAt,
+                LastLoginAt = OriginalUser.LastLoginAt
+            };
+            
+            InitializeRoles();
+            foreach (var role in OriginalUser.Roles)
+            {
+                if (_selectedRoles.ContainsKey(role))
+                    _selectedRoles[role] = true;
+            }
+            
+            _customTitle = $"Modifica Utente: {OriginalUser.FirstName} {OriginalUser.LastName}";
+        }
+        else if (Mode == EntityDrawerMode.View && OriginalUser != null)
+        {
+            _customTitle = $"Visualizza Utente: {OriginalUser.FirstName} {OriginalUser.LastName}";
+        }
+        else if (Mode == EntityDrawerMode.Create)
+        {
+            // Reset for create mode
+            _model = new UserManagementDto();
+            _password = "";
+            _confirmPassword = "";
+            InitializeRoles();
+            _selectedRoles["User"] = true; // Default role
+            _customTitle = null;
+        }
+    }
+
+    private void InitializeRoles()
+    {
+        _selectedRoles.Clear();
+        foreach (var role in _availableRoles)
+        {
+            _selectedRoles[role] = false;
+        }
+    }
+
+    private async Task HandleSave()
+    {
+        try
+        {
+            // Update roles from selection
+            var roles = _selectedRoles.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
+            
+            if (Mode == EntityDrawerMode.Create)
+            {
+                var createDto = new CreateUserManagementDto
+                {
+                    FirstName = _model.FirstName,
+                    LastName = _model.LastName,
+                    Username = _model.Username,
+                    Email = _model.Email,
+                    TenantId = _model.TenantId ?? Guid.Empty,
+                    Roles = roles
+                };
+                
+                var newUser = await SuperAdminService.CreateUserAsync(createDto);
+                Snackbar.Add(Messages.CreateSuccessful, Severity.Success);
+                
+                if (OnUserCreated.HasDelegate)
+                {
+                    await OnUserCreated.InvokeAsync(newUser);
+                }
+            }
+            else if (Mode == EntityDrawerMode.Edit && OriginalUser != null)
+            {
+                var updateDto = new UpdateUserManagementDto
+                {
+                    FirstName = _model.FirstName,
+                    LastName = _model.LastName,
+                    Email = _model.Email,
+                    IsActive = _model.IsActive,
+                    Roles = roles
+                };
+                
+                var updatedUser = await SuperAdminService.UpdateUserAsync(OriginalUser.Id, updateDto);
+                Snackbar.Add(Messages.UpdateSuccessful, Severity.Success);
+                
+                if (OnUserUpdated.HasDelegate)
+                {
+                    await OnUserUpdated.InvokeAsync(updatedUser);
+                }
+            }
+            
+            await HandleClose();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to save user");
+            var message = Mode == EntityDrawerMode.Create ? Messages.CreateFailed : Messages.UpdateFailed;
+            Snackbar.Add($"{message}: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task HandleCancel()
+    {
+        await HandleClose();
+    }
+
+    private async Task HandleClose()
+    {
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(IsOpen);
+        
+        // Reset state
+        _model = new UserManagementDto();
+        _password = "";
+        _confirmPassword = "";
+        InitializeRoles();
+        _customTitle = null;
+    }
+
+    private string? ValidatePasswordConfirmation(string confirmPassword)
+    {
+        if (confirmPassword != _password)
+        {
+            return Messages.PasswordMismatch;
+        }
+        return null;
+    }
+
+    private Color GetRoleColor(string role)
+    {
+        return role.ToLower() switch
+        {
+            "superadmin" => Color.Error,
+            "admin" => Color.Warning,
+            "manager" => Color.Info,
+            "user" => Color.Primary,
+            _ => Color.Default
+        };
+    }
+
+    private string GetRoleDescription(string role)
+    {
+        return role.ToLower() switch
+        {
+            "user" => "Accesso base al sistema",
+            "manager" => "Gestione del team e delle risorse",
+            "admin" => "Amministrazione completa del tenant",
+            "superadmin" => "Accesso completo al sistema",
+            _ => "Ruolo personalizzato"
+        };
+    }
+}

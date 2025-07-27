@@ -14,6 +14,9 @@ builder.Services.AddHttpClient("ApiClient", client =>
 {
     client.BaseAddress = new Uri("https://localhost:7241/");
     client.Timeout = TimeSpan.FromSeconds(30);
+    // Add default headers for API requests
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+    client.DefaultRequestHeaders.Add("User-Agent", "EventForge-Client/1.0");
 });
 
 // Configure StaticClient for translation files and static assets
@@ -28,6 +31,9 @@ builder.Services.AddHttpClient("StaticClient", client =>
 
 // Add MudBlazor services
 builder.Services.AddMudServices();
+
+// Add centralized HTTP client service
+builder.Services.AddScoped<IHttpClientService, HttpClientService>();
 
 // Add custom services
 builder.Services.AddScoped<IHealthService, HealthService>();

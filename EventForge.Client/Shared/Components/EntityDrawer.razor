@@ -1,0 +1,351 @@
+@using MudBlazor
+@using EventForge.Client.Constants
+@using EventForge.Client.Shared.Components
+@using Microsoft.AspNetCore.Components.Web
+@implements IAsyncDisposable
+
+<MudDrawer @bind-Open="@IsOpen" 
+           Anchor="@Anchor.End" 
+           Elevation="4" 
+           Variant="@DrawerVariant.Temporary"
+           ClipMode="@DrawerClipMode.Always"
+           DisableOverlay="false"
+           Width="@GetResponsiveWidth()"
+           Class="entity-drawer"
+           @onkeydown="@HandleKeyDown"
+           tabindex="-1"
+           aria-modal="true"
+           aria-labelledby="drawer-title"
+           role="dialog">
+    
+    <div class="entity-drawer-header d-flex justify-space-between align-center pa-4 border-b">
+        <MudText id="drawer-title" Typo="Typo.h6" Class="ma-0">@GetTitle()</MudText>
+        <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                       Color="Color.Default" 
+                       Size="Size.Small"
+                       OnClick="@HandleClose"
+                       Title="Chiudi (ESC)"
+                       aria-label="Chiudi drawer" />
+    </div>
+    
+    <div class="entity-drawer-content flex-grow-1 pa-4" style="overflow-y: auto;">
+        @if (Mode == EntityDrawerMode.View)
+        {
+            <div class="view-mode">
+                @ViewContent
+            </div>
+        }
+        else
+        {
+            <MudForm @ref="_form" Model="Model" @bind-IsValid="_isFormValid" ValidationDelay="0">
+                @FormContent
+            </MudForm>
+        }
+        
+        @if (_isLoading)
+        {
+            <div class="d-flex justify-center mt-4" aria-live="polite" aria-label="Caricamento in corso">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+                <MudText Class="ml-3">@_loadingMessage</MudText>
+            </div>
+        }
+    </div>
+    
+    <div class="entity-drawer-actions d-flex justify-end gap-2 pa-4 border-t">
+        @if (Mode == EntityDrawerMode.View)
+        {
+            @if (ShowEditButton && AllowEdit)
+            {
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary"
+                           OnClick="@SwitchToEdit"
+                           StartIcon="@Icons.Material.Filled.Edit"
+                           aria-label="Modifica entità">
+                    @ButtonLabels.Edit
+                </MudButton>
+            }
+            
+            <MudButton Variant="Variant.Text" 
+                       Color="Color.Default"
+                       OnClick="@HandleClose"
+                       StartIcon="@Icons.Material.Filled.Close"
+                       aria-label="Chiudi drawer">
+                @ButtonLabels.Close
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Text" 
+                       Color="Color.Default"
+                       OnClick="@HandleCancel"
+                       StartIcon="@Icons.Material.Filled.Cancel"
+                       aria-label="Annulla operazione">
+                @ButtonLabels.Cancel
+            </MudButton>
+            
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary"
+                       OnClick="@HandleSave"
+                       StartIcon="@GetSaveIcon()"
+                       Disabled="@(!_isFormValid || _isLoading)"
+                       aria-label="@GetSaveAriaLabel()">
+                @if (_isLoading)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+                    <MudText Class="ms-2">@_loadingMessage</MudText>
+                }
+                else
+                {
+                    <MudText>@GetSaveText()</MudText>
+                }
+            </MudButton>
+        }
+        
+        @ActionButtons
+    </div>
+</MudDrawer>
+
+@code {
+    private MudForm? _form;
+    private bool _isFormValid;
+    private bool _isLoading;
+    private string _loadingMessage = "";
+    private ElementReference _firstInputRef;
+    private ElementReference _previousFocusedElement;
+
+    /// <summary>
+    /// Whether the drawer is open.
+    /// </summary>
+    [Parameter] public bool IsOpen { get; set; }
+    
+    /// <summary>
+    /// Event callback for when IsOpen changes.
+    /// </summary>
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    
+    /// <summary>
+    /// The current mode of the drawer (Create, Edit, View).
+    /// </summary>
+    [Parameter] public EntityDrawerMode Mode { get; set; } = EntityDrawerMode.Create;
+    
+    /// <summary>
+    /// Event callback for when Mode changes.
+    /// </summary>
+    [Parameter] public EventCallback<EntityDrawerMode> ModeChanged { get; set; }
+    
+    /// <summary>
+    /// The title of the entity being managed.
+    /// </summary>
+    [Parameter] public string EntityName { get; set; } = "";
+    
+    /// <summary>
+    /// Custom title override.
+    /// </summary>
+    [Parameter] public string? CustomTitle { get; set; }
+    
+    /// <summary>
+    /// The model being edited/viewed.
+    /// </summary>
+    [Parameter] public object? Model { get; set; }
+    
+    /// <summary>
+    /// Form content for Create/Edit modes.
+    /// </summary>
+    [Parameter] public RenderFragment? FormContent { get; set; }
+    
+    /// <summary>
+    /// View content for View mode.
+    /// </summary>
+    [Parameter] public RenderFragment? ViewContent { get; set; }
+    
+    /// <summary>
+    /// Additional action buttons.
+    /// </summary>
+    [Parameter] public RenderFragment? ActionButtons { get; set; }
+    
+    /// <summary>
+    /// Event callback for save action.
+    /// </summary>
+    [Parameter] public EventCallback OnSave { get; set; }
+    
+    /// <summary>
+    /// Event callback for cancel action.
+    /// </summary>
+    [Parameter] public EventCallback OnCancel { get; set; }
+    
+    /// <summary>
+    /// Event callback for close action.
+    /// </summary>
+    [Parameter] public EventCallback OnClose { get; set; }
+    
+    /// <summary>
+    /// Whether the Edit button should be shown in View mode.
+    /// </summary>
+    [Parameter] public bool ShowEditButton { get; set; } = true;
+    
+    /// <summary>
+    /// Whether editing is allowed (affects Edit button visibility).
+    /// </summary>
+    [Parameter] public bool AllowEdit { get; set; } = true;
+    
+    /// <summary>
+    /// Custom width for the drawer. If not provided, responsive width will be used.
+    /// </summary>
+    [Parameter] public string? Width { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (IsOpen && Mode != EntityDrawerMode.View)
+        {
+            await FocusFirstInput();
+        }
+    }
+
+    private async Task FocusFirstInput()
+    {
+        try
+        {
+            // Try to focus the first input element in the form
+            await Task.Delay(100); // Small delay to ensure DOM is ready
+            var script = @"
+                const drawer = document.querySelector('.entity-drawer');
+                if (drawer) {
+                    const firstInput = drawer.querySelector('input:not([type=""hidden""]), select, textarea, button');
+                    if (firstInput) {
+                        firstInput.focus();
+                        return true;
+                    }
+                }
+                return false;
+            ";
+            // This would need JS interop in a real implementation
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't fail the component
+            Console.WriteLine($"Failed to focus first input: {ex.Message}");
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            await HandleClose();
+        }
+    }
+
+    private string GetResponsiveWidth()
+    {
+        if (!string.IsNullOrEmpty(Width))
+            return Width;
+            
+        // Responsive width based on screen size
+        return "min(90vw, 700px)";
+    }
+
+    private string GetTitle()
+    {
+        if (!string.IsNullOrEmpty(CustomTitle))
+            return CustomTitle;
+            
+        return Mode switch
+        {
+            EntityDrawerMode.Create => $"Crea {EntityName}",
+            EntityDrawerMode.Edit => $"Modifica {EntityName}",
+            EntityDrawerMode.View => $"Visualizza {EntityName}",
+            _ => EntityName
+        };
+    }
+
+    private string GetSaveText()
+    {
+        return Mode switch
+        {
+            EntityDrawerMode.Create => ButtonLabels.Create,
+            EntityDrawerMode.Edit => ButtonLabels.Save,
+            _ => ButtonLabels.Save
+        };
+    }
+
+    private string GetSaveIcon()
+    {
+        return Mode switch
+        {
+            EntityDrawerMode.Create => Icons.Material.Filled.Add,
+            EntityDrawerMode.Edit => Icons.Material.Filled.Save,
+            _ => Icons.Material.Filled.Save
+        };
+    }
+
+    private string GetSaveAriaLabel()
+    {
+        return Mode switch
+        {
+            EntityDrawerMode.Create => $"Crea nuovo {EntityName}",
+            EntityDrawerMode.Edit => $"Salva modifiche a {EntityName}",
+            _ => "Salva"
+        };
+    }
+
+    private async Task HandleSave()
+    {
+        if (!_isFormValid || _isLoading) return;
+
+        try
+        {
+            _isLoading = true;
+            _loadingMessage = Mode == EntityDrawerMode.Create ? "Creando..." : "Salvando...";
+            StateHasChanged();
+
+            if (OnSave.HasDelegate)
+            {
+                await OnSave.InvokeAsync();
+            }
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleCancel()
+    {
+        if (OnCancel.HasDelegate)
+        {
+            await OnCancel.InvokeAsync();
+        }
+        else
+        {
+            await HandleClose();
+        }
+    }
+
+    private async Task HandleClose()
+    {
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(IsOpen);
+        
+        if (OnClose.HasDelegate)
+        {
+            await OnClose.InvokeAsync();
+        }
+    }
+
+    private async Task SwitchToEdit()
+    {
+        Mode = EntityDrawerMode.Edit;
+        await ModeChanged.InvokeAsync(Mode);
+        StateHasChanged();
+        
+        // Focus first input after switching to edit mode
+        await FocusFirstInput();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        // Clean up any resources if needed
+        await Task.CompletedTask;
+    }
+}
