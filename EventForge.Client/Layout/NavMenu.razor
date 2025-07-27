@@ -72,6 +72,7 @@
         _isAuthenticated = await AuthService.IsAuthenticatedAsync();
         if (_isAuthenticated)
         {
+            // Check for multiple roles - user can have both Admin and SuperAdmin
             _isAdmin = await AuthService.IsInRoleAsync("Admin");
             _isSuperAdmin = await AuthService.IsSuperAdminAsync();
         }

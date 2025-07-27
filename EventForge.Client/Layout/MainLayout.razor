@@ -16,7 +16,17 @@
             <div class="d-flex align-center ga-2">
                 @if (_currentUser != null)
                 {
-                    <MudText Typo="Typo.body2" Class="mr-2">Welcome, @_currentUser.FullName</MudText>
+                    <div class="d-flex align-center ga-2">
+                        <MudText Typo="Typo.body2">Welcome, @_currentUser.FullName</MudText>
+                        @if (_currentUser.Roles?.Any() == true)
+                        {
+                            <MudChip T="string"
+                                     Size="Size.Small" 
+                                     Color="Color.Secondary" 
+                                     Variant="Variant.Filled"
+                                     Text="@GetRolesDisplayText()" />
+                        }
+                    </div>
                 }
                 <MudButton Variant="Variant.Text" 
                            Color="Color.Inherit" 
@@ -25,6 +35,15 @@
                     Logout
                 </MudButton>
             </div>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Text" 
+                       Color="Color.Inherit" 
+                       StartIcon="Icons.Material.Filled.Login"
+                       OnClick="@(() => NavigationManager.NavigateTo("/login"))">
+                Login
+            </MudButton>
         }
     </MudAppBar>
     
@@ -82,6 +101,17 @@
         {
             Snackbar.Add($"Logout error: {ex.Message}", Severity.Error);
         }
+    }
+
+    private string GetRolesDisplayText()
+    {
+        if (_currentUser?.Roles == null || !_currentUser.Roles.Any())
+            return "No Role";
+        
+        if (_currentUser.Roles.Count == 1)
+            return _currentUser.Roles.First();
+        
+        return $"{_currentUser.Roles.Count} Roles";
     }
 
     public void Dispose()
