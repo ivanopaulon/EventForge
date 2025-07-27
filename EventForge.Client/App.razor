@@ -1,3 +1,8 @@
+@* EventForge Client App.razor - Main application routing configuration
+   Routing: Standard Blazor routing without forced authentication redirects
+   Landing page: "/" -> Home.razor (accessible without authentication)
+   Authentication: Handled per-page with [Authorize] attributes as needed *@
+
 @inject IAuthService AuthService
 @inject ITranslationService TranslationService
 @inject NavigationManager NavigationManager
@@ -13,8 +18,8 @@
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                 <NotAuthorized>
+                    @* Only redirect if not already on login page and accessing a protected route *@
                     @{
-                        // Only redirect if not already on login page
                         if (!NavigationManager.Uri.Contains("/login"))
                         {
                             NavigationManager.NavigateTo("/login");
@@ -77,28 +82,6 @@
 @code {
     protected override async Task OnInitializedAsync()
     {
-        // TEMPORARY DEBUG: Log available routes for diagnostics
-        Console.WriteLine("=== ROUTE DIAGNOSTICS START ===");
-        Console.WriteLine($"App.razor OnInitializedAsync - Current URI: {NavigationManager.Uri}");
-        Console.WriteLine($"App.razor OnInitializedAsync - Base URI: {NavigationManager.BaseUri}");
-        
-        // Get all available routes from the router
-        var assembly = typeof(App).Assembly;
-        var pageComponents = assembly.GetTypes()
-            .Where(t => t.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.RouteAttribute), false).Any())
-            .ToList();
-            
-        Console.WriteLine("Available routes:");
-        foreach (var component in pageComponents)
-        {
-            var routeAttributes = component.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.RouteAttribute), false);
-            foreach (Microsoft.AspNetCore.Components.RouteAttribute route in routeAttributes)
-            {
-                Console.WriteLine($"  - {route.Template} -> {component.Name}");
-            }
-        }
-        Console.WriteLine("=== ROUTE DIAGNOSTICS END ===");
-        
         // Initialize translation service
         try
         {
@@ -110,53 +93,20 @@
             Console.Error.WriteLine($"Translation service initialization error: {ex.Message}");
         }
         
-        // TEMPORARY DEBUG: Enhanced authentication state logging
-        Console.WriteLine("=== AUTH DIAGNOSTICS START ===");
-        var isAuthenticated = await AuthService.IsAuthenticatedAsync();
-        var currentUri = NavigationManager.Uri;
-        
-        Console.WriteLine($"App.razor - Authentication state: {isAuthenticated}");
-        Console.WriteLine($"App.razor - Current URI: {currentUri}");
-        Console.WriteLine($"App.razor - Contains '/login': {currentUri.Contains("/login")}");
-        
-        // If not authenticated and not on login page, redirect to login
-        if (!isAuthenticated && !currentUri.Contains("/login"))
-        {
-            Console.WriteLine($"App.razor - Redirecting to login from: {currentUri}");
-            NavigationManager.NavigateTo("/login");
-        }
-        else
-        {
-            Console.WriteLine($"App.razor - No redirect needed. Authenticated: {isAuthenticated}, On login: {currentUri.Contains("/login")}");
-        }
-        Console.WriteLine("=== AUTH DIAGNOSTICS END ===");
-        
-        // Subscribe to authentication state changes
+        // Subscribe to authentication state changes for protected routes
         AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
     }
 
     private async void OnAuthenticationStateChanged()
     {
-        // TEMPORARY DEBUG: Enhanced authentication state change logging
-        Console.WriteLine("=== AUTH STATE CHANGE DIAGNOSTICS START ===");
+        // Authentication state management for protected routes
+        // Note: Home page ("/") is accessible without authentication due to [AllowAnonymous]
         var isAuthenticated = await AuthService.IsAuthenticatedAsync();
         var currentUri = NavigationManager.Uri;
         
-        Console.WriteLine($"App.razor - Auth state changed. Authenticated: {isAuthenticated}");
-        Console.WriteLine($"App.razor - Current URI: {currentUri}");
-        Console.WriteLine($"App.razor - Contains '/login': {currentUri.Contains("/login")}");
-        
-        // If not authenticated and not on login page, redirect to login
-        if (!isAuthenticated && !currentUri.Contains("/login"))
-        {
-            Console.WriteLine($"App.razor - Auth state change: Redirecting to login from: {currentUri}");
-            NavigationManager.NavigateTo("/login");
-        }
-        else
-        {
-            Console.WriteLine($"App.razor - Auth state change: No redirect needed");
-        }
-        Console.WriteLine("=== AUTH STATE CHANGE DIAGNOSTICS END ===");
+        // Only redirect to login if on a protected route and not authenticated
+        // Home page and other [AllowAnonymous] pages should remain accessible
+        Console.WriteLine($"Auth state changed - Authenticated: {isAuthenticated}, URI: {currentUri}");
     }
 
     public void Dispose()
