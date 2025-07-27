@@ -1,5 +1,6 @@
 using EventForge.Server.DTOs.SuperAdmin;
 using EventForge.Server.DTOs.Tenants;
+using EventForge.Server.Data.Entities.Auth;
 
 namespace EventForge.Server.Services.Tenants;
 
@@ -120,7 +121,7 @@ public interface ITenantService
     /// <param name="tenantId">Tenant ID</param>
     /// <param name="updateDto">Updated limits data</param>
     /// <returns>Updated limits information</returns>
-    Task<TenantLimitsDto> UpdateTenantLimitsAsync(Guid tenantId, UpdateTenantLimitsDto updateDto);
+    Task<TenantLimitsDto> UpdateTenantLimitsAsync(Guid tenantId, EventForge.Server.DTOs.SuperAdmin.UpdateTenantLimitsDto updateDto);
 }
 
 /// <summary>

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
 using System.IO.Compression;
 using System.Text.Json;
+using EventForge.Server.DTOs.SuperAdmin;
 using EventForge.Server.Mappers;
 
 namespace EventForge.Server.Services.Configuration;
@@ -57,7 +58,7 @@ public class BackupService : IBackupService
         // Start backup process in background
         _ = Task.Run(async () => await PerformBackupAsync(backup.Id));
 
-        var result = BackupMapper.ToStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId));
+        var result = BackupMapper.ToServerStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId));
 
         return result;
     }
@@ -72,7 +73,7 @@ public class BackupService : IBackupService
             return null;
         }
 
-        var result = BackupMapper.ToStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId));
+        var result = BackupMapper.ToServerStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId));
 
         return result;
     }
@@ -88,7 +89,7 @@ public class BackupService : IBackupService
         
         foreach (var backup in backups)
         {
-            var dto = BackupMapper.ToStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId));
+            var dto = BackupMapper.ToServerStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId));
             results.Add(dto);
         }
 
@@ -316,7 +317,7 @@ public class BackupService : IBackupService
 
     private async Task NotifyBackupStatusChange(BackupOperation backup)
     {
-        var dto = BackupMapper.ToStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId));
+        var dto = BackupMapper.ToServerStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId));
         
         await _hubContext.Clients.Group("AuditLogUpdates")
             .SendAsync("BackupStatusChanged", dto);
