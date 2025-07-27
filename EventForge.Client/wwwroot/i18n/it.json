@@ -60,6 +60,13 @@
     "configuration": "Configurazione",
     "translationManagement": "Gestione Traduzioni"
   },
+  "home": {
+    "title": "EventForge - Home",
+    "healthCheck": "Controllo Integrità Sistema",
+    "healthStatus": "Stato Integrità",
+    "errorLoadingHealth": "Errore nel caricamento dello stato di integrità",
+    "noHealthData": "Nessun dato di integrità disponibile"
+  },
   "auth": {
     "login": "Accedi",
     "username": "Nome utente",
@@ -69,11 +76,14 @@
     "loginFailed": "Credenziali non valide",
     "loginSuccess": "Accesso completato con successo!",
     "loginError": "Errore di accesso: {0}",
+    "loginInProgress": "Accesso in corso...",
     "logout": "Disconnetti",
     "logoutSuccess": "Disconnessione avvenuta con successo",
     "authenticationRequired": "Autenticazione Richiesta",
     "pleaseLogin": "Effettuare l'accesso per accedere a questa pagina.",
-    "goToLogin": "Vai al Login"
+    "goToLogin": "Vai al Login",
+    "usernameRequired": "Il nome utente è obbligatorio",
+    "passwordRequired": "La password è obbligatoria"
   },
   "field": {
     "id": "ID",

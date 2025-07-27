@@ -60,6 +60,13 @@
     "configuration": "Configuration",
     "translationManagement": "Translation Management"
   },
+  "home": {
+    "title": "EventForge - Home",
+    "healthCheck": "System Health Check",
+    "healthStatus": "Health Status",
+    "errorLoadingHealth": "Error loading health status",
+    "noHealthData": "No health data available"
+  },
   "auth": {
     "login": "Login",
     "username": "Username",
@@ -69,11 +76,14 @@
     "loginFailed": "Invalid credentials",
     "loginSuccess": "Login successful!",
     "loginError": "Login error: {0}",
+    "loginInProgress": "Logging in...",
     "logout": "Logout",
     "logoutSuccess": "Successfully logged out",
     "authenticationRequired": "Authentication Required",
     "pleaseLogin": "Please log in to access this page.",
-    "goToLogin": "Go to Login"
+    "goToLogin": "Go to Login",
+    "usernameRequired": "Username is required",
+    "passwordRequired": "Password is required"
   },
   "field": {
     "id": "ID",
