@@ -183,6 +183,9 @@ app.UseAuthentication();
 app.UseCors();
 app.UseAuthorization();
 
+// Add authorization logging after authorization
+app.UseAuthorizationLogging();
+
 // Map API Controllers
 app.MapControllers();
 

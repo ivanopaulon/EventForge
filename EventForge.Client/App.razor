@@ -1,52 +1,109 @@
-﻿@inject IAuthService AuthService
+@inject IAuthService AuthService
 @inject NavigationManager NavigationManager
+@implements IDisposable
 
 <MudThemeProvider />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<Router AppAssembly="@typeof(App).Assembly">
-    <Found Context="routeData">
-        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
-            <NotAuthorized>
-                @{
-                    NavigationManager.NavigateTo("/login");
-                }
-            </NotAuthorized>
-        </AuthorizeRouteView>
-        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-    </Found>
-    <NotFound>
-        <PageTitle>Not found</PageTitle>
-        <LayoutView Layout="@typeof(MainLayout)">
-            <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
-                <MudPaper Class="pa-8" Elevation="4">
-                    <MudGrid Justify="Justify.Center">
-                        <MudItem xs="12">
-                            <div class="d-flex flex-column align-center">
-                                <MudIcon Icon="Icons.Material.Filled.QuestionMark" Color="Color.Warning" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
-                                <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">Page Not Found</MudText>
-                                <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
-                                    Sorry, there's nothing at this address.
-                                </MudText>
-                                <MudButton Variant="Variant.Filled" 
-                                           Color="Color.Primary" 
-                                           StartIcon="Icons.Material.Filled.Home"
-                                           OnClick="@(() => NavigationManager.NavigateTo("/login"))">
-                                    Return to Login
-                                </MudButton>
-                            </div>
-                        </MudItem>
-                    </MudGrid>
-                </MudPaper>
-            </MudContainer>
-        </LayoutView>
-    </NotFound>
-</Router>
-
 <CascadingAuthenticationState>
-    <AuthorizeView>
-        <!-- This will be used by AuthorizeRouteView -->
-    </AuthorizeView>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                    @{
+                        // Only redirect if not already on login page
+                        if (!NavigationManager.Uri.Contains("/login"))
+                        {
+                            NavigationManager.NavigateTo("/login");
+                        }
+                    }
+                    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+                        <MudPaper Class="pa-8" Elevation="4">
+                            <MudGrid Justify="Justify.Center">
+                                <MudItem xs="12">
+                                    <div class="d-flex flex-column align-center">
+                                        <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Warning" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
+                                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">Authentication Required</MudText>
+                                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
+                                            Please log in to access this page.
+                                        </MudText>
+                                        <MudButton Variant="Variant.Filled" 
+                                                   Color="Color.Primary" 
+                                                   StartIcon="Icons.Material.Filled.Login"
+                                                   OnClick="@(() => NavigationManager.NavigateTo("/login"))">
+                                            Go to Login
+                                        </MudButton>
+                                    </div>
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                    </MudContainer>
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <PageTitle>Not found</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+                    <MudPaper Class="pa-8" Elevation="4">
+                        <MudGrid Justify="Justify.Center">
+                            <MudItem xs="12">
+                                <div class="d-flex flex-column align-center">
+                                    <MudIcon Icon="Icons.Material.Filled.QuestionMark" Color="Color.Warning" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
+                                    <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">Page Not Found</MudText>
+                                    <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
+                                        Sorry, there's nothing at this address.
+                                    </MudText>
+                                    <MudButton Variant="Variant.Filled" 
+                                               Color="Color.Primary" 
+                                               StartIcon="Icons.Material.Filled.Home"
+                                               OnClick="@(() => NavigationManager.NavigateTo("/login"))">
+                                        Return to Login
+                                    </MudButton>
+                                </div>
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+                </MudContainer>
+            </LayoutView>
+        </NotFound>
+    </Router>
 </CascadingAuthenticationState>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // Check authentication state on app startup
+        var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        var currentUri = NavigationManager.Uri;
+        
+        // If not authenticated and not on login page, redirect to login
+        if (!isAuthenticated && !currentUri.Contains("/login"))
+        {
+            NavigationManager.NavigateTo("/login");
+        }
+        
+        // Subscribe to authentication state changes
+        AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
+    }
+
+    private async void OnAuthenticationStateChanged()
+    {
+        var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        var currentUri = NavigationManager.Uri;
+        
+        // If not authenticated and not on login page, redirect to login
+        if (!isAuthenticated && !currentUri.Contains("/login"))
+        {
+            NavigationManager.NavigateTo("/login");
+        }
+    }
+
+    public void Dispose()
+    {
+        AuthService.OnAuthenticationStateChanged -= OnAuthenticationStateChanged;
+    }
+}

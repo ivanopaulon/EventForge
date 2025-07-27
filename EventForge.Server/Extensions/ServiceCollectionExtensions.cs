@@ -279,15 +279,19 @@ public static class ServiceCollectionExtensions
             .AddPolicy("RequireUser", policy =>
                 policy.RequireAuthenticatedUser())
             .AddPolicy("RequireAdmin", policy =>
-                policy.RequireRole("Admin"))
+                policy.RequireRole("Admin", "SuperAdmin")) // SuperAdmin can also access Admin content
             .AddPolicy("RequireManager", policy =>
-                policy.RequireRole("Admin", "Manager"))
+                policy.RequireRole("Admin", "Manager", "SuperAdmin")) // SuperAdmin can access Manager content too
+            .AddPolicy("RequireSuperAdmin", policy =>
+                policy.RequireRole("SuperAdmin"))
             .AddPolicy("CanManageUsers", policy =>
                 policy.RequireClaim("permission", "Users.Users.Create", "Users.Users.Update", "Users.Users.Delete"))
             .AddPolicy("CanViewReports", policy =>
                 policy.RequireClaim("permission", "Reports.Reports.Read"))
             .AddPolicy("CanManageEvents", policy =>
-                policy.RequireClaim("permission", "Events.Events.Create", "Events.Events.Update", "Events.Events.Delete"));
+                policy.RequireClaim("permission", "Events.Events.Create", "Events.Events.Update", "Events.Events.Delete"))
+            .AddPolicy("AdminOrSuperAdmin", policy =>
+                policy.RequireRole("Admin", "SuperAdmin")); // Explicit policy for Admin or SuperAdmin access
 
         Log.Information("Authorization policies configured successfully");
     }

@@ -57,7 +57,19 @@ else
                                 <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                     You are logged in as: @(_currentUser?.Username)
                                 </MudText>
-                                <MudChip T="string" Color="Color.Success" Size="Size.Small" Class="mt-2">Admin User</MudChip>
+                                @if (_currentUser?.Roles?.Any() == true)
+                                {
+                                    <div class="mt-2">
+                                        @foreach (var role in _currentUser.Roles)
+                                        {
+                                            <MudChip T="string" Color="Color.Success" Size="Size.Small" Class="mr-1">@role</MudChip>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Color="Color.Success" Size="Size.Small" Class="mt-2">Admin User</MudChip>
+                                }
                             </div>
                         </div>
                     </MudCardContent>
@@ -188,9 +200,9 @@ else
                 return;
             }
 
-            // Check if user has Admin role
-            var isAdmin = await AuthService.IsInRoleAsync("Admin");
-            if (!isAdmin)
+            // Check if user has Admin or SuperAdmin role
+            var isAuthorized = await AuthService.IsAdminOrSuperAdminAsync();
+            if (!isAuthorized)
             {
                 _isAuthorized = false;
                 _isLoading = false;
