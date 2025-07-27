@@ -1,4 +1,3 @@
-using EventForge.Server.Mappings;
 using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.Banks;
 using EventForge.Server.Services.Business;
@@ -120,12 +119,6 @@ public static class ServiceCollectionExtensions
             Log.Error(ex, "Errore durante la configurazione del DbContext.");
             throw;
         }
-
-        // Register AutoMapper manually
-        services.AddAutoMapper(config =>
-        {
-            config.AddProfile<MappingProfile>();
-        });
 
         // Register audit services
         services.AddScoped<IAuditLogService, AuditLogService>();

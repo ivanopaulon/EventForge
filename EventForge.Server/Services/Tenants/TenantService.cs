@@ -1,4 +1,3 @@
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using AuthAuditOperationType = EventForge.Server.Data.Entities.Auth.AuditOperationType;
@@ -7,6 +6,7 @@ using EventForge.Server.DTOs.Tenants;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Auth;
 using EventForge.Server.Services.Auth;
+using EventForge.Server.Mappers;
 
 namespace EventForge.Server.Services.Tenants;
 
@@ -18,20 +18,17 @@ public class TenantService : ITenantService
     private readonly EventForgeDbContext _context;
     private readonly ITenantContext _tenantContext;
     private readonly IPasswordService _passwordService;
-    private readonly IMapper _mapper;
     private readonly ILogger<TenantService> _logger;
 
     public TenantService(
         EventForgeDbContext context,
         ITenantContext tenantContext,
         IPasswordService passwordService,
-        IMapper mapper,
         ILogger<TenantService> logger)
     {
         _context = context;
         _tenantContext = tenantContext;
         _passwordService = passwordService;
-        _mapper = mapper;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -137,7 +134,7 @@ public class TenantService : ITenantService
                 _logger.LogError(ex, "Errore durante la scrittura dell'audit trail per la creazione tenant.");
             }
 
-            var response = _mapper.Map<TenantResponseDto>(tenant);
+            var response = TenantMapper.ToResponseDto(tenant);
             response.AdminUser = new TenantAdminResponseDto
             {
                 UserId = adminUser.Id,
@@ -174,7 +171,7 @@ public class TenantService : ITenantService
             var tenant = await _context.Tenants
                 .FirstOrDefaultAsync(t => t.Id == tenantId);
 
-            return tenant != null ? _mapper.Map<TenantResponseDto>(tenant) : null;
+            return tenant != null ? TenantMapper.ToResponseDto(tenant) : null;
         }
         catch (Exception ex)
         {
@@ -197,7 +194,7 @@ public class TenantService : ITenantService
                 .OrderBy(t => t.Name)
                 .ToListAsync();
 
-            return _mapper.Map<IEnumerable<TenantResponseDto>>(tenants);
+            return TenantMapper.ToResponseDtoCollection(tenants);
         }
         catch (Exception ex)
         {
@@ -225,7 +222,23 @@ public class TenantService : ITenantService
                 throw new ArgumentException($"Tenant {tenantId} not found.");
             }
 
-            var originalTenant = _mapper.Map<Tenant>(tenant);
+            // Create copy for audit purposes
+            var originalTenant = new Tenant
+            {
+                Id = tenant.Id,
+                Name = tenant.Name,
+                DisplayName = tenant.DisplayName,
+                Description = tenant.Description,
+                Domain = tenant.Domain,
+                ContactEmail = tenant.ContactEmail,
+                MaxUsers = tenant.MaxUsers,
+                IsEnabled = tenant.IsEnabled,
+                SubscriptionExpiresAt = tenant.SubscriptionExpiresAt,
+                CreatedAt = tenant.CreatedAt,
+                CreatedBy = tenant.CreatedBy,
+                ModifiedAt = tenant.ModifiedAt,
+                ModifiedBy = tenant.ModifiedBy
+            };
 
             tenant.DisplayName = updateDto.DisplayName;
             tenant.Description = updateDto.Description;
@@ -261,7 +274,7 @@ public class TenantService : ITenantService
                 _logger.LogError(ex, "Errore durante la scrittura dell'audit trail per l'aggiornamento tenant.");
             }
 
-            return _mapper.Map<TenantResponseDto>(tenant);
+            return TenantMapper.ToResponseDto(tenant);
         }
         catch (Exception ex)
         {
@@ -288,7 +301,23 @@ public class TenantService : ITenantService
                 throw new ArgumentException($"Tenant {tenantId} not found.");
             }
 
-            var originalTenant = _mapper.Map<Tenant>(tenant);
+            // Create copy for audit purposes
+            var originalTenant = new Tenant
+            {
+                Id = tenant.Id,
+                Name = tenant.Name,
+                DisplayName = tenant.DisplayName,
+                Description = tenant.Description,
+                Domain = tenant.Domain,
+                ContactEmail = tenant.ContactEmail,
+                MaxUsers = tenant.MaxUsers,
+                IsEnabled = tenant.IsEnabled,
+                SubscriptionExpiresAt = tenant.SubscriptionExpiresAt,
+                CreatedAt = tenant.CreatedAt,
+                CreatedBy = tenant.CreatedBy,
+                ModifiedAt = tenant.ModifiedAt,
+                ModifiedBy = tenant.ModifiedBy
+            };
 
             tenant.IsEnabled = isEnabled;
             tenant.ModifiedAt = DateTime.UtcNow;
@@ -426,7 +455,20 @@ public class TenantService : ITenantService
                 throw new ArgumentException($"Admin mapping not found for user {userId} and tenant {tenantId}.");
             }
 
-            var originalAdminTenant = _mapper.Map<AdminTenant>(adminTenant);
+            // Create copy for audit purposes
+            var originalAdminTenant = new AdminTenant
+            {
+                Id = adminTenant.Id,
+                UserId = adminTenant.UserId,
+                ManagedTenantId = adminTenant.ManagedTenantId,
+                AccessLevel = adminTenant.AccessLevel,
+                GrantedAt = adminTenant.GrantedAt,
+                ExpiresAt = adminTenant.ExpiresAt,
+                CreatedAt = adminTenant.CreatedAt,
+                CreatedBy = adminTenant.CreatedBy,
+                ModifiedAt = adminTenant.ModifiedAt,
+                ModifiedBy = adminTenant.ModifiedBy
+            };
 
             _context.AdminTenants.Remove(adminTenant);
             await _context.SaveChangesAsync();
@@ -513,7 +555,28 @@ public class TenantService : ITenantService
                 throw new ArgumentException($"User {userId} not found.");
             }
 
-            var originalUser = _mapper.Map<User>(user);
+            // Create copy for audit purposes
+            var originalUser = new User
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                PasswordHash = user.PasswordHash,
+                PasswordSalt = user.PasswordSalt,
+                MustChangePassword = user.MustChangePassword,
+                PasswordChangedAt = user.PasswordChangedAt,
+                FailedLoginAttempts = user.FailedLoginAttempts,
+                LockedUntil = user.LockedUntil,
+                LastLoginAt = user.LastLoginAt,
+                LastFailedLoginAt = user.LastFailedLoginAt,
+                IsActive = user.IsActive,
+                CreatedAt = user.CreatedAt,
+                CreatedBy = user.CreatedBy,
+                ModifiedAt = user.ModifiedAt,
+                ModifiedBy = user.ModifiedBy
+            };
 
             user.MustChangePassword = true;
             user.ModifiedAt = DateTime.UtcNow;

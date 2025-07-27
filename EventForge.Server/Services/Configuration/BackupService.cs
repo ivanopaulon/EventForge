@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
-using AutoMapper;
 using System.IO.Compression;
 using System.Text.Json;
+using EventForge.Server.Mappers;
 
 namespace EventForge.Server.Services.Configuration;
 
@@ -12,7 +12,6 @@ namespace EventForge.Server.Services.Configuration;
 public class BackupService : IBackupService
 {
     private readonly EventForgeDbContext _context;
-    private readonly IMapper _mapper;
     private readonly ITenantContext _tenantContext;
     private readonly IHubContext<AuditLogHub> _hubContext;
     private readonly ILogger<BackupService> _logger;
@@ -20,14 +19,12 @@ public class BackupService : IBackupService
 
     public BackupService(
         EventForgeDbContext context,
-        IMapper mapper,
         ITenantContext tenantContext,
         IHubContext<AuditLogHub> hubContext,
         ILogger<BackupService> logger,
         IWebHostEnvironment environment)
     {
         _context = context;
-        _mapper = mapper;
         _tenantContext = tenantContext;
         _hubContext = hubContext;
         _logger = logger;
@@ -60,8 +57,7 @@ public class BackupService : IBackupService
         // Start backup process in background
         _ = Task.Run(async () => await PerformBackupAsync(backup.Id));
 
-        var result = _mapper.Map<BackupStatusDto>(backup);
-        result.StartedBy = await GetUserDisplayNameAsync(backup.StartedByUserId);
+        var result = BackupMapper.ToStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId));
 
         return result;
     }
@@ -76,8 +72,7 @@ public class BackupService : IBackupService
             return null;
         }
 
-        var result = _mapper.Map<BackupStatusDto>(backup);
-        result.StartedBy = await GetUserDisplayNameAsync(backup.StartedByUserId);
+        var result = BackupMapper.ToStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId));
 
         return result;
     }
@@ -93,8 +88,7 @@ public class BackupService : IBackupService
         
         foreach (var backup in backups)
         {
-            var dto = _mapper.Map<BackupStatusDto>(backup);
-            dto.StartedBy = await GetUserDisplayNameAsync(backup.StartedByUserId);
+            var dto = BackupMapper.ToStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId));
             results.Add(dto);
         }
 
@@ -322,8 +316,7 @@ public class BackupService : IBackupService
 
     private async Task NotifyBackupStatusChange(BackupOperation backup)
     {
-        var dto = _mapper.Map<BackupStatusDto>(backup);
-        dto.StartedBy = await GetUserDisplayNameAsync(backup.StartedByUserId);
+        var dto = BackupMapper.ToStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId));
         
         await _hubContext.Clients.Group("AuditLogUpdates")
             .SendAsync("BackupStatusChanged", dto);
