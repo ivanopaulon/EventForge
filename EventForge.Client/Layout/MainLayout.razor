@@ -10,43 +10,66 @@
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" />
 
 <MudLayout>
-    <MudAppBar Elevation="1">
-        <MudIconButton Icon="Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@(() => _drawerOpen = !_drawerOpen)" />
+    <!-- Improved AppBar with accessibility enhancements -->
+    <MudAppBar Elevation="1" role="banner">
+        <MudIconButton Icon="Icons.Material.Filled.Menu" 
+                       Color="Color.Inherit" 
+                       Edge="Edge.Start" 
+                       OnClick="@(() => _drawerOpen = !_drawerOpen)"
+                       aria-label="Apri menu di navigazione"
+                       aria-expanded="@_drawerOpen"
+                       aria-controls="navigation-drawer" />
         <MudSpacer />
-        <!-- Updated to use trace.svg logo instead of text-only branding -->
-        <div class="d-flex align-center">
-            <MudImage Src="trace.svg" Alt="EventForge Logo" Height="32" Width="32" Class="mr-2" />
-            <MudText Typo="Typo.h6">EventForge</MudText>
+        
+        <!-- Logo and brand with improved accessibility -->
+        <div class="d-flex align-center" role="img" aria-label="EventForge Logo">
+            <MudImage Src="trace.svg" 
+                      Alt="EventForge Logo" 
+                      Height="32" 
+                      Width="32" 
+                      Class="mr-2" />
+            <MudText Typo="Typo.h6" 
+                     Class="d-none d-sm-block"
+                     aria-hidden="true">
+                EventForge
+            </MudText>
         </div>
         <MudSpacer />
         
         @if (_isAuthenticated)
         {
-            <div class="d-flex align-center ga-2">
-                <!-- Language Selector -->
-                <LanguageSelector Dense="true" />
-               
+            <!-- Responsive user controls -->
+            <nav class="d-flex align-center ga-2" role="navigation" aria-label="User controls">
+                <!-- Language Selector - hide on small screens -->
+                <div class="d-none d-md-block">
+                    <LanguageSelector Dense="true" />
+                </div>
                 
-                <!-- Theme Toggle Button -->
+                <!-- Theme Toggle Button with improved accessibility -->
                 <MudTooltip Text="@(ThemeService.IsDarkMode ? ButtonLabels.LightMode : ButtonLabels.DarkMode)">
                     <MudIconButton Icon="@(ThemeService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
                                    Color="Color.Inherit"
-                                   OnClick="@ToggleTheme" />
+                                   OnClick="@ToggleTheme"
+                                   aria-label="@(ThemeService.IsDarkMode ? "Passa al tema chiaro" : "Passa al tema scuro")" />
                 </MudTooltip>
                 
                 @if (_currentUser != null)
                 {
-                    <!-- User Profile Menu -->
+                    <!-- User Profile Menu with responsive layout -->
                     <MudMenu Icon="@Icons.Material.Filled.AccountCircle" 
                              Color="Color.Inherit" 
                              Direction="Origin.BottomLeft"
                              OffsetX="true"
-                             Dense="true">
+                             Dense="true"
+                             aria-label="Menu utente">
                         <ActivatorContent>
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                <MudAvatar Color="Color.Primary" Size="Size.Small">
+                                <MudAvatar Color="Color.Primary" 
+                                           Size="Size.Small"
+                                           aria-label="Avatar utente">
                                     @GetUserInitials()
                                 </MudAvatar>
+                                <!-- User info - responsive visibility -->
                                 <div class="d-none d-sm-flex flex-column">
                                     <MudText Typo="Typo.body2" Class="ma-0">@_currentUser.FullName</MudText>
                                     @if (_currentUser.Roles?.Any() == true)
@@ -58,39 +81,56 @@
                                                  Text="@GetRolesDisplayText()" />
                                     }
                                 </div>
-                                <MudIcon Icon="@Icons.Material.Filled.ArrowDropDown" Size="Size.Small" />
+                                <MudIcon Icon="@Icons.Material.Filled.ArrowDropDown" 
+                                         Size="Size.Small" 
+                                         aria-hidden="true" />
                             </MudStack>
                         </ActivatorContent>
                         <ChildContent>
                             <MudMenuItem Icon="@Icons.Material.Filled.Person" 
-                                         OnClick="@(() => NavigationManager.NavigateTo("/profile"))">
+                                         OnClick="@(() => NavigationManager.NavigateTo("/profile"))"
+                                         aria-label="Vai al profilo utente">
                                 @ButtonLabels.Profile
                             </MudMenuItem>
                             <MudMenuItem Icon="@Icons.Material.Filled.Settings" 
-                                         OnClick="@(() => NavigationManager.NavigateTo("/settings"))">
+                                         OnClick="@(() => NavigationManager.NavigateTo("/settings"))"
+                                         aria-label="Vai alle impostazioni">
                                 @ButtonLabels.Settings
                             </MudMenuItem>
+                            
+                            <!-- Mobile-only language selector -->
+                            <div class="d-block d-md-none">
+                                <MudDivider />
+                                <MudMenuItem Icon="@Icons.Material.Filled.Language">
+                                    <LanguageSelector Dense="true" />
+                                </MudMenuItem>
+                            </div>
+                            
                             <MudDivider />
                             <MudMenuItem Icon="@(ThemeService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
-                                         OnClick="@ToggleTheme">
+                                         OnClick="@ToggleTheme"
+                                         aria-label="@(ThemeService.IsDarkMode ? "Passa al tema chiaro" : "Passa al tema scuro")">
                                 @(ThemeService.IsDarkMode ? ButtonLabels.LightMode : ButtonLabels.DarkMode)
                             </MudMenuItem>
                             <MudDivider />
                             <MudMenuItem Icon="@Icons.Material.Filled.Logout" 
-                                         OnClick="@HandleLogout">
+                                         OnClick="@HandleLogout"
+                                         aria-label="Esci dal sistema">
                                 @ButtonLabels.Logout
                             </MudMenuItem>
                         </ChildContent>
                     </MudMenu>
                 }
-            </div>
+            </nav>
         }
         else
         {
+            <!-- Login button for unauthenticated users -->
             <MudButton Variant="Variant.Text" 
                        Color="Color.Inherit" 
                        StartIcon="Icons.Material.Filled.Login"
-                       OnClick="@(() => NavigationManager.NavigateTo("/login"))">
+                       OnClick="@(() => NavigationManager.NavigateTo("/login"))"
+                       aria-label="Accedi al sistema">
                 @ButtonLabels.Login
             </MudButton>
         }
@@ -98,15 +138,30 @@
     
     @if (_isAuthenticated)
     {
-        <MudDrawer @bind-Open="@_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+        <!-- Navigation drawer with accessibility improvements -->
+        <MudDrawer @bind-Open="@_drawerOpen" 
+                   ClipMode="DrawerClipMode.Always" 
+                   Elevation="2"
+                   id="navigation-drawer"
+                   aria-label="Menu di navigazione principale">
             <NavMenu />
         </MudDrawer>
     }
     
-    <MudMainContent Class="mt-16 pa-4">
-        <CustomErrorBoundary OnError="HandleError">
-            @Body
-        </CustomErrorBoundary>
+    <!-- Main content area with proper semantic structure -->
+    <MudMainContent Class="mt-16 pa-2 pa-sm-4" role="main">
+        <!-- Skip link for accessibility -->
+        <a href="#main-content" 
+           class="sr-only sr-only-focusable position-absolute" 
+           style="top: 1rem; left: 1rem; z-index: 9999;">
+            Vai al contenuto principale
+        </a>
+        
+        <div id="main-content" tabindex="-1">
+            <CustomErrorBoundary OnError="HandleError">
+                @Body
+            </CustomErrorBoundary>
+        </div>
     </MudMainContent>
 </MudLayout>
 

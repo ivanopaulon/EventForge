@@ -20,10 +20,36 @@
     border: 0 !important;
 }
 
+/* Enhanced focus styles for better accessibility */
+.sr-only-focusable:focus {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    padding: 0.5rem !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    clip: auto !important;
+    white-space: normal !important;
+    background-color: var(--button-primary-bg) !important;
+    color: var(--button-primary-text) !important;
+    text-decoration: none !important;
+    border-radius: var(--radius-sm) !important;
+}
+
 /* Focus improvements for better accessibility */
 *:focus {
     outline: 2px solid var(--form-focus-border) !important;
     outline-offset: 2px !important;
+}
+
+/* Enhanced focus for interactive elements */
+.mud-button:focus,
+.mud-icon-button:focus,
+.mud-input:focus-within,
+.mud-select:focus-within {
+    outline: 3px solid var(--form-focus-border) !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 2px var(--background-secondary), 0 0 0 4px var(--form-focus-border) !important;
 }
 
 /* Skip link for keyboard navigation */
@@ -46,6 +72,26 @@
 /* Improve contrast for disabled elements */
 .mud-disabled {
     opacity: 0.6 !important;
+}
+
+/* Responsive text sizing */
+@media (max-width: 768px) {
+    .responsive-text-sm {
+        font-size: 0.875rem !important;
+    }
+    
+    .responsive-text-xs {
+        font-size: 0.75rem !important;
+    }
+}
+
+/* Mobile-friendly touch targets */
+@media (max-width: 768px) {
+    .mud-button,
+    .mud-icon-button {
+        min-height: 44px !important;
+        min-width: 44px !important;
+    }
 }
 
 /* High contrast mode support */
