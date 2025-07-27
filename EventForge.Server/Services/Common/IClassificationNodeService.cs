@@ -1,4 +1,4 @@
-using EventForge.Server.DTOs.Common;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Services.Common;
 
