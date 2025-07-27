@@ -219,43 +219,26 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // TEMPORARY DEBUG: Comprehensive Login component diagnostics
-        Console.WriteLine("=== LOGIN COMPONENT DIAGNOSTICS START ===");
-        Console.WriteLine("🎯 LOGIN PAGE RENDERED - OnInitializedAsync called");
-        Console.WriteLine($"📍 Current URI: {NavigationManager.Uri}");
-        Console.WriteLine($"🔗 Base URI: {NavigationManager.BaseUri}");
-        Console.WriteLine($"⏰ Component initialization time: {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
-        
         // Check if user is already authenticated
         try 
         {
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
-            Console.WriteLine($"🔐 Authentication status: {isAuthenticated}");
             
             if (isAuthenticated)
             {
-                Console.WriteLine("✅ User already authenticated, checking roles...");
                 // Check if user is admin and redirect accordingly
                 var isAdmin = await AuthService.IsInRoleAsync("Admin");
-                Console.WriteLine($"👑 Admin role: {isAdmin}");
-                Console.WriteLine($"🔄 Redirecting to: {(isAdmin ? "/admin" : "/admin")}");
                 NavigationManager.NavigateTo(isAdmin ? "/admin" : "/admin");
                 return;
-            }
-            else
-            {
-                Console.WriteLine("❌ User not authenticated, staying on login page");
             }
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"❗ Error checking authentication: {ex.Message}");
-            Console.Error.WriteLine($"❗ Stack trace: {ex.StackTrace}");
+            // Log error silently, don't show to user on login page
+            Console.Error.WriteLine($"Error checking authentication: {ex.Message}");
         }
         
-        Console.WriteLine("🏥 Loading health status...");
         await LoadHealthStatus();
-        Console.WriteLine("=== LOGIN COMPONENT DIAGNOSTICS END ===");
     }
 
     private async Task LoadHealthStatus()

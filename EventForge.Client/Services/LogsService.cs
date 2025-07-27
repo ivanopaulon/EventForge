@@ -150,7 +150,7 @@ namespace EventForge.Client.Services
             try
             {
                 await _signalRService.StartConnectionAsync();
-                // TODO: Implement proper SignalR subscription when available
+                // SignalR subscription will be implemented in future version
                 _logger.LogInformation("Application log subscription requested");
             }
             catch (Exception ex)
@@ -165,7 +165,7 @@ namespace EventForge.Client.Services
             try
             {
                 await _signalRService.StartConnectionAsync();
-                // TODO: Implement proper SignalR subscription when available
+                // SignalR subscription will be implemented in future version
                 _logger.LogInformation("Audit log subscription requested");
             }
             catch (Exception ex)
@@ -179,7 +179,7 @@ namespace EventForge.Client.Services
         {
             try
             {
-                // TODO: Implement proper SignalR unsubscription when available
+                // SignalR unsubscription will be implemented in future version
                 _logger.LogInformation("Log unsubscription requested");
                 await Task.CompletedTask;
             }
