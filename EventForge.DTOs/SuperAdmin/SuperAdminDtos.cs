@@ -267,40 +267,6 @@ namespace EventForge.DTOs.SuperAdmin
     }
 
     /// <summary>
-    /// DTO for audit log statistics.
-    /// </summary>
-    public class AuditLogStatisticsDto
-    {
-        public int TotalLogs { get; set; }
-        public int LogsToday { get; set; }
-        public int LogsThisWeek { get; set; }
-        public int LogsThisMonth { get; set; }
-        public int CriticalOperations { get; set; }
-        public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
-    }
-
-    /// <summary>
-    /// DTO for entity change log.
-    /// </summary>
-    public class EntityChangeLog
-    {
-        public Guid Id { get; set; }
-        public DateTime Timestamp { get; set; }
-        public string Operation { get; set; } = string.Empty;
-        public string EntityType { get; set; } = string.Empty;
-        public string EntityId { get; set; } = string.Empty;
-        public string? OldValues { get; set; }
-        public string? NewValues { get; set; }
-        public Guid? UserId { get; set; }
-        public string? UserName { get; set; }
-        public Guid? TenantId { get; set; }
-        public string? TenantName { get; set; }
-        public string? IpAddress { get; set; }
-        public string? UserAgent { get; set; }
-        public Dictionary<string, object> Properties { get; set; } = new Dictionary<string, object>();
-    }
-
-    /// <summary>
     /// DTO for translation management.
     /// </summary>
     public class TranslationDto
