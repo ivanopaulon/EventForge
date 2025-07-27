@@ -1,5 +1,7 @@
 using EventForge.Server.DTOs.Warehouse;
 using EventForge.Server.Services.Audit;
+using EventForge.Server.Services.Tenants;
+using EventForge.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Warehouse;
@@ -11,12 +13,14 @@ public class StorageFacilityService : IStorageFacilityService
 {
     private readonly EventForgeDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<StorageFacilityService> _logger;
 
-    public StorageFacilityService(EventForgeDbContext context, IAuditLogService auditLogService, ILogger<StorageFacilityService> logger)
+    public StorageFacilityService(EventForgeDbContext context, IAuditLogService auditLogService, ITenantContext tenantContext, ILogger<StorageFacilityService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -24,9 +28,16 @@ public class StorageFacilityService : IStorageFacilityService
     {
         try
         {
+            // TODO: Add automated tests for tenant isolation in storage facility queries
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for storage facility operations.");
+            }
+
             var query = _context.StorageFacilities
-                .Where(sf => !sf.IsDeleted)
-                .Include(sf => sf.Locations);
+                .WhereActiveTenant(currentTenantId.Value)
+                .Include(sf => sf.Locations.Where(l => !l.IsDeleted && l.TenantId == currentTenantId.Value));
 
             var totalCount = await query.CountAsync(cancellationToken);
             var facilities = await query

@@ -1,5 +1,7 @@
 using EventForge.Server.DTOs.Promotions;
 using EventForge.Server.Services.Audit;
+using EventForge.Server.Services.Tenants;
+using EventForge.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Promotions;
@@ -11,12 +13,14 @@ public class PromotionService : IPromotionService
 {
     private readonly EventForgeDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<PromotionService> _logger;
 
-    public PromotionService(EventForgeDbContext context, IAuditLogService auditLogService, ILogger<PromotionService> logger)
+    public PromotionService(EventForgeDbContext context, IAuditLogService auditLogService, ITenantContext tenantContext, ILogger<PromotionService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -24,8 +28,16 @@ public class PromotionService : IPromotionService
     {
         try
         {
+            // TODO: Add automated tests for tenant isolation in promotion queries
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for promotion operations.");
+            }
+
             var query = _context.Promotions
-                .Where(p => !p.IsDeleted);
+                .WhereActiveTenant(currentTenantId.Value)
+                .Include(p => p.Rules.Where(pr => !pr.IsDeleted && pr.TenantId == currentTenantId.Value));
 
             var totalCount = await query.CountAsync(cancellationToken);
             var promotions = await query
