@@ -143,6 +143,7 @@ namespace EventForge.DTOs.SuperAdmin
         public DateTime? CompletedAt { get; set; }
         public string? ErrorMessage { get; set; }
         public long? FileSizeBytes { get; set; }
+        public string StartedByUserName { get; set; } = string.Empty;
     }
 
     /// <summary>

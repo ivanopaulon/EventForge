@@ -167,5 +167,17 @@ namespace EventForge.DTOs.Auth
         /// </summary>
         [Display(Name = "Permissions", Description = "User permissions.")]
         public IList<string> Permissions { get; set; } = new List<string>();
+
+        /// <summary>
+        /// Date and time when the user was created (UTC).
+        /// </summary>
+        [Display(Name = "Created At", Description = "Date and time when the user was created (UTC).")]
+        public DateTime CreatedAt { get; set; }
+
+        /// <summary>
+        /// Date and time when the user was last modified (UTC).
+        /// </summary>
+        [Display(Name = "Modified At", Description = "Date and time when the user was last modified (UTC).")]
+        public DateTime? ModifiedAt { get; set; }
     }
 }
