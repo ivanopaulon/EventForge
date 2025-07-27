@@ -1,0 +1,100 @@
+@using MudBlazor
+@using EventForge.DTOs.SuperAdmin
+
+<MudDialog>
+    <DialogContent>
+        <MudContainer Style="max-width: 600px;">
+            <MudText Typo="Typo.h6" Class="mb-4">Dettagli Utente</MudText>
+            
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@User.FirstName"
+                                  Label="Nome"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@User.LastName"
+                                  Label="Cognome"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@User.Username"
+                                  Label="Username"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@User.Email"
+                                  Label="Email"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@(User.TenantName ?? "N/A")"
+                                  Label="Tenant"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudChip T="string" Color="@(User.IsActive ? Color.Success : Color.Error)" 
+                             Size="Size.Medium">
+                        @(User.IsActive ? "Attivo" : "Inattivo")
+                    </MudChip>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle1" Class="mb-3">Ruoli</MudText>
+                    <div class="d-flex flex-wrap ga-2">
+                        @foreach (var role in User.Roles)
+                        {
+                            <MudChip T="string" Color="@GetRoleColor(role)" Size="Size.Small">
+                                @role
+                            </MudChip>
+                        }
+                    </div>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@User.Id.ToString()"
+                                  Label="ID Utente"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@User.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                  Label="Data Creazione"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField Value="@(User.LastLoginAt?.ToString("dd/MM/yyyy HH:mm") ?? "Mai effettuato")"
+                                  Label="Ultimo Accesso"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true" />
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="Close">Chiudi</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private dynamic? MudDialog { get; set; }
+    [Parameter] public UserManagementDto User { get; set; } = null!;
+
+    private void Close() => MudDialog?.Close();
+
+    private Color GetRoleColor(string role)
+    {
+        return role.ToLower() switch
+        {
+            "superadmin" => Color.Error,
+            "admin" => Color.Warning,
+            "manager" => Color.Info,
+            "user" => Color.Primary,
+            _ => Color.Default
+        };
+    }
+}

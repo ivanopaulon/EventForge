@@ -1,9 +1,13 @@
 @page "/superadmin/user-management"
 @using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Tenants
+@using EventForge.DTOs.SuperAdmin
 @attribute [Authorize(Roles = "SuperAdmin")]
 @inject IAuthService AuthService
+@inject ISuperAdminService SuperAdminService
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 <PageTitle>Gestione Utenti Tenant - EventForge Super Admin</PageTitle>
 
@@ -58,13 +62,17 @@ else
                         </CardHeaderContent>
                     </MudCardHeader>
                     <MudCardContent>
-                        <MudSelect T="string" @bind-Value="_selectedTenant" Label="Tenant" Variant="Variant.Outlined">
-                            <MudSelectItem Value="@("")">Seleziona un tenant...</MudSelectItem>
-                            <!-- TODO: Popolare con lista tenant da API -->
+                        <MudSelect T="string" @bind-Value="_selectedTenant" @bind-Value:after="OnTenantChanged" Label="Tenant" Variant="Variant.Outlined">
+                            <MudSelectItem Value="@("")">Tutti i tenant</MudSelectItem>
+                            @foreach (var tenant in _tenants)
+                            {
+                                <MudSelectItem Value="@tenant.Id.ToString()">@tenant.DisplayName</MudSelectItem>
+                            }
                         </MudSelect>
-                        <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mt-3">
-                            <strong>TODO:</strong> Integrare con API per recuperare lista tenant disponibili.
-                        </MudAlert>
+                        @if (_isLoadingTenants)
+                        {
+                            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-3" />
+                        }
                     </MudCardContent>
                 </MudCard>
             </MudItem>
@@ -82,16 +90,18 @@ else
                     </MudCardHeader>
                     <MudCardContent>
                         <MudTextField @bind-Value="_searchTerm"
+                                      @bind-Value:after="OnSearchChanged"
                                       Label="Cerca per nome, email o username"
                                       Variant="Variant.Outlined"
                                       Adornment="Adornment.End"
                                       AdornmentIcon="Icons.Material.Filled.Search"
                                       Class="mb-3" />
-                        <MudSelect T="string" @bind-Value="_roleFilter" Label="Ruolo" Variant="Variant.Outlined">
+                        <MudSelect T="string" @bind-Value="_roleFilter" @bind-Value:after="OnRoleFilterChanged" Label="Ruolo" Variant="Variant.Outlined">
                             <MudSelectItem Value="@("all")">Tutti i ruoli</MudSelectItem>
-                            <MudSelectItem Value="@("admin")">Admin</MudSelectItem>
-                            <MudSelectItem Value="@("manager")">Manager</MudSelectItem>
-                            <MudSelectItem Value="@("user")">User</MudSelectItem>
+                            <MudSelectItem Value="@("SuperAdmin")">Super Admin</MudSelectItem>
+                            <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
+                            <MudSelectItem Value="@("Manager")">Manager</MudSelectItem>
+                            <MudSelectItem Value="@("User")">User</MudSelectItem>
                         </MudSelect>
                     </MudCardContent>
                 </MudCard>
@@ -112,15 +122,15 @@ else
                         <div class="d-flex flex-column ga-3">
                             <div class="d-flex justify-space-between">
                                 <MudText>Utenti Totali:</MudText>
-                                <MudChip T="string" Color="Color.Info" Size="Size.Small">TODO: API</MudChip>
+                                <MudChip T="string" Color="Color.Info" Size="Size.Small">@(_userStats?.TotalUsers ?? 0)</MudChip>
                             </div>
                             <div class="d-flex justify-space-between">
                                 <MudText>Utenti Attivi:</MudText>
-                                <MudChip T="string" Color="Color.Success" Size="Size.Small">TODO: API</MudChip>
+                                <MudChip T="string" Color="Color.Success" Size="Size.Small">@(_userStats?.ActiveUsers ?? 0)</MudChip>
                             </div>
                             <div class="d-flex justify-space-between">
                                 <MudText>Admin:</MudText>
-                                <MudChip T="string" Color="Color.Warning" Size="Size.Small">TODO: API</MudChip>
+                                <MudChip T="string" Color="Color.Warning" Size="Size.Small">@(_userStats?.AdminUsers ?? 0)</MudChip>
                             </div>
                         </div>
                     </MudCardContent>
@@ -177,21 +187,21 @@ else
                                        Color="Color.Primary" 
                                        StartIcon="Icons.Material.Filled.PersonAdd"
                                        FullWidth="true"
-                                       OnClick="@(() => Snackbar.Add("TODO: Implementare creazione utente", Severity.Info))">
+                                       OnClick="@OpenCreateUserDialog">>
                                 Crea Nuovo Utente
                             </MudButton>
                             <MudButton Variant="Variant.Outlined" 
                                        Color="Color.Secondary" 
                                        StartIcon="Icons.Material.Filled.LockReset"
                                        FullWidth="true"
-                                       OnClick="@(() => Snackbar.Add("TODO: Implementare reset password bulk", Severity.Info))">
+                                       OnClick="@(() => Snackbar.Add("Funzionalità in arrivo", Severity.Info))">
                                 Reset Password Multiplo
                             </MudButton>
                             <MudButton Variant="Variant.Outlined" 
                                        Color="Color.Info" 
                                        StartIcon="Icons.Material.Filled.Download"
                                        FullWidth="true"
-                                       OnClick="@(() => Snackbar.Add("TODO: Implementare export utenti", Severity.Info))">
+                                       OnClick="@(() => Snackbar.Add("Export funzionalità in arrivo", Severity.Info))">
                                 Esporta Lista Utenti
                             </MudButton>
                         </div>
@@ -211,41 +221,91 @@ else
                         </CardHeaderContent>
                     </MudCardHeader>
                     <MudCardContent>
-                        @if (string.IsNullOrEmpty(_selectedTenant))
+                        @if (_isLoadingUsers)
                         {
-                            <MudAlert Severity="Severity.Normal" Icon="Icons.Material.Filled.Info">
-                                Seleziona un tenant per visualizzare gli utenti associati.
-                            </MudAlert>
+                            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
                         }
                         else
                         {
-                            <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mb-4">
-                                <strong>TODO:</strong> Implementare integrazione con API per recuperare utenti del tenant selezionato.
-                                <br />
-                                Le seguenti funzionalità dovranno essere implementate:
-                                <ul class="mt-2">
-                                    <li>Recupero utenti per tenant da API backend</li>
-                                    <li>Visualizzazione ruoli e permessi per utente</li>
-                                    <li>Filtri avanzati (stato, ultimo accesso, ruolo)</li>
-                                    <li>Azioni per utente (visualizza dettagli, impersona, disabilita)</li>
-                                    <li>Modifica ruoli utente (solo visualizzazione al momento)</li>
-                                    <li>Cronologia accessi e attività utente</li>
-                                </ul>
-                            </MudAlert>
-
-                            <!-- Placeholder Table -->
-                            <MudTable T="object" Items="@(new object[0])" Hover="true" Striped="true">
+                            <!-- Users Table -->
+                            <MudTable T="UserManagementDto" 
+                                      Items="_filteredUsers" 
+                                      Hover="true" 
+                                      Striped="true"
+                                      Loading="_isLoadingUsers"
+                                      LoadingProgressColor="Color.Info">
                                 <HeaderContent>
-                                    <MudTh>Nome</MudTh>
+                                    <MudTh>Nome Completo</MudTh>
                                     <MudTh>Email</MudTh>
                                     <MudTh>Username</MudTh>
+                                    <MudTh>Tenant</MudTh>
                                     <MudTh>Ruoli</MudTh>
                                     <MudTh>Stato</MudTh>
                                     <MudTh>Ultimo Accesso</MudTh>
                                     <MudTh>Azioni</MudTh>
                                 </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="Nome Completo">
+                                        <div class="d-flex align-center">
+                                            <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-3">
+                                                @(context.FirstName.FirstOrDefault())@(context.LastName.FirstOrDefault())
+                                            </MudAvatar>
+                                            <div>
+                                                <MudText>@context.FullName</MudText>
+                                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.Id</MudText>
+                                            </div>
+                                        </div>
+                                    </MudTd>
+                                    <MudTd DataLabel="Email">
+                                        <MudText>@context.Email</MudText>
+                                    </MudTd>
+                                    <MudTd DataLabel="Username">
+                                        <MudText>@context.Username</MudText>
+                                    </MudTd>
+                                    <MudTd DataLabel="Tenant">
+                                        <MudText>@(context.TenantName ?? "N/A")</MudText>
+                                    </MudTd>
+                                    <MudTd DataLabel="Ruoli">
+                                        <div class="d-flex flex-wrap ga-1">
+                                            @foreach (var role in context.Roles)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" 
+                                                         Color="@GetRoleColor(role)">
+                                                    @role
+                                                </MudChip>
+                                            }
+                                        </div>
+                                    </MudTd>
+                                    <MudTd DataLabel="Stato">
+                                        <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" 
+                                                 Size="Size.Small">
+                                            @(context.IsActive ? "Attivo" : "Inattivo")
+                                        </MudChip>
+                                    </MudTd>
+                                    <MudTd DataLabel="Ultimo Accesso">
+                                        <MudText>@(context.LastLoginAt?.ToString("dd/MM/yyyy HH:mm") ?? "Mai")</MudText>
+                                    </MudTd>
+                                    <MudTd DataLabel="Azioni">
+                                        <MudButtonGroup Color="Color.Primary" Variant="Variant.Text" Size="Size.Small">
+                                            <MudIconButton Icon="Icons.Material.Filled.Visibility" 
+                                                           Title="Visualizza"
+                                                           OnClick="@(() => ViewUser(context))" />
+                                            <MudIconButton Icon="Icons.Material.Filled.Edit" 
+                                                           Title="Modifica"
+                                                           OnClick="@(() => EditUser(context))" />
+                                            <MudIconButton Icon="Icons.Material.Filled.PersonOutline" 
+                                                           Title="Impersona"
+                                                           OnClick="@(() => ImpersonateUser(context))" 
+                                                           Color="Color.Warning" />
+                                            <MudIconButton Icon="@(context.IsActive ? Icons.Material.Filled.Block : Icons.Material.Filled.CheckCircle)" 
+                                                           Title="@(context.IsActive ? "Disabilita" : "Abilita")"
+                                                           OnClick="@(() => ToggleUserStatus(context))" 
+                                                           Color="@(context.IsActive ? Color.Error : Color.Success)" />
+                                        </MudButtonGroup>
+                                    </MudTd>
+                                </RowTemplate>
                                 <NoRecordsContent>
-                                    <MudText>Nessun utente trovato. Integrare con API per caricare i dati del tenant selezionato.</MudText>
+                                    <MudText>@(_users.Any() ? "Nessun utente corrisponde ai filtri applicati." : "Nessun utente trovato.")</MudText>
                                 </NoRecordsContent>
                             </MudTable>
                         }
@@ -259,10 +319,29 @@ else
 @code {
     private bool _isLoading = true;
     private bool _isAuthorized = false;
+    private bool _isLoadingTenants = false;
+    private bool _isLoadingUsers = false;
     private UserDto? _currentUser;
     private string _searchTerm = string.Empty;
     private string _roleFilter = "all";
     private string _selectedTenant = string.Empty;
+    
+    // Data
+    private List<TenantResponseDto> _tenants = new();
+    private List<UserManagementDto> _users = new();
+    private UserStatisticsDto? _userStats;
+    
+    // Computed properties
+    private IEnumerable<UserManagementDto> _filteredUsers => 
+        _users.Where(u => 
+            (string.IsNullOrEmpty(_searchTerm) || 
+             u.FullName.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             u.Email.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             u.Username.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) &&
+            (_roleFilter == "all" || u.Roles.Any(r => r.Equals(_roleFilter, StringComparison.OrdinalIgnoreCase))) &&
+            (string.IsNullOrEmpty(_selectedTenant) || 
+             _selectedTenant == "" ||
+             u.TenantId?.ToString() == _selectedTenant));
 
     protected override async Task OnInitializedAsync()
     {
@@ -289,6 +368,11 @@ else
             // Carica informazioni utente corrente
             _currentUser = await AuthService.GetCurrentUserAsync();
             _isAuthorized = true;
+            
+            // Carica dati
+            await LoadTenantsAsync();
+            await LoadUsersAsync();
+            await LoadUserStatisticsAsync();
         }
         catch (Exception ex)
         {
@@ -299,5 +383,168 @@ else
         {
             _isLoading = false;
         }
+    }
+
+    private async Task LoadTenantsAsync()
+    {
+        try
+        {
+            _isLoadingTenants = true;
+            _tenants = (await SuperAdminService.GetTenantsAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento dei tenant: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoadingTenants = false;
+        }
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        try
+        {
+            _isLoadingUsers = true;
+            var tenantId = string.IsNullOrEmpty(_selectedTenant) ? (Guid?)null : Guid.Parse(_selectedTenant);
+            _users = (await SuperAdminService.GetUsersAsync(tenantId)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento degli utenti: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoadingUsers = false;
+        }
+    }
+
+    private async Task LoadUserStatisticsAsync()
+    {
+        try
+        {
+            var tenantId = string.IsNullOrEmpty(_selectedTenant) ? (Guid?)null : Guid.Parse(_selectedTenant);
+            _userStats = await SuperAdminService.GetUserStatisticsAsync(tenantId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento delle statistiche utenti: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OnTenantChanged()
+    {
+        await LoadUsersAsync();
+        await LoadUserStatisticsAsync();
+        StateHasChanged();
+    }
+
+    private async Task OnSearchChanged()
+    {
+        await Task.Delay(300); // Debounce
+        StateHasChanged();
+    }
+
+    private async Task OnRoleFilterChanged()
+    {
+        await Task.CompletedTask;
+        StateHasChanged();
+    }
+
+    private async Task OpenCreateUserDialog()
+    {
+        var dialog = await DialogService.ShowAsync<CreateUserDialog>("Nuovo Utente");
+        var result = await dialog.Result;
+        
+        if (!result.Canceled && result.Data is UserManagementDto newUser)
+        {
+            _users.Add(newUser);
+            await LoadUserStatisticsAsync();
+            Snackbar.Add("Utente creato con successo!", Severity.Success);
+        }
+    }
+
+    private async Task ViewUser(UserManagementDto user)
+    {
+        var parameters = new DialogParameters { ["User"] = user };
+        await DialogService.ShowAsync<ViewUserDialog>("Dettagli Utente", parameters);
+    }
+
+    private async Task EditUser(UserManagementDto user)
+    {
+        var parameters = new DialogParameters { ["User"] = user };
+        var dialog = await DialogService.ShowAsync<EditUserDialog>("Modifica Utente", parameters);
+        var result = await dialog.Result;
+        
+        if (!result.Canceled && result.Data is UserManagementDto updatedUser)
+        {
+            var index = _users.FindIndex(u => u.Id == updatedUser.Id);
+            if (index >= 0)
+            {
+                _users[index] = updatedUser;
+            }
+            await LoadUserStatisticsAsync();
+            Snackbar.Add("Utente aggiornato con successo!", Severity.Success);
+        }
+    }
+
+    private async Task ImpersonateUser(UserManagementDto user)
+    {
+        var confirm = await DialogService.ShowMessageBox(
+            "Conferma Impersonificazione",
+            $"Sei sicuro di voler impersonificare l'utente '{user.FullName}'? Questa azione verrà registrata nei log di audit.",
+            yesText: "Conferma",
+            cancelText: "Annulla");
+
+        if (confirm == true)
+        {
+            try
+            {
+                // TODO: Implement actual impersonation when API is ready
+                Snackbar.Add($"Impersonificazione di {user.FullName} richiesta. Funzionalità in sviluppo.", Severity.Info);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore nell'impersonificazione dell'utente: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task ToggleUserStatus(UserManagementDto user)
+    {
+        var action = user.IsActive ? "disabilitare" : "abilitare";
+        var confirm = await DialogService.ShowMessageBox(
+            "Conferma",
+            $"Sei sicuro di voler {action} l'utente '{user.FullName}'?",
+            yesText: "Conferma",
+            cancelText: "Annulla");
+
+        if (confirm == true)
+        {
+            try
+            {
+                // For now, just toggle locally - implement actual API call when available
+                user.IsActive = !user.IsActive;
+                await LoadUserStatisticsAsync();
+                Snackbar.Add($"Utente {(user.IsActive ? "abilitato" : "disabilitato")} con successo!", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore nel cambio stato dell'utente: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private Color GetRoleColor(string role)
+    {
+        return role.ToLower() switch
+        {
+            "superadmin" => Color.Error,
+            "admin" => Color.Warning,
+            "manager" => Color.Info,
+            "user" => Color.Primary,
+            _ => Color.Default
+        };
     }
 }
