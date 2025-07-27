@@ -1,0 +1,75 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+
+namespace EventForge.DTOs.Tenants
+{
+    /// <summary>
+    /// DTO for creating a new tenant.
+    /// </summary>
+    public class CreateTenantDto
+    {
+        [Required]
+        [MaxLength(100)]
+        public string Name { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(200)]
+        public string DisplayName { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string? Description { get; set; }
+
+        [MaxLength(100)]
+        public string? Domain { get; set; }
+
+        [Required]
+        [EmailAddress]
+        [MaxLength(256)]
+        public string ContactEmail { get; set; } = string.Empty;
+
+        [Range(1, int.MaxValue)]
+        public int MaxUsers { get; set; } = 100;
+    }
+
+    /// <summary>
+    /// DTO for updating tenant information.
+    /// </summary>
+    public class UpdateTenantDto
+    {
+        [Required]
+        [MaxLength(200)]
+        public string DisplayName { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string? Description { get; set; }
+
+        [MaxLength(100)]
+        public string? Domain { get; set; }
+
+        [Required]
+        [EmailAddress]
+        [MaxLength(256)]
+        public string ContactEmail { get; set; } = string.Empty;
+
+        [Range(1, int.MaxValue)]
+        public int MaxUsers { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for tenant response.
+    /// </summary>
+    public class TenantResponseDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? Domain { get; set; }
+        public string ContactEmail { get; set; } = string.Empty;
+        public int MaxUsers { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+    }
+}

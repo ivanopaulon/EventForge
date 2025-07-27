@@ -1,0 +1,148 @@
+@using MudBlazor
+@using EventForge.DTOs.Tenants
+@using EventForge.DTOs.SuperAdmin
+@inject ISuperAdminService SuperAdminService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudContainer Style="max-width: 600px;">
+            <MudText Typo="Typo.h6" Class="mb-4">Crea Nuovo Utente</MudText>
+            
+            <MudForm @ref="_form" Model="_createDto" @bind-IsValid="_isFormValid">
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_createDto.FirstName"
+                                      Label="Nome *"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Il nome è obbligatorio"
+                                      MaxLength="100" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_createDto.LastName"
+                                      Label="Cognome *"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Il cognome è obbligatorio"
+                                      MaxLength="100" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_createDto.Username"
+                                      Label="Username *"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="L'username è obbligatorio"
+                                      MaxLength="100"
+                                      HelperText="Username univoco per l'accesso" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_createDto.Email"
+                                      Label="Email *"
+                                      Variant="Variant.Outlined"
+                                      InputType="InputType.Email"
+                                      Required="true"
+                                      RequiredError="L'email è obbligatoria"
+                                      MaxLength="256" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudSelect T="Guid" @bind-Value="_createDto.TenantId" Label="Tenant *" Variant="Variant.Outlined" Required="true">
+                            @foreach (var tenant in _tenants)
+                            {
+                                <MudSelectItem Value="@tenant.Id">@tenant.DisplayName</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.subtitle1" Class="mb-3">Ruoli</MudText>
+                        <div class="d-flex flex-wrap ga-2">
+                            @foreach (var role in _availableRoles)
+                            {
+                                <MudCheckBox T="bool" @bind-Checked="@(_selectedRoles[role])"
+                                             Label="@role"
+                                             Color="Color.Primary" />
+                            }
+                        </div>
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled"
+                   OnClick="Create"
+                   Disabled="@(!_isFormValid || _isCreating)">
+            @if (_isCreating)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+                <MudText Class="ms-2">Creando...</MudText>
+            }
+            else
+            {
+                <MudText>Crea Utente</MudText>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private dynamic? MudDialog { get; set; }
+
+    private MudForm _form = null!;
+    private bool _isFormValid;
+    private bool _isCreating;
+    private CreateUserManagementDto _createDto = new();
+    
+    private List<TenantResponseDto> _tenants = new();
+    private readonly string[] _availableRoles = { "User", "Manager", "Admin" };
+    private Dictionary<string, bool> _selectedRoles = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _tenants = (await SuperAdminService.GetTenantsAsync()).ToList();
+            
+            // Initialize role selection
+            foreach (var role in _availableRoles)
+            {
+                _selectedRoles[role] = false;
+            }
+            
+            // Default to User role
+            _selectedRoles["User"] = true;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento dei dati: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancel() => MudDialog?.Cancel();
+
+    private async Task Create()
+    {
+        if (!_isFormValid || MudDialog == null) return;
+
+        try
+        {
+            _isCreating = true;
+            
+            // Set roles from selection
+            _createDto.Roles = _selectedRoles.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
+            
+            var newUser = await SuperAdminService.CreateUserAsync(_createDto);
+            MudDialog.Close(MudBlazor.DialogResult.Ok(newUser));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nella creazione dell'utente: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isCreating = false;
+        }
+    }
+}
