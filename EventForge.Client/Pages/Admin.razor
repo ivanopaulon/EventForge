@@ -4,8 +4,9 @@
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
 
-<PageTitle>Admin Dashboard - EventForge</PageTitle>
+<PageTitle>@TranslationService.GetTranslation("navigation.dashboard", "Admin Dashboard") - EventForge</PageTitle>
 
 @if (_isLoading)
 {
@@ -19,15 +20,15 @@ else if (!_isAuthorized)
                 <MudItem xs="12">
                     <div class="d-flex flex-column align-center">
                         <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
-                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">Access Denied</MudText>
+                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">@TranslationService.GetTranslation("error.accessDenied", "Access Denied")</MudText>
                         <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
-                            You don't have permission to access this page. Administrator role is required.
+                            @TranslationService.GetTranslation("error.adminRoleRequired", "You don't have permission to access this page. Administrator role is required.")
                         </MudText>
                         <MudButton Variant="Variant.Filled" 
                                    Color="Color.Primary" 
                                    StartIcon="Icons.Material.Filled.ArrowBack"
                                    OnClick="@(() => NavigationManager.NavigateTo("/login"))">
-                            Return to Login
+                            @TranslationService.GetTranslation("common.returnToLogin", "Return to Login")
                         </MudButton>
                     </div>
                 </MudItem>
@@ -40,7 +41,7 @@ else
     <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
         <MudText Typo="Typo.h3" Class="mb-8">
             <MudIcon Icon="Icons.Material.Filled.AdminPanelSettings" Class="mr-3" />
-            Admin Dashboard
+            @TranslationService.GetTranslation("navigation.dashboard", "Admin Dashboard")
         </MudText>
 
         <MudGrid>
@@ -53,9 +54,9 @@ else
                                 <MudIcon Icon="Icons.Material.Filled.Person" />
                             </MudAvatar>
                             <div>
-                                <MudText Typo="Typo.h5">Welcome back, @(_currentUser?.FullName ?? "Administrator")!</MudText>
+                                <MudText Typo="Typo.h5">@TranslationService.GetTranslation("admin.welcomeBack", "Welcome back, {0}!", _currentUser?.FullName ?? "Administrator")</MudText>
                                 <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                                    You are logged in as: @(_currentUser?.Username)
+                                    @TranslationService.GetTranslation("admin.loggedInAs", "You are logged in as: {0}", _currentUser?.Username ?? "Unknown")
                                 </MudText>
                                 @if (_currentUser?.Roles?.Any() == true)
                                 {
@@ -68,7 +69,7 @@ else
                                 }
                                 else
                                 {
-                                    <MudChip T="string" Color="Color.Success" Size="Size.Small" Class="mt-2">Admin User</MudChip>
+                                    <MudChip T="string" Color="Color.Success" Size="Size.Small" Class="mt-2">@TranslationService.GetTranslation("admin.adminUser", "Admin User")</MudChip>
                                 }
                             </div>
                         </div>
@@ -83,7 +84,7 @@ else
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">
                                 <MudIcon Icon="Icons.Material.Filled.AccountCircle" Class="mr-2" />
-                                User Information
+                                @TranslationService.GetTranslation("admin.userInformation", "User Information")
                             </MudText>
                         </CardHeaderContent>
                     </MudCardHeader>
@@ -92,20 +93,20 @@ else
                         {
                             <div class="d-flex flex-column ga-3">
                                 <div>
-                                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">Username</MudText>
+                                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">@TranslationService.GetTranslation("field.username", "Username")</MudText>
                                     <MudText>@_currentUser.Username</MudText>
                                 </div>
                                 <div>
-                                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">Email</MudText>
+                                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">@TranslationService.GetTranslation("field.email", "Email")</MudText>
                                     <MudText>@_currentUser.Email</MudText>
                                 </div>
                                 <div>
-                                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">Full Name</MudText>
+                                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">@TranslationService.GetTranslation("field.fullName", "Full Name")</MudText>
                                     <MudText>@_currentUser.FullName</MudText>
                                 </div>
                                 <div>
-                                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">Last Login</MudText>
-                                    <MudText>@(_currentUser.LastLoginAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A")</MudText>
+                                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">@TranslationService.GetTranslation("field.lastLogin", "Last Login")</MudText>
+                                    <MudText>@(_currentUser.LastLoginAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? TranslationService.GetTranslation("common.notAvailable", "N/A"))</MudText>
                                 </div>
                             </div>
                         }
@@ -120,7 +121,7 @@ else
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">
                                 <MudIcon Icon="Icons.Material.Filled.Security" Class="mr-2" />
-                                Roles & Permissions
+                                @TranslationService.GetTranslation("admin.rolesPermissions", "Roles & Permissions")
                             </MudText>
                         </CardHeaderContent>
                     </MudCardHeader>
@@ -128,7 +129,7 @@ else
                         @if (_currentUser != null)
                         {
                             <div class="mb-4">
-                                <MudText Typo="Typo.subtitle2" Class="mud-text-secondary mb-2">Roles</MudText>
+                                <MudText Typo="Typo.subtitle2" Class="mud-text-secondary mb-2">@TranslationService.GetTranslation("field.roles", "Roles")</MudText>
                                 <div class="d-flex flex-wrap ga-1">
                                     @foreach (var role in _currentUser.Roles)
                                     {
@@ -140,7 +141,7 @@ else
                             @if (_currentUser.Permissions.Any())
                             {
                                 <div>
-                                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary mb-2">Permissions</MudText>
+                                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary mb-2">@TranslationService.GetTranslation("admin.permissions", "Permissions")</MudText>
                                     <div class="d-flex flex-wrap ga-1">
                                         @foreach (var permission in _currentUser.Permissions.Take(10))
                                         {
@@ -148,7 +149,7 @@ else
                                         }
                                         @if (_currentUser.Permissions.Count > 10)
                                         {
-                                            <MudChip T="string" Color="Color.Default" Size="Size.Small">+@(_currentUser.Permissions.Count - 10) more</MudChip>
+                                            <MudChip T="string" Color="Color.Default" Size="Size.Small">@TranslationService.GetTranslation("admin.morePermissions", "+{0} more", _currentUser.Permissions.Count - 10)</MudChip>
                                         }
                                     </div>
                                 </div>
@@ -165,16 +166,16 @@ else
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">
                                 <MudIcon Icon="Icons.Material.Filled.Settings" Class="mr-2" />
-                                Admin Actions
+                                @TranslationService.GetTranslation("admin.adminActions", "Admin Actions")
                             </MudText>
                         </CardHeaderContent>
                     </MudCardHeader>
                     <MudCardContent>
                         <MudText Typo="Typo.body1" Class="mb-4">
-                            This is the admin dashboard. Here you can manage system settings, users, and other administrative tasks.
+                            @TranslationService.GetTranslation("admin.dashboardDescription", "This is the admin dashboard. Here you can manage system settings, users, and other administrative tasks.")
                         </MudText>
                         <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info">
-                            Admin functionality is under development. More features will be available soon.
+                            @TranslationService.GetTranslation("admin.underDevelopment", "Admin functionality is under development. More features will be available soon.")
                         </MudAlert>
                     </MudCardContent>
                 </MudCard>
@@ -206,7 +207,7 @@ else
             {
                 _isAuthorized = false;
                 _isLoading = false;
-                Snackbar.Add("Access denied. Administrator role required.", Severity.Warning);
+                Snackbar.Add(TranslationService.GetTranslation("admin.accessDeniedWarning", "Access denied. Administrator role required."), Severity.Warning);
                 return;
             }
 
@@ -216,7 +217,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error loading admin page: {ex.Message}", Severity.Error);
+            Snackbar.Add(TranslationService.GetTranslation("admin.loadError", "Error loading admin page: {0}", ex.Message), Severity.Error);
             NavigationManager.NavigateTo("/login");
         }
         finally

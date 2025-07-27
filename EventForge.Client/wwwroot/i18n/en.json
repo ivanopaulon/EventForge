@@ -39,7 +39,9 @@
     "help": "Help",
     "about": "About",
     "version": "Version",
-    "language": "Language"
+    "language": "Language",
+    "returnToLogin": "Return to Login",
+    "notAvailable": "N/A"
   },
   "navigation": {
     "home": "Home",
@@ -65,8 +67,13 @@
     "rememberMe": "Remember me",
     "forgotPassword": "Forgot password?",
     "loginFailed": "Invalid credentials",
+    "loginSuccess": "Login successful!",
+    "loginError": "Login error: {0}",
     "logout": "Logout",
-    "logoutSuccess": "Successfully logged out"
+    "logoutSuccess": "Successfully logged out",
+    "authenticationRequired": "Authentication Required",
+    "pleaseLogin": "Please log in to access this page.",
+    "goToLogin": "Go to Login"
   },
   "field": {
     "id": "ID",
@@ -138,5 +145,44 @@
     "exportTranslations": "Export translations",
     "importTranslations": "Import translations",
     "syncTranslations": "Sync translations"
+  },
+  "health": {
+    "serverStatus": "Server Health Status",
+    "systemOverview": "System Overview",
+    "systemDetails": "System Details",
+    "apiStatus": "API Status",
+    "database": "Database",
+    "authentication": "Authentication",
+    "lastCheck": "Last Check",
+    "environment": "Environment",
+    "machine": "Machine",
+    "processId": "Process ID",
+    "memoryUsage": "Memory Usage",
+    "uptime": "Uptime",
+    "dependencies": "Dependencies",
+    "appliedMigrations": "Applied Migrations",
+    "andMore": "and {0} more",
+    "checkFailed": "Health Check Failed",
+    "loadingStatus": "Loading health status..."
+  },
+  "admin": {
+    "welcomeBack": "Welcome back, {0}!",
+    "loggedInAs": "You are logged in as: {0}",
+    "adminUser": "Admin User",
+    "userInformation": "User Information",
+    "rolesPermissions": "Roles & Permissions",
+    "permissions": "Permissions",
+    "morePermissions": "+{0} more",
+    "adminActions": "Admin Actions",
+    "dashboardDescription": "This is the admin dashboard. Here you can manage system settings, users, and other administrative tasks.",
+    "underDevelopment": "Admin functionality is under development. More features will be available soon.",
+    "loadError": "Error loading admin page: {0}",
+    "accessDeniedWarning": "Access denied. Administrator role required."
+  },
+  "error": {
+    "accessDenied": "Access Denied",
+    "adminRoleRequired": "You don't have permission to access this page. Administrator role is required.",
+    "pageNotFound": "Page Not Found",
+    "nothingAtAddress": "Sorry, there's nothing at this address."
   }
 }
