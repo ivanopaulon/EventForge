@@ -5,10 +5,12 @@
 @inject IHealthService HealthService
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
+@inject ITranslationService TranslationService
 
-<PageTitle>Login - EventForge</PageTitle>
+<PageTitle><Translate Key="auth.pageTitle" Fallback="Login - EventForge" /></PageTitle>
 
 <!-- TEMPORARY DIAGNOSTIC BANNER - REMOVE AFTER DEBUGGING -->
+<!-- NOTE: This diagnostic banner and all related console debugging code should be removed once internationalization testing is complete -->
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Filled.BugReport" Class="mb-4">
         <MudText Typo="Typo.h6" Class="mb-2"><strong>🔍 LOGIN PAGE RENDERED - DIAGNOSTIC MODE</strong></MudText>
@@ -26,7 +28,7 @@
     <MudPaper Class="pa-8" Elevation="4">
         <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-8">
             <MudIcon Icon="Icons.Material.Filled.Login" Class="mr-2" />
-            EventForge Login
+            <Translate Key="auth.loginPageTitle" Fallback="EventForge Login" />
         </MudText>
 
         @if (_isLoading)
@@ -37,25 +39,25 @@
         <MudForm @ref="form" @bind-IsValid="@_isFormValid">
             <MudTextField @bind-Value="_loginRequest.Username"
                           For="@(() => _loginRequest.Username)"
-                          Label="Username"
+                          Label='@TranslationService.GetTranslation("auth.username", "Username")'
                           Variant="Variant.Outlined"
                           Required="true"
-                          RequiredError="Username is required"
+                          RequiredError='@TranslationService.GetTranslation("auth.usernameRequired", "Username is required")'
                           Class="mb-4"
                           Disabled="_isLoading" />
 
             <MudTextField @bind-Value="_loginRequest.Password"
                           For="@(() => _loginRequest.Password)"
-                          Label="Password"
+                          Label='@TranslationService.GetTranslation("auth.password", "Password")'
                           Variant="Variant.Outlined"
                           InputType="InputType.Password"
                           Required="true"
-                          RequiredError="Password is required"
+                          RequiredError='@TranslationService.GetTranslation("auth.passwordRequired", "Password is required")'
                           Class="mb-4"
                           Disabled="_isLoading" />
 
             <MudCheckBox T="bool" @bind-Value="_loginRequest.RememberMe"
-                         Label="Remember me"
+                         Label='@TranslationService.GetTranslation("auth.rememberMe", "Remember me")'
                          Class="mb-4"
                          Disabled="_isLoading" />
 
@@ -70,12 +72,12 @@
                 @if (_isLoading)
                 {
                     <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                    <MudText Class="ms-2">Logging in...</MudText>
+                    <MudText Class="ms-2"><Translate Key="auth.loginInProgress" Fallback="Logging in..." /></MudText>
                 }
                 else
                 {
                     <MudIcon Icon="Icons.Material.Filled.Login" Class="mr-2" />
-                    <MudText>Login</MudText>
+                    <MudText><Translate Key="auth.login" Fallback="Login" /></MudText>
                 }
             </MudButton>
         </MudForm>
@@ -84,7 +86,7 @@
 
         <!-- Health Status Section -->
         <MudExpansionPanels Elevation="0">
-            <MudExpansionPanel Text="Server Health Status" Icon="@Icons.Material.Filled.HealthAndSafety">
+            <MudExpansionPanel Text='@TranslationService.GetTranslation("health.serverStatus", "Server Health Status")' Icon="@Icons.Material.Filled.HealthAndSafety">
                 @if (_healthStatus != null)
                 {
                     <MudGrid>
@@ -92,30 +94,30 @@
                             <MudCard Elevation="2" Class="pa-4">
                                 <MudCardHeader>
                                     <CardHeaderContent>
-                                        <MudText Typo="Typo.h6">System Overview</MudText>
+                                        <MudText Typo="Typo.h6"><Translate Key="health.systemOverview" Fallback="System Overview" /></MudText>
                                     </CardHeaderContent>
                                 </MudCardHeader>
                                 <MudCardContent>
                                     <div class="d-flex flex-column ga-2">
                                         <div class="d-flex align-center ga-2">
                                             <MudIcon Icon="@GetStatusIcon(_healthStatus.ApiStatus)" Color="@GetStatusColor(_healthStatus.ApiStatus)" />
-                                            <MudText><strong>API Status:</strong> @_healthStatus.ApiStatus</MudText>
+                                            <MudText><strong><Translate Key="health.apiStatus" Fallback="API Status" />:</strong> @_healthStatus.ApiStatus</MudText>
                                         </div>
                                         <div class="d-flex align-center ga-2">
                                             <MudIcon Icon="@GetStatusIcon(_healthStatus.DatabaseStatus)" Color="@GetStatusColor(_healthStatus.DatabaseStatus)" />
-                                            <MudText><strong>Database:</strong> @_healthStatus.DatabaseStatus</MudText>
+                                            <MudText><strong><Translate Key="health.database" Fallback="Database" />:</strong> @_healthStatus.DatabaseStatus</MudText>
                                         </div>
                                         <div class="d-flex align-center ga-2">
                                             <MudIcon Icon="@GetStatusIcon(_healthStatus.AuthenticationStatus)" Color="@GetStatusColor(_healthStatus.AuthenticationStatus)" />
-                                            <MudText><strong>Authentication:</strong> @_healthStatus.AuthenticationStatus</MudText>
+                                            <MudText><strong><Translate Key="health.authentication" Fallback="Authentication" />:</strong> @_healthStatus.AuthenticationStatus</MudText>
                                         </div>
                                         <div class="d-flex align-center ga-2">
                                             <MudIcon Icon="@Icons.Material.Filled.Schedule" />
-                                            <MudText><strong>Last Check:</strong> @_healthStatus.Timestamp.ToString("yyyy-MM-dd HH:mm:ss") UTC</MudText>
+                                            <MudText><strong><Translate Key="health.lastCheck" Fallback="Last Check" />:</strong> @_healthStatus.Timestamp.ToString("yyyy-MM-dd HH:mm:ss") UTC</MudText>
                                         </div>
                                         <div class="d-flex align-center ga-2">
                                             <MudIcon Icon="@Icons.Material.Filled.Info" />
-                                            <MudText><strong>Version:</strong> @_healthStatus.Version</MudText>
+                                            <MudText><strong><Translate Key="health.version" Fallback="Version" />:</strong> @_healthStatus.Version</MudText>
                                         </div>
                                     </div>
                                 </MudCardContent>
@@ -126,30 +128,30 @@
                             <MudCard Elevation="2" Class="pa-4">
                                 <MudCardHeader>
                                     <CardHeaderContent>
-                                        <MudText Typo="Typo.h6">System Details</MudText>
+                                        <MudText Typo="Typo.h6"><Translate Key="health.systemDetails" Fallback="System Details" /></MudText>
                                     </CardHeaderContent>
                                 </MudCardHeader>
                                 <MudCardContent>
                                     <div class="d-flex flex-column ga-2">
                                         <div class="d-flex align-center ga-2">
                                             <MudIcon Icon="@Icons.Material.Filled.Computer" />
-                                            <MudText><strong>Environment:</strong> @_healthStatus.Environment</MudText>
+                                            <MudText><strong><Translate Key="health.environment" Fallback="Environment" />:</strong> @_healthStatus.Environment</MudText>
                                         </div>
                                         <div class="d-flex align-center ga-2">
                                             <MudIcon Icon="@Icons.Material.Filled.Storage" />
-                                            <MudText><strong>Machine:</strong> @_healthStatus.MachineName</MudText>
+                                            <MudText><strong><Translate Key="health.machine" Fallback="Machine" />:</strong> @_healthStatus.MachineName</MudText>
                                         </div>
                                         <div class="d-flex align-center ga-2">
                                             <MudIcon Icon="@Icons.Material.Filled.Memory" />
-                                            <MudText><strong>Process ID:</strong> @_healthStatus.ProcessId</MudText>
+                                            <MudText><strong><Translate Key="health.processId" Fallback="Process ID" />:</strong> @_healthStatus.ProcessId</MudText>
                                         </div>
                                         <div class="d-flex align-center ga-2">
                                             <MudIcon Icon="@Icons.Material.Filled.Memory" />
-                                            <MudText><strong>Memory Usage:</strong> @FormatBytes(_healthStatus.WorkingSet)</MudText>
+                                            <MudText><strong><Translate Key="health.memoryUsage" Fallback="Memory Usage" />:</strong> @FormatBytes(_healthStatus.WorkingSet)</MudText>
                                         </div>
                                         <div class="d-flex align-center ga-2">
                                             <MudIcon Icon="@Icons.Material.Filled.AccessTime" />
-                                            <MudText><strong>Uptime:</strong> @FormatUptime(_healthStatus.Uptime)</MudText>
+                                            <MudText><strong><Translate Key="health.uptime" Fallback="Uptime" />:</strong> @FormatUptime(_healthStatus.Uptime)</MudText>
                                         </div>
                                     </div>
                                 </MudCardContent>
@@ -162,7 +164,7 @@
                                 <MudCard Elevation="2" Class="pa-4">
                                     <MudCardHeader>
                                         <CardHeaderContent>
-                                            <MudText Typo="Typo.h6">Dependencies</MudText>
+                                            <MudText Typo="Typo.h6"><Translate Key="health.dependencies" Fallback="Dependencies" /></MudText>
                                         </CardHeaderContent>
                                     </MudCardHeader>
                                     <MudCardContent>
@@ -186,7 +188,7 @@
                                 <MudCard Elevation="2" Class="pa-4">
                                     <MudCardHeader>
                                         <CardHeaderContent>
-                                            <MudText Typo="Typo.h6">Applied Migrations (@_healthStatus.AppliedMigrations.Count())</MudText>
+                                            <MudText Typo="Typo.h6"><Translate Key="health.appliedMigrations" Fallback="Applied Migrations" /> (@_healthStatus.AppliedMigrations.Count())</MudText>
                                         </CardHeaderContent>
                                     </MudCardHeader>
                                     <MudCardContent>
@@ -197,7 +199,7 @@
                                             }
                                             @if (_healthStatus.AppliedMigrations.Count() > 10)
                                             {
-                                                <MudChip T="string" Color="Color.Default" Size="Size.Small">... and @(_healthStatus.AppliedMigrations.Count() - 10) more</MudChip>
+                                                <MudChip T="string" Color="Color.Default" Size="Size.Small"><Translate Key="health.andMore" Fallback="... and {0} more" Parameters="new object[] { _healthStatus.AppliedMigrations.Count() - 10 }" /></MudChip>
                                             }
                                         </div>
                                     </MudCardContent>
@@ -209,13 +211,13 @@
                 else if (_healthError != null)
                 {
                     <MudAlert Severity="Severity.Error" Icon="@Icons.Material.Filled.Error">
-                        <MudText><strong>Health Check Failed:</strong> @_healthError</MudText>
+                        <MudText><strong><Translate Key="health.healthCheckFailed" Fallback="Health Check Failed" />:</strong> @_healthError</MudText>
                     </MudAlert>
                 }
                 else
                 {
                     <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-                    <MudText Align="Align.Center" Class="mt-2">Loading health status...</MudText>
+                    <MudText Align="Align.Center" Class="mt-2"><Translate Key="health.loadingHealthStatus" Fallback="Loading health status..." /></MudText>
                 }
             </MudExpansionPanel>
         </MudExpansionPanels>
@@ -306,7 +308,7 @@
             var result = await AuthService.LoginAsync(_loginRequest);
             if (result != null)
             {
-                Snackbar.Add("Login successful!", Severity.Success);
+                Snackbar.Add(TranslationService.GetTranslation("auth.loginSuccess", "Login successful!"), Severity.Success);
                 
                 // Check if user is admin and redirect accordingly
                 var isAdmin = await AuthService.IsInRoleAsync("Admin");
@@ -314,7 +316,7 @@
             }
             else
             {
-                Snackbar.Add("Login failed. Please check your credentials.", Severity.Error);
+                Snackbar.Add(TranslationService.GetTranslation("auth.loginError", "Login failed. Please check your credentials."), Severity.Error);
             }
         }
         catch (Exception ex)

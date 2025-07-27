@@ -66,7 +66,14 @@
     "forgotPassword": "Mot de passe oublié ?",
     "loginFailed": "Identifiants invalides",
     "logout": "Déconnexion",
-    "logoutSuccess": "Déconnexion réussie"
+    "logoutSuccess": "Déconnexion réussie",
+    "pageTitle": "Connexion - EventForge",
+    "loginPageTitle": "EventForge Connexion",
+    "loginInProgress": "Connexion en cours...",
+    "usernameRequired": "Nom d'utilisateur requis",
+    "passwordRequired": "Mot de passe requis",
+    "loginSuccess": "Connexion réussie !",
+    "loginError": "Échec de la connexion. Vérifiez vos identifiants."
   },
   "field": {
     "id": "ID",
@@ -138,5 +145,25 @@
     "exportTranslations": "Exporter les traductions",
     "importTranslations": "Importer les traductions",
     "syncTranslations": "Synchroniser les traductions"
+  },
+  "health": {
+    "serverStatus": "État de Santé du Serveur",
+    "systemOverview": "Aperçu du Système",
+    "systemDetails": "Détails du Système",
+    "dependencies": "Dépendances",
+    "appliedMigrations": "Migrations Appliquées",
+    "apiStatus": "État de l'API",
+    "database": "Base de Données",
+    "authentication": "Authentification",
+    "lastCheck": "Dernière Vérification",
+    "version": "Version",
+    "environment": "Environnement",
+    "machine": "Machine",
+    "processId": "ID du Processus",
+    "memoryUsage": "Utilisation Mémoire",
+    "uptime": "Temps de Fonctionnement",
+    "loadingHealthStatus": "Chargement de l'état de santé...",
+    "healthCheckFailed": "Vérification de Santé Échouée",
+    "andMore": "et {0} de plus"
   }
 }

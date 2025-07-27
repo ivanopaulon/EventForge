@@ -66,7 +66,14 @@
     "forgotPassword": "Password dimenticata?",
     "loginFailed": "Credenziali non valide",
     "logout": "Disconnetti",
-    "logoutSuccess": "Disconnessione avvenuta con successo"
+    "logoutSuccess": "Disconnessione avvenuta con successo",
+    "pageTitle": "Login - EventForge",
+    "loginPageTitle": "EventForge Login",
+    "loginInProgress": "Accesso in corso...",
+    "usernameRequired": "Nome utente obbligatorio",
+    "passwordRequired": "Password obbligatoria",
+    "loginSuccess": "Accesso effettuato con successo!",
+    "loginError": "Accesso fallito. Verifica le tue credenziali."
   },
   "field": {
     "id": "ID",
@@ -138,5 +145,25 @@
     "exportTranslations": "Esporta traduzioni",
     "importTranslations": "Importa traduzioni",
     "syncTranslations": "Sincronizza traduzioni"
+  },
+  "health": {
+    "serverStatus": "Stato Salute Server",
+    "systemOverview": "Panoramica Sistema",
+    "systemDetails": "Dettagli Sistema",
+    "dependencies": "Dipendenze",
+    "appliedMigrations": "Migrazioni Applicate",
+    "apiStatus": "Stato API",
+    "database": "Database",
+    "authentication": "Autenticazione",
+    "lastCheck": "Ultimo Controllo",
+    "version": "Versione",
+    "environment": "Ambiente",
+    "machine": "Macchina",
+    "processId": "ID Processo",
+    "memoryUsage": "Uso Memoria",
+    "uptime": "Tempo Attività",
+    "loadingHealthStatus": "Caricamento stato salute...",
+    "healthCheckFailed": "Controllo Salute Fallito",
+    "andMore": "e altre {0}"
   }
 }

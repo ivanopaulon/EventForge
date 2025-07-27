@@ -66,7 +66,14 @@
     "forgotPassword": "¿Olvidaste tu contraseña?",
     "loginFailed": "Credenciales inválidas",
     "logout": "Cerrar sesión",
-    "logoutSuccess": "Sesión cerrada exitosamente"
+    "logoutSuccess": "Sesión cerrada exitosamente",
+    "pageTitle": "Login - EventForge",
+    "loginPageTitle": "EventForge Login",
+    "loginInProgress": "Iniciando sesión...",
+    "usernameRequired": "Nombre de usuario requerido",
+    "passwordRequired": "Contraseña requerida",
+    "loginSuccess": "¡Inicio de sesión exitoso!",
+    "loginError": "Error de inicio de sesión. Verifica tus credenciales."
   },
   "field": {
     "id": "ID",
@@ -138,5 +145,25 @@
     "exportTranslations": "Exportar traducciones",
     "importTranslations": "Importar traducciones",
     "syncTranslations": "Sincronizar traducciones"
+  },
+  "health": {
+    "serverStatus": "Estado de Salud del Servidor",
+    "systemOverview": "Resumen del Sistema",
+    "systemDetails": "Detalles del Sistema",
+    "dependencies": "Dependencias",
+    "appliedMigrations": "Migraciones Aplicadas",
+    "apiStatus": "Estado de la API",
+    "database": "Base de Datos",
+    "authentication": "Autenticación",
+    "lastCheck": "Última Verificación",
+    "version": "Versión",
+    "environment": "Entorno",
+    "machine": "Máquina",
+    "processId": "ID del Proceso",
+    "memoryUsage": "Uso de Memoria",
+    "uptime": "Tiempo de Actividad",
+    "loadingHealthStatus": "Cargando estado de salud...",
+    "healthCheckFailed": "Verificación de Salud Fallida",
+    "andMore": "y {0} más"
   }
 }
