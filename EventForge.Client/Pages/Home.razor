@@ -3,91 +3,97 @@
 @attribute [AllowAnonymous]
 @inject IHealthService HealthService
 @inject NavigationManager NavigationManager
+@inject ITranslationService TranslationService
 
-<PageTitle>EventForge - Home</PageTitle>
+<PageTitle>@TranslationService.GetTranslation("home.title", "EventForge - Home")</PageTitle>
 
 <!-- Improved responsive layout with proper grid system and accessibility -->
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4 mt-sm-6 mt-md-8">
-    <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center">
+    <MudGrid Justify="Justify.Center" Spacing="4">
         <MudItem xs="12" sm="10" md="8" lg="6">
-            <MudPaper Class="pa-4 pa-sm-6 pa-md-8" Elevation="4" role="main">
-                <!-- Semantic header with proper heading hierarchy -->
-                <header class="text-center mb-6">
-                    <MudText Typo="Typo.h3" 
-                             Component="h1" 
-                             Align="Align.Center" 
-                             Class="mb-4"
-                             aria-label="EventForge Home Page">
-                        <MudIcon Icon="@Icons.Material.Filled.Event" 
-                                 Class="mr-2" 
-                                 Size="Size.Large"
-                                 aria-hidden="true" />
-                        EventForge
-                    </MudText>
-                    <MudText Typo="Typo.body1" 
-                             Align="Align.Center" 
-                             Color="Color.Secondary">
-                        Sistema di gestione eventi e monitoraggio
-                    </MudText>
-                </header>
+            <!-- Welcome Card -->
+            <MudCard Class="pa-4 pa-sm-6 pa-md-8" Elevation="4" role="main">
+                <MudCardContent>
+                    <header class="text-center mb-6">
+                        <MudText Typo="Typo.h3" 
+                                 Component="h1" 
+                                 Align="Align.Center" 
+                                 Class="mb-4"
+                                 aria-label="EventForge Home Page">
+                            <MudIcon Icon="@Icons.Material.Filled.Event" 
+                                     Class="mr-2" 
+                                     Size="Size.Large"
+                                     aria-hidden="true" />
+                            EventForge
+                        </MudText>
+                        <MudText Typo="Typo.body1" 
+                                 Align="Align.Center" 
+                                 Color="Color.Secondary">
+                            @TranslationService.GetTranslation("home.subtitle", "Event Management and Monitoring System")
+                        </MudText>
+                    </header>
 
-                <!-- Health check section with improved accessibility -->
-                <section aria-labelledby="health-section">
-                    <MudText Typo="Typo.h5" 
-                             Component="h2" 
-                             id="health-section"
-                             Class="mb-4 d-flex align-center">
+                    <!-- Action buttons with responsive layout -->
+                    <div class="d-flex justify-center">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   Size="Size.Large"
+                                   StartIcon="@Icons.Material.Filled.Login"
+                                   OnClick="@(() => NavigationManager.NavigateTo("/login"))"
+                                   aria-label="@TranslationService.GetTranslation("auth.login", "Login")">
+                            @TranslationService.GetTranslation("auth.login", "Login")
+                        </MudButton>
+                    </div>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- System Status Card -->
+        <MudItem xs="12" sm="10" md="8" lg="6">
+            <MudCard Elevation="2" Class="pa-4">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" Class="mb-4 d-flex align-center">
                         <MudIcon Icon="Icons.Material.Filled.HealthAndSafety" 
                                  Class="mr-2" 
                                  Color="Color.Primary"
                                  aria-hidden="true" />
-                        Stato del Sistema
+                        @TranslationService.GetTranslation("home.systemStatus", "System Status")
                     </MudText>
 
                     <MudGrid Spacing="2">
-                        <MudItem xs="12" sm="6">
-                            <MudCard Elevation="2" Class="pa-4">
-                                <MudCardContent>
-                                    <MudText Typo="Typo.h6" Class="mb-2">Servizi</MudText>
-                                    <MudChip T="string"
-                                             Color="Color.Success" 
-                                             Size="Size.Small"
-                                             Icon="@Icons.Material.Filled.CheckCircle">
-                                        Operativi
-                                    </MudChip>
-                                </MudCardContent>
-                            </MudCard>
+                        <MudItem xs="6">
+                            <MudPaper Class="pa-3 text-center" Elevation="1">
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" 
+                                         Color="Color.Success" 
+                                         Class="mb-2" />
+                                <MudText Typo="Typo.body2">
+                                    @TranslationService.GetTranslation("home.servicesOperational", "Services")
+                                </MudText>
+                                <MudChip T="string"
+                                         Color="Color.Success" 
+                                         Size="Size.Small">
+                                    @TranslationService.GetTranslation("home.operational", "Operational")
+                                </MudChip>
+                            </MudPaper>
                         </MudItem>
-                        <MudItem xs="12" sm="6">
-                            <MudCard Elevation="2" Class="pa-4">
-                                <MudCardContent>
-                                    <MudText Typo="Typo.h6" Class="mb-2">Database</MudText>
-                                    <MudChip T="string"
-                                             Color="Color.Success" 
-                                             Size="Size.Small"
-                                             Icon="@Icons.Material.Filled.CheckCircle">
-                                        Connesso
-                                    </MudChip>
-                                </MudCardContent>
-                            </MudCard>
+                        <MudItem xs="6">
+                            <MudPaper Class="pa-3 text-center" Elevation="1">
+                                <MudIcon Icon="@Icons.Material.Filled.Storage" 
+                                         Color="Color.Success" 
+                                         Class="mb-2" />
+                                <MudText Typo="Typo.body2">
+                                    @TranslationService.GetTranslation("home.database", "Database")
+                                </MudText>
+                                <MudChip T="string"
+                                         Color="Color.Success" 
+                                         Size="Size.Small">
+                                    @TranslationService.GetTranslation("home.connected", "Connected")
+                                </MudChip>
+                            </MudPaper>
                         </MudItem>
                     </MudGrid>
-                </section>
-
-                <!-- Action buttons with responsive layout -->
-                <MudGrid Class="mt-6" Justify="Justify.Center">
-                    <MudItem xs="12" sm="6" md="4">
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
-                                   FullWidth="true"
-                                   StartIcon="@Icons.Material.Filled.Login"
-                                   OnClick="@(() => NavigationManager.NavigateTo("/login"))"
-                                   aria-label="Accedi al sistema">
-                            Accedi
-                        </MudButton>
-                    </MudItem>
-                </MudGrid>
-            </MudPaper>
+                </MudCardContent>
+            </MudCard>
         </MudItem>
     </MudGrid>
 </MudContainer>
