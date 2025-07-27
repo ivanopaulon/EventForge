@@ -1,3 +1,9 @@
+@* EventForge Home Page - Landing page for the application
+   Route: "/" - Root route serves as the main landing page 
+   Authentication: [AllowAnonymous] - Accessible without authentication
+   Purpose: Shows system health status from backend HealthService
+   Fallback: Visual error handling if health service call fails *@
+
 @page "/"
 @using Microsoft.AspNetCore.Authorization
 @attribute [AllowAnonymous]
