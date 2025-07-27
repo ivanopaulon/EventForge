@@ -7,7 +7,7 @@
 @inject NavigationManager NavigationManager
 @inject ITranslationService TranslationService
 
-<PageTitle><Translate Key="auth.pageTitle" Fallback="Login - EventForge" /></PageTitle>
+<PageTitle>@TranslationService.GetTranslation("auth.pageTitle", "Login - EventForge")</PageTitle>
 
 <!-- TEMPORARY DIAGNOSTIC BANNER - REMOVE AFTER DEBUGGING -->
 <!-- NOTE: This diagnostic banner and all related console debugging code should be removed once internationalization testing is complete -->
@@ -28,7 +28,7 @@
     <MudPaper Class="pa-8" Elevation="4">
         <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-8">
             <MudIcon Icon="Icons.Material.Filled.Login" Class="mr-2" />
-            <Translate Key="auth.loginPageTitle" Fallback="EventForge Login" />
+            @TranslationService.GetTranslation("auth.loginPageTitle", "EventForge Login")
         </MudText>
 
         @if (_isLoading)
@@ -72,12 +72,12 @@
                 @if (_isLoading)
                 {
                     <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                    <MudText Class="ms-2"><Translate Key="auth.loginInProgress" Fallback="Logging in..." /></MudText>
+                    <MudText Class="ms-2">@TranslationService.GetTranslation("auth.loginInProgress", "Logging in...")</MudText>
                 }
                 else
                 {
                     <MudIcon Icon="Icons.Material.Filled.Login" Class="mr-2" />
-                    <MudText><Translate Key="auth.login" Fallback="Login" /></MudText>
+                    <MudText>@TranslationService.GetTranslation("auth.login", "Login")</MudText>
                 }
             </MudButton>
         </MudForm>
@@ -94,30 +94,30 @@
                             <MudCard Elevation="2" Class="pa-4">
                                 <MudCardHeader>
                                     <CardHeaderContent>
-                                        <MudText Typo="Typo.h6"><Translate Key="health.systemOverview" Fallback="System Overview" /></MudText>
+                                        <MudText Typo="Typo.h6">@TranslationService.GetTranslation("health.systemOverview", "System Overview")</MudText>
                                     </CardHeaderContent>
                                 </MudCardHeader>
                                 <MudCardContent>
                                     <div class="d-flex flex-column ga-2">
                                         <div class="d-flex align-center ga-2">
                                             <MudIcon Icon="@GetStatusIcon(_healthStatus.ApiStatus)" Color="@GetStatusColor(_healthStatus.ApiStatus)" />
-                                            <MudText><strong><Translate Key="health.apiStatus" Fallback="API Status" />:</strong> @_healthStatus.ApiStatus</MudText>
+                                            <MudText><strong>@TranslationService.GetTranslation("health.apiStatus", "API Status"):</strong> @_healthStatus.ApiStatus</MudText>
                                         </div>
                                         <div class="d-flex align-center ga-2">
                                             <MudIcon Icon="@GetStatusIcon(_healthStatus.DatabaseStatus)" Color="@GetStatusColor(_healthStatus.DatabaseStatus)" />
-                                            <MudText><strong><Translate Key="health.database" Fallback="Database" />:</strong> @_healthStatus.DatabaseStatus</MudText>
+                                            <MudText><strong>@TranslationService.GetTranslation("health.database", "Database"):</strong> @_healthStatus.DatabaseStatus</MudText>
                                         </div>
                                         <div class="d-flex align-center ga-2">
                                             <MudIcon Icon="@GetStatusIcon(_healthStatus.AuthenticationStatus)" Color="@GetStatusColor(_healthStatus.AuthenticationStatus)" />
-                                            <MudText><strong><Translate Key="health.authentication" Fallback="Authentication" />:</strong> @_healthStatus.AuthenticationStatus</MudText>
+                                            <MudText><strong>@TranslationService.GetTranslation("health.authentication", "Authentication"):</strong> @_healthStatus.AuthenticationStatus</MudText>
                                         </div>
                                         <div class="d-flex align-center ga-2">
                                             <MudIcon Icon="@Icons.Material.Filled.Schedule" />
-                                            <MudText><strong><Translate Key="health.lastCheck" Fallback="Last Check" />:</strong> @_healthStatus.Timestamp.ToString("yyyy-MM-dd HH:mm:ss") UTC</MudText>
+                                            <MudText><strong>@TranslationService.GetTranslation("health.lastCheck", "Last Check"):</strong> @_healthStatus.Timestamp.ToString("yyyy-MM-dd HH:mm:ss") UTC</MudText>
                                         </div>
                                         <div class="d-flex align-center ga-2">
                                             <MudIcon Icon="@Icons.Material.Filled.Info" />
-                                            <MudText><strong><Translate Key="health.version" Fallback="Version" />:</strong> @_healthStatus.Version</MudText>
+                                            <MudText><strong>@TranslationService.GetTranslation("health.version", "Version"):</strong> @_healthStatus.Version</MudText>
                                         </div>
                                     </div>
                                 </MudCardContent>
@@ -128,30 +128,30 @@
                             <MudCard Elevation="2" Class="pa-4">
                                 <MudCardHeader>
                                     <CardHeaderContent>
-                                        <MudText Typo="Typo.h6"><Translate Key="health.systemDetails" Fallback="System Details" /></MudText>
+                                        <MudText Typo="Typo.h6">@TranslationService.GetTranslation("health.systemDetails", "System Details")</MudText>
                                     </CardHeaderContent>
                                 </MudCardHeader>
                                 <MudCardContent>
                                     <div class="d-flex flex-column ga-2">
                                         <div class="d-flex align-center ga-2">
                                             <MudIcon Icon="@Icons.Material.Filled.Computer" />
-                                            <MudText><strong><Translate Key="health.environment" Fallback="Environment" />:</strong> @_healthStatus.Environment</MudText>
+                                            <MudText><strong>@TranslationService.GetTranslation("health.environment", "Environment"):</strong> @_healthStatus.Environment</MudText>
                                         </div>
                                         <div class="d-flex align-center ga-2">
                                             <MudIcon Icon="@Icons.Material.Filled.Storage" />
-                                            <MudText><strong><Translate Key="health.machine" Fallback="Machine" />:</strong> @_healthStatus.MachineName</MudText>
+                                            <MudText><strong>@TranslationService.GetTranslation("health.machine", "Machine"):</strong> @_healthStatus.MachineName</MudText>
                                         </div>
                                         <div class="d-flex align-center ga-2">
                                             <MudIcon Icon="@Icons.Material.Filled.Memory" />
-                                            <MudText><strong><Translate Key="health.processId" Fallback="Process ID" />:</strong> @_healthStatus.ProcessId</MudText>
+                                            <MudText><strong>@TranslationService.GetTranslation("health.processId", "Process ID"):</strong> @_healthStatus.ProcessId</MudText>
                                         </div>
                                         <div class="d-flex align-center ga-2">
                                             <MudIcon Icon="@Icons.Material.Filled.Memory" />
-                                            <MudText><strong><Translate Key="health.memoryUsage" Fallback="Memory Usage" />:</strong> @FormatBytes(_healthStatus.WorkingSet)</MudText>
+                                            <MudText><strong>@TranslationService.GetTranslation("health.memoryUsage", "Memory Usage"):</strong> @FormatBytes(_healthStatus.WorkingSet)</MudText>
                                         </div>
                                         <div class="d-flex align-center ga-2">
                                             <MudIcon Icon="@Icons.Material.Filled.AccessTime" />
-                                            <MudText><strong><Translate Key="health.uptime" Fallback="Uptime" />:</strong> @FormatUptime(_healthStatus.Uptime)</MudText>
+                                            <MudText><strong>@TranslationService.GetTranslation("health.uptime", "Uptime"):</strong> @FormatUptime(_healthStatus.Uptime)</MudText>
                                         </div>
                                     </div>
                                 </MudCardContent>
@@ -164,7 +164,7 @@
                                 <MudCard Elevation="2" Class="pa-4">
                                     <MudCardHeader>
                                         <CardHeaderContent>
-                                            <MudText Typo="Typo.h6"><Translate Key="health.dependencies" Fallback="Dependencies" /></MudText>
+                                            <MudText Typo="Typo.h6">@TranslationService.GetTranslation("health.dependencies", "Dependencies")</MudText>
                                         </CardHeaderContent>
                                     </MudCardHeader>
                                     <MudCardContent>
@@ -188,7 +188,7 @@
                                 <MudCard Elevation="2" Class="pa-4">
                                     <MudCardHeader>
                                         <CardHeaderContent>
-                                            <MudText Typo="Typo.h6"><Translate Key="health.appliedMigrations" Fallback="Applied Migrations" /> (@_healthStatus.AppliedMigrations.Count())</MudText>
+                                            <MudText Typo="Typo.h6">@TranslationService.GetTranslation("health.appliedMigrations", "Applied Migrations") (@_healthStatus.AppliedMigrations.Count())</MudText>
                                         </CardHeaderContent>
                                     </MudCardHeader>
                                     <MudCardContent>
@@ -199,7 +199,7 @@
                                             }
                                             @if (_healthStatus.AppliedMigrations.Count() > 10)
                                             {
-                                                <MudChip T="string" Color="Color.Default" Size="Size.Small"><Translate Key="health.andMore" Fallback="... and {0} more" Parameters="new object[] { _healthStatus.AppliedMigrations.Count() - 10 }" /></MudChip>
+                                                <MudChip T="string" Color="Color.Default" Size="Size.Small">@TranslationService.GetTranslation("health.andMore", "... and {0} more", _healthStatus.AppliedMigrations.Count() - 10)</MudChip>
                                             }
                                         </div>
                                     </MudCardContent>
@@ -211,13 +211,13 @@
                 else if (_healthError != null)
                 {
                     <MudAlert Severity="Severity.Error" Icon="@Icons.Material.Filled.Error">
-                        <MudText><strong><Translate Key="health.healthCheckFailed" Fallback="Health Check Failed" />:</strong> @_healthError</MudText>
+                        <MudText><strong>@TranslationService.GetTranslation("health.healthCheckFailed", "Health Check Failed"):</strong> @_healthError</MudText>
                     </MudAlert>
                 }
                 else
                 {
                     <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-                    <MudText Align="Align.Center" Class="mt-2"><Translate Key="health.loadingHealthStatus" Fallback="Loading health status..." /></MudText>
+                    <MudText Align="Align.Center" Class="mt-2">@TranslationService.GetTranslation("health.loadingHealthStatus", "Loading health status...")</MudText>
                 }
             </MudExpansionPanel>
         </MudExpansionPanels>
