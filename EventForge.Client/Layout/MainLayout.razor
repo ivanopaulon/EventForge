@@ -46,11 +46,11 @@
                 </div>
                 
                 <!-- Theme Toggle Button with improved accessibility -->
-                <MudTooltip Text="@(ThemeService.IsDarkMode ? ButtonLabels.LightMode : ButtonLabels.DarkMode)">
+                <MudTooltip Text="@(ThemeService.IsDarkMode ? TranslationService.GetTranslation("theme.lightMode", "Light Mode") : TranslationService.GetTranslation("theme.darkMode", "Dark Mode"))">
                     <MudIconButton Icon="@(ThemeService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
                                    Color="Color.Inherit"
                                    OnClick="@ToggleTheme"
-                                   aria-label="@(ThemeService.IsDarkMode ? "Passa al tema chiaro" : "Passa al tema scuro")" />
+                                   aria-label="@(ThemeService.IsDarkMode ? TranslationService.GetTranslation("theme.switchToLight", "Switch to light theme") : TranslationService.GetTranslation("theme.switchToDark", "Switch to dark theme"))" />
                 </MudTooltip>
                 
                 @if (_currentUser != null)
@@ -89,13 +89,13 @@
                         <ChildContent>
                             <MudMenuItem Icon="@Icons.Material.Filled.Person" 
                                          OnClick="@(() => NavigationManager.NavigateTo("/profile"))"
-                                         aria-label="Vai al profilo utente">
-                                @ButtonLabels.Profile
+                                         aria-label="@TranslationService.GetTranslation("profile.viewProfile", "View profile")">
+                                @TranslationService.GetTranslation("navigation.profile", "Profile")
                             </MudMenuItem>
                             <MudMenuItem Icon="@Icons.Material.Filled.Settings" 
                                          OnClick="@(() => NavigationManager.NavigateTo("/settings"))"
-                                         aria-label="Vai alle impostazioni">
-                                @ButtonLabels.Settings
+                                         aria-label="@TranslationService.GetTranslation("navigation.settingsDescription", "Go to settings")">
+                                @TranslationService.GetTranslation("navigation.settings", "Settings")
                             </MudMenuItem>
                             
                             <!-- Mobile-only language selector -->
@@ -109,14 +109,14 @@
                             <MudDivider />
                             <MudMenuItem Icon="@(ThemeService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
                                          OnClick="@ToggleTheme"
-                                         aria-label="@(ThemeService.IsDarkMode ? "Passa al tema chiaro" : "Passa al tema scuro")">
-                                @(ThemeService.IsDarkMode ? ButtonLabels.LightMode : ButtonLabels.DarkMode)
+                                         aria-label="@(ThemeService.IsDarkMode ? TranslationService.GetTranslation("theme.switchToLight", "Switch to light theme") : TranslationService.GetTranslation("theme.switchToDark", "Switch to dark theme"))">
+                                @(ThemeService.IsDarkMode ? TranslationService.GetTranslation("theme.lightMode", "Light Mode") : TranslationService.GetTranslation("theme.darkMode", "Dark Mode"))
                             </MudMenuItem>
                             <MudDivider />
                             <MudMenuItem Icon="@Icons.Material.Filled.Logout" 
                                          OnClick="@HandleLogout"
-                                         aria-label="Esci dal sistema">
-                                @ButtonLabels.Logout
+                                         aria-label="@TranslationService.GetTranslation("auth.logoutDescription", "Logout from system")">
+                                @TranslationService.GetTranslation("auth.logout", "Logout")
                             </MudMenuItem>
                         </ChildContent>
                     </MudMenu>
@@ -130,8 +130,8 @@
                        Color="Color.Inherit" 
                        StartIcon="Icons.Material.Filled.Login"
                        OnClick="@(() => NavigationManager.NavigateTo("/login"))"
-                       aria-label="Accedi al sistema">
-                @ButtonLabels.Login
+                       aria-label="@TranslationService.GetTranslation("auth.loginDescription", "Login to system")">
+                @TranslationService.GetTranslation("auth.login", "Login")
             </MudButton>
         }
     </MudAppBar>
@@ -176,6 +176,7 @@
     {
         AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
         ThemeService.OnThemeChanged += OnThemeChanged;
+        TranslationService.LanguageChanged += OnLanguageChanged;
         
         await ThemeService.InitializeAsync();
         await CheckAuthenticationState();
@@ -186,6 +187,11 @@
     private void OnThemeChanged()
     {
         UpdateTheme();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnLanguageChanged(object? sender, string newLanguage)
+    {
         InvokeAsync(StateHasChanged);
     }
 
@@ -261,12 +267,12 @@
         try
         {
             await AuthService.LogoutAsync();
-            Snackbar.Add(Messages.OperationSuccessful, Severity.Success);
+            Snackbar.Add(TranslationService.GetTranslation("auth.logoutSuccess", "Successfully logged out"), Severity.Success);
             NavigationManager.NavigateTo("/login");
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Logout error: {ex.Message}", Severity.Error);
+            Snackbar.Add(TranslationService.GetTranslation("auth.logoutError", "Logout error: {0}", ex.Message), Severity.Error);
         }
     }
 
@@ -311,5 +317,6 @@
     {
         AuthService.OnAuthenticationStateChanged -= OnAuthenticationStateChanged;
         ThemeService.OnThemeChanged -= OnThemeChanged;
+        TranslationService.LanguageChanged -= OnLanguageChanged;
     }
 }
