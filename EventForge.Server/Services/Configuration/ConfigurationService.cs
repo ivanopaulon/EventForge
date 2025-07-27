@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using System.Net.Mail;
-using AutoMapper;
+using EventForge.Server.Extensions;
 
 namespace EventForge.Server.Services.Configuration;
 
@@ -10,20 +10,17 @@ namespace EventForge.Server.Services.Configuration;
 public class ConfigurationService : IConfigurationService
 {
     private readonly EventForgeDbContext _context;
-    private readonly IMapper _mapper;
     private readonly ITenantContext _tenantContext;
     private readonly IAuditLogService _auditLogService;
     private readonly ILogger<ConfigurationService> _logger;
 
     public ConfigurationService(
         EventForgeDbContext context,
-        IMapper mapper,
         ITenantContext tenantContext,
         IAuditLogService auditLogService,
         ILogger<ConfigurationService> logger)
     {
         _context = context;
-        _mapper = mapper;
         _tenantContext = tenantContext;
         _auditLogService = auditLogService;
         _logger = logger;
@@ -36,7 +33,7 @@ public class ConfigurationService : IConfigurationService
             .ThenBy(c => c.Key)
             .ToListAsync();
 
-        return _mapper.Map<IEnumerable<ConfigurationDto>>(configurations);
+        return configurations.ToDto();
     }
 
     public async Task<IEnumerable<ConfigurationDto>> GetConfigurationsByCategoryAsync(string category)
@@ -46,7 +43,7 @@ public class ConfigurationService : IConfigurationService
             .OrderBy(c => c.Key)
             .ToListAsync();
 
-        return _mapper.Map<IEnumerable<ConfigurationDto>>(configurations);
+        return configurations.ToDto();
     }
 
     public async Task<ConfigurationDto?> GetConfigurationAsync(string key)
@@ -54,7 +51,7 @@ public class ConfigurationService : IConfigurationService
         var configuration = await _context.SystemConfigurations
             .FirstOrDefaultAsync(c => c.Key == key);
 
-        return configuration != null ? _mapper.Map<ConfigurationDto>(configuration) : null;
+        return configuration?.ToDto();
     }
 
     public async Task<ConfigurationDto> CreateConfigurationAsync(CreateConfigurationDto createDto)
@@ -96,7 +93,7 @@ public class ConfigurationService : IConfigurationService
             $"Configuration '{configuration.Key}'"
         );
 
-        return _mapper.Map<ConfigurationDto>(configuration);
+        return configuration.ToDto();
     }
 
     public async Task<ConfigurationDto> UpdateConfigurationAsync(string key, UpdateConfigurationDto updateDto)
@@ -137,7 +134,7 @@ public class ConfigurationService : IConfigurationService
             $"Configuration '{configuration.Key}'"
         );
 
-        return _mapper.Map<ConfigurationDto>(configuration);
+        return configuration.ToDto();
     }
 
     public async Task DeleteConfigurationAsync(string key)

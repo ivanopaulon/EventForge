@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
 using System.IO.Compression;
 using System.Text.Json;
-using EventForge.Server.Mappers;
 
 namespace EventForge.Server.Services.Configuration;
 
