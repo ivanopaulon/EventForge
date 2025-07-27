@@ -1,6 +1,11 @@
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
+
 using System.ComponentModel.DataAnnotations;
 
-namespace EventForge.Server.DTOs.Common;
+namespace EventForge.DTOs.Common
+{
 
 /// <summary>
 /// DTO for creating a new address.
@@ -60,4 +65,4 @@ public class CreateAddressDto
     /// </summary>
     [MaxLength(100, ErrorMessage = "Notes cannot exceed 100 characters.")]
     public string? Notes { get; set; }
-}
+}}

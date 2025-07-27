@@ -1,4 +1,9 @@
-namespace EventForge.Server.DTOs.Common;
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
+
+namespace EventForge.DTOs.Common
+{
 
 /// <summary>
 /// DTO for Contact output/display operations.
@@ -54,4 +59,4 @@ public class ContactDto
     /// User who last modified the contact.
     /// </summary>
     public string? ModifiedBy { get; set; }
-}
+}}

@@ -1,12 +1,17 @@
-namespace EventForge.Server.DTOs.Common;
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
+
+namespace EventForge.DTOs.Common
+{
 
 /// <summary>
-/// DTO for Address output/display operations.
+/// DTO for Reference output/display operations.
 /// </summary>
-public class AddressDto
+public class ReferenceDto
 {
     /// <summary>
-    /// Unique identifier for the address.
+    /// Unique identifier for the reference.
     /// </summary>
     public Guid Id { get; set; }
 
@@ -21,34 +26,24 @@ public class AddressDto
     public string OwnerType { get; set; } = string.Empty;
 
     /// <summary>
-    /// Address type.
+    /// First name of the reference person.
     /// </summary>
-    public AddressType AddressType { get; set; }
+    public string FirstName { get; set; } = string.Empty;
 
     /// <summary>
-    /// Street and street number.
+    /// Last name of the reference person.
     /// </summary>
-    public string? Street { get; set; }
+    public string LastName { get; set; } = string.Empty;
 
     /// <summary>
-    /// City.
+    /// Full name of the reference person.
     /// </summary>
-    public string? City { get; set; }
+    public string FullName => $"{FirstName} {LastName}".Trim();
 
     /// <summary>
-    /// ZIP code.
+    /// Department or role of the reference person.
     /// </summary>
-    public string? ZipCode { get; set; }
-
-    /// <summary>
-    /// Province.
-    /// </summary>
-    public string? Province { get; set; }
-
-    /// <summary>
-    /// Country.
-    /// </summary>
-    public string? Country { get; set; }
+    public string? Department { get; set; }
 
     /// <summary>
     /// Additional notes.
@@ -56,22 +51,22 @@ public class AddressDto
     public string? Notes { get; set; }
 
     /// <summary>
-    /// Date and time when the address was created (UTC).
+    /// Date and time when the reference was created (UTC).
     /// </summary>
     public DateTime CreatedAt { get; set; }
 
     /// <summary>
-    /// User who created the address.
+    /// User who created the reference.
     /// </summary>
     public string? CreatedBy { get; set; }
 
     /// <summary>
-    /// Date and time when the address was last modified (UTC).
+    /// Date and time when the reference was last modified (UTC).
     /// </summary>
     public DateTime? ModifiedAt { get; set; }
 
     /// <summary>
-    /// User who last modified the address.
+    /// User who last modified the reference.
     /// </summary>
     public string? ModifiedBy { get; set; }
-}
+}}

@@ -1,4 +1,4 @@
-using EventForge.Server.DTOs.Common;
+using EventForge.DTOs.Common;
 using EventForge.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 
@@ -108,7 +108,7 @@ public class AddressService : IAddressService
                 Id = Guid.NewGuid(),
                 OwnerId = createAddressDto.OwnerId,
                 OwnerType = createAddressDto.OwnerType,
-                AddressType = createAddressDto.AddressType,
+                AddressType = createAddressDto.AddressType.ToEntity(),
                 Street = createAddressDto.Street,
                 City = createAddressDto.City,
                 ZipCode = createAddressDto.ZipCode,
@@ -156,7 +156,7 @@ public class AddressService : IAddressService
 
             if (address == null) return null;
 
-            address.AddressType = updateAddressDto.AddressType;
+            address.AddressType = updateAddressDto.AddressType.ToEntity();
             address.Street = updateAddressDto.Street;
             address.City = updateAddressDto.City;
             address.ZipCode = updateAddressDto.ZipCode;
@@ -242,7 +242,7 @@ public class AddressService : IAddressService
             Id = address.Id,
             OwnerId = address.OwnerId,
             OwnerType = address.OwnerType,
-            AddressType = address.AddressType,
+            AddressType = address.AddressType.ToDto(),
             Street = address.Street,
             City = address.City,
             ZipCode = address.ZipCode,

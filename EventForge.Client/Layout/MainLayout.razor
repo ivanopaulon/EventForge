@@ -98,7 +98,9 @@
     }
     
     <MudMainContent Class="mt-16 pa-4">
-        @Body
+        <CustomErrorBoundary OnError="HandleError">
+            @Body
+        </CustomErrorBoundary>
     </MudMainContent>
 </MudLayout>
 
@@ -217,6 +219,15 @@
             return _currentUser.Roles.First();
         
         return $"{_currentUser.Roles.Count} Roles";
+    }
+
+    private async Task HandleError(Exception exception)
+    {
+        // Log the error and show a user-friendly message
+        Snackbar.Add("Si è verificato un errore. L'operazione potrebbe non essere stata completata correttamente.", Severity.Error);
+        
+        // You could also send error reports to a logging service here
+        // await ErrorReportingService.ReportErrorAsync(exception);
     }
 
     public void Dispose()

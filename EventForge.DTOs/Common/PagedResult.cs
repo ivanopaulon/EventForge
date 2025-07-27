@@ -1,4 +1,9 @@
-namespace EventForge.Server.DTOs.Audit;
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
+
+namespace EventForge.DTOs.Common
+{
 
 /// <summary>
 /// Represents a paginated result with metadata.
@@ -40,4 +45,4 @@ public class PagedResult<T>
     /// Whether there is a next page.
     /// </summary>
     public bool HasNextPage => Page < TotalPages;
-}
+}}

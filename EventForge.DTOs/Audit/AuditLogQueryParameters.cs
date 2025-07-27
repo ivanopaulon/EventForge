@@ -1,6 +1,11 @@
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
+
 using System.ComponentModel.DataAnnotations;
 
-namespace EventForge.Server.DTOs.Audit;
+namespace EventForge.DTOs.Audit
+{
 
 /// <summary>
 /// Query parameters for filtering and paginating audit logs.
@@ -68,4 +73,4 @@ public class AuditLogQueryParameters
     /// Calculate skip count for pagination.
     /// </summary>
     public int Skip => (Page - 1) * PageSize;
-}
+}}

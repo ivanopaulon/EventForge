@@ -1,11 +1,16 @@
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
+
 using System.ComponentModel.DataAnnotations;
 
-namespace EventForge.Server.DTOs.Common;
+namespace EventForge.DTOs.Common
+{
 
 /// <summary>
-/// DTO for creating a new classification node.
+/// DTO for updating an existing classification node.
 /// </summary>
-public class CreateClassificationNodeDto
+public class UpdateClassificationNodeDto
 {
     /// <summary>
     /// Node code.
@@ -16,9 +21,8 @@ public class CreateClassificationNodeDto
     /// <summary>
     /// Node name.
     /// </summary>
-    [Required(ErrorMessage = "Name is required.")]
     [MaxLength(100, ErrorMessage = "Name cannot exceed 100 characters.")]
-    public string Name { get; set; } = string.Empty;
+    public string? Name { get; set; }
 
     /// <summary>
     /// Node description.
@@ -52,4 +56,4 @@ public class CreateClassificationNodeDto
     /// Parent node ID (null if root).
     /// </summary>
     public Guid? ParentId { get; set; }
-}
+}}

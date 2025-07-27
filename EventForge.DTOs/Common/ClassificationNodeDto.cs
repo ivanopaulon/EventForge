@@ -1,4 +1,9 @@
-namespace EventForge.Server.DTOs.Common;
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
+
+namespace EventForge.DTOs.Common
+{
 
 /// <summary>
 /// DTO for ClassificationNode output/display operations.
@@ -74,4 +79,4 @@ public class ClassificationNodeDto
     /// User who last modified the classification node.
     /// </summary>
     public string? ModifiedBy { get; set; }
-}
+}}

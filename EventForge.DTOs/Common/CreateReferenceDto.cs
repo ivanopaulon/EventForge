@@ -1,12 +1,30 @@
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
+
 using System.ComponentModel.DataAnnotations;
 
-namespace EventForge.Server.DTOs.Common;
+namespace EventForge.DTOs.Common
+{
 
 /// <summary>
-/// DTO for updating an existing reference.
+/// DTO for creating a new reference.
 /// </summary>
-public class UpdateReferenceDto
+public class CreateReferenceDto
 {
+    /// <summary>
+    /// ID of the owning entity.
+    /// </summary>
+    [Required(ErrorMessage = "Owner ID is required.")]
+    public Guid OwnerId { get; set; }
+
+    /// <summary>
+    /// Type of the owning entity.
+    /// </summary>
+    [Required(ErrorMessage = "Owner type is required.")]
+    [MaxLength(50, ErrorMessage = "Owner type cannot exceed 50 characters.")]
+    public string OwnerType { get; set; } = string.Empty;
+
     /// <summary>
     /// First name of the reference person.
     /// </summary>
@@ -32,4 +50,4 @@ public class UpdateReferenceDto
     /// </summary>
     [MaxLength(100, ErrorMessage = "Notes cannot exceed 100 characters.")]
     public string? Notes { get; set; }
-}
+}}
