@@ -1,8 +1,8 @@
-using AutoMapper;
 using EventForge.Server.DTOs.Common;
 using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.Tenants;
 using EventForge.Server.Extensions;
+using EventForge.Server.Mappers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -14,7 +14,6 @@ namespace EventForge.Server.Services.Common;
 public class ReferenceService : IReferenceService
 {
     private readonly EventForgeDbContext _context;
-    private readonly IMapper _mapper;
     private readonly IAuditLogService _auditLogService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<ReferenceService> _logger;
@@ -23,19 +22,16 @@ public class ReferenceService : IReferenceService
     /// Initializes a new instance of the ReferenceService
     /// </summary>
     /// <param name="context">Database context</param>
-    /// <param name="mapper">AutoMapper instance</param>
     /// <param name="auditLogService">Audit log service</param>
     /// <param name="tenantContext">Tenant context service</param>
     /// <param name="logger">Logger instance</param>
     public ReferenceService(
         EventForgeDbContext context,
-        IMapper mapper,
         IAuditLogService auditLogService,
         ITenantContext tenantContext,
         ILogger<ReferenceService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
-        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -67,7 +63,7 @@ public class ReferenceService : IReferenceService
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
-            var dtos = _mapper.Map<List<ReferenceDto>>(entities);
+            var dtos = ReferenceMapper.ToDtoList(entities);
 
             return new PagedResult<ReferenceDto>
             {
@@ -95,7 +91,7 @@ public class ReferenceService : IReferenceService
                 .ThenBy(r => r.FirstName)
                 .ToListAsync(cancellationToken);
 
-            return _mapper.Map<IEnumerable<ReferenceDto>>(entities);
+            return ReferenceMapper.ToDtoCollection(entities);
         }
         catch (Exception ex)
         {
@@ -112,7 +108,7 @@ public class ReferenceService : IReferenceService
             var entity = await _context.References
                 .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
-            return entity == null ? null : _mapper.Map<ReferenceDto>(entity);
+            return entity == null ? null : ReferenceMapper.ToDto(entity);
         }
         catch (Exception ex)
         {
@@ -129,7 +125,7 @@ public class ReferenceService : IReferenceService
             ArgumentNullException.ThrowIfNull(createReferenceDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var entity = _mapper.Map<Reference>(createReferenceDto);
+            var entity = ReferenceMapper.ToEntity(createReferenceDto);
             entity.Id = Guid.NewGuid();
             entity.CreatedAt = DateTime.UtcNow;
             entity.CreatedBy = currentUser;
@@ -141,7 +137,7 @@ public class ReferenceService : IReferenceService
 
             _logger.LogInformation("Reference {ReferenceId} created by {User}.", entity.Id, currentUser);
 
-            return _mapper.Map<ReferenceDto>(entity);
+            return ReferenceMapper.ToDto(entity);
         }
         catch (Exception ex)
         {
@@ -177,7 +173,7 @@ public class ReferenceService : IReferenceService
                 return null;
             }
 
-            _mapper.Map(updateReferenceDto, entity);
+            ReferenceMapper.UpdateEntity(entity, updateReferenceDto);
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
@@ -187,7 +183,7 @@ public class ReferenceService : IReferenceService
 
             _logger.LogInformation("Reference {ReferenceId} updated by {User}.", id, currentUser);
 
-            return _mapper.Map<ReferenceDto>(entity);
+            return ReferenceMapper.ToDto(entity);
         }
         catch (Exception ex)
         {

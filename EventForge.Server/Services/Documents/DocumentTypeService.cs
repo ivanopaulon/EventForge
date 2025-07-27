@@ -1,6 +1,6 @@
-using AutoMapper;
 using EventForge.Server.DTOs.Documents;
 using EventForge.Server.Services.Audit;
+using EventForge.Server.Mappers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -12,7 +12,6 @@ namespace EventForge.Server.Services.Documents;
 public class DocumentTypeService : IDocumentTypeService
 {
     private readonly EventForgeDbContext _context;
-    private readonly IMapper _mapper;
     private readonly IAuditLogService _auditLogService;
     private readonly ILogger<DocumentTypeService> _logger;
 
@@ -20,17 +19,14 @@ public class DocumentTypeService : IDocumentTypeService
     /// Initializes a new instance of the DocumentTypeService
     /// </summary>
     /// <param name="context">Database context</param>
-    /// <param name="mapper">AutoMapper instance</param>
     /// <param name="auditLogService">Audit log service</param>
     /// <param name="logger">Logger</param>
     public DocumentTypeService(
         EventForgeDbContext context,
-        IMapper mapper,
         IAuditLogService auditLogService,
         ILogger<DocumentTypeService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
-        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -45,7 +41,7 @@ public class DocumentTypeService : IDocumentTypeService
                 .OrderBy(dt => dt.Name)
                 .ToListAsync(cancellationToken);
 
-            return _mapper.Map<IEnumerable<DocumentTypeDto>>(entities);
+            return DocumentTypeMapper.ToDtoCollection(entities);
         }
         catch (Exception ex)
         {
@@ -63,7 +59,7 @@ public class DocumentTypeService : IDocumentTypeService
                 .Include(dt => dt.DefaultWarehouse)
                 .FirstOrDefaultAsync(dt => dt.Id == id, cancellationToken);
 
-            return entity == null ? null : _mapper.Map<DocumentTypeDto>(entity);
+            return entity == null ? null : DocumentTypeMapper.ToDto(entity);
         }
         catch (Exception ex)
         {
@@ -80,7 +76,7 @@ public class DocumentTypeService : IDocumentTypeService
             ArgumentNullException.ThrowIfNull(createDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var entity = _mapper.Map<DocumentType>(createDto);
+            var entity = DocumentTypeMapper.ToEntity(createDto);
             entity.Id = Guid.NewGuid();
             entity.CreatedAt = DateTime.UtcNow;
             entity.CreatedBy = currentUser;
@@ -97,7 +93,7 @@ public class DocumentTypeService : IDocumentTypeService
 
             _logger.LogInformation("Document type {DocumentTypeId} created by {User}.", entity.Id, currentUser);
 
-            return _mapper.Map<DocumentTypeDto>(entity);
+            return DocumentTypeMapper.ToDto(entity);
         }
         catch (Exception ex)
         {
@@ -134,7 +130,7 @@ public class DocumentTypeService : IDocumentTypeService
                 return null;
             }
 
-            _mapper.Map(updateDto, entity);
+            DocumentTypeMapper.UpdateEntity(entity, updateDto);
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
@@ -144,7 +140,7 @@ public class DocumentTypeService : IDocumentTypeService
 
             _logger.LogInformation("Document type {DocumentTypeId} updated by {User}.", id, currentUser);
 
-            return _mapper.Map<DocumentTypeDto>(entity);
+            return DocumentTypeMapper.ToDto(entity);
         }
         catch (Exception ex)
         {
