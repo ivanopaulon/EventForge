@@ -14,6 +14,11 @@ public interface ITranslationService
     string CurrentLanguage { get; }
 
     /// <summary>
+    /// Gets the last missing translation key for debugging purposes.
+    /// </summary>
+    string? LastMissingKey { get; }
+
+    /// <summary>
     /// Event triggered when language changes.
     /// </summary>
     event EventHandler<string>? LanguageChanged;
@@ -70,6 +75,7 @@ public class TranslationService : ITranslationService
     private readonly ILogger<TranslationService> _logger;
 
     private Dictionary<string, object> _translations = new();
+    private Dictionary<string, object> _defaultLanguageTranslations = new();
     private string _currentLanguage = "it"; // Default to Italian
     private const string DEFAULT_LANGUAGE = "it";
     private const string LANGUAGE_PREFERENCE_KEY = "eventforge_language";
@@ -85,6 +91,7 @@ public class TranslationService : ITranslationService
     public event EventHandler<string>? LanguageChanged;
 
     public string CurrentLanguage => _currentLanguage;
+    public string? LastMissingKey { get; private set; }
 
     public TranslationService(
         HttpClient httpClient,
@@ -110,6 +117,9 @@ public class TranslationService : ITranslationService
             // Set the base address for the static client to the current page's base URL
             var baseUri = await _jsRuntime.InvokeAsync<string>("eval", "window.location.origin");
             _staticHttpClient.BaseAddress = new Uri(baseUri);
+
+            // Load default language translations first for fallback
+            await LoadTranslationsForLanguageAsync(DEFAULT_LANGUAGE, _defaultLanguageTranslations);
 
             // Try to get saved language preference
             var savedLanguage = await GetSavedLanguageAsync();
@@ -174,30 +184,69 @@ public class TranslationService : ITranslationService
     {
         try
         {
+            // Ensure we never return null or empty string
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                var result = !string.IsNullOrWhiteSpace(fallback) ? fallback : "[EMPTY_KEY]";
+                Console.WriteLine($"[TranslationService] Empty or null key provided. Using: {result}");
+                return result;
+            }
+
+            // Try to get translation from current language
             var translation = GetNestedValue(_translations, key);
             if (translation != null)
             {
-                return translation.ToString() ?? fallback ?? key;
+                var translationString = translation.ToString();
+                if (!string.IsNullOrWhiteSpace(translationString))
+                {
+                    return translationString;
+                }
             }
 
             // Try fallback to default language if current is not default
             if (_currentLanguage != DEFAULT_LANGUAGE)
             {
-                var defaultTranslation = GetNestedValue(_translations, key);
+                var defaultTranslation = GetNestedValue(_defaultLanguageTranslations, key);
                 if (defaultTranslation != null)
                 {
-                    return defaultTranslation.ToString() ?? fallback ?? key;
+                    var defaultTranslationString = defaultTranslation.ToString();
+                    if (!string.IsNullOrWhiteSpace(defaultTranslationString))
+                    {
+                        LogMissingTranslation(key, _currentLanguage, "found_in_default");
+                        return defaultTranslationString;
+                    }
                 }
             }
 
-            _logger.LogWarning("Translation not found for key: {Key}", key);
-            return fallback ?? key;
+            // No translation found, use fallback or formatted key
+            var finalFallback = !string.IsNullOrWhiteSpace(fallback) ? fallback : $"[{key}]";
+            LogMissingTranslation(key, _currentLanguage, "not_found");
+            
+            return finalFallback;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting translation for key: {Key}", key);
-            return fallback ?? key;
+            var errorFallback = !string.IsNullOrWhiteSpace(fallback) ? fallback : $"[{key}]";
+            Console.WriteLine($"[TranslationService] ERROR getting translation for key '{key}': {ex.Message}. Using: {errorFallback}");
+            return errorFallback;
         }
+    }
+
+    /// <summary>
+    /// Logs missing translation information to console for debugging.
+    /// </summary>
+    private void LogMissingTranslation(string key, string currentLanguage, string reason)
+    {
+        LastMissingKey = key;
+        var jsonFile = $"i18n/{currentLanguage}.json";
+        var message = reason == "found_in_default" 
+            ? $"[TranslationService] Key '{key}' missing in {currentLanguage}, using default language fallback. File: {jsonFile}"
+            : $"[TranslationService] Key '{key}' missing in language '{currentLanguage}' and default language. File: {jsonFile}";
+        
+        Console.WriteLine(message);
+        _logger.LogWarning("Translation key '{Key}' missing. Language: {Language}, File: {File}, Reason: {Reason}", 
+            key, currentLanguage, jsonFile, reason);
     }
 
     public string GetTranslation(string key, params object[] parameters)
@@ -257,6 +306,14 @@ public class TranslationService : ITranslationService
     /// </summary>
     private async Task LoadTranslationsAsync(string language)
     {
+        await LoadTranslationsForLanguageAsync(language, _translations);
+    }
+
+    /// <summary>
+    /// Loads translations from local JSON files into a specific dictionary.
+    /// </summary>
+    private async Task LoadTranslationsForLanguageAsync(string language, Dictionary<string, object> targetDictionary)
+    {
         try
         {
             var response = await _staticHttpClient.GetAsync($"i18n/{language}.json");
@@ -267,7 +324,12 @@ public class TranslationService : ITranslationService
 
                 if (translations != null)
                 {
-                    _translations = translations;
+                    // Clear and update the target dictionary
+                    targetDictionary.Clear();
+                    foreach (var kvp in translations)
+                    {
+                        targetDictionary[kvp.Key] = kvp.Value;
+                    }
                     _logger.LogDebug("Loaded {Count} translation groups for language {Language}", translations.Count, language);
                 }
                 else
@@ -280,7 +342,7 @@ public class TranslationService : ITranslationService
                 _logger.LogWarning("Failed to load translations for language {Language}: {StatusCode}", language, response.StatusCode);
 
                 // Fallback to default language if not already trying it
-                if (language != DEFAULT_LANGUAGE)
+                if (language != DEFAULT_LANGUAGE && targetDictionary == _translations)
                 {
                     await LoadTranslationsAsync(DEFAULT_LANGUAGE);
                 }
@@ -291,7 +353,7 @@ public class TranslationService : ITranslationService
             _logger.LogError(ex, "Error loading translations for language {Language}", language);
 
             // Fallback to default language if not already trying it
-            if (language != DEFAULT_LANGUAGE)
+            if (language != DEFAULT_LANGUAGE && targetDictionary == _translations)
             {
                 await LoadTranslationsAsync(DEFAULT_LANGUAGE);
             }

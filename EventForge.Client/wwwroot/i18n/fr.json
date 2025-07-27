@@ -39,7 +39,9 @@
     "help": "Aide",
     "about": "À propos",
     "version": "Version",
-    "language": "Langue"
+    "language": "Langue",
+    "returnToLogin": "Retour à la Connexion",
+    "notAvailable": "N/A"
   },
   "navigation": {
     "home": "Accueil",
@@ -65,8 +67,13 @@
     "rememberMe": "Se souvenir de moi",
     "forgotPassword": "Mot de passe oublié ?",
     "loginFailed": "Identifiants invalides",
+    "loginSuccess": "Connexion réussie !",
+    "loginError": "Erreur de connexion : {0}",
     "logout": "Déconnexion",
-    "logoutSuccess": "Déconnexion réussie"
+    "logoutSuccess": "Déconnexion réussie",
+    "authenticationRequired": "Authentification Requise",
+    "pleaseLogin": "Veuillez vous connecter pour accéder à cette page.",
+    "goToLogin": "Aller à la Connexion"
   },
   "field": {
     "id": "ID",
@@ -138,5 +145,44 @@
     "exportTranslations": "Exporter les traductions",
     "importTranslations": "Importer les traductions",
     "syncTranslations": "Synchroniser les traductions"
+  },
+  "health": {
+    "serverStatus": "État du Serveur",
+    "systemOverview": "Aperçu du Système",
+    "systemDetails": "Détails du Système",
+    "apiStatus": "État API",
+    "database": "Base de Données",
+    "authentication": "Authentification",
+    "lastCheck": "Dernière Vérification",
+    "environment": "Environnement",
+    "machine": "Machine",
+    "processId": "ID de Processus",
+    "memoryUsage": "Utilisation Mémoire",
+    "uptime": "Temps de Fonctionnement",
+    "dependencies": "Dépendances",
+    "appliedMigrations": "Migrations Appliquées",
+    "andMore": "et {0} de plus",
+    "checkFailed": "Vérification de Santé Échouée",
+    "loadingStatus": "Chargement de l'état de santé..."
+  },
+  "admin": {
+    "welcomeBack": "Bon retour, {0} !",
+    "loggedInAs": "Vous êtes connecté en tant que : {0}",
+    "adminUser": "Utilisateur Admin",
+    "userInformation": "Informations Utilisateur",
+    "rolesPermissions": "Rôles et Permissions",
+    "permissions": "Permissions",
+    "morePermissions": "+{0} de plus",
+    "adminActions": "Actions Admin",
+    "dashboardDescription": "Ceci est le tableau de bord administrateur. Ici vous pouvez gérer les paramètres système, les utilisateurs et autres tâches administratives.",
+    "underDevelopment": "Les fonctionnalités d'administration sont en développement. Plus de fonctionnalités seront bientôt disponibles.",
+    "loadError": "Erreur de chargement de la page admin : {0}",
+    "accessDeniedWarning": "Accès refusé. Rôle d'administrateur requis."
+  },
+  "error": {
+    "accessDenied": "Accès Refusé",
+    "adminRoleRequired": "Vous n'avez pas la permission d'accéder à cette page. Le rôle d'administrateur est requis.",
+    "pageNotFound": "Page Non Trouvée",
+    "nothingAtAddress": "Désolé, il n'y a rien à cette adresse."
   }
 }
