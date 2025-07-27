@@ -104,7 +104,7 @@
         {
             _isCreating = true;
             var newTenant = await SuperAdminService.CreateTenantAsync(_createDto);
-            MudDialog.Close(MudBlazor.DialogResult.Ok(newTenant));
+            MudDialog!.Close(MudBlazor.DialogResult.Ok(newTenant));
         }
         catch (Exception ex)
         {

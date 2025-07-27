@@ -321,7 +321,7 @@ else
         var dialog = await DialogService.ShowAsync<CreateTenantDialog>("Nuovo Tenant");
         var result = await dialog.Result;
         
-        if (!result.Canceled && result.Data is TenantResponseDto newTenant)
+        if (result is not null && !result.Canceled && result.Data is TenantResponseDto newTenant)
         {
             _tenants.Add(newTenant);
             await LoadStatisticsAsync();
@@ -341,7 +341,7 @@ else
         var dialog = await DialogService.ShowAsync<EditTenantDialog>("Modifica Tenant", parameters);
         var result = await dialog.Result;
         
-        if (!result.Canceled && result.Data is TenantResponseDto updatedTenant)
+        if (result is not null && !result.Canceled && result.Data is TenantResponseDto updatedTenant)
         {
             var index = _tenants.FindIndex(t => t.Id == updatedTenant.Id);
             if (index >= 0)

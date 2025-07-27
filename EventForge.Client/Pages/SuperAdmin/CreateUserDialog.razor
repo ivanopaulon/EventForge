@@ -134,7 +134,7 @@
             _createDto.Roles = _selectedRoles.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
             
             var newUser = await SuperAdminService.CreateUserAsync(_createDto);
-            MudDialog.Close(MudBlazor.DialogResult.Ok(newUser));
+            MudDialog!.Close(MudBlazor.DialogResult.Ok(newUser));
         }
         catch (Exception ex)
         {

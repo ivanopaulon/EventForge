@@ -484,7 +484,7 @@ else
         var dialog = await DialogService.ShowAsync<EditUserDialog>("Modifica Utente", parameters);
         var result = await dialog.Result;
         
-        if (!result.Canceled && result.Data is UserManagementDto updatedUser)
+        if (result is not null && !result.Canceled && result.Data is UserManagementDto updatedUser)
         {
             var index = _users.FindIndex(u => u.Id == updatedUser.Id);
             if (index >= 0)

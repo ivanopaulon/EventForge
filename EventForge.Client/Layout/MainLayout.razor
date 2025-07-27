@@ -242,12 +242,13 @@
         return $"{_currentUser.Roles.Count} Roles";
     }
 
-    private async Task HandleError(Exception exception)
+    private Task HandleError(Exception exception)
     {
         // Log the error and show a user-friendly message
         Snackbar.Add(TranslationService.GetTranslation("error.operationMayNotCompleted", "Si è verificato un errore. L'operazione potrebbe non essere stata completata correttamente."), Severity.Error);
         
         // You could also send error reports to a logging service here
+        return Task.CompletedTask;
         // await ErrorReportingService.ReportErrorAsync(exception);
     }
 

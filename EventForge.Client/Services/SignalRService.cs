@@ -49,7 +49,7 @@ public class SignalRService : IAsyncDisposable
             _hubConnection = new HubConnectionBuilder()
                 .WithUrl(hubUrl, options =>
                 {
-                    options.AccessTokenProvider = () => Task.FromResult(token);
+                    options.AccessTokenProvider = () => Task.FromResult(token!);
                 })
                 .WithAutomaticReconnect()
                 .Build();

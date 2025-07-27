@@ -177,13 +177,14 @@
     private string selectedLanguage = "";
     private string searchTerm = "";
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
-        await LoadTranslations();
+        LoadTranslations();
         FilterTranslations();
+        return Task.CompletedTask;
     }
 
-    private async Task LoadTranslations()
+    private void LoadTranslations()
     {
         try
         {

@@ -26,11 +26,11 @@
     private string? _errorMessage;
     private string _healthJson = string.Empty;
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
-        
         // Load health status in background
         // _ = Task.Run(async () => await LoadHealthStatus());
+        return Task.CompletedTask;
     }
 
     private async Task LoadHealthStatus()

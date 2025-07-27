@@ -75,13 +75,14 @@
 </CascadingAuthenticationState>
 
 @code {
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
         // NOTE: I18N REMOVED - TranslationService initialization removed to support minimal home
         // without internationalization dependencies
         
         // Subscribe to authentication state changes for protected routes
         AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
+        return Task.CompletedTask;
     }
 
     private async void OnAuthenticationStateChanged()
