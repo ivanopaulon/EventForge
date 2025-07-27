@@ -1,0 +1,175 @@
+@page "/"
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
+@inject IHealthService HealthService
+@inject ITranslationService TranslationService
+@inject NavigationManager NavigationManager
+
+<PageTitle>@TranslationService.GetTranslation("home.title", "EventForge - Home")</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudPaper Class="pa-8" Elevation="4">
+        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-8">
+            <MudIcon Icon="Icons.Material.Filled.Home" Class="mr-2" />
+            @TranslationService.GetTranslation("home.title", "EventForge - Home")
+        </MudText>
+
+        <MudText Typo="Typo.h5" Class="mb-4">
+            <MudIcon Icon="Icons.Material.Filled.HealthAndSafety" Class="mr-2" />
+            @TranslationService.GetTranslation("home.healthCheck", "System Health Check")
+        </MudText>
+
+        @if (_isLoading)
+        {
+            <MudCard Class="mb-4">
+                <MudCardContent>
+                    <div class="d-flex align-center justify-center pa-8">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mr-4" />
+                        <MudText>@TranslationService.GetTranslation("common.loading", "Loading...")</MudText>
+                    </div>
+                </MudCardContent>
+            </MudCard>
+        }
+        else if (_healthStatus != null)
+        {
+            <MudCard Class="mb-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">
+                            @TranslationService.GetTranslation("home.healthStatus", "Health Status")
+                        </MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudExpansionPanels>
+                        <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("common.version", "Version")} JSON")">
+                            <pre style="white-space: pre-wrap; overflow-x: auto;">@_healthJson</pre>
+                        </MudExpansionPanel>
+                        <MudExpansionPanel Text="@TranslationService.GetTranslation("health.systemOverview", "System Overview")" IsInitiallyExpanded="true">
+                            <MudSimpleTable Style="overflow-x: auto;">
+                                <tbody>
+                                    <tr>
+                                        <td><strong>@TranslationService.GetTranslation("health.apiStatus", "API Status"):</strong></td>
+                                        <td>
+                                            <MudChip T="string" Color="@GetStatusColor(_healthStatus.ApiStatus)" Size="Size.Small">
+                                                @_healthStatus.ApiStatus
+                                            </MudChip>
+                                        </td>
+                                    </tr>
+                                    @if (!string.IsNullOrEmpty(_healthStatus.DatabaseStatus))
+                                    {
+                                        <tr>
+                                            <td><strong>@TranslationService.GetTranslation("health.database", "Database"):</strong></td>
+                                            <td>
+                                                <MudChip T="string" Color="@GetStatusColor(_healthStatus.DatabaseStatus)" Size="Size.Small">
+                                                    @_healthStatus.DatabaseStatus
+                                                </MudChip>
+                                            </td>
+                                        </tr>
+                                    }
+                                    @if (!string.IsNullOrEmpty(_healthStatus.Version))
+                                    {
+                                        <tr>
+                                            <td><strong>@TranslationService.GetTranslation("common.version", "Version"):</strong></td>
+                                            <td>@_healthStatus.Version</td>
+                                        </tr>
+                                    }
+                                    @if (!string.IsNullOrEmpty(_healthStatus.AuthenticationStatus))
+                                    {
+                                        <tr>
+                                            <td><strong>@TranslationService.GetTranslation("health.authentication", "Authentication"):</strong></td>
+                                            <td>
+                                                <MudChip T="string" Color="@GetStatusColor(_healthStatus.AuthenticationStatus)" Size="Size.Small">
+                                                    @_healthStatus.AuthenticationStatus
+                                                </MudChip>
+                                            </td>
+                                        </tr>
+                                    }
+                                    <tr>
+                                        <td><strong>@TranslationService.GetTranslation("health.lastCheck", "Last Check"):</strong></td>
+                                        <td>@_healthStatus.Timestamp.ToString("yyyy-MM-dd HH:mm:ss") UTC</td>
+                                    </tr>
+                                </tbody>
+                            </MudSimpleTable>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                </MudCardContent>
+            </MudCard>
+        }
+        else if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Icon="@Icons.Material.Filled.Error" Class="mb-4">
+                <MudText><strong>@TranslationService.GetTranslation("home.errorLoadingHealth", "Error loading health status"):</strong></MudText>
+                <MudText>@_errorMessage</MudText>
+            </MudAlert>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Filled.Info" Class="mb-4">
+                <MudText>@TranslationService.GetTranslation("home.noHealthData", "No health data available")</MudText>
+            </MudAlert>
+        }
+
+        <MudDivider Class="my-6" />
+
+        <MudGrid Justify="Justify.Center">
+            <MudItem>
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           StartIcon="Icons.Material.Filled.Login"
+                           OnClick="@(() => NavigationManager.NavigateTo("/login"))">
+                    @TranslationService.GetTranslation("auth.goToLogin", "Go to Login")
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private bool _isLoading = true;
+    private HealthStatusDto? _healthStatus;
+    private string? _errorMessage;
+    private string _healthJson = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadHealthStatus();
+    }
+
+    private async Task LoadHealthStatus()
+    {
+        _isLoading = true;
+        try
+        {
+            _healthStatus = await HealthService.GetHealthAsync();
+            if (_healthStatus != null)
+            {
+                // Pretty print JSON
+                _healthJson = System.Text.Json.JsonSerializer.Serialize(_healthStatus, new System.Text.Json.JsonSerializerOptions 
+                { 
+                    WriteIndented = true 
+                });
+            }
+            else
+            {
+                _errorMessage = "Unable to connect to server or retrieve health status.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private Color GetStatusColor(string? status) => status?.ToLower() switch
+    {
+        "healthy" => Color.Success,
+        "degraded" => Color.Warning,
+        "unhealthy" or "error" => Color.Error,
+        _ => Color.Default
+    };
+}

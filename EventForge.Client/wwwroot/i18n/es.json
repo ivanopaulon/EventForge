@@ -60,6 +60,13 @@
     "configuration": "Configuración",
     "translationManagement": "Gestión de Traducciones"
   },
+  "home": {
+    "title": "EventForge - Inicio",
+    "healthCheck": "Verificación de Salud del Sistema",
+    "healthStatus": "Estado de Salud",
+    "errorLoadingHealth": "Error cargando el estado de salud",
+    "noHealthData": "No hay datos de salud disponibles"
+  },
   "auth": {
     "login": "Iniciar sesión",
     "username": "Nombre de usuario",
@@ -69,11 +76,14 @@
     "loginFailed": "Credenciales inválidas",
     "loginSuccess": "¡Inicio de sesión exitoso!",
     "loginError": "Error de inicio de sesión: {0}",
+    "loginInProgress": "Iniciando sesión...",
     "logout": "Cerrar sesión",
     "logoutSuccess": "Sesión cerrada exitosamente",
     "authenticationRequired": "Autenticación Requerida",
     "pleaseLogin": "Por favor inicia sesión para acceder a esta página.",
-    "goToLogin": "Ir al Login"
+    "goToLogin": "Ir al Login",
+    "usernameRequired": "El nombre de usuario es obligatorio",
+    "passwordRequired": "La contraseña es obligatoria"
   },
   "field": {
     "id": "ID",
