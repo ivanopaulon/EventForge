@@ -39,7 +39,9 @@
     "help": "Ayuda",
     "about": "Acerca de",
     "version": "Versión",
-    "language": "Idioma"
+    "language": "Idioma",
+    "returnToLogin": "Volver al Login",
+    "notAvailable": "N/A"
   },
   "navigation": {
     "home": "Inicio",
@@ -65,8 +67,13 @@
     "rememberMe": "Recordarme",
     "forgotPassword": "¿Olvidaste tu contraseña?",
     "loginFailed": "Credenciales inválidas",
+    "loginSuccess": "¡Inicio de sesión exitoso!",
+    "loginError": "Error de inicio de sesión: {0}",
     "logout": "Cerrar sesión",
-    "logoutSuccess": "Sesión cerrada exitosamente"
+    "logoutSuccess": "Sesión cerrada exitosamente",
+    "authenticationRequired": "Autenticación Requerida",
+    "pleaseLogin": "Por favor inicia sesión para acceder a esta página.",
+    "goToLogin": "Ir al Login"
   },
   "field": {
     "id": "ID",
@@ -138,5 +145,44 @@
     "exportTranslations": "Exportar traducciones",
     "importTranslations": "Importar traducciones",
     "syncTranslations": "Sincronizar traducciones"
+  },
+  "health": {
+    "serverStatus": "Estado del Servidor",
+    "systemOverview": "Resumen del Sistema",
+    "systemDetails": "Detalles del Sistema",
+    "apiStatus": "Estado API",
+    "database": "Base de Datos",
+    "authentication": "Autenticación",
+    "lastCheck": "Última Verificación",
+    "environment": "Entorno",
+    "machine": "Máquina",
+    "processId": "ID del Proceso",
+    "memoryUsage": "Uso de Memoria",
+    "uptime": "Tiempo Activo",
+    "dependencies": "Dependencias",
+    "appliedMigrations": "Migraciones Aplicadas",
+    "andMore": "y {0} más",
+    "checkFailed": "Verificación de Salud Falló",
+    "loadingStatus": "Cargando estado de salud..."
+  },
+  "admin": {
+    "welcomeBack": "¡Bienvenido de vuelta, {0}!",
+    "loggedInAs": "Has iniciado sesión como: {0}",
+    "adminUser": "Usuario Admin",
+    "userInformation": "Información de Usuario",
+    "rolesPermissions": "Roles y Permisos",
+    "permissions": "Permisos",
+    "morePermissions": "+{0} más",
+    "adminActions": "Acciones de Admin",
+    "dashboardDescription": "Este es el panel de administración. Aquí puedes gestionar configuraciones del sistema, usuarios y otras tareas administrativas.",
+    "underDevelopment": "La funcionalidad de administración está en desarrollo. Pronto estarán disponibles más características.",
+    "loadError": "Error al cargar la página de admin: {0}",
+    "accessDeniedWarning": "Acceso denegado. Se requiere rol de administrador."
+  },
+  "error": {
+    "accessDenied": "Acceso Denegado",
+    "adminRoleRequired": "No tienes permiso para acceder a esta página. Se requiere rol de administrador.",
+    "pageNotFound": "Página No Encontrada",
+    "nothingAtAddress": "Lo siento, no hay nada en esta dirección."
   }
 }
