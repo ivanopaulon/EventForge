@@ -18,27 +18,16 @@
             System Health Check
         </MudText>
 
-        <!-- DEBUG: Static content to verify rendering -->
-        <MudAlert Severity="Severity.Info" Class="mb-4">
-            <MudText><strong>✅ Home page is rendering!</strong></MudText>
-            <MudText>This minimal home page has been successfully created without i18n dependencies.</MudText>
-        </MudAlert>
-
     </MudPaper>
 </MudContainer>
 
 @code {
-    // NOTE: I18N REMOVED - TranslationService dependency removed to create minimal home
-    // All text content is now hardcoded in English to avoid rendering issues
-    private bool _isLoading = false; // Changed to false to show content immediately
     private HealthStatusDto? _healthStatus;
     private string? _errorMessage;
     private string _healthJson = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-        // Debug log to verify component is executing
-        Console.WriteLine("[Home] OnInitializedAsync called");
         
         // Load health status in background
         // _ = Task.Run(async () => await LoadHealthStatus());
@@ -46,10 +35,6 @@
 
     private async Task LoadHealthStatus()
     {
-        Console.WriteLine("[Home] LoadHealthStatus started");
-        _isLoading = true;
-        StateHasChanged(); // Trigger re-render to show loading state
-        
         try
         {
             // Set a shorter timeout for the health check to avoid hanging
@@ -84,13 +69,6 @@
         catch (Exception ex)
         {
             _errorMessage = $"Error: {ex.Message}";
-            Console.WriteLine($"[Home] Error: {ex.Message}");
-        }
-        finally
-        {
-            _isLoading = false;
-            StateHasChanged(); // Trigger re-render when done
-            Console.WriteLine("[Home] LoadHealthStatus completed");
         }
     }
 

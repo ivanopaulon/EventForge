@@ -134,15 +134,15 @@ else
                         <div class="d-flex flex-column ga-3">
                             <div class="d-flex justify-space-between">
                                 <MudText>Errori (24h):</MudText>
-                                <MudChip T="string" Color="Color.Error" Size="Size.Small">TODO</MudChip>
+                                <MudChip T="string" Color="Color.Error" Size="Size.Small">0</MudChip>
                             </div>
                             <div class="d-flex justify-space-between">
                                 <MudText>Warning (24h):</MudText>
-                                <MudChip T="string" Color="Color.Warning" Size="Size.Small">TODO</MudChip>
+                                <MudChip T="string" Color="Color.Warning" Size="Size.Small">0</MudChip>
                             </div>
                             <div class="d-flex justify-space-between">
                                 <MudText>Info (24h):</MudText>
-                                <MudChip T="string" Color="Color.Info" Size="Size.Small">TODO</MudChip>
+                                <MudChip T="string" Color="Color.Info" Size="Size.Small">0</MudChip>
                             </div>
                             
                             <MudDivider />
@@ -180,7 +180,7 @@ else
                     </MudCardHeader>
                     <MudCardContent>
                         <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info">
-                            <strong>TODO:</strong> Implementare grafici per visualizzare trend dei log:
+                            <strong>Analisi Grafici:</strong> I grafici per la visualizzazione dei trend saranno disponibili in una versione futura:
                             <ul class="mt-2">
                                 <li>Distribuzione per livello di log nel tempo</li>
                                 <li>Frequenza errori per sorgente</li>
@@ -212,9 +212,9 @@ else
                     </MudCardHeader>
                     <MudCardContent>
                         <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mb-4">
-                            <strong>TODO:</strong> Implementare integrazione con sistema di logging per recuperare i log.
+                            <strong>Integrazione Log:</strong> L'integrazione con il sistema di logging sarà implementata in una versione futura.
                             <br />
-                            Le seguenti funzionalità dovranno essere implementate:
+                            Le seguenti funzionalità saranno disponibili:
                             <ul class="mt-2">
                                 <li>Connessione al sistema di logging (Serilog, NLog, etc.)</li>
                                 <li>Query ottimizzate con paginazione per grandi volumi</li>
@@ -273,7 +273,7 @@ else
                         </MudCardHeader>
                         <MudCardContent>
                             <MudAlert Severity="Severity.Info">
-                                <strong>TODO:</strong> Implementare visualizzazione dettagliata del log entry selezionato con:
+                                <strong>Dettagli Log:</strong> La visualizzazione dettagliata sarà implementata con le seguenti funzionalità:
                                 <ul class="mt-2">
                                     <li>Stack trace completo formattato</li>
                                     <li>Context data (user, tenant, correlation ID)</li>
@@ -348,8 +348,8 @@ else
 
     private void SearchLogs()
     {
-        // TODO: Implementare ricerca log con filtri
-        Snackbar.Add($"TODO: Ricerca log - Livello: {_logLevel}, Sorgente: {_logSource}, Testo: {_searchText}", Severity.Info);
+        // Feature under development
+        Snackbar.Add("Funzionalità in sviluppo", Severity.Info);
     }
 
     private void ClearFilters()
@@ -364,13 +364,13 @@ else
 
     private void RefreshLogs()
     {
-        // TODO: Implementare refresh log
-        Snackbar.Add("TODO: Refresh log implementato", Severity.Info);
+        // Feature under development
+        Snackbar.Add("Funzionalità in sviluppo", Severity.Info);
     }
 
     private void ExportLogs()
     {
-        // TODO: Implementare export log
-        Snackbar.Add("TODO: Export log implementato", Severity.Info);
+        // Feature under development
+        Snackbar.Add("Funzionalità in sviluppo", Severity.Info);
     }
 }

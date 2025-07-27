@@ -1,48 +1,51 @@
 @inherits ErrorBoundaryBase
 @using Microsoft.Extensions.Logging
 @inject ILogger<ErrorBoundary> Logger
+@inject ITranslationService TranslationService
 
-<div class="mud-alert mud-alert-outlined mud-alert-outlined-error">
+<MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
     @if (CurrentException is not null)
     {
         <div class="d-flex align-center">
             <MudIcon Icon="@Icons.Material.Filled.Error" Class="mr-3" />
             <div>
-                <h6 class="mb-1">Si è verificato un errore</h6>
-                <p class="mb-2">@GetUserFriendlyMessage(CurrentException)</p>
+                <MudText Typo="Typo.h6" Class="mb-1">@TranslationService.GetTranslation("error.title", "Si è verificato un errore")</MudText>
+                <MudText Typo="Typo.body2" Class="mb-2">@GetUserFriendlyMessage(CurrentException)</MudText>
                 @if (ShowDetails)
                 {
-                    <details class="mt-2">
-                        <summary class="mud-typography mud-typography-caption">Dettagli tecnici</summary>
-                        <div class="mud-typography mud-typography-caption mt-1">
-                            <strong>Tipo:</strong> @CurrentException.GetType().Name<br />
-                            <strong>Messaggio:</strong> @CurrentException.Message
-                            @if (!string.IsNullOrWhiteSpace(CurrentException.StackTrace))
-                            {
-                                <br /><strong>Stack Trace:</strong><br />
-                                <pre style="font-size: 0.75rem; white-space: pre-wrap;">@CurrentException.StackTrace</pre>
-                            }
+                    <MudCollapse Expanded="ShowDetails">
+                        <div class="mt-2">
+                            <MudText Typo="Typo.caption">@TranslationService.GetTranslation("error.technicalDetails", "Dettagli tecnici")</MudText>
+                            <div class="mt-1">
+                                <MudText Typo="Typo.caption"><strong>@TranslationService.GetTranslation("error.type", "Tipo"):</strong> @CurrentException.GetType().Name</MudText>
+                                <MudText Typo="Typo.caption"><strong>@TranslationService.GetTranslation("error.message", "Messaggio"):</strong> @CurrentException.Message</MudText>
+                                @if (!string.IsNullOrWhiteSpace(CurrentException.StackTrace))
+                                {
+                                    <MudText Typo="Typo.caption"><strong>@TranslationService.GetTranslation("error.stackTrace", "Stack Trace"):</strong></MudText>
+                                    <MudText Typo="Typo.caption" Style="font-family: monospace; white-space: pre-wrap; font-size: 0.75rem;">@CurrentException.StackTrace</MudText>
+                                }
+                            </div>
                         </div>
-                    </details>
+                    </MudCollapse>
                 }
                 <div class="mt-3">
                     <MudButton Variant="Variant.Filled" 
                               Color="Color.Primary" 
                               StartIcon="@Icons.Material.Filled.Refresh"
                               OnClick="Recover">
-                        Riprova
+                        @TranslationService.GetTranslation("error.retry", "Riprova")
                     </MudButton>
                     <MudButton Variant="Variant.Text" 
                               Color="Color.Primary"
                               Class="ml-2"
                               OnClick="() => ShowDetails = !ShowDetails">
-                        @(ShowDetails ? "Nascondi" : "Mostra") dettagli
+                        @(ShowDetails ? TranslationService.GetTranslation("error.hideDetails", "Nascondi") : TranslationService.GetTranslation("error.showDetails", "Mostra")) dettagli
                     </MudButton>
                 </div>
             </div>
         </div>
     }
-</div>
+</MudAlert>
 
 @code {
     [Parameter] public bool ShowDetails { get; set; } = false;
@@ -63,12 +66,12 @@
     {
         return exception switch
         {
-            HttpRequestException => "Errore di connessione al server. Verificare la connessione di rete.",
-            TaskCanceledException => "La richiesta ha impiegato troppo tempo. Riprovare.",
-            UnauthorizedAccessException => "Non si dispone delle autorizzazioni necessarie per questa operazione.",
-            ArgumentException => "Dati non validi forniti.",
-            InvalidOperationException => "Operazione non valida in questo momento.",
-            _ => "Si è verificato un errore imprevisto. Riprovare o contattare l'assistenza se il problema persiste."
+            HttpRequestException => TranslationService.GetTranslation("error.connectionError", "Errore di connessione al server. Verificare la connessione di rete."),
+            TaskCanceledException => TranslationService.GetTranslation("error.requestTimeout", "La richiesta ha impiegato troppo tempo. Riprovare."),
+            UnauthorizedAccessException => TranslationService.GetTranslation("error.unauthorizedOperation", "Non si dispone delle autorizzazioni necessarie per questa operazione."),
+            ArgumentException => TranslationService.GetTranslation("error.invalidData", "Dati non validi forniti."),
+            InvalidOperationException => TranslationService.GetTranslation("error.invalidOperation", "Operazione non valida in questo momento."),
+            _ => TranslationService.GetTranslation("error.unexpectedError", "Si è verificato un errore imprevisto. Riprovare o contattare l'assistenza se il problema persiste.")
         };
     }
 }

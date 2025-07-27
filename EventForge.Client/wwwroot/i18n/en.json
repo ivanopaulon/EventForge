@@ -193,6 +193,25 @@
     "accessDenied": "Access Denied",
     "adminRoleRequired": "You don't have permission to access this page. Administrator role is required.",
     "pageNotFound": "Page Not Found",
-    "nothingAtAddress": "Sorry, there's nothing at this address."
+    "nothingAtAddress": "Sorry, there's nothing at this address.",
+    "title": "An error occurred",
+    "operationMayNotCompleted": "An error occurred. The operation may not have been completed correctly.",
+    "retry": "Retry",
+    "showDetails": "Show details",
+    "hideDetails": "Hide details",
+    "technicalDetails": "Technical details",
+    "type": "Type",
+    "message": "Message",
+    "stackTrace": "Stack Trace",
+    "connectionError": "Connection error to server. Please check your network connection.",
+    "requestTimeout": "The request took too long. Please try again.",
+    "unauthorizedOperation": "You do not have the necessary permissions for this operation.",
+    "invalidData": "Invalid data provided.",
+    "invalidOperation": "Invalid operation at this time.",
+    "unexpectedError": "An unexpected error occurred. Please try again or contact support if the problem persists."
+  },
+  "accessibility": {
+    "languageSelectorDescription": "Select your preferred language",
+    "selectLanguage": "Select language"
   }
 }

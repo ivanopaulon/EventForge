@@ -193,6 +193,25 @@
     "accessDenied": "Accès Refusé",
     "adminRoleRequired": "Vous n'avez pas la permission d'accéder à cette page. Le rôle d'administrateur est requis.",
     "pageNotFound": "Page Non Trouvée",
-    "nothingAtAddress": "Désolé, il n'y a rien à cette adresse."
+    "nothingAtAddress": "Désolé, il n'y a rien à cette adresse.",
+    "title": "Une erreur s'est produite",
+    "operationMayNotCompleted": "Une erreur s'est produite. L'opération n'a peut-être pas été terminée correctement.",
+    "retry": "Réessayer",
+    "showDetails": "Afficher les détails",
+    "hideDetails": "Masquer les détails",
+    "technicalDetails": "Détails techniques",
+    "type": "Type",
+    "message": "Message",
+    "stackTrace": "Stack Trace",
+    "connectionError": "Erreur de connexion au serveur. Veuillez vérifier votre connexion réseau.",
+    "requestTimeout": "La demande a pris trop de temps. Veuillez réessayer.",
+    "unauthorizedOperation": "Vous n'avez pas les autorisations nécessaires pour cette opération.",
+    "invalidData": "Données invalides fournies.",
+    "invalidOperation": "Opération invalide en ce moment.",
+    "unexpectedError": "Une erreur inattendue s'est produite. Veuillez réessayer ou contacter le support si le problème persiste."
+  },
+  "accessibility": {
+    "languageSelectorDescription": "Sélectionnez votre langue préférée",
+    "selectLanguage": "Sélectionner la langue"
   }
 }

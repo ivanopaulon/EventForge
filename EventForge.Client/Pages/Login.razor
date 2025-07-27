@@ -9,22 +9,6 @@
 
 <PageTitle>@TranslationService.GetTranslation("auth.login", "Login") - EventForge</PageTitle>
 
-<!-- TEMPORARY DIAGNOSTIC BANNER - REMOVE AFTER DEBUGGING -->
-<!-- 🔧 INTERNATIONALIZATION ENHANCEMENTS: Added specific auth.* keys for better localization -->
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Filled.BugReport" Class="mb-4">
-        <MudText Typo="Typo.h6" Class="mb-2"><strong>🔍 LOGIN PAGE RENDERED - DIAGNOSTIC MODE</strong></MudText>
-        <MudText Typo="Typo.body2">
-            ✅ Login component successfully initialized and rendered<br/>
-            📍 Current URL: @NavigationManager.Uri<br/>
-            🔗 Base URL: @NavigationManager.BaseUri<br/>
-            ⏰ Render time: @DateTime.Now.ToString("HH:mm:ss.fff")<br/>
-            🌐 Internationalization: Enhanced with specific auth.* keys (usernameRequired, passwordRequired, loginInProgress)
-        </MudText>
-    </MudAlert>
-</MudContainer>
-<!-- END TEMPORARY DIAGNOSTIC BANNER -->
-
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
     <MudPaper Class="pa-8" Elevation="4">
         <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-8">
@@ -235,43 +219,26 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // TEMPORARY DEBUG: Comprehensive Login component diagnostics
-        Console.WriteLine("=== LOGIN COMPONENT DIAGNOSTICS START ===");
-        Console.WriteLine("🎯 LOGIN PAGE RENDERED - OnInitializedAsync called");
-        Console.WriteLine($"📍 Current URI: {NavigationManager.Uri}");
-        Console.WriteLine($"🔗 Base URI: {NavigationManager.BaseUri}");
-        Console.WriteLine($"⏰ Component initialization time: {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
-        
         // Check if user is already authenticated
         try 
         {
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
-            Console.WriteLine($"🔐 Authentication status: {isAuthenticated}");
             
             if (isAuthenticated)
             {
-                Console.WriteLine("✅ User already authenticated, checking roles...");
                 // Check if user is admin and redirect accordingly
                 var isAdmin = await AuthService.IsInRoleAsync("Admin");
-                Console.WriteLine($"👑 Admin role: {isAdmin}");
-                Console.WriteLine($"🔄 Redirecting to: {(isAdmin ? "/admin" : "/admin")}");
                 NavigationManager.NavigateTo(isAdmin ? "/admin" : "/admin");
                 return;
-            }
-            else
-            {
-                Console.WriteLine("❌ User not authenticated, staying on login page");
             }
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"❗ Error checking authentication: {ex.Message}");
-            Console.Error.WriteLine($"❗ Stack trace: {ex.StackTrace}");
+            // Log error silently, don't show to user on login page
+            Console.Error.WriteLine($"Error checking authentication: {ex.Message}");
         }
         
-        Console.WriteLine("🏥 Loading health status...");
         await LoadHealthStatus();
-        Console.WriteLine("=== LOGIN COMPONENT DIAGNOSTICS END ===");
     }
 
     private async Task LoadHealthStatus()

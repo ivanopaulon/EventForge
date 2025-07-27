@@ -4,6 +4,7 @@
 @inject IThemeService ThemeService
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
 @implements IDisposable
 
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" />
@@ -14,7 +15,7 @@
         <MudSpacer />
         <!-- Updated to use trace.svg logo instead of text-only branding -->
         <div class="d-flex align-center">
-            <img src="trace.svg" alt="EventForge Logo" style="height: 32px; width: 32px; margin-right: 8px;" />
+            <MudImage Src="trace.svg" Alt="EventForge Logo" Height="32" Width="32" Class="mr-2" />
             <MudText Typo="Typo.h6">EventForge</MudText>
         </div>
         <MudSpacer />
@@ -244,7 +245,7 @@
     private async Task HandleError(Exception exception)
     {
         // Log the error and show a user-friendly message
-        Snackbar.Add("Si è verificato un errore. L'operazione potrebbe non essere stata completata correttamente.", Severity.Error);
+        Snackbar.Add(TranslationService.GetTranslation("error.operationMayNotCompleted", "Si è verificato un errore. L'operazione potrebbe non essere stata completata correttamente."), Severity.Error);
         
         // You could also send error reports to a logging service here
         // await ErrorReportingService.ReportErrorAsync(exception);
