@@ -228,4 +228,87 @@ namespace EventForge.DTOs.SuperAdmin
         public bool IsImpersonating { get; set; }
         public string? ImpersonatingUser { get; set; }
     }
+
+    /// <summary>
+    /// DTO for application log.
+    /// </summary>
+    public class ApplicationLogDto
+    {
+        public Guid Id { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string Level { get; set; } = string.Empty;
+        public string Source { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public string? Exception { get; set; }
+        public Guid? UserId { get; set; }
+        public string? UserName { get; set; }
+        public Guid? TenantId { get; set; }
+        public string? TenantName { get; set; }
+        public string? RequestId { get; set; }
+        public string? RequestPath { get; set; }
+        public Dictionary<string, object> Properties { get; set; } = new Dictionary<string, object>();
+    }
+
+    /// <summary>
+    /// DTO for application log statistics.
+    /// </summary>
+    public class ApplicationLogStatisticsDto
+    {
+        public int TotalLogs { get; set; }
+        public int ErrorLogs { get; set; }
+        public int WarningLogs { get; set; }
+        public int InfoLogs { get; set; }
+        public int DebugLogs { get; set; }
+        public int LogsLastHour { get; set; }
+        public int LogsLast24Hours { get; set; }
+        public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// DTO for paged results.
+    /// </summary>
+    public class PagedResult<T>
+    {
+        public List<T> Items { get; set; } = new List<T>();
+        public int TotalCount { get; set; }
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalPages { get; set; }
+        public bool HasPreviousPage { get; set; }
+        public bool HasNextPage { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for audit log statistics.
+    /// </summary>
+    public class AuditLogStatisticsDto
+    {
+        public int TotalLogs { get; set; }
+        public int LogsToday { get; set; }
+        public int LogsThisWeek { get; set; }
+        public int LogsThisMonth { get; set; }
+        public int CriticalOperations { get; set; }
+        public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// DTO for entity change log.
+    /// </summary>
+    public class EntityChangeLog
+    {
+        public Guid Id { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string Operation { get; set; } = string.Empty;
+        public string EntityType { get; set; } = string.Empty;
+        public string EntityId { get; set; } = string.Empty;
+        public string? OldValues { get; set; }
+        public string? NewValues { get; set; }
+        public Guid? UserId { get; set; }
+        public string? UserName { get; set; }
+        public Guid? TenantId { get; set; }
+        public string? TenantName { get; set; }
+        public string? IpAddress { get; set; }
+        public string? UserAgent { get; set; }
+        public Dictionary<string, object> Properties { get; set; } = new Dictionary<string, object>();
+    }
 }

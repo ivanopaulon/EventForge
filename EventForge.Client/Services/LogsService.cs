@@ -1,24 +1,25 @@
+using EventForge.DTOs.SuperAdmin;
 using System.Net.Http.Json;
 
 namespace EventForge.Client.Services
 {
     public interface ILogsService
     {
-        // Application Logs - using simple types for now
-        Task<object> GetApplicationLogsAsync(Dictionary<string, object> queryParams);
-        Task<object?> GetApplicationLogAsync(Guid id);
-        Task<object> GetApplicationLogStatisticsAsync();
+        // Application Logs
+        Task<PagedResult<ApplicationLogDto>> GetApplicationLogsAsync(Dictionary<string, object> queryParams);
+        Task<ApplicationLogDto?> GetApplicationLogAsync(Guid id);
+        Task<ApplicationLogStatisticsDto> GetApplicationLogStatisticsAsync();
         Task<Stream> ExportApplicationLogsAsync(object exportDto);
 
         // Audit Logs  
-        Task<object> GetAuditLogsAsync(Dictionary<string, object> queryParams);
-        Task<object?> GetAuditLogAsync(Guid id);
-        Task<object> GetAuditLogStatisticsAsync();
+        Task<PagedResult<EntityChangeLog>> GetAuditLogsAsync(Dictionary<string, object> queryParams);
+        Task<EntityChangeLog?> GetAuditLogAsync(Guid id);
+        Task<AuditLogStatisticsDto> GetAuditLogStatisticsAsync();
         Task<Stream> ExportAuditLogsAsync(object exportDto);
 
         // Real-time subscriptions
-        Task SubscribeToApplicationLogsAsync(Func<object, Task> onLogReceived);
-        Task SubscribeToAuditLogsAsync(Func<object, Task> onLogReceived);
+        Task SubscribeToApplicationLogsAsync(Func<ApplicationLogDto, Task> onLogReceived);
+        Task SubscribeToAuditLogsAsync(Func<EntityChangeLog, Task> onLogReceived);
         Task UnsubscribeFromLogsAsync();
     }
 
@@ -56,7 +57,7 @@ namespace EventForge.Client.Services
 
         #region Application Logs
 
-        public async Task<object> GetApplicationLogsAsync(Dictionary<string, object> queryParams)
+        public async Task<PagedResult<ApplicationLogDto>> GetApplicationLogsAsync(Dictionary<string, object> queryParams)
         {
             await EnsureAuthenticatedAsync();
             
@@ -64,25 +65,27 @@ namespace EventForge.Client.Services
             var response = await _httpClient.GetAsync($"api/v1/ApplicationLog?{queryString}");
             response.EnsureSuccessStatusCode();
             
-            return await response.Content.ReadFromJsonAsync<object>() ?? new object();
+            return await response.Content.ReadFromJsonAsync<PagedResult<ApplicationLogDto>>() ?? 
+                   new PagedResult<ApplicationLogDto>();
         }
 
-        public async Task<object?> GetApplicationLogAsync(Guid id)
+        public async Task<ApplicationLogDto?> GetApplicationLogAsync(Guid id)
         {
             await EnsureAuthenticatedAsync();
             var response = await _httpClient.GetAsync($"api/v1/ApplicationLog/{id}");
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 return null;
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<object>();
+            return await response.Content.ReadFromJsonAsync<ApplicationLogDto>();
         }
 
-        public async Task<object> GetApplicationLogStatisticsAsync()
+        public async Task<ApplicationLogStatisticsDto> GetApplicationLogStatisticsAsync()
         {
             await EnsureAuthenticatedAsync();
             var response = await _httpClient.GetAsync("api/v1/ApplicationLog/statistics");
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<object>() ?? new object();
+            return await response.Content.ReadFromJsonAsync<ApplicationLogStatisticsDto>() ?? 
+                   new ApplicationLogStatisticsDto();
         }
 
         public async Task<Stream> ExportApplicationLogsAsync(object exportDto)
@@ -97,7 +100,7 @@ namespace EventForge.Client.Services
 
         #region Audit Logs
 
-        public async Task<object> GetAuditLogsAsync(Dictionary<string, object> queryParams)
+        public async Task<PagedResult<EntityChangeLog>> GetAuditLogsAsync(Dictionary<string, object> queryParams)
         {
             await EnsureAuthenticatedAsync();
             
@@ -105,25 +108,27 @@ namespace EventForge.Client.Services
             var response = await _httpClient.GetAsync($"api/v1/AuditLog?{queryString}");
             response.EnsureSuccessStatusCode();
             
-            return await response.Content.ReadFromJsonAsync<object>() ?? new object();
+            return await response.Content.ReadFromJsonAsync<PagedResult<EntityChangeLog>>() ?? 
+                   new PagedResult<EntityChangeLog>();
         }
 
-        public async Task<object?> GetAuditLogAsync(Guid id)
+        public async Task<EntityChangeLog?> GetAuditLogAsync(Guid id)
         {
             await EnsureAuthenticatedAsync();
             var response = await _httpClient.GetAsync($"api/v1/AuditLog/{id}");
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 return null;
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<object>();
+            return await response.Content.ReadFromJsonAsync<EntityChangeLog>();
         }
 
-        public async Task<object> GetAuditLogStatisticsAsync()
+        public async Task<AuditLogStatisticsDto> GetAuditLogStatisticsAsync()
         {
             await EnsureAuthenticatedAsync();
             var response = await _httpClient.GetAsync("api/v1/AuditLog/statistics");
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<object>() ?? new object();
+            return await response.Content.ReadFromJsonAsync<AuditLogStatisticsDto>() ?? 
+                   new AuditLogStatisticsDto();
         }
 
         public async Task<Stream> ExportAuditLogsAsync(object exportDto)
@@ -138,7 +143,7 @@ namespace EventForge.Client.Services
 
         #region Real-time Subscriptions
 
-        public async Task SubscribeToApplicationLogsAsync(Func<object, Task> onLogReceived)
+        public async Task SubscribeToApplicationLogsAsync(Func<ApplicationLogDto, Task> onLogReceived)
         {
             try
             {
@@ -153,7 +158,7 @@ namespace EventForge.Client.Services
             }
         }
 
-        public async Task SubscribeToAuditLogsAsync(Func<object, Task> onLogReceived)
+        public async Task SubscribeToAuditLogsAsync(Func<EntityChangeLog, Task> onLogReceived)
         {
             try
             {

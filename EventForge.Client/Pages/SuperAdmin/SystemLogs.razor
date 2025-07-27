@@ -1,9 +1,12 @@
 @page "/superadmin/system-logs"
 @using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.SuperAdmin
 @attribute [Authorize(Roles = "SuperAdmin")]
 @inject IAuthService AuthService
+@inject ILogsService LogsService
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 <PageTitle>Log Sistema - EventForge Super Admin</PageTitle>
 
