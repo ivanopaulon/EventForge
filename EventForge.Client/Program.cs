@@ -22,6 +22,10 @@ builder.Services.AddScoped<SignalRService>();
 builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
 builder.Services.AddScoped<IBackupService, BackupService>();
 
+// Add SuperAdmin services
+builder.Services.AddScoped<ISuperAdminService, SuperAdminService>();
+builder.Services.AddScoped<ILogsService, LogsService>();
+
 // Add authentication services
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
 builder.Services.AddAuthorizationCore();
