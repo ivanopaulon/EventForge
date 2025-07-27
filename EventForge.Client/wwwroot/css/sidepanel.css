@@ -1,0 +1,29 @@
+/* SidePanel Component Styles */
+.sidepanel-drawer {
+    max-width: 100vw !important;
+}
+
+.sidepanel-header {
+    background-color: var(--mud-palette-surface);
+    border-bottom: 1px solid var(--mud-palette-divider);
+    min-height: 64px;
+}
+
+.sidepanel-content {
+    background-color: var(--mud-palette-background);
+    overflow-y: auto;
+    max-height: calc(100vh - 128px);
+}
+
+.sidepanel-actions {
+    background-color: var(--mud-palette-surface);
+    border-top: 1px solid var(--mud-palette-divider);
+    min-height: 64px;
+}
+
+@media (max-width: 960px) {
+    .sidepanel-drawer {
+        width: 100vw !important;
+        max-width: 100vw !important;
+    }
+}
