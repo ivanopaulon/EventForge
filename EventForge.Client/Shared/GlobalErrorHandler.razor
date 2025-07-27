@@ -1,0 +1,105 @@
+@using Microsoft.AspNetCore.Components.Web
+@using EventForge.Client.Services
+@implements IDisposable
+@inject IClientLogService ClientLogService
+@inject IJSRuntime JSRuntime
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // Set up global .NET error handler
+        AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
+        
+        // Set up JavaScript error handler
+        await SetupJavaScriptErrorHandlerAsync();
+    }
+
+    private void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        try
+        {
+            var exception = e.ExceptionObject as Exception;
+            var message = $"Unhandled .NET exception: {exception?.Message ?? "Unknown error"}";
+            
+            // Log asynchronously without blocking
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await ClientLogService.LogCriticalAsync(message, exception, "GlobalErrorHandler");
+                }
+                catch
+                {
+                    // Fallback to console if logging fails
+                    Console.WriteLine($"[CRITICAL ERROR] {message}");
+                }
+            });
+        }
+        catch
+        {
+            // Prevent error handler from throwing
+        }
+    }
+
+    private async Task SetupJavaScriptErrorHandlerAsync()
+    {
+        try
+        {
+            // Create JavaScript error handler that calls back to .NET
+            var jsCode = @"
+                window.eventForgeErrorHandler = {
+                    handleError: function(message, source, lineno, colno, error) {
+                        try {
+                            const errorInfo = {
+                                message: message || 'Unknown JavaScript error',
+                                source: source || 'unknown',
+                                line: lineno || 0,
+                                column: colno || 0,
+                                stack: error ? error.stack : 'No stack trace available'
+                            };
+                            
+                            // Call back to .NET
+                            DotNet.invokeMethodAsync('EventForge.Client', 'HandleJavaScriptError', errorInfo);
+                        } catch (callbackError) {
+                            console.error('Error in JavaScript error handler callback:', callbackError);
+                        }
+                    }
+                };
+
+                // Set up global error handlers
+                window.addEventListener('error', function(event) {
+                    window.eventForgeErrorHandler.handleError(
+                        event.message,
+                        event.filename,
+                        event.lineno,
+                        event.colno,
+                        event.error
+                    );
+                });
+
+                window.addEventListener('unhandledrejection', function(event) {
+                    window.eventForgeErrorHandler.handleError(
+                        'Unhandled Promise rejection: ' + (event.reason || 'Unknown reason'),
+                        'Promise',
+                        0,
+                        0,
+                        event.reason
+                    );
+                });
+
+                console.log('EventForge global error handlers initialized');
+            ";
+
+            await JSRuntime.InvokeVoidAsync("eval", jsCode);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to setup JavaScript error handler: {ex.Message}");
+        }
+    }
+
+    public void Dispose()
+    {
+        AppDomain.CurrentDomain.UnhandledException -= OnUnhandledException;
+    }
+}

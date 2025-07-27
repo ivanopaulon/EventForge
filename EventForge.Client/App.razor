@@ -7,12 +7,15 @@
 
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
+@inject IServiceProvider ServiceProvider
 @implements IDisposable
 
 <MudThemeProvider />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
+
+<GlobalErrorHandler />
 
 <CascadingAuthenticationState>
     <Router AppAssembly="@typeof(App).Assembly">
@@ -77,6 +80,9 @@
 @code {
     protected override Task OnInitializedAsync()
     {
+        // Set up global error handler service provider
+        JavaScriptErrorHelper.ServiceProvider = ServiceProvider;
+        
         // NOTE: I18N REMOVED - TranslationService initialization removed to support minimal home
         // without internationalization dependencies
         

@@ -37,6 +37,7 @@ builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
 builder.Services.AddScoped<IBackupService, BackupService>();
 builder.Services.AddScoped<IThemeService, ThemeService>();
 builder.Services.AddScoped<ITranslationService, TranslationService>();
+builder.Services.AddScoped<IClientLogService, ClientLogService>();
 
 // Add SuperAdmin services
 builder.Services.AddScoped<ISuperAdminService, SuperAdminService>();

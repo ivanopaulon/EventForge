@@ -21,6 +21,9 @@ EventForge è una piattaforma completa per la gestione di eventi costruita con t
 - **Correlation ID**: Tracciamento delle richieste per debugging e monitoraggio
 - **Change Tracking**: Sistema avanzato di tracking delle modifiche con valori precedenti/nuovi
 - **Query Avanzate**: Filtri per tipo di entità, utente, range di date
+- **Client Logging Centralizzato**: Sistema di logging client-side integrato con Serilog server
+- **Global Error Handling**: Cattura automatica di errori .NET e JavaScript dal client
+- **Offline Logging**: Supporto offline con localStorage e retry automatico
 
 ### 🏢 Gestione Business
 - **Gestione Prodotti**: Catalogo prodotti con classificazioni e unità di misura
@@ -38,6 +41,7 @@ EventForge è una piattaforma completa per la gestione di eventi costruita con t
 - **Station Monitor**: Monitoraggio in tempo reale delle stazioni
 - **Health Checks**: Controlli di stato dell'applicazione e dipendenze
 - **Logging Strutturato**: Logging avanzato con Serilog
+- **Client Logs Management**: Dashboard per gestione e analisi log client-side
 - **Performance Tracking**: Monitoraggio performance e identificazione colli di bottiglia
 
 ### 🔧 Gestione Errori Avanzata
