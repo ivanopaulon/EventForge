@@ -1,5 +1,6 @@
 @page "/superadmin/translation-management"
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components
 @using EventForge.DTOs.SuperAdmin
 @inject ITranslationService TranslationService
 @inject ISnackbar Snackbar
@@ -19,7 +20,7 @@
         <!-- Header -->
         <MudCard>
             <MudCardContent>
-                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="Center">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                     <div>
                         <MudText Typo="Typo.h4" Class="mb-2">
                             <MudIcon Icon="Icons.Material.Filled.Translate" Class="mr-2" />
@@ -58,14 +59,14 @@
         <!-- Filters -->
         <MudCard>
             <MudCardContent>
-                <MudStack Row="true" Spacing="3" AlignItems="End">
+                <MudStack Row="true" Spacing="3" AlignItems="AlignItems.End">
                     <MudSelect T="string" 
                                Value="@selectedLanguage" 
                                ValueChanged="@OnLanguageFilterChanged"
                                Label="<Translate Key='common.language' />"
                                Variant="Variant.Outlined"
                                Dense="true">
-                        <MudSelectItem Value="">Tutte le lingue</MudSelectItem>
+                        <MudSelectItem Value="@("")">Tutte le lingue</MudSelectItem>
                         @foreach (var lang in TranslationService.GetAvailableLanguages())
                         {
                             <MudSelectItem Value="@lang.Key">@lang.Value</MudSelectItem>
@@ -285,13 +286,12 @@
 
         var sampleValues = new Dictionary<string, Dictionary<string, string>>
         {
-            ["it"] = new() { ["common.save"] = "Salva", ["common.cancel"] = "Annulla", ["auth.login"] = "Accedi" },
-            ["en"] = new() { ["common.save"] = "Save", ["common.cancel"] = "Cancel", ["auth.login"] = "Login" },
-            ["es"] = new() { ["common.save"] = "Guardar", ["common.cancel"] = "Cancelar", ["auth.login"] = "Iniciar sesión" },
-            ["fr"] = new() { ["common.save"] = "Enregistrer", ["common.cancel"] = "Annuler", ["auth.login"] = "Connexion" }
+            ["it"] = new Dictionary<string, string> { ["common.save"] = "Salva", ["common.cancel"] = "Annulla", ["auth.login"] = "Accedi" },
+            ["en"] = new Dictionary<string, string> { ["common.save"] = "Save", ["common.cancel"] = "Cancel", ["auth.login"] = "Login" },
+            ["es"] = new Dictionary<string, string> { ["common.save"] = "Guardar", ["common.cancel"] = "Cancelar", ["auth.login"] = "Iniciar sesión" },
+            ["fr"] = new Dictionary<string, string> { ["common.save"] = "Enregistrer", ["common.cancel"] = "Annuler", ["auth.login"] = "Connexion" }
         };
 
-        var id = 1;
         foreach (var lang in languages)
         {
             foreach (var key in sampleKeys)

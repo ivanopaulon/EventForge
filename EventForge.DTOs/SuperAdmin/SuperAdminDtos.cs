@@ -365,7 +365,7 @@ namespace EventForge.DTOs.SuperAdmin
     public class TranslationExportDto
     {
         public string Language { get; set; } = string.Empty;
-        public Dictionary<string, string> Translations { get; set; } = new();
+        public Dictionary<string, string> Translations { get; set; } = new Dictionary<string, string>();
         public DateTime ExportedAt { get; set; } = DateTime.UtcNow;
     }
 }

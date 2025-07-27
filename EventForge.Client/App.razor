@@ -1,4 +1,5 @@
 @inject IAuthService AuthService
+@inject ITranslationService TranslationService
 @inject NavigationManager NavigationManager
 @implements IDisposable
 
@@ -76,6 +77,17 @@
 @code {
     protected override async Task OnInitializedAsync()
     {
+        // Initialize translation service
+        try
+        {
+            await ((TranslationService)TranslationService).InitializeAsync();
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't fail the app
+            Console.Error.WriteLine($"Translation service initialization error: {ex.Message}");
+        }
+        
         // Check authentication state on app startup
         var isAuthenticated = await AuthService.IsAuthenticatedAsync();
         var currentUri = NavigationManager.Uri;
