@@ -9,8 +9,18 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// Configure HttpClient for API calls (default to localhost:7241 for development)
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7241/") });
+// Configure HttpClient instances using best practices
+builder.Services.AddHttpClient("ApiClient", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7241/");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+builder.Services.AddHttpClient("StaticClient", client =>
+{
+    // BaseAddress will be set to current origin - this is safe as it's set once at startup
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 
 // Add MudBlazor services
 builder.Services.AddMudServices();
