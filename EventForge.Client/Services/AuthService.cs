@@ -14,7 +14,11 @@ namespace EventForge.Client.Services
         Task<string?> GetAccessTokenAsync();
         Task<UserDto?> GetCurrentUserAsync();
         Task<bool> IsInRoleAsync(string role);
+        Task<bool> IsInAnyRoleAsync(params string[] roles);
+        Task<bool> HasAllRolesAsync(params string[] roles);
+        Task<string[]> GetUserRolesAsync();
         Task<bool> IsSuperAdminAsync();
+        Task<bool> IsAdminOrSuperAdminAsync();
         event Action? OnAuthenticationStateChanged;
     }
 
@@ -73,9 +77,38 @@ namespace EventForge.Client.Services
             return user?.Roles?.Contains(role, StringComparer.OrdinalIgnoreCase) == true;
         }
 
+        public async Task<bool> IsInAnyRoleAsync(params string[] roles)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user?.Roles == null || !user.Roles.Any())
+                return false;
+            
+            return roles.Any(role => user.Roles.Contains(role, StringComparer.OrdinalIgnoreCase));
+        }
+
+        public async Task<bool> HasAllRolesAsync(params string[] roles)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user?.Roles == null || !user.Roles.Any())
+                return false;
+            
+            return roles.All(role => user.Roles.Contains(role, StringComparer.OrdinalIgnoreCase));
+        }
+
+        public async Task<string[]> GetUserRolesAsync()
+        {
+            var user = await GetCurrentUserAsync();
+            return user?.Roles?.ToArray() ?? Array.Empty<string>();
+        }
+
         public async Task<bool> IsSuperAdminAsync()
         {
             return await IsInRoleAsync("SuperAdmin");
+        }
+
+        public async Task<bool> IsAdminOrSuperAdminAsync()
+        {
+            return await IsInAnyRoleAsync("Admin", "SuperAdmin");
         }
 
         public async Task<LoginResponseDto?> LoginAsync(LoginRequestDto loginRequest)

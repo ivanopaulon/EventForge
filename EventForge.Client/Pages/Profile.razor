@@ -1,0 +1,210 @@
+@page "/profile"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>My Profile - EventForge</PageTitle>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else if (!_isAuthenticated)
+{
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+        <MudPaper Class="pa-8" Elevation="4">
+            <MudGrid Justify="Justify.Center">
+                <MudItem xs="12">
+                    <div class="d-flex flex-column align-center">
+                        <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
+                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">Access Denied</MudText>
+                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
+                            You must be logged in to view your profile.
+                        </MudText>
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Primary" 
+                                   StartIcon="Icons.Material.Filled.Login"
+                                   OnClick="@(() => NavigationManager.NavigateTo("/login"))">
+                            Go to Login
+                        </MudButton>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudContainer>
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+        <MudText Typo="Typo.h3" Class="mb-8">
+            <MudIcon Icon="Icons.Material.Filled.Person" Class="mr-3" />
+            My Profile
+        </MudText>
+
+        <MudGrid>
+            <!-- User Information Card -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.AccountCircle" Class="mr-2" />
+                                User Information
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        @if (_currentUser != null)
+                        {
+                            <MudGrid>
+                                <MudItem xs="6">
+                                    <MudText Typo="Typo.subtitle2">Username:</MudText>
+                                    <MudText Typo="Typo.body1" Class="mb-4">@_currentUser.Username</MudText>
+                                </MudItem>
+                                <MudItem xs="6">
+                                    <MudText Typo="Typo.subtitle2">Email:</MudText>
+                                    <MudText Typo="Typo.body1" Class="mb-4">@_currentUser.Email</MudText>
+                                </MudItem>
+                                <MudItem xs="6">
+                                    <MudText Typo="Typo.subtitle2">First Name:</MudText>
+                                    <MudText Typo="Typo.body1" Class="mb-4">@_currentUser.FirstName</MudText>
+                                </MudItem>
+                                <MudItem xs="6">
+                                    <MudText Typo="Typo.subtitle2">Last Name:</MudText>
+                                    <MudText Typo="Typo.body1" Class="mb-4">@_currentUser.LastName</MudText>
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudText Typo="Typo.subtitle2">Last Login:</MudText>
+                                    <MudText Typo="Typo.body1" Class="mb-4">
+                                        @(_currentUser.LastLoginAt?.ToString("g") ?? "Never")
+                                    </MudText>
+                                </MudItem>
+                            </MudGrid>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Roles Card -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Security" Class="mr-2" />
+                                My Roles
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        @if (_currentUser?.Roles?.Any() == true)
+                        {
+                            <div class="d-flex flex-wrap ga-2">
+                                @foreach (var role in _currentUser.Roles)
+                                {
+                                    <MudChip T="string" 
+                                             Color="@GetRoleColor(role)" 
+                                             Size="Size.Medium" 
+                                             Variant="Variant.Filled">
+                                        @role
+                                    </MudChip>
+                                }
+                            </div>
+                            <MudText Typo="Typo.body2" Class="mt-4 mud-text-secondary">
+                                You have @_currentUser.Roles.Count role(s) assigned.
+                            </MudText>
+                        }
+                        else
+                        {
+                            <MudAlert Severity="Severity.Warning">
+                                No roles assigned. Contact your administrator.
+                            </MudAlert>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Permissions Card -->
+            <MudItem xs="12">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Key" Class="mr-2" />
+                                My Permissions
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        @if (_currentUser?.Permissions?.Any() == true)
+                        {
+                            <MudText Typo="Typo.body2" Class="mb-4 mud-text-secondary">
+                                You have @_currentUser.Permissions.Count permission(s) granted through your roles.
+                            </MudText>
+                            <MudExpansionPanels Elevation="1">
+                                <MudExpansionPanel Text="View All Permissions">
+                                    <div class="d-flex flex-wrap ga-1">
+                                        @foreach (var permission in _currentUser.Permissions.OrderBy(p => p))
+                                        {
+                                            <MudChip T="string" 
+                                                     Color="Color.Info" 
+                                                     Size="Size.Small" 
+                                                     Variant="Variant.Outlined">
+                                                @permission
+                                            </MudChip>
+                                        }
+                                    </div>
+                                </MudExpansionPanel>
+                            </MudExpansionPanels>
+                        }
+                        else
+                        {
+                            <MudAlert Severity="Severity.Info">
+                                No specific permissions found. Your access is determined by your roles.
+                            </MudAlert>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    </MudContainer>
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _isAuthenticated = false;
+    private UserDto? _currentUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (_isAuthenticated)
+            {
+                _currentUser = await AuthService.GetCurrentUserAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading profile: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private Color GetRoleColor(string role)
+    {
+        return role.ToLower() switch
+        {
+            "superadmin" => Color.Error,
+            "admin" => Color.Warning,
+            "manager" => Color.Info,
+            _ => Color.Primary
+        };
+    }
+}

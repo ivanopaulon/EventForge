@@ -1,0 +1,55 @@
+@inject IAuthService AuthService
+@implements IDisposable
+
+@if (_isAuthorized)
+{
+    @ChildContent
+}
+else if (_showUnauthorized && UnauthorizedContent != null)
+{
+    @UnauthorizedContent
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? UnauthorizedContent { get; set; }
+    [Parameter] public string[]? RequiredRoles { get; set; }
+    [Parameter] public bool RequireAllRoles { get; set; } = false;
+    [Parameter] public bool ShowUnauthorized { get; set; } = true;
+
+    private bool _isAuthorized = false;
+    private bool _showUnauthorized = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
+        await CheckAuthorizationAsync();
+    }
+
+    private async Task CheckAuthorizationAsync()
+    {
+        if (RequiredRoles == null || !RequiredRoles.Any())
+        {
+            _isAuthorized = await AuthService.IsAuthenticatedAsync();
+        }
+        else
+        {
+            _isAuthorized = RequireAllRoles 
+                ? await AuthService.HasAllRolesAsync(RequiredRoles)
+                : await AuthService.IsInAnyRoleAsync(RequiredRoles);
+        }
+
+        _showUnauthorized = !_isAuthorized && ShowUnauthorized;
+        StateHasChanged();
+    }
+
+    private async void OnAuthenticationStateChanged()
+    {
+        await CheckAuthorizationAsync();
+    }
+
+    public void Dispose()
+    {
+        AuthService.OnAuthenticationStateChanged -= OnAuthenticationStateChanged;
+    }
+}

@@ -43,10 +43,22 @@
         }
         @if (_isAdmin)
         {
-            <MudNavLink Href="/admin" Icon="Icons.Material.Filled.Dashboard" Match="NavLinkMatch.All">
-                Admin Dashboard
-            </MudNavLink>
+            <MudNavGroup title="Amministrazione" 
+                         Icon="Icons.Material.Filled.Dashboard" 
+                         Expanded="true">
+                <MudNavLink Href="/admin" 
+                            Icon="Icons.Material.Filled.Dashboard" 
+                            Match="NavLinkMatch.All">
+                    Admin Dashboard
+                </MudNavLink>
+                <!-- Add more admin links here as needed -->
+            </MudNavGroup>
         }
+        
+        <!-- Common user links can be added here -->
+        <MudNavLink Href="/profile" Icon="Icons.Material.Filled.Person" Match="NavLinkMatch.All">
+            My Profile
+        </MudNavLink>
     }
     else
     {
@@ -73,7 +85,7 @@
         if (_isAuthenticated)
         {
             // Check for multiple roles - user can have both Admin and SuperAdmin
-            _isAdmin = await AuthService.IsInRoleAsync("Admin");
+            _isAdmin = await AuthService.IsAdminOrSuperAdminAsync(); // Changed to include SuperAdmin
             _isSuperAdmin = await AuthService.IsSuperAdminAsync();
         }
         else
