@@ -1,5 +1,4 @@
 using EventForge.Client.Services;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
 
 namespace EventForge.Client.Shared

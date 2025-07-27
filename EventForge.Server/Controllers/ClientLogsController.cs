@@ -1,9 +1,6 @@
-using EventForge.DTOs.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
-using System.Text.Json;
 
 namespace EventForge.Server.Controllers;
 
@@ -100,14 +97,14 @@ public class ClientLogsController : BaseApiController
             }
         }
 
-        return Ok(new 
-        { 
-            message = "Batch processed", 
+        return Ok(new
+        {
+            message = "Batch processed",
             totalCount = batchRequest.Logs.Count,
             successCount,
             errorCount,
             results,
-            timestamp = DateTime.UtcNow 
+            timestamp = DateTime.UtcNow
         });
     }
 
@@ -120,9 +117,9 @@ public class ClientLogsController : BaseApiController
     [ProducesResponseType(StatusCodes.Status200OK)]
     public ActionResult Health()
     {
-        return Ok(new 
-        { 
-            status = "healthy", 
+        return Ok(new
+        {
+            status = "healthy",
             service = "ClientLogs",
             timestamp = DateTime.UtcNow,
             version = "1.0.0"

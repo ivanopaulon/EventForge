@@ -302,7 +302,7 @@ namespace EventForge.Client.Services
             try
             {
                 await SendSingleLogToServerAsync(clientLog);
-                
+
                 // Remove from localStorage if successful
                 if (_offlineMode)
                 {
@@ -358,9 +358,9 @@ namespace EventForge.Client.Services
             {
                 var existingLogs = await GetLocalLogsAsync();
                 var correlationIds = logsToRemove.Select(l => l.CorrelationId).ToHashSet();
-                
+
                 var filteredLogs = existingLogs.Where(l => !correlationIds.Contains(l.CorrelationId)).ToList();
-                
+
                 var json = JsonSerializer.Serialize(filteredLogs);
                 await _jsRuntime.InvokeVoidAsync("localStorage.setItem", LOCAL_STORAGE_KEY, json);
             }

@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using EventForge.DTOs.Common;
 
 namespace EventForge.Client.Services;
 
@@ -15,37 +14,37 @@ public interface IHttpClientService
     /// Performs a GET request and returns the deserialized response.
     /// </summary>
     Task<T?> GetAsync<T>(string endpoint, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Performs a GET request and returns the response stream.
     /// </summary>
     Task<Stream> GetStreamAsync(string endpoint, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Performs a POST request with JSON payload.
     /// </summary>
     Task<TResponse?> PostAsync<TRequest, TResponse>(string endpoint, TRequest data, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Performs a POST request without expecting a response body.
     /// </summary>
     Task PostAsync<TRequest>(string endpoint, TRequest data, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Performs a PUT request with JSON payload.
     /// </summary>
     Task<TResponse?> PutAsync<TRequest, TResponse>(string endpoint, TRequest data, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Performs a PUT request without expecting a response body.
     /// </summary>
     Task PutAsync<TRequest>(string endpoint, TRequest data, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Performs a DELETE request.
     /// </summary>
     Task DeleteAsync(string endpoint, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Performs a PATCH request with JSON payload.
     /// </summary>
@@ -70,7 +69,7 @@ public class HttpClientService : IHttpClientService
         _httpClientFactory = httpClientFactory;
         _authService = authService;
         _logger = logger;
-        
+
         // Configure JSON options for consistent serialization
         _jsonOptions = new JsonSerializerOptions
         {
@@ -83,11 +82,11 @@ public class HttpClientService : IHttpClientService
     public async Task<T?> GetAsync<T>(string endpoint, CancellationToken cancellationToken = default)
     {
         var httpClient = await GetConfiguredHttpClientAsync();
-        
+
         try
         {
             _logger.LogDebug("GET request to {Endpoint}", endpoint);
-            
+
             var response = await httpClient.GetAsync(endpoint, cancellationToken);
             return await HandleResponseAsync<T>(response, endpoint);
         }
@@ -101,14 +100,14 @@ public class HttpClientService : IHttpClientService
     public async Task<Stream> GetStreamAsync(string endpoint, CancellationToken cancellationToken = default)
     {
         var httpClient = await GetConfiguredHttpClientAsync();
-        
+
         try
         {
             _logger.LogDebug("GET stream request to {Endpoint}", endpoint);
-            
+
             var response = await httpClient.GetAsync(endpoint, cancellationToken);
             await EnsureSuccessStatusCodeAsync(response, endpoint);
-            
+
             return await response.Content.ReadAsStreamAsync(cancellationToken);
         }
         catch (Exception ex)
@@ -121,11 +120,11 @@ public class HttpClientService : IHttpClientService
     public async Task<TResponse?> PostAsync<TRequest, TResponse>(string endpoint, TRequest data, CancellationToken cancellationToken = default)
     {
         var httpClient = await GetConfiguredHttpClientAsync();
-        
+
         try
         {
             _logger.LogDebug("POST request to {Endpoint}", endpoint);
-            
+
             var response = await httpClient.PostAsJsonAsync(endpoint, data, _jsonOptions, cancellationToken);
             return await HandleResponseAsync<TResponse>(response, endpoint);
         }
@@ -139,11 +138,11 @@ public class HttpClientService : IHttpClientService
     public async Task PostAsync<TRequest>(string endpoint, TRequest data, CancellationToken cancellationToken = default)
     {
         var httpClient = await GetConfiguredHttpClientAsync();
-        
+
         try
         {
             _logger.LogDebug("POST request (no response) to {Endpoint}", endpoint);
-            
+
             var response = await httpClient.PostAsJsonAsync(endpoint, data, _jsonOptions, cancellationToken);
             await EnsureSuccessStatusCodeAsync(response, endpoint);
         }
@@ -157,11 +156,11 @@ public class HttpClientService : IHttpClientService
     public async Task<TResponse?> PutAsync<TRequest, TResponse>(string endpoint, TRequest data, CancellationToken cancellationToken = default)
     {
         var httpClient = await GetConfiguredHttpClientAsync();
-        
+
         try
         {
             _logger.LogDebug("PUT request to {Endpoint}", endpoint);
-            
+
             var response = await httpClient.PutAsJsonAsync(endpoint, data, _jsonOptions, cancellationToken);
             return await HandleResponseAsync<TResponse>(response, endpoint);
         }
@@ -175,11 +174,11 @@ public class HttpClientService : IHttpClientService
     public async Task PutAsync<TRequest>(string endpoint, TRequest data, CancellationToken cancellationToken = default)
     {
         var httpClient = await GetConfiguredHttpClientAsync();
-        
+
         try
         {
             _logger.LogDebug("PUT request (no response) to {Endpoint}", endpoint);
-            
+
             var response = await httpClient.PutAsJsonAsync(endpoint, data, _jsonOptions, cancellationToken);
             await EnsureSuccessStatusCodeAsync(response, endpoint);
         }
@@ -193,11 +192,11 @@ public class HttpClientService : IHttpClientService
     public async Task DeleteAsync(string endpoint, CancellationToken cancellationToken = default)
     {
         var httpClient = await GetConfiguredHttpClientAsync();
-        
+
         try
         {
             _logger.LogDebug("DELETE request to {Endpoint}", endpoint);
-            
+
             var response = await httpClient.DeleteAsync(endpoint, cancellationToken);
             await EnsureSuccessStatusCodeAsync(response, endpoint);
         }
@@ -211,14 +210,14 @@ public class HttpClientService : IHttpClientService
     public async Task<TResponse?> PatchAsync<TRequest, TResponse>(string endpoint, TRequest data, CancellationToken cancellationToken = default)
     {
         var httpClient = await GetConfiguredHttpClientAsync();
-        
+
         try
         {
             _logger.LogDebug("PATCH request to {Endpoint}", endpoint);
-            
+
             var json = JsonSerializer.Serialize(data, _jsonOptions);
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-            
+
             var response = await httpClient.PatchAsync(endpoint, content, cancellationToken);
             return await HandleResponseAsync<TResponse>(response, endpoint);
         }
@@ -232,7 +231,7 @@ public class HttpClientService : IHttpClientService
     private async Task<HttpClient> GetConfiguredHttpClientAsync()
     {
         var httpClient = _httpClientFactory.CreateClient("ApiClient");
-        
+
         // Ensure authentication header is set
         var token = await _authService.GetAccessTokenAsync();
         if (!string.IsNullOrEmpty(token))
@@ -243,11 +242,11 @@ public class HttpClientService : IHttpClientService
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
         }
-        
+
         // Add correlation ID for request tracking
         var correlationId = Guid.NewGuid().ToString();
         httpClient.DefaultRequestHeaders.TryAddWithoutValidation("X-Correlation-ID", correlationId);
-        
+
         return httpClient;
     }
 
@@ -257,14 +256,14 @@ public class HttpClientService : IHttpClientService
         {
             return default(T);
         }
-        
+
         await EnsureSuccessStatusCodeAsync(response, endpoint);
-        
+
         if (response.Content.Headers.ContentLength == 0)
         {
             return default(T);
         }
-        
+
         try
         {
             return await response.Content.ReadFromJsonAsync<T>(_jsonOptions);
@@ -282,7 +281,7 @@ public class HttpClientService : IHttpClientService
             return;
 
         var content = await response.Content.ReadAsStringAsync();
-        
+
         _logger.LogWarning(
             "HTTP request failed. Endpoint: {Endpoint}, Status: {StatusCode}, Content: {Content}",
             endpoint, response.StatusCode, content);
