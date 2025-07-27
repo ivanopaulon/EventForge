@@ -1,5 +1,5 @@
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using EventForge.Server.Mappers;
 
 namespace EventForge.Server.Services.Auth;
 
@@ -81,7 +81,6 @@ public class AuthenticationService : IAuthenticationService
     private readonly EventForgeDbContext _dbContext;
     private readonly IPasswordService _passwordService;
     private readonly IJwtTokenService _jwtTokenService;
-    private readonly IMapper _mapper;
     private readonly ILogger<AuthenticationService> _logger;
     private readonly AccountLockoutOptions _lockoutOptions;
 
@@ -89,14 +88,12 @@ public class AuthenticationService : IAuthenticationService
         EventForgeDbContext dbContext,
         IPasswordService passwordService,
         IJwtTokenService jwtTokenService,
-        IMapper mapper,
         IConfiguration configuration,
         ILogger<AuthenticationService> logger)
     {
         _dbContext = dbContext;
         _passwordService = passwordService;
         _jwtTokenService = jwtTokenService;
-        _mapper = mapper;
         _logger = logger;
         _lockoutOptions = configuration.GetSection("Authentication:AccountLockout").Get<AccountLockoutOptions>() ?? new AccountLockoutOptions();
     }
@@ -202,9 +199,7 @@ public class AuthenticationService : IAuthenticationService
             await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            var userDto = _mapper.Map<UserDto>(user);
-            userDto.Roles = roles;
-            userDto.Permissions = permissions;
+            var userDto = UserMapper.ToDto(user, roles, permissions);
 
             _logger.LogInformation("User {Username} logged in successfully from {IpAddress}", request.Username, ipAddress);
 
@@ -301,18 +296,19 @@ public class AuthenticationService : IAuthenticationService
             if (user == null)
                 return null;
 
-            var userDto = _mapper.Map<UserDto>(user);
-            userDto.Roles = user.UserRoles
+            var roles = user.UserRoles
                 .Where(ur => ur.IsActive)
                 .Select(ur => ur.Role.Name)
                 .ToList();
 
-            userDto.Permissions = user.UserRoles
+            var permissions = user.UserRoles
                 .Where(ur => ur.IsActive)
                 .SelectMany(ur => ur.Role.RolePermissions)
                 .Select(rp => $"{rp.Permission.Category}.{rp.Permission.Resource}.{rp.Permission.Action}")
                 .Distinct()
                 .ToList();
+
+            var userDto = UserMapper.ToDto(user, roles, permissions);
 
             return userDto;
         }
