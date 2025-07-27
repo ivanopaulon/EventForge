@@ -7,7 +7,7 @@ namespace EventForge.Client.Services;
 /// </summary>
 public class SignalRService : IAsyncDisposable
 {
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly IAuthService _authService;
     private readonly ILogger<SignalRService> _logger;
     private HubConnection? _hubConnection;
@@ -18,9 +18,9 @@ public class SignalRService : IAsyncDisposable
     public event Action<object>? PasswordChangeForced;
     public event Action<object>? BackupStatusChanged;
 
-    public SignalRService(HttpClient httpClient, IAuthService authService, ILogger<SignalRService> logger)
+    public SignalRService(IHttpClientFactory httpClientFactory, IAuthService authService, ILogger<SignalRService> logger)
     {
-        _httpClient = httpClient;
+        _httpClientFactory = httpClientFactory;
         _authService = authService;
         _logger = logger;
     }
@@ -44,7 +44,9 @@ public class SignalRService : IAsyncDisposable
                 return;
             }
 
-            var hubUrl = new Uri(_httpClient.BaseAddress!, "/hubs/audit-log").ToString();
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+            
+            var hubUrl = new Uri(httpClient.BaseAddress!, "/hubs/audit-log").ToString();
 
             _hubConnection = new HubConnectionBuilder()
                 .WithUrl(hubUrl, options =>

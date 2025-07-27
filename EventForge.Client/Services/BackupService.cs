@@ -17,12 +17,12 @@ public interface IBackupService
 
 public class BackupService : IBackupService
 {
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<BackupService> _logger;
 
-    public BackupService(HttpClient httpClient, ILogger<BackupService> logger)
+    public BackupService(IHttpClientFactory httpClientFactory, ILogger<BackupService> logger)
     {
-        _httpClient = httpClient;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
@@ -30,7 +30,9 @@ public class BackupService : IBackupService
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("api/SuperAdmin/backup", request);
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+            
+            var response = await httpClient.PostAsJsonAsync("api/SuperAdmin/backup", request);
             response.EnsureSuccessStatusCode();
 
             var result = await response.Content.ReadFromJsonAsync<BackupStatusDto>();
@@ -47,7 +49,9 @@ public class BackupService : IBackupService
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<BackupStatusDto>($"api/SuperAdmin/backup/{backupId}");
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+            
+            return await httpClient.GetFromJsonAsync<BackupStatusDto>($"api/SuperAdmin/backup/{backupId}");
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("404"))
         {
@@ -64,7 +68,9 @@ public class BackupService : IBackupService
     {
         try
         {
-            var response = await _httpClient.GetFromJsonAsync<IEnumerable<BackupStatusDto>>($"api/SuperAdmin/backup?limit={limit}");
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+            
+            var response = await httpClient.GetFromJsonAsync<IEnumerable<BackupStatusDto>>($"api/SuperAdmin/backup?limit={limit}");
             return response ?? Enumerable.Empty<BackupStatusDto>();
         }
         catch (Exception ex)
@@ -78,7 +84,9 @@ public class BackupService : IBackupService
     {
         try
         {
-            var response = await _httpClient.PostAsync($"api/SuperAdmin/backup/{backupId}/cancel", null);
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+            
+            var response = await httpClient.PostAsync($"api/SuperAdmin/backup/{backupId}/cancel", null);
             response.EnsureSuccessStatusCode();
         }
         catch (Exception ex)
@@ -90,14 +98,18 @@ public class BackupService : IBackupService
 
     public Task<string> GetDownloadUrlAsync(Guid backupId)
     {
-        return Task.FromResult($"{_httpClient.BaseAddress}api/SuperAdmin/backup/{backupId}/download");
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        
+        return Task.FromResult($"{httpClient.BaseAddress}api/SuperAdmin/backup/{backupId}/download");
     }
 
     public async Task DeleteBackupAsync(Guid backupId)
     {
         try
         {
-            var response = await _httpClient.DeleteAsync($"api/SuperAdmin/backup/{backupId}");
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+            
+            var response = await httpClient.DeleteAsync($"api/SuperAdmin/backup/{backupId}");
             response.EnsureSuccessStatusCode();
         }
         catch (Exception ex)

@@ -1,28 +1,37 @@
 # HttpClient Best Practices Implementation
 
-This document describes the HttpClient best practices implementation in the EventForge project, specifically for the TranslationService.
+This document describes the comprehensive HttpClient best practices implementation across the entire EventForge.Client project.
 
 ## Problem Statement
 
-The original TranslationService implementation violated several .NET and Blazor HttpClient best practices:
+The original EventForge.Client implementation had inconsistent HttpClient usage patterns across services:
 
-1. **Dynamic BaseAddress Setting**: BaseAddress was being set after initialization using JavaScript interop
-2. **Runtime URL Construction**: Full URLs were constructed dynamically instead of using pre-configured HttpClient instances
-3. **Improper DI Configuration**: HttpClient configuration wasn't properly done in Program.cs
+1. **Mixed Injection Patterns**: Some services used direct `HttpClient` injection while others used `IHttpClientFactory`
+2. **Potential BaseAddress Issues**: Direct HttpClient injection could lead to null BaseAddress problems
+3. **Inconsistent Authentication**: Different services handled authentication headers differently
+4. **Maintainability Concerns**: No standardized approach for HTTP client configuration
 
-## Solution Implementation
+## Comprehensive Solution
 
 ### 1. Program.cs Configuration
 
-The StaticClient HttpClient is now properly configured with BaseAddress at startup:
+All HttpClient instances are now properly configured with named clients at startup:
 
 ```csharp
+// Configure HttpClient instances using best practices
+builder.Services.AddHttpClient("ApiClient", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7241/");
+    client.Timeout = TimeSpan.FromSeconds(30);
+    // Add default headers for API requests
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+    client.DefaultRequestHeaders.Add("User-Agent", "EventForge-Client/1.0");
+});
+
 // Configure StaticClient for translation files and static assets
-// BaseAddress is set to the host base URL which is known at build time in Blazor WASM
 builder.Services.AddHttpClient("StaticClient", client =>
 {
     // In Blazor WASM, static files are served from the same origin as the app
-    // This ensures BaseAddress is set before any requests are made
     client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);
     client.Timeout = TimeSpan.FromSeconds(30);
 });
@@ -30,39 +39,91 @@ builder.Services.AddHttpClient("StaticClient", client =>
 
 **Key Benefits:**
 - BaseAddress is set once at startup before any requests
-- Uses Blazor WASM's built-in `HostEnvironment.BaseAddress`
-- Follows Microsoft's recommended patterns
+- Named client pattern ensures consistency
+- Follows Microsoft's recommended DI patterns
 
-### 2. TranslationService Refactoring
+### 2. Service Layer Refactoring
 
-#### Removed Dynamic BaseAddress Setting
-- Eliminated JavaScript interop to get `window.location.origin`
-- Removed the `_staticBaseAddress` field
-- Uses pre-configured HttpClient instances exclusively
+#### Standardized Pattern
 
-#### Simplified URL Construction
+All services now follow the same pattern using `IHttpClientFactory`:
+
 ```csharp
-// Before: Dynamic URL construction
-var translationUrl = string.IsNullOrEmpty(_staticBaseAddress) 
-    ? $"i18n/{language}.json" 
-    : $"{_staticBaseAddress}/i18n/{language}.json";
+public class ExampleService : IExampleService
+{
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<ExampleService> _logger;
 
-// After: Simple relative URL
-var translationUrl = $"i18n/{language}.json";
+    public ExampleService(IHttpClientFactory httpClientFactory, ILogger<ExampleService> logger)
+    {
+        _httpClientFactory = httpClientFactory;
+        _logger = logger;
+    }
+
+    public async Task<SomeDto> GetDataAsync()
+    {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        _logger.LogDebug("Service: Using HttpClient with BaseAddress: {BaseAddress}", httpClient.BaseAddress);
+        
+        return await httpClient.GetFromJsonAsync<SomeDto>("api/endpoint");
+    }
+}
 ```
 
-#### Enhanced Error Handling
-- Added `HandleTranslationLoadError` method for graceful fallback
-- Improved logging with structured data and actionable messages
-- No exceptions thrown for missing translations (warnings only)
+#### Refactored Services
 
-### 3. Comprehensive Documentation
+✅ **HealthService**: Changed from direct `HttpClient` to `IHttpClientFactory`  
+✅ **BackupService**: Changed from direct `HttpClient` to `IHttpClientFactory`  
+✅ **AuthService**: Changed from direct `HttpClient` to `IHttpClientFactory`  
+✅ **SuperAdminService**: Changed from direct `HttpClient` to `IHttpClientFactory`  
+✅ **SignalRService**: Changed from direct `HttpClient` to `IHttpClientFactory`  
+✅ **ConfigurationService**: Changed from direct `HttpClient` to `IHttpClientFactory`  
+✅ **LogsService**: Changed from direct `HttpClient` to `IHttpClientFactory`  
+✅ **TranslationService**: Already using `IHttpClientFactory` (best practice example)  
+✅ **HttpClientService**: Already using `IHttpClientFactory` (centralized service)  
 
-Added extensive documentation covering:
-- HttpClient best practices explanation
-- Future maintainer guidance
-- Dynamic language switching patterns
-- Extension scenarios
+### 3. Authentication Handling
+
+#### Centralized Pattern
+
+The `HttpClientService` provides centralized authentication handling:
+
+```csharp
+private async Task<HttpClient> GetConfiguredHttpClientAsync()
+{
+    var httpClient = _httpClientFactory.CreateClient("ApiClient");
+    
+    // Ensure authentication header is set
+    var token = await _authService.GetAccessTokenAsync();
+    if (!string.IsNullOrEmpty(token))
+    {
+        httpClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+    }
+    
+    return httpClient;
+}
+```
+
+#### Service-Specific Authentication
+
+Services that need authentication (like `SuperAdminService` and `LogsService`) implement their own authentication patterns:
+
+```csharp
+private async Task<HttpClient> CreateAuthenticatedHttpClientAsync()
+{
+    var httpClient = _httpClientFactory.CreateClient("ApiClient");
+    
+    var token = await _authService.GetAccessTokenAsync();
+    if (!string.IsNullOrEmpty(token))
+    {
+        httpClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+    }
+    
+    return httpClient;
+}
+```
 
 ## Best Practices Followed
 
@@ -70,62 +131,94 @@ Added extensive documentation covering:
 - **BaseAddress set at startup**: Never modified after first request
 - **Named HttpClient pattern**: Uses IHttpClientFactory with pre-configured instances
 - **Proper DI registration**: All configuration done in Program.cs
+- **No direct HttpClient injection**: All services use IHttpClientFactory
 
-### ✅ Blazor WASM Compatibility
-- **Uses HostEnvironment.BaseAddress**: Standard approach for Blazor WASM
-- **Static file serving**: Compatible with Blazor's static file hosting
-- **Build-time configuration**: No runtime dependencies on JavaScript
+### ✅ Consistency and Maintainability
+- **Standardized patterns**: All services follow the same HttpClient creation pattern
+- **Temporary logging**: BaseAddress logging added for verification (to be removed)
+- **Authentication handling**: Consistent token management across services
+- **Error handling**: Proper exception handling and logging
 
-### ✅ Error Handling
-- **Graceful degradation**: App continues working with missing translations
-- **Comprehensive logging**: Structured logs with actionable information
-- **Fallback mechanisms**: Default language fallback with proper error recovery
+### ✅ Performance and Reliability
+- **Socket exhaustion prevention**: IHttpClientFactory manages connection pooling
+- **BaseAddress null prevention**: Named clients ensure BaseAddress is always set
+- **Authentication efficiency**: Tokens are set per request, not per client instance
+- **Memory efficiency**: HttpClient instances are properly managed
 
-### ✅ Performance Optimization
-- **Eliminates JavaScript interop**: No runtime calls to get base address
-- **Reuses HttpClient instances**: No dynamic client creation
-- **Efficient error handling**: Minimal exception throwing
+## Named Clients
 
-## Extending for Dynamic Language Switching
+### ApiClient
+- **Purpose**: API calls to the EventForge.Server
+- **BaseAddress**: `https://localhost:7241/`
+- **Used by**: All services making API calls
+- **Authentication**: Set per request when needed
 
-The current implementation supports dynamic language switching without creating new HttpClient instances:
+### StaticClient  
+- **Purpose**: Static files and translation resources
+- **BaseAddress**: Blazor HostEnvironment.BaseAddress
+- **Used by**: TranslationService for i18n files
+- **Authentication**: Not required
 
-```csharp
-// Language switching uses existing HttpClient configuration
-public async Task SetLanguageAsync(string language)
-{
-    // Uses pre-configured HttpClient instances
-    await LoadTranslationsAsync(language);
-    
-    // No need to create new HttpClient or modify BaseAddress
-}
-```
+## Verification and Testing
 
-### Future Extension Scenarios
+### Build Verification
+- ✅ All services compile successfully
+- ✅ No direct HttpClient injections remain
+- ✅ Named clients properly configured
+- ✅ Authentication patterns consistent
 
-1. **User-Specific Languages**: Can be extended to load user-specific translation overrides
-2. **Dynamic Language Packs**: Additional languages can be loaded on-demand
-3. **Caching Mechanisms**: Client-side caching can be added without affecting HttpClient configuration
-4. **Server-Side Translations**: API-based translations use the same HttpClient patterns
+### Runtime Verification
+- BaseAddress logging temporarily added to all services
+- Services create HttpClient instances correctly
+- Authentication headers properly set when needed
 
-## Verification
+## Troubleshooting
 
-The implementation has been verified to:
-- ✅ Build successfully without errors
-- ✅ Publish correctly with translation files included
-- ✅ Follow Microsoft's recommended patterns
-- ✅ Be compatible with Blazor WASM deployment
+### Common Issues
+
+1. **BaseAddress is null**: 
+   - Ensure service uses `_httpClientFactory.CreateClient("ApiClient")`
+   - Verify Program.cs has proper AddHttpClient configuration
+
+2. **Authentication not working**:
+   - Check that service calls GetAccessTokenAsync before making requests
+   - Verify Authorization header is set on HttpClient instance
+
+3. **Wrong base URL**:
+   - Ensure correct named client is used ("ApiClient" vs "StaticClient")
+   - Check Program.cs configuration for the named client
+
+## Future Maintenance
+
+### Adding New Services
+
+When adding new services that need HTTP calls:
+
+1. Inject `IHttpClientFactory` (not `HttpClient` directly)
+2. Use `CreateClient("ApiClient")` for API calls
+3. Use `CreateClient("StaticClient")` for static resources
+4. Add authentication if needed using established patterns
+5. Include BaseAddress logging during development
+
+### Updating Configuration
+
+- All HttpClient configuration should be done in Program.cs
+- Use AddHttpClient with named clients
+- Never modify BaseAddress after client creation
+- Consider adding new named clients for different scenarios
 
 ## References
 
+- [Microsoft Docs: HttpClient factory in ASP.NET Core](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/http-requests)
 - [Microsoft Docs: HttpClient usage in Blazor](https://learn.microsoft.com/en-us/answers/questions/437107/httpclient-not-fetching-baseaddress)
 - [StackOverflow: Configure HttpClient in Blazor Server](https://stackoverflow.com/questions/63828177/how-to-configure-httpclient-base-address-in-blazor-server-using-ihttpclientfacto)
-- [GitHub Issue: ASP.NET Core HttpClient BaseAddress](https://github.com/dotnet/aspnetcore/issues/25758)
 
 ## Maintenance Notes
 
 For future maintainers:
-1. **HttpClient configuration**: Always done in Program.cs, never in service constructors
-2. **BaseAddress**: Never modify after startup - use relative URLs instead
-3. **Error handling**: Log warnings for missing resources, don't throw exceptions
-4. **Testing**: Verify that published output includes all static files (i18n/*.json)
+1. **HttpClient configuration**: Always done in Program.cs using AddHttpClient
+2. **Service injection**: Always inject IHttpClientFactory, never HttpClient directly
+3. **Named clients**: Use "ApiClient" for API calls, "StaticClient" for static resources
+4. **BaseAddress**: Never modify after startup - configured once in Program.cs
+5. **Authentication**: Handle per request using established patterns
+6. **Logging**: Remove temporary BaseAddress logging after verification

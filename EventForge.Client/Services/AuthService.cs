@@ -23,8 +23,9 @@ namespace EventForge.Client.Services
 
     public class AuthService : IAuthService
     {
-        private readonly HttpClient _httpClient;
+        private readonly IHttpClientFactory _httpClientFactory;
         private readonly IJSRuntime _jsRuntime;
+        private readonly ILogger<AuthService> _logger;
         private string? _accessToken;
         private UserDto? _currentUser;
         private readonly string _tokenKey = "auth_token";
@@ -32,10 +33,11 @@ namespace EventForge.Client.Services
 
         public event Action? OnAuthenticationStateChanged;
 
-        public AuthService(HttpClient httpClient, IJSRuntime jsRuntime)
+        public AuthService(IHttpClientFactory httpClientFactory, IJSRuntime jsRuntime, ILogger<AuthService> logger)
         {
-            _httpClient = httpClient;
+            _httpClientFactory = httpClientFactory;
             _jsRuntime = jsRuntime;
+            _logger = logger;
         }
 
         public async Task<bool> IsAuthenticatedAsync()
@@ -114,7 +116,9 @@ namespace EventForge.Client.Services
         {
             try
             {
-                var response = await _httpClient.PostAsJsonAsync("api/v1/auth/login", loginRequest);
+                var httpClient = _httpClientFactory.CreateClient("ApiClient");
+                
+                var response = await httpClient.PostAsJsonAsync("api/v1/auth/login", loginRequest);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -128,8 +132,8 @@ namespace EventForge.Client.Services
                         await _jsRuntime.InvokeVoidAsync("localStorage.setItem", _tokenKey, _accessToken);
                         await _jsRuntime.InvokeVoidAsync("localStorage.setItem", _userKey, System.Text.Json.JsonSerializer.Serialize(_currentUser));
 
-                        _httpClient.DefaultRequestHeaders.Authorization =
-                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
+                        // Note: Authentication headers are now handled by HttpClientService.GetConfiguredHttpClientAsync()
+                        // No need to set DefaultRequestHeaders on individual HttpClient instances
 
                         OnAuthenticationStateChanged?.Invoke();
                     }
@@ -148,7 +152,8 @@ namespace EventForge.Client.Services
         {
             _accessToken = null;
             _currentUser = null;
-            _httpClient.DefaultRequestHeaders.Authorization = null;
+            // Note: No need to clear HttpClient headers since we use IHttpClientFactory
+            // Authentication is handled in HttpClientService.GetConfiguredHttpClientAsync()
 
             // Clear localStorage
             await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", _tokenKey);
@@ -164,8 +169,8 @@ namespace EventForge.Client.Services
                 _accessToken = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", _tokenKey);
                 if (!string.IsNullOrEmpty(_accessToken) && !IsTokenExpired(_accessToken))
                 {
-                    _httpClient.DefaultRequestHeaders.Authorization =
-                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
+                    // Token is valid, keep it
+                    // Note: Authentication headers are handled by HttpClientService.GetConfiguredHttpClientAsync()
                 }
                 else
                 {
