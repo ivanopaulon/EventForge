@@ -11,24 +11,30 @@ namespace EventForge.DTOs.Tenants
     {
         [Required]
         [MaxLength(100)]
+        [Display(Name = "field.name")]
         public string Name { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(200)]
+        [Display(Name = "field.displayName")]
         public string DisplayName { get; set; } = string.Empty;
 
         [MaxLength(500)]
+        [Display(Name = "field.description")]
         public string? Description { get; set; }
 
         [MaxLength(100)]
+        [Display(Name = "field.domain")]
         public string? Domain { get; set; }
 
         [Required]
         [EmailAddress]
         [MaxLength(256)]
+        [Display(Name = "field.contactEmail")]
         public string ContactEmail { get; set; } = string.Empty;
 
         [Range(1, int.MaxValue)]
+        [Display(Name = "field.maxUsers")]
         public int MaxUsers { get; set; } = 100;
     }
 

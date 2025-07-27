@@ -1,0 +1,88 @@
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+@implements IDisposable
+
+<MudSelect T="string" 
+           Value="@TranslationService.CurrentLanguage" 
+           ValueChanged="@OnLanguageChanged"
+           Label="@TranslationService.GetTranslation("common.language")"
+           Variant="Variant.Outlined"
+           Dense="true"
+           Class="language-selector">
+    @foreach (var language in TranslationService.GetAvailableLanguages())
+    {
+        <MudSelectItem Value="@language.Key">
+            <div class="d-flex align-center">
+                <MudIcon Icon="@GetLanguageIcon(language.Key)" Style="margin-right: 8px;" />
+                @language.Value
+            </div>
+        </MudSelectItem>
+    }
+</MudSelect>
+
+@code {
+    [Parameter] public bool Dense { get; set; } = true;
+    [Parameter] public string? Class { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        TranslationService.LanguageChanged += OnLanguageChangedEvent;
+        
+        // Initialize the translation service if not already done
+        try
+        {
+            await ((TranslationService)TranslationService).InitializeAsync();
+        }
+        catch (Exception ex)
+        {
+            // Service might already be initialized
+            Console.WriteLine($"Translation service initialization: {ex.Message}");
+        }
+    }
+
+    private async Task OnLanguageChanged(string newLanguage)
+    {
+        try
+        {
+            await TranslationService.SetLanguageAsync(newLanguage);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // Handle error - could show snackbar or toast
+            Console.Error.WriteLine($"Error changing language: {ex.Message}");
+        }
+    }
+
+    private void OnLanguageChangedEvent(object? sender, string newLanguage)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string GetLanguageIcon(string languageCode)
+    {
+        return languageCode switch
+        {
+            "it" => Icons.Material.Filled.Flag,
+            "en" => Icons.Material.Filled.Flag,
+            "es" => Icons.Material.Filled.Flag,
+            "fr" => Icons.Material.Filled.Flag,
+            _ => Icons.Material.Filled.Language
+        };
+    }
+
+    public void Dispose()
+    {
+        TranslationService.LanguageChanged -= OnLanguageChangedEvent;
+    }
+}
+
+<style>
+    .language-selector {
+        min-width: 120px;
+    }
+    
+    .language-selector .mud-select-input {
+        padding: 8px 12px;
+    }
+</style>
