@@ -193,6 +193,25 @@
     "accessDenied": "Acceso Denegado",
     "adminRoleRequired": "No tienes permiso para acceder a esta página. Se requiere rol de administrador.",
     "pageNotFound": "Página No Encontrada",
-    "nothingAtAddress": "Lo siento, no hay nada en esta dirección."
+    "nothingAtAddress": "Lo siento, no hay nada en esta dirección.",
+    "title": "Se ha producido un error",
+    "operationMayNotCompleted": "Se ha producido un error. Es posible que la operación no se haya completado correctamente.",
+    "retry": "Reintentar",
+    "showDetails": "Mostrar detalles",
+    "hideDetails": "Ocultar detalles",
+    "technicalDetails": "Detalles técnicos",
+    "type": "Tipo",
+    "message": "Mensaje",
+    "stackTrace": "Stack Trace",
+    "connectionError": "Error de conexión al servidor. Por favor, verifica tu conexión de red.",
+    "requestTimeout": "La solicitud tomó demasiado tiempo. Por favor, inténtalo de nuevo.",
+    "unauthorizedOperation": "No tienes los permisos necesarios para esta operación.",
+    "invalidData": "Datos inválidos proporcionados.",
+    "invalidOperation": "Operación inválida en este momento.",
+    "unexpectedError": "Se ha producido un error inesperado. Por favor, inténtalo de nuevo o contacta al soporte si el problema persiste."
+  },
+  "accessibility": {
+    "languageSelectorDescription": "Selecciona tu idioma preferido",
+    "selectLanguage": "Seleccionar idioma"
   }
 }
