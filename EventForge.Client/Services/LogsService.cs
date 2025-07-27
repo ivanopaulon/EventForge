@@ -47,14 +47,14 @@ namespace EventForge.Client.Services
         private async Task<HttpClient> CreateAuthenticatedHttpClientAsync()
         {
             var httpClient = _httpClientFactory.CreateClient("ApiClient");
-            
+
             var token = await _authService.GetAccessTokenAsync();
             if (!string.IsNullOrEmpty(token))
             {
                 httpClient.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
-            
+
             return httpClient;
         }
 

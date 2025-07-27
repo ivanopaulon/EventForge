@@ -68,11 +68,11 @@ namespace EventForge.Client.Services
                 throw new UnauthorizedAccessException("User not authenticated");
 
             var httpClient = _httpClientFactory.CreateClient("ApiClient");
-            
+
             // Set authentication header for this request
             httpClient.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-                
+
             return httpClient;
         }
 

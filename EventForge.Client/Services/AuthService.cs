@@ -117,7 +117,7 @@ namespace EventForge.Client.Services
             try
             {
                 var httpClient = _httpClientFactory.CreateClient("ApiClient");
-                
+
                 var response = await httpClient.PostAsJsonAsync("api/v1/auth/login", loginRequest);
 
                 if (response.IsSuccessStatusCode)
