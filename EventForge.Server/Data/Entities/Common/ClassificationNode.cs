@@ -9,8 +9,9 @@ namespace EventForge.Server.Data.Entities.Common;
 public enum ProductClassificationType
 {
     Category,
-    Family,
-    StatisticalGroup
+    Subcategory,
+    Brand,
+    Line
 }
 
 /// <summary>
@@ -18,10 +19,9 @@ public enum ProductClassificationType
 /// </summary>
 public enum ProductClassificationNodeStatus
 {
-    Active,      // Node is active and visible
-    Suspended,   // Node is temporarily suspended
-    Hidden,      // Node is hidden from navigation
-    Deleted      // Node is deleted/disabled
+    Active,     // Node is active and visible
+    Inactive,   // Node is inactive/disabled
+    Pending     // Node is pending approval
 }
 
 /// <summary>

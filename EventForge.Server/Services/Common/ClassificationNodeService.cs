@@ -1,4 +1,5 @@
 using EventForge.DTOs.Common;
+using EventForge.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Common;
@@ -56,8 +57,8 @@ public class ClassificationNodeService : IClassificationNodeService
                     Code = cn.Code,
                     Name = cn.Name,
                     Description = cn.Description,
-                    Type = cn.Type,
-                    Status = cn.Status,
+                    Type = cn.Type.ToDto(),
+                    Status = cn.Status.ToDto(),
                     Level = cn.Level,
                     Order = cn.Order,
                     ParentId = cn.ParentId,
@@ -97,8 +98,8 @@ public class ClassificationNodeService : IClassificationNodeService
                     Code = cn.Code,
                     Name = cn.Name,
                     Description = cn.Description,
-                    Type = cn.Type,
-                    Status = cn.Status,
+                    Type = cn.Type.ToDto(),
+                    Status = cn.Status.ToDto(),
                     Level = cn.Level,
                     Order = cn.Order,
                     ParentId = cn.ParentId,
@@ -134,8 +135,8 @@ public class ClassificationNodeService : IClassificationNodeService
                     Code = cn.Code,
                     Name = cn.Name,
                     Description = cn.Description,
-                    Type = cn.Type,
-                    Status = cn.Status,
+                    Type = cn.Type.ToDto(),
+                    Status = cn.Status.ToDto(),
                     Level = cn.Level,
                     Order = cn.Order,
                     ParentId = cn.ParentId,
@@ -171,8 +172,8 @@ public class ClassificationNodeService : IClassificationNodeService
                     Code = cn.Code,
                     Name = cn.Name,
                     Description = cn.Description,
-                    Type = cn.Type,
-                    Status = cn.Status,
+                    Type = cn.Type.ToDto(),
+                    Status = cn.Status.ToDto(),
                     Level = cn.Level,
                     Order = cn.Order,
                     ParentId = cn.ParentId,
@@ -230,8 +231,8 @@ public class ClassificationNodeService : IClassificationNodeService
                 Code = createDto.Code,
                 Name = createDto.Name,
                 Description = createDto.Description,
-                Type = createDto.Type ?? ProductClassificationType.Category,
-                Status = createDto.Status ?? ProductClassificationNodeStatus.Active,
+                Type = createDto.Type?.ToEntity() ?? Data.Entities.Common.ProductClassificationType.Category,
+                Status = createDto.Status?.ToEntity() ?? Data.Entities.Common.ProductClassificationNodeStatus.Active,
                 Level = createDto.Level ?? 0,
                 Order = createDto.Order ?? 0,
                 ParentId = createDto.ParentId,
@@ -253,8 +254,8 @@ public class ClassificationNodeService : IClassificationNodeService
                 Code = node.Code,
                 Name = node.Name,
                 Description = node.Description,
-                Type = node.Type,
-                Status = node.Status,
+                Type = node.Type.ToDto(),
+                Status = node.Status.ToDto(),
                 Level = node.Level,
                 Order = node.Order,
                 ParentId = node.ParentId,
@@ -336,9 +337,9 @@ public class ClassificationNodeService : IClassificationNodeService
             if (updateDto.Description != null)
                 node.Description = updateDto.Description;
             if (updateDto.Type.HasValue)
-                node.Type = updateDto.Type.Value;
+                node.Type = updateDto.Type.Value.ToEntity();
             if (updateDto.Status.HasValue)
-                node.Status = updateDto.Status.Value;
+                node.Status = updateDto.Status.Value.ToEntity();
             if (updateDto.Level.HasValue)
                 node.Level = updateDto.Level.Value;
             if (updateDto.Order.HasValue)
@@ -361,8 +362,8 @@ public class ClassificationNodeService : IClassificationNodeService
                 Code = node.Code,
                 Name = node.Name,
                 Description = node.Description,
-                Type = node.Type,
-                Status = node.Status,
+                Type = node.Type.ToDto(),
+                Status = node.Status.ToDto(),
                 Level = node.Level,
                 Order = node.Order,
                 ParentId = node.ParentId,
