@@ -2,28 +2,36 @@
    Route: "/" - Root route serves as the main landing page 
    Authentication: [AllowAnonymous] - Accessible without authentication
    Purpose: Shows system health status from backend HealthService
-   Fallback: Visual error handling if health service call fails *@
+   Fallback: Visual error handling if health service call fails
+   
+   NOTE: I18N REMOVED - This page no longer uses TranslationService to avoid 
+   rendering issues. All text is now hardcoded in English. *@
 
 @page "/"
 @using Microsoft.AspNetCore.Authorization
 @attribute [AllowAnonymous]
 @inject IHealthService HealthService
-@inject ITranslationService TranslationService
 @inject NavigationManager NavigationManager
 
-<PageTitle>@TranslationService.GetTranslation("home.title", "EventForge - Home")</PageTitle>
+<PageTitle>EventForge - Home</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
     <MudPaper Class="pa-8" Elevation="4">
         <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-8">
             <MudIcon Icon="Icons.Material.Filled.Home" Class="mr-2" />
-            @TranslationService.GetTranslation("home.title", "EventForge - Home")
+            EventForge - Home
         </MudText>
 
         <MudText Typo="Typo.h5" Class="mb-4">
             <MudIcon Icon="Icons.Material.Filled.HealthAndSafety" Class="mr-2" />
-            @TranslationService.GetTranslation("home.healthCheck", "System Health Check")
+            System Health Check
         </MudText>
+
+        <!-- DEBUG: Static content to verify rendering -->
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            <MudText><strong>✅ Home page is rendering!</strong></MudText>
+            <MudText>This minimal home page has been successfully created without i18n dependencies.</MudText>
+        </MudAlert>
 
         @if (_isLoading)
         {
@@ -31,7 +39,7 @@
                 <MudCardContent>
                     <div class="d-flex align-center justify-center pa-8">
                         <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mr-4" />
-                        <MudText>@TranslationService.GetTranslation("common.loading", "Loading...")</MudText>
+                        <MudText>Loading...</MudText>
                     </div>
                 </MudCardContent>
             </MudCard>
@@ -42,20 +50,20 @@
                 <MudCardHeader>
                     <CardHeaderContent>
                         <MudText Typo="Typo.h6">
-                            @TranslationService.GetTranslation("home.healthStatus", "Health Status")
+                            Health Status
                         </MudText>
                     </CardHeaderContent>
                 </MudCardHeader>
                 <MudCardContent>
                     <MudExpansionPanels>
-                        <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("common.version", "Version")} JSON")">
+                        <MudExpansionPanel Text="Version JSON">
                             <pre style="white-space: pre-wrap; overflow-x: auto;">@_healthJson</pre>
                         </MudExpansionPanel>
-                        <MudExpansionPanel Text="@TranslationService.GetTranslation("health.systemOverview", "System Overview")" IsInitiallyExpanded="true">
+                        <MudExpansionPanel Text="System Overview" IsInitiallyExpanded="true">
                             <MudSimpleTable Style="overflow-x: auto;">
                                 <tbody>
                                     <tr>
-                                        <td><strong>@TranslationService.GetTranslation("health.apiStatus", "API Status"):</strong></td>
+                                        <td><strong>API Status:</strong></td>
                                         <td>
                                             <MudChip T="string" Color="@GetStatusColor(_healthStatus.ApiStatus)" Size="Size.Small">
                                                 @_healthStatus.ApiStatus
@@ -65,7 +73,7 @@
                                     @if (!string.IsNullOrEmpty(_healthStatus.DatabaseStatus))
                                     {
                                         <tr>
-                                            <td><strong>@TranslationService.GetTranslation("health.database", "Database"):</strong></td>
+                                            <td><strong>Database:</strong></td>
                                             <td>
                                                 <MudChip T="string" Color="@GetStatusColor(_healthStatus.DatabaseStatus)" Size="Size.Small">
                                                     @_healthStatus.DatabaseStatus
@@ -76,14 +84,14 @@
                                     @if (!string.IsNullOrEmpty(_healthStatus.Version))
                                     {
                                         <tr>
-                                            <td><strong>@TranslationService.GetTranslation("common.version", "Version"):</strong></td>
+                                            <td><strong>Version:</strong></td>
                                             <td>@_healthStatus.Version</td>
                                         </tr>
                                     }
                                     @if (!string.IsNullOrEmpty(_healthStatus.AuthenticationStatus))
                                     {
                                         <tr>
-                                            <td><strong>@TranslationService.GetTranslation("health.authentication", "Authentication"):</strong></td>
+                                            <td><strong>Authentication:</strong></td>
                                             <td>
                                                 <MudChip T="string" Color="@GetStatusColor(_healthStatus.AuthenticationStatus)" Size="Size.Small">
                                                     @_healthStatus.AuthenticationStatus
@@ -92,7 +100,7 @@
                                         </tr>
                                     }
                                     <tr>
-                                        <td><strong>@TranslationService.GetTranslation("health.lastCheck", "Last Check"):</strong></td>
+                                        <td><strong>Last Check:</strong></td>
                                         <td>@_healthStatus.Timestamp.ToString("yyyy-MM-dd HH:mm:ss") UTC</td>
                                     </tr>
                                 </tbody>
@@ -105,14 +113,14 @@
         else if (!string.IsNullOrEmpty(_errorMessage))
         {
             <MudAlert Severity="Severity.Error" Icon="@Icons.Material.Filled.Error" Class="mb-4">
-                <MudText><strong>@TranslationService.GetTranslation("home.errorLoadingHealth", "Error loading health status"):</strong></MudText>
+                <MudText><strong>Error loading health status:</strong></MudText>
                 <MudText>@_errorMessage</MudText>
             </MudAlert>
         }
         else
         {
             <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Filled.Info" Class="mb-4">
-                <MudText>@TranslationService.GetTranslation("home.noHealthData", "No health data available")</MudText>
+                <MudText>No health data available</MudText>
             </MudAlert>
         }
 
@@ -124,7 +132,7 @@
                            Color="Color.Primary" 
                            StartIcon="Icons.Material.Filled.Login"
                            OnClick="@(() => NavigationManager.NavigateTo("/login"))">
-                    @TranslationService.GetTranslation("auth.goToLogin", "Go to Login")
+                    Go to Login
                 </MudButton>
             </MudItem>
         </MudGrid>
@@ -132,22 +140,34 @@
 </MudContainer>
 
 @code {
-    private bool _isLoading = true;
+    // NOTE: I18N REMOVED - TranslationService dependency removed to create minimal home
+    // All text content is now hardcoded in English to avoid rendering issues
+    private bool _isLoading = false; // Changed to false to show content immediately
     private HealthStatusDto? _healthStatus;
     private string? _errorMessage;
     private string _healthJson = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadHealthStatus();
+        // Debug log to verify component is executing
+        Console.WriteLine("[Home] OnInitializedAsync called");
+        
+        // Load health status in background
+        _ = Task.Run(async () => await LoadHealthStatus());
     }
 
     private async Task LoadHealthStatus()
     {
+        Console.WriteLine("[Home] LoadHealthStatus started");
         _isLoading = true;
+        StateHasChanged(); // Trigger re-render to show loading state
+        
         try
         {
+            // Set a shorter timeout for the health check to avoid hanging
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             _healthStatus = await HealthService.GetHealthAsync();
+            
             if (_healthStatus != null)
             {
                 // Pretty print JSON
@@ -155,19 +175,34 @@
                 { 
                     WriteIndented = true 
                 });
+                Console.WriteLine("[Home] Health status loaded successfully");
             }
             else
             {
                 _errorMessage = "Unable to connect to server or retrieve health status.";
+                Console.WriteLine("[Home] Health status is null");
             }
+        }
+        catch (TaskCanceledException)
+        {
+            _errorMessage = "Health check request timed out (5 seconds). Server may be unavailable.";
+            Console.WriteLine("[Home] Health check timed out");
+        }
+        catch (HttpRequestException ex)
+        {
+            _errorMessage = $"Network error: {ex.Message}";
+            Console.WriteLine($"[Home] Network error: {ex.Message}");
         }
         catch (Exception ex)
         {
-            _errorMessage = ex.Message;
+            _errorMessage = $"Error: {ex.Message}";
+            Console.WriteLine($"[Home] Error: {ex.Message}");
         }
         finally
         {
             _isLoading = false;
+            StateHasChanged(); // Trigger re-render when done
+            Console.WriteLine("[Home] LoadHealthStatus completed");
         }
     }
 

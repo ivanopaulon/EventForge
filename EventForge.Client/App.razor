@@ -1,10 +1,11 @@
 @* EventForge Client App.razor - Main application routing configuration
    Routing: Standard Blazor routing without forced authentication redirects
    Landing page: "/" -> Home.razor (accessible without authentication)
-   Authentication: Handled per-page with [Authorize] attributes as needed *@
+   Authentication: Handled per-page with [Authorize] attributes as needed
+   
+   NOTE: I18N REMOVED - TranslationService removed to support minimal home without i18n *@
 
 @inject IAuthService AuthService
-@inject ITranslationService TranslationService
 @inject NavigationManager NavigationManager
 @implements IDisposable
 
@@ -31,15 +32,15 @@
                                 <MudItem xs="12">
                                     <div class="d-flex flex-column align-center">
                                         <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Warning" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
-                                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">@TranslationService.GetTranslation("auth.authenticationRequired", "Authentication Required")</MudText>
+                                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">Authentication Required</MudText>
                                         <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
-                                            @TranslationService.GetTranslation("auth.pleaseLogin", "Please log in to access this page.")
+                                            Please log in to access this page.
                                         </MudText>
                                         <MudButton Variant="Variant.Filled" 
                                                    Color="Color.Primary" 
                                                    StartIcon="Icons.Material.Filled.Login"
                                                    OnClick="@(() => NavigationManager.NavigateTo("/login"))">
-                                            @TranslationService.GetTranslation("auth.goToLogin", "Go to Login")
+                                            Go to Login
                                         </MudButton>
                                     </div>
                                 </MudItem>
@@ -59,15 +60,15 @@
                             <MudItem xs="12">
                                 <div class="d-flex flex-column align-center">
                                     <MudIcon Icon="Icons.Material.Filled.QuestionMark" Color="Color.Warning" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
-                                    <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">@TranslationService.GetTranslation("error.pageNotFound", "Page Not Found")</MudText>
+                                    <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">Page Not Found</MudText>
                                     <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
-                                        @TranslationService.GetTranslation("error.nothingAtAddress", "Sorry, there's nothing at this address.")
+                                        Sorry, there's nothing at this address.
                                     </MudText>
                                     <MudButton Variant="Variant.Filled" 
                                                Color="Color.Primary" 
                                                StartIcon="Icons.Material.Filled.Home"
                                                OnClick="@(() => NavigationManager.NavigateTo("/login"))">
-                                        @TranslationService.GetTranslation("common.returnToLogin", "Return to Login")
+                                        Return to Login
                                     </MudButton>
                                 </div>
                             </MudItem>
@@ -82,16 +83,8 @@
 @code {
     protected override async Task OnInitializedAsync()
     {
-        // Initialize translation service
-        try
-        {
-            await ((TranslationService)TranslationService).InitializeAsync();
-        }
-        catch (Exception ex)
-        {
-            // Log error but don't fail the app
-            Console.Error.WriteLine($"Translation service initialization error: {ex.Message}");
-        }
+        // NOTE: I18N REMOVED - TranslationService initialization removed to support minimal home
+        // without internationalization dependencies
         
         // Subscribe to authentication state changes for protected routes
         AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
