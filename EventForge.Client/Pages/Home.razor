@@ -17,10 +17,13 @@
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
     <MudPaper Class="pa-8" Elevation="4">
-        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-8">
-            <MudIcon Icon="Icons.Material.Filled.Home" Class="mr-2" />
-            EventForge - Home
-        </MudText>
+        <!-- Updated header with trace.svg logo for consistent branding -->
+        <div class="d-flex justify-center align-center mb-8">
+            <img src="trace.svg" alt="EventForge Logo" style="height: 48px; width: 48px; margin-right: 16px;" />
+            <MudText Typo="Typo.h4" Align="Align.Center">
+                EventForge - Home
+            </MudText>
+        </div>
 
         <MudText Typo="Typo.h5" Class="mb-4">
             <MudIcon Icon="Icons.Material.Filled.HealthAndSafety" Class="mr-2" />
