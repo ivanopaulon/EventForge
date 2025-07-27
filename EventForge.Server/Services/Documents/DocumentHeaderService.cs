@@ -1,7 +1,6 @@
-using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using EventForge.Server.DTOs.Documents;
 using EventForge.Server.Services.Audit;
+using EventForge.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Documents;
@@ -9,18 +8,15 @@ namespace EventForge.Server.Services.Documents;
 public class DocumentHeaderService : IDocumentHeaderService
 {
     private readonly EventForgeDbContext _context;
-    private readonly IMapper _mapper;
     private readonly IAuditLogService _auditLogService;
     private readonly ILogger<DocumentHeaderService> _logger;
 
     public DocumentHeaderService(
         EventForgeDbContext context,
-        IMapper mapper,
         IAuditLogService auditLogService,
         ILogger<DocumentHeaderService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
-        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -39,7 +35,8 @@ public class DocumentHeaderService : IDocumentHeaderService
                 .OrderByDescending(dh => dh.Date)
                 .Skip(queryParameters.Skip)
                 .Take(queryParameters.PageSize)
-                .ProjectTo<DocumentHeaderDto>(_mapper.ConfigurationProvider)
+                .Include(dh => dh.DocumentType)
+                .Select(dh => dh.ToDto())
                 .ToListAsync(cancellationToken);
 
             return new PagedResult<DocumentHeaderDto>
@@ -80,7 +77,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                 return null;
             }
 
-            return _mapper.Map<DocumentHeaderDto>(documentHeader);
+            return documentHeader.ToDto();
         }
         catch (Exception ex)
         {
@@ -98,7 +95,8 @@ public class DocumentHeaderService : IDocumentHeaderService
             var documentHeaders = await _context.DocumentHeaders
                 .Where(dh => dh.BusinessPartyId == businessPartyId && !dh.IsDeleted)
                 .OrderByDescending(dh => dh.Date)
-                .ProjectTo<DocumentHeaderDto>(_mapper.ConfigurationProvider)
+                .Include(dh => dh.DocumentType)
+                .Select(dh => dh.ToDto())
                 .ToListAsync(cancellationToken);
 
             return documentHeaders;
@@ -117,7 +115,7 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            var documentHeader = _mapper.Map<DocumentHeader>(createDto);
+            var documentHeader = createDto.ToEntity();
             documentHeader.CreatedBy = currentUser;
             documentHeader.CreatedAt = DateTime.UtcNow;
 
@@ -127,7 +125,7 @@ public class DocumentHeaderService : IDocumentHeaderService
             {
                 foreach (var rowDto in createDto.Rows)
                 {
-                    var row = _mapper.Map<DocumentRow>(rowDto);
+                    var row = rowDto.ToEntity();
                     row.DocumentHeaderId = documentHeader.Id;
                     row.CreatedBy = currentUser;
                     row.CreatedAt = DateTime.UtcNow;
@@ -141,7 +139,7 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             _logger.LogInformation("Document header {DocumentHeaderId} created by {User}.", documentHeader.Id, currentUser);
 
-            return _mapper.Map<DocumentHeaderDto>(documentHeader);
+            return documentHeader.ToDto();
         }
         catch (Exception ex)
         {
@@ -177,7 +175,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                 return null;
             }
 
-            _mapper.Map(updateDto, documentHeader);
+            documentHeader.UpdateFromDto(updateDto);
             documentHeader.ModifiedBy = currentUser;
             documentHeader.ModifiedAt = DateTime.UtcNow;
 
@@ -187,7 +185,7 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             _logger.LogInformation("Document header {DocumentHeaderId} updated by {User}.", id, currentUser);
 
-            return _mapper.Map<DocumentHeaderDto>(documentHeader);
+            return documentHeader.ToDto();
         }
         catch (Exception ex)
         {
@@ -282,7 +280,7 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             _logger.LogInformation("Calculated totals for document header {DocumentHeaderId}.", id);
 
-            return _mapper.Map<DocumentHeaderDto>(documentHeader);
+            return documentHeader.ToDto();
         }
         catch (Exception ex)
         {
@@ -329,7 +327,7 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             _logger.LogInformation("Document header {DocumentHeaderId} approved by {User}.", id, currentUser);
 
-            return _mapper.Map<DocumentHeaderDto>(documentHeader);
+            return documentHeader.ToDto();
         }
         catch (Exception ex)
         {
@@ -375,7 +373,7 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             _logger.LogInformation("Document header {DocumentHeaderId} closed by {User}.", id, currentUser);
 
-            return _mapper.Map<DocumentHeaderDto>(documentHeader);
+            return documentHeader.ToDto();
         }
         catch (Exception ex)
         {

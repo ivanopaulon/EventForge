@@ -1,0 +1,204 @@
+@using MudBlazor
+@using EventForge.DTOs.Tenants
+@using EventForge.DTOs.SuperAdmin
+@using EventForge.Client.Constants
+@using EventForge.Client.Shared.Components
+@inject ISuperAdminService SuperAdminService
+@inject ISnackbar Snackbar
+
+<SidePanel @bind-IsOpen="@IsOpen"
+           Title="Crea Nuovo Utente"
+           Width="700px"
+           OnSave="@Create"
+           OnCancel="@Cancel"
+           SaveDisabled="@(!_isFormValid || _isCreating)"
+           SaveText="@ButtonLabels.Create">
+    
+    <MudForm @ref="_form" Model="_createDto" @bind-IsValid="_isFormValid">
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_createDto.FirstName"
+                              Label="Nome *"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="Il nome è obbligatorio"
+                              MaxLength="100" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_createDto.LastName"
+                              Label="Cognome *"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="Il cognome è obbligatorio"
+                              MaxLength="100" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_createDto.Username"
+                              Label="Username *"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="L'username è obbligatorio"
+                              MaxLength="100"
+                              HelperText="Username univoco per l'accesso" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_createDto.Email"
+                              Label="Email *"
+                              Variant="Variant.Outlined"
+                              InputType="InputType.Email"
+                              Required="true"
+                              RequiredError="L'email è obbligatoria"
+                              MaxLength="256" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudSelect T="Guid" @bind-Value="_createDto.TenantId" Label="Tenant *" Variant="Variant.Outlined" Required="true">
+                    @foreach (var tenant in _tenants)
+                    {
+                        <MudSelectItem T="Guid" Value="@tenant.Id">@tenant.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_password"
+                              Label="Password *"
+                              Variant="Variant.Outlined"
+                              InputType="InputType.Password"
+                              Required="true"
+                              RequiredError="La password è obbligatoria"
+                              MinLength="8"
+                              HelperText="Minimo 8 caratteri" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_confirmPassword"
+                              Label="Conferma Password *"
+                              Variant="Variant.Outlined"
+                              InputType="InputType.Password"
+                              Required="true"
+                              RequiredError="La conferma password è obbligatoria"
+                              Validation="@(new Func<string, string?>(ValidatePasswordConfirmation))" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudText Typo="Typo.h6" Class="mb-3">Ruoli</MudText>
+                <MudGrid>
+                    @foreach (var role in _availableRoles)
+                    {
+                        <MudItem xs="12" sm="6" md="4">
+                            <MudCheckBox @bind-Value="_selectedRoles[role]"
+                                         Color="Color.Primary"
+                                         Label="@role" />
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudItem>
+        </MudGrid>
+    </MudForm>
+    
+    @if (_isCreating)
+    {
+        <div class="d-flex justify-center mt-4">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        </div>
+    }
+    
+</SidePanel>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    [Parameter] public EventCallback<UserManagementDto> OnUserCreated { get; set; }
+
+    private MudForm? _form;
+    private bool _isFormValid = false;
+    private bool _isCreating = false;
+    private string _password = "";
+    private string _confirmPassword = "";
+    
+    private CreateUserManagementDto _createDto = new();
+    
+    private List<TenantResponseDto> _tenants = new();
+    private readonly List<string> _availableRoles = new() { "User", "Admin", "SuperAdmin" };
+    private Dictionary<string, bool> _selectedRoles = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _tenants = (await SuperAdminService.GetTenantsAsync()).ToList();
+            
+            // Initialize role selection
+            foreach (var role in _availableRoles)
+            {
+                _selectedRoles[role] = false;
+            }
+            
+            // Default to User role
+            _selectedRoles["User"] = true;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento dei dati: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task Cancel()
+    {
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(IsOpen);
+        
+        // Reset form
+        _createDto = new();
+        _password = "";
+        _confirmPassword = "";
+        _isFormValid = false;
+        
+        // Reset role selection
+        foreach (var role in _availableRoles)
+        {
+            _selectedRoles[role] = false;
+        }
+        _selectedRoles["User"] = true;
+    }
+
+    private async Task Create()
+    {
+        if (!_isFormValid) return;
+
+        try
+        {
+            _isCreating = true;
+            
+            // Set roles from selection
+            _createDto.Roles = _selectedRoles.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
+            
+            var newUser = await SuperAdminService.CreateUserAsync(_createDto);
+            
+            Snackbar.Add(Messages.CreateSuccessful, Severity.Success);
+            
+            // Notify parent component
+            if (OnUserCreated.HasDelegate)
+            {
+                await OnUserCreated.InvokeAsync(newUser);
+            }
+            
+            // Close the panel
+            await Cancel();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nella creazione dell'utente: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isCreating = false;
+        }
+    }
+
+    private string? ValidatePasswordConfirmation(string confirmPassword)
+    {
+        if (confirmPassword != _password)
+        {
+            return Messages.PasswordMismatch;
+        }
+        return null;
+    }
+}

@@ -2,6 +2,8 @@
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Tenants
 @using EventForge.DTOs.SuperAdmin
+@using EventForge.Client.Constants
+@using EventForge.Client.Shared.Components
 @attribute [Authorize(Roles = "SuperAdmin")]
 @inject IAuthService AuthService
 @inject ISuperAdminService SuperAdminService
@@ -188,7 +190,7 @@ else
                                        StartIcon="Icons.Material.Filled.PersonAdd"
                                        FullWidth="true"
                                        OnClick="@OpenCreateUserDialog">>
-                                Crea Nuovo Utente
+                                @ButtonLabels.CreateUser
                             </MudButton>
                             <MudButton Variant="Variant.Outlined" 
                                        Color="Color.Secondary" 
@@ -316,11 +318,16 @@ else
     </MudContainer>
 }
 
+<!-- Create User SidePanel -->
+<CreateUserSidePanel @bind-IsOpen="_createUserPanelOpen" 
+                     OnUserCreated="@OnUserCreated" />
+
 @code {
     private bool _isLoading = true;
     private bool _isAuthorized = false;
     private bool _isLoadingTenants = false;
     private bool _isLoadingUsers = false;
+    private bool _createUserPanelOpen = false;
     private UserDto? _currentUser;
     private string _searchTerm = string.Empty;
     private string _roleFilter = "all";
@@ -454,15 +461,15 @@ else
 
     private async Task OpenCreateUserDialog()
     {
-        var dialog = await DialogService.ShowAsync<CreateUserDialog>("Nuovo Utente");
-        var result = await dialog.Result;
-        
-        if (!result.Canceled && result.Data is UserManagementDto newUser)
-        {
-            _users.Add(newUser);
-            await LoadUserStatisticsAsync();
-            Snackbar.Add("Utente creato con successo!", Severity.Success);
-        }
+        _createUserPanelOpen = true;
+        await Task.CompletedTask;
+    }
+
+    private async Task OnUserCreated(UserManagementDto newUser)
+    {
+        _users.Add(newUser);
+        await LoadUserStatisticsAsync();
+        StateHasChanged();
     }
 
     private async Task ViewUser(UserManagementDto user)
