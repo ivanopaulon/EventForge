@@ -94,7 +94,7 @@ public class TranslationService : ITranslationService
         _apiHttpClient = httpClient; // This one has the API base URL
         _jsRuntime = jsRuntime;
         _logger = logger;
-        
+
         // Create a separate HttpClient for static files (local relative URLs)
         // We'll set the base address in InitializeAsync after we can access JS runtime
         _staticHttpClient = new HttpClient();

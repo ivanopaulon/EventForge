@@ -1,5 +1,3 @@
-using EventForge.DTOs.Common;
-
 namespace EventForge.Server.Mappers;
 
 /// <summary>

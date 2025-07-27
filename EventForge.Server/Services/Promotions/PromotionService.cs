@@ -1,5 +1,4 @@
 using EventForge.Server.DTOs.Promotions;
-using EventForge.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Promotions;

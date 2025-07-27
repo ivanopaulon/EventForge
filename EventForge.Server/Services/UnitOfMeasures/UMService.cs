@@ -1,5 +1,4 @@
 using EventForge.Server.DTOs.UnitOfMeasures;
-using EventForge.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.UnitOfMeasures;

@@ -1,6 +1,3 @@
-using EventForge.DTOs.Common;
-using EventForge.Server.Data.Entities.Common;
-
 namespace EventForge.Server.Extensions
 {
     /// <summary>

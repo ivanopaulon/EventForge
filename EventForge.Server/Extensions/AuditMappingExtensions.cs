@@ -1,6 +1,3 @@
-using EventForge.DTOs.Audit;
-using EventForge.Server.Data.Entities.Audit;
-
 namespace EventForge.Server.Extensions;
 
 /// <summary>

@@ -1,5 +1,4 @@
 using EventForge.Server.DTOs.Teams;
-using EventForge.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Events;

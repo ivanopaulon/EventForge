@@ -1,5 +1,4 @@
 using EventForge.Server.DTOs.Documents;
-using EventForge.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Documents;

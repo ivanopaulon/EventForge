@@ -1,5 +1,3 @@
-using EventForge.DTOs.Common;
-using EventForge.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Common;
