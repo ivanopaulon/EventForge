@@ -1,20 +1,11 @@
-/* CSS Variables - Light Theme Color Palette */
-:root {
-    /* Primary color - Navy Blue - for headers, navbar, dark backgrounds */
-    --primary: #1F2F46;
-    
-    /* Secondary color - Electric Blue - for primary buttons, links, highlights */
-    --secondary: #247BFF;
-    
-    /* Accent color - Orange Fire - for CTAs, badges, active states (use sparingly) */
-    --accent: #FF6B2C;
-    
-    /* Neutral Light - Light Gray - for backgrounds, containers, card backgrounds */
-    --neutral-light: #F5F6FA;
-    
-    /* Neutral Dark - Charcoal - for text, icons, borders */
-    --neutral-dark: #2D2D2D;
-}
+/* EventForge Application Styles
+   =============================
+   
+   This file contains application-specific styles that work with the custom theme.
+   Color variables are defined in custom-theme.css.
+   
+   NOTE: Avoid defining colors directly here - use custom theme variables instead.
+*/
 
 /* Accessibility improvements */
 .sr-only {
@@ -31,7 +22,7 @@
 
 /* Focus improvements for better accessibility */
 *:focus {
-    outline: 2px solid var(--secondary) !important;
+    outline: 2px solid var(--form-focus-border) !important;
     outline-offset: 2px !important;
 }
 
@@ -40,8 +31,8 @@
     position: absolute;
     top: -40px;
     left: 6px;
-    background: var(--neutral-dark);
-    color: #fff;
+    background: var(--text-primary);
+    color: var(--background-secondary);
     padding: 8px;
     text-decoration: none;
     z-index: 9999;
@@ -77,17 +68,17 @@ h1:focus {
 }
 
 a, .btn-link {
-    color: var(--secondary);
+    color: var(--link-color);
 }
 
 .btn-primary {
-    color: #fff;
-    background-color: var(--secondary);
+    color: var(--button-primary-text);
+    background-color: var(--button-primary-bg);
     border-color: var(--primary);
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem var(--secondary);
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem var(--form-focus-border);
 }
 
 .content {

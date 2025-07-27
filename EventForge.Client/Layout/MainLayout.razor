@@ -153,11 +153,26 @@
                 } :
                 new PaletteLight()
                 {
-                    Primary = "#1976d2",
-                    Secondary = "#dc004e",
-                    AppbarBackground = "#1976d2",
-                    Background = "#f5f5f5",
-                    Surface = "#ffffff"
+                    // EventForge Custom Theme Integration
+                    // These values correspond to the CSS variables defined in custom-theme.css
+                    // This ensures MudBlazor components use our custom color palette consistently
+                    
+                    Primary = "#1F2F46",        // --primary (Navy Blue) - headers, navbar, dark backgrounds
+                    Secondary = "#247BFF",      // --secondary (Electric Blue) - buttons, links, highlights
+                    Tertiary = "#FF6B2C",       // --accent (Orange Fire) - CTAs, badges, active states
+                    AppbarBackground = "#1F2F46", // --appbar-background
+                    AppbarText = "#ffffff",     // --appbar-text
+                    Background = "#F5F6FA",     // --background-primary (Light Gray)
+                    Surface = "#ffffff",        // --card-background
+                    DrawerBackground = "#1F2F46", // --sidebar-background
+                    DrawerText = "#d7d7d7",     // --sidebar-text
+                    TextPrimary = "#2D2D2D",    // --text-primary (Charcoal)
+                    TextSecondary = "#666666",  // --text-secondary
+                    // Status and interaction colors
+                    Info = "#247BFF",           // --link-color (Electric Blue)
+                    Success = "#4caf50",        // --success
+                    Warning = "#ff9800",        // --warning
+                    Error = "#f44336"           // --error
                 }
         };
     }

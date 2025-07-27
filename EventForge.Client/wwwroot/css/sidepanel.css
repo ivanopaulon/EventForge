@@ -1,23 +1,29 @@
-/* SidePanel Component Styles */
+/* SidePanel Component Styles
+   =========================
+   
+   Updated to use EventForge custom theme variables instead of MudBlazor defaults.
+   This ensures consistent styling with the custom color palette.
+*/
+
 .sidepanel-drawer {
     max-width: 100vw !important;
 }
 
 .sidepanel-header {
-    background-color: var(--mud-palette-surface);
-    border-bottom: 1px solid var(--mud-palette-divider);
+    background-color: var(--card-background);
+    border-bottom: 1px solid var(--border-primary);
     min-height: 64px;
 }
 
 .sidepanel-content {
-    background-color: var(--mud-palette-background);
+    background-color: var(--background-primary);
     overflow-y: auto;
     max-height: calc(100vh - 128px);
 }
 
 .sidepanel-actions {
-    background-color: var(--mud-palette-surface);
-    border-top: 1px solid var(--mud-palette-divider);
+    background-color: var(--card-background);
+    border-top: 1px solid var(--border-primary);
     min-height: 64px;
 }
 
