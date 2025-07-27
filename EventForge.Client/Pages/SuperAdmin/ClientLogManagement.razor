@@ -1,0 +1,382 @@
+@page "/superadmin/client-logs"
+@using EventForge.DTOs.Common
+@using EventForge.Client.Services
+@using System.Text.Json
+@inject IClientLogService ClientLogService
+@inject IJSRuntime JSRuntime
+@attribute [Authorize(Roles = "SuperAdmin")]
+
+<PageTitle>Client Log Management</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudPaper Class="pa-4" Elevation="2">
+        <MudGrid>
+            <MudItem xs="12">
+                <MudText Typo="Typo.h4" Class="mb-4">
+                    <MudIcon Icon="Icons.Material.Filled.BugReport" Class="me-3" />
+                    Client Log Management
+                </MudText>
+            </MudItem>
+
+            <!-- Log Statistics -->
+            <MudItem xs="12" md="3">
+                <MudPaper Class="pa-4" Elevation="1">
+                    <MudText Typo="Typo.h6" Color="Color.Primary">Local Logs</MudText>
+                    <MudText Typo="Typo.h4">@_localLogs.Count</MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudPaper Class="pa-4" Elevation="1">
+                    <MudText Typo="Typo.h6" Color="Color.Warning">Errors</MudText>
+                    <MudText Typo="Typo.h4">@_localLogs.Count(l => l.Level == "Error" || l.Level == "Critical")</MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudPaper Class="pa-4" Elevation="1">
+                    <MudText Typo="Typo.h6" Color="Color.Info">Warnings</MudText>
+                    <MudText Typo="Typo.h4">@_localLogs.Count(l => l.Level == "Warning")</MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudPaper Class="pa-4" Elevation="1">
+                    <MudText Typo="Typo.h6" Color="Color.Success">Info</MudText>
+                    <MudText Typo="Typo.h4">@_localLogs.Count(l => l.Level == "Information" || l.Level == "Debug")</MudText>
+                </MudPaper>
+            </MudItem>
+
+            <!-- Actions -->
+            <MudItem xs="12">
+                <MudPaper Class="pa-4" Elevation="1">
+                    <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Primary" 
+                                   StartIcon="Icons.Material.Filled.Refresh"
+                                   OnClick="RefreshLogs">
+                            Refresh
+                        </MudButton>
+                        
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Secondary" 
+                                   StartIcon="Icons.Material.Filled.Send"
+                                   OnClick="FlushLogs"
+                                   Disabled="_isFlushingLogs">
+                            @if (_isFlushingLogs)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                                <span>Flushing...</span>
+                            }
+                            else
+                            {
+                                <span>Flush to Server</span>
+                            }
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Info" 
+                                   StartIcon="Icons.Material.Filled.Download"
+                                   OnClick="ExportLogs">
+                            Export JSON
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Outlined" 
+                                   Color="Color.Warning" 
+                                   StartIcon="Icons.Material.Filled.Clear"
+                                   OnClick="ClearLogs">
+                            Clear Local Logs
+                        </MudButton>
+
+                        <MudSpacer />
+
+                        <!-- Test Logging -->
+                        <MudSelect @bind-Value="_testLogLevel" Label="Test Log Level" Variant="Variant.Outlined" Dense="true">
+                            <MudSelectItem Value="@("Debug")">Debug</MudSelectItem>
+                            <MudSelectItem Value="@("Information")">Information</MudSelectItem>
+                            <MudSelectItem Value="@("Warning")">Warning</MudSelectItem>
+                            <MudSelectItem Value="@("Error")">Error</MudSelectItem>
+                            <MudSelectItem Value="@("Critical")">Critical</MudSelectItem>
+                        </MudSelect>
+
+                        <MudButton Variant="Variant.Outlined" 
+                                   Color="Color.Tertiary" 
+                                   StartIcon="Icons.Material.Filled.BugReport"
+                                   OnClick="CreateTestLog">
+                            Test Log
+                        </MudButton>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+
+            <!-- Log Table -->
+            <MudItem xs="12">
+                <MudDataGrid T="ClientLogDto" 
+                             Items="_filteredLogs" 
+                             Dense="true" 
+                             Hover="true" 
+                             Filterable="true"
+                             SortMode="SortMode.Single"
+                             QuickFilter="@_quickFilter"
+                             Height="600px"
+                             FixedHeader="true">
+                    
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">Client Logs</MudText>
+                        <MudSpacer />
+                        <MudTextField @bind-Value="_searchString" 
+                                      Placeholder="Search logs..." 
+                                      Adornment="Adornment.Start" 
+                                      AdornmentIcon="Icons.Material.Filled.Search" 
+                                      IconSize="Size.Medium" 
+                                      Class="mt-0"
+                                      DebounceInterval="300"
+                                      OnDebounceIntervalElapsed="OnSearchChanged">
+                        </MudTextField>
+                    </ToolBarContent>
+
+                    <Columns>
+                        <PropertyColumn Property="x => x.Timestamp" Title="Time" Format="HH:mm:ss" Sortable="true" />
+                        <PropertyColumn Property="x => x.Level" Title="Level">
+                            <CellTemplate>
+                                @{
+                                    var color = context.Item.Level switch
+                                    {
+                                        "Critical" => Color.Error,
+                                        "Error" => Color.Error,
+                                        "Warning" => Color.Warning,
+                                        "Information" => Color.Info,
+                                        "Debug" => Color.Default,
+                                        _ => Color.Default
+                                    };
+                                }
+                                <MudChip Color="color" Size="Size.Small">@context.Item.Level</MudChip>
+                            </CellTemplate>
+                        </PropertyColumn>
+                        <PropertyColumn Property="x => x.Category" Title="Category" Sortable="true" />
+                        <PropertyColumn Property="x => x.Message" Title="Message" />
+                        <PropertyColumn Property="x => x.Page" Title="Page" />
+                        <TemplateColumn Title="Actions" Sortable="false">
+                            <CellTemplate>
+                                <MudIconButton Icon="Icons.Material.Filled.Visibility" 
+                                               Size="Size.Small" 
+                                               OnClick="() => ViewLogDetails(context.Item)" />
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                </MudDataGrid>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+</MudContainer>
+
+<!-- Log Details Dialog -->
+<MudDialog @bind-IsVisible="_showDetailsDialog" Options="_dialogOptions">
+    <DialogContent>
+        @if (_selectedLog != null)
+        {
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.h6" Class="mb-4">Log Details</MudText>
+                </MudItem>
+                
+                <MudItem xs="6">
+                    <MudTextField Label="Level" Value="_selectedLog.Level" ReadOnly="true" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudTextField Label="Timestamp" Value="@_selectedLog.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")" ReadOnly="true" />
+                </MudItem>
+                
+                <MudItem xs="6">
+                    <MudTextField Label="Category" Value="_selectedLog.Category" ReadOnly="true" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudTextField Label="Page" Value="_selectedLog.Page" ReadOnly="true" />
+                </MudItem>
+                
+                <MudItem xs="12">
+                    <MudTextField Label="Message" Value="_selectedLog.Message" ReadOnly="true" Lines="3" />
+                </MudItem>
+                
+                @if (!string.IsNullOrEmpty(_selectedLog.Exception))
+                {
+                    <MudItem xs="12">
+                        <MudTextField Label="Exception" Value="_selectedLog.Exception" ReadOnly="true" Lines="6" />
+                    </MudItem>
+                }
+                
+                @if (!string.IsNullOrEmpty(_selectedLog.Properties))
+                {
+                    <MudItem xs="12">
+                        <MudTextField Label="Properties" Value="_selectedLog.Properties" ReadOnly="true" Lines="4" />
+                    </MudItem>
+                }
+                
+                <MudItem xs="12">
+                    <MudTextField Label="User Agent" Value="_selectedLog.UserAgent" ReadOnly="true" />
+                </MudItem>
+                
+                <MudItem xs="12">
+                    <MudTextField Label="Correlation ID" Value="_selectedLog.CorrelationId" ReadOnly="true" />
+                </MudItem>
+            </MudGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseDetailsDialog">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<ClientLogDto> _localLogs = new();
+    private List<ClientLogDto> _filteredLogs = new();
+    private string _searchString = string.Empty;
+    private bool _isFlushingLogs = false;
+    private string _testLogLevel = "Information";
+    
+    private bool _showDetailsDialog = false;
+    private ClientLogDto? _selectedLog;
+    private DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Large, FullWidth = true };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshLogs();
+    }
+
+    private async Task RefreshLogs()
+    {
+        _localLogs = await ClientLogService.GetLocalLogsAsync();
+        ApplyFilter();
+        StateHasChanged();
+    }
+
+    private async Task FlushLogs()
+    {
+        _isFlushingLogs = true;
+        StateHasChanged();
+
+        try
+        {
+            await ClientLogService.FlushAsync();
+            await RefreshLogs(); // Refresh to see updated local storage
+        }
+        catch (Exception ex)
+        {
+            await ClientLogService.LogErrorAsync($"Failed to flush logs: {ex.Message}", ex, "ClientLogManagement");
+        }
+        finally
+        {
+            _isFlushingLogs = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExportLogs()
+    {
+        try
+        {
+            var json = JsonSerializer.Serialize(_localLogs, new JsonSerializerOptions 
+            { 
+                WriteIndented = true 
+            });
+            
+            var fileName = $"client-logs-{DateTime.Now:yyyyMMdd-HHmmss}.json";
+            await JSRuntime.InvokeVoidAsync("downloadFile", fileName, "application/json", json);
+        }
+        catch (Exception ex)
+        {
+            await ClientLogService.LogErrorAsync($"Failed to export logs: {ex.Message}", ex, "ClientLogManagement");
+        }
+    }
+
+    private async Task ClearLogs()
+    {
+        try
+        {
+            await ClientLogService.ClearLocalLogsAsync();
+            await RefreshLogs();
+        }
+        catch (Exception ex)
+        {
+            await ClientLogService.LogErrorAsync($"Failed to clear logs: {ex.Message}", ex, "ClientLogManagement");
+        }
+    }
+
+    private async Task CreateTestLog()
+    {
+        try
+        {
+            var message = $"Test {_testLogLevel} log created at {DateTime.Now:HH:mm:ss}";
+            var properties = new Dictionary<string, object>
+            {
+                ["TestProperty"] = "Test Value",
+                ["RandomNumber"] = Random.Shared.Next(1, 1000)
+            };
+
+            switch (_testLogLevel)
+            {
+                case "Debug":
+                    await ClientLogService.LogDebugAsync(message, "TestLogger", properties);
+                    break;
+                case "Information":
+                    await ClientLogService.LogInformationAsync(message, "TestLogger", properties);
+                    break;
+                case "Warning":
+                    await ClientLogService.LogWarningAsync(message, "TestLogger", properties);
+                    break;
+                case "Error":
+                    await ClientLogService.LogErrorAsync(message, new Exception("Test exception"), "TestLogger", properties);
+                    break;
+                case "Critical":
+                    await ClientLogService.LogCriticalAsync(message, new Exception("Test critical exception"), "TestLogger", properties);
+                    break;
+            }
+
+            await RefreshLogs();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to create test log: {ex.Message}");
+        }
+    }
+
+    private void ViewLogDetails(ClientLogDto log)
+    {
+        _selectedLog = log;
+        _showDetailsDialog = true;
+    }
+
+    private void CloseDetailsDialog()
+    {
+        _showDetailsDialog = false;
+        _selectedLog = null;
+    }
+
+    private void OnSearchChanged()
+    {
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        _filteredLogs = string.IsNullOrEmpty(_searchString) 
+            ? _localLogs.OrderByDescending(l => l.Timestamp).ToList()
+            : _localLogs.Where(l => 
+                l.Message.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ||
+                l.Level.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ||
+                (l.Category?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (l.Page?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            ).OrderByDescending(l => l.Timestamp).ToList();
+    }
+
+    private Func<ClientLogDto, bool> _quickFilter => log =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        return log.Message.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ||
+               log.Level.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ||
+               (log.Category?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+               (log.Page?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false);
+    };
+}
