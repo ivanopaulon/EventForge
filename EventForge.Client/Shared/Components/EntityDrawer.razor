@@ -110,8 +110,6 @@
     private bool _isFormValid;
     private bool _isLoading;
     private string _loadingMessage = "";
-    private ElementReference _firstInputRef;
-    private ElementReference _previousFocusedElement;
 
     /// <summary>
     /// Whether the drawer is open.
@@ -207,18 +205,8 @@
         {
             // Try to focus the first input element in the form
             await Task.Delay(100); // Small delay to ensure DOM is ready
-            var script = @"
-                const drawer = document.querySelector('.entity-drawer');
-                if (drawer) {
-                    const firstInput = drawer.querySelector('input:not([type=""hidden""]), select, textarea, button');
-                    if (firstInput) {
-                        firstInput.focus();
-                        return true;
-                    }
-                }
-                return false;
-            ";
-            // This would need JS interop in a real implementation
+            // Note: In a production implementation, this would use JS interop
+            // to properly focus the first input element
         }
         catch (Exception ex)
         {

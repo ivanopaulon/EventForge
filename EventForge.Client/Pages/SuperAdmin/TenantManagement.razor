@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Tenants
 @using EventForge.DTOs.SuperAdmin
+@using EventForge.Client.Shared.Components
 @attribute [Authorize(Roles = "SuperAdmin")]
 @inject IAuthService AuthService
 @inject ISuperAdminService SuperAdminService
@@ -142,7 +143,7 @@ else
                             <MudButton Variant="Variant.Filled" 
                                        Color="Color.Primary" 
                                        StartIcon="Icons.Material.Filled.Add"
-                                       OnClick="@OpenCreateTenantDialog">
+                                       OnClick="@OpenCreateTenantDrawer">
                                 Nuovo Tenant
                             </MudButton>
                         </CardHeaderActions>
@@ -223,10 +224,21 @@ else
     </MudContainer>
 }
 
+<!-- Tenant Management Drawer -->
+<TenantDrawer @bind-IsOpen="_tenantDrawerOpen" 
+              @bind-Mode="_tenantDrawerMode"
+              OriginalTenant="_selectedTenant"
+              AllowEdit="true"
+              OnTenantCreated="@OnTenantCreated"
+              OnTenantUpdated="@OnTenantUpdated" />
+
 @code {
     private bool _isLoading = true;
     private bool _isAuthorized = false;
     private bool _isLoadingTenants = false;
+    private bool _tenantDrawerOpen = false;
+    private EntityDrawerMode _tenantDrawerMode = EntityDrawerMode.Create;
+    private TenantResponseDto? _selectedTenant;
     private UserDto? _currentUser;
     private string _searchTerm = string.Empty;
     private string _statusFilter = "all";
@@ -316,40 +328,46 @@ else
         }
     }
 
-    private async Task OpenCreateTenantDialog()
+    private async Task OpenCreateTenantDrawer()
     {
-        var dialog = await DialogService.ShowAsync<CreateTenantDialog>("Nuovo Tenant");
-        var result = await dialog.Result;
-        
-        if (result is not null && !result.Canceled && result.Data is TenantResponseDto newTenant)
+        _tenantDrawerMode = EntityDrawerMode.Create;
+        _selectedTenant = null;
+        _tenantDrawerOpen = true;
+        await Task.CompletedTask;
+    }
+
+    private async Task OnTenantCreated(TenantResponseDto newTenant)
+    {
+        _tenants.Add(newTenant);
+        await LoadStatisticsAsync();
+        StateHasChanged();
+    }
+
+    private async Task OnTenantUpdated(TenantResponseDto updatedTenant)
+    {
+        var index = _tenants.FindIndex(t => t.Id == updatedTenant.Id);
+        if (index >= 0)
         {
-            _tenants.Add(newTenant);
-            await LoadStatisticsAsync();
-            Snackbar.Add("Tenant creato con successo!", Severity.Success);
+            _tenants[index] = updatedTenant;
         }
+        await LoadStatisticsAsync();
+        StateHasChanged();
     }
 
     private async Task ViewTenant(TenantResponseDto tenant)
     {
-        var parameters = new DialogParameters { ["Tenant"] = tenant };
-        await DialogService.ShowAsync<ViewTenantDialog>("Dettagli Tenant", parameters);
+        _tenantDrawerMode = EntityDrawerMode.View;
+        _selectedTenant = tenant;
+        _tenantDrawerOpen = true;
+        await Task.CompletedTask;
     }
 
     private async Task EditTenant(TenantResponseDto tenant)
     {
-        var parameters = new DialogParameters { ["Tenant"] = tenant };
-        var dialog = await DialogService.ShowAsync<EditTenantDialog>("Modifica Tenant", parameters);
-        var result = await dialog.Result;
-        
-        if (result is not null && !result.Canceled && result.Data is TenantResponseDto updatedTenant)
-        {
-            var index = _tenants.FindIndex(t => t.Id == updatedTenant.Id);
-            if (index >= 0)
-            {
-                _tenants[index] = updatedTenant;
-            }
-            Snackbar.Add("Tenant aggiornato con successo!", Severity.Success);
-        }
+        _tenantDrawerMode = EntityDrawerMode.Edit;
+        _selectedTenant = tenant;
+        _tenantDrawerOpen = true;
+        await Task.CompletedTask;
     }
 
     private async Task ToggleTenantStatus(TenantResponseDto tenant)

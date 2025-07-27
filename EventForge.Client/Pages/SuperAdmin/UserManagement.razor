@@ -189,7 +189,7 @@ else
                                        Color="Color.Primary" 
                                        StartIcon="Icons.Material.Filled.PersonAdd"
                                        FullWidth="true"
-                                       OnClick="@OpenCreateUserDialog">>
+                                       OnClick="@OpenCreateUserDrawer">>
                                 @ButtonLabels.CreateUser
                             </MudButton>
                             <MudButton Variant="Variant.Outlined" 
@@ -318,16 +318,22 @@ else
     </MudContainer>
 }
 
-<!-- Create User SidePanel -->
-<CreateUserSidePanel @bind-IsOpen="_createUserPanelOpen" 
-                     OnUserCreated="@OnUserCreated" />
+<!-- User Management Drawer -->
+<UserDrawer @bind-IsOpen="_userDrawerOpen" 
+            @bind-Mode="_userDrawerMode"
+            OriginalUser="_selectedUser"
+            AllowEdit="true"
+            OnUserCreated="@OnUserCreated"
+            OnUserUpdated="@OnUserUpdated" />
 
 @code {
     private bool _isLoading = true;
     private bool _isAuthorized = false;
     private bool _isLoadingTenants = false;
     private bool _isLoadingUsers = false;
-    private bool _createUserPanelOpen = false;
+    private bool _userDrawerOpen = false;
+    private EntityDrawerMode _userDrawerMode = EntityDrawerMode.Create;
+    private UserManagementDto? _selectedUser;
     private UserDto? _currentUser;
     private string _searchTerm = string.Empty;
     private string _roleFilter = "all";
@@ -459,9 +465,11 @@ else
         StateHasChanged();
     }
 
-    private async Task OpenCreateUserDialog()
+    private async Task OpenCreateUserDrawer()
     {
-        _createUserPanelOpen = true;
+        _userDrawerMode = EntityDrawerMode.Create;
+        _selectedUser = null;
+        _userDrawerOpen = true;
         await Task.CompletedTask;
     }
 
@@ -472,28 +480,31 @@ else
         StateHasChanged();
     }
 
+    private async Task OnUserUpdated(UserManagementDto updatedUser)
+    {
+        var index = _users.FindIndex(u => u.Id == updatedUser.Id);
+        if (index >= 0)
+        {
+            _users[index] = updatedUser;
+        }
+        await LoadUserStatisticsAsync();
+        StateHasChanged();
+    }
+
     private async Task ViewUser(UserManagementDto user)
     {
-        var parameters = new DialogParameters { ["User"] = user };
-        await DialogService.ShowAsync<ViewUserDialog>("Dettagli Utente", parameters);
+        _userDrawerMode = EntityDrawerMode.View;
+        _selectedUser = user;
+        _userDrawerOpen = true;
+        await Task.CompletedTask;
     }
 
     private async Task EditUser(UserManagementDto user)
     {
-        var parameters = new DialogParameters { ["User"] = user };
-        var dialog = await DialogService.ShowAsync<EditUserDialog>("Modifica Utente", parameters);
-        var result = await dialog.Result;
-        
-        if (result is not null && !result.Canceled && result.Data is UserManagementDto updatedUser)
-        {
-            var index = _users.FindIndex(u => u.Id == updatedUser.Id);
-            if (index >= 0)
-            {
-                _users[index] = updatedUser;
-            }
-            await LoadUserStatisticsAsync();
-            Snackbar.Add("Utente aggiornato con successo!", Severity.Success);
-        }
+        _userDrawerMode = EntityDrawerMode.Edit;
+        _selectedUser = user;
+        _userDrawerOpen = true;
+        await Task.CompletedTask;
     }
 
     private async Task ImpersonateUser(UserManagementDto user)
