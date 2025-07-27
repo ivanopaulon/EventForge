@@ -31,8 +31,8 @@ namespace EventForge.Client.Services
         private readonly ILogger<LogsService> _logger;
 
         public LogsService(
-            HttpClient httpClient, 
-            IAuthService authService, 
+            HttpClient httpClient,
+            IAuthService authService,
             SignalRService signalRService,
             ILogger<LogsService> logger)
         {
@@ -50,7 +50,7 @@ namespace EventForge.Client.Services
 
             if (!_httpClient.DefaultRequestHeaders.Authorization?.Parameter?.Equals(token) == true)
             {
-                _httpClient.DefaultRequestHeaders.Authorization = 
+                _httpClient.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
         }
@@ -60,12 +60,12 @@ namespace EventForge.Client.Services
         public async Task<PagedResult<ApplicationLogDto>> GetApplicationLogsAsync(Dictionary<string, object> queryParams)
         {
             await EnsureAuthenticatedAsync();
-            
+
             var queryString = BuildQueryString(queryParams);
             var response = await _httpClient.GetAsync($"api/v1/ApplicationLog?{queryString}");
             response.EnsureSuccessStatusCode();
-            
-            return await response.Content.ReadFromJsonAsync<PagedResult<ApplicationLogDto>>() ?? 
+
+            return await response.Content.ReadFromJsonAsync<PagedResult<ApplicationLogDto>>() ??
                    new PagedResult<ApplicationLogDto>();
         }
 
@@ -84,7 +84,7 @@ namespace EventForge.Client.Services
             await EnsureAuthenticatedAsync();
             var response = await _httpClient.GetAsync("api/v1/ApplicationLog/statistics");
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<ApplicationLogStatisticsDto>() ?? 
+            return await response.Content.ReadFromJsonAsync<ApplicationLogStatisticsDto>() ??
                    new ApplicationLogStatisticsDto();
         }
 
@@ -103,12 +103,12 @@ namespace EventForge.Client.Services
         public async Task<PagedResult<EntityChangeLog>> GetAuditLogsAsync(Dictionary<string, object> queryParams)
         {
             await EnsureAuthenticatedAsync();
-            
+
             var queryString = BuildQueryString(queryParams);
             var response = await _httpClient.GetAsync($"api/v1/AuditLog?{queryString}");
             response.EnsureSuccessStatusCode();
-            
-            return await response.Content.ReadFromJsonAsync<PagedResult<EntityChangeLog>>() ?? 
+
+            return await response.Content.ReadFromJsonAsync<PagedResult<EntityChangeLog>>() ??
                    new PagedResult<EntityChangeLog>();
         }
 
@@ -127,7 +127,7 @@ namespace EventForge.Client.Services
             await EnsureAuthenticatedAsync();
             var response = await _httpClient.GetAsync("api/v1/AuditLog/statistics");
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<AuditLogStatisticsDto>() ?? 
+            return await response.Content.ReadFromJsonAsync<AuditLogStatisticsDto>() ??
                    new AuditLogStatisticsDto();
         }
 

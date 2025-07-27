@@ -1,5 +1,7 @@
 // Global using statements for the EventForge.Server project
 
+global using EventForge.DTOs.Auth;
+global using EventForge.DTOs.Health;
 global using EventForge.Server.Data;
 global using EventForge.Server.Data.Entities.Audit;
 global using EventForge.Server.Data.Entities.Auth;
@@ -16,15 +18,13 @@ global using EventForge.Server.Data.Entities.Store;
 global using EventForge.Server.Data.Entities.Teams;
 global using EventForge.Server.Data.Entities.Warehouse;
 global using EventForge.Server.DTOs.Audit;
-global using EventForge.DTOs.Auth;
-global using EventForge.DTOs.Health;
 global using EventForge.Server.DTOs.Events;
 global using EventForge.Server.DTOs.Logs;
 global using EventForge.Server.DTOs.SuperAdmin;
 global using EventForge.Server.DTOs.Tenants;
-global using EventForge.Server.Services.Auth;
+global using EventForge.Server.Hubs;
 global using EventForge.Server.Services.Audit;
+global using EventForge.Server.Services.Auth;
 global using EventForge.Server.Services.Configuration;
 global using EventForge.Server.Services.Performance;
 global using EventForge.Server.Services.Tenants;
-global using EventForge.Server.Hubs;

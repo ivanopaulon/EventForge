@@ -166,7 +166,7 @@ namespace EventForge.DTOs.SuperAdmin
     {
         [Required]
         public Guid TenantId { get; set; }
-        
+
         [MaxLength(500)]
         public string? Reason { get; set; }
     }
@@ -189,10 +189,10 @@ namespace EventForge.DTOs.SuperAdmin
     {
         [Required]
         public Guid UserId { get; set; }
-        
+
         [MaxLength(500)]
         public string? Reason { get; set; }
-        
+
         public Guid? TargetTenantId { get; set; }
     }
 

@@ -1,13 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
-using EventForge.Server.DTOs.SuperAdmin;
-using EventForge.Server.Services.Tenants;
-using EventForge.Server.Services.Audit;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Auth;
-using EventForge.Server.Hubs;
+using Microsoft.EntityFrameworkCore;
 using AuthAuditOperationType = EventForge.Server.Data.Entities.Auth.AuditOperationType;
 
 namespace EventForge.Server.Controllers;
@@ -244,15 +238,16 @@ public class TenantSwitchController : BaseApiController
 
             // In a real implementation, you would update session state or token claims here
             // For now, we'll just log the switch
-            _logger.LogInformation("SuperAdmin {Username} switched to tenant {TenantName}", 
+            _logger.LogInformation("SuperAdmin {Username} switched to tenant {TenantName}",
                 currentUser.Username, targetTenant.Name);
 
             await _context.SaveChangesAsync();
 
             // Notify other SuperAdmin sessions
             await _hubContext.Clients.Group("SuperAdminUpdates")
-                .SendAsync("TenantSwitched", new { 
-                    UserId = currentUserId.Value, 
+                .SendAsync("TenantSwitched", new
+                {
+                    UserId = currentUserId.Value,
                     Username = currentUser.Username,
                     FromTenantId = originalTenantId,
                     ToTenantId = switchDto.TenantId,
@@ -344,14 +339,15 @@ public class TenantSwitchController : BaseApiController
             }
 
             // In a real implementation, you would update session state or token claims here
-            _logger.LogInformation("SuperAdmin {SuperAdminUsername} started impersonating user {TargetUsername}", 
+            _logger.LogInformation("SuperAdmin {SuperAdminUsername} started impersonating user {TargetUsername}",
                 currentUser.Username, targetUser.Username);
 
             await _context.SaveChangesAsync();
 
             // Notify other SuperAdmin sessions
             await _hubContext.Clients.Group("SuperAdminUpdates")
-                .SendAsync("ImpersonationStarted", new { 
+                .SendAsync("ImpersonationStarted", new
+                {
                     SuperAdminId = currentUserId.Value,
                     SuperAdminUsername = currentUser.Username,
                     TargetUserId = targetUser.Id,
@@ -360,7 +356,7 @@ public class TenantSwitchController : BaseApiController
                 });
 
             // Return context as impersonated user
-            var targetTenant = targetUser.TenantId != Guid.Empty ? 
+            var targetTenant = targetUser.TenantId != Guid.Empty ?
                 await _context.Tenants.FindAsync(targetUser.TenantId) : null;
 
             var context = new CurrentContextDto
@@ -437,7 +433,8 @@ public class TenantSwitchController : BaseApiController
 
             // Notify other SuperAdmin sessions
             await _hubContext.Clients.Group("SuperAdminUpdates")
-                .SendAsync("ImpersonationEnded", new { 
+                .SendAsync("ImpersonationEnded", new
+                {
                     SuperAdminId = currentUserId.Value,
                     SuperAdminUsername = currentUser.Username,
                     Timestamp = DateTime.UtcNow
@@ -615,9 +612,9 @@ public class TenantSwitchController : BaseApiController
                 if (startOperation != null)
                 {
                     var impersonator = await _context.Users.FindAsync(startOperation.PerformedByUserId);
-                    var impersonated = startOperation.TargetUserId.HasValue ? 
+                    var impersonated = startOperation.TargetUserId.HasValue ?
                         await _context.Users.FindAsync(startOperation.TargetUserId.Value) : null;
-                    var tenant = startOperation.TargetTenantId.HasValue ? 
+                    var tenant = startOperation.TargetTenantId.HasValue ?
                         await _context.Tenants.FindAsync(startOperation.TargetTenantId.Value) : null;
 
                     results.Add(new ImpersonationHistoryDto
@@ -690,7 +687,7 @@ public class TenantSwitchController : BaseApiController
 
             // Get recent operations
             var recentOperations = await _context.AuditTrails
-                .Where(a => a.OperationType == AuthAuditOperationType.TenantSwitch || 
+                .Where(a => a.OperationType == AuthAuditOperationType.TenantSwitch ||
                            a.OperationType == AuthAuditOperationType.ImpersonationStart ||
                            a.OperationType == AuthAuditOperationType.ImpersonationEnd)
                 .OrderByDescending(a => a.PerformedAt)

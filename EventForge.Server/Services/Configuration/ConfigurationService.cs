@@ -1,6 +1,6 @@
+using EventForge.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 using System.Net.Mail;
-using EventForge.Server.Extensions;
 
 namespace EventForge.Server.Services.Configuration;
 
@@ -249,7 +249,7 @@ public class ConfigurationService : IConfigurationService
             stopwatch.Stop();
             result.DurationMs = stopwatch.ElapsedMilliseconds;
 
-            _logger.LogInformation("SMTP test successful. Email sent to {Email} in {Duration}ms", 
+            _logger.LogInformation("SMTP test successful. Email sent to {Email} in {Duration}ms",
                 testDto.ToEmail, result.DurationMs);
         }
         catch (Exception ex)
@@ -270,12 +270,12 @@ public class ConfigurationService : IConfigurationService
         // This would trigger a configuration reload in the application
         // Implementation depends on how configuration is managed in the app
         _logger.LogInformation("Configuration reload requested");
-        
+
         // Here you could implement logic to:
         // 1. Clear configuration cache
         // 2. Reload configuration from database
         // 3. Notify other services about configuration changes
-        
+
         await Task.CompletedTask;
     }
 

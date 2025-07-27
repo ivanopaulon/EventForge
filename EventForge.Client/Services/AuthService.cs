@@ -1,8 +1,7 @@
 using EventForge.DTOs.Auth;
-using System.Net.Http.Json;
 using Microsoft.JSInterop;
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
+using System.Net.Http.Json;
 
 namespace EventForge.Client.Services
 {
@@ -45,7 +44,7 @@ namespace EventForge.Client.Services
             {
                 await LoadTokenFromStorageAsync();
             }
-            
+
             if (string.IsNullOrEmpty(_accessToken))
                 return false;
 
@@ -82,7 +81,7 @@ namespace EventForge.Client.Services
             var user = await GetCurrentUserAsync();
             if (user?.Roles == null || !user.Roles.Any())
                 return false;
-            
+
             return roles.Any(role => user.Roles.Contains(role, StringComparer.OrdinalIgnoreCase));
         }
 
@@ -91,7 +90,7 @@ namespace EventForge.Client.Services
             var user = await GetCurrentUserAsync();
             if (user?.Roles == null || !user.Roles.Any())
                 return false;
-            
+
             return roles.All(role => user.Roles.Contains(role, StringComparer.OrdinalIgnoreCase));
         }
 
@@ -116,7 +115,7 @@ namespace EventForge.Client.Services
             try
             {
                 var response = await _httpClient.PostAsJsonAsync("api/v1/auth/login", loginRequest);
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponseDto>();
@@ -124,19 +123,19 @@ namespace EventForge.Client.Services
                     {
                         _accessToken = loginResponse.AccessToken;
                         _currentUser = loginResponse.User;
-                        
+
                         // Store in localStorage
                         await _jsRuntime.InvokeVoidAsync("localStorage.setItem", _tokenKey, _accessToken);
                         await _jsRuntime.InvokeVoidAsync("localStorage.setItem", _userKey, System.Text.Json.JsonSerializer.Serialize(_currentUser));
-                        
-                        _httpClient.DefaultRequestHeaders.Authorization = 
+
+                        _httpClient.DefaultRequestHeaders.Authorization =
                             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
-                        
+
                         OnAuthenticationStateChanged?.Invoke();
                     }
                     return loginResponse;
                 }
-                
+
                 return null;
             }
             catch (Exception)
@@ -150,11 +149,11 @@ namespace EventForge.Client.Services
             _accessToken = null;
             _currentUser = null;
             _httpClient.DefaultRequestHeaders.Authorization = null;
-            
+
             // Clear localStorage
             await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", _tokenKey);
             await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", _userKey);
-            
+
             OnAuthenticationStateChanged?.Invoke();
         }
 
@@ -165,7 +164,7 @@ namespace EventForge.Client.Services
                 _accessToken = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", _tokenKey);
                 if (!string.IsNullOrEmpty(_accessToken) && !IsTokenExpired(_accessToken))
                 {
-                    _httpClient.DefaultRequestHeaders.Authorization = 
+                    _httpClient.DefaultRequestHeaders.Authorization =
                         new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
                 }
                 else
@@ -201,7 +200,7 @@ namespace EventForge.Client.Services
             {
                 var tokenHandler = new JwtSecurityTokenHandler();
                 var jwtToken = tokenHandler.ReadJwtToken(token);
-                
+
                 return jwtToken.ValidTo <= DateTime.UtcNow;
             }
             catch

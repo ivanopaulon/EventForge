@@ -1,7 +1,5 @@
-using EventForge.Server.Services.Audit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using EventForge.Server.DTOs.SuperAdmin;
 
 namespace EventForge.Server.Controllers;
 
@@ -272,10 +270,10 @@ public class AuditLogController : BaseApiController
     private string GenerateCsvContent(IEnumerable<EntityChangeLog> auditLogs)
     {
         var csv = new System.Text.StringBuilder();
-        
+
         // Add header
         csv.AppendLine("Id,EntityName,EntityId,PropertyName,OperationType,OldValue,NewValue,ChangedBy,ChangedAt,EntityDisplayName");
-        
+
         // Add data rows
         foreach (var log in auditLogs)
         {
@@ -290,19 +288,19 @@ public class AuditLogController : BaseApiController
                           $"{log.ChangedAt:yyyy-MM-dd HH:mm:ss}," +
                           $"\"{log.EntityDisplayName}\"");
         }
-        
+
         return csv.ToString();
     }
 
     private string GenerateTxtContent(IEnumerable<EntityChangeLog> auditLogs)
     {
         var txt = new System.Text.StringBuilder();
-        
+
         txt.AppendLine("AUDIT LOG EXPORT");
         txt.AppendLine($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
         txt.AppendLine(new string('=', 50));
         txt.AppendLine();
-        
+
         foreach (var log in auditLogs)
         {
             txt.AppendLine($"ID: {log.Id}");
@@ -316,7 +314,7 @@ public class AuditLogController : BaseApiController
             txt.AppendLine($"Display Name: {log.EntityDisplayName ?? "N/A"}");
             txt.AppendLine(new string('-', 30));
         }
-        
+
         return txt.ToString();
     }
 

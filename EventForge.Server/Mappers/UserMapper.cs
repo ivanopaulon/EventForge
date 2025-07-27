@@ -1,6 +1,3 @@
-using EventForge.Server.Data.Entities.Auth;
-using EventForge.DTOs.Auth;
-
 namespace EventForge.Server.Mappers;
 
 /// <summary>

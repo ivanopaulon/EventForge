@@ -85,7 +85,7 @@ public class EventForgeDbContext : DbContext
     public DbSet<Tenant> Tenants { get; set; }
     public DbSet<AdminTenant> AdminTenants { get; set; }
     public DbSet<AuditTrail> AuditTrails { get; set; }
-    
+
     // Configuration & System Management
     public DbSet<SystemConfiguration> SystemConfigurations { get; set; }
     public DbSet<BackupOperation> BackupOperations { get; set; }

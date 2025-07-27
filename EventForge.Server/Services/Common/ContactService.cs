@@ -1,6 +1,4 @@
 using EventForge.Server.DTOs.Common;
-using EventForge.Server.Services.Audit;
-using EventForge.Server.Services.Tenants;
 using EventForge.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 

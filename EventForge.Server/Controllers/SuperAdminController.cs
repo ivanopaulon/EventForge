@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using EventForge.Server.Services.Configuration;
 
 namespace EventForge.Server.Controllers;
 

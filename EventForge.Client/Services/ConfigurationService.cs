@@ -1,5 +1,4 @@
 using System.Net.Http.Json;
-using System.Text.Json;
 
 namespace EventForge.Client.Services;
 
@@ -166,7 +165,7 @@ public class ConfigurationService : IConfigurationService
         {
             var response = await _httpClient.PostAsJsonAsync("api/SuperAdmin/configuration", createDto);
             response.EnsureSuccessStatusCode();
-            
+
             var result = await response.Content.ReadFromJsonAsync<ConfigurationDto>();
             return result ?? throw new InvalidOperationException("Failed to deserialize response");
         }
@@ -183,7 +182,7 @@ public class ConfigurationService : IConfigurationService
         {
             var response = await _httpClient.PutAsJsonAsync($"api/SuperAdmin/configuration/{key}", updateDto);
             response.EnsureSuccessStatusCode();
-            
+
             var result = await response.Content.ReadFromJsonAsync<ConfigurationDto>();
             return result ?? throw new InvalidOperationException("Failed to deserialize response");
         }
@@ -214,7 +213,7 @@ public class ConfigurationService : IConfigurationService
         {
             var response = await _httpClient.PostAsJsonAsync("api/SuperAdmin/configuration/test-smtp", testDto);
             response.EnsureSuccessStatusCode();
-            
+
             var result = await response.Content.ReadFromJsonAsync<SmtpTestResultDto>();
             return result ?? throw new InvalidOperationException("Failed to deserialize response");
         }

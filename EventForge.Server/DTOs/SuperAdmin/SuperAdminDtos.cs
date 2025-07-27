@@ -9,10 +9,10 @@ public class ImpersonateUserDto
 {
     [Required]
     public Guid UserId { get; set; }
-    
+
     [MaxLength(500)]
     public string? Reason { get; set; }
-    
+
     public Guid? TargetTenantId { get; set; }
 }
 
@@ -23,7 +23,7 @@ public class SwitchTenantDto
 {
     [Required]
     public Guid TenantId { get; set; }
-    
+
     [MaxLength(500)]
     public string? Reason { get; set; }
 }
@@ -64,7 +64,7 @@ public class UpdateUserStatusDto
 {
     [Required]
     public bool IsActive { get; set; }
-    
+
     [MaxLength(500)]
     public string? Reason { get; set; }
 }
@@ -76,7 +76,7 @@ public class UpdateUserRolesDto
 {
     [Required]
     public List<string> Roles { get; set; } = new();
-    
+
     [MaxLength(500)]
     public string? Reason { get; set; }
 }
@@ -98,7 +98,7 @@ public class BackupRequestDto
     public bool IncludeAuditLogs { get; set; } = true;
     public bool IncludeUserData { get; set; } = true;
     public bool IncludeConfiguration { get; set; } = true;
-    
+
     [MaxLength(500)]
     public string? Description { get; set; }
 }
@@ -126,16 +126,16 @@ public class BackupStatusDto
 public class AuditLogExportDto
 {
     public string Format { get; set; } = "JSON"; // JSON, CSV, TXT
-    
+
     public DateTime? FromDate { get; set; }
-    
+
     public DateTime? ToDate { get; set; }
-    
+
     public List<string>? OperationTypes { get; set; }
-    
+
     public Guid? UserId { get; set; }
-    
+
     public Guid? TenantId { get; set; }
-    
+
     public bool? WasSuccessful { get; set; }
 }

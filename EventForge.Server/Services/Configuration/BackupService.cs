@@ -1,9 +1,8 @@
-using Microsoft.EntityFrameworkCore;
+using EventForge.Server.Mappers;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using System.IO.Compression;
 using System.Text.Json;
-using EventForge.Server.DTOs.SuperAdmin;
-using EventForge.Server.Mappers;
 
 namespace EventForge.Server.Services.Configuration;
 
@@ -86,7 +85,7 @@ public class BackupService : IBackupService
             .ToListAsync();
 
         var results = new List<BackupStatusDto>();
-        
+
         foreach (var backup in backups)
         {
             var dto = BackupMapper.ToServerStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId));
@@ -117,7 +116,7 @@ public class BackupService : IBackupService
         backup.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
 
         await _context.SaveChangesAsync();
-        
+
         // Notify clients
         await NotifyBackupStatusChange(backup);
     }
@@ -270,7 +269,7 @@ public class BackupService : IBackupService
     {
         var configurations = await _context.SystemConfigurations.ToListAsync();
         var data = JsonSerializer.Serialize(configurations, new JsonSerializerOptions { WriteIndented = true });
-        
+
         var entry = archive.CreateEntry("configuration.json");
         using var stream = entry.Open();
         using var writer = new StreamWriter(stream);
@@ -281,15 +280,15 @@ public class BackupService : IBackupService
     {
         var users = await _context.Users.Include(u => u.UserRoles).ThenInclude(ur => ur.Role).ToListAsync();
         var tenants = await _context.Tenants.ToListAsync();
-        
+
         var userData = new
         {
             Users = users,
             Tenants = tenants
         };
-        
+
         var data = JsonSerializer.Serialize(userData, new JsonSerializerOptions { WriteIndented = true });
-        
+
         var entry = archive.CreateEntry("users.json");
         using var stream = entry.Open();
         using var writer = new StreamWriter(stream);
@@ -300,15 +299,15 @@ public class BackupService : IBackupService
     {
         var auditLogs = await _context.EntityChangeLogs.ToListAsync();
         var auditTrails = await _context.AuditTrails.ToListAsync();
-        
+
         var auditData = new
         {
             EntityChangeLogs = auditLogs,
             AuditTrails = auditTrails
         };
-        
+
         var data = JsonSerializer.Serialize(auditData, new JsonSerializerOptions { WriteIndented = true });
-        
+
         var entry = archive.CreateEntry("audit.json");
         using var stream = entry.Open();
         using var writer = new StreamWriter(stream);
@@ -318,7 +317,7 @@ public class BackupService : IBackupService
     private async Task NotifyBackupStatusChange(BackupOperation backup)
     {
         var dto = BackupMapper.ToServerStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId));
-        
+
         await _hubContext.Clients.Group("AuditLogUpdates")
             .SendAsync("BackupStatusChanged", dto);
     }

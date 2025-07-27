@@ -1,4 +1,3 @@
-using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.Banks;
 using EventForge.Server.Services.Business;
 using EventForge.Server.Services.Common;
@@ -195,7 +194,7 @@ public static class ServiceCollectionExtensions
         // Register tenant services
         services.AddScoped<ITenantContext, TenantContext>();
         services.AddScoped<ITenantService, TenantService>();
-        
+
         // Register SuperAdmin services
         services.AddScoped<IConfigurationService, ConfigurationService>();
         services.AddScoped<IBackupService, BackupService>();

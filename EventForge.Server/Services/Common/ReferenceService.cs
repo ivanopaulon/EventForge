@@ -1,10 +1,7 @@
 using EventForge.Server.DTOs.Common;
-using EventForge.Server.Services.Audit;
-using EventForge.Server.Services.Tenants;
 using EventForge.Server.Extensions;
 using EventForge.Server.Mappers;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace EventForge.Server.Services.Common;
 

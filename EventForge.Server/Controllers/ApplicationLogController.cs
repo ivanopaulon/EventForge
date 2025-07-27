@@ -1,7 +1,6 @@
 using EventForge.Server.Services.Logs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using EventForge.Server.DTOs.SuperAdmin;
 
 namespace EventForge.Server.Controllers;
 
@@ -363,7 +362,7 @@ public class ApplicationLogController : BaseApiController
             };
 
             var result = await _applicationLogService.GetPagedLogsAsync(queryParameters);
-            
+
             var systemLogs = result.Items.Select(log => new SystemLogDto
             {
                 Id = Guid.NewGuid(),

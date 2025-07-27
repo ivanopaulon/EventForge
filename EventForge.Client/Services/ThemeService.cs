@@ -11,23 +11,23 @@ public interface IThemeService
     /// Gets the current theme mode.
     /// </summary>
     bool IsDarkMode { get; }
-    
+
     /// <summary>
     /// Event triggered when theme changes.
     /// </summary>
     event Action? OnThemeChanged;
-    
+
     /// <summary>
     /// Toggles between dark and light mode.
     /// </summary>
     Task ToggleThemeAsync();
-    
+
     /// <summary>
     /// Sets the theme mode.
     /// </summary>
     /// <param name="isDarkMode">True for dark mode, false for light mode.</param>
     Task SetThemeAsync(bool isDarkMode);
-    
+
     /// <summary>
     /// Initializes the theme from stored preference.
     /// </summary>
@@ -44,7 +44,7 @@ public class ThemeService : IThemeService
     private bool _isDarkMode = false;
 
     public bool IsDarkMode => _isDarkMode;
-    
+
     public event Action? OnThemeChanged;
 
     public ThemeService(IJSRuntime jsRuntime)
@@ -58,7 +58,7 @@ public class ThemeService : IThemeService
         {
             var storedTheme = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", ThemeKey);
             _isDarkMode = storedTheme == "dark";
-            
+
             // Apply theme to document
             await ApplyThemeToDocumentAsync();
         }
@@ -77,15 +77,15 @@ public class ThemeService : IThemeService
     public async Task SetThemeAsync(bool isDarkMode)
     {
         _isDarkMode = isDarkMode;
-        
+
         try
         {
             // Store preference in localStorage
             await _jsRuntime.InvokeVoidAsync("localStorage.setItem", ThemeKey, isDarkMode ? "dark" : "light");
-            
+
             // Apply theme to document
             await ApplyThemeToDocumentAsync();
-            
+
             // Notify subscribers
             OnThemeChanged?.Invoke();
         }

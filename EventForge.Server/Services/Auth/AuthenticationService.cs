@@ -1,5 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using EventForge.Server.Mappers;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Auth;
 

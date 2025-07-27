@@ -1,7 +1,3 @@
-using EventForge.Server.DTOs.SuperAdmin;
-using EventForge.Server.DTOs.Tenants;
-using EventForge.Server.Data.Entities.Auth;
-
 namespace EventForge.Server.Services.Tenants;
 
 /// <summary>

@@ -1,6 +1,4 @@
 using EventForge.Server.DTOs.UnitOfMeasures;
-using EventForge.Server.Services.Audit;
-using EventForge.Server.Services.Tenants;
 using EventForge.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,8 +15,8 @@ public class UMService : IUMService
     private readonly ILogger<UMService> _logger;
 
     public UMService(
-        EventForgeDbContext context, 
-        IAuditLogService auditLogService, 
+        EventForgeDbContext context,
+        IAuditLogService auditLogService,
         ITenantContext tenantContext,
         ILogger<UMService> logger)
     {

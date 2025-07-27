@@ -1,6 +1,5 @@
-using EventForge.Server.Data.Entities.Auth;
-using SharedTenantDtos = EventForge.DTOs.Tenants;
 using ServerTenantDtos = EventForge.Server.DTOs.Tenants;
+using SharedTenantDtos = EventForge.DTOs.Tenants;
 
 namespace EventForge.Server.Mappers;
 

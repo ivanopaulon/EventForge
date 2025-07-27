@@ -16,7 +16,7 @@ namespace EventForge.Client.Services
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
             var isAuthenticated = await _authService.IsAuthenticatedAsync();
-            
+
             if (!isAuthenticated)
             {
                 return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));

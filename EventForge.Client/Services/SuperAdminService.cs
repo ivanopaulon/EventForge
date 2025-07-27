@@ -69,7 +69,7 @@ namespace EventForge.Client.Services
 
             if (!_httpClient.DefaultRequestHeaders.Authorization?.Parameter?.Equals(token) == true)
             {
-                _httpClient.DefaultRequestHeaders.Authorization = 
+                _httpClient.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
         }
@@ -99,7 +99,7 @@ namespace EventForge.Client.Services
             await EnsureAuthenticatedAsync();
             var response = await _httpClient.PostAsJsonAsync("api/Tenants", createDto);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<TenantResponseDto>() ?? 
+            return await response.Content.ReadFromJsonAsync<TenantResponseDto>() ??
                    throw new InvalidOperationException("Failed to create tenant");
         }
 
@@ -108,7 +108,7 @@ namespace EventForge.Client.Services
             await EnsureAuthenticatedAsync();
             var response = await _httpClient.PutAsJsonAsync($"api/Tenants/{id}", updateDto);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<TenantResponseDto>() ?? 
+            return await response.Content.ReadFromJsonAsync<TenantResponseDto>() ??
                    throw new InvalidOperationException("Failed to update tenant");
         }
 
@@ -124,7 +124,7 @@ namespace EventForge.Client.Services
             await EnsureAuthenticatedAsync();
             var response = await _httpClient.GetAsync("api/Tenants/statistics");
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<TenantStatisticsDto>() ?? 
+            return await response.Content.ReadFromJsonAsync<TenantStatisticsDto>() ??
                    new TenantStatisticsDto();
         }
 
@@ -138,7 +138,7 @@ namespace EventForge.Client.Services
             var url = "api/UserManagement";
             if (tenantId.HasValue)
                 url += $"?tenantId={tenantId}";
-            
+
             var response = await _httpClient.GetAsync(url);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<IEnumerable<UserManagementDto>>() ?? new List<UserManagementDto>();
@@ -159,7 +159,7 @@ namespace EventForge.Client.Services
             await EnsureAuthenticatedAsync();
             var response = await _httpClient.PostAsJsonAsync("api/UserManagement", createDto);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<UserManagementDto>() ?? 
+            return await response.Content.ReadFromJsonAsync<UserManagementDto>() ??
                    throw new InvalidOperationException("Failed to create user");
         }
 
@@ -168,7 +168,7 @@ namespace EventForge.Client.Services
             await EnsureAuthenticatedAsync();
             var response = await _httpClient.PutAsJsonAsync($"api/UserManagement/{id}", updateDto);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<UserManagementDto>() ?? 
+            return await response.Content.ReadFromJsonAsync<UserManagementDto>() ??
                    throw new InvalidOperationException("Failed to update user");
         }
 
@@ -185,10 +185,10 @@ namespace EventForge.Client.Services
             var url = "api/UserManagement/statistics";
             if (tenantId.HasValue)
                 url += $"?tenantId={tenantId}";
-            
+
             var response = await _httpClient.GetAsync(url);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<UserStatisticsDto>() ?? 
+            return await response.Content.ReadFromJsonAsync<UserStatisticsDto>() ??
                    new UserStatisticsDto();
         }
 
@@ -201,7 +201,7 @@ namespace EventForge.Client.Services
             await EnsureAuthenticatedAsync();
             var response = await _httpClient.PostAsJsonAsync("api/TenantSwitch/switch", switchDto);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<TenantSwitchResponseDto>() ?? 
+            return await response.Content.ReadFromJsonAsync<TenantSwitchResponseDto>() ??
                    throw new InvalidOperationException("Failed to switch tenant");
         }
 
@@ -210,7 +210,7 @@ namespace EventForge.Client.Services
             await EnsureAuthenticatedAsync();
             var response = await _httpClient.PostAsJsonAsync("api/TenantSwitch/impersonate", impersonateDto);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<ImpersonationResponseDto>() ?? 
+            return await response.Content.ReadFromJsonAsync<ImpersonationResponseDto>() ??
                    throw new InvalidOperationException("Failed to impersonate user");
         }
 
@@ -226,7 +226,7 @@ namespace EventForge.Client.Services
             await EnsureAuthenticatedAsync();
             var response = await _httpClient.GetAsync("api/TenantContext/current");
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<CurrentContextDto>() ?? 
+            return await response.Content.ReadFromJsonAsync<CurrentContextDto>() ??
                    new CurrentContextDto();
         }
 
@@ -273,7 +273,7 @@ namespace EventForge.Client.Services
             await EnsureAuthenticatedAsync();
             var response = await _httpClient.PostAsJsonAsync("api/SuperAdmin/configuration", createDto);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<ConfigurationDto>() ?? 
+            return await response.Content.ReadFromJsonAsync<ConfigurationDto>() ??
                    throw new InvalidOperationException("Failed to create configuration");
         }
 
@@ -282,7 +282,7 @@ namespace EventForge.Client.Services
             await EnsureAuthenticatedAsync();
             var response = await _httpClient.PutAsJsonAsync($"api/SuperAdmin/configuration/{key}", updateDto);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<ConfigurationDto>() ?? 
+            return await response.Content.ReadFromJsonAsync<ConfigurationDto>() ??
                    throw new InvalidOperationException("Failed to update configuration");
         }
 
@@ -316,7 +316,7 @@ namespace EventForge.Client.Services
             await EnsureAuthenticatedAsync();
             var response = await _httpClient.PostAsJsonAsync("api/SuperAdmin/backup", createDto);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<BackupOperationDto>() ?? 
+            return await response.Content.ReadFromJsonAsync<BackupOperationDto>() ??
                    throw new InvalidOperationException("Failed to create backup");
         }
 

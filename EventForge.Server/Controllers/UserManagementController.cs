@@ -1,13 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
-using EventForge.Server.DTOs.SuperAdmin;
-using EventForge.Server.Services.Tenants;
-using EventForge.Server.Services.Audit;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Auth;
-using EventForge.Server.Hubs;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Controllers;
 
@@ -68,7 +62,7 @@ public class UserManagementController : BaseApiController
             foreach (var user in users)
             {
                 var tenant = await _context.Tenants.FindAsync(user.TenantId);
-                
+
                 var userDto = new UserManagementDto
                 {
                     Id = user.Id,
@@ -441,7 +435,7 @@ public class UserManagementController : BaseApiController
             if (!string.IsNullOrEmpty(searchDto.SearchTerm))
             {
                 var term = searchDto.SearchTerm.ToLower();
-                query = query.Where(u => 
+                query = query.Where(u =>
                     u.Username.ToLower().Contains(term) ||
                     u.Email.ToLower().Contains(term) ||
                     u.FirstName.ToLower().Contains(term) ||
@@ -518,7 +512,7 @@ public class UserManagementController : BaseApiController
             foreach (var user in users)
             {
                 var tenant = await _context.Tenants.FindAsync(user.TenantId);
-                
+
                 var userDto = new UserManagementDto
                 {
                     Id = user.Id,
@@ -565,7 +559,7 @@ public class UserManagementController : BaseApiController
         try
         {
             var query = _context.Users.AsQueryable();
-            
+
             if (tenantId.HasValue)
             {
                 query = query.Where(u => u.TenantId == tenantId.Value);
@@ -582,11 +576,11 @@ public class UserManagementController : BaseApiController
 
             var today = DateTime.UtcNow.Date;
             var loginsToday = await _context.AuditTrails
-                .CountAsync(a => a.OperationType == EventForge.Server.Data.Entities.Auth.AuditOperationType.TenantSwitch && 
+                .CountAsync(a => a.OperationType == EventForge.Server.Data.Entities.Auth.AuditOperationType.TenantSwitch &&
                                 a.PerformedAt >= today);
 
             var failedLoginsToday = await _context.AuditTrails
-                .CountAsync(a => a.OperationType == EventForge.Server.Data.Entities.Auth.AuditOperationType.TenantStatusChanged && 
+                .CountAsync(a => a.OperationType == EventForge.Server.Data.Entities.Auth.AuditOperationType.TenantStatusChanged &&
                                 a.PerformedAt >= today);
 
             var usersByRole = await _context.UserRoles
@@ -762,11 +756,12 @@ public class UserManagementController : BaseApiController
 
             // Notify clients
             await _hubContext.Clients.Group("AuditLogUpdates")
-                .SendAsync("BulkUserActionCompleted", new { 
-                    Action = actionDto.Action, 
+                .SendAsync("BulkUserActionCompleted", new
+                {
+                    Action = actionDto.Action,
                     TotalUsers = actionDto.UserIds.Count,
                     SuccessCount = successCount,
-                    FailCount = failCount 
+                    FailCount = failCount
                 });
 
             var quickActionResult = new QuickActionResultDto

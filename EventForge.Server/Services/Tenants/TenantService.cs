@@ -1,12 +1,6 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using AuthAuditOperationType = EventForge.Server.Data.Entities.Auth.AuditOperationType;
-using EventForge.Server.DTOs.SuperAdmin;
-using EventForge.Server.DTOs.Tenants;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Auth;
-using EventForge.Server.Services.Auth;
 using EventForge.Server.Mappers;
+using Microsoft.EntityFrameworkCore;
+using AuthAuditOperationType = EventForge.Server.Data.Entities.Auth.AuditOperationType;
 
 namespace EventForge.Server.Services.Tenants;
 
@@ -118,7 +112,7 @@ public class TenantService : ITenantService
                     var auditTrail = new AuditTrail
                     {
                         TenantId = tenant.Id,
-                        OperationType = (AuthAuditOperationType)AuthAuditOperationType.TenantCreated,
+                        OperationType = AuthAuditOperationType.TenantCreated,
                         PerformedByUserId = currentUserIdForAudit.Value,
                         TargetTenantId = tenant.Id,
                         Details = $"Tenant creato: {tenant.Name}",
@@ -258,7 +252,7 @@ public class TenantService : ITenantService
                     var auditTrail = new AuditTrail
                     {
                         TenantId = tenant.Id,
-                        OperationType = (AuthAuditOperationType)AuthAuditOperationType.TenantUpdated,
+                        OperationType = AuthAuditOperationType.TenantUpdated,
                         PerformedByUserId = currentUserId.Value,
                         TargetTenantId = tenant.Id,
                         Details = $"Tenant aggiornato: {tenant.Name}",
@@ -331,7 +325,7 @@ public class TenantService : ITenantService
                 var auditTrail = new AuditTrail
                 {
                     TenantId = tenant.Id,
-                    OperationType = (AuthAuditOperationType)AuthAuditOperationType.TenantStatusChanged,
+                    OperationType = AuthAuditOperationType.TenantStatusChanged,
                     PerformedByUserId = currentUserId.Value,
                     TargetTenantId = tenant.Id,
                     Details = $"Tenant {(isEnabled ? "enabled" : "disabled")}: {reason}",
@@ -403,7 +397,7 @@ public class TenantService : ITenantService
                 var auditTrail = new AuditTrail
                 {
                     TenantId = tenantId,
-                    OperationType = (AuthAuditOperationType)AuthAuditOperationType.AdminTenantGranted,
+                    OperationType = AuthAuditOperationType.AdminTenantGranted,
                     PerformedByUserId = currentUserId.Value,
                     TargetTenantId = tenantId,
                     TargetUserId = userId,
@@ -480,7 +474,7 @@ public class TenantService : ITenantService
                 var auditTrail = new AuditTrail
                 {
                     TenantId = tenantId,
-                    OperationType = (AuthAuditOperationType)AuthAuditOperationType.AdminTenantRevoked,
+                    OperationType = AuthAuditOperationType.AdminTenantRevoked,
                     PerformedByUserId = currentUserId.Value,
                     TargetTenantId = tenantId,
                     TargetUserId = userId,
@@ -590,7 +584,7 @@ public class TenantService : ITenantService
                 var auditTrail = new AuditTrail
                 {
                     TenantId = user.TenantId,
-                    OperationType = (AuthAuditOperationType)AuthAuditOperationType.ForcePasswordChange,
+                    OperationType = AuthAuditOperationType.ForcePasswordChange,
                     PerformedByUserId = currentUserId.Value,
                     TargetUserId = userId,
                     Details = $"Password change forced",
@@ -720,11 +714,11 @@ public class TenantService : ITenantService
         var totalTenants = await _context.Tenants.CountAsync();
         var activeTenants = await _context.Tenants.CountAsync(t => t.IsEnabled);
         var inactiveTenants = totalTenants - activeTenants;
-        
+
         var totalUsers = await _context.Users.CountAsync();
         var oneMonthAgo = DateTime.UtcNow.AddMonths(-1);
         var usersLastMonth = await _context.Users.CountAsync(u => u.CreatedAt >= oneMonthAgo);
-        
+
         var tenantsNearLimit = await _context.Tenants
             .Where(t => t.IsEnabled)
             .CountAsync(t => _context.Users.Count(u => u.TenantId == t.Id) >= t.MaxUsers * 0.9);
@@ -753,7 +747,7 @@ public class TenantService : ITenantService
         if (!string.IsNullOrEmpty(searchDto.SearchTerm))
         {
             var term = searchDto.SearchTerm.ToLower();
-            query = query.Where(t => 
+            query = query.Where(t =>
                 t.Name.ToLower().Contains(term) ||
                 t.DisplayName.ToLower().Contains(term) ||
                 (t.Domain != null && t.Domain.ToLower().Contains(term)));
@@ -965,12 +959,12 @@ public class TenantService : ITenantService
 
         var today = DateTime.UtcNow.Date;
         var loginAttemptsToday = await _context.AuditTrails
-            .CountAsync(a => a.OperationType == AuthAuditOperationType.TenantSwitch && 
+            .CountAsync(a => a.OperationType == AuthAuditOperationType.TenantSwitch &&
                            a.PerformedAt >= today &&
                            a.SourceTenantId == tenantId);
 
         var failedLoginsToday = await _context.AuditTrails
-            .CountAsync(a => a.OperationType == AuthAuditOperationType.TenantStatusChanged && 
+            .CountAsync(a => a.OperationType == AuthAuditOperationType.TenantStatusChanged &&
                            a.PerformedAt >= today &&
                            a.SourceTenantId == tenantId);
 
@@ -1006,7 +1000,7 @@ public class TenantService : ITenantService
         // from file uploads, documents, etc.
         var userCount = await _context.Users.CountAsync(u => u.TenantId == tenantId);
         var eventCount = await _context.Events.CountAsync(e => e.TenantId == tenantId);
-        
+
         // Rough estimation: 1KB per user + 10KB per event
         return (userCount * 1024) + (eventCount * 10240);
     }

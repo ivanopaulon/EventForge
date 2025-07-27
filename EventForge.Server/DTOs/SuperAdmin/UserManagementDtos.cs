@@ -9,29 +9,29 @@ public class UserSearchDto
 {
     [MaxLength(100)]
     public string? SearchTerm { get; set; }
-    
+
     public Guid? TenantId { get; set; }
-    
+
     public string? Role { get; set; } // "all", "admin", "manager", "user"
-    
+
     public bool? IsActive { get; set; }
-    
+
     public bool? MustChangePassword { get; set; }
-    
+
     public DateTime? LastLoginAfter { get; set; }
-    
+
     public DateTime? LastLoginBefore { get; set; }
-    
+
     public DateTime? CreatedAfter { get; set; }
-    
+
     public DateTime? CreatedBefore { get; set; }
-    
+
     public int PageNumber { get; set; } = 1;
-    
+
     public int PageSize { get; set; } = 20;
-    
+
     public string? SortBy { get; set; } = "CreatedAt";
-    
+
     public string? SortOrder { get; set; } = "desc";
 }
 
@@ -71,13 +71,13 @@ public class QuickUserActionDto
 {
     [Required]
     public string Action { get; set; } = string.Empty; // "enable", "disable", "resetPassword", "forcePasswordChange", "lockout", "unlock"
-    
+
     [Required]
     public List<Guid> UserIds { get; set; } = new();
-    
+
     [MaxLength(500)]
     public string? Reason { get; set; }
-    
+
     public Dictionary<string, object>? Parameters { get; set; }
 }
 
@@ -132,29 +132,29 @@ public class CreateUserDto
     [Required]
     [MaxLength(100)]
     public string Username { get; set; } = string.Empty;
-    
+
     [Required]
     [EmailAddress]
     [MaxLength(256)]
     public string Email { get; set; } = string.Empty;
-    
+
     [Required]
     [MaxLength(100)]
     public string FirstName { get; set; } = string.Empty;
-    
+
     [Required]
     [MaxLength(100)]
     public string LastName { get; set; } = string.Empty;
-    
+
     [Required]
     public Guid TenantId { get; set; }
-    
+
     public List<string> Roles { get; set; } = new();
-    
+
     public bool MustChangePassword { get; set; } = true;
-    
+
     public bool IsActive { get; set; } = true;
-    
+
     [MaxLength(500)]
     public string? Notes { get; set; }
 }

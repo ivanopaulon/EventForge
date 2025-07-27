@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using Microsoft.Extensions.Logging;
-using EventForge.Server.Data.Entities.Auth;
 using AuthAuditOperationType = EventForge.Server.Data.Entities.Auth.AuditOperationType;
 
 namespace EventForge.Server.Services.Tenants;
@@ -138,7 +136,7 @@ public class TenantContext : ITenantContext
             httpContext.Session.SetString(TenantIdSessionKey, tenantId.ToString());
 
             await CreateAuditTrailAsync(
-                (AuthAuditOperationType)AuthAuditOperationType.TenantSwitch,
+                AuthAuditOperationType.TenantSwitch,
                 currentUserId.Value,
                 currentTenantId,
                 tenantId,
@@ -191,7 +189,7 @@ public class TenantContext : ITenantContext
             httpContext.Session.SetString(IsImpersonatingSessionKey, "true");
 
             await CreateAuditTrailAsync(
-                (AuthAuditOperationType)AuthAuditOperationType.ImpersonationStart,
+                AuthAuditOperationType.ImpersonationStart,
                 currentUserId.Value,
                 CurrentTenantId,
                 targetUser.TenantId,
@@ -233,7 +231,7 @@ public class TenantContext : ITenantContext
             }
 
             await CreateAuditTrailAsync(
-                (AuthAuditOperationType)AuthAuditOperationType.ImpersonationEnd,
+                AuthAuditOperationType.ImpersonationEnd,
                 originalUserId,
                 CurrentTenantId,
                 CurrentTenantId,

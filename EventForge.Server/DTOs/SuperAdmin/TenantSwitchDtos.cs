@@ -97,19 +97,19 @@ public class SecurityValidationDto
 {
     [Required]
     public string Action { get; set; } = string.Empty; // "switch", "impersonate", "endImpersonation"
-    
+
     [Required]
     public Guid UserId { get; set; }
-    
+
     public Guid? TargetUserId { get; set; }
-    
+
     public Guid? TargetTenantId { get; set; }
-    
+
     [MaxLength(500)]
     public string? Reason { get; set; }
-    
+
     public string? SecurityCode { get; set; } // For additional verification if required
-    
+
     public Dictionary<string, object>? Context { get; set; }
 }
 
@@ -132,25 +132,25 @@ public class SecurityValidationResultDto
 public class OperationHistorySearchDto
 {
     public Guid? UserId { get; set; }
-    
+
     public List<string>? OperationTypes { get; set; } // "switch", "impersonate", "admin_action"
-    
+
     public Guid? TenantId { get; set; }
-    
+
     public DateTime? FromDate { get; set; }
-    
+
     public DateTime? ToDate { get; set; }
-    
+
     public bool? IsActive { get; set; }
-    
+
     public string? SessionId { get; set; }
-    
+
     public int PageNumber { get; set; } = 1;
-    
+
     public int PageSize { get; set; } = 50;
-    
+
     public string? SortBy { get; set; } = "StartedAt";
-    
+
     public string? SortOrder { get; set; } = "desc";
 }
 

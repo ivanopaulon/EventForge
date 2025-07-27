@@ -23,23 +23,23 @@ public class TenantSearchDto
 {
     [MaxLength(100)]
     public string? SearchTerm { get; set; }
-    
+
     public string? Status { get; set; } // "all", "active", "inactive"
-    
+
     public int? MaxUsers { get; set; }
-    
+
     public DateTime? CreatedAfter { get; set; }
-    
+
     public DateTime? CreatedBefore { get; set; }
-    
+
     public bool? NearUserLimit { get; set; }
-    
+
     public int PageNumber { get; set; } = 1;
-    
+
     public int PageSize { get; set; } = 20;
-    
+
     public string? SortBy { get; set; } = "CreatedAt";
-    
+
     public string? SortOrder { get; set; } = "desc";
 }
 
@@ -66,13 +66,13 @@ public class UpdateTenantLimitsDto
 {
     [Range(1, int.MaxValue)]
     public int MaxUsers { get; set; }
-    
+
     [Range(1000000, long.MaxValue)] // Min 1MB
     public long MaxStorageBytes { get; set; }
-    
+
     [Range(1, int.MaxValue)]
     public int MaxEventsPerMonth { get; set; }
-    
+
     [MaxLength(500)]
     public string? Reason { get; set; }
 }

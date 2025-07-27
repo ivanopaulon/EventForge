@@ -32,7 +32,7 @@ public class BackupService : IBackupService
         {
             var response = await _httpClient.PostAsJsonAsync("api/SuperAdmin/backup", request);
             response.EnsureSuccessStatusCode();
-            
+
             var result = await response.Content.ReadFromJsonAsync<BackupStatusDto>();
             return result ?? throw new InvalidOperationException("Failed to deserialize response");
         }

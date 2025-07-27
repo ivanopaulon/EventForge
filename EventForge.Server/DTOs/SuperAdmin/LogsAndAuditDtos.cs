@@ -9,33 +9,33 @@ public class SystemLogSearchDto
 {
     [MaxLength(100)]
     public string? SearchTerm { get; set; }
-    
+
     public string? Level { get; set; } // "Trace", "Debug", "Information", "Warning", "Error", "Critical"
-    
+
     public string? Source { get; set; }
-    
+
     public string? Category { get; set; }
-    
+
     public DateTime? FromDate { get; set; }
-    
+
     public DateTime? ToDate { get; set; }
-    
+
     public Guid? UserId { get; set; }
-    
+
     public Guid? TenantId { get; set; }
-    
+
     public string? SessionId { get; set; }
-    
+
     public string? TraceId { get; set; }
-    
+
     public bool? HasException { get; set; }
-    
+
     public int PageNumber { get; set; } = 1;
-    
+
     public int PageSize { get; set; } = 50;
-    
+
     public string? SortBy { get; set; } = "Timestamp";
-    
+
     public string? SortOrder { get; set; } = "desc";
 }
 
@@ -69,35 +69,35 @@ public class AuditTrailSearchDto
 {
     [MaxLength(100)]
     public string? SearchTerm { get; set; }
-    
+
     public List<string>? OperationTypes { get; set; }
-    
+
     public Guid? UserId { get; set; }
-    
+
     public Guid? SourceTenantId { get; set; }
-    
+
     public Guid? TargetTenantId { get; set; }
-    
+
     public Guid? TargetUserId { get; set; }
-    
+
     public bool? WasSuccessful { get; set; }
-    
+
     public DateTime? FromDate { get; set; }
-    
+
     public DateTime? ToDate { get; set; }
-    
+
     public string? SessionId { get; set; }
-    
+
     public string? IpAddress { get; set; }
-    
+
     public bool? CriticalOperation { get; set; }
-    
+
     public int PageNumber { get; set; } = 1;
-    
+
     public int PageSize { get; set; } = 50;
-    
+
     public string? SortBy { get; set; } = "PerformedAt";
-    
+
     public string? SortOrder { get; set; } = "desc";
 }
 
@@ -139,20 +139,20 @@ public class ExportRequestDto
 {
     [Required]
     public string Type { get; set; } = string.Empty; // "audit", "systemlogs", "users", "tenants"
-    
+
     [Required]
     public string Format { get; set; } = "JSON"; // "JSON", "CSV", "EXCEL"
-    
+
     public DateTime? FromDate { get; set; }
-    
+
     public DateTime? ToDate { get; set; }
-    
+
     public Dictionary<string, object>? Filters { get; set; }
-    
+
     public List<string>? Columns { get; set; }
-    
+
     public int? MaxRecords { get; set; } = 10000;
-    
+
     [MaxLength(200)]
     public string? FileName { get; set; }
 }

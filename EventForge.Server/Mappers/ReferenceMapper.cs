@@ -1,4 +1,3 @@
-using EventForge.Server.Data.Entities.Common;
 using EventForge.Server.DTOs.Common;
 
 namespace EventForge.Server.Mappers;

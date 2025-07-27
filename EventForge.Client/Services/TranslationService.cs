@@ -1,5 +1,5 @@
-using System.Text.Json;
 using Microsoft.JSInterop;
+using System.Text.Json;
 
 namespace EventForge.Client.Services;
 
@@ -67,7 +67,7 @@ public class TranslationService : ITranslationService
     private readonly HttpClient _httpClient;
     private readonly IJSRuntime _jsRuntime;
     private readonly ILogger<TranslationService> _logger;
-    
+
     private Dictionary<string, object> _translations = new();
     private string _currentLanguage = "it"; // Default to Italian
     private const string DEFAULT_LANGUAGE = "it";
@@ -136,13 +136,13 @@ public class TranslationService : ITranslationService
         {
             // Load new translations
             await LoadTranslationsAsync(language);
-            
+
             // Save preference
             await SaveLanguagePreferenceAsync(language);
 
             // Notify language change
             LanguageChanged?.Invoke(this, language);
-            
+
             _logger.LogInformation("Language changed from {PreviousLanguage} to {NewLanguage}", previousLanguage, language);
         }
         catch (Exception ex)
@@ -187,7 +187,7 @@ public class TranslationService : ITranslationService
     public string GetTranslation(string key, params object[] parameters)
     {
         var translation = GetTranslation(key);
-        
+
         try
         {
             return string.Format(translation, parameters);
@@ -215,7 +215,7 @@ public class TranslationService : ITranslationService
             {
                 var json = await response.Content.ReadAsStringAsync();
                 var apiTranslations = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
-                
+
                 if (apiTranslations != null)
                 {
                     _translations = apiTranslations;
@@ -248,7 +248,7 @@ public class TranslationService : ITranslationService
             {
                 var json = await response.Content.ReadAsStringAsync();
                 var translations = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
-                
+
                 if (translations != null)
                 {
                     _translations = translations;
@@ -262,7 +262,7 @@ public class TranslationService : ITranslationService
             else
             {
                 _logger.LogWarning("Failed to load translations for language {Language}: {StatusCode}", language, response.StatusCode);
-                
+
                 // Fallback to default language if not already trying it
                 if (language != DEFAULT_LANGUAGE)
                 {
@@ -273,7 +273,7 @@ public class TranslationService : ITranslationService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading translations for language {Language}", language);
-            
+
             // Fallback to default language if not already trying it
             if (language != DEFAULT_LANGUAGE)
             {

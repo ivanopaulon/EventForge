@@ -1,6 +1,5 @@
 using EventForge.Server.DTOs.Teams;
 using EventForge.Server.Extensions;
-using EventForge.Server.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Teams;

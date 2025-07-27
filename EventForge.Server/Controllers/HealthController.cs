@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using System.Reflection;
-using EventForge.DTOs.Health;
 
 namespace EventForge.Server.Controllers;
 
