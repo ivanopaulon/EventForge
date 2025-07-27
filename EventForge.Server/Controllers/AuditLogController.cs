@@ -26,9 +26,9 @@ public class AuditLogController : BaseApiController
     /// <response code="200">Returns the paginated audit logs</response>
     /// <response code="400">If the query parameters are invalid</response>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<EntityChangeLog>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<EntityChangeLogDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<PagedResult<EntityChangeLog>>> GetAuditLogs(
+    public async Task<ActionResult<PagedResult<EntityChangeLogDto>>> GetAuditLogs(
         [FromQuery] AuditLogQueryParameters queryParameters,
         CancellationToken cancellationToken = default)
     {
@@ -40,7 +40,14 @@ public class AuditLogController : BaseApiController
         try
         {
             var result = await _auditLogService.GetPagedLogsAsync(queryParameters, cancellationToken);
-            return Ok(result);
+            var dtoResult = new PagedResult<EntityChangeLogDto>
+            {
+                Items = result.Items.ToDto(),
+                TotalCount = result.TotalCount,
+                PageSize = result.PageSize,
+                Page = result.Page
+            };
+            return Ok(dtoResult);
         }
         catch (Exception ex)
         {
@@ -59,9 +66,9 @@ public class AuditLogController : BaseApiController
     /// <response code="200">Returns the audit log entry</response>
     /// <response code="404">If the audit log is not found</response>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(typeof(EntityChangeLog), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(EntityChangeLogDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<EntityChangeLog>> GetAuditLog(
+    public async Task<ActionResult<EntityChangeLogDto>> GetAuditLog(
         Guid id,
         CancellationToken cancellationToken = default)
     {
@@ -74,7 +81,7 @@ public class AuditLogController : BaseApiController
                 return NotFound(new { message = $"Audit log with ID {id} not found." });
             }
 
-            return Ok(auditLog);
+            return Ok(auditLog.ToDto());
         }
         catch (Exception ex)
         {
@@ -92,15 +99,15 @@ public class AuditLogController : BaseApiController
     /// <returns>Collection of audit logs for the entity</returns>
     /// <response code="200">Returns the audit logs for the entity</response>
     [HttpGet("entity/{entityId:guid}")]
-    [ProducesResponseType(typeof(IEnumerable<EntityChangeLog>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<EntityChangeLog>>> GetEntityAuditLogs(
+    [ProducesResponseType(typeof(IEnumerable<EntityChangeLogDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<EntityChangeLogDto>>> GetEntityAuditLogs(
         Guid entityId,
         CancellationToken cancellationToken = default)
     {
         try
         {
             var auditLogs = await _auditLogService.GetEntityLogsAsync(entityId, cancellationToken);
-            return Ok(auditLogs);
+            return Ok(auditLogs.ToDto());
         }
         catch (Exception ex)
         {
@@ -119,9 +126,9 @@ public class AuditLogController : BaseApiController
     /// <response code="200">Returns the audit logs for the entity type</response>
     /// <response code="400">If the entity name is invalid</response>
     [HttpGet("entity-type/{entityName}")]
-    [ProducesResponseType(typeof(IEnumerable<EntityChangeLog>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(IEnumerable<EntityChangeLogDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<IEnumerable<EntityChangeLog>>> GetEntityTypeAuditLogs(
+    public async Task<ActionResult<IEnumerable<EntityChangeLogDto>>> GetEntityTypeAuditLogs(
         string entityName,
         CancellationToken cancellationToken = default)
     {
@@ -133,7 +140,7 @@ public class AuditLogController : BaseApiController
         try
         {
             var auditLogs = await _auditLogService.GetEntityTypeLogsAsync(entityName, cancellationToken);
-            return Ok(auditLogs);
+            return Ok(auditLogs.ToDto());
         }
         catch (Exception ex)
         {
@@ -152,9 +159,9 @@ public class AuditLogController : BaseApiController
     /// <response code="200">Returns the audit logs for the user</response>
     /// <response code="400">If the username is invalid</response>
     [HttpGet("user/{username}")]
-    [ProducesResponseType(typeof(IEnumerable<EntityChangeLog>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(IEnumerable<EntityChangeLogDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<IEnumerable<EntityChangeLog>>> GetUserAuditLogs(
+    public async Task<ActionResult<IEnumerable<EntityChangeLogDto>>> GetUserAuditLogs(
         string username,
         CancellationToken cancellationToken = default)
     {
@@ -166,7 +173,7 @@ public class AuditLogController : BaseApiController
         try
         {
             var auditLogs = await _auditLogService.GetUserLogsAsync(username, cancellationToken);
-            return Ok(auditLogs);
+            return Ok(auditLogs.ToDto());
         }
         catch (Exception ex)
         {
@@ -224,7 +231,7 @@ public class AuditLogController : BaseApiController
 
             // Get the filtered audit logs
             var result = await _auditLogService.GetPagedLogsAsync(queryParameters, cancellationToken);
-            var auditLogs = result.Items;
+            var auditLogs = result.Items.ToDto();
 
             // Generate file content based on format
             byte[] fileContent;
@@ -267,7 +274,7 @@ public class AuditLogController : BaseApiController
         }
     }
 
-    private string GenerateCsvContent(IEnumerable<EntityChangeLog> auditLogs)
+    private string GenerateCsvContent(IEnumerable<EntityChangeLogDto> auditLogs)
     {
         var csv = new System.Text.StringBuilder();
 
@@ -292,7 +299,7 @@ public class AuditLogController : BaseApiController
         return csv.ToString();
     }
 
-    private string GenerateTxtContent(IEnumerable<EntityChangeLog> auditLogs)
+    private string GenerateTxtContent(IEnumerable<EntityChangeLogDto> auditLogs)
     {
         var txt = new System.Text.StringBuilder();
 

@@ -119,23 +119,3 @@ public class BackupStatusDto
     public string? ErrorMessage { get; set; }
     public string StartedBy { get; set; } = string.Empty;
 }
-
-/// <summary>
-/// DTO for audit log export request.
-/// </summary>
-public class AuditLogExportDto
-{
-    public string Format { get; set; } = "JSON"; // JSON, CSV, TXT
-
-    public DateTime? FromDate { get; set; }
-
-    public DateTime? ToDate { get; set; }
-
-    public List<string>? OperationTypes { get; set; }
-
-    public Guid? UserId { get; set; }
-
-    public Guid? TenantId { get; set; }
-
-    public bool? WasSuccessful { get; set; }
-}

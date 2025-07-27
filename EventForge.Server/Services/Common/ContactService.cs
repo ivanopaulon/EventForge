@@ -110,7 +110,7 @@ public class ContactService : IContactService
                 Id = Guid.NewGuid(),
                 OwnerId = createContactDto.OwnerId,
                 OwnerType = createContactDto.OwnerType,
-                ContactType = createContactDto.ContactType,
+                ContactType = createContactDto.ContactType.ToEntity(),
                 Value = createContactDto.Value,
                 Notes = createContactDto.Notes,
                 CreatedAt = DateTime.UtcNow,
@@ -154,7 +154,7 @@ public class ContactService : IContactService
 
             if (contact == null) return null;
 
-            contact.ContactType = updateContactDto.ContactType;
+            contact.ContactType = updateContactDto.ContactType.ToEntity();
             contact.Value = updateContactDto.Value;
             contact.Notes = updateContactDto.Notes;
             contact.ModifiedAt = DateTime.UtcNow;
@@ -236,7 +236,7 @@ public class ContactService : IContactService
             Id = contact.Id,
             OwnerId = contact.OwnerId,
             OwnerType = contact.OwnerType,
-            ContactType = contact.ContactType,
+            ContactType = contact.ContactType.ToDto(),
             Value = contact.Value,
             Notes = contact.Notes,
             CreatedAt = contact.CreatedAt,
