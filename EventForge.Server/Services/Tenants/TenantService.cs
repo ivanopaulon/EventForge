@@ -134,7 +134,7 @@ public class TenantService : ITenantService
                 _logger.LogError(ex, "Errore durante la scrittura dell'audit trail per la creazione tenant.");
             }
 
-            var response = TenantMapper.ToResponseDto(tenant);
+            var response = TenantMapper.ToServerResponseDto(tenant);
             response.AdminUser = new TenantAdminResponseDto
             {
                 UserId = adminUser.Id,
@@ -171,7 +171,7 @@ public class TenantService : ITenantService
             var tenant = await _context.Tenants
                 .FirstOrDefaultAsync(t => t.Id == tenantId);
 
-            return tenant != null ? TenantMapper.ToResponseDto(tenant) : null;
+            return tenant != null ? TenantMapper.ToServerResponseDto(tenant) : null;
         }
         catch (Exception ex)
         {
@@ -194,7 +194,7 @@ public class TenantService : ITenantService
                 .OrderBy(t => t.Name)
                 .ToListAsync();
 
-            return TenantMapper.ToResponseDtoCollection(tenants);
+            return TenantMapper.ToServerResponseDtoCollection(tenants);
         }
         catch (Exception ex)
         {
@@ -274,7 +274,7 @@ public class TenantService : ITenantService
                 _logger.LogError(ex, "Errore durante la scrittura dell'audit trail per l'aggiornamento tenant.");
             }
 
-            return TenantMapper.ToResponseDto(tenant);
+            return TenantMapper.ToServerResponseDto(tenant);
         }
         catch (Exception ex)
         {

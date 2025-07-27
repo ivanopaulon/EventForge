@@ -1,3 +1,5 @@
+using EventForge.Server.DTOs.SuperAdmin;
+
 namespace EventForge.Server.Services.Configuration;
 
 /// <summary>
