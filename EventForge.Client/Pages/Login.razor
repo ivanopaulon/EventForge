@@ -9,69 +9,120 @@
 
 <PageTitle>@TranslationService.GetTranslation("auth.login", "Login") - EventForge</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
-    <MudPaper Class="pa-8" Elevation="4">
-        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-8">
-            <MudIcon Icon="Icons.Material.Filled.Login" Class="mr-2" />
-            @TranslationService.GetTranslation("auth.login", "EventForge Login")
-        </MudText>
+<!-- Improved responsive login page with accessibility -->
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4 mt-sm-6 mt-md-8">
+    <MudGrid Justify="Justify.Center">
+        <MudItem xs="12" sm="10" md="8">
+            <MudPaper Class="pa-4 pa-sm-6 pa-md-8" Elevation="4" role="main">
+                <!-- Login header with semantic structure -->
+                <header class="text-center mb-6 mb-md-8">
+                    <MudText Typo="Typo.h3" 
+                             Component="h1"
+                             Align="Align.Center" 
+                             Class="mb-4"
+                             aria-label="Pagina di accesso EventForge">
+                        <MudIcon Icon="Icons.Material.Filled.Login" 
+                                 Class="mr-2" 
+                                 Size="Size.Large"
+                                 aria-hidden="true" />
+                        @TranslationService.GetTranslation("auth.login", "EventForge Login")
+                    </MudText>
+                </header>
 
-        @if (_isLoading)
-        {
-            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-4" />
-        }
-
-        <MudForm @ref="form" @bind-IsValid="@_isFormValid">
-            <MudTextField @bind-Value="_loginRequest.Username"
-                          For="@(() => _loginRequest.Username)"
-                          Label="@TranslationService.GetTranslation("auth.username", "Username")"
-                          Variant="Variant.Outlined"
-                          Required="true"
-                          RequiredError="@TranslationService.GetTranslation("auth.usernameRequired", "Username is required")"
-                          Class="mb-4"
-                          Disabled="_isLoading" />
-
-            <MudTextField @bind-Value="_loginRequest.Password"
-                          For="@(() => _loginRequest.Password)"
-                          Label="@TranslationService.GetTranslation("auth.password", "Password")"
-                          Variant="Variant.Outlined"
-                          InputType="InputType.Password"
-                          Required="true"
-                          RequiredError="@TranslationService.GetTranslation("auth.passwordRequired", "Password is required")"
-                          Class="mb-4"
-                          Disabled="_isLoading" />
-
-            <MudCheckBox T="bool" @bind-Value="_loginRequest.RememberMe"
-                         Label="@TranslationService.GetTranslation("auth.rememberMe", "Remember me")"
-                         Class="mb-4"
-                         Disabled="_isLoading" />
-
-            <MudButton ButtonType="ButtonType.Button"
-                       Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       Size="Size.Large"
-                       FullWidth="true"
-                       OnClick="HandleLogin"
-                       Disabled="@(!_isFormValid || _isLoading)"
-                       Class="mb-4">
                 @if (_isLoading)
                 {
-                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                    <MudText Class="ms-2">@TranslationService.GetTranslation("auth.loginInProgress", "Logging in...")</MudText>
+                    <MudProgressLinear Color="Color.Primary" 
+                                       Indeterminate="true" 
+                                       Class="mb-4"
+                                       aria-label="Accesso in corso" />
                 }
-                else
-                {
-                    <MudIcon Icon="Icons.Material.Filled.Login" Class="mr-2" />
-                    <MudText>@TranslationService.GetTranslation("auth.login", "Login")</MudText>
-                }
-            </MudButton>
-        </MudForm>
 
-        <MudDivider Class="my-6" />
+                <!-- Login form with improved accessibility -->
+                <MudForm @ref="form" 
+                         @bind-IsValid="@_isFormValid"
+                         role="form"
+                         aria-label="Modulo di accesso">
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_loginRequest.Username"
+                                          For="@(() => _loginRequest.Username)"
+                                          Label="@TranslationService.GetTranslation("auth.username", "Username")"
+                                          Variant="Variant.Outlined"
+                                          Required="true"
+                                          RequiredError="@TranslationService.GetTranslation("auth.usernameRequired", "Username is required")"
+                                          Disabled="_isLoading"
+                                          autocomplete="username"
+                                          InputType="InputType.Text"
+                                          aria-describedby="username-help" />
+                            <MudText id="username-help" 
+                                     Typo="Typo.caption" 
+                                     Class="mud-input-helper-text">
+                                Inserisci il tuo nome utente
+                            </MudText>
+                        </MudItem>
 
-        <!-- Health Status Section -->
-        <MudExpansionPanels Elevation="0">
-            <MudExpansionPanel Text="@TranslationService.GetTranslation("health.serverStatus", "Server Health Status")" Icon="@Icons.Material.Filled.HealthAndSafety">
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_loginRequest.Password"
+                                          For="@(() => _loginRequest.Password)"
+                                          Label="@TranslationService.GetTranslation("auth.password", "Password")"
+                                          Variant="Variant.Outlined"
+                                          InputType="InputType.Password"
+                                          Required="true"
+                                          RequiredError="@TranslationService.GetTranslation("auth.passwordRequired", "Password is required")"
+                                          Disabled="_isLoading"
+                                          autocomplete="current-password"
+                                          aria-describedby="password-help" />
+                            <MudText id="password-help" 
+                                     Typo="Typo.caption" 
+                                     Class="mud-input-helper-text">
+                                Inserisci la tua password
+                            </MudText>
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudCheckBox T="bool" 
+                                         @bind-Value="_loginRequest.RememberMe"
+                                         Label="@TranslationService.GetTranslation("auth.rememberMe", "Remember me")"
+                                         Disabled="_isLoading"
+                                         aria-describedby="remember-help" />
+                            <MudText id="remember-help" 
+                                     Typo="Typo.caption" 
+                                     Class="mud-input-helper-text">
+                                Mantieni l'accesso per 30 giorni
+                            </MudText>
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudButton ButtonType="ButtonType.Button"
+                                       Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       Size="Size.Large"
+                                       FullWidth="true"
+                                       OnClick="HandleLogin"
+                                       Disabled="@(!_isFormValid || _isLoading)"
+                                       aria-label="Accedi al sistema">
+                                @if (_isLoading)
+                                {
+                                    <MudProgressCircular Class="ms-n1" 
+                                                         Size="Size.Small" 
+                                                         Indeterminate="true"
+                                                         aria-hidden="true" />
+                                    <MudText Class="ms-2">@TranslationService.GetTranslation("auth.loginInProgress", "Logging in...")</MudText>
+                                }
+                                else
+                                {
+                                    @TranslationService.GetTranslation("auth.login", "Login")
+                                }
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudForm>
+                
+                <MudDivider Class="my-6" />
+
+                <!-- Health Status Section -->
+                <MudExpansionPanels Elevation="0">
+                    <MudExpansionPanel Text="@TranslationService.GetTranslation("health.serverStatus", "Server Health Status")" Icon="@Icons.Material.Filled.HealthAndSafety">
                 @if (_healthStatus != null)
                 {
                     <MudGrid>
@@ -204,9 +255,11 @@
                     <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
                     <MudText Align="Align.Center" Class="mt-2">@TranslationService.GetTranslation("health.loadingStatus", "Loading health status...")</MudText>
                 }
-            </MudExpansionPanel>
-        </MudExpansionPanels>
-    </MudPaper>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
 </MudContainer>
 
 @code {

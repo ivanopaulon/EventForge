@@ -88,9 +88,9 @@ public class BackupService : IBackupService
         }
     }
 
-    public async Task<string> GetDownloadUrlAsync(Guid backupId)
+    public Task<string> GetDownloadUrlAsync(Guid backupId)
     {
-        return $"{_httpClient.BaseAddress}api/SuperAdmin/backup/{backupId}/download";
+        return Task.FromResult($"{_httpClient.BaseAddress}api/SuperAdmin/backup/{backupId}/download");
     }
 
     public async Task DeleteBackupAsync(Guid backupId)

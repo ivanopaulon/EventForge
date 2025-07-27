@@ -145,7 +145,7 @@
             _updateDto.Roles = _selectedRoles.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
             
             var updatedUser = await SuperAdminService.UpdateUserAsync(User.Id, _updateDto);
-            MudDialog.Close(MudBlazor.DialogResult.Ok(updatedUser));
+            MudDialog!.Close(MudBlazor.DialogResult.Ok(updatedUser));
         }
         catch (Exception ex)
         {

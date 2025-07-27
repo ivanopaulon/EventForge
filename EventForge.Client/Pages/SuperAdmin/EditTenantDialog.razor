@@ -117,7 +117,7 @@
         {
             _isUpdating = true;
             var updatedTenant = await SuperAdminService.UpdateTenantAsync(Tenant.Id, _updateDto);
-            MudDialog.Close(MudBlazor.DialogResult.Ok(updatedTenant));
+            MudDialog!.Close(MudBlazor.DialogResult.Ok(updatedTenant));
         }
         catch (Exception ex)
         {
