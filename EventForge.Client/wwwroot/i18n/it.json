@@ -50,6 +50,7 @@
     "tenants": "Tenant",
     "reports": "Report",
     "settings": "Impostazioni",
+    "profile": "Profilo",
     "logout": "Esci",
     "superAdmin": "Super Amministrazione",
     "tenantManagement": "Gestione Tenant",
@@ -58,10 +59,17 @@
     "systemLogs": "Log Sistema",
     "auditTrail": "Audit Trail",
     "configuration": "Configurazione",
-    "translationManagement": "Gestione Traduzioni"
+    "translationManagement": "Gestione Traduzioni",
+    "settingsDescription": "Vai alle impostazioni"
   },
   "home": {
     "title": "EventForge - Home",
+    "subtitle": "Sistema di gestione eventi e monitoraggio",
+    "systemStatus": "Stato del Sistema",
+    "servicesOperational": "Servizi",
+    "database": "Database",
+    "operational": "Operativo",
+    "connected": "Connesso",
     "healthCheck": "Controllo Integrità Sistema",
     "healthStatus": "Stato Integrità",
     "errorLoadingHealth": "Errore nel caricamento dello stato di integrità",
@@ -79,11 +87,14 @@
     "loginInProgress": "Accesso in corso...",
     "logout": "Disconnetti",
     "logoutSuccess": "Disconnessione avvenuta con successo",
+    "logoutError": "Errore di disconnessione: {0}",
     "authenticationRequired": "Autenticazione Richiesta",
     "pleaseLogin": "Effettuare l'accesso per accedere a questa pagina.",
     "goToLogin": "Vai al Login",
     "usernameRequired": "Il nome utente è obbligatorio",
-    "passwordRequired": "La password è obbligatoria"
+    "passwordRequired": "La password è obbligatoria",
+    "loginDescription": "Accedi al sistema",
+    "logoutDescription": "Disconnetti dal sistema"
   },
   "field": {
     "id": "ID",
@@ -187,7 +198,17 @@
     "dashboardDescription": "Questa è la dashboard amministrativa. Qui puoi gestire le impostazioni di sistema, utenti e altre attività amministrative.",
     "underDevelopment": "Le funzionalità di amministrazione sono in sviluppo. Presto saranno disponibili altre funzionalità.",
     "loadError": "Errore nel caricamento della pagina admin: {0}",
-    "accessDeniedWarning": "Accesso negato. È richiesto il ruolo di amministratore."
+    "accessDeniedWarning": "Accesso negato. È richiesto il ruolo di amministratore.",
+    "statistics": "Statistiche di Sistema",
+    "totalUsers": "Utenti Totali",
+    "activeTenants": "Tenant Attivi",
+    "totalEvents": "Eventi Totali",
+    "activeReports": "Report Attivi",
+    "quickActions": "Azioni Rapide",
+    "manageUsers": "Gestisci Utenti",
+    "manageTenants": "Gestisci Tenant",
+    "viewReports": "Visualizza Report",
+    "systemSettings": "Impostazioni Sistema"
   },
   "error": {
     "accessDenied": "Accesso Negato",
@@ -213,5 +234,17 @@
   "accessibility": {
     "languageSelectorDescription": "Seleziona la tua lingua preferita",
     "selectLanguage": "Seleziona lingua"
+  },
+  "profile": {
+    "title": "Il Mio Profilo",
+    "basicInfo": "Informazioni di Base",
+    "accountStatus": "Stato Account",
+    "viewProfile": "Visualizza profilo"
+  },
+  "theme": {
+    "darkMode": "Modalità Scura",
+    "lightMode": "Modalità Chiara",
+    "switchToDark": "Passa al tema scuro",
+    "switchToLight": "Passa al tema chiaro"
   }
 }

@@ -50,6 +50,7 @@
     "tenants": "Tenants",
     "reports": "Reports",
     "settings": "Settings",
+    "profile": "Profile",
     "logout": "Logout",
     "superAdmin": "Super Administration",
     "tenantManagement": "Tenant Management",
@@ -58,10 +59,17 @@
     "systemLogs": "System Logs",
     "auditTrail": "Audit Trail",
     "configuration": "Configuration",
-    "translationManagement": "Translation Management"
+    "translationManagement": "Translation Management",
+    "settingsDescription": "Go to settings"
   },
   "home": {
     "title": "EventForge - Home",
+    "subtitle": "Event Management and Monitoring System",
+    "systemStatus": "System Status",
+    "servicesOperational": "Services",
+    "database": "Database",
+    "operational": "Operational",
+    "connected": "Connected",
     "healthCheck": "System Health Check",
     "healthStatus": "Health Status",
     "errorLoadingHealth": "Error loading health status",
@@ -79,11 +87,14 @@
     "loginInProgress": "Logging in...",
     "logout": "Logout",
     "logoutSuccess": "Successfully logged out",
+    "logoutError": "Logout error: {0}",
     "authenticationRequired": "Authentication Required",
     "pleaseLogin": "Please log in to access this page.",
     "goToLogin": "Go to Login",
     "usernameRequired": "Username is required",
-    "passwordRequired": "Password is required"
+    "passwordRequired": "Password is required",
+    "loginDescription": "Login to system",
+    "logoutDescription": "Logout from system"
   },
   "field": {
     "id": "ID",
@@ -187,7 +198,17 @@
     "dashboardDescription": "This is the admin dashboard. Here you can manage system settings, users, and other administrative tasks.",
     "underDevelopment": "Admin functionality is under development. More features will be available soon.",
     "loadError": "Error loading admin page: {0}",
-    "accessDeniedWarning": "Access denied. Administrator role required."
+    "accessDeniedWarning": "Access denied. Administrator role required.",
+    "statistics": "System Statistics",
+    "totalUsers": "Total Users",
+    "activeTenants": "Active Tenants",
+    "totalEvents": "Total Events",
+    "activeReports": "Active Reports",
+    "quickActions": "Quick Actions",
+    "manageUsers": "Manage Users",
+    "manageTenants": "Manage Tenants",
+    "viewReports": "View Reports",
+    "systemSettings": "System Settings"
   },
   "error": {
     "accessDenied": "Access Denied",
@@ -213,5 +234,17 @@
   "accessibility": {
     "languageSelectorDescription": "Select your preferred language",
     "selectLanguage": "Select language"
+  },
+  "profile": {
+    "title": "My Profile",
+    "basicInfo": "Basic Information",
+    "accountStatus": "Account Status",
+    "viewProfile": "View profile"
+  },
+  "theme": {
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode",
+    "switchToDark": "Switch to dark theme",
+    "switchToLight": "Switch to light theme"
   }
 }

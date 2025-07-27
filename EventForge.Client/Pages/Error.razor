@@ -1,8 +1,9 @@
 @page "/error"
 @using Microsoft.AspNetCore.Authorization
 @attribute [AllowAnonymous]
+@inject ITranslationService TranslationService
 
-<PageTitle>Error - EventForge</PageTitle>
+<PageTitle>@TranslationService.GetTranslation("error.title", "Error") - EventForge</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
     <MudPaper Class="pa-8" Elevation="4">
@@ -10,9 +11,11 @@
             <MudItem xs="12">
                 <div class="d-flex flex-column align-center">
                     <MudIcon Icon="Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
-                    <MudText Typo="Typo.h3" Align="Align.Center" Class="mb-4">Oops! Something went wrong</MudText>
+                    <MudText Typo="Typo.h3" Align="Align.Center" Class="mb-4">
+                        @TranslationService.GetTranslation("error.unexpectedError", "An unexpected error occurred")
+                    </MudText>
                     <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
-                        We apologize for the inconvenience. An unexpected error has occurred.
+                        @TranslationService.GetTranslation("error.operationMayNotCompleted", "An error occurred. The operation may not have been completed correctly.")
                     </MudText>
                 </div>
             </MudItem>
@@ -27,13 +30,13 @@
                                Color="Color.Primary" 
                                StartIcon="Icons.Material.Filled.Home"
                                Href="/login">
-                        Return to Login
+                        @TranslationService.GetTranslation("common.returnToLogin", "Return to Login")
                     </MudButton>
                     <MudButton Variant="Variant.Outlined" 
                                Color="Color.Secondary" 
                                StartIcon="Icons.Material.Filled.Refresh"
                                OnClick="@(() => NavigationManager.Refresh())">
-                        Reload Page
+                        @TranslationService.GetTranslation("common.refresh", "Reload Page")
                     </MudButton>
                 </div>
             </MudItem>

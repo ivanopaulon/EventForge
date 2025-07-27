@@ -44,139 +44,103 @@ else
             @TranslationService.GetTranslation("navigation.dashboard", "Admin Dashboard")
         </MudText>
 
-        <MudGrid>
-            <!-- Welcome Card -->
+        <MudGrid Spacing="4">
+            <!-- Statistics Card -->
             <MudItem xs="12">
-                <MudCard Elevation="2">
+                <MudCard Elevation="2" Class="pa-4">
                     <MudCardContent>
-                        <div class="d-flex align-center">
-                            <MudAvatar Color="Color.Primary" Size="Size.Large" Class="mr-4">
-                                <MudIcon Icon="Icons.Material.Filled.Person" />
-                            </MudAvatar>
-                            <div>
-                                <MudText Typo="Typo.h5">@TranslationService.GetTranslation("admin.welcomeBack", "Welcome back, {0}!", _currentUser?.FullName ?? "Administrator")</MudText>
-                                <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                                    @TranslationService.GetTranslation("admin.loggedInAs", "You are logged in as: {0}", _currentUser?.Username ?? "Unknown")
-                                </MudText>
-                                @if (_currentUser?.Roles?.Any() == true)
-                                {
-                                    <div class="mt-2">
-                                        @foreach (var role in _currentUser.Roles)
-                                        {
-                                            <MudChip T="string" Color="Color.Success" Size="Size.Small" Class="mr-1">@role</MudChip>
-                                        }
-                                    </div>
-                                }
-                                else
-                                {
-                                    <MudChip T="string" Color="Color.Success" Size="Size.Small" Class="mt-2">@TranslationService.GetTranslation("admin.adminUser", "Admin User")</MudChip>
-                                }
-                            </div>
-                        </div>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <!-- User Information Card -->
-            <MudItem xs="12" md="6">
-                <MudCard Elevation="2">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">
-                                <MudIcon Icon="Icons.Material.Filled.AccountCircle" Class="mr-2" />
-                                @TranslationService.GetTranslation("admin.userInformation", "User Information")
-                            </MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        @if (_currentUser != null)
-                        {
-                            <div class="d-flex flex-column ga-3">
-                                <div>
-                                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">@TranslationService.GetTranslation("field.username", "Username")</MudText>
-                                    <MudText>@_currentUser.Username</MudText>
-                                </div>
-                                <div>
-                                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">@TranslationService.GetTranslation("field.email", "Email")</MudText>
-                                    <MudText>@_currentUser.Email</MudText>
-                                </div>
-                                <div>
-                                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">@TranslationService.GetTranslation("field.fullName", "Full Name")</MudText>
-                                    <MudText>@_currentUser.FullName</MudText>
-                                </div>
-                                <div>
-                                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">@TranslationService.GetTranslation("field.lastLogin", "Last Login")</MudText>
-                                    <MudText>@(_currentUser.LastLoginAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? TranslationService.GetTranslation("common.notAvailable", "N/A"))</MudText>
-                                </div>
-                            </div>
-                        }
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <!-- Roles and Permissions Card -->
-            <MudItem xs="12" md="6">
-                <MudCard Elevation="2">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">
-                                <MudIcon Icon="Icons.Material.Filled.Security" Class="mr-2" />
-                                @TranslationService.GetTranslation("admin.rolesPermissions", "Roles & Permissions")
-                            </MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        @if (_currentUser != null)
-                        {
-                            <div class="mb-4">
-                                <MudText Typo="Typo.subtitle2" Class="mud-text-secondary mb-2">@TranslationService.GetTranslation("field.roles", "Roles")</MudText>
-                                <div class="d-flex flex-wrap ga-1">
-                                    @foreach (var role in _currentUser.Roles)
-                                    {
-                                        <MudChip T="string" Color="Color.Primary" Size="Size.Small">@role</MudChip>
-                                    }
-                                </div>
-                            </div>
-                            
-                            @if (_currentUser.Permissions.Any())
-                            {
-                                <div>
-                                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary mb-2">@TranslationService.GetTranslation("admin.permissions", "Permissions")</MudText>
-                                    <div class="d-flex flex-wrap ga-1">
-                                        @foreach (var permission in _currentUser.Permissions.Take(10))
-                                        {
-                                            <MudChip T="string" Color="Color.Secondary" Size="Size.Small">@permission</MudChip>
-                                        }
-                                        @if (_currentUser.Permissions.Count > 10)
-                                        {
-                                            <MudChip T="string" Color="Color.Default" Size="Size.Small">@TranslationService.GetTranslation("admin.morePermissions", "+{0} more", _currentUser.Permissions.Count - 10)</MudChip>
-                                        }
-                                    </div>
-                                </div>
-                            }
-                        }
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <!-- Admin Actions Card -->
-            <MudItem xs="12">
-                <MudCard Elevation="2">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">
-                                <MudIcon Icon="Icons.Material.Filled.Settings" Class="mr-2" />
-                                @TranslationService.GetTranslation("admin.adminActions", "Admin Actions")
-                            </MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        <MudText Typo="Typo.body1" Class="mb-4">
-                            @TranslationService.GetTranslation("admin.dashboardDescription", "This is the admin dashboard. Here you can manage system settings, users, and other administrative tasks.")
+                        <MudText Typo="Typo.h6" Class="mb-4">
+                            <MudIcon Icon="Icons.Material.Filled.Dashboard" Class="mr-2" />
+                            @TranslationService.GetTranslation("admin.statistics", "System Statistics")
                         </MudText>
-                        <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info">
-                            @TranslationService.GetTranslation("admin.underDevelopment", "Admin functionality is under development. More features will be available soon.")
-                        </MudAlert>
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudPaper Class="pa-4 text-center" Elevation="1">
+                                    <MudIcon Icon="Icons.Material.Filled.People" Color="Color.Primary" Size="Size.Large" Class="mb-2" />
+                                    <MudText Typo="Typo.h6">0</MudText>
+                                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                        @TranslationService.GetTranslation("admin.totalUsers", "Total Users")
+                                    </MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudPaper Class="pa-4 text-center" Elevation="1">
+                                    <MudIcon Icon="Icons.Material.Filled.Business" Color="Color.Secondary" Size="Size.Large" Class="mb-2" />
+                                    <MudText Typo="Typo.h6">0</MudText>
+                                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                        @TranslationService.GetTranslation("admin.activeTenants", "Active Tenants")
+                                    </MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudPaper Class="pa-4 text-center" Elevation="1">
+                                    <MudIcon Icon="Icons.Material.Filled.Event" Color="Color.Success" Size="Size.Large" Class="mb-2" />
+                                    <MudText Typo="Typo.h6">0</MudText>
+                                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                        @TranslationService.GetTranslation("admin.totalEvents", "Total Events")
+                                    </MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudPaper Class="pa-4 text-center" Elevation="1">
+                                    <MudIcon Icon="Icons.Material.Filled.Assessment" Color="Color.Info" Size="Size.Large" Class="mb-2" />
+                                    <MudText Typo="Typo.h6">0</MudText>
+                                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                        @TranslationService.GetTranslation("admin.activeReports", "Active Reports")
+                                    </MudText>
+                                </MudPaper>
+                            </MudItem>
+                        </MudGrid>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Quick Actions Card -->
+            <MudItem xs="12">
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" Class="mb-4">
+                            <MudIcon Icon="Icons.Material.Filled.Settings" Class="mr-2" />
+                            @TranslationService.GetTranslation("admin.quickActions", "Quick Actions")
+                        </MudText>
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Primary"
+                                           FullWidth="true"
+                                           StartIcon="Icons.Material.Filled.People"
+                                           Class="pa-4">
+                                    @TranslationService.GetTranslation("admin.manageUsers", "Manage Users")
+                                </MudButton>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Secondary"
+                                           FullWidth="true"
+                                           StartIcon="Icons.Material.Filled.Business"
+                                           Class="pa-4">
+                                    @TranslationService.GetTranslation("admin.manageTenants", "Manage Tenants")
+                                </MudButton>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Success"
+                                           FullWidth="true"
+                                           StartIcon="Icons.Material.Filled.Assessment"
+                                           Class="pa-4">
+                                    @TranslationService.GetTranslation("admin.viewReports", "View Reports")
+                                </MudButton>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Info"
+                                           FullWidth="true"
+                                           StartIcon="Icons.Material.Filled.Settings"
+                                           Class="pa-4">
+                                    @TranslationService.GetTranslation("admin.systemSettings", "System Settings")
+                                </MudButton>
+                            </MudItem>
+                        </MudGrid>
                     </MudCardContent>
                 </MudCard>
             </MudItem>
