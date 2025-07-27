@@ -11,18 +11,22 @@ namespace EventForge.Client.Services
 
     public class HealthService : IHealthService
     {
-        private readonly HttpClient _httpClient;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<HealthService> _logger;
 
-        public HealthService(HttpClient httpClient)
+        public HealthService(IHttpClientFactory httpClientFactory, ILogger<HealthService> logger)
         {
-            _httpClient = httpClient;
+            _httpClientFactory = httpClientFactory;
+            _logger = logger;
         }
 
         public async Task<HealthStatusDto?> GetHealthAsync()
         {
             try
             {
-                return await _httpClient.GetFromJsonAsync<HealthStatusDto>("api/v1/health");
+                var httpClient = _httpClientFactory.CreateClient("ApiClient");
+                _logger.LogDebug("HealthService: Using HttpClient with BaseAddress: {BaseAddress}", httpClient.BaseAddress);
+                return await httpClient.GetFromJsonAsync<HealthStatusDto>("api/v1/health");
             }
             catch
             {
@@ -34,7 +38,9 @@ namespace EventForge.Client.Services
         {
             try
             {
-                return await _httpClient.GetFromJsonAsync<DetailedHealthStatusDto>("api/v1/health/detailed");
+                var httpClient = _httpClientFactory.CreateClient("ApiClient");
+                _logger.LogDebug("HealthService: Using HttpClient with BaseAddress: {BaseAddress}", httpClient.BaseAddress);
+                return await httpClient.GetFromJsonAsync<DetailedHealthStatusDto>("api/v1/health/detailed");
             }
             catch
             {

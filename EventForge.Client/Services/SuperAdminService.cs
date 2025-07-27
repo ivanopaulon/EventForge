@@ -50,44 +50,47 @@ namespace EventForge.Client.Services
 
     public class SuperAdminService : ISuperAdminService
     {
-        private readonly HttpClient _httpClient;
+        private readonly IHttpClientFactory _httpClientFactory;
         private readonly IAuthService _authService;
         private readonly ILogger<SuperAdminService> _logger;
 
-        public SuperAdminService(HttpClient httpClient, IAuthService authService, ILogger<SuperAdminService> logger)
+        public SuperAdminService(IHttpClientFactory httpClientFactory, IAuthService authService, ILogger<SuperAdminService> logger)
         {
-            _httpClient = httpClient;
+            _httpClientFactory = httpClientFactory;
             _authService = authService;
             _logger = logger;
         }
 
-        private async Task EnsureAuthenticatedAsync()
+        private async Task<HttpClient> GetConfiguredHttpClientAsync()
         {
             var token = await _authService.GetAccessTokenAsync();
             if (string.IsNullOrEmpty(token))
                 throw new UnauthorizedAccessException("User not authenticated");
 
-            if (!_httpClient.DefaultRequestHeaders.Authorization?.Parameter?.Equals(token) == true)
-            {
-                _httpClient.DefaultRequestHeaders.Authorization =
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            }
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+            _logger.LogDebug("SuperAdminService: Using HttpClient with BaseAddress: {BaseAddress}", httpClient.BaseAddress);
+            
+            // Set authentication header for this request
+            httpClient.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                
+            return httpClient;
         }
 
         #region Tenant Management
 
         public async Task<IEnumerable<TenantResponseDto>> GetTenantsAsync()
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.GetAsync("api/Tenants");
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.GetAsync("api/Tenants");
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<IEnumerable<TenantResponseDto>>() ?? new List<TenantResponseDto>();
         }
 
         public async Task<TenantResponseDto?> GetTenantAsync(Guid id)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.GetAsync($"api/Tenants/{id}");
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.GetAsync($"api/Tenants/{id}");
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 return null;
             response.EnsureSuccessStatusCode();
@@ -96,8 +99,8 @@ namespace EventForge.Client.Services
 
         public async Task<TenantResponseDto> CreateTenantAsync(CreateTenantDto createDto)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.PostAsJsonAsync("api/Tenants", createDto);
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.PostAsJsonAsync("api/Tenants", createDto);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<TenantResponseDto>() ??
                    throw new InvalidOperationException("Failed to create tenant");
@@ -105,8 +108,8 @@ namespace EventForge.Client.Services
 
         public async Task<TenantResponseDto> UpdateTenantAsync(Guid id, UpdateTenantDto updateDto)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.PutAsJsonAsync($"api/Tenants/{id}", updateDto);
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.PutAsJsonAsync($"api/Tenants/{id}", updateDto);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<TenantResponseDto>() ??
                    throw new InvalidOperationException("Failed to update tenant");
@@ -114,15 +117,15 @@ namespace EventForge.Client.Services
 
         public async Task DeleteTenantAsync(Guid id)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.DeleteAsync($"api/Tenants/{id}");
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.DeleteAsync($"api/Tenants/{id}");
             response.EnsureSuccessStatusCode();
         }
 
         public async Task<TenantStatisticsDto> GetTenantStatisticsAsync()
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.GetAsync("api/Tenants/statistics");
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.GetAsync("api/Tenants/statistics");
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<TenantStatisticsDto>() ??
                    new TenantStatisticsDto();
@@ -134,20 +137,20 @@ namespace EventForge.Client.Services
 
         public async Task<IEnumerable<UserManagementDto>> GetUsersAsync(Guid? tenantId = null)
         {
-            await EnsureAuthenticatedAsync();
+            var httpClient = await GetConfiguredHttpClientAsync();
             var url = "api/UserManagement";
             if (tenantId.HasValue)
                 url += $"?tenantId={tenantId}";
 
-            var response = await _httpClient.GetAsync(url);
+            var response = await httpClient.GetAsync(url);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<IEnumerable<UserManagementDto>>() ?? new List<UserManagementDto>();
         }
 
         public async Task<UserManagementDto?> GetUserAsync(Guid id)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.GetAsync($"api/UserManagement/{id}");
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.GetAsync($"api/UserManagement/{id}");
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 return null;
             response.EnsureSuccessStatusCode();
@@ -156,8 +159,8 @@ namespace EventForge.Client.Services
 
         public async Task<UserManagementDto> CreateUserAsync(CreateUserManagementDto createDto)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.PostAsJsonAsync("api/UserManagement", createDto);
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.PostAsJsonAsync("api/UserManagement", createDto);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<UserManagementDto>() ??
                    throw new InvalidOperationException("Failed to create user");
@@ -165,8 +168,8 @@ namespace EventForge.Client.Services
 
         public async Task<UserManagementDto> UpdateUserAsync(Guid id, UpdateUserManagementDto updateDto)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.PutAsJsonAsync($"api/UserManagement/{id}", updateDto);
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.PutAsJsonAsync($"api/UserManagement/{id}", updateDto);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<UserManagementDto>() ??
                    throw new InvalidOperationException("Failed to update user");
@@ -174,19 +177,19 @@ namespace EventForge.Client.Services
 
         public async Task DeleteUserAsync(Guid id)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.DeleteAsync($"api/UserManagement/{id}");
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.DeleteAsync($"api/UserManagement/{id}");
             response.EnsureSuccessStatusCode();
         }
 
         public async Task<UserStatisticsDto> GetUserStatisticsAsync(Guid? tenantId = null)
         {
-            await EnsureAuthenticatedAsync();
+            var httpClient = await GetConfiguredHttpClientAsync();
             var url = "api/UserManagement/statistics";
             if (tenantId.HasValue)
                 url += $"?tenantId={tenantId}";
 
-            var response = await _httpClient.GetAsync(url);
+            var response = await httpClient.GetAsync(url);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<UserStatisticsDto>() ??
                    new UserStatisticsDto();
@@ -198,8 +201,8 @@ namespace EventForge.Client.Services
 
         public async Task<TenantSwitchResponseDto> SwitchTenantAsync(SwitchTenantDto switchDto)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.PostAsJsonAsync("api/TenantSwitch/switch", switchDto);
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.PostAsJsonAsync("api/TenantSwitch/switch", switchDto);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<TenantSwitchResponseDto>() ??
                    throw new InvalidOperationException("Failed to switch tenant");
@@ -207,8 +210,8 @@ namespace EventForge.Client.Services
 
         public async Task<ImpersonationResponseDto> ImpersonateUserAsync(ImpersonateUserDto impersonateDto)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.PostAsJsonAsync("api/TenantSwitch/impersonate", impersonateDto);
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.PostAsJsonAsync("api/TenantSwitch/impersonate", impersonateDto);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<ImpersonationResponseDto>() ??
                    throw new InvalidOperationException("Failed to impersonate user");
@@ -216,15 +219,15 @@ namespace EventForge.Client.Services
 
         public async Task EndImpersonationAsync(EndImpersonationDto endDto)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.PostAsJsonAsync("api/TenantSwitch/end-impersonation", endDto);
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.PostAsJsonAsync("api/TenantSwitch/end-impersonation", endDto);
             response.EnsureSuccessStatusCode();
         }
 
         public async Task<CurrentContextDto> GetCurrentContextAsync()
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.GetAsync("api/TenantContext/current");
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.GetAsync("api/TenantContext/current");
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<CurrentContextDto>() ??
                    new CurrentContextDto();
@@ -236,32 +239,32 @@ namespace EventForge.Client.Services
 
         public async Task<IEnumerable<ConfigurationDto>> GetConfigurationsAsync()
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.GetAsync("api/SuperAdmin/configuration");
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.GetAsync("api/SuperAdmin/configuration");
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<IEnumerable<ConfigurationDto>>() ?? new List<ConfigurationDto>();
         }
 
         public async Task<IEnumerable<ConfigurationDto>> GetConfigurationsByCategoryAsync(string category)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.GetAsync($"api/SuperAdmin/configuration/category/{category}");
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.GetAsync($"api/SuperAdmin/configuration/category/{category}");
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<IEnumerable<ConfigurationDto>>() ?? new List<ConfigurationDto>();
         }
 
         public async Task<IEnumerable<string>> GetConfigurationCategoriesAsync()
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.GetAsync("api/SuperAdmin/configuration/categories");
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.GetAsync("api/SuperAdmin/configuration/categories");
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<IEnumerable<string>>() ?? new List<string>();
         }
 
         public async Task<ConfigurationDto?> GetConfigurationAsync(string key)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.GetAsync($"api/SuperAdmin/configuration/{key}");
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.GetAsync($"api/SuperAdmin/configuration/{key}");
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 return null;
             response.EnsureSuccessStatusCode();
@@ -270,8 +273,8 @@ namespace EventForge.Client.Services
 
         public async Task<ConfigurationDto> CreateConfigurationAsync(CreateConfigurationDto createDto)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.PostAsJsonAsync("api/SuperAdmin/configuration", createDto);
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.PostAsJsonAsync("api/SuperAdmin/configuration", createDto);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<ConfigurationDto>() ??
                    throw new InvalidOperationException("Failed to create configuration");
@@ -279,8 +282,8 @@ namespace EventForge.Client.Services
 
         public async Task<ConfigurationDto> UpdateConfigurationAsync(string key, UpdateConfigurationDto updateDto)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.PutAsJsonAsync($"api/SuperAdmin/configuration/{key}", updateDto);
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.PutAsJsonAsync($"api/SuperAdmin/configuration/{key}", updateDto);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<ConfigurationDto>() ??
                    throw new InvalidOperationException("Failed to update configuration");
@@ -288,22 +291,22 @@ namespace EventForge.Client.Services
 
         public async Task DeleteConfigurationAsync(string key)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.DeleteAsync($"api/SuperAdmin/configuration/{key}");
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.DeleteAsync($"api/SuperAdmin/configuration/{key}");
             response.EnsureSuccessStatusCode();
         }
 
         public async Task<bool> TestSmtpConfigurationAsync(TestSmtpConfigurationDto testDto)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.PostAsJsonAsync("api/SuperAdmin/configuration/test-smtp", testDto);
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.PostAsJsonAsync("api/SuperAdmin/configuration/test-smtp", testDto);
             return response.IsSuccessStatusCode;
         }
 
         public async Task ReloadConfigurationAsync()
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.PostAsync("api/SuperAdmin/configuration/reload", null);
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.PostAsync("api/SuperAdmin/configuration/reload", null);
             response.EnsureSuccessStatusCode();
         }
 
@@ -313,8 +316,8 @@ namespace EventForge.Client.Services
 
         public async Task<BackupOperationDto> CreateBackupAsync(CreateBackupDto createDto)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.PostAsJsonAsync("api/SuperAdmin/backup", createDto);
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.PostAsJsonAsync("api/SuperAdmin/backup", createDto);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<BackupOperationDto>() ??
                    throw new InvalidOperationException("Failed to create backup");
@@ -322,8 +325,8 @@ namespace EventForge.Client.Services
 
         public async Task<BackupStatusDto?> GetBackupStatusAsync(Guid backupId)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.GetAsync($"api/SuperAdmin/backup/{backupId}");
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.GetAsync($"api/SuperAdmin/backup/{backupId}");
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 return null;
             response.EnsureSuccessStatusCode();
@@ -332,31 +335,31 @@ namespace EventForge.Client.Services
 
         public async Task<IEnumerable<BackupListItemDto>> GetBackupsAsync()
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.GetAsync("api/SuperAdmin/backup");
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.GetAsync("api/SuperAdmin/backup");
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<IEnumerable<BackupListItemDto>>() ?? new List<BackupListItemDto>();
         }
 
         public async Task CancelBackupAsync(Guid backupId)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.PostAsync($"api/SuperAdmin/backup/{backupId}/cancel", null);
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.PostAsync($"api/SuperAdmin/backup/{backupId}/cancel", null);
             response.EnsureSuccessStatusCode();
         }
 
         public async Task<Stream> DownloadBackupAsync(Guid backupId)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.GetAsync($"api/SuperAdmin/backup/{backupId}/download");
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.GetAsync($"api/SuperAdmin/backup/{backupId}/download");
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadAsStreamAsync();
         }
 
         public async Task DeleteBackupAsync(Guid backupId)
         {
-            await EnsureAuthenticatedAsync();
-            var response = await _httpClient.DeleteAsync($"api/SuperAdmin/backup/{backupId}");
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.DeleteAsync($"api/SuperAdmin/backup/{backupId}");
             response.EnsureSuccessStatusCode();
         }
 

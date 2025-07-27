@@ -91,20 +91,28 @@ public interface IConfigurationService
 
 public class ConfigurationService : IConfigurationService
 {
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<ConfigurationService> _logger;
 
-    public ConfigurationService(HttpClient httpClient, ILogger<ConfigurationService> logger)
+    public ConfigurationService(IHttpClientFactory httpClientFactory, ILogger<ConfigurationService> logger)
     {
-        _httpClient = httpClient;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
+    }
+
+    private HttpClient CreateHttpClient()
+    {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        _logger.LogDebug("ConfigurationService: Using HttpClient with BaseAddress: {BaseAddress}", httpClient.BaseAddress);
+        return httpClient;
     }
 
     public async Task<IEnumerable<ConfigurationDto>> GetAllConfigurationsAsync()
     {
         try
         {
-            var response = await _httpClient.GetFromJsonAsync<IEnumerable<ConfigurationDto>>("api/SuperAdmin/configuration");
+            var httpClient = CreateHttpClient();
+            var response = await httpClient.GetFromJsonAsync<IEnumerable<ConfigurationDto>>("api/SuperAdmin/configuration");
             return response ?? Enumerable.Empty<ConfigurationDto>();
         }
         catch (Exception ex)
@@ -118,7 +126,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var response = await _httpClient.GetFromJsonAsync<IEnumerable<ConfigurationDto>>($"api/SuperAdmin/configuration/category/{category}");
+            var response = await CreateHttpClient().GetFromJsonAsync<IEnumerable<ConfigurationDto>>($"api/SuperAdmin/configuration/category/{category}");
             return response ?? Enumerable.Empty<ConfigurationDto>();
         }
         catch (Exception ex)
@@ -132,7 +140,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var response = await _httpClient.GetFromJsonAsync<IEnumerable<string>>("api/SuperAdmin/configuration/categories");
+            var response = await CreateHttpClient().GetFromJsonAsync<IEnumerable<string>>("api/SuperAdmin/configuration/categories");
             return response ?? Enumerable.Empty<string>();
         }
         catch (Exception ex)
@@ -146,7 +154,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<ConfigurationDto>($"api/SuperAdmin/configuration/{key}");
+            return await CreateHttpClient().GetFromJsonAsync<ConfigurationDto>($"api/SuperAdmin/configuration/{key}");
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("404"))
         {
@@ -163,7 +171,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("api/SuperAdmin/configuration", createDto);
+            var response = await CreateHttpClient().PostAsJsonAsync("api/SuperAdmin/configuration", createDto);
             response.EnsureSuccessStatusCode();
 
             var result = await response.Content.ReadFromJsonAsync<ConfigurationDto>();
@@ -180,7 +188,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var response = await _httpClient.PutAsJsonAsync($"api/SuperAdmin/configuration/{key}", updateDto);
+            var response = await CreateHttpClient().PutAsJsonAsync($"api/SuperAdmin/configuration/{key}", updateDto);
             response.EnsureSuccessStatusCode();
 
             var result = await response.Content.ReadFromJsonAsync<ConfigurationDto>();
@@ -197,7 +205,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var response = await _httpClient.DeleteAsync($"api/SuperAdmin/configuration/{key}");
+            var response = await CreateHttpClient().DeleteAsync($"api/SuperAdmin/configuration/{key}");
             response.EnsureSuccessStatusCode();
         }
         catch (Exception ex)
@@ -211,7 +219,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("api/SuperAdmin/configuration/test-smtp", testDto);
+            var response = await CreateHttpClient().PostAsJsonAsync("api/SuperAdmin/configuration/test-smtp", testDto);
             response.EnsureSuccessStatusCode();
 
             var result = await response.Content.ReadFromJsonAsync<SmtpTestResultDto>();
@@ -228,7 +236,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var response = await _httpClient.PostAsync("api/SuperAdmin/configuration/reload", null);
+            var response = await CreateHttpClient().PostAsync("api/SuperAdmin/configuration/reload", null);
             response.EnsureSuccessStatusCode();
         }
         catch (Exception ex)
