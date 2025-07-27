@@ -64,7 +64,8 @@ public interface ITranslationService
 /// </summary>
 public class TranslationService : ITranslationService
 {
-    private readonly HttpClient _httpClient;
+    private readonly HttpClient _apiHttpClient;
+    private readonly HttpClient _staticHttpClient;
     private readonly IJSRuntime _jsRuntime;
     private readonly ILogger<TranslationService> _logger;
 
@@ -90,9 +91,13 @@ public class TranslationService : ITranslationService
         IJSRuntime jsRuntime,
         ILogger<TranslationService> logger)
     {
-        _httpClient = httpClient;
+        _apiHttpClient = httpClient; // This one has the API base URL
         _jsRuntime = jsRuntime;
         _logger = logger;
+        
+        // Create a separate HttpClient for static files (local relative URLs)
+        // We'll set the base address in InitializeAsync after we can access JS runtime
+        _staticHttpClient = new HttpClient();
     }
 
     /// <summary>
@@ -102,6 +107,10 @@ public class TranslationService : ITranslationService
     {
         try
         {
+            // Set the base address for the static client to the current page's base URL
+            var baseUri = await _jsRuntime.InvokeAsync<string>("eval", "window.location.origin");
+            _staticHttpClient.BaseAddress = new Uri(baseUri);
+
             // Try to get saved language preference
             var savedLanguage = await GetSavedLanguageAsync();
             if (!string.IsNullOrEmpty(savedLanguage) && _availableLanguages.ContainsKey(savedLanguage))
@@ -117,7 +126,14 @@ public class TranslationService : ITranslationService
             _logger.LogError(ex, "Error initializing translation service");
             // Fallback to default language
             _currentLanguage = DEFAULT_LANGUAGE;
-            await LoadTranslationsAsync(_currentLanguage);
+            try
+            {
+                await LoadTranslationsAsync(_currentLanguage);
+            }
+            catch (Exception fallbackEx)
+            {
+                _logger.LogError(fallbackEx, "Error loading fallback language {Language}", _currentLanguage);
+            }
         }
     }
 
@@ -210,7 +226,7 @@ public class TranslationService : ITranslationService
         {
             // TODO: Implement API loading for SuperAdmin translation management
             // This will be used when the SuperAdmin feature is complete
-            var response = await _httpClient.GetAsync($"/api/translations/{_currentLanguage}");
+            var response = await _apiHttpClient.GetAsync($"/api/translations/{_currentLanguage}");
             if (response.IsSuccessStatusCode)
             {
                 var json = await response.Content.ReadAsStringAsync();
@@ -243,7 +259,7 @@ public class TranslationService : ITranslationService
     {
         try
         {
-            var response = await _httpClient.GetAsync($"i18n/{language}.json");
+            var response = await _staticHttpClient.GetAsync($"i18n/{language}.json");
             if (response.IsSuccessStatusCode)
             {
                 var json = await response.Content.ReadAsStringAsync();
