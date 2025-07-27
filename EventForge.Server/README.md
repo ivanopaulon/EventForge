@@ -50,7 +50,32 @@ EventForge è una piattaforma completa per la gestione di eventi costruita con t
 - **Validation**: Validazione completa con messaggi di errore chiari
 - **Environment-aware**: Dettagli errori configurabili per ambiente
 
+## 🎨 User Interface & Experience
+
+### Modern Drawer-Based CRUD Operations
+- **EntityDrawer Component**: Parametric drawer supporting Create/Edit/View modes
+- **Specialized Drawers**: UserDrawer, TenantDrawer with entity-specific features
+- **Responsive Design**: Automatic width adjustment for mobile/tablet/desktop
+- **Accessibility Compliant**: WCAG/EAA standards with ARIA attributes
+- **Keyboard Navigation**: ESC key support, focus management, Tab navigation
+- **Loading States**: Integrated MudProgressCircular with accessibility announcements
+
+### User Experience Features
+- **Consistent Interface**: Unified drawer pattern across all CRUD operations
+- **Progressive Enhancement**: Graceful degradation for older browsers
+- **Snackbar Feedback**: Centralized success/error messaging system
+- **Multi-Modal Support**: Single component handles create, edit, and view operations
+- **Focus Management**: Automatic focus to first input, return focus on close
+
 ## 🛠️ Tecnologie e Architettura
+
+### HTTP Client & API Integration
+- **Centralized HttpClientService**: Standardized HTTP operations with error handling
+- **Authentication Management**: Automatic token injection and refresh
+- **Correlation IDs**: Request tracking for debugging and audit
+- **ProblemDetails Support**: RFC 7807 compliant error responses
+- **Configurable Timeouts**: Environment-specific timeout configurations
+- **Request/Response Logging**: Structured logging for API interactions
 
 ### Stack Tecnologico
 - **.NET 8.0**: Framework principale con ASP.NET Core
@@ -72,6 +97,48 @@ EventForge è una piattaforma completa per la gestione di eventi costruita con t
 - **RESTful API**: API REST standard con best practices
 - **Clean Architecture**: Separazione responsabilità e dipendenze
 - **SOLID Principles**: Codice mantenibile e estensibile
+
+## ♿ Accessibility & Inclusivity
+
+### WCAG/EAA Compliance
+- **ARIA Attributes**: Comprehensive screen reader support
+- **Keyboard Navigation**: Full keyboard accessibility with logical tab order
+- **Focus Management**: Automatic focus control and restoration
+- **Color Contrast**: WCAG AA compliant color schemes
+- **Screen Reader Support**: Descriptive labels and live regions
+- **High Contrast Mode**: Automatic detection and adaptation
+
+### Responsive Design Patterns
+- **Mobile-First Approach**: Progressive enhancement from mobile to desktop
+- **Breakpoint Strategy**: 768px (mobile), 1024px (tablet), 1025px+ (desktop)
+- **Flexible Layouts**: CSS Grid and Flexbox for adaptive interfaces
+- **Touch-Friendly**: Appropriate touch targets and gesture support
+
+### Accessibility Checklist
+- [x] All form fields have proper labels and descriptions
+- [x] Loading states are announced to screen readers
+- [x] Error messages are accessible and associated with fields
+- [x] Keyboard navigation works without mouse
+- [x] Color is not the only means of communication
+- [x] Focus indicators are visible and clear
+- [x] ARIA roles and properties are correctly implemented
+
+## 📋 Design Patterns & Guidelines
+
+### Drawer Pattern Implementation
+See [DRAWER_IMPLEMENTATION_GUIDE.md](../DRAWER_IMPLEMENTATION_GUIDE.md) for comprehensive documentation on:
+- EntityDrawer component usage and customization
+- Specialized drawer implementations (User, Tenant)
+- Accessibility implementation details
+- Responsive design strategies
+- HttpClient centralization patterns
+- Migration guide from dialogs to drawers
+
+### Component Architecture
+- **Parametric Components**: Reusable components with configurable behavior
+- **Event-Driven Communication**: Callback patterns for parent-child interaction
+- **State Management**: Centralized state with proper encapsulation
+- **Error Boundaries**: Graceful error handling and recovery
 
 ## 📦 Installazione
 
