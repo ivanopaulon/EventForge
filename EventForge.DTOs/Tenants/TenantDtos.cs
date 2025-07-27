@@ -11,24 +11,30 @@ namespace EventForge.DTOs.Tenants
     {
         [Required]
         [MaxLength(100)]
+        [Display(Name = "field.name")]
         public string Name { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(200)]
+        [Display(Name = "field.displayName")]
         public string DisplayName { get; set; } = string.Empty;
 
         [MaxLength(500)]
+        [Display(Name = "field.description")]
         public string? Description { get; set; }
 
         [MaxLength(100)]
+        [Display(Name = "field.domain")]
         public string? Domain { get; set; }
 
         [Required]
         [EmailAddress]
         [MaxLength(256)]
+        [Display(Name = "field.contactEmail")]
         public string ContactEmail { get; set; } = string.Empty;
 
         [Range(1, int.MaxValue)]
+        [Display(Name = "field.maxUsers")]
         public int MaxUsers { get; set; } = 100;
     }
 
@@ -71,5 +77,17 @@ namespace EventForge.DTOs.Tenants
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+        public TenantAdminResponseDto? AdminUser { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for tenant admin user response.
+    /// </summary>
+    public class TenantAdminResponseDto
+    {
+        public Guid UserId { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
     }
 }

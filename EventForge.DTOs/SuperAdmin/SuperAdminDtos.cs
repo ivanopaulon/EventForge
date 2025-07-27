@@ -143,6 +143,7 @@ namespace EventForge.DTOs.SuperAdmin
         public DateTime? CompletedAt { get; set; }
         public string? ErrorMessage { get; set; }
         public long? FileSizeBytes { get; set; }
+        public string StartedByUserName { get; set; } = string.Empty;
     }
 
     /// <summary>
@@ -310,5 +311,61 @@ namespace EventForge.DTOs.SuperAdmin
         public string? IpAddress { get; set; }
         public string? UserAgent { get; set; }
         public Dictionary<string, object> Properties { get; set; } = new Dictionary<string, object>();
+    }
+
+    /// <summary>
+    /// DTO for translation management.
+    /// </summary>
+    public class TranslationDto
+    {
+        public Guid Id { get; set; }
+        public string Language { get; set; } = string.Empty;
+        public string Key { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public DateTime? ModifiedAt { get; set; }
+        public string? ModifiedBy { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for creating a new translation.
+    /// </summary>
+    public class CreateTranslationDto
+    {
+        [Required]
+        [MaxLength(10)]
+        [Display(Name = "common.language")]
+        public string Language { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(255)]
+        [Display(Name = "superAdmin.translationKey")]
+        public string Key { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(1000)]
+        [Display(Name = "superAdmin.translationValue")]
+        public string Value { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// DTO for updating a translation.
+    /// </summary>
+    public class UpdateTranslationDto
+    {
+        [Required]
+        [MaxLength(1000)]
+        [Display(Name = "superAdmin.translationValue")]
+        public string Value { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// DTO for exporting/importing translations.
+    /// </summary>
+    public class TranslationExportDto
+    {
+        public string Language { get; set; } = string.Empty;
+        public Dictionary<string, string> Translations { get; set; } = new Dictionary<string, string>();
+        public DateTime ExportedAt { get; set; } = DateTime.UtcNow;
     }
 }

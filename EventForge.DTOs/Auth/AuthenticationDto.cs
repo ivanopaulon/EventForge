@@ -14,20 +14,20 @@ namespace EventForge.DTOs.Auth
         /// </summary>
         [Required(ErrorMessage = "Username is required.")]
         [MaxLength(100, ErrorMessage = "Username cannot exceed 100 characters.")]
-        [Display(Name = "Username", Description = "Username for login.")]
+        [Display(Name = "field.username", Description = "Username for login.")]
         public string Username { get; set; } = string.Empty;
 
         /// <summary>
         /// Password for login.
         /// </summary>
         [Required(ErrorMessage = "Password is required.")]
-        [Display(Name = "Password", Description = "Password for login.")]
+        [Display(Name = "field.password", Description = "Password for login.")]
         public string Password { get; set; } = string.Empty;
 
         /// <summary>
         /// Remember this login session.
         /// </summary>
-        [Display(Name = "Remember Me", Description = "Remember this login session.")]
+        [Display(Name = "auth.rememberMe", Description = "Remember this login session.")]
         public bool RememberMe { get; set; } = false;
     }
 
@@ -113,7 +113,7 @@ namespace EventForge.DTOs.Auth
         /// Username.
         /// </summary>
         [Required]
-        [Display(Name = "Username", Description = "Username.")]
+        [Display(Name = "field.username", Description = "Username.")]
         public string Username { get; set; } = string.Empty;
 
         /// <summary>
@@ -121,51 +121,63 @@ namespace EventForge.DTOs.Auth
         /// </summary>
         [Required]
         [EmailAddress]
-        [Display(Name = "Email", Description = "Email address.")]
+        [Display(Name = "field.email", Description = "Email address.")]
         public string Email { get; set; } = string.Empty;
 
         /// <summary>
         /// First name.
         /// </summary>
         [Required]
-        [Display(Name = "First Name", Description = "First name.")]
+        [Display(Name = "field.firstName", Description = "First name.")]
         public string FirstName { get; set; } = string.Empty;
 
         /// <summary>
         /// Last name.
         /// </summary>
         [Required]
-        [Display(Name = "Last Name", Description = "Last name.")]
+        [Display(Name = "field.lastName", Description = "Last name.")]
         public string LastName { get; set; } = string.Empty;
 
         /// <summary>
         /// Full name.
         /// </summary>
-        [Display(Name = "Full Name", Description = "Full name.")]
+        [Display(Name = "field.fullName", Description = "Full name.")]
         public string FullName { get; set; } = string.Empty;
 
         /// <summary>
         /// Indicates if the user is active.
         /// </summary>
-        [Display(Name = "Is Active", Description = "Indicates if the user is active.")]
+        [Display(Name = "field.active", Description = "Indicates if the user is active.")]
         public bool IsActive { get; set; }
 
         /// <summary>
         /// Date of last login.
         /// </summary>
-        [Display(Name = "Last Login", Description = "Date of last login.")]
+        [Display(Name = "field.lastLogin", Description = "Date of last login.")]
         public DateTime? LastLoginAt { get; set; }
 
         /// <summary>
         /// User roles.
         /// </summary>
-        [Display(Name = "Roles", Description = "User roles.")]
+        [Display(Name = "field.roles", Description = "User roles.")]
         public IList<string> Roles { get; set; } = new List<string>();
 
         /// <summary>
         /// User permissions.
         /// </summary>
-        [Display(Name = "Permissions", Description = "User permissions.")]
+        [Display(Name = "field.permissions", Description = "User permissions.")]
         public IList<string> Permissions { get; set; } = new List<string>();
+
+        /// <summary>
+        /// Date and time when the user was created (UTC).
+        /// </summary>
+        [Display(Name = "field.createdAt", Description = "Date and time when the user was created (UTC).")]
+        public DateTime CreatedAt { get; set; }
+
+        /// <summary>
+        /// Date and time when the user was last modified (UTC).
+        /// </summary>
+        [Display(Name = "field.modifiedAt", Description = "Date and time when the user was last modified (UTC).")]
+        public DateTime? ModifiedAt { get; set; }
     }
 }

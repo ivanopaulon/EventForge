@@ -22,6 +22,7 @@ builder.Services.AddScoped<SignalRService>();
 builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
 builder.Services.AddScoped<IBackupService, BackupService>();
 builder.Services.AddScoped<IThemeService, ThemeService>();
+builder.Services.AddScoped<ITranslationService, TranslationService>();
 
 // Add SuperAdmin services
 builder.Services.AddScoped<ISuperAdminService, SuperAdminService>();

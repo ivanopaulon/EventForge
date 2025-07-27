@@ -18,6 +18,9 @@
         @if (_isAuthenticated)
         {
             <div class="d-flex align-center ga-2">
+                <!-- Language Selector -->
+                <LanguageSelector Dense="true" />
+                
                 <!-- Theme Toggle Button -->
                 <MudTooltip Text="@(ThemeService.IsDarkMode ? ButtonLabels.LightMode : ButtonLabels.DarkMode)">
                     <MudIconButton Icon="@(ThemeService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"

@@ -1,5 +1,6 @@
 using EventForge.Server.DTOs.Documents;
 using EventForge.Server.Services.Audit;
+using EventForge.Server.Mappers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 

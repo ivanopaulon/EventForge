@@ -1,0 +1,55 @@
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+@implements IDisposable
+
+@((MarkupString)TranslatedText)
+
+@code {
+    [Parameter, EditorRequired] public string Key { get; set; } = string.Empty;
+    [Parameter] public string? Fallback { get; set; }
+    [Parameter] public object[]? Parameters { get; set; }
+
+    private string TranslatedText = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        TranslationService.LanguageChanged += OnLanguageChanged;
+        UpdateTranslation();
+    }
+
+    protected override void OnParametersSet()
+    {
+        UpdateTranslation();
+    }
+
+    private void UpdateTranslation()
+    {
+        try
+        {
+            if (Parameters != null && Parameters.Length > 0)
+            {
+                TranslatedText = TranslationService.GetTranslation(Key, Parameters);
+            }
+            else
+            {
+                TranslatedText = TranslationService.GetTranslation(Key, Fallback);
+            }
+        }
+        catch (Exception ex)
+        {
+            TranslatedText = Fallback ?? Key;
+            Console.Error.WriteLine($"Translation error for key '{Key}': {ex.Message}");
+        }
+    }
+
+    private void OnLanguageChanged(object? sender, string newLanguage)
+    {
+        UpdateTranslation();
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        TranslationService.LanguageChanged -= OnLanguageChanged;
+    }
+}

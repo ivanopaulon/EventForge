@@ -6,6 +6,7 @@ using EventForge.Server.DTOs.Tenants;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Auth;
 using EventForge.Server.Services.Auth;
+using EventForge.Server.Mappers;
 
 namespace EventForge.Server.Services.Tenants;
 
