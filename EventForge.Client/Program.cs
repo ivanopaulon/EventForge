@@ -16,9 +16,13 @@ builder.Services.AddHttpClient("ApiClient", client =>
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
+// Configure StaticClient for translation files and static assets
+// BaseAddress is set to the host base URL which is known at build time in Blazor WASM
 builder.Services.AddHttpClient("StaticClient", client =>
 {
-    // BaseAddress will be set to current origin - this is safe as it's set once at startup
+    // In Blazor WASM, static files are served from the same origin as the app
+    // This ensures BaseAddress is set before any requests are made
+    client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
