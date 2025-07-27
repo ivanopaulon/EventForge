@@ -19,13 +19,7 @@
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                 <NotAuthorized>
-                    @* Only redirect if not already on login page and accessing a protected route *@
-                    @{
-                        if (!NavigationManager.Uri.Contains("/login"))
-                        {
-                            NavigationManager.NavigateTo("/login");
-                        }
-                    }
+                    @* Authentication required message - redirect logic moved to code-behind *@
                     <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
                         <MudPaper Class="pa-8" Elevation="4">
                             <MudGrid Justify="Justify.Center">
@@ -99,6 +93,12 @@
         
         // Only redirect to login if on a protected route and not authenticated
         // Home page and other [AllowAnonymous] pages should remain accessible
+        // Moved redirect logic here to prevent rendering cycle issues
+        if (!isAuthenticated && !currentUri.Contains("/login") && !currentUri.EndsWith("/"))
+        {
+            await InvokeAsync(() => NavigationManager.NavigateTo("/login"));
+        }
+        
         Console.WriteLine($"Auth state changed - Authenticated: {isAuthenticated}, URI: {currentUri}");
     }
 
