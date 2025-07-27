@@ -31,7 +31,6 @@ public class BackupService : IBackupService
         try
         {
             var httpClient = _httpClientFactory.CreateClient("ApiClient");
-            _logger.LogDebug("BackupService: Using HttpClient with BaseAddress: {BaseAddress}", httpClient.BaseAddress);
             
             var response = await httpClient.PostAsJsonAsync("api/SuperAdmin/backup", request);
             response.EnsureSuccessStatusCode();
@@ -51,7 +50,6 @@ public class BackupService : IBackupService
         try
         {
             var httpClient = _httpClientFactory.CreateClient("ApiClient");
-            _logger.LogDebug("BackupService: Using HttpClient with BaseAddress: {BaseAddress}", httpClient.BaseAddress);
             
             return await httpClient.GetFromJsonAsync<BackupStatusDto>($"api/SuperAdmin/backup/{backupId}");
         }
@@ -71,7 +69,6 @@ public class BackupService : IBackupService
         try
         {
             var httpClient = _httpClientFactory.CreateClient("ApiClient");
-            _logger.LogDebug("BackupService: Using HttpClient with BaseAddress: {BaseAddress}", httpClient.BaseAddress);
             
             var response = await httpClient.GetFromJsonAsync<IEnumerable<BackupStatusDto>>($"api/SuperAdmin/backup?limit={limit}");
             return response ?? Enumerable.Empty<BackupStatusDto>();
@@ -88,7 +85,6 @@ public class BackupService : IBackupService
         try
         {
             var httpClient = _httpClientFactory.CreateClient("ApiClient");
-            _logger.LogDebug("BackupService: Using HttpClient with BaseAddress: {BaseAddress}", httpClient.BaseAddress);
             
             var response = await httpClient.PostAsync($"api/SuperAdmin/backup/{backupId}/cancel", null);
             response.EnsureSuccessStatusCode();
@@ -103,7 +99,6 @@ public class BackupService : IBackupService
     public Task<string> GetDownloadUrlAsync(Guid backupId)
     {
         var httpClient = _httpClientFactory.CreateClient("ApiClient");
-        _logger.LogDebug("BackupService: Using HttpClient with BaseAddress: {BaseAddress}", httpClient.BaseAddress);
         
         return Task.FromResult($"{httpClient.BaseAddress}api/SuperAdmin/backup/{backupId}/download");
     }
@@ -113,7 +108,6 @@ public class BackupService : IBackupService
         try
         {
             var httpClient = _httpClientFactory.CreateClient("ApiClient");
-            _logger.LogDebug("BackupService: Using HttpClient with BaseAddress: {BaseAddress}", httpClient.BaseAddress);
             
             var response = await httpClient.DeleteAsync($"api/SuperAdmin/backup/{backupId}");
             response.EnsureSuccessStatusCode();

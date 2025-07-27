@@ -25,7 +25,6 @@ namespace EventForge.Client.Services
             try
             {
                 var httpClient = _httpClientFactory.CreateClient("ApiClient");
-                _logger.LogDebug("HealthService: Using HttpClient with BaseAddress: {BaseAddress}", httpClient.BaseAddress);
                 return await httpClient.GetFromJsonAsync<HealthStatusDto>("api/v1/health");
             }
             catch
@@ -39,7 +38,6 @@ namespace EventForge.Client.Services
             try
             {
                 var httpClient = _httpClientFactory.CreateClient("ApiClient");
-                _logger.LogDebug("HealthService: Using HttpClient with BaseAddress: {BaseAddress}", httpClient.BaseAddress);
                 return await httpClient.GetFromJsonAsync<DetailedHealthStatusDto>("api/v1/health/detailed");
             }
             catch

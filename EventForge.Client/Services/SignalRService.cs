@@ -45,7 +45,6 @@ public class SignalRService : IAsyncDisposable
             }
 
             var httpClient = _httpClientFactory.CreateClient("ApiClient");
-            _logger.LogDebug("SignalRService: Using HttpClient with BaseAddress: {BaseAddress}", httpClient.BaseAddress);
             
             var hubUrl = new Uri(httpClient.BaseAddress!, "/hubs/audit-log").ToString();
 

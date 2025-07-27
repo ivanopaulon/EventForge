@@ -103,7 +103,6 @@ public class ConfigurationService : IConfigurationService
     private HttpClient CreateHttpClient()
     {
         var httpClient = _httpClientFactory.CreateClient("ApiClient");
-        _logger.LogDebug("ConfigurationService: Using HttpClient with BaseAddress: {BaseAddress}", httpClient.BaseAddress);
         return httpClient;
     }
 

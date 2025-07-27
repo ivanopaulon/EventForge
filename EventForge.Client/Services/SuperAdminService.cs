@@ -68,7 +68,6 @@ namespace EventForge.Client.Services
                 throw new UnauthorizedAccessException("User not authenticated");
 
             var httpClient = _httpClientFactory.CreateClient("ApiClient");
-            _logger.LogDebug("SuperAdminService: Using HttpClient with BaseAddress: {BaseAddress}", httpClient.BaseAddress);
             
             // Set authentication header for this request
             httpClient.DefaultRequestHeaders.Authorization =

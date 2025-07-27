@@ -47,7 +47,6 @@ namespace EventForge.Client.Services
         private async Task<HttpClient> CreateAuthenticatedHttpClientAsync()
         {
             var httpClient = _httpClientFactory.CreateClient("ApiClient");
-            _logger.LogDebug("LogsService: Using HttpClient with BaseAddress: {BaseAddress}", httpClient.BaseAddress);
             
             var token = await _authService.GetAccessTokenAsync();
             if (!string.IsNullOrEmpty(token))

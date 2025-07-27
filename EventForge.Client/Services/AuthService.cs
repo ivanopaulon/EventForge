@@ -117,7 +117,6 @@ namespace EventForge.Client.Services
             try
             {
                 var httpClient = _httpClientFactory.CreateClient("ApiClient");
-                _logger.LogDebug("AuthService: Using HttpClient with BaseAddress: {BaseAddress}", httpClient.BaseAddress);
                 
                 var response = await httpClient.PostAsJsonAsync("api/v1/auth/login", loginRequest);
 
