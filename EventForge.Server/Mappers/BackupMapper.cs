@@ -1,5 +1,5 @@
 using EventForge.Server.Data.Entities.Configuration;
-using EventForge.DTOs.SuperAdmin;
+using EventForge.Server.DTOs.SuperAdmin;
 
 namespace EventForge.Server.Mappers;
 
@@ -19,14 +19,26 @@ public static class BackupMapper
         return new BackupStatusDto
         {
             Id = entity.Id,
-            Name = entity.Description ?? $"Backup_{entity.Id.ToString()[..8]}", // Generate name from description or ID
             Status = entity.Status,
             ProgressPercentage = entity.ProgressPercentage,
+            CurrentOperation = entity.CurrentOperation,
             StartedAt = entity.StartedAt,
             CompletedAt = entity.CompletedAt,
+            FilePath = entity.FilePath,
             ErrorMessage = entity.ErrorMessage,
-            FileSizeBytes = entity.FileSizeBytes
+            FileSizeBytes = entity.FileSizeBytes,
+            StartedBy = string.Empty // Will be filled manually in service
         };
+    }
+
+    /// <summary>
+    /// Maps BackupOperation entity to BackupStatusDto with StartedBy
+    /// </summary>
+    public static BackupStatusDto ToStatusDto(BackupOperation entity, string startedBy)
+    {
+        var dto = ToStatusDto(entity);
+        dto.StartedBy = startedBy ?? string.Empty;
+        return dto;
     }
 
     /// <summary>
