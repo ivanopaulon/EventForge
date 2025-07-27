@@ -7,18 +7,28 @@
            ValueChanged="@OnLanguageChanged"
            Label="@TranslationService.GetTranslation("common.language")"
            Variant="Variant.Outlined"
-           Dense="true"
-           Class="language-selector">
+           Dense="@Dense"
+           Class="@Class"
+           aria-label="@TranslationService.GetTranslation("accessibility.selectLanguage")"
+           role="combobox"
+           aria-expanded="false"
+           aria-describedby="language-selector-description">
     @foreach (var language in TranslationService.GetAvailableLanguages())
     {
         <MudSelectItem Value="@language.Key">
             <div class="d-flex align-center">
-                <MudIcon Icon="@GetLanguageIcon(language.Key)" Style="margin-right: 8px;" />
+                <MudIcon Icon="@GetLanguageIcon(language.Key)" 
+                         Style="margin-right: 8px;" 
+                         aria-hidden="true" />
                 @language.Value
             </div>
         </MudSelectItem>
     }
 </MudSelect>
+
+<div id="language-selector-description" class="sr-only">
+    @TranslationService.GetTranslation("accessibility.languageSelectorDescription")
+</div>
 
 @code {
     [Parameter] public bool Dense { get; set; } = true;
