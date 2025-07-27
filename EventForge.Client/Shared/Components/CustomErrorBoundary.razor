@@ -46,7 +46,6 @@
 
 @code {
     [Parameter] public bool ShowDetails { get; set; } = false;
-    [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public EventCallback<Exception> OnError { get; set; }
 
     protected override async Task OnErrorAsync(Exception exception)
