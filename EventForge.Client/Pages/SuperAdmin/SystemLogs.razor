@@ -7,10 +7,11 @@
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject ITranslationService TranslationService
 
 <PageTitle>Log Sistema - EventForge Super Admin</PageTitle>
 
-<SuperAdminBanner />
+@* SuperAdminBanner removed as per refactoring requirements *@
 
 @if (_isLoading)
 {
