@@ -6,7 +6,7 @@
     @if (ShowRefresh)
     {
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")">
-            <MudIconButton Icon="Icons.Material.Outlined.Refresh" 
+            <MudIconButton Icon="@Icons.Material.Outlined.Refresh" 
                            Color="Color.Primary"
                            Size="Size.Medium"
                            OnClick="@OnRefresh"
@@ -30,7 +30,7 @@
     @if (ShowExport)
     {
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.exportData", "Esporta dati")">
-            <MudIconButton Icon="Icons.Material.Outlined.Download" 
+            <MudIconButton Icon="@Icons.Material.Outlined.Download" 
                            Color="Color.Secondary"
                            Size="Size.Medium"
                            OnClick="@OnExport"
@@ -43,7 +43,7 @@
     {
         <MudDivider Vertical="true" Class="mx-1" />
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewAuditLog", "Visualizza log audit")">
-            <MudIconButton Icon="Icons.Material.Outlined.History" 
+            <MudIconButton Icon="@Icons.Material.Outlined.History" 
                            Color="Color.Info"
                            Size="Size.Medium"
                            OnClick="@OnAuditLog"

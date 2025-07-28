@@ -8,60 +8,60 @@
         @if (_isSuperAdmin)
         {
             <MudNavGroup title="@TranslationService.GetTranslation("nav.superAdmin", "Super Amministrazione")" 
-                         Icon="Icons.Material.Outlined.AdminPanelSettings" 
+                         Icon="@Icons.Material.Outlined.AdminPanelSettings" 
                          Expanded="true">
                 <MudNavLink Href="/superadmin/tenant-management" 
-                            Icon="Icons.Material.Outlined.Business" 
+                            Icon="@Icons.Material.Outlined.Business" 
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.tenantManagement", "Gestione Tenant")
                 </MudNavLink>
                 <MudNavLink Href="/superadmin/user-management" 
-                            Icon="Icons.Material.Outlined.People" 
+                            Icon="@Icons.Material.Outlined.People" 
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.userManagement", "Gestione Utenti")
                 </MudNavLink>
                 <MudNavLink Href="/superadmin/event-management" 
-                            Icon="Icons.Material.Outlined.Event" 
+                            Icon="@Icons.Material.Outlined.Event" 
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.eventManagement", "Gestione Eventi")
                 </MudNavLink>
                 <MudNavLink Href="/superadmin/event-category-management" 
-                            Icon="Icons.Material.Outlined.BookmarkBorder" 
+                            Icon="@Icons.Material.Outlined.BookmarkBorder" 
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.eventCategoryManagement", "Gestione Categorie")
                 </MudNavLink>
                 <MudNavLink Href="/superadmin/event-type-management" 
-                            Icon="Icons.Material.Outlined.Category" 
+                            Icon="@Icons.Material.Outlined.Category" 
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.eventTypeManagement", "Gestione Tipi Evento")
                 </MudNavLink>
                 <MudNavLink Href="/superadmin/tenant-switch" 
-                            Icon="Icons.Material.Outlined.SwapHoriz" 
+                            Icon="@Icons.Material.Outlined.SwapHoriz" 
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.tenantSwitch", "Switch Tenant")
                 </MudNavLink>
                 <MudNavLink Href="/superadmin/system-logs" 
-                            Icon="Icons.Material.Outlined.Article" 
+                            Icon="@Icons.Material.Outlined.Article" 
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.systemLogs", "Log Sistema")
                 </MudNavLink>
                 <MudNavLink Href="/superadmin/client-log-management" 
-                            Icon="Icons.Material.Outlined.BugReport" 
+                            Icon="@Icons.Material.Outlined.BugReport" 
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.clientLogManagement", "Log Client")
                 </MudNavLink>
                 <MudNavLink Href="/superadmin/audit-trail" 
-                            Icon="Icons.Material.Outlined.History" 
+                            Icon="@Icons.Material.Outlined.History" 
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.auditTrail", "Audit Trail")
                 </MudNavLink>
                 <MudNavLink Href="/superadmin/configuration" 
-                            Icon="Icons.Material.Outlined.Settings" 
+                            Icon="@Icons.Material.Outlined.Settings" 
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.configuration", "Configurazione")
                 </MudNavLink>
                 <MudNavLink Href="/superadmin/translation-management" 
-                            Icon="Icons.Material.Outlined.Translate" 
+                            Icon="@Icons.Material.Outlined.Translate" 
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.translationManagement", "Gestione Traduzioni")
                 </MudNavLink>
@@ -70,10 +70,10 @@
         @if (_isAdmin || _isManager)
         {
             <MudNavGroup title="@TranslationService.GetTranslation("nav.administration", "Amministrazione")" 
-                         Icon="Icons.Material.Outlined.Dashboard" 
+                         Icon="@Icons.Material.Outlined.Dashboard" 
                          Expanded="true">
                 <MudNavLink Href="/admin" 
-                            Icon="Icons.Material.Outlined.Dashboard" 
+                            Icon="@Icons.Material.Outlined.Dashboard" 
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.adminDashboard", "Dashboard Admin")
                 </MudNavLink>
@@ -81,7 +81,7 @@
                 @if (_canManageEvents)
                 {
                     <MudNavLink Href="/admin/event-management" 
-                                Icon="Icons.Material.Outlined.Event" 
+                                Icon="@Icons.Material.Outlined.Event" 
                                 Match="NavLinkMatch.All">
                         @TranslationService.GetTranslation("nav.eventManagement", "Gestione Eventi")
                     </MudNavLink>
@@ -90,13 +90,13 @@
         }
         
         <!-- Common user links -->
-        <MudNavLink Href="/profile" Icon="Icons.Material.Outlined.Person" Match="NavLinkMatch.All">
+        <MudNavLink Href="/profile" Icon="@Icons.Material.Outlined.Person" Match="NavLinkMatch.All">
             @TranslationService.GetTranslation("nav.profile", "Profilo")
         </MudNavLink>
     }
     else
     {
-        <MudNavLink Href="/login" Icon="Icons.Material.Outlined.Login" Match="NavLinkMatch.All">
+        <MudNavLink Href="/login" Icon="@Icons.Material.Outlined.Login" Match="NavLinkMatch.All">
             @TranslationService.GetTranslation("nav.login", "Accedi")
         </MudNavLink>
     }

@@ -48,7 +48,7 @@ else
 {
     <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
         <MudText Typo="Typo.h3" Class="mb-8">
-            <MudIcon Icon="Icons.Material.Outlined.People" Class="mr-3" />
+            <MudIcon Icon="@Icons.Material.Outlined.People" Class="mr-3" />
             @TranslationService.GetTranslation("superAdmin.userManagement")
         </MudText>
 
@@ -58,7 +58,7 @@ else
             <div class="border rounded pa-1 mb-1">
                 <div style="cursor: pointer;" @onclick="@(() => _tenantSelectorExpanded = !_tenantSelectorExpanded)" 
                      class="d-flex align-center pa-2 hover:bg-gray-100">
-                    <MudIcon Icon="Icons.Material.Outlined.Business" Class="mr-2" />
+                    <MudIcon Icon="@Icons.Material.Outlined.Business" Class="mr-2" />
                     <MudText Typo="Typo.h6" Class="flex-grow-1">
                         @TranslationService.GetTranslation("superAdmin.tenantSelection", "Selezione Tenant")
                     </MudText>
@@ -93,7 +93,7 @@ else
             <div class="border rounded pa-1 mb-1">
                 <div style="cursor: pointer;" @onclick="@(() => _statisticsExpanded = !_statisticsExpanded)" 
                      class="d-flex align-center pa-2 hover:bg-gray-100">
-                    <MudIcon Icon="Icons.Material.Outlined.Analytics" Class="mr-2" />
+                    <MudIcon Icon="@Icons.Material.Outlined.Analytics" Class="mr-2" />
                     <MudText Typo="Typo.h6" Class="flex-grow-1">
                         @TranslationService.GetTranslation("superAdmin.showStatistics", "Mostra Statistiche")
                     </MudText>
@@ -138,7 +138,7 @@ else
             <div class="border rounded pa-1 mb-1">
                 <div style="cursor: pointer;" @onclick="@(() => _filtersExpanded = !_filtersExpanded)" 
                      class="d-flex align-center pa-2 hover:bg-gray-100">
-                    <MudIcon Icon="Icons.Material.Outlined.FilterList" Class="mr-2" />
+                    <MudIcon Icon="@Icons.Material.Outlined.FilterList" Class="mr-2" />
                     <MudText Typo="Typo.h6" Class="flex-grow-1">
                         @TranslationService.GetTranslation("superAdmin.advancedFilters", "Filtri Avanzati")
                     </MudText>
@@ -157,7 +157,7 @@ else
                                           Placeholder="@TranslationService.GetTranslation("superAdmin.searchPlaceholder", "Inserisci testo da cercare...")"
                                           Variant="Variant.Outlined"
                                           Adornment="Adornment.End"
-                                          AdornmentIcon="Icons.Material.Outlined.Search"
+                                          AdornmentIcon="@Icons.Material.Outlined.Search"
                                           Clearable="true"
                                           Style="flex: 2;" />
                             <MudSelect T="string" @bind-Value="_roleFilter" @bind-Value:after="OnRoleFilterChanged" 
@@ -192,7 +192,7 @@ else
                 <MudCardHeader Class="pa-2">
                     <CardHeaderContent>
                         <MudText Typo="Typo.h6">
-                            <MudIcon Icon="Icons.Material.Outlined.People" Class="mr-2" />
+                            <MudIcon Icon="@Icons.Material.Outlined.People" Class="mr-2" />
                             @TranslationService.GetTranslation("superAdmin.userList", "Lista Utenti")
                             <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2" Component="span">
                                 (@(_filteredUsers.Count()) @TranslationService.GetTranslation("superAdmin.itemsFound", "elementi trovati"))
@@ -203,21 +203,21 @@ else
                         <!-- Toolbar with only MudIconButton and semantic outlined icons as required -->
                         <MudToolBar Dense="true" WrapContent="true" Class="pa-1">
                             <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")">
-                                <MudIconButton Icon="Icons.Material.Outlined.Refresh" 
+                                <MudIconButton Icon="@Icons.Material.Outlined.Refresh" 
                                                Color="Color.Primary"
                                                Size="Size.Medium"
                                                OnClick="@LoadUsersAsync"
                                                aria-label="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")" />
                             </MudTooltip>
                             <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.createNewUser", "Crea nuovo utente")">
-                                <MudIconButton Icon="Icons.Material.Outlined.PersonAdd"
+                                <MudIconButton Icon="@Icons.Material.Outlined.PersonAdd"
                                                Color="Color.Success" 
                                                Size="Size.Medium"
                                                OnClick="@OpenCreateUserDrawer"
                                                aria-label="@TranslationService.GetTranslation("superAdmin.createNewUser", "Crea nuovo utente")" />
                             </MudTooltip>
                             <MudTooltip Text="@TranslationService.GetTranslation("tooltip.exportData", "Esporta dati")">
-                                <MudIconButton Icon="Icons.Material.Outlined.Download" 
+                                <MudIconButton Icon="@Icons.Material.Outlined.Download" 
                                                Color="Color.Secondary"
                                                Size="Size.Medium"
                                                OnClick="@ExportUsers"
@@ -225,7 +225,7 @@ else
                             </MudTooltip>
                             <MudDivider Vertical="true" Class="mx-1" />
                             <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewAuditLog", "Visualizza log audit")">
-                                <MudIconButton Icon="Icons.Material.Outlined.History" 
+                                <MudIconButton Icon="@Icons.Material.Outlined.History" 
                                                Color="Color.Info"
                                                Size="Size.Medium"
                                                OnClick="@OpenAuditLogDrawer"
@@ -319,7 +319,7 @@ else
                                         <!-- Standardized action buttons following proper order: Edit, Delete, AuditLog, Export, custom actions -->
                                         <MudButtonGroup Color="Color.Primary" Variant="Variant.Text" Size="Size.Small">
                                             <MudTooltip Text="@TranslationService.GetTranslation("tooltip.editDetails", "Modifica dettagli")">
-                                                <MudIconButton Icon="Icons.Material.Outlined.Edit" 
+                                                <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
                                                                Color="Color.Primary"
                                                                Size="Size.Small"
                                                                OnClick="@(() => EditUser(context))"
@@ -333,21 +333,21 @@ else
                                                                aria-label="@(context.IsActive ? TranslationService.GetTranslation("tooltip.disableUser", "Disabilita {0}", context.FullName) : TranslationService.GetTranslation("tooltip.enableUser", "Abilita {0}", context.FullName))" />
                                             </MudTooltip>
                                             <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewAuditHistory", "Visualizza cronologia modifiche")">
-                                                <MudIconButton Icon="Icons.Material.Outlined.History" 
+                                                <MudIconButton Icon="@Icons.Material.Outlined.History" 
                                                                Color="Color.Info"
                                                                Size="Size.Small"
                                                                OnClick="@(() => ViewUserAuditHistory(context))"
                                                                aria-label="@TranslationService.GetTranslation("tooltip.viewAuditHistory", "Visualizza cronologia {0}", context.FullName)" />
                                             </MudTooltip>
                                             <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewDetails", "Visualizza dettagli")">
-                                                <MudIconButton Icon="Icons.Material.Outlined.Visibility" 
+                                                <MudIconButton Icon="@Icons.Material.Outlined.Visibility" 
                                                                Color="Color.Info"
                                                                Size="Size.Small"
                                                                OnClick="@(() => ViewUser(context))"
                                                                aria-label="@TranslationService.GetTranslation("tooltip.viewUser", "Visualizza utente {0}", context.FullName)" />
                                             </MudTooltip>
                                             <MudTooltip Text="@TranslationService.GetTranslation("tooltip.impersonateUser", "Impersona utente")">
-                                                <MudIconButton Icon="Icons.Material.Outlined.PersonOutline" 
+                                                <MudIconButton Icon="@Icons.Material.Outlined.PersonOutline" 
                                                                Color="Color.Warning"
                                                                Size="Size.Small"
                                                                OnClick="@(() => ImpersonateUser(context))"
@@ -358,7 +358,7 @@ else
                                 </RowTemplate>
                                 <NoRecordsContent>
                                     <div class="text-center pa-8">
-                                        <MudIcon Icon="Icons.Material.Outlined.PersonOff" Size="Size.Large" Class="mb-4 mud-text-secondary" />
+                                        <MudIcon Icon="@Icons.Material.Outlined.PersonOff" Size="Size.Large" Class="mb-4 mud-text-secondary" />
                                         <MudText Typo="Typo.h6" Class="mb-2">
                                             @(_users.Any() ? 
                                                 TranslationService.GetTranslation("superAdmin.noUsersMatchFilters", "Nessun utente corrisponde ai filtri applicati") : 
@@ -368,7 +368,7 @@ else
                                         {
                                             <MudButton Variant="Variant.Text" 
                                                        Color="Color.Primary" 
-                                                       StartIcon="Icons.Material.Outlined.Clear"
+                                                       StartIcon="@Icons.Material.Outlined.Clear"
                                                        OnClick="@ClearFilters">
                                                 @TranslationService.GetTranslation("superAdmin.clearFilters", "Cancella filtri")
                                             </MudButton>

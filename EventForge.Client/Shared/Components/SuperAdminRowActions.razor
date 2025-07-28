@@ -6,7 +6,7 @@
     @if (ShowCreate && CanCreate)
     {
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.createNew", "Crea nuovo")">
-            <MudIconButton Icon="Icons.Material.Outlined.Add" 
+            <MudIconButton Icon="@Icons.Material.Outlined.Add" 
                            Color="Color.Success"
                            Size="Size.Small"
                            OnClick="@OnCreate"
@@ -17,7 +17,7 @@
     @if (ShowEdit && CanEdit)
     {
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.editDetails", "Modifica dettagli")">
-            <MudIconButton Icon="Icons.Material.Outlined.Edit" 
+            <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
                            Color="Color.Primary"
                            Size="Size.Small"
                            OnClick="@OnEdit"
@@ -28,7 +28,7 @@
     @if (ShowDelete && CanDelete)
     {
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.deleteItem", "Elimina")">
-            <MudIconButton Icon="Icons.Material.Outlined.Delete" 
+            <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
                            Color="Color.Error"
                            Size="Size.Small"
                            OnClick="@OnDelete"
@@ -39,7 +39,7 @@
     @if (ShowAuditLog && CanViewAudit)
     {
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewAuditHistory", "Visualizza cronologia modifiche")">
-            <MudIconButton Icon="Icons.Material.Outlined.History" 
+            <MudIconButton Icon="@Icons.Material.Outlined.History" 
                            Color="Color.Info"
                            Size="Size.Small"
                            OnClick="@OnAuditLog"
@@ -50,7 +50,7 @@
     @if (ShowExport && CanExport)
     {
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.exportData", "Esporta dati")">
-            <MudIconButton Icon="Icons.Material.Outlined.Download" 
+            <MudIconButton Icon="@Icons.Material.Outlined.Download" 
                            Color="Color.Secondary"
                            Size="Size.Small"
                            OnClick="@OnExport"
@@ -61,7 +61,7 @@
     @if (ShowView && CanView)
     {
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewDetails", "Visualizza dettagli")">
-            <MudIconButton Icon="Icons.Material.Outlined.Visibility" 
+            <MudIconButton Icon="@Icons.Material.Outlined.Visibility" 
                            Color="Color.Info"
                            Size="Size.Small"
                            OnClick="@OnView"
