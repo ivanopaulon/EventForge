@@ -2,6 +2,7 @@
 @using EventForge.Client.Constants
 @using EventForge.Client.Shared.Components
 @using Microsoft.AspNetCore.Components.Web
+@inject ITranslationService TranslationService
 @implements IAsyncDisposable
 
 <MudDrawer @bind-Open="@IsOpen" 
@@ -24,8 +25,8 @@
                        Color="Color.Default" 
                        Size="Size.Small"
                        OnClick="@HandleClose"
-                       Title="Chiudi (ESC)"
-                       aria-label="Chiudi drawer" />
+                       Title="@TranslationService.GetTranslation("drawer.aria.chiudiEsc")"
+                       aria-label="@TranslationService.GetTranslation("drawer.aria.chiudiDrawer")" />
     </div>
     
     <div class="entity-drawer-content flex-grow-1 pa-4" style="overflow-y: auto;">
@@ -44,7 +45,7 @@
         
         @if (_isLoading)
         {
-            <div class="d-flex justify-center mt-4" aria-live="polite" aria-label="Caricamento in corso">
+            <div class="d-flex justify-center mt-4" aria-live="polite" aria-label="@TranslationService.GetTranslation("drawer.aria.caricamentoInCorso")">
                 <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
                 <MudText Class="ml-3">@_loadingMessage</MudText>
             </div>
@@ -60,8 +61,8 @@
                            Color="Color.Primary"
                            OnClick="@SwitchToEdit"
                            StartIcon="@Icons.Material.Filled.Edit"
-                           aria-label="Modifica entità">
-                    @ButtonLabels.Edit
+                           aria-label="@TranslationService.GetTranslation("drawer.aria.modificaEntita")">
+                    @TranslationService.GetTranslation("drawer.button.modifica")
                 </MudButton>
             }
             
@@ -69,8 +70,8 @@
                        Color="Color.Default"
                        OnClick="@HandleClose"
                        StartIcon="@Icons.Material.Filled.Close"
-                       aria-label="Chiudi drawer">
-                @ButtonLabels.Close
+                       aria-label="@TranslationService.GetTranslation("drawer.aria.chiudiDrawer")">
+                @TranslationService.GetTranslation("drawer.button.chiudi")
             </MudButton>
         }
         else
@@ -79,8 +80,8 @@
                        Color="Color.Default"
                        OnClick="@HandleCancel"
                        StartIcon="@Icons.Material.Filled.Cancel"
-                       aria-label="Annulla operazione">
-                @ButtonLabels.Cancel
+                       aria-label="@TranslationService.GetTranslation("drawer.aria.annullaOperazione")">
+                @TranslationService.GetTranslation("drawer.button.annulla")
             </MudButton>
             
             <MudButton Variant="Variant.Filled" 
@@ -239,9 +240,9 @@
             
         return Mode switch
         {
-            EntityDrawerMode.Create => $"Crea {EntityName}",
-            EntityDrawerMode.Edit => $"Modifica {EntityName}",
-            EntityDrawerMode.View => $"Visualizza {EntityName}",
+            EntityDrawerMode.Create => TranslationService.GetTranslation("drawer.title.creaEntita", EntityName),
+            EntityDrawerMode.Edit => TranslationService.GetTranslation("drawer.title.modificaEntita", EntityName),
+            EntityDrawerMode.View => TranslationService.GetTranslation("drawer.title.visualizzaEntita", EntityName),
             _ => EntityName
         };
     }
@@ -250,9 +251,9 @@
     {
         return Mode switch
         {
-            EntityDrawerMode.Create => ButtonLabels.Create,
-            EntityDrawerMode.Edit => ButtonLabels.Save,
-            _ => ButtonLabels.Save
+            EntityDrawerMode.Create => TranslationService.GetTranslation("drawer.button.crea"),
+            EntityDrawerMode.Edit => TranslationService.GetTranslation("drawer.button.salva"),
+            _ => TranslationService.GetTranslation("drawer.button.salva")
         };
     }
 
@@ -270,9 +271,9 @@
     {
         return Mode switch
         {
-            EntityDrawerMode.Create => $"Crea nuovo {EntityName}",
-            EntityDrawerMode.Edit => $"Salva modifiche a {EntityName}",
-            _ => "Salva"
+            EntityDrawerMode.Create => TranslationService.GetTranslation("drawer.aria.creaNuovoEntita", EntityName),
+            EntityDrawerMode.Edit => TranslationService.GetTranslation("drawer.aria.salvaModifiche", EntityName),
+            _ => TranslationService.GetTranslation("drawer.button.salva")
         };
     }
 
@@ -283,7 +284,9 @@
         try
         {
             _isLoading = true;
-            _loadingMessage = Mode == EntityDrawerMode.Create ? "Creando..." : "Salvando...";
+            _loadingMessage = Mode == EntityDrawerMode.Create ? 
+                TranslationService.GetTranslation("drawer.button.creando") : 
+                TranslationService.GetTranslation("drawer.button.salvando");
             StateHasChanged();
 
             if (OnSave.HasDelegate)

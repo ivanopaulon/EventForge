@@ -3,6 +3,8 @@
 ## Overview
 This document outlines the implementation of parametric Drawer components in EventForge, replacing traditional dialog-based CRUD operations with modern, accessible drawer interfaces.
 
+**Important: All drawer components must use localized labels, helper texts, and error messages through the TranslationService.**
+
 ## EntityDrawer Component
 
 ### Core Features
@@ -12,20 +14,65 @@ This document outlines the implementation of parametric Drawer components in Eve
 - **Keyboard navigation**: ESC key support, focus management
 - **Loading states**: Integrated MudProgressCircular indicators
 - **Error handling**: Centralized feedback via Snackbar
+- **Localization support**: All text elements use TranslationService for internationalization
+
+### Localization Requirements
+
+**All drawer components must follow these localization guidelines:**
+
+1. **Field Labels**: Use `drawer.field.*` translation keys
+2. **Helper Text**: Use `drawer.helperText.*` translation keys  
+3. **Error Messages**: Use `drawer.error.*` translation keys
+4. **Titles**: Use `drawer.title.*` translation keys
+5. **Button Labels**: Use `drawer.button.*` translation keys
+6. **ARIA Labels**: Use `drawer.aria.*` translation keys
+
+### Translation Key Naming Convention
+
+Follow this consistent pattern for all drawer translations:
+
+```json
+{
+  "drawer": {
+    "field": {
+      "nome": "Nome",
+      "cognome": "Cognome",
+      "email": "Email"
+    },
+    "helperText": {
+      "nome": "Inserisci il nome della persona",
+      "email": "Indirizzo email valido"
+    },
+    "error": {
+      "nomeObbligatorio": "Il nome è obbligatorio",
+      "emailObbligatoria": "L'email è obbligatoria"  
+    },
+    "title": {
+      "creaUtente": "Crea Utente",
+      "modificaUtente": "Modifica Utente: {0} {1}"
+    }
+  }
+}
+```
 
 ### Basic Usage
 
 ```razor
+@inject ITranslationService TranslationService
+
 <EntityDrawer @bind-IsOpen="@_drawerOpen"
               @bind-Mode="@_drawerMode"
-              EntityName="User"
+              EntityName="@TranslationService.GetTranslation("field.user")"
               Model="@_model"
               OnSave="@HandleSave"
               OnCancel="@HandleCancel"
               OnClose="@HandleClose">
     
     <FormContent>
-        <!-- Your form fields here -->
+        <MudTextField @bind-Value="_model.Name"
+                      Label="@($"{TranslationService.GetTranslation("drawer.field.nome")} *")"
+                      RequiredError="@TranslationService.GetTranslation("drawer.error.nomeObbligatorio")" />
+        <MudText>@TranslationService.GetTranslation("drawer.helperText.nome")</MudText>
     </FormContent>
     
     <ViewContent>
@@ -38,9 +85,11 @@ This document outlines the implementation of parametric Drawer components in Eve
 ### Advanced Parameters
 
 ```razor
+@inject ITranslationService TranslationService
+
 <EntityDrawer @bind-IsOpen="@_drawerOpen"
               @bind-Mode="@_drawerMode"
-              EntityName="User"
+              EntityName="@TranslationService.GetTranslation("field.user")"
               CustomTitle="@_customTitle"
               Model="@_model"
               AllowEdit="true"
@@ -52,7 +101,9 @@ This document outlines the implementation of parametric Drawer components in Eve
     
     <ActionButtons>
         <!-- Custom action buttons -->
-        <MudButton OnClick="@CustomAction">Custom Action</MudButton>
+        <MudButton OnClick="@CustomAction">
+            @TranslationService.GetTranslation("common.customAction")
+        </MudButton>
     </ActionButtons>
     
 </EntityDrawer>
@@ -61,9 +112,11 @@ This document outlines the implementation of parametric Drawer components in Eve
 ## Specialized Drawer Components
 
 ### UserDrawer
-Complete CRUD implementation for user management:
+Complete CRUD implementation for user management with full localization:
 
 ```razor
+@inject ITranslationService TranslationService
+
 <UserDrawer @bind-IsOpen="@_userDrawerOpen" 
             @bind-Mode="@_userDrawerMode"
             OriginalUser="@_selectedUser"
@@ -77,12 +130,15 @@ Features:
 - Role management with checkboxes
 - Password validation for creation
 - User status management
-- Accessibility descriptions for all fields
+- Localized accessibility descriptions for all fields
+- Dynamic helper text based on mode (create/edit)
 
 ### TenantDrawer
-Complete CRUD implementation for tenant management:
+Complete CRUD implementation for tenant management with full localization:
 
 ```razor
+@inject ITranslationService TranslationService
+
 <TenantDrawer @bind-IsOpen="@_tenantDrawerOpen"
               @bind-Mode="@_tenantDrawerMode" 
               OriginalTenant="@_selectedTenant"
@@ -92,11 +148,12 @@ Complete CRUD implementation for tenant management:
 ```
 
 Features:
-- User count tracking
+- User count tracking with localized labels
 - Usage percentage visualization
 - Domain validation
 - Contact email validation
 - Max users configuration
+- Localized status indicators and helper texts
 
 ## Accessibility Implementation
 

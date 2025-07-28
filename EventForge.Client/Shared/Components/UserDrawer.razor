@@ -6,10 +6,11 @@
 @inject ISuperAdminService SuperAdminService
 @inject ISnackbar Snackbar
 @inject ILogger<UserDrawer> Logger
+@inject ITranslationService TranslationService
 
 <EntityDrawer @bind-IsOpen="@IsOpen"
               @bind-Mode="@Mode"
-              EntityName="Utente"
+              EntityName="@TranslationService.GetTranslation("field.username")"
               Model="@_model"
               OnSave="@HandleSave"
               OnCancel="@HandleCancel"
@@ -22,62 +23,64 @@
         <MudGrid>
             <MudItem xs="12" md="6">
                 <MudTextField @bind-Value="_model.FirstName"
-                              Label="Nome *"
+                              Label="@($"{TranslationService.GetTranslation("drawer.field.nome")} *")"
                               Variant="Variant.Outlined"
                               Required="true"
-                              RequiredError="Il nome è obbligatorio"
+                              RequiredError="@TranslationService.GetTranslation("drawer.error.nomeObbligatorio")"
                               MaxLength="100"
                               aria-describedby="firstName-help" />
                 <MudText id="firstName-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                    Inserisci il nome della persona
+                    @TranslationService.GetTranslation("drawer.helperText.nome")
                 </MudText>
             </MudItem>
             
             <MudItem xs="12" md="6">
                 <MudTextField @bind-Value="_model.LastName"
-                              Label="Cognome *"
+                              Label="@($"{TranslationService.GetTranslation("drawer.field.cognome")} *")"
                               Variant="Variant.Outlined"
                               Required="true"
-                              RequiredError="Il cognome è obbligatorio"
+                              RequiredError="@TranslationService.GetTranslation("drawer.error.cognomeObbligatorio")"
                               MaxLength="100"
                               aria-describedby="lastName-help" />
                 <MudText id="lastName-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                    Inserisci il cognome della persona
+                    @TranslationService.GetTranslation("drawer.helperText.cognome")
                 </MudText>
             </MudItem>
             
             <MudItem xs="12" md="6">
                 <MudTextField @bind-Value="_model.Username"
-                              Label="Username *"
+                              Label="@($"{TranslationService.GetTranslation("drawer.field.username")} *")"
                               Variant="Variant.Outlined"
                               Required="true"
-                              RequiredError="L'username è obbligatorio"
+                              RequiredError="@TranslationService.GetTranslation("drawer.error.usernameObbligatorio")"
                               MaxLength="100"
                               ReadOnly="@(Mode == EntityDrawerMode.Edit)"
                               aria-describedby="username-help" />
                 <MudText id="username-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                    @(Mode == EntityDrawerMode.Edit ? "L'username non può essere modificato" : "Username univoco per l'accesso")
+                    @(Mode == EntityDrawerMode.Edit ? 
+                        TranslationService.GetTranslation("drawer.helperText.usernameEdit") : 
+                        TranslationService.GetTranslation("drawer.helperText.usernameCreate"))
                 </MudText>
             </MudItem>
             
             <MudItem xs="12" md="6">
                 <MudTextField @bind-Value="_model.Email"
-                              Label="Email *"
+                              Label="@($"{TranslationService.GetTranslation("drawer.field.email")} *")"
                               Variant="Variant.Outlined"
                               InputType="InputType.Email"
                               Required="true"
-                              RequiredError="L'email è obbligatoria"
+                              RequiredError="@TranslationService.GetTranslation("drawer.error.emailObbligatoria")"
                               MaxLength="256"
                               aria-describedby="email-help" />
                 <MudText id="email-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                    Indirizzo email valido
+                    @TranslationService.GetTranslation("drawer.helperText.email")
                 </MudText>
             </MudItem>
             
             <MudItem xs="12">
                 <MudSelect T="Guid?" 
                            @bind-Value="_model.TenantId" 
-                           Label="Tenant *" 
+                           Label="@($"{TranslationService.GetTranslation("drawer.field.tenant")} *")" 
                            Variant="Variant.Outlined" 
                            Required="true"
                            Disabled="@(Mode == EntityDrawerMode.Edit)"
@@ -88,7 +91,9 @@
                     }
                 </MudSelect>
                 <MudText id="tenant-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                    @(Mode == EntityDrawerMode.Edit ? "Il tenant non può essere modificato" : "Seleziona il tenant di appartenenza")
+                    @(Mode == EntityDrawerMode.Edit ? 
+                        TranslationService.GetTranslation("drawer.helperText.tenantEdit") : 
+                        TranslationService.GetTranslation("drawer.helperText.tenantCreate"))
                 </MudText>
             </MudItem>
             
@@ -96,28 +101,28 @@
             {
                 <MudItem xs="12" md="6">
                     <MudTextField @bind-Value="_password"
-                                  Label="Password *"
+                                  Label="@($"{TranslationService.GetTranslation("drawer.field.password")} *")"
                                   Variant="Variant.Outlined"
                                   InputType="InputType.Password"
                                   Required="true"
-                                  RequiredError="La password è obbligatoria"
+                                  RequiredError="@TranslationService.GetTranslation("drawer.error.passwordObbligatoria")"
                                   aria-describedby="password-help" />
                     <MudText id="password-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                        Minimo 8 caratteri
+                        @TranslationService.GetTranslation("drawer.helperText.password")
                     </MudText>
                 </MudItem>
                 
                 <MudItem xs="12" md="6">
                     <MudTextField @bind-Value="_confirmPassword"
-                                  Label="Conferma Password *"
+                                  Label="@($"{TranslationService.GetTranslation("drawer.field.confermaPassword")} *")"
                                   Variant="Variant.Outlined"
                                   InputType="InputType.Password"
                                   Required="true"
-                                  RequiredError="La conferma password è obbligatoria"
+                                  RequiredError="@TranslationService.GetTranslation("drawer.error.confermaPasswordObbligatoria")"
                                   Validation="@(new Func<string, string?>(ValidatePasswordConfirmation))"
                                   aria-describedby="confirmPassword-help" />
                     <MudText id="confirmPassword-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                        Deve corrispondere alla password
+                        @TranslationService.GetTranslation("drawer.helperText.confermaPassword")
                     </MudText>
                 </MudItem>
             }
@@ -127,19 +132,19 @@
                 <MudItem xs="12" md="6">
                     <MudSwitch T="bool" 
                                @bind-Checked="_model.IsActive"
-                               Label="Utente Attivo"
+                               Label="@TranslationService.GetTranslation("drawer.field.utenteAttivo")"
                                Color="Color.Primary"
                                aria-describedby="active-help" />
                     <MudText id="active-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                        Determina se l'utente può accedere al sistema
+                        @TranslationService.GetTranslation("drawer.helperText.utenteAttivo")
                     </MudText>
                 </MudItem>
             }
             
             <MudItem xs="12">
-                <MudText Typo="Typo.subtitle1" Class="mb-3">Ruoli</MudText>
+                <MudText Typo="Typo.subtitle1" Class="mb-3">@TranslationService.GetTranslation("drawer.field.ruoli")</MudText>
                 <fieldset aria-labelledby="roles-legend">
-                    <legend id="roles-legend" style="display: none;">Seleziona i ruoli dell'utente</legend>
+                    <legend id="roles-legend" style="display: none;">@TranslationService.GetTranslation("drawer.aria.selezionaRuoli")</legend>
                     <MudGrid>
                         @foreach (var role in _availableRoles)
                         {
@@ -161,18 +166,18 @@
             {
                 <MudItem xs="12" md="6">
                     <MudTextField Value="@OriginalUser.Id.ToString()"
-                                  Label="ID Utente"
+                                  Label="@TranslationService.GetTranslation("drawer.field.idUtente")"
                                   Variant="Variant.Outlined"
                                   ReadOnly="true"
-                                  aria-label="Identificativo univoco dell'utente" />
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.identificativoUnico")" />
                 </MudItem>
                 
                 <MudItem xs="12" md="6">
                     <MudTextField Value="@OriginalUser.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
-                                  Label="Data Creazione"
+                                  Label="@TranslationService.GetTranslation("drawer.field.dataCreazione")"
                                   Variant="Variant.Outlined"
                                   ReadOnly="true"
-                                  aria-label="Data e ora di creazione dell'utente" />
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.dataOraCreazione")" />
                 </MudItem>
             }
         </MudGrid>
@@ -182,56 +187,56 @@
         <MudGrid>
             <MudItem xs="12" md="6">
                 <MudTextField Value="@(OriginalUser?.FirstName ?? "")"
-                              Label="Nome"
+                              Label="@TranslationService.GetTranslation("drawer.field.nome")"
                               Variant="Variant.Outlined"
                               ReadOnly="true"
-                              aria-label="Nome dell'utente" />
+                              aria-label="@TranslationService.GetTranslation("drawer.field.nome")" />
             </MudItem>
             
             <MudItem xs="12" md="6">
                 <MudTextField Value="@(OriginalUser?.LastName ?? "")"
-                              Label="Cognome"
+                              Label="@TranslationService.GetTranslation("drawer.field.cognome")"
                               Variant="Variant.Outlined"
                               ReadOnly="true"
-                              aria-label="Cognome dell'utente" />
+                              aria-label="@TranslationService.GetTranslation("drawer.field.cognome")" />
             </MudItem>
             
             <MudItem xs="12" md="6">
                 <MudTextField Value="@(OriginalUser?.Username ?? "")"
-                              Label="Username"
+                              Label="@TranslationService.GetTranslation("drawer.field.username")"
                               Variant="Variant.Outlined"
                               ReadOnly="true"
-                              aria-label="Username dell'utente" />
+                              aria-label="@TranslationService.GetTranslation("drawer.field.username")" />
             </MudItem>
             
             <MudItem xs="12" md="6">
                 <MudTextField Value="@(OriginalUser?.Email ?? "")"
-                              Label="Email"
+                              Label="@TranslationService.GetTranslation("drawer.field.email")"
                               Variant="Variant.Outlined"
                               ReadOnly="true"
-                              aria-label="Email dell'utente" />
+                              aria-label="@TranslationService.GetTranslation("drawer.field.email")" />
             </MudItem>
             
             <MudItem xs="12" md="6">
-                <MudTextField Value="@(OriginalUser?.TenantName ?? "N/A")"
-                              Label="Tenant"
+                <MudTextField Value="@(OriginalUser?.TenantName ?? TranslationService.GetTranslation("common.notAvailable"))"
+                              Label="@TranslationService.GetTranslation("drawer.field.tenant")"
                               Variant="Variant.Outlined"
                               ReadOnly="true"
-                              aria-label="Tenant di appartenenza" />
+                              aria-label="@TranslationService.GetTranslation("drawer.field.tenant")" />
             </MudItem>
             
             <MudItem xs="12" md="6">
                 <MudChip T="string" 
                          Color="@(OriginalUser?.IsActive == true ? Color.Success : Color.Error)" 
                          Size="Size.Medium"
-                         aria-label="@($"Stato utente: {(OriginalUser?.IsActive == true ? "Attivo" : "Inattivo")}")">
-                    @(OriginalUser?.IsActive == true ? "Attivo" : "Inattivo")
+                         aria-label="@TranslationService.GetTranslation("drawer.aria.statoEntita", TranslationService.GetTranslation("common.user"), (OriginalUser?.IsActive == true ? TranslationService.GetTranslation("drawer.status.attivo") : TranslationService.GetTranslation("drawer.status.inattivo")))">
+                    @(OriginalUser?.IsActive == true ? TranslationService.GetTranslation("drawer.status.attivo") : TranslationService.GetTranslation("drawer.status.inattivo"))
                 </MudChip>
             </MudItem>
             
             <MudItem xs="12">
-                <MudText Typo="Typo.subtitle1" Class="mb-3">Ruoli</MudText>
-                <div class="d-flex flex-wrap gap-2" role="list" aria-label="Ruoli assegnati all'utente">
+                <MudText Typo="Typo.subtitle1" Class="mb-3">@TranslationService.GetTranslation("drawer.field.ruoli")</MudText>
+                <div class="d-flex flex-wrap gap-2" role="list" aria-label="@TranslationService.GetTranslation("drawer.aria.ruoliAssegnati")">
                     @if (OriginalUser?.Roles?.Any() == true)
                     {
                         @foreach (var role in OriginalUser.Roles)
@@ -240,14 +245,14 @@
                                      Color="@GetRoleColor(role)" 
                                      Size="Size.Small"
                                      role="listitem"
-                                     aria-label="@($"Ruolo: {role}")">
+                                     aria-label="@TranslationService.GetTranslation("drawer.aria.ruolo", role)">
                                 @role
                             </MudChip>
                         }
                     }
                     else
                     {
-                        <MudText Typo="Typo.body2" Class="text-muted">Nessun ruolo assegnato</MudText>
+                        <MudText Typo="Typo.body2" Class="text-muted">@TranslationService.GetTranslation("drawer.status.nessunRuolo")</MudText>
                     }
                 </div>
             </MudItem>
@@ -256,26 +261,26 @@
             {
                 <MudItem xs="12" md="6">
                     <MudTextField Value="@OriginalUser.Id.ToString()"
-                                  Label="ID Utente"
+                                  Label="@TranslationService.GetTranslation("drawer.field.idUtente")"
                                   Variant="Variant.Outlined"
                                   ReadOnly="true"
-                                  aria-label="Identificativo univoco dell'utente" />
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.identificativoUnico")" />
                 </MudItem>
                 
                 <MudItem xs="12" md="6">
                     <MudTextField Value="@OriginalUser.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
-                                  Label="Data Creazione"
+                                  Label="@TranslationService.GetTranslation("drawer.field.dataCreazione")"
                                   Variant="Variant.Outlined"
                                   ReadOnly="true"
-                                  aria-label="Data e ora di creazione dell'utente" />
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.dataOraCreazione")" />
                 </MudItem>
                 
                 <MudItem xs="12">
-                    <MudTextField Value="@(OriginalUser.LastLoginAt?.ToString("dd/MM/yyyy HH:mm") ?? "Mai effettuato")"
-                                  Label="Ultimo Accesso"
+                    <MudTextField Value="@(OriginalUser.LastLoginAt?.ToString("dd/MM/yyyy HH:mm") ?? TranslationService.GetTranslation("drawer.status.maiEffettuato"))"
+                                  Label="@TranslationService.GetTranslation("drawer.field.ultimoAccesso")"
                                   Variant="Variant.Outlined"
                                   ReadOnly="true"
-                                  aria-label="Data e ora dell'ultimo accesso" />
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.dataOraUltimoAccesso")" />
                 </MudItem>
             }
         </MudGrid>
@@ -374,11 +379,11 @@
                     _selectedRoles[role] = true;
             }
             
-            _customTitle = $"Modifica Utente: {OriginalUser.FirstName} {OriginalUser.LastName}";
+            _customTitle = TranslationService.GetTranslation("drawer.title.modificaUtente", OriginalUser.FirstName, OriginalUser.LastName);
         }
         else if (Mode == EntityDrawerMode.View && OriginalUser != null)
         {
-            _customTitle = $"Visualizza Utente: {OriginalUser.FirstName} {OriginalUser.LastName}";
+            _customTitle = TranslationService.GetTranslation("drawer.title.visualizzaUtente", OriginalUser.FirstName, OriginalUser.LastName);
         }
         else if (Mode == EntityDrawerMode.Create)
         {
@@ -501,11 +506,11 @@
     {
         return role.ToLower() switch
         {
-            "user" => "Accesso base al sistema",
-            "manager" => "Gestione del team e delle risorse",
-            "admin" => "Amministrazione completa del tenant",
-            "superadmin" => "Accesso completo al sistema",
-            _ => "Ruolo personalizzato"
+            "user" => TranslationService.GetTranslation("drawer.role.user"),
+            "manager" => TranslationService.GetTranslation("drawer.role.manager"),
+            "admin" => TranslationService.GetTranslation("drawer.role.admin"),
+            "superadmin" => TranslationService.GetTranslation("drawer.role.superadmin"),
+            _ => TranslationService.GetTranslation("drawer.role.default")
         };
     }
 }
