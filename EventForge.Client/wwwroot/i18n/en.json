@@ -493,6 +493,17 @@
     "exportFunctionality": "Export functionality under development",
     "importFunctionality": "Import functionality under development"
   },
+  "pagination": {
+    "showing": "Showing {0}-{1} of {2}",
+    "itemsPerPage": "Items per page",
+    "firstPage": "First page",
+    "lastPage": "Last page",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "page": "Page {0}",
+    "of": "of {0}",
+    "noData": "No data to display"
+  },
   "tooltip": {
     "view": "View details",
     "edit": "Edit",

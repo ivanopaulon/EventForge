@@ -304,7 +304,19 @@
     "refreshData": "Aggiorna dati",
     "exportData": "Esporta dati",
     "viewDetails": "Visualizza dettagli",
-    "editDetails": "Modifica dettagli"
+    "editDetails": "Modifica dettagli",
+    "sortColumn": "Ordina colonna"
+  },
+  "pagination": {
+    "showing": "Mostrando {0}-{1} di {2}",
+    "itemsPerPage": "Elementi per pagina",
+    "firstPage": "Prima pagina",
+    "lastPage": "Ultima pagina",
+    "previousPage": "Pagina precedente",
+    "nextPage": "Pagina successiva",
+    "page": "Pagina {0}",
+    "of": "di {0}",
+    "noData": "Nessun dato da visualizzare"
   },
   "health": {
     "serverStatus": "Stato del Server",
