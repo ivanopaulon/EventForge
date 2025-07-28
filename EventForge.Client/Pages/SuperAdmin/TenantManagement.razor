@@ -9,10 +9,11 @@
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject ITranslationService TranslationService
 
 <PageTitle>Gestione Tenant - EventForge Super Admin</PageTitle>
 
-<SuperAdminBanner />
+@* SuperAdminBanner removed as per refactoring requirements *@
 
 @if (_isLoading)
 {
@@ -51,101 +52,139 @@ else
         </MudText>
 
         <MudGrid>
-            <!-- Informazioni Utente Corrente -->
-            <MudItem xs="12">
-                <MudCard Elevation="2">
-                    <MudCardContent>
-                        <div class="d-flex align-center">
-                            <MudAvatar Color="Color.Primary" Size="Size.Large" Class="mr-4">
-                                <MudIcon Icon="Icons.Material.Filled.AdminPanelSettings" />
-                            </MudAvatar>
-                            <div>
-                                <MudText Typo="Typo.h5">Super Amministratore: @(_currentUser?.FullName ?? "N/A")</MudText>
-                                <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                                    Gestione completa di tutti i tenant del sistema
-                                </MudText>
-                                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Class="mt-2">Super Admin</MudChip>
-                            </div>
-                        </div>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
+            <!-- User info section removed as per refactoring requirements -->
 
-            <!-- Ricerca e Filtri -->
-            <MudItem xs="12" md="6">
-                <MudCard Elevation="2">
+            <!-- Tenant Selection -->
+            <MudItem xs="12">
+                <MudCard Elevation="2" Class="mb-4">
                     <MudCardHeader>
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">
-                                <MudIcon Icon="Icons.Material.Filled.Search" Class="mr-2" />
-                                Ricerca Tenant
+                                <MudIcon Icon="Icons.Material.Filled.Business" Class="mr-2" />
+                                @TranslationService.GetTranslation("superAdmin.tenantSelection")
                             </MudText>
                         </CardHeaderContent>
                     </MudCardHeader>
                     <MudCardContent>
-                        <MudTextField @bind-Value="_searchTerm"
-                                      @bind-Value:after="OnSearchChanged"
-                                      Label="Cerca per nome o dominio"
-                                      Variant="Variant.Outlined"
-                                      Adornment="Adornment.End"
-                                      AdornmentIcon="Icons.Material.Filled.Search"
-                                      Class="mb-3" />
-                        <MudSelect T="string" @bind-Value="_statusFilter" @bind-Value:after="OnStatusFilterChanged" Label="Stato" Variant="Variant.Outlined">
-                            <MudSelectItem Value="@("all")">Tutti</MudSelectItem>
-                            <MudSelectItem Value="@("active")">Attivi</MudSelectItem>
-                            <MudSelectItem Value="@("inactive")">Inattivi</MudSelectItem>
+                        <MudSelect T="string" @bind-Value="_selectedTenantFilter" @bind-Value:after="OnTenantFilterChanged" 
+                                   Label="@TranslationService.GetTranslation("field.tenant")" 
+                                   Variant="Variant.Outlined"
+                                   FullWidth="true">
+                            <MudSelectItem Value="@("")">@TranslationService.GetTranslation("superAdmin.allTenants")</MudSelectItem>
+                            @foreach (var tenant in _tenants)
+                            {
+                                <MudSelectItem Value="@tenant.Id.ToString()">@tenant.DisplayName</MudSelectItem>
+                            }
                         </MudSelect>
                     </MudCardContent>
                 </MudCard>
             </MudItem>
 
-            <!-- Statistiche -->
-            <MudItem xs="12" md="6">
-                <MudCard Elevation="2">
+            <!-- Statistics -->
+            <MudItem xs="12">
+                <MudCard Elevation="2" Class="mb-4">
                     <MudCardHeader>
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">
                                 <MudIcon Icon="Icons.Material.Filled.Analytics" Class="mr-2" />
-                                Statistiche
+                                @TranslationService.GetTranslation("superAdmin.statistics")
                             </MudText>
                         </CardHeaderContent>
                     </MudCardHeader>
                     <MudCardContent>
-                        <div class="d-flex flex-column ga-3">
-                            <div class="d-flex justify-space-between">
-                                <MudText>Tenant Totali:</MudText>
-                                <MudChip T="string" Color="Color.Info" Size="Size.Small">TODO: API</MudChip>
-                            </div>
-                            <div class="d-flex justify-space-between">
-                                <MudText>Tenant Attivi:</MudText>
-                                <MudChip T="string" Color="Color.Success" Size="Size.Small">TODO: API</MudChip>
-                            </div>
-                            <div class="d-flex justify-space-between">
-                                <MudText>Utenti Totali:</MudText>
-                                <MudChip T="string" Color="Color.Primary" Size="Size.Small">TODO: API</MudChip>
-                            </div>
-                        </div>
+                        <MudGrid>
+                            <MudItem xs="12" sm="4">
+                                <div class="d-flex justify-space-between">
+                                    <MudText>@TranslationService.GetTranslation("superAdmin.totalTenants"):</MudText>
+                                    <MudChip T="string" Color="Color.Info" Size="Size.Small">@(_statistics?.TotalTenants ?? 0)</MudChip>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <div class="d-flex justify-space-between">
+                                    <MudText>@TranslationService.GetTranslation("superAdmin.activeTenants"):</MudText>
+                                    <MudChip T="string" Color="Color.Success" Size="Size.Small">@(_statistics?.ActiveTenants ?? 0)</MudChip>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <div class="d-flex justify-space-between">
+                                    <MudText>@TranslationService.GetTranslation("superAdmin.totalUsers"):</MudText>
+                                    <MudChip T="string" Color="Color.Primary" Size="Size.Small">@(_statistics?.TotalUsers ?? 0)</MudChip>
+                                </div>
+                            </MudItem>
+                        </MudGrid>
                     </MudCardContent>
                 </MudCard>
             </MudItem>
 
-            <!-- Lista Tenant -->
+            <!-- Search Filters -->
+            <MudItem xs="12">
+                <MudCard Elevation="2" Class="mb-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Search" Class="mr-2" />
+                                @TranslationService.GetTranslation("superAdmin.searchFilters")
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudGrid>
+                            <MudItem xs="12" md="8">
+                                <MudTextField @bind-Value="_searchTerm"
+                                              @bind-Value:after="OnSearchChanged"
+                                              Label="@TranslationService.GetTranslation("superAdmin.searchByNameOrDomain")"
+                                              Variant="Variant.Outlined"
+                                              Adornment="Adornment.End"
+                                              AdornmentIcon="Icons.Material.Filled.Search"
+                                              FullWidth="true" />
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudSelect T="string" @bind-Value="_statusFilter" @bind-Value:after="OnStatusFilterChanged" 
+                                           Label="@TranslationService.GetTranslation("field.status")" 
+                                           Variant="Variant.Outlined"
+                                           FullWidth="true">
+                                    <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("common.selectAll")</MudSelectItem>
+                                    <MudSelectItem Value="@("active")">@TranslationService.GetTranslation("field.active")</MudSelectItem>
+                                    <MudSelectItem Value="@("inactive")">@TranslationService.GetTranslation("field.inactive")</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                        </MudGrid>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Tenant List -->
             <MudItem xs="12">
                 <MudCard Elevation="2">
                     <MudCardHeader>
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">
                                 <MudIcon Icon="Icons.Material.Filled.List" Class="mr-2" />
-                                Lista Tenant
+                                @TranslationService.GetTranslation("superAdmin.tenantList")
                             </MudText>
                         </CardHeaderContent>
                         <CardHeaderActions>
-                            <MudButton Variant="Variant.Filled" 
-                                       Color="Color.Primary" 
-                                       StartIcon="Icons.Material.Filled.Add"
-                                       OnClick="@OpenCreateTenantDrawer">
-                                Nuovo Tenant
-                            </MudButton>
+                            <!-- Quick Actions Toolbar -->
+                            <MudToolBar Dense="true" WrapContent="true">
+                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refresh")">
+                                    <MudIconButton Icon="Icons.Material.Filled.Refresh" 
+                                                   Color="Color.Primary"
+                                                   OnClick="@LoadTenantsAsync" />
+                                </MudTooltip>
+                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.export")">
+                                    <MudIconButton Icon="Icons.Material.Filled.Download" 
+                                                   Color="Color.Secondary"
+                                                   OnClick="@ExportTenants" />
+                                </MudTooltip>
+                                <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.newTenant")">
+                                    <MudButton Variant="Variant.Filled" 
+                                               Color="Color.Primary" 
+                                               StartIcon="Icons.Material.Filled.Add"
+                                               OnClick="@OpenCreateTenantDrawer">
+                                        @TranslationService.GetTranslation("superAdmin.newTenant")
+                                    </MudButton>
+                                </MudTooltip>
+                            </MudToolBar>
                         </CardHeaderActions>
                     </MudCardHeader>
                     <MudCardContent>
@@ -155,60 +194,70 @@ else
                         }
                         else
                         {
-                            <!-- Tenant Table -->
+                            <!-- Tenant Table with Sortable Columns -->
                             <MudTable T="TenantResponseDto" 
                                       Items="_filteredTenants" 
                                       Hover="true" 
                                       Striped="true"
                                       Loading="_isLoadingTenants"
-                                      LoadingProgressColor="Color.Info">
+                                      LoadingProgressColor="Color.Info"
+                                      SortLabel="@TranslationService.GetTranslation("tooltip.sort")"
+                                      AllowUnsorted="false">
                                 <HeaderContent>
-                                    <MudTh>Nome</MudTh>
-                                    <MudTh>Display Name</MudTh>
-                                    <MudTh>Dominio</MudTh>
-                                    <MudTh>Email Contatto</MudTh>
-                                    <MudTh>Stato</MudTh>
-                                    <MudTh>Max Utenti</MudTh>
-                                    <MudTh>Creato</MudTh>
-                                    <MudTh>Azioni</MudTh>
+                                    <MudTh><MudTableSortLabel SortBy="@(new Func<TenantResponseDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name")</MudTableSortLabel></MudTh>
+                                    <MudTh><MudTableSortLabel SortBy="@(new Func<TenantResponseDto, object>(x => x.DisplayName))">@TranslationService.GetTranslation("field.displayName")</MudTableSortLabel></MudTh>
+                                    <MudTh><MudTableSortLabel SortBy="@(new Func<TenantResponseDto, object>(x => x.Domain ?? string.Empty))">@TranslationService.GetTranslation("field.domain")</MudTableSortLabel></MudTh>
+                                    <MudTh><MudTableSortLabel SortBy="@(new Func<TenantResponseDto, object>(x => x.ContactEmail))">@TranslationService.GetTranslation("field.contactEmail")</MudTableSortLabel></MudTh>
+                                    <MudTh><MudTableSortLabel SortBy="@(new Func<TenantResponseDto, object>(x => x.IsActive))">@TranslationService.GetTranslation("field.status")</MudTableSortLabel></MudTh>
+                                    <MudTh><MudTableSortLabel SortBy="@(new Func<TenantResponseDto, object>(x => x.MaxUsers))">@TranslationService.GetTranslation("field.maxUsers")</MudTableSortLabel></MudTh>
+                                    <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<TenantResponseDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt")</MudTableSortLabel></MudTh>
+                                    <MudTh>@TranslationService.GetTranslation("common.actions")</MudTh>
                                 </HeaderContent>
                                 <RowTemplate>
-                                    <MudTd DataLabel="Nome">
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.name")">
                                         <MudText>@context.Name</MudText>
                                     </MudTd>
-                                    <MudTd DataLabel="Display Name">
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.displayName")">
                                         <MudText>@context.DisplayName</MudText>
                                     </MudTd>
-                                    <MudTd DataLabel="Dominio">
-                                        <MudText>@(context.Domain ?? "N/A")</MudText>
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.domain")">
+                                        <MudText>@(context.Domain ?? TranslationService.GetTranslation("common.notAvailable"))</MudText>
                                     </MudTd>
-                                    <MudTd DataLabel="Email Contatto">
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.contactEmail")">
                                         <MudText>@context.ContactEmail</MudText>
                                     </MudTd>
-                                    <MudTd DataLabel="Stato">
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.status")">
                                         <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" 
                                                  Size="Size.Small">
-                                            @(context.IsActive ? "Attivo" : "Inattivo")
+                                            @(context.IsActive ? TranslationService.GetTranslation("field.active") : TranslationService.GetTranslation("field.inactive"))
                                         </MudChip>
                                     </MudTd>
-                                    <MudTd DataLabel="Max Utenti">
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.maxUsers")">
                                         <MudText>@context.MaxUsers</MudText>
                                     </MudTd>
-                                    <MudTd DataLabel="Creato">
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt")">
                                         <MudText>@context.CreatedAt.ToString("dd/MM/yyyy")</MudText>
                                     </MudTd>
-                                    <MudTd DataLabel="Azioni">
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("common.actions")">
                                         <MudButtonGroup Color="Color.Primary" Variant="Variant.Text" Size="Size.Small">
-                                            <MudIconButton Icon="Icons.Material.Filled.Visibility" 
-                                                           Title="Visualizza"
-                                                           OnClick="@(() => ViewTenant(context))" />
-                                            <MudIconButton Icon="Icons.Material.Filled.Edit" 
-                                                           Title="Modifica"
-                                                           OnClick="@(() => EditTenant(context))" />
-                                            <MudIconButton Icon="@(context.IsActive ? Icons.Material.Filled.Block : Icons.Material.Filled.CheckCircle)" 
-                                                           Title="@(context.IsActive ? "Disabilita" : "Abilita")"
-                                                           OnClick="@(() => ToggleTenantStatus(context))" 
-                                                           Color="@(context.IsActive ? Color.Warning : Color.Success)" />
+                                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewTenant")">
+                                                <MudIconButton Icon="Icons.Material.Filled.Visibility" 
+                                                               Color="Color.Info"
+                                                               Size="Size.Small"
+                                                               OnClick="@(() => ViewTenant(context))" />
+                                            </MudTooltip>
+                                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.editTenant")">
+                                                <MudIconButton Icon="Icons.Material.Filled.Edit" 
+                                                               Color="Color.Primary"
+                                                               Size="Size.Small"
+                                                               OnClick="@(() => EditTenant(context))" />
+                                            </MudTooltip>
+                                            <MudTooltip Text="@(context.IsActive ? TranslationService.GetTranslation("tooltip.disableTenant") : TranslationService.GetTranslation("tooltip.enableTenant"))">
+                                                <MudIconButton Icon="@(context.IsActive ? Icons.Material.Filled.Block : Icons.Material.Filled.CheckCircle)" 
+                                                               Color="@(context.IsActive ? Color.Warning : Color.Success)"
+                                                               Size="Size.Small"
+                                                               OnClick="@(() => ToggleTenantStatus(context))" />
+                                            </MudTooltip>
                                         </MudButtonGroup>
                                     </MudTd>
                                 </RowTemplate>
@@ -242,6 +291,7 @@ else
     private UserDto? _currentUser;
     private string _searchTerm = string.Empty;
     private string _statusFilter = "all";
+    private string _selectedTenantFilter = string.Empty;
     
     // Data
     private List<TenantResponseDto> _tenants = new();
@@ -256,7 +306,9 @@ else
              (!string.IsNullOrEmpty(t.Domain) && t.Domain.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))) &&
             (_statusFilter == "all" || 
              (_statusFilter == "active" && t.IsActive) ||
-             (_statusFilter == "inactive" && !t.IsActive)));
+             (_statusFilter == "inactive" && !t.IsActive)) &&
+            (string.IsNullOrEmpty(_selectedTenantFilter) ||
+             t.Id.ToString() == _selectedTenantFilter));
 
     protected override async Task OnInitializedAsync()
     {
@@ -372,12 +424,16 @@ else
 
     private async Task ToggleTenantStatus(TenantResponseDto tenant)
     {
-        var action = tenant.IsActive ? "disabilitare" : "abilitare";
+        var action = tenant.IsActive ? TranslationService.GetTranslation("superAdmin.disable") : TranslationService.GetTranslation("superAdmin.enable");
+        var confirmMessage = tenant.IsActive 
+            ? TranslationService.GetTranslation("superAdmin.confirmDisable", tenant.DisplayName)
+            : TranslationService.GetTranslation("superAdmin.confirmEnable", tenant.DisplayName);
+            
         var confirm = await DialogService.ShowMessageBox(
-            "Conferma",
-            $"Sei sicuro di voler {action} il tenant '{tenant.DisplayName}'?",
-            yesText: "Conferma",
-            cancelText: "Annulla");
+            TranslationService.GetTranslation("common.confirm"),
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.confirm"),
+            cancelText: TranslationService.GetTranslation("common.cancel"));
 
         if (confirm == true)
         {
@@ -386,13 +442,31 @@ else
                 // For now, just toggle locally - implement actual API call when available
                 tenant.IsActive = !tenant.IsActive;
                 await LoadStatisticsAsync();
-                Snackbar.Add($"Tenant {(tenant.IsActive ? "abilitato" : "disabilitato")} con successo!", Severity.Success);
+                
+                var successMessage = tenant.IsActive 
+                    ? TranslationService.GetTranslation("superAdmin.tenantEnabled")
+                    : TranslationService.GetTranslation("superAdmin.tenantDisabled");
+                    
+                Snackbar.Add(successMessage, Severity.Success);
             }
             catch (Exception ex)
             {
                 Snackbar.Add($"Errore nel cambio stato del tenant: {ex.Message}", Severity.Error);
             }
         }
+    }
+
+    private async Task OnTenantFilterChanged()
+    {
+        await Task.CompletedTask;
+        StateHasChanged();
+    }
+
+    private async Task ExportTenants()
+    {
+        // TODO: Implement export functionality
+        Snackbar.Add("Export functionality will be implemented soon.", Severity.Info);
+        await Task.CompletedTask;
     }
 
     private async Task OnSearchChanged()
