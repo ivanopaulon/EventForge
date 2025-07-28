@@ -1,12 +1,12 @@
 @using MudBlazor
 @inject ITranslationService TranslationService
 
-<!-- Standardized toolbar with semantic MudIconButton components -->
+<!-- Standardized toolbar with semantic MudIconButton components using Outlined icons -->
 <MudToolBar Dense="true" WrapContent="true" Class="pa-1">
     @if (ShowRefresh)
     {
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")">
-            <MudIconButton Icon="Icons.Material.Filled.Refresh" 
+            <MudIconButton Icon="Icons.Material.Outlined.Refresh" 
                            Color="Color.Primary"
                            Size="Size.Medium"
                            OnClick="@OnRefresh"
@@ -15,10 +15,22 @@
         </MudTooltip>
     }
 
+    @if (ShowCreate)
+    {
+        <MudTooltip Text="@CreateTooltip">
+            <MudIconButton Icon="@CreateIcon"
+                           Color="Color.Success" 
+                           Size="Size.Medium"
+                           OnClick="@OnCreate"
+                           Disabled="@(IsLoading || !CanCreate)"
+                           aria-label="@CreateTooltip" />
+        </MudTooltip>
+    }
+
     @if (ShowExport)
     {
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.exportData", "Esporta dati")">
-            <MudIconButton Icon="Icons.Material.Filled.FileDownload" 
+            <MudIconButton Icon="Icons.Material.Outlined.Download" 
                            Color="Color.Secondary"
                            Size="Size.Medium"
                            OnClick="@OnExport"
@@ -27,23 +39,11 @@
         </MudTooltip>
     }
 
-    @if (ShowCreate)
-    {
-        <MudDivider Vertical="true" Class="mx-1" />
-        <MudTooltip Text="@CreateTooltip">
-            <MudIconButton Icon="@CreateIcon"
-                           Color="Color.Primary" 
-                           Size="Size.Medium"
-                           OnClick="@OnCreate"
-                           Disabled="@(IsLoading || !CanCreate)"
-                           aria-label="@CreateTooltip" />
-        </MudTooltip>
-    }
-
     @if (ShowAuditLog)
     {
+        <MudDivider Vertical="true" Class="mx-1" />
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewAuditLog", "Visualizza log audit")">
-            <MudIconButton Icon="Icons.Material.Filled.History" 
+            <MudIconButton Icon="Icons.Material.Outlined.History" 
                            Color="Color.Info"
                            Size="Size.Medium"
                            OnClick="@OnAuditLog"
@@ -80,7 +80,7 @@
     /// <summary>
     /// Icon for the create button.
     /// </summary>
-    [Parameter] public string CreateIcon { get; set; } = Icons.Material.Filled.Add;
+    [Parameter] public string CreateIcon { get; set; } = Icons.Material.Outlined.Add;
 
     /// <summary>
     /// Tooltip text for the create button.

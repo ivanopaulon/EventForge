@@ -11,7 +11,7 @@
         <MudText Typo="Typo.h6" Class="flex-grow-1">
             @SectionTitle
         </MudText>
-        <MudIconButton Icon="@(IsExpanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+        <MudIconButton Icon="@(IsExpanded ? Icons.Material.Outlined.ExpandLess : Icons.Material.Outlined.ExpandMore)"
                        Size="Size.Small"
                        Color="Color.Inherit"
                        aria-label="@TranslationService.GetTranslation("tooltip.toggleSection", "Mostra/Nascondi sezione {0}", SectionTitle)" />
@@ -34,7 +34,7 @@
     /// <summary>
     /// Icon to display next to the section title.
     /// </summary>
-    [Parameter] public string SectionIcon { get; set; } = Icons.Material.Filled.ExpandMore;
+    [Parameter] public string SectionIcon { get; set; } = Icons.Material.Outlined.ExpandMore;
 
     /// <summary>
     /// Whether the section is expanded by default. Defaults to false as per issue requirements.
