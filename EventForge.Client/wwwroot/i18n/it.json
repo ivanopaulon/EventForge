@@ -170,6 +170,7 @@
     "searchFilters": "Filtri di Ricerca",
     "advancedFilters": "Filtri Avanzati",
     "statistics": "Statistiche",
+    "showStatistics": "Mostra Statistiche",
     "totalTenants": "Tenant Totali",
     "activeTenants": "Tenant Attivi",
     "totalUsers": "Utenti Totali",
@@ -295,7 +296,14 @@
     "exportLogs": "Esporta log",
     "clearLogs": "Cancella log",
     "viewAudit": "Visualizza dettagli audit",
-    "exportAudit": "Esporta audit trail"
+    "exportAudit": "Esporta audit trail",
+    "toggleTenantSelector": "Mostra/Nascondi selezione tenant",
+    "toggleStatistics": "Mostra/Nascondi statistiche",
+    "toggleFilters": "Mostra/Nascondi filtri avanzati",
+    "refreshData": "Aggiorna dati",
+    "exportData": "Esporta dati",
+    "viewDetails": "Visualizza dettagli",
+    "editDetails": "Modifica dettagli"
   },
   "health": {
     "serverStatus": "Stato del Server",
