@@ -41,7 +41,9 @@
     "version": "Versione",
     "language": "Lingua",
     "returnToLogin": "Torna al Login",
-    "notAvailable": "N/D"
+    "notAvailable": "N/D",
+    "featureNotImplemented": "Funzionalità in fase di implementazione",
+    "never": "Mai"
   },
   "navigation": {
     "home": "Home",
@@ -267,7 +269,10 @@
     "maxUsersHelper": "Numero massimo di utenti consentiti",
     "maxUsers": "Massimo Utenti",
     "createTenant": "Crea Tenant",
-    "optional": "Opzionale"
+    "optional": "Opzionale",
+    "auditHistoryPlaceholder": "Visualizzazione cronologia audit per {0} - Funzionalità in fase di implementazione",
+    "inactiveTenants": "Tenant Inattivi",
+    "eventManagement": "Gestione Eventi"
   },
   "tooltip": {
     "view": "Visualizza dettagli",
@@ -305,7 +310,16 @@
     "exportData": "Esporta dati",
     "viewDetails": "Visualizza dettagli",
     "editDetails": "Modifica dettagli",
-    "sortColumn": "Ordina colonna"
+    "sortColumn": "Ordina colonna",
+    "createNew": "Crea nuovo elemento",
+    "viewItem": "Visualizza {0}",
+    "editItem": "Modifica {0}",
+    "deleteItem": "Elimina {0}",
+    "activateItem": "Attiva {0}",
+    "deactivateItem": "Disattiva {0}",
+    "viewAuditHistory": "Visualizza cronologia modifiche",
+    "toggleSection": "Mostra/Nascondi sezione {0}",
+    "viewAuditLog": "Visualizza log audit"
   },
   "pagination": {
     "showing": "Mostrando {0}-{1} di {2}",
@@ -317,6 +331,14 @@
     "page": "Pagina {0}",
     "of": "di {0}",
     "noData": "Nessun dato da visualizzare"
+  },
+  "table": {
+    "pagerInfo": "{first_item}-{last_item} di {all_items}",
+    "rowsPerPage": "Righe per pagina",
+    "loading": "Caricamento in corso...",
+    "noRecords": "Nessun record trovato",
+    "sortBy": "Ordina per {0}",
+    "filterBy": "Filtra per {0}"
   },
   "health": {
     "serverStatus": "Stato del Server",

@@ -42,7 +42,7 @@ else
 {
     <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
         <MudText Typo="Typo.h3" Class="mb-8">
-            <MudIcon Icon="Icons.Material.Filled.History" Class="mr-3" />
+            <MudIcon Icon="Icons.Material.Outlined.History" Class="mr-3" />
             @TranslationService.GetTranslation("superAdmin.auditTrail", "Audit Trail")
         </MudText>
 
@@ -78,7 +78,7 @@ else
                             <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refresh", "Aggiorna dati")">
                                 <MudButton Variant="Variant.Outlined" 
                                            Color="Color.Primary" 
-                                           StartIcon="Icons.Material.Filled.Refresh"
+                                           StartIcon="Icons.Material.Outlined.Refresh"
                                            FullWidth="true"
                                            OnClick="@(() => RefreshAuditTrail())">
                                     @TranslationService.GetTranslation("common.refresh", "Aggiorna")
@@ -115,7 +115,7 @@ else
                     <MudCardHeader>
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">
-                                <MudIcon Icon="Icons.Material.Filled.FilterList" Class="mr-2" />
+                                <MudIcon Icon="Icons.Material.Outlined.FilterList" Class="mr-2" />
                                 @TranslationService.GetTranslation("superAdmin.advancedFilters", "Filtri Avanzati")
                             </MudText>
                         </CardHeaderContent>
@@ -170,7 +170,7 @@ else
                             <MudTooltip Text="@TranslationService.GetTranslation("tooltip.search", "Cerca con filtri applicati")">
                                 <MudButton Variant="Variant.Filled" 
                                            Color="Color.Primary" 
-                                           StartIcon="Icons.Material.Filled.Search"
+                                           StartIcon="Icons.Material.Outlined.Search"
                                            OnClick="@(() => SearchAuditTrail())">
                                     @TranslationService.GetTranslation("common.search", "Cerca")
                                 </MudButton>
@@ -178,7 +178,7 @@ else
                             <MudTooltip Text="@TranslationService.GetTranslation("tooltip.clearFilters", "Pulisci tutti i filtri")">
                                 <MudButton Variant="Variant.Outlined" 
                                            Color="Color.Secondary" 
-                                           StartIcon="Icons.Material.Filled.Clear"
+                                           StartIcon="Icons.Material.Outlined.Clear"
                                            OnClick="@(() => ClearFilters())">
                                     @TranslationService.GetTranslation("superAdmin.clearFilters", "Pulisci Filtri")
                                 </MudButton>
@@ -209,7 +209,7 @@ else
                                                          ToggledColor="Color.Secondary" />
                                 </MudTooltip>
                                 <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refresh", "Aggiorna dati")">
-                                    <MudIconButton Icon="Icons.Material.Filled.Refresh" 
+                                    <MudIconButton Icon="Icons.Material.Outlined.Refresh" 
                                                    Color="Color.Primary"
                                                    OnClick="@RefreshAuditTrail" />
                                 </MudTooltip>

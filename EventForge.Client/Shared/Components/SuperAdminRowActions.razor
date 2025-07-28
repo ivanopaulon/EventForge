@@ -1,23 +1,23 @@
 @using MudBlazor
 @inject ITranslationService TranslationService
 
-<!-- Standardized row actions for CRUD operations -->
+<!-- Standardized row actions for CRUD operations - ORDERED: Create, Edit, Delete, AuditLog, Export -->
 <MudButtonGroup Color="Color.Primary" Variant="Variant.Text" Size="Size.Small">
-    @if (ShowView && CanView)
+    @if (ShowCreate && CanCreate)
     {
-        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewDetails", "Visualizza dettagli")">
-            <MudIconButton Icon="Icons.Material.Filled.Visibility" 
-                           Color="Color.Info"
+        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.createNew", "Crea nuovo")">
+            <MudIconButton Icon="Icons.Material.Outlined.Add" 
+                           Color="Color.Success"
                            Size="Size.Small"
-                           OnClick="@OnView"
-                           aria-label="@TranslationService.GetTranslation("tooltip.viewItem", "Visualizza {0}", EntityName)" />
+                           OnClick="@OnCreate"
+                           aria-label="@TranslationService.GetTranslation("tooltip.createNew", "Crea nuovo {0}", EntityName)" />
         </MudTooltip>
     }
 
     @if (ShowEdit && CanEdit)
     {
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.editDetails", "Modifica dettagli")">
-            <MudIconButton Icon="Icons.Material.Filled.Edit" 
+            <MudIconButton Icon="Icons.Material.Outlined.Edit" 
                            Color="Color.Primary"
                            Size="Size.Small"
                            OnClick="@OnEdit"
@@ -25,10 +25,21 @@
         </MudTooltip>
     }
 
+    @if (ShowDelete && CanDelete)
+    {
+        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.deleteItem", "Elimina")">
+            <MudIconButton Icon="Icons.Material.Outlined.Delete" 
+                           Color="Color.Error"
+                           Size="Size.Small"
+                           OnClick="@OnDelete"
+                           aria-label="@TranslationService.GetTranslation("tooltip.deleteItem", "Elimina {0}", EntityName)" />
+        </MudTooltip>
+    }
+
     @if (ShowAuditLog && CanViewAudit)
     {
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewAuditHistory", "Visualizza cronologia modifiche")">
-            <MudIconButton Icon="Icons.Material.Filled.History" 
+            <MudIconButton Icon="Icons.Material.Outlined.History" 
                            Color="Color.Info"
                            Size="Size.Small"
                            OnClick="@OnAuditLog"
@@ -36,25 +47,36 @@
         </MudTooltip>
     }
 
+    @if (ShowExport && CanExport)
+    {
+        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.exportData", "Esporta dati")">
+            <MudIconButton Icon="Icons.Material.Outlined.Download" 
+                           Color="Color.Secondary"
+                           Size="Size.Small"
+                           OnClick="@OnExport"
+                           aria-label="@TranslationService.GetTranslation("tooltip.exportData", "Esporta {0}", EntityName)" />
+        </MudTooltip>
+    }
+
+    @if (ShowView && CanView)
+    {
+        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewDetails", "Visualizza dettagli")">
+            <MudIconButton Icon="Icons.Material.Outlined.Visibility" 
+                           Color="Color.Info"
+                           Size="Size.Small"
+                           OnClick="@OnView"
+                           aria-label="@TranslationService.GetTranslation("tooltip.viewItem", "Visualizza {0}", EntityName)" />
+        </MudTooltip>
+    }
+
     @if (ShowToggleStatus && CanToggleStatus)
     {
         <MudTooltip Text="@(IsActive ? TranslationService.GetTranslation("tooltip.deactivateItem", "Disattiva") : TranslationService.GetTranslation("tooltip.activateItem", "Attiva"))">
-            <MudIconButton Icon="@(IsActive ? Icons.Material.Filled.Block : Icons.Material.Filled.CheckCircle)" 
+            <MudIconButton Icon="@(IsActive ? Icons.Material.Outlined.Block : Icons.Material.Outlined.CheckCircle)" 
                            Color="@(IsActive ? Color.Warning : Color.Success)"
                            Size="Size.Small"
                            OnClick="@OnToggleStatus"
                            aria-label="@(IsActive ? TranslationService.GetTranslation("tooltip.deactivateItem", "Disattiva {0}", EntityName) : TranslationService.GetTranslation("tooltip.activateItem", "Attiva {0}", EntityName))" />
-        </MudTooltip>
-    }
-
-    @if (ShowDelete && CanDelete)
-    {
-        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.deleteItem", "Elimina")">
-            <MudIconButton Icon="Icons.Material.Filled.Delete" 
-                           Color="Color.Error"
-                           Size="Size.Small"
-                           OnClick="@OnDelete"
-                           aria-label="@TranslationService.GetTranslation("tooltip.deleteItem", "Elimina {0}", EntityName)" />
         </MudTooltip>
     }
 
@@ -89,9 +111,19 @@
     [Parameter] public bool ShowToggleStatus { get; set; } = false;
 
     /// <summary>
-    /// Whether to show the delete action.
+    /// Whether to show the delete action. NOTE: Delete is ALWAYS present as per requirements.
     /// </summary>
-    [Parameter] public bool ShowDelete { get; set; } = false;
+    [Parameter] public bool ShowDelete { get; set; } = true;
+
+    /// <summary>
+    /// Whether to show the create action.
+    /// </summary>
+    [Parameter] public bool ShowCreate { get; set; } = false;
+
+    /// <summary>
+    /// Whether to show the export action.
+    /// </summary>
+    [Parameter] public bool ShowExport { get; set; } = false;
 
     /// <summary>
     /// Whether the current user can view this item.
@@ -117,6 +149,16 @@
     /// Whether the current user can delete this item.
     /// </summary>
     [Parameter] public bool CanDelete { get; set; } = true;
+
+    /// <summary>
+    /// Whether the current user can create new items.
+    /// </summary>
+    [Parameter] public bool CanCreate { get; set; } = true;
+
+    /// <summary>
+    /// Whether the current user can export data.
+    /// </summary>
+    [Parameter] public bool CanExport { get; set; } = true;
 
     /// <summary>
     /// Whether the item is currently active (for toggle status).
@@ -147,6 +189,16 @@
     /// Event callback for delete action.
     /// </summary>
     [Parameter] public EventCallback OnDelete { get; set; }
+
+    /// <summary>
+    /// Event callback for create action.
+    /// </summary>
+    [Parameter] public EventCallback OnCreate { get; set; }
+
+    /// <summary>
+    /// Event callback for export action.
+    /// </summary>
+    [Parameter] public EventCallback OnExport { get; set; }
 
     /// <summary>
     /// Additional custom actions to render after the standard buttons.

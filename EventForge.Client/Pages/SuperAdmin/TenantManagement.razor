@@ -12,14 +12,14 @@
 @inject ITranslationService TranslationService
 
 <SuperAdminPageLayout PageTitle="@TranslationService.GetTranslation("superAdmin.tenantManagement", "Gestione Tenant")"
-                      PageIcon="@Icons.Material.Filled.Business"
+                      PageIcon="@Icons.Material.Outlined.Business"
                       IsLoading="_isLoading"
                       IsAuthorized="_isAuthorized"
                       OnNavigateHome="@(() => NavigationManager.NavigateTo("/"))">
 
     <!-- Tenant Selection Filter -->
     <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.tenantSelection", "Selezione Tenant")"
-                                  SectionIcon="@Icons.Material.Filled.Business"
+                                  SectionIcon="@Icons.Material.Outlined.Business"
                                   @bind-IsExpanded="_tenantSelectorExpanded">
         <MudSelect T="string" @bind-Value="_selectedTenantFilter" @bind-Value:after="OnTenantFilterChanged" 
                    Label="@TranslationService.GetTranslation("field.tenant", "Tenant")" 
@@ -37,7 +37,7 @@
 
     <!-- Statistics Section -->
     <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.showStatistics", "Mostra Statistiche")"
-                                  SectionIcon="@Icons.Material.Filled.Analytics"
+                                  SectionIcon="@Icons.Material.Outlined.Analytics"
                                   @bind-IsExpanded="_statisticsExpanded">
         <MudGrid Spacing="2">
             <MudItem xs="12" sm="6" md="3">
@@ -69,7 +69,7 @@
 
     <!-- Advanced Filters Section -->
     <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.advancedFilters", "Filtri Avanzati")"
-                                  SectionIcon="@Icons.Material.Filled.FilterList"
+                                  SectionIcon="@Icons.Material.Outlined.FilterList"
                                   @bind-IsExpanded="_filtersExpanded">
         <div class="d-flex gap-4 align-center flex-wrap">
             <MudTextField @bind-Value="_searchTerm"
@@ -78,7 +78,7 @@
                           Placeholder="@TranslationService.GetTranslation("superAdmin.searchPlaceholder", "Inserisci testo da cercare...")"
                           Variant="Variant.Outlined"
                           Adornment="Adornment.End"
-                          AdornmentIcon="Icons.Material.Filled.Search"
+                          AdornmentIcon="Icons.Material.Outlined.Search"
                           Clearable="true"
                           Style="flex: 2;" />
             <MudSelect T="string" @bind-Value="_statusFilter" @bind-Value:after="OnStatusFilterChanged" 
@@ -99,7 +99,7 @@
         <MudCardHeader Class="pa-2">
             <CardHeaderContent>
                 <MudText Typo="Typo.h6">
-                    <MudIcon Icon="@Icons.Material.Filled.Business" Class="mr-2" />
+                    <MudIcon Icon="@Icons.Material.Outlined.Business" Class="mr-2" />
                     @TranslationService.GetTranslation("superAdmin.tenantList", "Lista Tenant")
                     <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
                         (@_filteredTenants.Count() @TranslationService.GetTranslation("superAdmin.itemsFound", "elementi trovati"))
@@ -111,7 +111,7 @@
                                    ShowExport="true" 
                                    ShowCreate="true"
                                    ShowAuditLog="false"
-                                   CreateIcon="@Icons.Material.Filled.Add"
+                                   CreateIcon="@Icons.Material.Outlined.Add"
                                    CreateTooltip="@TranslationService.GetTranslation("superAdmin.createNewTenant", "Crea nuovo tenant")"
                                    IsLoading="_isLoadingTenants"
                                    OnRefresh="@LoadTenantsAsync"
@@ -166,7 +166,7 @@
                         <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
                             <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" 
                                      Size="Size.Small"
-                                     Icon="@(context.IsActive ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)">
+                                     Icon="@(context.IsActive ? Icons.Material.Outlined.CheckCircle : Icons.Material.Outlined.Cancel)">
                                 @(context.IsActive ? TranslationService.GetTranslation("field.active", "Attivo") : TranslationService.GetTranslation("field.inactive", "Inattivo"))
                             </MudChip>
                         </MudTd>
@@ -191,7 +191,7 @@
 
                     <NoRecordsContent>
                         <div class="text-center pa-8">
-                            <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Large" Class="mb-4 mud-text-secondary" />
+                            <MudIcon Icon="@Icons.Material.Outlined.Business" Size="Size.Large" Class="mb-4 mud-text-secondary" />
                             <MudText Typo="Typo.h6" Class="mb-2">
                                 @(_tenants.Any() ? 
                                     TranslationService.GetTranslation("superAdmin.noTenantsMatchFilters", "Nessun tenant corrisponde ai filtri applicati") : 
@@ -201,7 +201,7 @@
                             {
                                 <MudButton Variant="Variant.Text" 
                                            Color="Color.Primary" 
-                                           StartIcon="Icons.Material.Filled.Clear"
+                                           StartIcon="Icons.Material.Outlined.Clear"
                                            OnClick="@ClearFilters">
                                     @TranslationService.GetTranslation("superAdmin.clearFilters", "Cancella filtri")
                                 </MudButton>
