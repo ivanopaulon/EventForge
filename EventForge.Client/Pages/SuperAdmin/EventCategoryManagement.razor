@@ -93,47 +93,44 @@ else
                 </MudCollapse>
             </div>
 
-            <!-- Event Category List: Main data table with reduced spacing and improved toolbar -->
-            <MudCard Elevation="2" Class="mb-1">
-                <MudCardHeader Class="pa-2">
-                    <CardHeaderContent>
+            <!-- Event Category List: Main data table following issue #106 requirements -->
+            <MudPaper Elevation="2" Class="mb-1 pa-2">
+                <div class="d-flex justify-space-between align-center mb-4">
+                    <div class="d-flex align-center">
+                        <MudIcon Icon="@Icons.Material.Outlined.BookmarkBorder" Class="mr-2" />
                         <MudText Typo="Typo.h6">
-                            <MudIcon Icon="@Icons.Material.Outlined.BookmarkBorder" Class="mr-2" />
                             @TranslationService.GetTranslation("superAdmin.eventCategoryList", "Lista Categorie Evento")
-                            <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
-                                (@(_pagedEventCategories.TotalItems) @TranslationService.GetTranslation("superAdmin.itemsFound", "elementi trovati"))
-                            </MudText>
                         </MudText>
-                    </CardHeaderContent>
-                    <CardHeaderActions>
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                            @TranslationService.GetTranslationFormatted("superAdmin.itemsFound", "({0} elementi trovati)", _pagedEventCategories.TotalItems)
+                        </MudText>
+                    </div>
+                    <div class="d-flex gap-2 align-center">
                         <!-- Toolbar with only MudIconButton and semantic icons as required -->
-                        <MudToolBar Dense="true" WrapContent="true" Class="pa-1">
-                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")">
-                                <MudIconButton Icon="@Icons.Material.Outlined.Refresh" 
-                                               Color="Color.Primary"
-                                               Size="Size.Medium"
-                                               OnClick="@LoadEventCategoriesAsync"
-                                               aria-label="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")" />
-                            </MudTooltip>
-                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.exportData", "Esporta dati")">
-                                <MudIconButton Icon="@Icons.Material.Outlined.FileDownload" 
-                                               Color="Color.Secondary"
-                                               Size="Size.Medium"
-                                               OnClick="@ExportEventCategories"
-                                               aria-label="@TranslationService.GetTranslation("tooltip.exportData", "Esporta dati")" />
-                            </MudTooltip>
-                            <MudDivider Vertical="true" Class="mx-1" />
-                            <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.createNewEventCategory", "Crea nuova categoria evento")">
-                                <MudIconButton Icon="@Icons.Material.Outlined.Add"
-                                               Color="Color.Primary" 
-                                               Size="Size.Medium"
-                                               OnClick="@OpenCreateEventCategoryDrawer"
-                                               aria-label="@TranslationService.GetTranslation("superAdmin.createNewEventCategory", "Crea nuova categoria evento")" />
-                            </MudTooltip>
-                        </MudToolBar>
-                    </CardHeaderActions>
-                </MudCardHeader>
-                <MudCardContent Class="pa-1">
+                        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Refresh" 
+                                           Color="Color.Primary"
+                                           Size="Size.Medium"
+                                           OnClick="@LoadEventCategoriesAsync"
+                                           aria-label="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")" />
+                        </MudTooltip>
+                        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.exportData", "Esporta dati")">
+                            <MudIconButton Icon="@Icons.Material.Outlined.FileDownload" 
+                                           Color="Color.Secondary"
+                                           Size="Size.Medium"
+                                           OnClick="@ExportEventCategories"
+                                           aria-label="@TranslationService.GetTranslation("tooltip.exportData", "Esporta dati")" />
+                        </MudTooltip>
+                        <MudDivider Vertical="true" Class="mx-1" />
+                        <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.createNewEventCategory", "Crea nuova categoria evento")">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Add"
+                                           Color="Color.Primary" 
+                                           Size="Size.Medium"
+                                           OnClick="@OpenCreateEventCategoryDrawer"
+                                           aria-label="@TranslationService.GetTranslation("superAdmin.createNewEventCategory", "Crea nuova categoria evento")" />
+                        </MudTooltip>
+                    </div>
+                </div>
                         @if (_isLoadingEventCategories)
                         {
                             <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
@@ -203,45 +200,31 @@ else
                                         <MudText Typo="Typo.body2">@context.CreatedAt.ToString("dd/MM/yyyy")</MudText>
                                     </MudTd>
                                     <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
-                                        <!-- Semantic action buttons with proper accessibility and semantic ordering -->
-                                        <MudButtonGroup Color="Color.Primary" Variant="Variant.Text" Size="Size.Small">
-                                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewDetails", "Visualizza dettagli")">
-                                                <MudIconButton Icon="@Icons.Material.Outlined.Visibility" 
-                                                               Color="Color.Info"
-                                                               Size="Size.Small"
-                                                               OnClick="@(() => ViewEventCategory(context))"
-                                                               aria-label="@TranslationService.GetTranslation("tooltip.viewEventCategory", "Visualizza categoria evento {0}", context.Name)" />
-                                            </MudTooltip>
-                                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.editDetails", "Modifica dettagli")">
-                                                <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
-                                                               Color="Color.Primary"
-                                                               Size="Size.Small"
-                                                               OnClick="@(() => EditEventCategory(context))"
-                                                               aria-label="@TranslationService.GetTranslation("tooltip.editEventCategory", "Modifica categoria evento {0}", context.Name)" />
-                                            </MudTooltip>
-                                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.auditHistory", "Cronologia modifiche")">
-                                                <MudIconButton Icon="@Icons.Material.Outlined.History" 
-                                                               Color="Color.Secondary"
-                                                               Size="Size.Small"
-                                                               OnClick="@(() => ShowAuditHistory(context))"
-                                                               aria-label="@TranslationService.GetTranslation("tooltip.auditHistory", "Mostra cronologia per {0}", context.Name)" />
-                                            </MudTooltip>
-                                            <MudTooltip Text="@(context.IsActive ? TranslationService.GetTranslation("tooltip.disableEventCategory", "Disabilita categoria evento") : TranslationService.GetTranslation("tooltip.enableEventCategory", "Abilita categoria evento"))">
-                                                <MudIconButton Icon="@(context.IsActive ? Icons.Material.Outlined.ToggleOff : Icons.Material.Outlined.ToggleOn)" 
-                                                               Color="@(context.IsActive ? Color.Error : Color.Success)"
-                                                               Size="Size.Small"
-                                                               OnClick="@(() => ToggleEventCategoryStatus(context))"
-                                                               aria-label="@(context.IsActive ? TranslationService.GetTranslation("tooltip.disableEventCategory", "Disabilita {0}", context.Name) : TranslationService.GetTranslation("tooltip.enableEventCategory", "Abilita {0}", context.Name))" />
-                                            </MudTooltip>
-                                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.deleteEventCategory", "Elimina categoria evento")">
-                                                <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
-                                                               Color="Color.Error"
-                                                               Size="Size.Small"
-                                                               Disabled="@(context.EventCount > 0)"
-                                                               OnClick="@(() => DeleteEventCategory(context))"
-                                                               aria-label="@TranslationService.GetTranslation("tooltip.deleteEventCategory", "Elimina categoria evento {0}", context.Name)" />
-                                            </MudTooltip>
-                                        </MudButtonGroup>
+                                        <!-- Standardized Action Toolbar following issue #106 requirements -->
+                                        <ActionToolbar ItemId="@context.Id.ToString()"
+                                                       ItemDisplayName="@context.Name"
+                                                       EntityName="EventCategory"
+                                                       ShowEdit="true"
+                                                       ShowDelete="true"
+                                                       ShowAuditLog="true"
+                                                       ShowExport="false"
+                                                       CanEdit="true"
+                                                       CanDelete="@(context.EventCount == 0)"
+                                                       CanViewAuditLog="true"
+                                                       OnEdit="@(() => EditEventCategory(context))"
+                                                       OnDelete="@(() => DeleteEventCategory(context))"
+                                                       OnAuditLog="@(() => ShowAuditHistory(context))"
+                                                       DeleteConfirmationTitle="@TranslationService.GetTranslation("dialog.confirmDeleteEventCategory", "Conferma Eliminazione Categoria")"
+                                                       DeleteConfirmationMessage="@TranslationService.GetTranslationFormatted("dialog.confirmDeleteEventCategoryMessage", "Sei sicuro di voler eliminare la categoria evento '{0}'? Questa azione non può essere annullata.", context.Name)" />
+                                        
+                                        <!-- Status Toggle Button - separate as it's not a standard CRUD action -->
+                                        <MudTooltip Text="@(context.IsActive ? TranslationService.GetTranslation("tooltip.disableEventCategory", "Disabilita categoria evento") : TranslationService.GetTranslation("tooltip.enableEventCategory", "Abilita categoria evento"))">
+                                            <MudIconButton Icon="@(context.IsActive ? Icons.Material.Outlined.ToggleOff : Icons.Material.Outlined.ToggleOn)" 
+                                                           Color="@(context.IsActive ? Color.Warning : Color.Success)"
+                                                           Size="Size.Small"
+                                                           OnClick="@(() => ToggleEventCategoryStatus(context))"
+                                                           aria-label="@TranslationService.GetTranslationFormatted("tooltip.toggleEventCategoryStatus", "{0} categoria evento {1}", (context.IsActive ? "Disabilita" : "Abilita"), context.Name)" />
+                                        </MudTooltip>
                                     </MudTd>
                                 </RowTemplate>
                                 <NoRecordsContent>
@@ -271,7 +254,7 @@ else
                                 <div class="d-flex justify-space-between align-center pa-2 mt-2">
                                     <div class="d-flex align-center gap-4">
                                         <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                                            @TranslationService.GetTranslation("pagination.showing", "Mostrando {0}-{1} di {2}", 
+                                            @TranslationService.GetTranslationFormatted("pagination.showing", "Mostrando {0}-{1} di {2}", 
                                                 (_currentPage - 1) * _pageSize + 1, 
                                                 Math.Min(_currentPage * _pageSize, _pagedEventCategories.TotalItems), 
                                                 _pagedEventCategories.TotalItems)
@@ -298,8 +281,7 @@ else
                                 </div>
                             }
                         }
-                    </MudCardContent>
-                </MudCard>
+                </MudPaper>
         </MudStack>
     </MudContainer>
 }
@@ -312,11 +294,11 @@ else
                      OnEventCategoryCreated="@OnEventCategoryCreated"
                      OnEventCategoryUpdated="@OnEventCategoryUpdated" />
 
-<!-- Audit History Drawer -->
-<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
-                    EntityType="EventCategory"
-                    EntityId="_selectedEventCategoryIdForAudit" 
-                    EntityName="_selectedEventCategoryNameForAudit" />
+<!-- Audit Log Drawer - New standardized component following issue #106 -->
+<AuditLogDrawer @bind-IsOpen="_auditDrawerOpen"
+                EntityId="@_selectedEventCategoryIdForAudit"
+                EntityName="EventCategory"
+                EntityDisplayName="@_selectedEventCategoryNameForAudit" />
 
 @code {
     // UI State Management
@@ -333,7 +315,7 @@ else
     private EntityDrawerMode _eventCategoryDrawerMode = EntityDrawerMode.Create;
     private EventCategoryDto? _selectedEventCategory;
     private UserDto? _currentUser;
-    private Guid? _selectedEventCategoryIdForAudit;
+    private string? _selectedEventCategoryIdForAudit;
     private string _selectedEventCategoryNameForAudit = string.Empty;
     
     // Filter and search state
@@ -577,7 +559,7 @@ else
 
     private async Task ShowAuditHistory(EventCategoryDto eventCategory)
     {
-        _selectedEventCategoryIdForAudit = eventCategory.Id;
+        _selectedEventCategoryIdForAudit = eventCategory.Id.ToString();
         _selectedEventCategoryNameForAudit = eventCategory.Name;
         _auditDrawerOpen = true;
         await Task.CompletedTask;
