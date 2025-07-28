@@ -49,42 +49,48 @@ else
             @TranslationService.GetTranslation("superAdmin.systemConfiguration", "Configurazione Sistema")
         </MudText>
 
-        <!-- Quick Actions Card: First in layout for primary actions -->
-        <MudCard Elevation="2" Class="mb-4">
-            <MudCardHeader>
-                <CardHeaderContent>
-                    <MudText Typo="Typo.h6">
-                        <MudIcon Icon="Icons.Material.Filled.FastForward" Class="mr-2" />
+        <!-- Reduced spacing with minimal margins between components -->
+        <MudStack Spacing="1">
+            <!-- Quick Actions Section: Direct MudCollapse without MudCard wrapper, closed by default -->
+            <div class="border rounded pa-1 mb-1">
+                <div style="cursor: pointer;" @onclick="@(() => _quickActionsExpanded = !_quickActionsExpanded)" 
+                     class="d-flex align-center pa-2 hover:bg-gray-100">
+                    <MudIcon Icon="Icons.Material.Filled.FastForward" Class="mr-2" />
+                    <MudText Typo="Typo.h6" Class="flex-grow-1">
                         @TranslationService.GetTranslation("superAdmin.quickActions", "Azioni Rapide")
                     </MudText>
-                </CardHeaderContent>
-                <CardHeaderActions>
-                    <!-- Quick Actions Toolbar: For configuration management -->
-                    <MudToolBar Dense="true" WrapContent="true">
-                        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refresh", "Aggiorna dati")">
-                            <MudIconButton Icon="Icons.Material.Filled.Refresh" 
-                                           Color="Color.Info"
-                                           OnClick="LoadConfigurationsAsync"
-                                           Disabled="_isLoading" />
-                        </MudTooltip>
-                        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.addConfiguration", "Aggiungi nuova configurazione")">
-                            <MudButton Variant="Variant.Filled" 
-                                       Color="Color.Primary" 
-                                       StartIcon="Icons.Material.Filled.Add"
-                                       OnClick="OpenCreateDialog">
-                                @TranslationService.GetTranslation("superAdmin.newConfiguration", "Nuova Configurazione")
-                            </MudButton>
-                        </MudTooltip>
-                    </MudToolBar>
-                </CardHeaderActions>
-            </MudCardHeader>
-        </MudCard>
+                    <MudIconButton Icon="@(_quickActionsExpanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                                   Size="Size.Small"
+                                   Color="Color.Inherit"
+                                   aria-label="@TranslationService.GetTranslation("tooltip.toggleQuickActions", "Mostra/Nascondi azioni rapide")" />
+                </div>
+                <MudCollapse Expanded="_quickActionsExpanded">
+                    <div class="pa-2 mb-1">
+                        <!-- Toolbar with only MudIconButton and semantic icons as required -->
+                        <div class="d-flex gap-2 align-center">
+                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refresh", "Aggiorna dati")">
+                                <MudIconButton Icon="Icons.Material.Filled.Refresh" 
+                                               Color="Color.Info"
+                                               OnClick="LoadConfigurationsAsync"
+                                               Disabled="_isLoading"
+                                               aria-label="@TranslationService.GetTranslation("tooltip.refresh", "Aggiorna dati")" />
+                            </MudTooltip>
+                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.addConfiguration", "Aggiungi nuova configurazione")">
+                                <MudIconButton Icon="Icons.Material.Filled.Add"
+                                               Color="Color.Primary" 
+                                               OnClick="OpenCreateDialog"
+                                               aria-label="@TranslationService.GetTranslation("tooltip.addConfiguration", "Aggiungi nuova configurazione")" />
+                            </MudTooltip>
+                        </div>
+                    </div>
+                </MudCollapse>
+            </div>
 
         @if (_configurations.Any())
         {
-            <!-- Configuration Tabs Card: Main content area -->
-            <MudCard Elevation="2" Class="mb-4">
-                <MudCardContent Class="pa-0">
+            <!-- Configuration Tabs: Main content area with reduced spacing -->
+            <MudCard Elevation="2" Class="mb-1">
+                <MudCardContent Class="pa-1">
                     <MudTabs Elevation="0" Rounded="false" PanelClass="pa-6" @bind-ActivePanelIndex="_activeTab">
                         @foreach (var category in _categories)
                         {
@@ -172,6 +178,7 @@ else
                 </MudCardContent>
             </MudCard>
         }
+        </MudStack>
     </MudContainer>
 }
 
@@ -250,6 +257,9 @@ else
     private bool _showConfigDialog = false;
     private int _activeTab = 0;
     
+    // MudCollapse state management (all closed by default as per issue #98)
+    private bool _quickActionsExpanded = false;  // Closed by default
+    
     private List<ConfigurationDto> _configurations = new();
     private List<string> _categories = new();
     private ConfigurationDto? _editingConfiguration;
@@ -268,6 +278,9 @@ else
     {
         try
         {
+            // Set all collapse sections to closed by default as per issue #98 requirements
+            _quickActionsExpanded = false;
+            
             _isAuthorized = await AuthService.IsSuperAdminAsync();
             
             if (_isAuthorized)

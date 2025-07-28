@@ -51,19 +51,23 @@ else
             @TranslationService.GetTranslation("superAdmin.tenantManagement", "Gestione Tenant")
         </MudText>
 
-        <MudGrid>
-            <!-- Tenant Selection Card: Scope selector for data filtering -->
-            <MudItem xs="12">
-                <MudCard Elevation="2" Class="mb-2">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">
-                                <MudIcon Icon="Icons.Material.Filled.Business" Class="mr-2" />
-                                @TranslationService.GetTranslation("superAdmin.tenantSelection", "Selezione Tenant")
-                            </MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
+        <!-- Reduced spacing with minimal margins between components -->
+        <MudStack Spacing="1">
+            <!-- Tenant Selection: Direct MudCollapse without MudCard wrapper, closed by default -->
+            <div class="border rounded pa-1 mb-1">
+                <div style="cursor: pointer;" @onclick="@(() => _tenantSelectorExpanded = !_tenantSelectorExpanded)" 
+                     class="d-flex align-center pa-2 hover:bg-gray-100">
+                    <MudIcon Icon="Icons.Material.Filled.Business" Class="mr-2" />
+                    <MudText Typo="Typo.h6" Class="flex-grow-1">
+                        @TranslationService.GetTranslation("superAdmin.tenantSelection", "Selezione Tenant")
+                    </MudText>
+                    <MudIconButton Icon="@(_tenantSelectorExpanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                                   Size="Size.Small"
+                                   Color="Color.Inherit"
+                                   aria-label="@TranslationService.GetTranslation("tooltip.toggleTenantSelector", "Mostra/Nascondi selezione tenant")" />
+                </div>
+                <MudCollapse Expanded="_tenantSelectorExpanded">
+                    <div class="pa-2 mb-1">
                         <MudSelect T="string" @bind-Value="_selectedTenantFilter" @bind-Value:after="OnTenantFilterChanged" 
                                    Label="@TranslationService.GetTranslation("field.tenant", "Tenant")" 
                                    Placeholder="@TranslationService.GetTranslation("superAdmin.selectTenantFilter", "Seleziona tenant per filtrare...")"
@@ -76,143 +80,131 @@ else
                                 <MudSelectItem Value="@tenant.Id.ToString()">@tenant.DisplayName</MudSelectItem>
                             }
                         </MudSelect>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
+                    </div>
+                </MudCollapse>
+            </div>
 
-            <!-- Statistics Section with MudCollapse for better UX -->
-            <MudItem xs="12">
-                <MudCard Elevation="2" Class="mb-2">
-                    <MudCardHeader Class="cursor-pointer" @onclick="@(() => _statisticsExpanded = !_statisticsExpanded)">
-                        <CardHeaderContent>
-                            <div class="d-flex align-center">
-                                <MudIcon Icon="Icons.Material.Filled.Analytics" Class="mr-2" />
-                                <MudText Typo="Typo.h6" Class="flex-grow-1">
-                                    @TranslationService.GetTranslation("superAdmin.statistics", "Statistiche")
-                                </MudText>
-                                <MudIconButton Icon="@(_statisticsExpanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
-                                               Size="Size.Small"
-                                               Color="Color.Inherit" />
-                            </div>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCollapse Expanded="_statisticsExpanded">
-                        <MudCardContent Class="pt-0">
-                            <MudGrid Spacing="2">
-                                <MudItem xs="12" sm="6" md="4">
-                                    <div class="d-flex justify-space-between align-center pa-2 ma-1 rounded border">
-                                        <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.totalTenants", "Tenant Totali"):</MudText>
-                                        <MudChip T="string" Color="Color.Info" Size="Size.Small">@(_statistics?.TotalTenants ?? 0)</MudChip>
-                                    </div>
-                                </MudItem>
-                                <MudItem xs="12" sm="6" md="4">
-                                    <div class="d-flex justify-space-between align-center pa-2 ma-1 rounded border">
-                                        <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.activeTenants", "Tenant Attivi"):</MudText>
-                                        <MudChip T="string" Color="Color.Success" Size="Size.Small">@(_statistics?.ActiveTenants ?? 0)</MudChip>
-                                    </div>
-                                </MudItem>
-                                <MudItem xs="12" sm="6" md="4">
-                                    <div class="d-flex justify-space-between align-center pa-2 ma-1 rounded border">
-                                        <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.totalUsers", "Utenti Totali"):</MudText>
-                                        <MudChip T="string" Color="Color.Primary" Size="Size.Small">@(_statistics?.TotalUsers ?? 0)</MudChip>
-                                    </div>
-                                </MudItem>
-                            </MudGrid>
-                        </MudCardContent>
-                    </MudCollapse>
-                </MudCard>
-            </MudItem>
+            <!-- Statistics Section: Direct MudCollapse without MudCard wrapper, closed by default -->
+            <div class="border rounded pa-1 mb-1">
+                <div style="cursor: pointer;" @onclick="@(() => _statisticsExpanded = !_statisticsExpanded)" 
+                     class="d-flex align-center pa-2 hover:bg-gray-100">
+                    <MudIcon Icon="Icons.Material.Filled.Analytics" Class="mr-2" />
+                    <MudText Typo="Typo.h6" Class="flex-grow-1">
+                        @TranslationService.GetTranslation("superAdmin.showStatistics", "Mostra Statistiche")
+                    </MudText>
+                    <MudIconButton Icon="@(_statisticsExpanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                                   Size="Size.Small"
+                                   Color="Color.Inherit"
+                                   aria-label="@TranslationService.GetTranslation("tooltip.toggleStatistics", "Mostra/Nascondi statistiche")" />
+                </div>
+                <MudCollapse Expanded="_statisticsExpanded">
+                    <div class="pa-2 mb-1">
+                        <MudGrid Spacing="1">
+                            <MudItem xs="12" sm="6" md="4">
+                                <div class="d-flex justify-space-between align-center pa-2 ma-1 rounded border">
+                                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.totalTenants", "Tenant Totali"):</MudText>
+                                    <MudChip T="string" Color="Color.Info" Size="Size.Small">@(_statistics?.TotalTenants ?? 0)</MudChip>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="4">
+                                <div class="d-flex justify-space-between align-center pa-2 ma-1 rounded border">
+                                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.activeTenants", "Tenant Attivi"):</MudText>
+                                    <MudChip T="string" Color="Color.Success" Size="Size.Small">@(_statistics?.ActiveTenants ?? 0)</MudChip>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="4">
+                                <div class="d-flex justify-space-between align-center pa-2 ma-1 rounded border">
+                                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.totalUsers", "Utenti Totali"):</MudText>
+                                    <MudChip T="string" Color="Color.Primary" Size="Size.Small">@(_statistics?.TotalUsers ?? 0)</MudChip>
+                                </div>
+                            </MudItem>
+                        </MudGrid>
+                    </div>
+                </MudCollapse>
+            </div>
 
-            <!-- Advanced Filters Section with MudCollapse -->
-            <MudItem xs="12">
-                <MudCard Elevation="2" Class="mb-2">
-                    <MudCardHeader Class="cursor-pointer" @onclick="@(() => _filtersExpanded = !_filtersExpanded)">
-                        <CardHeaderContent>
-                            <div class="d-flex align-center">
-                                <MudIcon Icon="Icons.Material.Filled.FilterList" Class="mr-2" />
-                                <MudText Typo="Typo.h6" Class="flex-grow-1">
-                                    @TranslationService.GetTranslation("superAdmin.advancedFilters", "Filtri Avanzati")
-                                </MudText>
-                                <MudIconButton Icon="@(_filtersExpanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
-                                               Size="Size.Small"
-                                               Color="Color.Inherit" />
-                            </div>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCollapse Expanded="_filtersExpanded">
-                        <MudCardContent Class="pt-0">
-                            <MudGrid Spacing="2">
-                                <MudItem xs="12" md="8">
-                                    <MudTextField @bind-Value="_searchTerm"
-                                                  @bind-Value:after="OnSearchChanged"
-                                                  Label="@TranslationService.GetTranslation("superAdmin.searchByNameOrDomain", "Cerca per nome o dominio")"
-                                                  Placeholder="@TranslationService.GetTranslation("superAdmin.searchPlaceholder", "Inserisci testo da cercare...")"
-                                                  Variant="Variant.Outlined"
-                                                  Adornment="Adornment.End"
-                                                  AdornmentIcon="Icons.Material.Filled.Search"
-                                                  FullWidth="true"
-                                                  Clearable="true" />
-                                </MudItem>
-                                <MudItem xs="12" md="4">
-                                    <MudSelect T="string" @bind-Value="_statusFilter" @bind-Value:after="OnStatusFilterChanged" 
-                                               Label="@TranslationService.GetTranslation("field.status", "Stato")" 
-                                               Placeholder="@TranslationService.GetTranslation("superAdmin.selectStatus", "Seleziona stato...")"
-                                               Variant="Variant.Outlined"
-                                               FullWidth="true"
-                                               Clearable="true">
-                                        <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
-                                        <MudSelectItem Value="@("active")">@TranslationService.GetTranslation("field.active", "Attivo")</MudSelectItem>
-                                        <MudSelectItem Value="@("inactive")">@TranslationService.GetTranslation("field.inactive", "Inattivo")</MudSelectItem>
-                                    </MudSelect>
-                                </MudItem>
-                            </MudGrid>
-                        </MudCardContent>
-                    </MudCollapse>
-                </MudCard>
-            </MudItem>
+            <!-- Advanced Filters Section: Direct MudCollapse without MudCard wrapper, closed by default -->
+            <div class="border rounded pa-1 mb-1">
+                <div style="cursor: pointer;" @onclick="@(() => _filtersExpanded = !_filtersExpanded)" 
+                     class="d-flex align-center pa-2 hover:bg-gray-100">
+                    <MudIcon Icon="Icons.Material.Filled.FilterList" Class="mr-2" />
+                    <MudText Typo="Typo.h6" Class="flex-grow-1">
+                        @TranslationService.GetTranslation("superAdmin.advancedFilters", "Filtri Avanzati")
+                    </MudText>
+                    <MudIconButton Icon="@(_filtersExpanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                                   Size="Size.Small"
+                                   Color="Color.Inherit"
+                                   aria-label="@TranslationService.GetTranslation("tooltip.toggleFilters", "Mostra/Nascondi filtri avanzati")" />
+                </div>
+                <MudCollapse Expanded="_filtersExpanded">
+                    <div class="pa-2 mb-1">
+                        <!-- Filters on single horizontal line as required -->
+                        <div class="d-flex gap-4 align-center">
+                            <MudTextField @bind-Value="_searchTerm"
+                                          @bind-Value:after="OnSearchChanged"
+                                          Label="@TranslationService.GetTranslation("superAdmin.searchByNameOrDomain", "Cerca per nome o dominio")"
+                                          Placeholder="@TranslationService.GetTranslation("superAdmin.searchPlaceholder", "Inserisci testo da cercare...")"
+                                          Variant="Variant.Outlined"
+                                          Adornment="Adornment.End"
+                                          AdornmentIcon="Icons.Material.Filled.Search"
+                                          Clearable="true"
+                                          Style="flex: 2;" />
+                            <MudSelect T="string" @bind-Value="_statusFilter" @bind-Value:after="OnStatusFilterChanged" 
+                                       Label="@TranslationService.GetTranslation("field.status", "Stato")" 
+                                       Placeholder="@TranslationService.GetTranslation("superAdmin.selectStatus", "Seleziona stato...")"
+                                       Variant="Variant.Outlined"
+                                       Clearable="true"
+                                       Style="flex: 1;">
+                                <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
+                                <MudSelectItem Value="@("active")">@TranslationService.GetTranslation("field.active", "Attivo")</MudSelectItem>
+                                <MudSelectItem Value="@("inactive")">@TranslationService.GetTranslation("field.inactive", "Inattivo")</MudSelectItem>
+                            </MudSelect>
+                        </div>
+                    </div>
+                </MudCollapse>
+            </div>
 
-            <!-- Tenant List with improved toolbar and responsive design -->
-            <MudItem xs="12">
-                <MudCard Elevation="2">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">
-                                <MudIcon Icon="Icons.Material.Filled.Business" Class="mr-2" />
-                                @TranslationService.GetTranslation("superAdmin.tenantList", "Lista Tenant")
-                                <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
-                                    (@(_filteredTenants.Count()) @TranslationService.GetTranslation("superAdmin.itemsFound", "elementi trovati"))
-                                </MudText>
+            <!-- Tenant List: Main data table with reduced spacing and improved toolbar -->
+            <MudCard Elevation="2" Class="mb-1">
+                <MudCardHeader Class="pa-2">
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">
+                            <MudIcon Icon="Icons.Material.Filled.Business" Class="mr-2" />
+                            @TranslationService.GetTranslation("superAdmin.tenantList", "Lista Tenant")
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                                (@(_filteredTenants.Count()) @TranslationService.GetTranslation("superAdmin.itemsFound", "elementi trovati"))
                             </MudText>
-                        </CardHeaderContent>
-                        <CardHeaderActions>
-                            <!-- Toolbar with semantic icons and proper tooltips -->
-                            <MudToolBar Dense="true" WrapContent="true">
-                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")">
-                                    <MudIconButton Icon="Icons.Material.Filled.Refresh" 
-                                                   Color="Color.Primary"
-                                                   Size="Size.Medium"
-                                                   OnClick="@LoadTenantsAsync" />
-                                </MudTooltip>
-                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.exportData", "Esporta dati")">
-                                    <MudIconButton Icon="Icons.Material.Filled.FileDownload" 
-                                                   Color="Color.Secondary"
-                                                   Size="Size.Medium"
-                                                   OnClick="@ExportTenants" />
-                                </MudTooltip>
-                                <MudDivider Vertical="true" Class="mx-2" />
-                                <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.createNewTenant", "Crea nuovo tenant")">
-                                    <MudButton Variant="Variant.Filled" 
-                                               Color="Color.Primary" 
-                                               StartIcon="Icons.Material.Filled.Add"
+                        </MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <!-- Toolbar with only MudIconButton and semantic icons as required -->
+                        <MudToolBar Dense="true" WrapContent="true" Class="pa-1">
+                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")">
+                                <MudIconButton Icon="Icons.Material.Filled.Refresh" 
+                                               Color="Color.Primary"
                                                Size="Size.Medium"
-                                               OnClick="@OpenCreateTenantDrawer">
-                                        @TranslationService.GetTranslation("superAdmin.newTenant", "Nuovo Tenant")
-                                    </MudButton>
-                                </MudTooltip>
-                            </MudToolBar>
-                        </CardHeaderActions>
-                    </MudCardHeader>
-                    <MudCardContent>
+                                               OnClick="@LoadTenantsAsync"
+                                               aria-label="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")" />
+                            </MudTooltip>
+                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.exportData", "Esporta dati")">
+                                <MudIconButton Icon="Icons.Material.Filled.FileDownload" 
+                                               Color="Color.Secondary"
+                                               Size="Size.Medium"
+                                               OnClick="@ExportTenants"
+                                               aria-label="@TranslationService.GetTranslation("tooltip.exportData", "Esporta dati")" />
+                            </MudTooltip>
+                            <MudDivider Vertical="true" Class="mx-1" />
+                            <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.createNewTenant", "Crea nuovo tenant")">
+                                <MudIconButton Icon="Icons.Material.Filled.Add"
+                                               Color="Color.Primary" 
+                                               Size="Size.Medium"
+                                               OnClick="@OpenCreateTenantDrawer"
+                                               aria-label="@TranslationService.GetTranslation("superAdmin.createNewTenant", "Crea nuovo tenant")" />
+                            </MudTooltip>
+                        </MudToolBar>
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent Class="pa-1">
                         @if (_isLoadingTenants)
                         {
                             <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
@@ -331,8 +323,7 @@ else
                         }
                     </MudCardContent>
                 </MudCard>
-            </MudItem>
-        </MudGrid>
+        </MudStack>
     </MudContainer>
 }
 
@@ -351,9 +342,10 @@ else
     private bool _isLoadingTenants = false;
     private bool _tenantDrawerOpen = false;
     
-    // MudCollapse state management (responsive defaults)
-    private bool _statisticsExpanded = true;  // Default expanded on desktop, will be responsive
-    private bool _filtersExpanded = true;     // Default expanded on desktop, will be responsive
+    // MudCollapse state management (all closed by default as per issue #98)
+    private bool _statisticsExpanded = false;      // Closed by default
+    private bool _filtersExpanded = false;         // Closed by default  
+    private bool _tenantSelectorExpanded = false;  // Closed by default
     
     // Drawer and modal management
     private EntityDrawerMode _tenantDrawerMode = EntityDrawerMode.Create;
@@ -395,10 +387,10 @@ else
     {
         try
         {
-            // Set responsive defaults based on viewport (would need JS interop for actual detection)
-            // For now, defaulting to expanded for better accessibility
-            _statisticsExpanded = true;
-            _filtersExpanded = true;
+            // Set all collapse sections to closed by default as per issue #98 requirements
+            _statisticsExpanded = false;
+            _filtersExpanded = false;
+            _tenantSelectorExpanded = false;
             
             // Enhanced authentication and authorization flow
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
