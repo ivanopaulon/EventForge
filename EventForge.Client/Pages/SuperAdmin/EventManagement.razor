@@ -1,0 +1,793 @@
+@page "/superadmin/event-management"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Tenants
+@using EventForge.DTOs.SuperAdmin
+@using EventForge.Client.Shared.Components
+@attribute [Authorize(Roles = "SuperAdmin")]
+@inject IAuthService AuthService
+@inject ISuperAdminService SuperAdminService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+
+<PageTitle>@TranslationService.GetTranslation("superAdmin.pageTitle", "{0} - EventForge Super Admin", TranslationService.GetTranslation("superAdmin.eventManagement", "Gestione Eventi"))</PageTitle>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else if (!_isAuthorized)
+{
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+        <MudPaper Class="pa-8" Elevation="4">
+            <MudGrid Justify="Justify.Center">
+                <MudItem xs="12">
+                    <div class="d-flex flex-column align-center">
+                        <MudIcon Icon="@Icons.Material.Outlined.Block" Color="Color.Error" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
+                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">@TranslationService.GetTranslation("error.accessDenied", "Accesso Negato")</MudText>
+                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
+                            @TranslationService.GetTranslation("superAdmin.superAdminRoleRequired", "Non hai i permessi per accedere a questa pagina. È richiesto il ruolo Super Amministratore.")
+                        </MudText>
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Primary" 
+                                   StartIcon="@Icons.Material.Outlined.ArrowBack"
+                                   OnClick="@(() => NavigationManager.NavigateTo("/"))">
+                            @TranslationService.GetTranslation("superAdmin.returnToHome", "Torna alla Home")
+                        </MudButton>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudContainer>
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-2">
+        <MudText Typo="Typo.h3" Class="mb-4">
+            <MudIcon Icon="@Icons.Material.Outlined.Event" Class="mr-3" />
+            @TranslationService.GetTranslation("superAdmin.eventManagement", "Gestione Eventi")
+        </MudText>
+
+        <!-- Reduced spacing with minimal margins between components for enhanced vertical compactness -->
+        <MudStack Spacing="0" Class="pa-1">
+            <!-- Tenant Selection: Direct MudCollapse without MudCard wrapper, closed by default -->
+            <div class="border rounded pa-1 mb-1">
+                <div style="cursor: pointer;" @onclick="@(() => _tenantSelectorExpanded = !_tenantSelectorExpanded)" 
+                     class="d-flex align-center pa-1 hover:bg-gray-100">
+                    <MudIcon Icon="@Icons.Material.Outlined.Business" Class="mr-2" />
+                    <MudText Typo="Typo.h6" Class="flex-grow-1">
+                        @TranslationService.GetTranslation("superAdmin.tenantSelection", "Selezione Tenant")
+                    </MudText>
+                    <MudIconButton Icon="@(_tenantSelectorExpanded ? Icons.Material.Outlined.ExpandLess : Icons.Material.Outlined.ExpandMore)"
+                                   Size="Size.Small"
+                                   Color="Color.Inherit"
+                                   aria-label="@TranslationService.GetTranslation("tooltip.toggleTenantSelector", "Mostra/Nascondi selezione tenant")" />
+                </div>
+                <MudCollapse Expanded="_tenantSelectorExpanded">
+                    <div class="pa-1 mb-1">
+                        <MudSelect T="string" @bind-Value="_selectedTenantFilter" @bind-Value:after="OnTenantFilterChanged" 
+                                   Label="@TranslationService.GetTranslation("field.tenant", "Tenant")" 
+                                   Placeholder="@TranslationService.GetTranslation("superAdmin.selectTenantFilter", "Seleziona tenant per filtrare...")"
+                                   Variant="Variant.Outlined"
+                                   FullWidth="true"
+                                   Clearable="true"
+                                   Dense="true">
+                            <MudSelectItem Value="@("")">@TranslationService.GetTranslation("superAdmin.allTenants", "Tutti i Tenant")</MudSelectItem>
+                            @foreach (var tenant in _tenants)
+                            {
+                                <MudSelectItem Value="@tenant.Id.ToString()">@tenant.DisplayName</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </div>
+                </MudCollapse>
+            </div>
+
+            <!-- Statistics Section: Direct MudCollapse without MudCard wrapper, closed by default -->
+            <div class="border rounded pa-1 mb-1">
+                <div style="cursor: pointer;" @onclick="@(() => _statisticsExpanded = !_statisticsExpanded)" 
+                     class="d-flex align-center pa-1 hover:bg-gray-100">
+                    <MudIcon Icon="@Icons.Material.Outlined.Analytics" Class="mr-2" />
+                    <MudText Typo="Typo.h6" Class="flex-grow-1">
+                        @TranslationService.GetTranslation("superAdmin.showStatistics", "Mostra Statistiche")
+                    </MudText>
+                    <MudIconButton Icon="@(_statisticsExpanded ? Icons.Material.Outlined.ExpandLess : Icons.Material.Outlined.ExpandMore)"
+                                   Size="Size.Small"
+                                   Color="Color.Inherit"
+                                   aria-label="@TranslationService.GetTranslation("tooltip.toggleStatistics", "Mostra/Nascondi statistiche")" />
+                </div>
+                <MudCollapse Expanded="_statisticsExpanded">
+                    <div class="pa-1 mb-1">
+                        <!-- Uniform statistics layout with consistent spacing and design -->
+                        <MudGrid Spacing="1">
+                            <MudItem xs="12" sm="6" md="3">
+                                <div class="d-flex justify-space-between align-center pa-2 ma-1 rounded border">
+                                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.totalEvents", "Eventi Totali"):</MudText>
+                                    <MudChip T="string" Color="Color.Info" Size="Size.Small">@(_statistics?.TotalEvents ?? 0)</MudChip>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <div class="d-flex justify-space-between align-center pa-2 ma-1 rounded border">
+                                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.plannedEvents", "Eventi Pianificati"):</MudText>
+                                    <MudChip T="string" Color="Color.Primary" Size="Size.Small">@(_statistics?.PlannedEvents ?? 0)</MudChip>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <div class="d-flex justify-space-between align-center pa-2 ma-1 rounded border">
+                                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.ongoingEvents", "Eventi in Corso"):</MudText>
+                                    <MudChip T="string" Color="Color.Success" Size="Size.Small">@(_statistics?.OngoingEvents ?? 0)</MudChip>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <div class="d-flex justify-space-between align-center pa-2 ma-1 rounded border">
+                                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("superAdmin.completedEvents", "Eventi Completati"):</MudText>
+                                    <MudChip T="string" Color="Color.Default" Size="Size.Small">@(_statistics?.CompletedEvents ?? 0)</MudChip>
+                                </div>
+                            </MudItem>
+                        </MudGrid>
+                    </div>
+                </MudCollapse>
+            </div>
+
+            <!-- Advanced Filters Section: Direct MudCollapse without MudCard wrapper, closed by default -->
+            <div class="border rounded pa-1 mb-1">
+                <div style="cursor: pointer;" @onclick="@(() => _filtersExpanded = !_filtersExpanded)" 
+                     class="d-flex align-center pa-1 hover:bg-gray-100">
+                    <MudIcon Icon="@Icons.Material.Outlined.FilterList" Class="mr-2" />
+                    <MudText Typo="Typo.h6" Class="flex-grow-1">
+                        @TranslationService.GetTranslation("superAdmin.advancedFilters", "Filtri Avanzati")
+                    </MudText>
+                    <MudIconButton Icon="@(_filtersExpanded ? Icons.Material.Outlined.ExpandLess : Icons.Material.Outlined.ExpandMore)"
+                                   Size="Size.Small"
+                                   Color="Color.Inherit"
+                                   aria-label="@TranslationService.GetTranslation("tooltip.toggleFilters", "Mostra/Nascondi filtri avanzati")" />
+                </div>
+                <MudCollapse Expanded="_filtersExpanded">
+                    <div class="pa-1 mb-1">
+                        <!-- Filters on single horizontal line as required by issue #98 -->
+                        <div class="d-flex gap-2 align-center">
+                            <MudTextField @bind-Value="_searchTerm"
+                                          @bind-Value:after="OnSearchChanged"
+                                          Label="@TranslationService.GetTranslation("superAdmin.searchByNameLocation", "Cerca per nome o location")"
+                                          Placeholder="@TranslationService.GetTranslation("superAdmin.searchPlaceholder", "Inserisci testo da cercare...")"
+                                          Variant="Variant.Outlined"
+                                          Adornment="Adornment.End"
+                                          AdornmentIcon="@Icons.Material.Outlined.Search"
+                                          Clearable="true"
+                                          Dense="true"
+                                          Style="flex: 2;" />
+                            <MudSelect T="string" @bind-Value="_statusFilter" @bind-Value:after="OnStatusFilterChanged" 
+                                       Label="@TranslationService.GetTranslation("field.status", "Stato")" 
+                                       Placeholder="@TranslationService.GetTranslation("superAdmin.selectStatus", "Seleziona stato...")"
+                                       Variant="Variant.Outlined"
+                                       Clearable="true"
+                                       Dense="true"
+                                       Style="flex: 1;">
+                                <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
+                                <MudSelectItem Value="@("Planned")">@TranslationService.GetTranslation("eventStatus.planned", "Pianificato")</MudSelectItem>
+                                <MudSelectItem Value="@("Ongoing")">@TranslationService.GetTranslation("eventStatus.ongoing", "In Corso")</MudSelectItem>
+                                <MudSelectItem Value="@("Completed")">@TranslationService.GetTranslation("eventStatus.completed", "Completato")</MudSelectItem>
+                                <MudSelectItem Value="@("Cancelled")">@TranslationService.GetTranslation("eventStatus.cancelled", "Annullato")</MudSelectItem>
+                            </MudSelect>
+                        </div>
+                    </div>
+                </MudCollapse>
+            </div>
+
+            <!-- Event List: Main data table with reduced spacing and improved toolbar -->
+            <MudCard Elevation="2" Class="mb-1">
+                <MudCardHeader Class="pa-2">
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">
+                            <MudIcon Icon="@Icons.Material.Outlined.Event" Class="mr-2" />
+                            @TranslationService.GetTranslation("superAdmin.eventList", "Lista Eventi")
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                                (@(_pagedEvents.TotalItems) @TranslationService.GetTranslation("superAdmin.itemsFound", "elementi trovati"))
+                            </MudText>
+                        </MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <!-- Toolbar with only MudIconButton and semantic icons as required -->
+                        <MudToolBar Dense="true" WrapContent="true" Class="pa-1">
+                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")">
+                                <MudIconButton Icon="@Icons.Material.Outlined.Refresh" 
+                                               Color="Color.Primary"
+                                               Size="Size.Medium"
+                                               OnClick="@LoadEventsAsync"
+                                               aria-label="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")" />
+                            </MudTooltip>
+                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.exportData", "Esporta dati")">
+                                <MudIconButton Icon="@Icons.Material.Outlined.FileDownload" 
+                                               Color="Color.Secondary"
+                                               Size="Size.Medium"
+                                               OnClick="@ExportEvents"
+                                               aria-label="@TranslationService.GetTranslation("tooltip.exportData", "Esporta dati")" />
+                            </MudTooltip>
+                            <MudDivider Vertical="true" Class="mx-1" />
+                            <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.createNewEvent", "Crea nuovo evento")">
+                                <MudIconButton Icon="@Icons.Material.Outlined.Add"
+                                               Color="Color.Primary" 
+                                               Size="Size.Medium"
+                                               OnClick="@OpenCreateEventDrawer"
+                                               aria-label="@TranslationService.GetTranslation("superAdmin.createNewEvent", "Crea nuovo evento")" />
+                            </MudTooltip>
+                        </MudToolBar>
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent Class="pa-1">
+                        @if (_isLoadingEvents)
+                        {
+                            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+                        }
+                        else
+                        {
+                            <!-- 
+                                Responsive Event Table with Enhanced Accessibility and Server-side Pagination:
+                                - All columns sortable where appropriate (default: StartDate DESC)
+                                - DataLabel attributes for mobile responsiveness  
+                                - Semantic row actions with proper icons and tooltips
+                                - Loading states and proper empty state handling
+                                - ARIA-compliant structure for screen readers
+                                - Server-side pagination with full controls
+                            -->
+                            <MudTable T="EventManagementDto" 
+                                      Items="_pagedEvents.Items" 
+                                      Hover="true" 
+                                      Striped="true"
+                                      Loading="_isLoadingEvents"
+                                      LoadingProgressColor="Color.Info"
+                                      SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
+                                      AllowUnsorted="false"
+                                      Dense="true"
+                                      Breakpoint="Breakpoint.Sm">
+                                <HeaderContent>
+                                    <MudTh><MudTableSortLabel SortBy="@(new Func<EventManagementDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
+                                    <MudTh><MudTableSortLabel SortBy="@(new Func<EventManagementDto, object>(x => x.Location))">@TranslationService.GetTranslation("field.location", "Location")</MudTableSortLabel></MudTh>
+                                    <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<EventManagementDto, object>(x => x.StartDate))">@TranslationService.GetTranslation("field.startDate", "Data Inizio")</MudTableSortLabel></MudTh>
+                                    <MudTh><MudTableSortLabel SortBy="@(new Func<EventManagementDto, object>(x => x.EndDate ?? DateTime.MinValue))">@TranslationService.GetTranslation("field.endDate", "Data Fine")</MudTableSortLabel></MudTh>
+                                    <MudTh><MudTableSortLabel SortBy="@(new Func<EventManagementDto, object>(x => x.Capacity))">@TranslationService.GetTranslation("field.capacity", "Capacità")</MudTableSortLabel></MudTh>
+                                    <MudTh><MudTableSortLabel SortBy="@(new Func<EventManagementDto, object>(x => x.Status))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel></MudTh>
+                                    <MudTh><MudTableSortLabel SortBy="@(new Func<EventManagementDto, object>(x => x.TenantName ?? string.Empty))">@TranslationService.GetTranslation("field.tenant", "Tenant")</MudTableSortLabel></MudTh>
+                                    <MudTh Class="text-center" Style="min-width: 160px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                                        <div class="d-flex align-center">
+                                            <MudAvatar Color="@GetEventStatusColor(context.Status)" Size="Size.Small" Class="mr-3">
+                                                <MudIcon Icon="@Icons.Material.Outlined.Event" Size="Size.Small" />
+                                            </MudAvatar>
+                                            <div>
+                                                <MudText Typo="Typo.body2">@context.Name</MudText>
+                                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.ShortDescription</MudText>
+                                            </div>
+                                        </div>
+                                    </MudTd>
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.location", "Location")">
+                                        <MudText Typo="Typo.body2">@(string.IsNullOrEmpty(context.Location) ? TranslationService.GetTranslation("common.notSpecified", "Non specificato") : context.Location)</MudText>
+                                    </MudTd>
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.startDate", "Data Inizio")">
+                                        <MudText Typo="Typo.body2">@context.StartDate.ToString("dd/MM/yyyy HH:mm")</MudText>
+                                    </MudTd>
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.endDate", "Data Fine")">
+                                        <MudText Typo="Typo.body2">@(context.EndDate?.ToString("dd/MM/yyyy HH:mm") ?? TranslationService.GetTranslation("common.notSpecified", "Non specificato"))</MudText>
+                                    </MudTd>
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.capacity", "Capacità")">
+                                        <div class="d-flex align-center">
+                                            <MudIcon Icon="@Icons.Material.Outlined.People" Size="Size.Small" Class="mr-1" />
+                                            <MudText Typo="Typo.body2">@context.Capacity</MudText>
+                                        </div>
+                                    </MudTd>
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                                        <MudChip T="string" Color="@GetEventStatusColor(context.Status)" 
+                                                 Size="Size.Small"
+                                                 Icon="@GetEventStatusIcon(context.Status)">
+                                            @TranslationService.GetTranslation($"eventStatus.{context.Status.ToLower()}", context.Status)
+                                        </MudChip>
+                                    </MudTd>
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.tenant", "Tenant")">
+                                        <MudText Typo="Typo.body2">@(context.TenantName ?? TranslationService.GetTranslation("common.notAvailable", "N/A"))</MudText>
+                                    </MudTd>
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                                        <!-- Semantic action buttons with proper accessibility and semantic ordering -->
+                                        <MudButtonGroup Color="Color.Primary" Variant="Variant.Text" Size="Size.Small">
+                                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewDetails", "Visualizza dettagli")">
+                                                <MudIconButton Icon="@Icons.Material.Outlined.Visibility" 
+                                                               Color="Color.Info"
+                                                               Size="Size.Small"
+                                                               OnClick="@(() => ViewEvent(context))"
+                                                               aria-label="@TranslationService.GetTranslation("tooltip.viewEvent", "Visualizza evento {0}", context.Name)" />
+                                            </MudTooltip>
+                                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.editDetails", "Modifica dettagli")">
+                                                <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
+                                                               Color="Color.Primary"
+                                                               Size="Size.Small"
+                                                               OnClick="@(() => EditEvent(context))"
+                                                               aria-label="@TranslationService.GetTranslation("tooltip.editEvent", "Modifica evento {0}", context.Name)" />
+                                            </MudTooltip>
+                                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.auditHistory", "Cronologia modifiche")">
+                                                <MudIconButton Icon="@Icons.Material.Outlined.History" 
+                                                               Color="Color.Secondary"
+                                                               Size="Size.Small"
+                                                               OnClick="@(() => ShowAuditHistory(context))"
+                                                               aria-label="@TranslationService.GetTranslation("tooltip.auditHistory", "Mostra cronologia per {0}", context.Name)" />
+                                            </MudTooltip>
+                                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.deleteEvent", "Elimina evento")">
+                                                <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
+                                                               Color="Color.Error"
+                                                               Size="Size.Small"
+                                                               OnClick="@(() => DeleteEvent(context))"
+                                                               aria-label="@TranslationService.GetTranslation("tooltip.deleteEvent", "Elimina evento {0}", context.Name)" />
+                                            </MudTooltip>
+                                        </MudButtonGroup>
+                                    </MudTd>
+                                </RowTemplate>
+                                <NoRecordsContent>
+                                    <div class="text-center pa-8">
+                                        <MudIcon Icon="@Icons.Material.Outlined.EventBusy" Size="Size.Large" Class="mb-4 mud-text-secondary" />
+                                        <MudText Typo="Typo.h6" Class="mb-2">
+                                            @(_pagedEvents.TotalItems > 0 ? 
+                                                TranslationService.GetTranslation("superAdmin.noEventsMatchFilters", "Nessun evento corrisponde ai filtri applicati") : 
+                                                TranslationService.GetTranslation("superAdmin.noEventsFound", "Nessun evento trovato"))
+                                        </MudText>
+                                        @if (_pagedEvents.TotalItems > 0)
+                                        {
+                                            <MudButton Variant="Variant.Text" 
+                                                       Color="Color.Primary" 
+                                                       StartIcon="@Icons.Material.Outlined.Clear"
+                                                       OnClick="@ClearFilters">
+                                                @TranslationService.GetTranslation("superAdmin.clearFilters", "Cancella filtri")
+                                            </MudButton>
+                                        }
+                                    </div>
+                                </NoRecordsContent>
+                            </MudTable>
+                            
+                            <!-- Server-side Pagination Controls -->
+                            @if (_pagedEvents.TotalItems > 0)
+                            {
+                                <div class="d-flex justify-space-between align-center pa-2 mt-2">
+                                    <div class="d-flex align-center gap-4">
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                            @TranslationService.GetTranslation("pagination.showing", "Mostrando {0}-{1} di {2}", 
+                                                (_currentPage - 1) * _pageSize + 1, 
+                                                Math.Min(_currentPage * _pageSize, _pagedEvents.TotalItems), 
+                                                _pagedEvents.TotalItems)
+                                        </MudText>
+                                        <MudSelect T="int" @bind-Value="_pageSize" @bind-Value:after="OnPageSizeChanged"
+                                                   Label="@TranslationService.GetTranslation("pagination.itemsPerPage", "Elementi per pagina")"
+                                                   Variant="Variant.Outlined"
+                                                   Dense="true"
+                                                   Style="min-width: 100px;">
+                                            <MudSelectItem Value="10">10</MudSelectItem>
+                                            <MudSelectItem Value="25">25</MudSelectItem>
+                                            <MudSelectItem Value="50">50</MudSelectItem>
+                                            <MudSelectItem Value="100">100</MudSelectItem>
+                                        </MudSelect>
+                                    </div>
+                                    <MudPagination Color="Color.Primary" 
+                                                   Count="_pagedEvents.TotalPages"
+                                                   Selected="_currentPage" 
+                                                   SelectedChanged="OnPageChanged"
+                                                   ShowFirstButton="true"
+                                                   ShowLastButton="true"
+                                                   BoundaryCount="1"
+                                                   MiddleCount="3" />
+                                </div>
+                            }
+                        }
+                    </MudCardContent>
+                </MudCard>
+        </MudStack>
+    </MudContainer>
+}
+
+<!-- Event Management Drawer -->
+<EventDrawer @bind-IsOpen="_eventDrawerOpen" 
+             @bind-Mode="_eventDrawerMode"
+             OriginalEvent="_selectedEvent"
+             AllowEdit="true"
+             OnEventCreated="@OnEventCreated"
+             OnEventUpdated="@OnEventUpdated" />
+
+<!-- Audit History Drawer -->
+<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+                    EntityType="Event"
+                    EntityId="_selectedEventIdForAudit" 
+                    EntityName="_selectedEventNameForAudit" />
+
+@code {
+    // UI State Management
+    private bool _isLoading = true;
+    private bool _isAuthorized = false;
+    private bool _isLoadingEvents = false;
+    private bool _eventDrawerOpen = false;
+    private bool _auditDrawerOpen = false;
+    
+    // MudCollapse state management (all closed by default as per issue #98)
+    private bool _statisticsExpanded = false;      // Closed by default
+    private bool _filtersExpanded = false;         // Closed by default  
+    private bool _tenantSelectorExpanded = false;  // Closed by default
+    
+    // Drawer and modal management
+    private EntityDrawerMode _eventDrawerMode = EntityDrawerMode.Create;
+    private EventManagementDto? _selectedEvent;
+    private UserDto? _currentUser;
+    private Guid? _selectedEventIdForAudit;
+    private string _selectedEventNameForAudit = string.Empty;
+    
+    // Filter and search state
+    private string _searchTerm = string.Empty;
+    private string _statusFilter = "all";
+    private string _selectedTenantFilter = string.Empty;
+    
+    // Server-side pagination state management
+    private int _currentPage = 1;
+    private int _pageSize = 25;
+    private PagedResult<EventManagementDto> _pagedEvents = new();
+    
+    // Data collections
+    private List<TenantResponseDto> _tenants = new();
+    private List<EventManagementDto> _events = new();
+    private EventStatisticsDto? _statistics;
+
+    /// <summary>
+    /// Paged result wrapper for server-side pagination implementation.
+    /// Provides structured data with pagination metadata for enhanced table controls.
+    /// </summary>
+    public class PagedResult<T>
+    {
+        public List<T> Items { get; set; } = new();
+        public int TotalItems { get; set; }
+        public int TotalPages { get; set; }
+        public int CurrentPage { get; set; }
+        public int PageSize { get; set; }
+    }
+
+    /// <summary>
+    /// Computed property for filtered events based on search criteria.
+    /// Applies multiple filters: search term, status, and tenant selection.
+    /// Now integrates with pagination for better performance.
+    /// </summary>
+    private IEnumerable<EventManagementDto> _filteredEvents => 
+        _events.Where(e => 
+            // Search filter: check name, location, description
+            (string.IsNullOrEmpty(_searchTerm) || 
+             e.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             e.Location.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             e.ShortDescription.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) &&
+            // Status filter
+            (_statusFilter == "all" || e.Status.Equals(_statusFilter, StringComparison.OrdinalIgnoreCase)) &&
+            // Tenant filter
+            (string.IsNullOrEmpty(_selectedTenantFilter) ||
+             e.TenantId?.ToString() == _selectedTenantFilter));
+
+    /// <summary>
+    /// Component initialization with enhanced security checks and responsive UI setup.
+    /// Implements proper pagination initialization and data loading strategies.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Set all collapse sections to closed by default as per issue #98 requirements
+            _statisticsExpanded = false;
+            _filtersExpanded = false;
+            _tenantSelectorExpanded = false;
+            
+            // Enhanced authentication and authorization flow
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                NavigationManager.NavigateTo("/login");
+                return;
+            }
+
+            // SuperAdmin role verification with proper error handling
+            var isSuperAdmin = await AuthService.IsSuperAdminAsync();
+            if (!isSuperAdmin)
+            {
+                _isAuthorized = false;
+                _isLoading = false;
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.accessDeniedSuperAdmin", "Accesso negato. È richiesto il ruolo Super Amministratore."), Severity.Warning);
+                return;
+            }
+
+            // Load current user info for audit purposes
+            _currentUser = await AuthService.GetCurrentUserAsync();
+            _isAuthorized = true;
+            
+            // Parallel data loading for better performance
+            await Task.WhenAll(
+                LoadTenantsAsync(),
+                LoadEventsAsync(),
+                LoadStatisticsAsync()
+            );
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            NavigationManager.NavigateTo("/");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Loads tenant data with proper error handling and loading state management.
+    /// </summary>
+    private async Task LoadTenantsAsync()
+    {
+        try
+        {
+            _tenants = (await SuperAdminService.GetTenantsAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingTenantsError", "Errore nel caricamento dei tenant: {0}", ex.Message), Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Loads event data with proper error handling, loading state management, and pagination support.
+    /// Implements client-side filtering and pagination simulation until server-side APIs are available.
+    /// </summary>
+    private async Task LoadEventsAsync()
+    {
+        try
+        {
+            _isLoadingEvents = true;
+            var tenantId = string.IsNullOrEmpty(_selectedTenantFilter) ? (Guid?)null : Guid.Parse(_selectedTenantFilter);
+            _events = (await SuperAdminService.GetEventsAsync(tenantId)).ToList();
+            
+            // Apply pagination to filtered results
+            await ApplyPagination();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingEventsError", "Errore nel caricamento degli eventi: {0}", ex.Message), Severity.Error);
+        }
+        finally
+        {
+            _isLoadingEvents = false;
+        }
+    }
+
+    /// <summary>
+    /// Loads event statistics with enhanced error handling.
+    /// </summary>
+    private async Task LoadStatisticsAsync()
+    {
+        try
+        {
+            var tenantId = string.IsNullOrEmpty(_selectedTenantFilter) ? (Guid?)null : Guid.Parse(_selectedTenantFilter);
+            _statistics = await SuperAdminService.GetEventStatisticsAsync(tenantId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingStatisticsError", "Errore nel caricamento delle statistiche: {0}", ex.Message), Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Applies pagination logic to filtered event results.
+    /// Simulates server-side pagination until proper API endpoints are implemented.
+    /// </summary>
+    private async Task ApplyPagination()
+    {
+        var filteredResults = _filteredEvents.ToList();
+        var totalItems = filteredResults.Count;
+        var totalPages = (int)Math.Ceiling((double)totalItems / _pageSize);
+        
+        // Ensure current page is within valid range
+        if (_currentPage > totalPages && totalPages > 0)
+        {
+            _currentPage = totalPages;
+        }
+        else if (_currentPage < 1)
+        {
+            _currentPage = 1;
+        }
+        
+        var skip = (_currentPage - 1) * _pageSize;
+        var items = filteredResults.Skip(skip).Take(_pageSize).ToList();
+        
+        _pagedEvents = new PagedResult<EventManagementDto>
+        {
+            Items = items,
+            TotalItems = totalItems,
+            TotalPages = totalPages,
+            CurrentPage = _currentPage,
+            PageSize = _pageSize
+        };
+        
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Handles page size change events and refreshes pagination.
+    /// Ensures proper data loading and state management for different page sizes.
+    /// </summary>
+    private async Task OnPageSizeChanged()
+    {
+        _currentPage = 1; // Reset to first page when changing page size
+        await ApplyPagination();
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles page navigation events with proper state management.
+    /// Provides smooth pagination experience with loading states.
+    /// </summary>
+    private async Task OnPageChanged(int page)
+    {
+        _currentPage = page;
+        await ApplyPagination();
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Clears all active filters and resets search form to initial state.
+    /// Properly refreshes pagination after filter changes.
+    /// </summary>
+    private async Task ClearFilters()
+    {
+        _searchTerm = string.Empty;
+        _statusFilter = "all";
+        _selectedTenantFilter = string.Empty;
+        _currentPage = 1;
+        await ApplyPagination();
+        StateHasChanged();
+    }
+
+    private async Task OnTenantFilterChanged()
+    {
+        _currentPage = 1;
+        await LoadEventsAsync();
+        await LoadStatisticsAsync();
+        StateHasChanged();
+    }
+
+    private async Task OnSearchChanged()
+    {
+        await Task.Delay(300); // Debounce
+        _currentPage = 1;
+        await ApplyPagination();
+        StateHasChanged();
+    }
+
+    private async Task OnStatusFilterChanged()
+    {
+        _currentPage = 1;
+        await ApplyPagination();
+        StateHasChanged();
+    }
+
+    private async Task OpenCreateEventDrawer()
+    {
+        _eventDrawerMode = EntityDrawerMode.Create;
+        _selectedEvent = null;
+        _eventDrawerOpen = true;
+        await Task.CompletedTask;
+    }
+
+    private async Task OnEventCreated(EventManagementDto newEvent)
+    {
+        _events.Add(newEvent);
+        await LoadStatisticsAsync();
+        await ApplyPagination();
+        StateHasChanged();
+    }
+
+    private async Task OnEventUpdated(EventManagementDto updatedEvent)
+    {
+        var index = _events.FindIndex(e => e.Id == updatedEvent.Id);
+        if (index >= 0)
+        {
+            _events[index] = updatedEvent;
+        }
+        await LoadStatisticsAsync();
+        await ApplyPagination();
+        StateHasChanged();
+    }
+
+    private async Task ViewEvent(EventManagementDto eventItem)
+    {
+        _eventDrawerMode = EntityDrawerMode.View;
+        _selectedEvent = eventItem;
+        _eventDrawerOpen = true;
+        await Task.CompletedTask;
+    }
+
+    private async Task EditEvent(EventManagementDto eventItem)
+    {
+        _eventDrawerMode = EntityDrawerMode.Edit;
+        _selectedEvent = eventItem;
+        _eventDrawerOpen = true;
+        await Task.CompletedTask;
+    }
+
+    private async Task ShowAuditHistory(EventManagementDto eventItem)
+    {
+        _selectedEventIdForAudit = eventItem.Id;
+        _selectedEventNameForAudit = eventItem.Name;
+        _auditDrawerOpen = true;
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Deletes an event with enhanced confirmation dialog and error handling.
+    /// Implements proper audit trail logging and user feedback.
+    /// Refreshes pagination after deletion to maintain data consistency.
+    /// </summary>
+    private async Task DeleteEvent(EventManagementDto eventItem)
+    {
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslation("superAdmin.confirmEventDelete", 
+            "Sei sicuro di voler eliminare l'evento '{0}'? Questa azione non può essere annullata e verrà registrata nei log di audit.", 
+            eventItem.Name);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                await SuperAdminService.DeleteEventAsync(eventItem.Id);
+                _events.RemoveAll(e => e.Id == eventItem.Id);
+                await LoadStatisticsAsync();
+                await ApplyPagination();
+                
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.eventDeleted", "Evento eliminato con successo!"), Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.deleteEventError", 
+                    "Errore nell'eliminazione dell'evento: {0}", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    private async Task ExportEvents()
+    {
+        // TODO: Implement export functionality
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.exportFunctionalityComingSoon", "La funzionalità di esportazione sarà implementata presto."), Severity.Info);
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Gets the appropriate color for event status display.
+    /// </summary>
+    private Color GetEventStatusColor(string status)
+    {
+        return status?.ToLower() switch
+        {
+            "planned" => Color.Primary,
+            "ongoing" => Color.Success,
+            "completed" => Color.Default,
+            "cancelled" => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    /// <summary>
+    /// Gets the appropriate icon for event status display.
+    /// </summary>
+    private string GetEventStatusIcon(string status)
+    {
+        return status?.ToLower() switch
+        {
+            "planned" => Icons.Material.Outlined.Schedule,
+            "ongoing" => Icons.Material.Outlined.PlayArrow,
+            "completed" => Icons.Material.Outlined.CheckCircle,
+            "cancelled" => Icons.Material.Outlined.Cancel,
+            _ => Icons.Material.Outlined.Help
+        };
+    }
+}

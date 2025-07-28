@@ -46,6 +46,28 @@ namespace EventForge.Client.Services
         Task CancelBackupAsync(Guid backupId);
         Task<Stream> DownloadBackupAsync(Guid backupId);
         Task DeleteBackupAsync(Guid backupId);
+
+        // Event Management
+        Task<IEnumerable<EventManagementDto>> GetEventsAsync(Guid? tenantId = null);
+        Task<EventManagementDto?> GetEventAsync(Guid id);
+        Task<EventManagementDto> CreateEventAsync(CreateEventManagementDto createDto);
+        Task<EventManagementDto> UpdateEventAsync(Guid id, UpdateEventManagementDto updateDto);
+        Task DeleteEventAsync(Guid id);
+        Task<EventStatisticsDto> GetEventStatisticsAsync(Guid? tenantId = null);
+
+        // Event Type Management
+        Task<IEnumerable<EventTypeDto>> GetEventTypesAsync();
+        Task<EventTypeDto?> GetEventTypeAsync(Guid id);
+        Task<EventTypeDto> CreateEventTypeAsync(CreateEventTypeDto createDto);
+        Task<EventTypeDto> UpdateEventTypeAsync(Guid id, UpdateEventTypeDto updateDto);
+        Task DeleteEventTypeAsync(Guid id);
+
+        // Event Category Management
+        Task<IEnumerable<EventCategoryDto>> GetEventCategoriesAsync();
+        Task<EventCategoryDto?> GetEventCategoryAsync(Guid id);
+        Task<EventCategoryDto> CreateEventCategoryAsync(CreateEventCategoryDto createDto);
+        Task<EventCategoryDto> UpdateEventCategoryAsync(Guid id, UpdateEventCategoryDto updateDto);
+        Task DeleteEventCategoryAsync(Guid id);
     }
 
     public class SuperAdminService : ISuperAdminService
@@ -359,6 +381,151 @@ namespace EventForge.Client.Services
         {
             var httpClient = await GetConfiguredHttpClientAsync();
             var response = await httpClient.DeleteAsync($"api/SuperAdmin/backup/{backupId}");
+            response.EnsureSuccessStatusCode();
+        }
+
+        #endregion
+
+        #region Event Management
+
+        public async Task<IEnumerable<EventManagementDto>> GetEventsAsync(Guid? tenantId = null)
+        {
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var url = tenantId.HasValue ? $"api/SuperAdmin/events?tenantId={tenantId}" : "api/SuperAdmin/events";
+            var response = await httpClient.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<IEnumerable<EventManagementDto>>() ?? new List<EventManagementDto>();
+        }
+
+        public async Task<EventManagementDto?> GetEventAsync(Guid id)
+        {
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.GetAsync($"api/SuperAdmin/events/{id}");
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return null;
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<EventManagementDto>();
+        }
+
+        public async Task<EventManagementDto> CreateEventAsync(CreateEventManagementDto createDto)
+        {
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.PostAsJsonAsync("api/SuperAdmin/events", createDto);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<EventManagementDto>() ?? throw new Exception("Failed to create event");
+        }
+
+        public async Task<EventManagementDto> UpdateEventAsync(Guid id, UpdateEventManagementDto updateDto)
+        {
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.PutAsJsonAsync($"api/SuperAdmin/events/{id}", updateDto);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<EventManagementDto>() ?? throw new Exception("Failed to update event");
+        }
+
+        public async Task DeleteEventAsync(Guid id)
+        {
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.DeleteAsync($"api/SuperAdmin/events/{id}");
+            response.EnsureSuccessStatusCode();
+        }
+
+        public async Task<EventStatisticsDto> GetEventStatisticsAsync(Guid? tenantId = null)
+        {
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var url = tenantId.HasValue ? $"api/SuperAdmin/events/statistics?tenantId={tenantId}" : "api/SuperAdmin/events/statistics";
+            var response = await httpClient.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<EventStatisticsDto>() ?? new EventStatisticsDto();
+        }
+
+        #endregion
+
+        #region Event Type Management
+
+        public async Task<IEnumerable<EventTypeDto>> GetEventTypesAsync()
+        {
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.GetAsync("api/SuperAdmin/event-types");
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<IEnumerable<EventTypeDto>>() ?? new List<EventTypeDto>();
+        }
+
+        public async Task<EventTypeDto?> GetEventTypeAsync(Guid id)
+        {
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.GetAsync($"api/SuperAdmin/event-types/{id}");
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return null;
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<EventTypeDto>();
+        }
+
+        public async Task<EventTypeDto> CreateEventTypeAsync(CreateEventTypeDto createDto)
+        {
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.PostAsJsonAsync("api/SuperAdmin/event-types", createDto);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<EventTypeDto>() ?? throw new Exception("Failed to create event type");
+        }
+
+        public async Task<EventTypeDto> UpdateEventTypeAsync(Guid id, UpdateEventTypeDto updateDto)
+        {
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.PutAsJsonAsync($"api/SuperAdmin/event-types/{id}", updateDto);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<EventTypeDto>() ?? throw new Exception("Failed to update event type");
+        }
+
+        public async Task DeleteEventTypeAsync(Guid id)
+        {
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.DeleteAsync($"api/SuperAdmin/event-types/{id}");
+            response.EnsureSuccessStatusCode();
+        }
+
+        #endregion
+
+        #region Event Category Management
+
+        public async Task<IEnumerable<EventCategoryDto>> GetEventCategoriesAsync()
+        {
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.GetAsync("api/SuperAdmin/event-categories");
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<IEnumerable<EventCategoryDto>>() ?? new List<EventCategoryDto>();
+        }
+
+        public async Task<EventCategoryDto?> GetEventCategoryAsync(Guid id)
+        {
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.GetAsync($"api/SuperAdmin/event-categories/{id}");
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return null;
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<EventCategoryDto>();
+        }
+
+        public async Task<EventCategoryDto> CreateEventCategoryAsync(CreateEventCategoryDto createDto)
+        {
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.PostAsJsonAsync("api/SuperAdmin/event-categories", createDto);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<EventCategoryDto>() ?? throw new Exception("Failed to create event category");
+        }
+
+        public async Task<EventCategoryDto> UpdateEventCategoryAsync(Guid id, UpdateEventCategoryDto updateDto)
+        {
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.PutAsJsonAsync($"api/SuperAdmin/event-categories/{id}", updateDto);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<EventCategoryDto>() ?? throw new Exception("Failed to update event category");
+        }
+
+        public async Task DeleteEventCategoryAsync(Guid id)
+        {
+            var httpClient = await GetConfiguredHttpClientAsync();
+            var response = await httpClient.DeleteAsync($"api/SuperAdmin/event-categories/{id}");
             response.EnsureSuccessStatusCode();
         }
 
