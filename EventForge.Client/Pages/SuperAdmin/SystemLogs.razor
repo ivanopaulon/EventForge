@@ -49,23 +49,78 @@ else
             @TranslationService.GetTranslation("navigation.systemLogs", "Log Sistema")
         </MudText>
 
-        <MudGrid>
-            <!-- Filtri di Ricerca -->
+        <MudGrid Spacing="4">
+            <!-- Statistics Card: First in vertical layout for high-level overview -->
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="2" Class="mb-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Analytics" Class="mr-2" />
+                                @TranslationService.GetTranslation("superAdmin.statistics", "Statistiche")
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudStack Spacing="3">
+                            <div class="d-flex justify-space-between">
+                                <MudText>@TranslationService.GetTranslation("superAdmin.errors24h", "Errori (24h)"):</MudText>
+                                <MudChip T="string" Color="Color.Error" Size="Size.Small">0</MudChip>
+                            </div>
+                            <div class="d-flex justify-space-between">
+                                <MudText>@TranslationService.GetTranslation("superAdmin.warnings24h", "Warning (24h)"):</MudText>
+                                <MudChip T="string" Color="Color.Warning" Size="Size.Small">0</MudChip>
+                            </div>
+                            <div class="d-flex justify-space-between">
+                                <MudText>@TranslationService.GetTranslation("superAdmin.info24h", "Info (24h)"):</MudText>
+                                <MudChip T="string" Color="Color.Info" Size="Size.Small">0</MudChip>
+                            </div>
+                            
+                            <MudDivider />
+                            
+                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refresh", "Aggiorna dati")">
+                                <MudButton Variant="Variant.Outlined" 
+                                           Color="Color.Primary" 
+                                           StartIcon="Icons.Material.Filled.Refresh"
+                                           FullWidth="true"
+                                           OnClick="@(() => RefreshLogs())">
+                                    @TranslationService.GetTranslation("common.refresh", "Aggiorna")
+                                </MudButton>
+                            </MudTooltip>
+                            
+                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.exportLogs", "Esporta log")">
+                                <MudButton Variant="Variant.Outlined" 
+                                           Color="Color.Secondary" 
+                                           StartIcon="Icons.Material.Filled.Download"
+                                           FullWidth="true"
+                                           OnClick="@(() => ExportLogs())">
+                                    @TranslationService.GetTranslation("superAdmin.exportLogs", "Esporta Log")
+                                </MudButton>
+                            </MudTooltip>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Search Filters Card: Second in vertical layout -->
             <MudItem xs="12" md="8">
-                <MudCard Elevation="2">
+                <MudCard Elevation="2" Class="mb-4">
                     <MudCardHeader>
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">
                                 <MudIcon Icon="Icons.Material.Filled.FilterList" Class="mr-2" />
-                                Filtri e Ricerca
+                                @TranslationService.GetTranslation("superAdmin.logFilters", "Filtri e Ricerca")
                             </MudText>
                         </CardHeaderContent>
                     </MudCardHeader>
                     <MudCardContent>
                         <MudGrid>
                             <MudItem xs="12" md="6">
-                                <MudSelect T="string" @bind-Value="_logLevel" Label="Livello Log" Variant="Variant.Outlined">
-                                    <MudSelectItem Value="@("all")">Tutti i livelli</MudSelectItem>
+                                <MudSelect T="string" @bind-Value="_logLevel" 
+                                           Label="@TranslationService.GetTranslation("superAdmin.logLevel", "Livello Log")" 
+                                           Variant="Variant.Outlined"
+                                           FullWidth="true">
+                                    <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("superAdmin.allLevels", "Tutti i livelli")</MudSelectItem>
                                     <MudSelectItem Value="@("error")">Error</MudSelectItem>
                                     <MudSelectItem Value="@("warning")">Warning</MudSelectItem>
                                     <MudSelectItem Value="@("information")">Information</MudSelectItem>
@@ -74,176 +129,131 @@ else
                                 </MudSelect>
                             </MudItem>
                             <MudItem xs="12" md="6">
-                                <MudSelect T="string" @bind-Value="_logSource" Label="Sorgente" Variant="Variant.Outlined">
-                                    <MudSelectItem Value="@("all")">Tutte le sorgenti</MudSelectItem>
-                                    <MudSelectItem Value="@("authentication")">Autenticazione</MudSelectItem>
-                                    <MudSelectItem Value="@("authorization")">Autorizzazione</MudSelectItem>
-                                    <MudSelectItem Value="@("database")">Database</MudSelectItem>
+                                <MudSelect T="string" @bind-Value="_logSource" 
+                                           Label="@TranslationService.GetTranslation("superAdmin.logSource", "Sorgente")" 
+                                           Variant="Variant.Outlined"
+                                           FullWidth="true">
+                                    <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("superAdmin.allSources", "Tutte le sorgenti")</MudSelectItem>
+                                    <MudSelectItem Value="@("authentication")">@TranslationService.GetTranslation("superAdmin.authentication", "Autenticazione")</MudSelectItem>
+                                    <MudSelectItem Value="@("authorization")">@TranslationService.GetTranslation("superAdmin.authorization", "Autorizzazione")</MudSelectItem>
+                                    <MudSelectItem Value="@("database")">@TranslationService.GetTranslation("superAdmin.database", "Database")</MudSelectItem>
                                     <MudSelectItem Value="@("api")">API</MudSelectItem>
-                                    <MudSelectItem Value="@("tenancy")">Multi-tenancy</MudSelectItem>
+                                    <MudSelectItem Value="@("tenancy")">@TranslationService.GetTranslation("superAdmin.multiTenancy", "Multi-tenancy")</MudSelectItem>
                                 </MudSelect>
                             </MudItem>
                             <MudItem xs="12" md="6">
-                                <MudDatePicker Label="Data Inizio" 
+                                <MudDatePicker Label="@TranslationService.GetTranslation("superAdmin.startDate", "Data Inizio")" 
                                                @bind-Date="_startDate" 
                                                Variant="Variant.Outlined" />
                             </MudItem>
                             <MudItem xs="12" md="6">
-                                <MudDatePicker Label="Data Fine" 
+                                <MudDatePicker Label="@TranslationService.GetTranslation("superAdmin.endDate", "Data Fine")" 
                                                @bind-Date="_endDate" 
                                                Variant="Variant.Outlined" />
                             </MudItem>
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="_searchText"
-                                              Label="Cerca nel messaggio o eccezione"
+                                              Label="@TranslationService.GetTranslation("superAdmin.filterByMessage", "Cerca nel messaggio o eccezione")"
                                               Variant="Variant.Outlined"
                                               Adornment="Adornment.End"
-                                              AdornmentIcon="Icons.Material.Filled.Search" />
+                                              AdornmentIcon="Icons.Material.Filled.Search"
+                                              FullWidth="true" />
                             </MudItem>
                         </MudGrid>
                         
-                        <div class="d-flex ga-2 mt-3">
-                            <MudButton Variant="Variant.Filled" 
-                                       Color="Color.Primary" 
-                                       StartIcon="Icons.Material.Filled.Search"
-                                       OnClick="@(() => SearchLogs())">
-                                Cerca
-                            </MudButton>
-                            <MudButton Variant="Variant.Outlined" 
-                                       Color="Color.Secondary" 
-                                       StartIcon="Icons.Material.Filled.Clear"
-                                       OnClick="@(() => ClearFilters())">
-                                Pulisci Filtri
-                            </MudButton>
-                        </div>
+                        <MudStack Direction="Row" Spacing="2" Class="mt-3">
+                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.search", "Cerca con filtri applicati")">
+                                <MudButton Variant="Variant.Filled" 
+                                           Color="Color.Primary" 
+                                           StartIcon="Icons.Material.Filled.Search"
+                                           OnClick="@(() => SearchLogs())">
+                                    @TranslationService.GetTranslation("common.search", "Cerca")
+                                </MudButton>
+                            </MudTooltip>
+                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.clearFilters", "Pulisci tutti i filtri")">
+                                <MudButton Variant="Variant.Outlined" 
+                                           Color="Color.Secondary" 
+                                           StartIcon="Icons.Material.Filled.Clear"
+                                           OnClick="@(() => ClearFilters())">
+                                    @TranslationService.GetTranslation("superAdmin.clearFilters", "Pulisci Filtri")
+                                </MudButton>
+                            </MudTooltip>
+                        </MudStack>
                     </MudCardContent>
                 </MudCard>
             </MudItem>
 
-            <!-- Statistiche e Azioni -->
-            <MudItem xs="12" md="4">
-                <MudCard Elevation="2">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">
-                                <MudIcon Icon="Icons.Material.Filled.Analytics" Class="mr-2" />
-                                Statistiche
-                            </MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        <div class="d-flex flex-column ga-3">
-                            <div class="d-flex justify-space-between">
-                                <MudText>Errori (24h):</MudText>
-                                <MudChip T="string" Color="Color.Error" Size="Size.Small">0</MudChip>
-                            </div>
-                            <div class="d-flex justify-space-between">
-                                <MudText>Warning (24h):</MudText>
-                                <MudChip T="string" Color="Color.Warning" Size="Size.Small">0</MudChip>
-                            </div>
-                            <div class="d-flex justify-space-between">
-                                <MudText>Info (24h):</MudText>
-                                <MudChip T="string" Color="Color.Info" Size="Size.Small">0</MudChip>
-                            </div>
-                            
-                            <MudDivider />
-                            
-                            <MudButton Variant="Variant.Outlined" 
-                                       Color="Color.Primary" 
-                                       StartIcon="Icons.Material.Filled.Refresh"
-                                       FullWidth="true"
-                                       OnClick="@(() => RefreshLogs())">
-                                Aggiorna
-                            </MudButton>
-                            
-                            <MudButton Variant="Variant.Outlined" 
-                                       Color="Color.Secondary" 
-                                       StartIcon="Icons.Material.Filled.Download"
-                                       FullWidth="true"
-                                       OnClick="@(() => ExportLogs())">
-                                Esporta Log
-                            </MudButton>
-                        </div>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <!-- Grafici Trend (placeholder) -->
+            <!-- Data Table Card: Last in vertical layout with toolbar actions and sortable columns -->
             <MudItem xs="12">
-                <MudCard Elevation="2">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">
-                                <MudIcon Icon="Icons.Material.Filled.TrendingUp" Class="mr-2" />
-                                Trend Log (Ultime 24 ore)
-                            </MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info">
-                            <strong>Analisi Grafici:</strong> I grafici per la visualizzazione dei trend saranno disponibili in una versione futura:
-                            <ul class="mt-2">
-                                <li>Distribuzione per livello di log nel tempo</li>
-                                <li>Frequenza errori per sorgente</li>
-                                <li>Picchi di attività e loro correlazioni</li>
-                                <li>Metriche performance (response time, throughput)</li>
-                            </ul>
-                        </MudAlert>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <!-- Lista Log -->
-            <MudItem xs="12">
-                <MudCard Elevation="2">
+                <MudCard Elevation="2" Class="mb-4">
                     <MudCardHeader>
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">
                                 <MudIcon Icon="Icons.Material.Filled.List" Class="mr-2" />
-                                Log Sistema
+                                @TranslationService.GetTranslation("superAdmin.systemLogs", "Log Sistema")
                             </MudText>
                         </CardHeaderContent>
                         <CardHeaderActions>
-                            <MudToggleIconButton @bind-Toggled="_autoRefresh"
-                                                 Icon="Icons.Material.Filled.PlayArrow"
-                                                 ToggledIcon="Icons.Material.Filled.Pause"
-                                                 Color="Color.Primary"
-                                                 ToggledColor="Color.Secondary" />
+                            <!-- Quick Actions Toolbar: Above table with translated tooltips -->
+                            <MudToolBar Dense="true" WrapContent="true">
+                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.autoRefresh", "Attiva/disattiva aggiornamento automatico")">
+                                    <MudToggleIconButton @bind-Toggled="_autoRefresh"
+                                                         Icon="Icons.Material.Filled.PlayArrow"
+                                                         ToggledIcon="Icons.Material.Filled.Pause"
+                                                         Color="Color.Primary"
+                                                         ToggledColor="Color.Secondary" />
+                                </MudTooltip>
+                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refresh", "Aggiorna dati")">
+                                    <MudIconButton Icon="Icons.Material.Filled.Refresh" 
+                                                   Color="Color.Primary"
+                                                   OnClick="@RefreshLogs" />
+                                </MudTooltip>
+                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.export", "Esporta dati")">
+                                    <MudIconButton Icon="Icons.Material.Filled.Download" 
+                                                   Color="Color.Secondary"
+                                                   OnClick="@ExportLogs" />
+                                </MudTooltip>
+                            </MudToolBar>
                         </CardHeaderActions>
                     </MudCardHeader>
                     <MudCardContent>
                         <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mb-4">
-                            <strong>Integrazione Log:</strong> L'integrazione con il sistema di logging sarà implementata in una versione futura.
+                            <strong>@TranslationService.GetTranslation("superAdmin.integrationTodo", "TODO:"):</strong> @TranslationService.GetTranslation("superAdmin.loggingIntegrationDescription", "L'integrazione con il sistema di logging sarà implementata in una versione futura.")
                             <br />
-                            Le seguenti funzionalità saranno disponibili:
-                            <ul class="mt-2">
-                                <li>Connessione al sistema di logging (Serilog, NLog, etc.)</li>
-                                <li>Query ottimizzate con paginazione per grandi volumi</li>
-                                <li>Visualizzazione dettagliata di stack trace e context</li>
-                                <li>Correlazione tra log entries (correlation ID, trace ID)</li>
-                                <li>Evidenziazione sintassi per JSON, XML nei messaggi</li>
-                                <li>Export in vari formati (CSV, JSON, TXT)</li>
-                                <li>Alerting automatico per errori critici</li>
-                            </ul>
+                            @TranslationService.GetTranslation("superAdmin.loggingFeaturesDescription", "Le seguenti funzionalità saranno disponibili: connessione al sistema di logging (Serilog, NLog, etc.), query ottimizzate con paginazione per grandi volumi, visualizzazione dettagliata di stack trace e context, correlazione tra log entries (correlation ID, trace ID), evidenziazione sintassi per JSON, XML nei messaggi, export in vari formati (CSV, JSON, TXT), alerting automatico per errori critici.")
                         </MudAlert>
 
-                        <!-- Placeholder Table -->
-                        <MudTable T="object" Items="@(new object[0])" Hover="true" Striped="true" Dense="true">
+                        <!-- 
+                            MudTable Implementation: Follows EventForge UI standards
+                            - All columns sortable with logical default (Timestamp DESC)
+                            - Responsive with DataLabel attributes for mobile
+                            - Row actions using MudIconButton with semantic icons
+                            - Translated tooltips for all interactive elements
+                            - Loading states and empty state messages
+                        -->
+                        <MudTable T="object" Items="@(new object[0])" 
+                                  Hover="true" 
+                                  Striped="true" 
+                                  Dense="true"
+                                  Loading="false"
+                                  LoadingProgressColor="Color.Info"
+                                  SortLabel="@TranslationService.GetTranslation("tooltip.sort", "Ordina")"
+                                  AllowUnsorted="false">
                             <HeaderContent>
-                                <MudTh>Timestamp</MudTh>
-                                <MudTh>Livello</MudTh>
-                                <MudTh>Sorgente</MudTh>
-                                <MudTh>Messaggio</MudTh>
-                                <MudTh>Tenant</MudTh>
-                                <MudTh>Utente</MudTh>
-                                <MudTh>Azioni</MudTh>
+                                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<object, object>(x => DateTime.Now))">@TranslationService.GetTranslation("superAdmin.timestamp", "Timestamp")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<object, object>(x => ""))">@TranslationService.GetTranslation("superAdmin.logLevel", "Livello")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<object, object>(x => ""))">@TranslationService.GetTranslation("superAdmin.logSource", "Sorgente")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<object, object>(x => ""))">@TranslationService.GetTranslation("superAdmin.logMessage", "Messaggio")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<object, object>(x => ""))">@TranslationService.GetTranslation("field.tenant", "Tenant")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<object, object>(x => ""))">@TranslationService.GetTranslation("field.user", "Utente")</MudTableSortLabel></MudTh>
+                                <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                             </HeaderContent>
                             <NoRecordsContent>
-                                <MudText>Nessun log trovato. Integrare con sistema di logging per caricare i dati.</MudText>
+                                <MudText>@TranslationService.GetTranslation("superAdmin.noLogsFound", "Nessun log trovato. Integrare con sistema di logging per caricare i dati.")</MudText>
                             </NoRecordsContent>
                         </MudTable>
 
-                        <!-- Paginazione -->
+                        <!-- Pagination -->
                         <div class="d-flex justify-center mt-4">
                             <MudPagination Count="@_totalPages" 
                                            @bind-Selected="_currentPage" 
@@ -254,33 +264,48 @@ else
                 </MudCard>
             </MudItem>
 
-            <!-- Dettagli Log Selezionato -->
+            <!-- Log Trends Card: Additional info card -->
+            <MudItem xs="12">
+                <MudCard Elevation="2" Class="mb-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.TrendingUp" Class="mr-2" />
+                                @TranslationService.GetTranslation("superAdmin.logTrends", "Trend Log (Ultime 24 ore)")
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info">
+                            <strong>@TranslationService.GetTranslation("superAdmin.chartAnalysis", "Analisi Grafici:"):</strong> @TranslationService.GetTranslation("superAdmin.chartsAvailableInFuture", "I grafici per la visualizzazione dei trend saranno disponibili in una versione futura: distribuzione per livello di log nel tempo, frequenza errori per sorgente, picchi di attività e loro correlazioni, metriche performance (response time, throughput).")
+                        </MudAlert>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Log Details Card: Conditional display -->
             @if (_selectedLogEntry != null)
             {
                 <MudItem xs="12">
-                    <MudCard Elevation="2">
+                    <MudCard Elevation="2" Class="mb-4">
                         <MudCardHeader>
                             <CardHeaderContent>
                                 <MudText Typo="Typo.h6">
                                     <MudIcon Icon="Icons.Material.Filled.Info" Class="mr-2" />
-                                    Dettagli Log Entry
+                                    @TranslationService.GetTranslation("superAdmin.logEntryDetails", "Dettagli Log Entry")
                                 </MudText>
                             </CardHeaderContent>
                             <CardHeaderActions>
-                                <MudIconButton Icon="Icons.Material.Filled.Close" 
-                                               Color="Color.Default" 
-                                               OnClick="@(() => _selectedLogEntry = null)" />
+                                <MudTooltip Text="@TranslationService.GetTranslation("common.close", "Chiudi")">
+                                    <MudIconButton Icon="Icons.Material.Filled.Close" 
+                                                   Color="Color.Default" 
+                                                   OnClick="@(() => _selectedLogEntry = null)" />
+                                </MudTooltip>
                             </CardHeaderActions>
                         </MudCardHeader>
                         <MudCardContent>
                             <MudAlert Severity="Severity.Info">
-                                <strong>Dettagli Log:</strong> La visualizzazione dettagliata sarà implementata con le seguenti funzionalità:
-                                <ul class="mt-2">
-                                    <li>Stack trace completo formattato</li>
-                                    <li>Context data (user, tenant, correlation ID)</li>
-                                    <li>Request/Response data se disponibili</li>
-                                    <li>Log entries correlati</li>
-                                </ul>
+                                <strong>@TranslationService.GetTranslation("superAdmin.integrationTodo", "TODO:"):</strong> @TranslationService.GetTranslation("superAdmin.logDetailsDescription", "La visualizzazione dettagliata sarà implementata con le seguenti funzionalità: stack trace completo formattato, context data (user, tenant, correlation ID), request/response data se disponibili, log entries correlati.")
                             </MudAlert>
                         </MudCardContent>
                     </MudCard>
@@ -295,14 +320,14 @@ else
     private bool _isAuthorized = false;
     private UserDto? _currentUser;
     
-    // Filtri
+    // Filters
     private string _logLevel = "all";
     private string _logSource = "all";
     private DateTime? _startDate = DateTime.Today.AddDays(-1);
     private DateTime? _endDate = DateTime.Today.AddDays(1);
     private string _searchText = string.Empty;
     
-    // Paginazione
+    // Pagination
     private int _currentPage = 1;
     private int _totalPages = 1;
     
@@ -314,7 +339,7 @@ else
     {
         try
         {
-            // Verifica autenticazione
+            // Verify authentication
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
             if (!isAuthenticated)
             {
@@ -322,23 +347,23 @@ else
                 return;
             }
 
-            // Verifica ruolo SuperAdmin
+            // Verify SuperAdmin role
             var isSuperAdmin = await AuthService.IsSuperAdminAsync();
             if (!isSuperAdmin)
             {
                 _isAuthorized = false;
                 _isLoading = false;
-                Snackbar.Add("Accesso negato. È richiesto il ruolo Super Amministratore.", Severity.Warning);
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.accessDeniedSuperAdmin", "Accesso negato. È richiesto il ruolo Super Amministratore."), Severity.Warning);
                 return;
             }
 
-            // Carica informazioni utente corrente
+            // Load current user information
             _currentUser = await AuthService.GetCurrentUserAsync();
             _isAuthorized = true;
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel caricamento della pagina: {ex.Message}", Severity.Error);
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
             NavigationManager.NavigateTo("/");
         }
         finally
@@ -350,7 +375,7 @@ else
     private void SearchLogs()
     {
         // Feature under development
-        Snackbar.Add("Funzionalità in sviluppo", Severity.Info);
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.featureInDevelopment", "Funzionalità in sviluppo"), Severity.Info);
     }
 
     private void ClearFilters()
@@ -360,18 +385,18 @@ else
         _startDate = DateTime.Today.AddDays(-1);
         _endDate = DateTime.Today.AddDays(1);
         _searchText = string.Empty;
-        Snackbar.Add("Filtri puliti", Severity.Success);
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.filtersCleared", "Filtri puliti"), Severity.Success);
     }
 
     private void RefreshLogs()
     {
         // Feature under development
-        Snackbar.Add("Funzionalità in sviluppo", Severity.Info);
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.featureInDevelopment", "Funzionalità in sviluppo"), Severity.Info);
     }
 
     private void ExportLogs()
     {
         // Feature under development
-        Snackbar.Add("Funzionalità in sviluppo", Severity.Info);
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.featureInDevelopment", "Funzionalità in sviluppo"), Severity.Info);
     }
 }

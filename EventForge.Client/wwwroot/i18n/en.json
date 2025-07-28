@@ -399,7 +399,26 @@
     "filtersCleared": "Filters cleared",
     "implementRefreshAudit": "TODO: Audit trail refresh implemented",
     "implementExportAudit": "TODO: Audit trail export implemented",
-    "implementSetupAlerts": "TODO: Audit alert configuration implemented"
+    "implementSetupAlerts": "TODO: Audit alert configuration implemented",
+    "errors24h": "Errors (24h)",
+    "warnings24h": "Warnings (24h)",
+    "info24h": "Info (24h)",
+    "exportLogs": "Export Logs",
+    "allLevels": "All levels",
+    "allSources": "All sources",
+    "authentication": "Authentication",
+    "authorization": "Authorization",
+    "database": "Database",
+    "multiTenancy": "Multi-tenancy",
+    "loggingIntegrationDescription": "Integration with the logging system will be implemented in a future version.",
+    "loggingFeaturesDescription": "The following functionalities will be available: connection to logging system (Serilog, NLog, etc.), optimized queries with pagination for large volumes, detailed visualization of stack trace and context, correlation between log entries (correlation ID, trace ID), syntax highlighting for JSON, XML in messages, export in various formats (CSV, JSON, TXT), automatic alerting for critical errors.",
+    "noLogsFound": "No logs found. Integrate with logging system to load data.",
+    "logTrends": "Log Trends (Last 24 hours)",
+    "chartAnalysis": "Chart Analysis",
+    "chartsAvailableInFuture": "Charts for trend visualization will be available in a future version: distribution by log level over time, error frequency by source, activity peaks and their correlations, performance metrics (response time, throughput).",
+    "logEntryDetails": "Log Entry Details",
+    "logDetailsDescription": "Detailed visualization will be implemented with the following functionalities: formatted complete stack trace, context data (user, tenant, correlation ID), request/response data if available, correlated log entries.",
+    "featureInDevelopment": "Feature under development"
   },
   "tooltip": {
     "view": "View details",
@@ -435,7 +454,8 @@
     "endImpersonation": "End impersonation",
     "autoRefresh": "Toggle auto refresh",
     "clearFilters": "Clear all filters",
-    "setupAlerts": "Setup alerts"
+    "setupAlerts": "Setup alerts",
+    "exportLogs": "Export logs"
   },
   "health": {
     "serverStatus": "Server Health Status",
