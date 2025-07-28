@@ -60,7 +60,7 @@
                 <MudButton Variant="Variant.Filled" 
                            Color="Color.Primary"
                            OnClick="@SwitchToEdit"
-                           StartIcon="@Icons.Material.Filled.Edit"
+                           StartIcon="@Icons.Material.Outlined.Edit"
                            aria-label="@TranslationService.GetTranslation("drawer.aria.modificaEntita")">
                     @TranslationService.GetTranslation("drawer.button.modifica")
                 </MudButton>
@@ -261,7 +261,7 @@
     {
         return Mode switch
         {
-            EntityDrawerMode.Create => Icons.Material.Filled.Add,
+            EntityDrawerMode.Create => Icons.Material.Outlined.Add,
             EntityDrawerMode.Edit => Icons.Material.Filled.Save,
             _ => Icons.Material.Filled.Save
         };
