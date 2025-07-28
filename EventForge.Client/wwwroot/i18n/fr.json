@@ -268,5 +268,38 @@
   "accessibility": {
     "languageSelectorDescription": "Sélectionnez votre langue préférée",
     "selectLanguage": "Sélectionner la langue"
+  },
+  "theme": {
+    "darkMode": "Mode Sombre",
+    "lightMode": "Mode Clair",
+    "switchToDark": "Passer au thème sombre",
+    "switchToLight": "Passer au thème clair",
+    "selector": "Sélecteur de thème",
+    "selectTheme": "Sélectionner le thème",
+    "currentTheme": "Thème actuel",
+    "light": {
+      "name": "Clair",
+      "description": "Thème moderne et lumineux avec les couleurs d'EventForge"
+    },
+    "dark": {
+      "name": "Sombre",
+      "description": "Thème sombre classique pour les environnements peu éclairés"
+    },
+    "warm": {
+      "name": "Chaleureux",
+      "description": "Thème accueillant avec des tons oranges et terreux"
+    },
+    "cool": {
+      "name": "Frais",
+      "description": "Thème rafraîchissant avec des couleurs bleues et turquoise"
+    },
+    "high-contrast": {
+      "name": "Contraste Élevé",
+      "description": "Thème à contraste élevé pour l'accessibilité (WCAG AAA)"
+    },
+    "fun": {
+      "name": "Amusant",
+      "description": "Thème ludique avec des couleurs pastel vibrantes"
+    }
   }
 }

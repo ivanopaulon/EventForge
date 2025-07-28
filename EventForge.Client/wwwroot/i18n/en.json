@@ -572,6 +572,33 @@
     "darkMode": "Dark Mode",
     "lightMode": "Light Mode",
     "switchToDark": "Switch to dark theme",
-    "switchToLight": "Switch to light theme"
+    "switchToLight": "Switch to light theme",
+    "selector": "Theme selector",
+    "selectTheme": "Select theme",
+    "currentTheme": "Current theme",
+    "light": {
+      "name": "Light",
+      "description": "Modern bright theme with EventForge colors"
+    },
+    "dark": {
+      "name": "Dark", 
+      "description": "Classic dark theme for low-light environments"
+    },
+    "warm": {
+      "name": "Warm",
+      "description": "Cozy theme with orange and earthy tones"
+    },
+    "cool": {
+      "name": "Cool",
+      "description": "Refreshing theme with blue and turquoise colors"
+    },
+    "high-contrast": {
+      "name": "High Contrast",
+      "description": "High contrast theme for accessibility (WCAG AAA)"
+    },
+    "fun": {
+      "name": "Fun",
+      "description": "Playful theme with vibrant pastel colors"
+    }
   }
 }
