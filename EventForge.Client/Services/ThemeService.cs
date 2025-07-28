@@ -159,7 +159,7 @@ public class ThemeService : IThemeService
         try
         {
             var storedTheme = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", ThemeKey);
-            
+
             // Handle backward compatibility with old boolean values
             if (storedTheme == "dark" || storedTheme == "true")
             {
