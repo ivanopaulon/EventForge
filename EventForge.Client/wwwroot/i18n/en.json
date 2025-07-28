@@ -600,5 +600,118 @@
       "name": "Fun",
       "description": "Playful theme with vibrant pastel colors"
     }
+  },
+  "drawer": {
+    "title": {
+      "creaEntita": "Create {0}",
+      "modificaEntita": "Edit {0}",
+      "visualizzaEntita": "View {0}",
+      "creaUtente": "Create User",
+      "modificaUtente": "Edit User: {0} {1}",
+      "visualizzaUtente": "View User: {0} {1}",
+      "creaTenant": "Create Tenant",
+      "modificaTenant": "Edit Tenant: {0}",
+      "visualizzaTenant": "View Tenant: {0}"
+    },
+    "field": {
+      "nome": "First Name",
+      "cognome": "Last Name",
+      "username": "Username",
+      "email": "Email",
+      "password": "Password",
+      "confermaPassword": "Confirm Password",
+      "tenant": "Tenant",
+      "ruoli": "Roles",
+      "utenteAttivo": "Active User",
+      "nomeTenant": "Tenant Name",
+      "nomeVisualizzato": "Display Name",
+      "descrizione": "Description",
+      "dominio": "Domain",
+      "emailContatto": "Contact Email",
+      "massimoUtenti": "Max Users",
+      "tenantAttivo": "Active Tenant",
+      "idUtente": "User ID",
+      "dataCreazione": "Created Date",
+      "ultimoAccesso": "Last Login",
+      "idTenant": "Tenant ID",
+      "utentiAttuali": "Current Users",
+      "ultimaModifica": "Last Modified"
+    },
+    "helperText": {
+      "nome": "Enter the person's first name",
+      "cognome": "Enter the person's last name",
+      "usernameCreate": "Unique username for login",
+      "usernameEdit": "Username cannot be changed",
+      "email": "Valid email address",
+      "tenantCreate": "Select the tenant to belong to",
+      "tenantEdit": "Tenant cannot be changed",
+      "password": "Minimum 8 characters",
+      "confermaPassword": "Must match the password",
+      "utenteAttivo": "Determines if the user can access the system",
+      "nomeTenantCreate": "Unique tenant name (e.g: company-abc)",
+      "nomeTenantEdit": "Tenant name cannot be changed",
+      "nomeVisualizzato": "Name to show in the user interface",
+      "descrizione": "Optional description of the tenant and its activities",
+      "dominio": "Custom domain for access (optional)",
+      "emailContatto": "Reference email for the tenant",
+      "massimoUtenti": "Maximum number of users allowed for this tenant",
+      "tenantAttivo": "Determines if the tenant is active and can be used",
+      "utilizzoUtenti": "User quota usage"
+    },
+    "error": {
+      "nomeObbligatorio": "First name is required",
+      "cognomeObbligatorio": "Last name is required",
+      "usernameObbligatorio": "Username is required",
+      "emailObbligatoria": "Email is required",
+      "passwordObbligatoria": "Password is required",
+      "confermaPasswordObbligatoria": "Password confirmation is required",
+      "tenantObbligatorio": "Tenant is required",
+      "nomeTenantObbligatorio": "Tenant name is required",
+      "nomeVisualizzatoObbligatorio": "Display name is required",
+      "emailContattoObbligatoria": "Contact email is required"
+    },
+    "button": {
+      "salva": "Save",
+      "annulla": "Cancel",
+      "crea": "Create",
+      "modifica": "Edit",
+      "chiudi": "Close",
+      "creando": "Creating...",
+      "salvando": "Saving..."
+    },
+    "aria": {
+      "chiudiDrawer": "Close drawer",
+      "chiudiEsc": "Close (ESC)",
+      "caricamentoInCorso": "Loading in progress",
+      "modificaEntita": "Edit entity",
+      "annullaOperazione": "Cancel operation",
+      "creaNuovoEntita": "Create new {0}",
+      "salvaModifiche": "Save changes to {0}",
+      "selezionaRuoli": "Select user roles",
+      "identificativoUnico": "Unique identifier",
+      "dataOraCreazione": "Creation date and time",
+      "dataOraUltimoAccesso": "Last access date and time",
+      "dataOraUltimaModifica": "Last modification date and time",
+      "numeroAttualeUtenti": "Current number of registered users",
+      "utilizzoUtenti": "User usage: {0}%",
+      "statoEntita": "{0} status: {1}",
+      "ruoliAssegnati": "Roles assigned to the user",
+      "ruolo": "Role: {0}"
+    },
+    "status": {
+      "attivo": "Active",
+      "inattivo": "Inactive",
+      "nessunRuolo": "No roles assigned",
+      "nessunaDescrizione": "No description",
+      "nessunDominio": "No custom domain",
+      "maiEffettuato": "Never performed"
+    },
+    "role": {
+      "user": "Basic system access",
+      "manager": "Team and resource management",
+      "admin": "Complete tenant administration",
+      "superadmin": "Full system access",
+      "default": "Custom role"
+    }
   }
 }

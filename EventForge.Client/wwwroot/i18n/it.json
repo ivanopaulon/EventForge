@@ -381,5 +381,118 @@
       "name": "Divertente",
       "description": "Tema giocoso con colori pastello vibranti"
     }
+  },
+  "drawer": {
+    "title": {
+      "creaEntita": "Crea {0}",
+      "modificaEntita": "Modifica {0}",
+      "visualizzaEntita": "Visualizza {0}",
+      "creaUtente": "Crea Utente",
+      "modificaUtente": "Modifica Utente: {0} {1}",
+      "visualizzaUtente": "Visualizza Utente: {0} {1}",
+      "creaTenant": "Crea Tenant",
+      "modificaTenant": "Modifica Tenant: {0}",
+      "visualizzaTenant": "Visualizza Tenant: {0}"
+    },
+    "field": {
+      "nome": "Nome",
+      "cognome": "Cognome",
+      "username": "Username",
+      "email": "Email",
+      "password": "Password",
+      "confermaPassword": "Conferma Password",
+      "tenant": "Tenant",
+      "ruoli": "Ruoli",
+      "utenteAttivo": "Utente Attivo",
+      "nomeTenant": "Nome Tenant",
+      "nomeVisualizzato": "Nome Visualizzato",
+      "descrizione": "Descrizione",
+      "dominio": "Dominio",
+      "emailContatto": "Email Contatto",
+      "massimoUtenti": "Massimo Utenti",
+      "tenantAttivo": "Tenant Attivo",
+      "idUtente": "ID Utente",
+      "dataCreazione": "Data Creazione",
+      "ultimoAccesso": "Ultimo Accesso",
+      "idTenant": "ID Tenant",
+      "utentiAttuali": "Utenti Attuali",
+      "ultimaModifica": "Ultima Modifica"
+    },
+    "helperText": {
+      "nome": "Inserisci il nome della persona",
+      "cognome": "Inserisci il cognome della persona",
+      "usernameCreate": "Username univoco per l'accesso",
+      "usernameEdit": "L'username non può essere modificato",
+      "email": "Indirizzo email valido",
+      "tenantCreate": "Seleziona il tenant di appartenenza",
+      "tenantEdit": "Il tenant non può essere modificato",
+      "password": "Minimo 8 caratteri",
+      "confermaPassword": "Deve corrispondere alla password",
+      "utenteAttivo": "Determina se l'utente può accedere al sistema",
+      "nomeTenantCreate": "Nome univoco del tenant (es: azienda-abc)",
+      "nomeTenantEdit": "Il nome del tenant non può essere modificato",
+      "nomeVisualizzato": "Nome da mostrare nell'interfaccia utente",
+      "descrizione": "Descrizione opzionale del tenant e delle sue attività",
+      "dominio": "Dominio personalizzato per l'accesso (opzionale)",
+      "emailContatto": "Email di riferimento per il tenant",
+      "massimoUtenti": "Numero massimo di utenti consentiti per questo tenant",
+      "tenantAttivo": "Determina se il tenant è attivo e può essere utilizzato",
+      "utilizzoUtenti": "Utilizzo della quota utenti"
+    },
+    "error": {
+      "nomeObbligatorio": "Il nome è obbligatorio",
+      "cognomeObbligatorio": "Il cognome è obbligatorio",
+      "usernameObbligatorio": "L'username è obbligatorio",
+      "emailObbligatoria": "L'email è obbligatoria",
+      "passwordObbligatoria": "La password è obbligatoria",
+      "confermaPasswordObbligatoria": "La conferma password è obbligatoria",
+      "tenantObbligatorio": "Il tenant è obbligatorio",
+      "nomeTenantObbligatorio": "Il nome del tenant è obbligatorio",
+      "nomeVisualizzatoObbligatorio": "Il nome visualizzato è obbligatorio",
+      "emailContattoObbligatoria": "L'email di contatto è obbligatoria"
+    },
+    "button": {
+      "salva": "Salva",
+      "annulla": "Annulla",
+      "crea": "Crea",
+      "modifica": "Modifica",
+      "chiudi": "Chiudi",
+      "creando": "Creando...",
+      "salvando": "Salvando..."
+    },
+    "aria": {
+      "chiudiDrawer": "Chiudi drawer",
+      "chiudiEsc": "Chiudi (ESC)",
+      "caricamentoInCorso": "Caricamento in corso",
+      "modificaEntita": "Modifica entità",
+      "annullaOperazione": "Annulla operazione",
+      "creaNuovoEntita": "Crea nuovo {0}",
+      "salvaModifiche": "Salva modifiche a {0}",
+      "selezionaRuoli": "Seleziona i ruoli dell'utente",
+      "identificativoUnico": "Identificativo univoco",
+      "dataOraCreazione": "Data e ora di creazione",
+      "dataOraUltimoAccesso": "Data e ora dell'ultimo accesso",
+      "dataOraUltimaModifica": "Data e ora dell'ultima modifica",
+      "numeroAttualeUtenti": "Numero attuale di utenti registrati",
+      "utilizzoUtenti": "Utilizzo utenti: {0}%",
+      "statoEntita": "Stato {0}: {1}",
+      "ruoliAssegnati": "Ruoli assegnati all'utente",
+      "ruolo": "Ruolo: {0}"
+    },
+    "status": {
+      "attivo": "Attivo",
+      "inattivo": "Inattivo",
+      "nessunRuolo": "Nessun ruolo assegnato",
+      "nessunaDescrizione": "Nessuna descrizione",
+      "nessunDominio": "Nessun dominio personalizzato",
+      "maiEffettuato": "Mai effettuato"
+    },
+    "role": {
+      "user": "Accesso base al sistema",
+      "manager": "Gestione del team e delle risorse",
+      "admin": "Amministrazione completa del tenant",
+      "superadmin": "Accesso completo al sistema",
+      "default": "Ruolo personalizzato"
+    }
   }
 }

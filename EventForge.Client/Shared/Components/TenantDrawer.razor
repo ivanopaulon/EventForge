@@ -5,10 +5,11 @@
 @inject ISuperAdminService SuperAdminService
 @inject ISnackbar Snackbar
 @inject ILogger<TenantDrawer> Logger
+@inject ITranslationService TranslationService
 
 <EntityDrawer @bind-IsOpen="@IsOpen"
               @bind-Mode="@Mode"
-              EntityName="Tenant"
+              EntityName="@TranslationService.GetTranslation("field.tenant")"
               Model="@_model"
               OnSave="@HandleSave"
               OnCancel="@HandleCancel"
@@ -21,78 +22,80 @@
         <MudGrid>
             <MudItem xs="12" md="6">
                 <MudTextField @bind-Value="_model.Name"
-                              Label="Nome Tenant *"
+                              Label="@($"{TranslationService.GetTranslation("drawer.field.nomeTenant")} *")"
                               Variant="Variant.Outlined"
                               Required="true"
-                              RequiredError="Il nome del tenant è obbligatorio"
+                              RequiredError="@TranslationService.GetTranslation("drawer.error.nomeTenantObbligatorio")"
                               MaxLength="100"
                               ReadOnly="@(Mode == EntityDrawerMode.Edit)"
                               aria-describedby="name-help" />
                 <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                    @(Mode == EntityDrawerMode.Edit ? "Il nome del tenant non può essere modificato" : "Nome univoco del tenant (es: azienda-abc)")
+                    @(Mode == EntityDrawerMode.Edit ? 
+                        TranslationService.GetTranslation("drawer.helperText.nomeTenantEdit") : 
+                        TranslationService.GetTranslation("drawer.helperText.nomeTenantCreate"))
                 </MudText>
             </MudItem>
             
             <MudItem xs="12" md="6">
                 <MudTextField @bind-Value="_model.DisplayName"
-                              Label="Nome Visualizzato *"
+                              Label="@($"{TranslationService.GetTranslation("drawer.field.nomeVisualizzato")} *")"
                               Variant="Variant.Outlined"
                               Required="true"
-                              RequiredError="Il nome visualizzato è obbligatorio"
+                              RequiredError="@TranslationService.GetTranslation("drawer.error.nomeVisualizzatoObbligatorio")"
                               MaxLength="200"
                               aria-describedby="displayName-help" />
                 <MudText id="displayName-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                    Nome da mostrare nell'interfaccia utente
+                    @TranslationService.GetTranslation("drawer.helperText.nomeVisualizzato")
                 </MudText>
             </MudItem>
             
             <MudItem xs="12">
                 <MudTextField @bind-Value="_model.Description"
-                              Label="Descrizione"
+                              Label="@TranslationService.GetTranslation("drawer.field.descrizione")"
                               Variant="Variant.Outlined"
                               Lines="3"
                               MaxLength="500"
                               aria-describedby="description-help" />
                 <MudText id="description-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                    Descrizione opzionale del tenant e delle sue attività
+                    @TranslationService.GetTranslation("drawer.helperText.descrizione")
                 </MudText>
             </MudItem>
             
             <MudItem xs="12" md="6">
                 <MudTextField @bind-Value="_model.Domain"
-                              Label="Dominio"
+                              Label="@TranslationService.GetTranslation("drawer.field.dominio")"
                               Variant="Variant.Outlined"
                               MaxLength="100"
                               aria-describedby="domain-help" />
                 <MudText id="domain-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                    Dominio personalizzato per l'accesso (opzionale)
+                    @TranslationService.GetTranslation("drawer.helperText.dominio")
                 </MudText>
             </MudItem>
             
             <MudItem xs="12" md="6">
                 <MudTextField @bind-Value="_model.ContactEmail"
-                              Label="Email Contatto *"
+                              Label="@($"{TranslationService.GetTranslation("drawer.field.emailContatto")} *")"
                               Variant="Variant.Outlined"
                               InputType="InputType.Email"
                               Required="true"
-                              RequiredError="L'email di contatto è obbligatoria"
+                              RequiredError="@TranslationService.GetTranslation("drawer.error.emailContattoObbligatoria")"
                               MaxLength="256"
                               aria-describedby="contactEmail-help" />
                 <MudText id="contactEmail-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                    Email di riferimento per il tenant
+                    @TranslationService.GetTranslation("drawer.helperText.emailContatto")
                 </MudText>
             </MudItem>
             
             <MudItem xs="12" md="6">
                 <MudNumericField @bind-Value="_model.MaxUsers"
-                                 Label="Massimo Utenti *"
+                                 Label="@($"{TranslationService.GetTranslation("drawer.field.massimoUtenti")} *")"
                                  Variant="Variant.Outlined"
                                  Min="1"
                                  Max="10000"
                                  Required="true"
                                  aria-describedby="maxUsers-help" />
                 <MudText id="maxUsers-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                    Numero massimo di utenti consentiti per questo tenant
+                    @TranslationService.GetTranslation("drawer.helperText.massimoUtenti")
                 </MudText>
             </MudItem>
             
@@ -101,11 +104,11 @@
                 <MudItem xs="12" md="6">
                     <MudSwitch T="bool" 
                                @bind-Checked="_model.IsActive"
-                               Label="Tenant Attivo"
+                               Label="@TranslationService.GetTranslation("drawer.field.tenantAttivo")"
                                Color="Color.Primary"
                                aria-describedby="active-help" />
                     <MudText id="active-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                        Determina se il tenant è attivo e può essere utilizzato
+                        @TranslationService.GetTranslation("drawer.helperText.tenantAttivo")
                     </MudText>
                 </MudItem>
             }
@@ -114,26 +117,26 @@
             {
                 <MudItem xs="12" md="6">
                     <MudTextField Value="@OriginalTenant.Id.ToString()"
-                                  Label="ID Tenant"
+                                  Label="@TranslationService.GetTranslation("drawer.field.idTenant")"
                                   Variant="Variant.Outlined"
                                   ReadOnly="true"
-                                  aria-label="Identificativo univoco del tenant" />
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.identificativoUnico")" />
                 </MudItem>
                 
                 <MudItem xs="12" md="6">
                     <MudTextField Value="@OriginalTenant.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
-                                  Label="Data Creazione"
+                                  Label="@TranslationService.GetTranslation("drawer.field.dataCreazione")"
                                   Variant="Variant.Outlined"
                                   ReadOnly="true"
-                                  aria-label="Data e ora di creazione del tenant" />
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.dataOraCreazione")" />
                 </MudItem>
                 
                 <MudItem xs="12" md="6">
                     <MudTextField Value="@_userCount.ToString()"
-                                  Label="Utenti Attuali"
+                                  Label="@TranslationService.GetTranslation("drawer.field.utentiAttuali")"
                                   Variant="Variant.Outlined"
                                   ReadOnly="true"
-                                  aria-label="Numero attuale di utenti registrati" />
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.numeroAttualeUtenti")" />
                 </MudItem>
             }
         </MudGrid>
@@ -143,59 +146,59 @@
         <MudGrid>
             <MudItem xs="12" md="6">
                 <MudTextField Value="@(OriginalTenant?.Name ?? "")"
-                              Label="Nome Tenant"
+                              Label="@TranslationService.GetTranslation("drawer.field.nomeTenant")"
                               Variant="Variant.Outlined"
                               ReadOnly="true"
-                              aria-label="Nome del tenant" />
+                              aria-label="@TranslationService.GetTranslation("drawer.field.nomeTenant")" />
             </MudItem>
             
             <MudItem xs="12" md="6">
                 <MudTextField Value="@(OriginalTenant?.DisplayName ?? "")"
-                              Label="Nome Visualizzato"
+                              Label="@TranslationService.GetTranslation("drawer.field.nomeVisualizzato")"
                               Variant="Variant.Outlined"
                               ReadOnly="true"
-                              aria-label="Nome visualizzato del tenant" />
+                              aria-label="@TranslationService.GetTranslation("drawer.field.nomeVisualizzato")" />
             </MudItem>
             
             <MudItem xs="12">
-                <MudTextField Value="@(OriginalTenant?.Description ?? "Nessuna descrizione")"
-                              Label="Descrizione"
+                <MudTextField Value="@(OriginalTenant?.Description ?? TranslationService.GetTranslation("drawer.status.nessunaDescrizione"))"
+                              Label="@TranslationService.GetTranslation("drawer.field.descrizione")"
                               Variant="Variant.Outlined"
                               Lines="3"
                               ReadOnly="true"
-                              aria-label="Descrizione del tenant" />
+                              aria-label="@TranslationService.GetTranslation("drawer.field.descrizione")" />
             </MudItem>
             
             <MudItem xs="12" md="6">
-                <MudTextField Value="@(OriginalTenant?.Domain ?? "Nessun dominio personalizzato")"
-                              Label="Dominio"
+                <MudTextField Value="@(OriginalTenant?.Domain ?? TranslationService.GetTranslation("drawer.status.nessunDominio"))"
+                              Label="@TranslationService.GetTranslation("drawer.field.dominio")"
                               Variant="Variant.Outlined"
                               ReadOnly="true"
-                              aria-label="Dominio personalizzato del tenant" />
+                              aria-label="@TranslationService.GetTranslation("drawer.field.dominio")" />
             </MudItem>
             
             <MudItem xs="12" md="6">
                 <MudTextField Value="@(OriginalTenant?.ContactEmail ?? "")"
-                              Label="Email Contatto"
+                              Label="@TranslationService.GetTranslation("drawer.field.emailContatto")"
                               Variant="Variant.Outlined"
                               ReadOnly="true"
-                              aria-label="Email di contatto del tenant" />
+                              aria-label="@TranslationService.GetTranslation("drawer.field.emailContatto")" />
             </MudItem>
             
             <MudItem xs="12" md="6">
                 <MudTextField Value="@(OriginalTenant?.MaxUsers.ToString() ?? "")"
-                              Label="Massimo Utenti"
+                              Label="@TranslationService.GetTranslation("drawer.field.massimoUtenti")"
                               Variant="Variant.Outlined"
                               ReadOnly="true"
-                              aria-label="Numero massimo di utenti consentiti" />
+                              aria-label="@TranslationService.GetTranslation("drawer.field.massimoUtenti")" />
             </MudItem>
             
             <MudItem xs="12" md="6">
                 <MudChip T="string" 
                          Color="@(OriginalTenant?.IsActive == true ? Color.Success : Color.Error)" 
                          Size="Size.Medium"
-                         aria-label="@($"Stato tenant: {(OriginalTenant?.IsActive == true ? "Attivo" : "Inattivo")}")">
-                    @(OriginalTenant?.IsActive == true ? "Attivo" : "Inattivo")
+                         aria-label="@TranslationService.GetTranslation("drawer.aria.statoEntita", TranslationService.GetTranslation("common.tenant"), (OriginalTenant?.IsActive == true ? TranslationService.GetTranslation("drawer.status.attivo") : TranslationService.GetTranslation("drawer.status.inattivo")))">
+                    @(OriginalTenant?.IsActive == true ? TranslationService.GetTranslation("drawer.status.attivo") : TranslationService.GetTranslation("drawer.status.inattivo"))
                 </MudChip>
             </MudItem>
             
@@ -203,26 +206,26 @@
             {
                 <MudItem xs="12" md="6">
                     <MudTextField Value="@OriginalTenant.Id.ToString()"
-                                  Label="ID Tenant"
+                                  Label="@TranslationService.GetTranslation("drawer.field.idTenant")"
                                   Variant="Variant.Outlined"
                                   ReadOnly="true"
-                                  aria-label="Identificativo univoco del tenant" />
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.identificativoUnico")" />
                 </MudItem>
                 
                 <MudItem xs="12" md="6">
                     <MudTextField Value="@OriginalTenant.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
-                                  Label="Data Creazione"
+                                  Label="@TranslationService.GetTranslation("drawer.field.dataCreazione")"
                                   Variant="Variant.Outlined"
                                   ReadOnly="true"
-                                  aria-label="Data e ora di creazione del tenant" />
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.dataOraCreazione")" />
                 </MudItem>
                 
                 <MudItem xs="12" md="6">
                     <MudTextField Value="@_userCount.ToString()"
-                                  Label="Utenti Attuali"
+                                  Label="@TranslationService.GetTranslation("drawer.field.utentiAttuali")"
                                   Variant="Variant.Outlined"
                                   ReadOnly="true"
-                                  aria-label="Numero attuale di utenti registrati" />
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.numeroAttualeUtenti")" />
                 </MudItem>
                 
                 <MudItem xs="12" md="6">
@@ -231,11 +234,11 @@
                                            Color="@GetUsageColor()" 
                                            Size="Size.Large" 
                                            Rounded="true"
-                                           aria-label="@($"Utilizzo utenti: {_userUsagePercentage:F1}%")" />
+                                           aria-label="@TranslationService.GetTranslation("drawer.aria.utilizzoUtenti", _userUsagePercentage.ToString("F1"))" />
                         <MudText Class="ml-3" Typo="Typo.caption">@($"{_userUsagePercentage:F1}%")</MudText>
                     </div>
                     <MudText Typo="Typo.caption" Class="mud-input-helper-text">
-                        Utilizzo della quota utenti
+                        @TranslationService.GetTranslation("drawer.helperText.utilizzoUtenti")
                     </MudText>
                 </MudItem>
                 
@@ -243,10 +246,10 @@
                 {
                     <MudItem xs="12">
                         <MudTextField Value="@OriginalTenant.UpdatedAt.ToString("dd/MM/yyyy HH:mm")"
-                                      Label="Ultima Modifica"
+                                      Label="@TranslationService.GetTranslation("drawer.field.ultimaModifica")"
                                       Variant="Variant.Outlined"
                                       ReadOnly="true"
-                                      aria-label="Data e ora dell'ultima modifica" />
+                                      aria-label="@TranslationService.GetTranslation("drawer.aria.dataOraUltimaModifica")" />
                     </MudItem>
                 }
             }
@@ -320,14 +323,14 @@
                 UpdatedAt = OriginalTenant.UpdatedAt
             };
             
-            _customTitle = $"Modifica Tenant: {OriginalTenant.DisplayName}";
+            _customTitle = TranslationService.GetTranslation("drawer.title.modificaTenant", OriginalTenant.DisplayName);
             
             // Load user count for this tenant
             await LoadUserCount();
         }
         else if (Mode == EntityDrawerMode.View && OriginalTenant != null)
         {
-            _customTitle = $"Visualizza Tenant: {OriginalTenant.DisplayName}";
+            _customTitle = TranslationService.GetTranslation("drawer.title.visualizzaTenant", OriginalTenant.DisplayName);
             
             // Load user count for this tenant
             await LoadUserCount();
