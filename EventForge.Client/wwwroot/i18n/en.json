@@ -444,7 +444,16 @@
     "savingError": "Error saving: {0}",
     "confirmDeleteConfiguration": "Are you sure you want to delete the configuration '{0}'?",
     "configurationDeleted": "Configuration deleted successfully",
-    "deletionError": "Error deleting: {0}"
+    "deletionError": "Error deleting: {0}",
+    "translationStats": "Translation Statistics",
+    "allLanguages": "All languages",
+    "translationList": "Translation List",
+    "noTranslationsFound": "No translations found for current filters.",
+    "loadingTranslationsError": "Error loading translations: {0}",
+    "editTranslationTodo": "Edit translation: {0}",
+    "deleteTranslationTodo": "Delete translation: {0}",
+    "exportFunctionality": "Export functionality under development",
+    "importFunctionality": "Import functionality under development"
   },
   "tooltip": {
     "view": "View details",
@@ -482,7 +491,8 @@
     "clearFilters": "Clear all filters",
     "setupAlerts": "Setup alerts",
     "exportLogs": "Export logs",
-    "addConfiguration": "Add new configuration"
+    "addConfiguration": "Add new configuration",
+    "import": "Import data"
   },
   "health": {
     "serverStatus": "Server Health Status",
