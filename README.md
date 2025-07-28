@@ -253,3 +253,5 @@ The following pages have been updated to follow consistent UI patterns:
 - `CUSTOM_THEME_GUIDE.md` - Theme customization
 - `DRAWER_IMPLEMENTATION_GUIDE.md` - Navigation drawer patterns
 - `EventForge.Server/README.md` - Server-specific documentation
+
+<!-- Test automatico per verifica creazione Pull Request automatiche tramite Copilot -->
