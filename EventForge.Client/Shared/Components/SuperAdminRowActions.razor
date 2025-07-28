@@ -1,0 +1,155 @@
+@using MudBlazor
+@inject ITranslationService TranslationService
+
+<!-- Standardized row actions for CRUD operations -->
+<MudButtonGroup Color="Color.Primary" Variant="Variant.Text" Size="Size.Small">
+    @if (ShowView && CanView)
+    {
+        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewDetails", "Visualizza dettagli")">
+            <MudIconButton Icon="Icons.Material.Filled.Visibility" 
+                           Color="Color.Info"
+                           Size="Size.Small"
+                           OnClick="@OnView"
+                           aria-label="@TranslationService.GetTranslation("tooltip.viewItem", "Visualizza {0}", EntityName)" />
+        </MudTooltip>
+    }
+
+    @if (ShowEdit && CanEdit)
+    {
+        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.editDetails", "Modifica dettagli")">
+            <MudIconButton Icon="Icons.Material.Filled.Edit" 
+                           Color="Color.Primary"
+                           Size="Size.Small"
+                           OnClick="@OnEdit"
+                           aria-label="@TranslationService.GetTranslation("tooltip.editItem", "Modifica {0}", EntityName)" />
+        </MudTooltip>
+    }
+
+    @if (ShowAuditLog && CanViewAudit)
+    {
+        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewAuditHistory", "Visualizza cronologia modifiche")">
+            <MudIconButton Icon="Icons.Material.Filled.History" 
+                           Color="Color.Info"
+                           Size="Size.Small"
+                           OnClick="@OnAuditLog"
+                           aria-label="@TranslationService.GetTranslation("tooltip.viewAuditHistory", "Visualizza cronologia {0}", EntityName)" />
+        </MudTooltip>
+    }
+
+    @if (ShowToggleStatus && CanToggleStatus)
+    {
+        <MudTooltip Text="@(IsActive ? TranslationService.GetTranslation("tooltip.deactivateItem", "Disattiva") : TranslationService.GetTranslation("tooltip.activateItem", "Attiva"))">
+            <MudIconButton Icon="@(IsActive ? Icons.Material.Filled.Block : Icons.Material.Filled.CheckCircle)" 
+                           Color="@(IsActive ? Color.Warning : Color.Success)"
+                           Size="Size.Small"
+                           OnClick="@OnToggleStatus"
+                           aria-label="@(IsActive ? TranslationService.GetTranslation("tooltip.deactivateItem", "Disattiva {0}", EntityName) : TranslationService.GetTranslation("tooltip.activateItem", "Attiva {0}", EntityName))" />
+        </MudTooltip>
+    }
+
+    @if (ShowDelete && CanDelete)
+    {
+        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.deleteItem", "Elimina")">
+            <MudIconButton Icon="Icons.Material.Filled.Delete" 
+                           Color="Color.Error"
+                           Size="Size.Small"
+                           OnClick="@OnDelete"
+                           aria-label="@TranslationService.GetTranslation("tooltip.deleteItem", "Elimina {0}", EntityName)" />
+        </MudTooltip>
+    }
+
+    <!-- Custom additional actions -->
+    @AdditionalActions
+</MudButtonGroup>
+
+@code {
+    /// <summary>
+    /// Name of the entity for accessibility labels.
+    /// </summary>
+    [Parameter] public string EntityName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Whether to show the view action.
+    /// </summary>
+    [Parameter] public bool ShowView { get; set; } = true;
+
+    /// <summary>
+    /// Whether to show the edit action.
+    /// </summary>
+    [Parameter] public bool ShowEdit { get; set; } = true;
+
+    /// <summary>
+    /// Whether to show the audit log action.
+    /// </summary>
+    [Parameter] public bool ShowAuditLog { get; set; } = false;
+
+    /// <summary>
+    /// Whether to show the toggle status action.
+    /// </summary>
+    [Parameter] public bool ShowToggleStatus { get; set; } = false;
+
+    /// <summary>
+    /// Whether to show the delete action.
+    /// </summary>
+    [Parameter] public bool ShowDelete { get; set; } = false;
+
+    /// <summary>
+    /// Whether the current user can view this item.
+    /// </summary>
+    [Parameter] public bool CanView { get; set; } = true;
+
+    /// <summary>
+    /// Whether the current user can edit this item.
+    /// </summary>
+    [Parameter] public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Whether the current user can view audit logs for this item.
+    /// </summary>
+    [Parameter] public bool CanViewAudit { get; set; } = true;
+
+    /// <summary>
+    /// Whether the current user can toggle the status of this item.
+    /// </summary>
+    [Parameter] public bool CanToggleStatus { get; set; } = true;
+
+    /// <summary>
+    /// Whether the current user can delete this item.
+    /// </summary>
+    [Parameter] public bool CanDelete { get; set; } = true;
+
+    /// <summary>
+    /// Whether the item is currently active (for toggle status).
+    /// </summary>
+    [Parameter] public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// Event callback for view action.
+    /// </summary>
+    [Parameter] public EventCallback OnView { get; set; }
+
+    /// <summary>
+    /// Event callback for edit action.
+    /// </summary>
+    [Parameter] public EventCallback OnEdit { get; set; }
+
+    /// <summary>
+    /// Event callback for audit log action.
+    /// </summary>
+    [Parameter] public EventCallback OnAuditLog { get; set; }
+
+    /// <summary>
+    /// Event callback for toggle status action.
+    /// </summary>
+    [Parameter] public EventCallback OnToggleStatus { get; set; }
+
+    /// <summary>
+    /// Event callback for delete action.
+    /// </summary>
+    [Parameter] public EventCallback OnDelete { get; set; }
+
+    /// <summary>
+    /// Additional custom actions to render after the standard buttons.
+    /// </summary>
+    [Parameter] public RenderFragment? AdditionalActions { get; set; }
+}
