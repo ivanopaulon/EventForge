@@ -54,7 +54,7 @@ else
         <MudGrid>
             <!-- User info section removed as per refactoring requirements -->
 
-            <!-- Tenant Selection -->
+            <!-- Tenant Selection Card: First in vertical layout for filtering/scope selection -->
             <MudItem xs="12">
                 <MudCard Elevation="2" Class="mb-4">
                     <MudCardHeader>
@@ -80,7 +80,7 @@ else
                 </MudCard>
             </MudItem>
 
-            <!-- Statistics -->
+            <!-- Statistics Card: Second in vertical layout for high-level overview -->
             <MudItem xs="12">
                 <MudCard Elevation="2" Class="mb-4">
                     <MudCardHeader>
@@ -116,7 +116,7 @@ else
                 </MudCard>
             </MudItem>
 
-            <!-- Search Filters -->
+            <!-- Search Filters Card: Third in vertical layout for data filtering -->
             <MudItem xs="12">
                 <MudCard Elevation="2" Class="mb-4">
                     <MudCardHeader>
@@ -153,7 +153,7 @@ else
                 </MudCard>
             </MudItem>
 
-            <!-- Tenant List -->
+            <!-- Data Table Card: Last in vertical layout with toolbar actions and sortable columns -->
             <MudItem xs="12">
                 <MudCard Elevation="2">
                     <MudCardHeader>
@@ -164,7 +164,7 @@ else
                             </MudText>
                         </CardHeaderContent>
                         <CardHeaderActions>
-                            <!-- Quick Actions Toolbar -->
+                            <!-- Quick Actions Toolbar: Above table with translated tooltips -->
                             <MudToolBar Dense="true" WrapContent="true">
                                 <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refresh")">
                                     <MudIconButton Icon="Icons.Material.Filled.Refresh" 
@@ -194,7 +194,14 @@ else
                         }
                         else
                         {
-                            <!-- Tenant Table with Sortable Columns -->
+                            <!-- 
+                                MudTable Implementation: Follows EventForge UI standards
+                                - All columns sortable with logical default (CreatedAt DESC)
+                                - Responsive with DataLabel attributes for mobile
+                                - Row actions using MudIconButton with semantic icons
+                                - Translated tooltips for all interactive elements
+                                - Loading states and empty state messages
+                            -->
                             <MudTable T="TenantResponseDto" 
                                       Items="_filteredTenants" 
                                       Hover="true" 
