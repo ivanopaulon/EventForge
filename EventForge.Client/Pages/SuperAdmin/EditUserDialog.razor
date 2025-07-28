@@ -2,28 +2,29 @@
 @using EventForge.DTOs.SuperAdmin
 @inject ISuperAdminService SuperAdminService
 @inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
 
 <MudDialog>
     <DialogContent>
         <MudContainer Style="max-width: 600px;">
-            <MudText Typo="Typo.h6" Class="mb-4">Modifica Utente</MudText>
+            <MudText Typo="Typo.h6" Class="mb-4">@TranslationService.GetTranslation("superAdmin.editUserTitle", "Modifica Utente")</MudText>
             
             <MudForm @ref="_form" Model="_updateDto" @bind-IsValid="_isFormValid">
                 <MudGrid>
                     <MudItem xs="12" md="6">
                         <MudTextField @bind-Value="_updateDto.FirstName"
-                                      Label="Nome *"
+                                      Label="@(TranslationService.GetTranslation("superAdmin.firstName", "Nome") + " *")"
                                       Variant="Variant.Outlined"
                                       Required="true"
-                                      RequiredError="Il nome è obbligatorio"
+                                      RequiredError="@TranslationService.GetTranslation("superAdmin.firstNameRequired", "Il nome è obbligatorio")"
                                       MaxLength="100" />
                     </MudItem>
                     <MudItem xs="12" md="6">
                         <MudTextField @bind-Value="_updateDto.LastName"
-                                      Label="Cognome *"
+                                      Label="@(TranslationService.GetTranslation("superAdmin.lastName", "Cognome") + " *")"
                                       Variant="Variant.Outlined"
                                       Required="true"
-                                      RequiredError="Il cognome è obbligatorio"
+                                      RequiredError="@TranslationService.GetTranslation("superAdmin.lastNameRequired", "Il cognome è obbligatorio")"
                                       MaxLength="100" />
                     </MudItem>
                     <MudItem xs="12" md="6">

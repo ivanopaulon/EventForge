@@ -11,7 +11,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 
-<PageTitle>Gestione Tenant - EventForge Super Admin</PageTitle>
+<PageTitle>@TranslationService.GetTranslation("superAdmin.pageTitle", "{0} - EventForge Super Admin", TranslationService.GetTranslation("superAdmin.tenantManagement", "Gestione Tenant"))</PageTitle>
 
 @* SuperAdminBanner removed as per refactoring requirements *@
 
@@ -27,15 +27,15 @@ else if (!_isAuthorized)
                 <MudItem xs="12">
                     <div class="d-flex flex-column align-center">
                         <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
-                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">Accesso Negato</MudText>
+                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">@TranslationService.GetTranslation("error.accessDenied", "Accesso Negato")</MudText>
                         <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
-                            Non hai i permessi per accedere a questa pagina. È richiesto il ruolo Super Amministratore.
+                            @TranslationService.GetTranslation("superAdmin.superAdminRoleRequired", "Non hai i permessi per accedere a questa pagina. È richiesto il ruolo Super Amministratore.")
                         </MudText>
                         <MudButton Variant="Variant.Filled" 
                                    Color="Color.Primary" 
                                    StartIcon="Icons.Material.Filled.ArrowBack"
                                    OnClick="@(() => NavigationManager.NavigateTo("/"))">
-                            Torna alla Home
+                            @TranslationService.GetTranslation("superAdmin.returnToHome", "Torna alla Home")
                         </MudButton>
                     </div>
                 </MudItem>
@@ -48,7 +48,7 @@ else
     <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
         <MudText Typo="Typo.h3" Class="mb-8">
             <MudIcon Icon="Icons.Material.Filled.Business" Class="mr-3" />
-            Gestione Tenant
+            @TranslationService.GetTranslation("superAdmin.tenantManagement", "Gestione Tenant")
         </MudText>
 
         <MudGrid>
@@ -262,7 +262,7 @@ else
                                     </MudTd>
                                 </RowTemplate>
                                 <NoRecordsContent>
-                                    <MudText>@(_tenants.Any() ? "Nessun tenant corrisponde ai filtri applicati." : "Nessun tenant trovato.")</MudText>
+                                    <MudText>@(_tenants.Any() ? TranslationService.GetTranslation("superAdmin.noTenantsMatchFilters", "Nessun tenant corrisponde ai filtri applicati.") : TranslationService.GetTranslation("superAdmin.noTenantsFound", "Nessun tenant trovato."))</MudText>
                                 </NoRecordsContent>
                             </MudTable>
                         }
@@ -328,7 +328,7 @@ else
             {
                 _isAuthorized = false;
                 _isLoading = false;
-                Snackbar.Add("Accesso negato. È richiesto il ruolo Super Amministratore.", Severity.Warning);
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.accessDeniedSuperAdmin", "Accesso negato. È richiesto il ruolo Super Amministratore."), Severity.Warning);
                 return;
             }
 
@@ -342,7 +342,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel caricamento della pagina: {ex.Message}", Severity.Error);
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
             NavigationManager.NavigateTo("/");
         }
         finally
@@ -360,7 +360,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel caricamento dei tenant: {ex.Message}", Severity.Error);
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingTenantsError", "Errore nel caricamento dei tenant: {0}", ex.Message), Severity.Error);
         }
         finally
         {
@@ -376,7 +376,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel caricamento delle statistiche: {ex.Message}", Severity.Error);
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingStatisticsError", "Errore nel caricamento delle statistiche: {0}", ex.Message), Severity.Error);
         }
     }
 
@@ -451,7 +451,7 @@ else
             }
             catch (Exception ex)
             {
-                Snackbar.Add($"Errore nel cambio stato del tenant: {ex.Message}", Severity.Error);
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.toggleTenantStatusError", "Errore nel cambio stato del tenant: {0}", ex.Message), Severity.Error);
             }
         }
     }
@@ -465,7 +465,7 @@ else
     private async Task ExportTenants()
     {
         // TODO: Implement export functionality
-        Snackbar.Add("Export functionality will be implemented soon.", Severity.Info);
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.exportFunctionalityComingSoon", "Export functionality will be implemented soon."), Severity.Info);
         await Task.CompletedTask;
     }
 
