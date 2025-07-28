@@ -41,7 +41,8 @@
     "version": "Version",
     "language": "Language",
     "returnToLogin": "Return to Login",
-    "notAvailable": "N/A"
+    "notAvailable": "N/A",
+    "never": "Never"
   },
   "navigation": {
     "home": "Home",
@@ -418,7 +419,32 @@
     "chartsAvailableInFuture": "Charts for trend visualization will be available in a future version: distribution by log level over time, error frequency by source, activity peaks and their correlations, performance metrics (response time, throughput).",
     "logEntryDetails": "Log Entry Details",
     "logDetailsDescription": "Detailed visualization will be implemented with the following functionalities: formatted complete stack trace, context data (user, tenant, correlation ID), request/response data if available, correlated log entries.",
-    "featureInDevelopment": "Feature under development"
+    "featureInDevelopment": "Feature under development",
+    "newConfiguration": "New Configuration",
+    "encryptedValue": "Encrypted value",
+    "requiresRestart": "Requires restart",
+    "configValue": "Value",
+    "modified": "Modified",
+    "noConfigurationsFound": "No configurations found",
+    "createFirstConfiguration": "Start by creating the first configuration",
+    "createConfiguration": "Create Configuration",
+    "editConfiguration": "Edit Configuration",
+    "configKey": "Key",
+    "configCategory": "Category",
+    "categoryGeneral": "General",
+    "categorySecurity": "Security",
+    "categoryEmail": "Email",
+    "categoryDatabase": "Database",
+    "categoryBackup": "Backup",
+    "saving": "Saving...",
+    "initializationError": "Error during initialization: {0}",
+    "loadingConfigurationsError": "Error loading configurations: {0}",
+    "configurationUpdated": "Configuration updated successfully",
+    "configurationCreated": "Configuration created successfully",
+    "savingError": "Error saving: {0}",
+    "confirmDeleteConfiguration": "Are you sure you want to delete the configuration '{0}'?",
+    "configurationDeleted": "Configuration deleted successfully",
+    "deletionError": "Error deleting: {0}"
   },
   "tooltip": {
     "view": "View details",
@@ -455,7 +481,8 @@
     "autoRefresh": "Toggle auto refresh",
     "clearFilters": "Clear all filters",
     "setupAlerts": "Setup alerts",
-    "exportLogs": "Export logs"
+    "exportLogs": "Export logs",
+    "addConfiguration": "Add new configuration"
   },
   "health": {
     "serverStatus": "Server Health Status",
