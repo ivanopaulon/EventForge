@@ -531,6 +531,7 @@
     "toggleTenantSelector": "Show/Hide tenant selector",
     "toggleStatistics": "Show/Hide statistics",  
     "toggleFilters": "Show/Hide advanced filters",
+    "toggleQuickActions": "Show/Hide quick actions",
     "refreshData": "Refresh data",
     "exportData": "Export data",
     "viewDetails": "View details",

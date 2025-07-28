@@ -300,6 +300,7 @@
     "toggleTenantSelector": "Mostra/Nascondi selezione tenant",
     "toggleStatistics": "Mostra/Nascondi statistiche",
     "toggleFilters": "Mostra/Nascondi filtri avanzati",
+    "toggleQuickActions": "Mostra/Nascondi azioni rapide",
     "refreshData": "Aggiorna dati",
     "exportData": "Esporta dati",
     "viewDetails": "Visualizza dettagli",
