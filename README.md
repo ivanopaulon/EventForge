@@ -4,6 +4,35 @@ EventForge is a comprehensive event management and monitoring system built with 
 
 ## 🎨 UI Design Principles
 
+### Multi-Theme Support
+
+EventForge supports 6 distinct color themes to accommodate different user preferences and accessibility needs:
+
+#### Available Themes
+
+1. **Light Theme** - Modern bright theme with EventForge navy blue and electric blue colors
+2. **Dark Theme** - Classic dark theme for low-light environments with light blue accents
+3. **Warm Theme** - Cozy theme with orange, red, and earthy tones for a welcoming feel
+4. **Cool Theme** - Refreshing theme with blue, green, and turquoise colors inspired by nature
+5. **High Contrast Theme** - Black, yellow, and white theme for maximum accessibility (WCAG AAA)
+6. **Fun Theme** - Playful theme with vibrant purple, pink, and lime green colors
+
+#### Theme Selection
+
+Users can select their preferred theme using the theme selector in the app bar:
+- Click the theme icon in the top navigation bar
+- Choose from the dropdown list showing theme names, descriptions, and color previews
+- Theme preference is automatically saved and persists across sessions
+- All themes support keyboard navigation and screen readers
+
+#### Accessibility Features
+
+- **WCAG Compliance**: All themes meet WCAG AA standards, with High Contrast theme meeting AAA
+- **Color Contrast**: Minimum 4.5:1 contrast ratio for normal text, 3:1 for large text
+- **Screen Reader Support**: Full ARIA labels and semantic markup
+- **Keyboard Navigation**: Complete keyboard access to theme selector
+- **Reduced Motion**: Respects user's motion preferences
+
 ### MudCard Best Practices
 - **Vertical Stack Layout**: All cards are organized in a vertical stack for consistent presentation
 - **Full Width**: Cards use full container width for better space utilization
@@ -129,7 +158,7 @@ Always provide translated tooltips for better accessibility:
 ### Key Services
 - **TranslationService** - Handles multi-language support
 - **AuthService** - Authentication and authorization
-- **ThemeService** - Dark/light theme management
+- **ThemeService** - Multi-theme management with 6 color palettes
 
 ## 🚀 Getting Started
 
@@ -144,12 +173,17 @@ Always provide translated tooltips for better accessibility:
 - [ ] Language switching updates entire UI immediately
 - [ ] All cards display correctly on mobile, tablet, desktop
 - [ ] Tooltips show translated text
-- [ ] Theme switching works properly
+- [ ] Theme switching works properly for all 6 themes
+- [ ] Theme preferences persist across browser sessions
 - [ ] Authentication flows work correctly
 - [ ] All translations display fallback when missing
 - [ ] SuperAdmin pages follow consistent UI patterns
 - [ ] MudTable sorting and filtering work correctly
 - [ ] All interactive elements have translated tooltips
+- [ ] Theme selector is accessible via keyboard navigation
+- [ ] Screen readers can navigate theme options
+- [ ] High contrast theme meets WCAG AAA standards
+- [ ] All themes maintain proper color contrast ratios
 
 ### Translation Completeness
 - [ ] All UI text uses TranslationService
