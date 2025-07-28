@@ -1,4 +1,5 @@
 ﻿@inject IAuthService AuthService
+@inject ITranslationService TranslationService
 @implements IDisposable
 
 <MudNavMenu>
@@ -6,69 +7,89 @@
     {
         @if (_isSuperAdmin)
         {
-            <MudNavGroup title="Super Amministrazione" 
+            <MudNavGroup title="@TranslationService.GetTranslation("nav.superAdmin", "Super Amministrazione")" 
                          Icon="Icons.Material.Filled.AdminPanelSettings" 
                          Expanded="true">
                 <MudNavLink Href="/superadmin/tenant-management" 
                             Icon="Icons.Material.Filled.Business" 
                             Match="NavLinkMatch.All">
-                    Gestione Tenant
+                    @TranslationService.GetTranslation("nav.tenantManagement", "Gestione Tenant")
                 </MudNavLink>
                 <MudNavLink Href="/superadmin/user-management" 
                             Icon="Icons.Material.Filled.People" 
                             Match="NavLinkMatch.All">
-                    Gestione Utenti Tenant
+                    @TranslationService.GetTranslation("nav.userManagement", "Gestione Utenti")
+                </MudNavLink>
+                <MudNavLink Href="/superadmin/event-management" 
+                            Icon="Icons.Material.Filled.Event" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.eventManagement", "Gestione Eventi")
+                </MudNavLink>
+                <MudNavLink Href="/superadmin/event-category-management" 
+                            Icon="Icons.Material.Filled.BookmarkBorder" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.eventCategoryManagement", "Gestione Categorie")
+                </MudNavLink>
+                <MudNavLink Href="/superadmin/event-type-management" 
+                            Icon="Icons.Material.Filled.Category" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.eventTypeManagement", "Gestione Tipi Evento")
                 </MudNavLink>
                 <MudNavLink Href="/superadmin/tenant-switch" 
                             Icon="Icons.Material.Filled.SwapHoriz" 
                             Match="NavLinkMatch.All">
-                    Switch Tenant
+                    @TranslationService.GetTranslation("nav.tenantSwitch", "Switch Tenant")
                 </MudNavLink>
                 <MudNavLink Href="/superadmin/system-logs" 
                             Icon="Icons.Material.Filled.Article" 
                             Match="NavLinkMatch.All">
-                    Log Sistema
+                    @TranslationService.GetTranslation("nav.systemLogs", "Log Sistema")
+                </MudNavLink>
+                <MudNavLink Href="/superadmin/client-log-management" 
+                            Icon="Icons.Material.Filled.BugReport" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.clientLogManagement", "Log Client")
                 </MudNavLink>
                 <MudNavLink Href="/superadmin/audit-trail" 
                             Icon="Icons.Material.Filled.History" 
                             Match="NavLinkMatch.All">
-                    Audit Trail
+                    @TranslationService.GetTranslation("nav.auditTrail", "Audit Trail")
                 </MudNavLink>
                 <MudNavLink Href="/superadmin/configuration" 
                             Icon="Icons.Material.Filled.Settings" 
                             Match="NavLinkMatch.All">
-                    Configurazione
+                    @TranslationService.GetTranslation("nav.configuration", "Configurazione")
                 </MudNavLink>
                 <MudNavLink Href="/superadmin/translation-management" 
                             Icon="Icons.Material.Filled.Translate" 
                             Match="NavLinkMatch.All">
-                    Gestione Traduzioni
+                    @TranslationService.GetTranslation("nav.translationManagement", "Gestione Traduzioni")
                 </MudNavLink>
             </MudNavGroup>
         }
         @if (_isAdmin)
         {
-            <MudNavGroup title="Amministrazione" 
+            <MudNavGroup title="@TranslationService.GetTranslation("nav.administration", "Amministrazione")" 
                          Icon="Icons.Material.Filled.Dashboard" 
                          Expanded="true">
                 <MudNavLink Href="/admin" 
                             Icon="Icons.Material.Filled.Dashboard" 
                             Match="NavLinkMatch.All">
-                    Admin Dashboard
+                    @TranslationService.GetTranslation("nav.adminDashboard", "Dashboard Admin")
                 </MudNavLink>
                 <!-- Add more admin links here as needed -->
             </MudNavGroup>
         }
         
-        <!-- Common user links can be added here -->
+        <!-- Common user links -->
         <MudNavLink Href="/profile" Icon="Icons.Material.Filled.Person" Match="NavLinkMatch.All">
-            My Profile
+            @TranslationService.GetTranslation("nav.profile", "Profilo")
         </MudNavLink>
     }
     else
     {
         <MudNavLink Href="/login" Icon="Icons.Material.Filled.Login" Match="NavLinkMatch.All">
-            Login
+            @TranslationService.GetTranslation("nav.login", "Accedi")
         </MudNavLink>
     }
 </MudNavMenu>
@@ -81,6 +102,7 @@
     protected override async Task OnInitializedAsync()
     {
         AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
+        TranslationService.LanguageChanged += OnLanguageChanged;
         await CheckAuthenticationState();
     }
 
@@ -106,8 +128,15 @@
         await CheckAuthenticationState();
     }
 
+    private void OnLanguageChanged(object? sender, string newLanguage)
+    {
+        // Refresh the component when language changes to update navigation labels
+        InvokeAsync(StateHasChanged);
+    }
+
     public void Dispose()
     {
         AuthService.OnAuthenticationStateChanged -= OnAuthenticationStateChanged;
+        TranslationService.LanguageChanged -= OnLanguageChanged;
     }
 }
