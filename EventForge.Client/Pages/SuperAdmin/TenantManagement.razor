@@ -45,18 +45,18 @@ else if (!_isAuthorized)
 }
 else
 {
-    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-        <MudText Typo="Typo.h3" Class="mb-6">
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-2">
+        <MudText Typo="Typo.h3" Class="mb-4">
             <MudIcon Icon="@Icons.Material.Outlined.Business" Class="mr-3" />
             @TranslationService.GetTranslation("superAdmin.tenantManagement", "Gestione Tenant")
         </MudText>
 
-        <!-- Reduced spacing with minimal margins between components -->
-        <MudStack Spacing="1">
+        <!-- Reduced spacing with minimal margins between components for enhanced vertical compactness -->
+        <MudStack Spacing="0" Class="pa-1">
             <!-- Tenant Selection: Direct MudCollapse without MudCard wrapper, closed by default -->
             <div class="border rounded pa-1 mb-1">
                 <div style="cursor: pointer;" @onclick="@(() => _tenantSelectorExpanded = !_tenantSelectorExpanded)" 
-                     class="d-flex align-center pa-2 hover:bg-gray-100">
+                     class="d-flex align-center pa-1 hover:bg-gray-100">
                     <MudIcon Icon="@Icons.Material.Outlined.Business" Class="mr-2" />
                     <MudText Typo="Typo.h6" Class="flex-grow-1">
                         @TranslationService.GetTranslation("superAdmin.tenantSelection", "Selezione Tenant")
@@ -67,13 +67,14 @@ else
                                    aria-label="@TranslationService.GetTranslation("tooltip.toggleTenantSelector", "Mostra/Nascondi selezione tenant")" />
                 </div>
                 <MudCollapse Expanded="_tenantSelectorExpanded">
-                    <div class="pa-2 mb-1">
+                    <div class="pa-1 mb-1">
                         <MudSelect T="string" @bind-Value="_selectedTenantFilter" @bind-Value:after="OnTenantFilterChanged" 
                                    Label="@TranslationService.GetTranslation("field.tenant", "Tenant")" 
                                    Placeholder="@TranslationService.GetTranslation("superAdmin.selectTenantFilter", "Seleziona tenant per filtrare...")"
                                    Variant="Variant.Outlined"
                                    FullWidth="true"
-                                   Clearable="true">
+                                   Clearable="true"
+                                   Dense="true">
                             <MudSelectItem Value="@("")">@TranslationService.GetTranslation("superAdmin.allTenants", "Tutti i Tenant")</MudSelectItem>
                             @foreach (var tenant in _tenants)
                             {
@@ -87,7 +88,7 @@ else
             <!-- Statistics Section: Direct MudCollapse without MudCard wrapper, closed by default -->
             <div class="border rounded pa-1 mb-1">
                 <div style="cursor: pointer;" @onclick="@(() => _statisticsExpanded = !_statisticsExpanded)" 
-                     class="d-flex align-center pa-2 hover:bg-gray-100">
+                     class="d-flex align-center pa-1 hover:bg-gray-100">
                     <MudIcon Icon="@Icons.Material.Outlined.Analytics" Class="mr-2" />
                     <MudText Typo="Typo.h6" Class="flex-grow-1">
                         @TranslationService.GetTranslation("superAdmin.showStatistics", "Mostra Statistiche")
@@ -98,7 +99,8 @@ else
                                    aria-label="@TranslationService.GetTranslation("tooltip.toggleStatistics", "Mostra/Nascondi statistiche")" />
                 </div>
                 <MudCollapse Expanded="_statisticsExpanded">
-                    <div class="pa-2 mb-1">
+                    <div class="pa-1 mb-1">
+                        <!-- Uniform statistics layout with consistent spacing and design -->
                         <MudGrid Spacing="1">
                             <MudItem xs="12" sm="6" md="4">
                                 <div class="d-flex justify-space-between align-center pa-2 ma-1 rounded border">
@@ -126,7 +128,7 @@ else
             <!-- Advanced Filters Section: Direct MudCollapse without MudCard wrapper, closed by default -->
             <div class="border rounded pa-1 mb-1">
                 <div style="cursor: pointer;" @onclick="@(() => _filtersExpanded = !_filtersExpanded)" 
-                     class="d-flex align-center pa-2 hover:bg-gray-100">
+                     class="d-flex align-center pa-1 hover:bg-gray-100">
                     <MudIcon Icon="@Icons.Material.Outlined.FilterList" Class="mr-2" />
                     <MudText Typo="Typo.h6" Class="flex-grow-1">
                         @TranslationService.GetTranslation("superAdmin.advancedFilters", "Filtri Avanzati")
@@ -137,9 +139,9 @@ else
                                    aria-label="@TranslationService.GetTranslation("tooltip.toggleFilters", "Mostra/Nascondi filtri avanzati")" />
                 </div>
                 <MudCollapse Expanded="_filtersExpanded">
-                    <div class="pa-2 mb-1">
-                        <!-- Filters on single horizontal line as required -->
-                        <div class="d-flex gap-4 align-center">
+                    <div class="pa-1 mb-1">
+                        <!-- Filters on single horizontal line as required by issue #98 -->
+                        <div class="d-flex gap-2 align-center">
                             <MudTextField @bind-Value="_searchTerm"
                                           @bind-Value:after="OnSearchChanged"
                                           Label="@TranslationService.GetTranslation("superAdmin.searchByNameOrDomain", "Cerca per nome o dominio")"
@@ -148,12 +150,14 @@ else
                                           Adornment="Adornment.End"
                                           AdornmentIcon="@Icons.Material.Outlined.Search"
                                           Clearable="true"
+                                          Dense="true"
                                           Style="flex: 2;" />
                             <MudSelect T="string" @bind-Value="_statusFilter" @bind-Value:after="OnStatusFilterChanged" 
                                        Label="@TranslationService.GetTranslation("field.status", "Stato")" 
                                        Placeholder="@TranslationService.GetTranslation("superAdmin.selectStatus", "Seleziona stato...")"
                                        Variant="Variant.Outlined"
                                        Clearable="true"
+                                       Dense="true"
                                        Style="flex: 1;">
                                 <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
                                 <MudSelectItem Value="@("active")">@TranslationService.GetTranslation("field.active", "Attivo")</MudSelectItem>
