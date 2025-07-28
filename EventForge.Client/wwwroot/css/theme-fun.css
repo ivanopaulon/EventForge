@@ -1,0 +1,120 @@
+/* ===================================================
+   EventForge Fun Theme
+   =================================================== 
+   
+   Creative/fun theme with pastel pop colors.
+   Bright, playful interface with vibrant yet soft colors for an energetic feel.
+   
+   Color Palette:
+   - Vibrant Purple (#9c27b0): Primary for headers and emphasis
+   - Hot Pink (#e91e63): Secondary for buttons and links
+   - Lime Green (#8bc34a): Accent for highlights and CTAs
+   - Soft Lavender (#f3e5f5): Light backgrounds
+   - Deep Purple (#4a148c): Text and dark elements
+   ================================================== */
+
+[data-theme="fun"] {
+    /* ===== PRIMARY COLOR PALETTE ===== */
+    
+    /* Primary - Vibrant Purple: Headers, navbar, emphasis */
+    --primary: #9c27b0;
+    --primary-rgb: 156, 39, 176;
+    --primary-light: #ba68c8;
+    --primary-dark: #7b1fa2;
+    
+    /* Secondary - Hot Pink: Buttons, links, interactions */
+    --secondary: #e91e63;
+    --secondary-rgb: 233, 30, 99;
+    --secondary-light: #f06292;
+    --secondary-dark: #c2185b;
+    
+    /* Accent - Lime Green: CTAs, badges, active states */
+    --accent: #8bc34a;
+    --accent-rgb: 139, 195, 74;
+    --accent-light: #aed581;
+    --accent-dark: #689f38;
+    
+    /* Neutral Light - Soft Lavender: Backgrounds, containers */
+    --neutral-light: #f3e5f5;
+    --neutral-light-rgb: 243, 229, 245;
+    --neutral-light-darker: #e1bee7;
+    --neutral-light-lighter: #fce4ec;
+    
+    /* Neutral Dark - Deep Purple: Text, icons, borders */
+    --neutral-dark: #4a148c;
+    --neutral-dark-rgb: 74, 20, 140;
+    --neutral-dark-light: #6a1b9a;
+    --neutral-dark-darker: #38006b;
+    
+    /* ===== SEMANTIC COLOR MAPPINGS ===== */
+    
+    /* Background colors */
+    --background-primary: var(--neutral-light);
+    --background-secondary: #ffffff;
+    --background-dark: var(--primary);
+    
+    /* Text colors */
+    --text-primary: var(--neutral-dark);
+    --text-secondary: #7b1fa2;
+    --text-light: #ffffff;
+    --text-muted: #9c27b0;
+    
+    /* Border colors */
+    --border-primary: #e1bee7;
+    --border-secondary: #ce93d8;
+    --border-accent: var(--accent);
+    
+    /* Button colors */
+    --button-primary-bg: var(--secondary);
+    --button-primary-text: #ffffff;
+    --button-secondary-bg: var(--neutral-light);
+    --button-secondary-text: var(--neutral-dark);
+    --button-accent-bg: var(--accent);
+    --button-accent-text: #ffffff;
+    
+    /* Link colors */
+    --link-color: var(--secondary);
+    --link-hover: var(--secondary-light);
+    --link-visited: #3f51b5;
+    
+    /* Status colors (fun, vibrant variants) */
+    --success: #4caf50;
+    --warning: #ff9800;
+    --error: #f44336;
+    --info: var(--secondary);
+    
+    /* ===== COMPONENT-SPECIFIC VARIABLES ===== */
+    
+    /* Navigation */
+    --nav-background: var(--primary);
+    --nav-text: #ffffff;
+    --nav-text-hover: var(--neutral-light);
+    --nav-active-bg: rgba(255, 255, 255, 0.2);
+    
+    /* AppBar/Header */
+    --appbar-background: var(--primary);
+    --appbar-text: #ffffff;
+    --appbar-icon: #ffffff;
+    
+    /* Sidebar/Drawer */
+    --sidebar-background: var(--primary);
+    --sidebar-text: #e1bee7;
+    --sidebar-text-active: #ffffff;
+    --sidebar-hover-bg: rgba(255, 255, 255, 0.1);
+    --sidebar-active-bg: rgba(233, 30, 99, 0.3);
+    
+    /* Cards */
+    --card-background: #ffffff;
+    --card-border: var(--border-primary);
+    --card-shadow: rgba(156, 39, 176, 0.2);
+    
+    /* Forms */
+    --form-background: #ffffff;
+    --form-border: var(--border-primary);
+    --form-focus-border: var(--secondary);
+    --form-error-border: var(--error);
+    
+    /* Fun theme specific enhancements */
+    --gradient-primary: linear-gradient(45deg, var(--primary), var(--secondary));
+    --gradient-accent: linear-gradient(45deg, var(--secondary), var(--accent));
+}

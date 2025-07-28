@@ -353,6 +353,33 @@
     "darkMode": "Modalità Scura",
     "lightMode": "Modalità Chiara",
     "switchToDark": "Passa al tema scuro",
-    "switchToLight": "Passa al tema chiaro"
+    "switchToLight": "Passa al tema chiaro",
+    "selector": "Selettore tema",
+    "selectTheme": "Seleziona tema",
+    "currentTheme": "Tema corrente",
+    "light": {
+      "name": "Chiaro",
+      "description": "Tema moderno e luminoso con i colori di EventForge"
+    },
+    "dark": {
+      "name": "Scuro",
+      "description": "Tema scuro classico per ambienti con poca luce"
+    },
+    "warm": {
+      "name": "Caldo",
+      "description": "Tema accogliente con toni arancioni e terrosi"
+    },
+    "cool": {
+      "name": "Freddo",
+      "description": "Tema rinfrescante con colori blu e turchesi"
+    },
+    "high-contrast": {
+      "name": "Alto Contrasto",
+      "description": "Tema ad alto contrasto per l'accessibilità (WCAG AAA)"
+    },
+    "fun": {
+      "name": "Divertente",
+      "description": "Tema giocoso con colori pastello vibranti"
+    }
   }
 }

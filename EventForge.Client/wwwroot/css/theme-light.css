@@ -1,0 +1,116 @@
+/* ===================================================
+   EventForge Light Theme
+   =================================================== 
+   
+   Modern/bright light theme with the original EventForge palette.
+   Based on the existing custom-theme.css implementation.
+   
+   Color Palette:
+   - Navy Blue (#1F2F46): Primary color for headers, navbar, dark backgrounds
+   - Electric Blue (#247BFF): Secondary color for buttons, links, highlights  
+   - Orange Fire (#FF6B2C): Accent color for CTAs, badges, active states
+   - Light Gray (#F5F6FA): Neutral light for backgrounds, containers, cards
+   - Charcoal (#2D2D2D): Neutral dark for text, icons, borders
+   ================================================== */
+
+[data-theme="light"] {
+    /* ===== PRIMARY COLOR PALETTE ===== */
+    
+    /* Primary - Navy Blue: Headers, navbar, dark backgrounds */
+    --primary: #1F2F46;
+    --primary-rgb: 31, 47, 70;
+    --primary-light: #2a3d56;
+    --primary-dark: #162136;
+    
+    /* Secondary - Electric Blue: Primary buttons, links, highlights */
+    --secondary: #247BFF;
+    --secondary-rgb: 36, 123, 255;
+    --secondary-light: #4d93ff;
+    --secondary-dark: #1a5fcc;
+    
+    /* Accent - Orange Fire: CTAs, badges, active states (use sparingly) */
+    --accent: #FF6B2C;
+    --accent-rgb: 255, 107, 44;
+    --accent-light: #ff8555;
+    --accent-dark: #e55a22;
+    
+    /* Neutral Light - Light Gray: Backgrounds, containers, cards */
+    --neutral-light: #F5F6FA;
+    --neutral-light-rgb: 245, 246, 250;
+    --neutral-light-darker: #e8ebf0;
+    --neutral-light-lighter: #fafbfc;
+    
+    /* Neutral Dark - Charcoal: Text, icons, borders */
+    --neutral-dark: #2D2D2D;
+    --neutral-dark-rgb: 45, 45, 45;
+    --neutral-dark-light: #4a4a4a;
+    --neutral-dark-darker: #1a1a1a;
+    
+    /* ===== SEMANTIC COLOR MAPPINGS ===== */
+    
+    /* Background colors */
+    --background-primary: var(--neutral-light);
+    --background-secondary: #ffffff;
+    --background-dark: var(--primary);
+    
+    /* Text colors */
+    --text-primary: var(--neutral-dark);
+    --text-secondary: #666666;
+    --text-light: #ffffff;
+    --text-muted: #888888;
+    
+    /* Border colors */
+    --border-primary: #e0e0e0;
+    --border-secondary: #d0d0d0;
+    --border-accent: var(--accent);
+    
+    /* Button colors */
+    --button-primary-bg: var(--secondary);
+    --button-primary-text: #ffffff;
+    --button-secondary-bg: var(--neutral-light);
+    --button-secondary-text: var(--neutral-dark);
+    --button-accent-bg: var(--accent);
+    --button-accent-text: #ffffff;
+    
+    /* Link colors */
+    --link-color: var(--secondary);
+    --link-hover: var(--secondary-dark);
+    --link-visited: #7c4dff;
+    
+    /* Status colors (maintaining accessibility) */
+    --success: #4caf50;
+    --warning: #ff9800;
+    --error: #f44336;
+    --info: var(--secondary);
+    
+    /* ===== COMPONENT-SPECIFIC VARIABLES ===== */
+    
+    /* Navigation */
+    --nav-background: var(--primary);
+    --nav-text: #ffffff;
+    --nav-text-hover: var(--neutral-light);
+    --nav-active-bg: rgba(255, 255, 255, 0.1);
+    
+    /* AppBar/Header */
+    --appbar-background: var(--primary);
+    --appbar-text: #ffffff;
+    --appbar-icon: #ffffff;
+    
+    /* Sidebar/Drawer */
+    --sidebar-background: var(--primary);
+    --sidebar-text: #d7d7d7;
+    --sidebar-text-active: #ffffff;
+    --sidebar-hover-bg: rgba(255, 255, 255, 0.1);
+    --sidebar-active-bg: rgba(255, 255, 255, 0.37);
+    
+    /* Cards */
+    --card-background: #ffffff;
+    --card-border: var(--border-primary);
+    --card-shadow: rgba(0, 0, 0, 0.1);
+    
+    /* Forms */
+    --form-background: #ffffff;
+    --form-border: var(--border-primary);
+    --form-focus-border: var(--secondary);
+    --form-error-border: var(--error);
+}
