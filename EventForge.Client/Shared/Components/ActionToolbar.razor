@@ -1,0 +1,176 @@
+@inject ITranslationService TranslationService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<!-- Standardized Action Toolbar for SuperAdmin tables following issue #106 requirements -->
+<!-- Provides Edit, Delete, Audit Log, and Export actions with proper localization and accessibility -->
+
+<div class="d-flex gap-1 align-center action-toolbar">
+    @if (ShowEdit && CanEdit)
+    {
+        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.edit", "Modifica")">
+            <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                           Color="Color.Primary"
+                           Size="Size.Small"
+                           OnClick="@OnEditAsync"
+                           Disabled="@IsDisabled"
+                           aria-label="@TranslationService.GetTranslationFormatted("tooltip.editItem", "Modifica {0}", ItemDisplayName ?? "elemento")" />
+        </MudTooltip>
+    }
+
+    @if (ShowDelete && CanDelete)
+    {
+        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.delete", "Elimina")">
+            <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                           Color="Color.Error"
+                           Size="Size.Small"
+                           OnClick="@OnDeleteAsync"
+                           Disabled="@IsDisabled"
+                           aria-label="@TranslationService.GetTranslationFormatted("tooltip.deleteItem", "Elimina {0}", ItemDisplayName ?? "elemento")" />
+        </MudTooltip>
+    }
+
+    @if (ShowAuditLog && CanViewAuditLog)
+    {
+        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.auditLog", "Cronologia modifiche")">
+            <MudIconButton Icon="@Icons.Material.Outlined.History"
+                           Color="Color.Info"
+                           Size="Size.Small"
+                           OnClick="@OnAuditLogAsync"
+                           Disabled="@IsDisabled"
+                           aria-label="@TranslationService.GetTranslationFormatted("tooltip.viewAuditLog", "Visualizza cronologia {0}", ItemDisplayName ?? "elemento")" />
+        </MudTooltip>
+    }
+
+    @if (ShowExport && CanExport)
+    {
+        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.export", "Esporta")">
+            <MudIconButton Icon="@Icons.Material.Outlined.Download"
+                           Color="Color.Secondary"
+                           Size="Size.Small"
+                           OnClick="@OnExportAsync"
+                           Disabled="@IsDisabled"
+                           aria-label="@TranslationService.GetTranslationFormatted("tooltip.exportItem", "Esporta {0}", ItemDisplayName ?? "elemento")" />
+        </MudTooltip>
+    }
+</div>
+
+@code {
+    // Parameters for controlling visibility and permissions
+    [Parameter] public bool ShowEdit { get; set; } = true;
+    [Parameter] public bool ShowDelete { get; set; } = true;
+    [Parameter] public bool ShowAuditLog { get; set; } = true;
+    [Parameter] public bool ShowExport { get; set; } = false;
+
+    [Parameter] public bool CanEdit { get; set; } = true;
+    [Parameter] public bool CanDelete { get; set; } = true;
+    [Parameter] public bool CanViewAuditLog { get; set; } = true;
+    [Parameter] public bool CanExport { get; set; } = true;
+
+    [Parameter] public bool IsDisabled { get; set; } = false;
+
+    // Item information for better accessibility and user feedback
+    [Parameter] public string? ItemId { get; set; }
+    [Parameter] public string? ItemDisplayName { get; set; }
+    [Parameter] public string? EntityName { get; set; }
+
+    // Action callbacks
+    [Parameter] public EventCallback OnEdit { get; set; }
+    [Parameter] public EventCallback OnDelete { get; set; }
+    [Parameter] public EventCallback OnAuditLog { get; set; }
+    [Parameter] public EventCallback OnExport { get; set; }
+
+    // Delete confirmation settings
+    [Parameter] public bool RequireDeleteConfirmation { get; set; } = true;
+    [Parameter] public string? DeleteConfirmationTitle { get; set; }
+    [Parameter] public string? DeleteConfirmationMessage { get; set; }
+
+    private async Task OnEditAsync()
+    {
+        try
+        {
+            await OnEdit.InvokeAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("error.editFailed", "Errore durante la modifica"), Severity.Error);
+        }
+    }
+
+    private async Task OnDeleteAsync()
+    {
+        try
+        {
+            if (RequireDeleteConfirmation)
+            {
+                var confirmed = await ShowDeleteConfirmationAsync();
+                if (!confirmed)
+                    return;
+            }
+
+            await OnDelete.InvokeAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("error.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
+        }
+    }
+
+    private async Task OnAuditLogAsync()
+    {
+        try
+        {
+            await OnAuditLog.InvokeAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("error.auditLogFailed", "Errore nel caricamento della cronologia"), Severity.Error);
+        }
+    }
+
+    private async Task OnExportAsync()
+    {
+        try
+        {
+            await OnExport.InvokeAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("error.exportFailed", "Errore durante l'esportazione"), Severity.Error);
+        }
+    }
+
+    private async Task<bool> ShowDeleteConfirmationAsync()
+    {
+        var title = DeleteConfirmationTitle ?? 
+                   TranslationService.GetTranslation("dialog.confirmDelete", "Conferma Eliminazione");
+        
+        var message = DeleteConfirmationMessage ?? 
+                     TranslationService.GetTranslationFormatted(
+                         "dialog.confirmDeleteMessage", 
+                         "Sei sicuro di voler eliminare {0}? Questa azione non può essere annullata.", 
+                         ItemDisplayName ?? TranslationService.GetTranslation("common.thisItem", "questo elemento"));
+
+        var result = await DialogService.ShowMessageBox(
+            title,
+            message,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        return result == true;
+    }
+}
+
+<style>
+    .action-toolbar {
+        min-width: fit-content;
+    }
+    
+    .action-toolbar .mud-icon-button {
+        transition: all 0.2s ease-in-out;
+    }
+    
+    .action-toolbar .mud-icon-button:hover {
+        transform: scale(1.1);
+    }
+</style>

@@ -1,0 +1,294 @@
+@using EventForge.DTOs.Audit
+@inject ISuperAdminService SuperAdminService
+@inject ITranslationService TranslationService
+@inject ISnackbar Snackbar
+
+<!-- Audit Log Drawer component following issue #106 requirements -->
+<!-- Provides detailed audit history with filters, pagination, and localized interface -->
+
+<MudDrawer @bind-Open="IsOpen" 
+           Anchor="Anchor.Right" 
+           Elevation="4" 
+           Variant="DrawerVariant.Temporary"
+           Width="600px"
+           Class="audit-log-drawer">
+    <MudDrawerHeader Class="pa-4">
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.History" Class="mr-2" />
+            @TranslationService.GetTranslationFormatted("auditLog.entityHistory", "Cronologia: {0}", EntityDisplayName ?? EntityName ?? "N/A")
+        </MudText>
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Outlined.Close" 
+                       Color="Color.Inherit" 
+                       OnClick="Close"
+                       aria-label="@TranslationService.GetTranslation("common.close", "Chiudi")" />
+    </MudDrawerHeader>
+
+    <MudDrawerContainer Class="pa-0">
+        <!-- Advanced Filters Section: MudCollapse closed by default as per issue #106 -->
+        <div class="border-bottom pa-2">
+            <div style="cursor: pointer;" @onclick="@(() => _filtersExpanded = !_filtersExpanded)" 
+                 class="d-flex align-center pa-2 hover:bg-gray-100">
+                <MudIcon Icon="@Icons.Material.Outlined.FilterList" Class="mr-2" />
+                <MudText Typo="Typo.subtitle1" Class="flex-grow-1">
+                    @TranslationService.GetTranslation("auditLog.advancedFilters", "Filtri Avanzati")
+                </MudText>
+                <MudIconButton Icon="@(_filtersExpanded ? Icons.Material.Outlined.ExpandLess : Icons.Material.Outlined.ExpandMore)"
+                               Size="Size.Small"
+                               Color="Color.Inherit"
+                               aria-label="@TranslationService.GetTranslation("tooltip.toggleFilters", "Mostra/Nascondi filtri")" />
+            </div>
+            <MudCollapse Expanded="_filtersExpanded">
+                <div class="pa-2">
+                    <MudStack Spacing="2">
+                        <!-- Operation Type Filter -->
+                        <MudSelect T="string" @bind-Value="_operationTypeFilter" @bind-Value:after="OnFilterChanged"
+                                   Label="@TranslationService.GetTranslation("auditLog.operationType", "Tipo Operazione")"
+                                   Placeholder="@TranslationService.GetTranslation("auditLog.selectOperationType", "Seleziona tipo...")"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   Dense="true">
+                            <MudSelectItem Value="@("Create")">@TranslationService.GetTranslation("auditLog.create", "Creazione")</MudSelectItem>
+                            <MudSelectItem Value="@("Update")">@TranslationService.GetTranslation("auditLog.update", "Modifica")</MudSelectItem>
+                            <MudSelectItem Value="@("Delete")">@TranslationService.GetTranslation("auditLog.delete", "Eliminazione")</MudSelectItem>
+                        </MudSelect>
+
+                        <!-- Date Range Filter -->
+                        <div class="d-flex gap-2">
+                            <MudDatePicker @bind-Date="_dateFrom" @bind-Date:after="OnFilterChanged"
+                                           Label="@TranslationService.GetTranslation("auditLog.dateFrom", "Data dal")"
+                                           Variant="Variant.Outlined"
+                                           Dense="true" />
+                            <MudDatePicker @bind-Date="_dateTo" @bind-Date:after="OnFilterChanged"
+                                           Label="@TranslationService.GetTranslation("auditLog.dateTo", "Data al")"
+                                           Variant="Variant.Outlined"
+                                           Dense="true" />
+                        </div>
+
+                        <!-- Field Name Filter -->
+                        <MudTextField @bind-Value="_fieldNameFilter" @bind-Value:after="OnFilterChanged"
+                                      Label="@TranslationService.GetTranslation("auditLog.fieldName", "Campo Modificato")"
+                                      Placeholder="@TranslationService.GetTranslation("auditLog.fieldNamePlaceholder", "Es. Nome, Email...")"
+                                      Variant="Variant.Outlined"
+                                      Clearable="true"
+                                      Dense="true" />
+
+                        <!-- Reset Filters Button -->
+                        <MudButton Variant="Variant.Outlined" 
+                                   Color="Color.Secondary" 
+                                   StartIcon="@Icons.Material.Outlined.FilterListOff"
+                                   OnClick="ResetFilters"
+                                   FullWidth="true"
+                                   aria-label="@TranslationService.GetTranslation("auditLog.resetFilters", "Azzera filtri")">
+                            @TranslationService.GetTranslation("auditLog.resetFilters", "Azzera Filtri")
+                        </MudButton>
+                    </MudStack>
+                </div>
+            </MudCollapse>
+        </div>
+
+        <!-- Audit Log Content -->
+        <div class="pa-2 flex-grow-1" style="height: calc(100vh - 200px); overflow-y: auto;">
+            @if (_isLoading)
+            {
+                <div class="d-flex justify-center align-center pa-8">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                </div>
+            }
+            else if (_auditLogs?.Any() == true)
+            {
+                <MudStack Spacing="2">
+                    @foreach (var log in _auditLogs)
+                    {
+                        <MudPaper Class="pa-3" Elevation="1">
+                            <div class="d-flex justify-space-between align-start mb-2">
+                                <MudText Typo="Typo.subtitle2" Class="font-weight-bold">
+                                    @GetOperationDisplayName(log.OperationType)
+                                </MudText>
+                                <MudText Typo="Typo.caption" Class="text-muted">
+                                    @log.ChangedAt.ToString("dd/MM/yyyy HH:mm:ss")
+                                </MudText>
+                            </div>
+                            
+                            <MudText Typo="Typo.body2" Class="mb-1">
+                                <strong>@TranslationService.GetTranslation("auditLog.user", "Utente"):</strong> 
+                                @(log.ChangedBy ?? TranslationService.GetTranslation("common.system", "Sistema"))
+                            </MudText>
+
+                            @if (!string.IsNullOrEmpty(log.PropertyName))
+                            {
+                                <MudText Typo="Typo.body2" Class="mb-1">
+                                    <strong>@TranslationService.GetTranslation("auditLog.field", "Campo"):</strong> @log.PropertyName
+                                </MudText>
+                            }
+
+                            @if (!string.IsNullOrEmpty(log.OldValue) || !string.IsNullOrEmpty(log.NewValue))
+                            {
+                                <div class="mt-2">
+                                    @if (!string.IsNullOrEmpty(log.OldValue))
+                                    {
+                                        <MudText Typo="Typo.body2" Class="text-error">
+                                            <strong>@TranslationService.GetTranslation("auditLog.oldValue", "Valore precedente"):</strong> @log.OldValue
+                                        </MudText>
+                                    }
+                                    @if (!string.IsNullOrEmpty(log.NewValue))
+                                    {
+                                        <MudText Typo="Typo.body2" Class="text-success">
+                                            <strong>@TranslationService.GetTranslation("auditLog.newValue", "Nuovo valore"):</strong> @log.NewValue
+                                        </MudText>
+                                    }
+                                </div>
+                            }
+                        </MudPaper>
+                    }
+                </MudStack>
+
+                <!-- Pagination controls -->
+                @if (_totalPages > 1)
+                {
+                    <div class="d-flex justify-center mt-4">
+                        <MudPagination Count="_totalPages" 
+                                       Selected="_currentPage" 
+                                       SelectedChanged="OnPageChanged"
+                                       Color="Color.Primary"
+                                       Size="Size.Small" />
+                    </div>
+                }
+            }
+            else if (!_isLoading)
+            {
+                <div class="d-flex flex-column align-center justify-center pa-8 text-center">
+                    <MudIcon Icon="@Icons.Material.Outlined.SearchOff" Size="Size.Large" Class="mb-4 text-muted" />
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        @TranslationService.GetTranslation("auditLog.noData", "Nessuna cronologia trovata")
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="text-muted">
+                        @TranslationService.GetTranslation("auditLog.noDataDescription", "Non ci sono modifiche registrate per questo elemento o i filtri applicati non hanno prodotto risultati.")
+                    </MudText>
+                </div>
+            }
+        </div>
+    </MudDrawerContainer>
+</MudDrawer>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    [Parameter] public string? EntityId { get; set; }
+    [Parameter] public string? EntityName { get; set; }
+    [Parameter] public string? EntityDisplayName { get; set; }
+
+    private bool _filtersExpanded = false;
+    private bool _isLoading = false;
+    private List<EntityChangeLogDto>? _auditLogs;
+
+    // Filter parameters
+    private string? _operationTypeFilter;
+    private DateTime? _dateFrom;
+    private DateTime? _dateTo;
+    private string? _fieldNameFilter;
+
+    // Pagination
+    private int _currentPage = 1;
+    private int _totalPages = 1;
+    private const int PageSize = 20;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsOpen && !string.IsNullOrEmpty(EntityId) && !string.IsNullOrEmpty(EntityName))
+        {
+            await LoadAuditLogsAsync();
+        }
+    }
+
+    private async Task LoadAuditLogsAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            StateHasChanged();
+
+            // Build query parameters following issue #106 requirements for advanced filtering
+            var queryParams = new AuditLogQueryParameters
+            {
+                EntityId = Guid.TryParse(EntityId, out var entityGuid) ? entityGuid : null,
+                EntityName = EntityName,
+                OperationType = _operationTypeFilter,
+                FromDate = _dateFrom,
+                ToDate = _dateTo,
+                PropertyName = _fieldNameFilter,
+                Page = _currentPage,
+                PageSize = PageSize
+            };
+
+            // This will need to be implemented in SuperAdminService
+            // For now, we'll create a mock implementation
+            _auditLogs = new List<EntityChangeLogDto>();
+            _totalPages = 1;
+
+            // TODO: Replace with actual API call when backend is implemented
+            // var result = await SuperAdminService.GetEntityAuditLogsAsync(queryParams);
+            // _auditLogs = result.Items;
+            // _totalPages = (int)Math.Ceiling((double)result.TotalCount / PageSize);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("auditLog.loadError", "Errore nel caricamento della cronologia"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnFilterChanged()
+    {
+        _currentPage = 1;
+        await LoadAuditLogsAsync();
+    }
+
+    private async Task OnPageChanged(int page)
+    {
+        _currentPage = page;
+        await LoadAuditLogsAsync();
+    }
+
+    private Task ResetFilters()
+    {
+        _operationTypeFilter = null;
+        _dateFrom = null;
+        _dateTo = null;
+        _fieldNameFilter = null;
+        _currentPage = 1;
+        return LoadAuditLogsAsync();
+    }
+
+    private async Task Close()
+    {
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(false);
+    }
+
+    private string GetOperationDisplayName(string operation)
+    {
+        return operation switch
+        {
+            "Create" => TranslationService.GetTranslation("auditLog.create", "Creazione"),
+            "Update" => TranslationService.GetTranslation("auditLog.update", "Modifica"),
+            "Delete" => TranslationService.GetTranslation("auditLog.delete", "Eliminazione"),
+            _ => operation
+        };
+    }
+}
+
+<style>
+    .audit-log-drawer .mud-drawer-content {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .hover\:bg-gray-100:hover {
+        background-color: rgba(0, 0, 0, 0.04);
+    }
+</style>
