@@ -1,0 +1,309 @@
+@using MudBlazor
+@using EventForge.DTOs.Audit
+@inject ITranslationService TranslationService
+@inject ISnackbar Snackbar
+
+<MudDrawer @bind-Open="IsOpen"
+           Anchor="Anchor.Right"
+           Width="600px"
+           Variant="DrawerVariant.Temporary"
+           ClipMode="DrawerClipMode.Never">
+    <div class="d-flex flex-column" style="height: 100vh;">
+        <!-- Header -->
+        <MudPaper Elevation="1" Class="pa-4 mb-2">
+            <div class="d-flex align-center justify-space-between">
+                <div>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Outlined.History" Class="mr-2" />
+                        @TranslationService.GetTranslation("audit.historyTitle", "Cronologia Modifiche")
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        @EntityType: @EntityName
+                    </MudText>
+                </div>
+                <MudIconButton Icon="@Icons.Material.Outlined.Close"
+                               Color="Color.Primary"
+                               OnClick="@(() => CloseDrawer())"
+                               aria-label="@TranslationService.GetTranslation("common.close", "Chiudi")" />
+            </div>
+        </MudPaper>
+
+        <!-- Content -->
+        <div class="flex-grow-1 overflow-auto pa-4">
+            @if (_isLoading)
+            {
+                <div class="d-flex justify-center pa-8">
+                    <MudProgressCircular Size="Size.Medium" Indeterminate="true" />
+                </div>
+            }
+            else if (!_auditLogs.Any())
+            {
+                <div class="d-flex flex-column align-center pa-8">
+                    <MudIcon Icon="@Icons.Material.Outlined.HistoryToggleOff" 
+                             Size="Size.Large" 
+                             Color="Color.Default" 
+                             Class="mb-4" />
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        @TranslationService.GetTranslation("audit.noHistory", "Nessuna cronologia")
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("audit.noHistoryDescription", "Non sono state trovate modifiche per questo elemento.")
+                    </MudText>
+                </div>
+            }
+            else
+            {
+                <MudTimeline TimelineOrientation="TimelineOrientation.Vertical" TimelinePosition="TimelinePosition.Alternate">
+                    @foreach (var log in _auditLogs.OrderByDescending(l => l.Timestamp))
+                    {
+                        <MudTimelineItem Color="@GetAuditColor(log.Action)" 
+                                         Icon="@GetAuditIcon(log.Action)" 
+                                         Size="Size.Small">
+                            <ItemContent>
+                                <MudCard Class="ma-2" Elevation="2">
+                                    <MudCardHeader>
+                                        <CardHeaderContent>
+                                            <MudText Typo="Typo.body1">
+                                                @TranslationService.GetTranslation($"audit.action.{log.Action.ToLower()}", log.Action)
+                                            </MudText>
+                                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                                @log.Timestamp.ToString("dd/MM/yyyy HH:mm:ss")
+                                            </MudText>
+                                        </CardHeaderContent>
+                                    </MudCardHeader>
+                                    <MudCardContent>
+                                        @if (!string.IsNullOrEmpty(log.UserName))
+                                        {
+                                            <MudText Typo="Typo.caption" Class="mb-2">
+                                                <MudIcon Icon="@Icons.Material.Outlined.Person" Size="Size.Small" Class="mr-1" />
+                                                @TranslationService.GetTranslation("audit.modifiedBy", "Modificato da"): @log.UserName
+                                            </MudText>
+                                        }
+                                        
+                                        @if (log.Changes?.Any() == true)
+                                        {
+                                            <MudText Typo="Typo.caption" Class="mb-2">
+                                                @TranslationService.GetTranslation("audit.changes", "Modifiche"):
+                                            </MudText>
+                                            @foreach (var change in log.Changes)
+                                            {
+                                                <div class="ml-4 mb-1">
+                                                    <MudText Typo="Typo.caption">
+                                                        <strong>@TranslationService.GetTranslation($"field.{change.FieldName.ToLower()}", change.FieldName):</strong>
+                                                    </MudText>
+                                                    <div class="ml-2">
+                                                        @if (!string.IsNullOrEmpty(change.OldValue))
+                                                        {
+                                                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                                                @TranslationService.GetTranslation("audit.oldValue", "Precedente"): @change.OldValue
+                                                            </MudText>
+                                                        }
+                                                        <MudText Typo="Typo.caption" Class="mud-text-primary">
+                                                            @TranslationService.GetTranslation("audit.newValue", "Nuovo"): @change.NewValue
+                                                        </MudText>
+                                                    </div>
+                                                </div>
+                                            }
+                                        }
+                                        
+                                        @if (!string.IsNullOrEmpty(log.Notes))
+                                        {
+                                            <MudText Typo="Typo.caption" Class="mt-2">
+                                                <MudIcon Icon="@Icons.Material.Outlined.Note" Size="Size.Small" Class="mr-1" />
+                                                @log.Notes
+                                            </MudText>
+                                        }
+                                    </MudCardContent>
+                                </MudCard>
+                            </ItemContent>
+                        </MudTimelineItem>
+                    }
+                </MudTimeline>
+            }
+        </div>
+
+        <!-- Footer -->
+        <MudPaper Elevation="1" Class="pa-4">
+            <div class="d-flex justify-space-between align-center">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @TranslationService.GetTranslation("audit.totalRecords", "Totale record"): @_auditLogs.Count
+                </MudText>
+                <MudButton Variant="Variant.Text" 
+                           Color="Color.Primary" 
+                           StartIcon="@Icons.Material.Outlined.Refresh"
+                           OnClick="@LoadAuditHistory"
+                           Size="Size.Small">
+                    @TranslationService.GetTranslation("common.refresh", "Aggiorna")
+                </MudButton>
+            </div>
+        </MudPaper>
+    </div>
+</MudDrawer>
+
+@code {
+    private bool _isLoading = false;
+    private List<AuditLogDto> _auditLogs = new();
+
+    /// <summary>
+    /// Whether the drawer is open.
+    /// </summary>
+    [Parameter] public bool IsOpen { get; set; }
+    
+    /// <summary>
+    /// Event callback for when IsOpen changes.
+    /// </summary>
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    
+    /// <summary>
+    /// Type of entity being audited (e.g., "Event", "Tenant", "User").
+    /// </summary>
+    [Parameter] public string EntityType { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// ID of the entity being audited.
+    /// </summary>
+    [Parameter] public Guid? EntityId { get; set; }
+    
+    /// <summary>
+    /// Display name of the entity being audited.
+    /// </summary>
+    [Parameter] public string EntityName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Load audit history when the drawer opens or entity changes.
+    /// </summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsOpen && EntityId.HasValue)
+        {
+            await LoadAuditHistory();
+        }
+    }
+
+    /// <summary>
+    /// Load audit history for the current entity.
+    /// </summary>
+    private async Task LoadAuditHistory()
+    {
+        if (!EntityId.HasValue) return;
+
+        try
+        {
+            _isLoading = true;
+            StateHasChanged();
+
+            // TODO: Replace with actual audit service call when implemented
+            // For now, create mock data
+            await Task.Delay(1000); // Simulate loading
+            
+            _auditLogs = new List<AuditLogDto>
+            {
+                new AuditLogDto
+                {
+                    Id = Guid.NewGuid(),
+                    EntityType = EntityType,
+                    EntityId = EntityId.Value,
+                    Action = "Created",
+                    Timestamp = DateTime.Now.AddDays(-7),
+                    UserName = "admin@example.com",
+                    Notes = "Entity created",
+                    Changes = new List<AuditFieldChangeDto>
+                    {
+                        new AuditFieldChangeDto { FieldName = "Name", OldValue = "", NewValue = EntityName },
+                        new AuditFieldChangeDto { FieldName = "Status", OldValue = "", NewValue = "Active" }
+                    }
+                },
+                new AuditLogDto
+                {
+                    Id = Guid.NewGuid(),
+                    EntityType = EntityType,
+                    EntityId = EntityId.Value,
+                    Action = "Updated",
+                    Timestamp = DateTime.Now.AddDays(-3),
+                    UserName = "user@example.com",
+                    Notes = "Details updated",
+                    Changes = new List<AuditFieldChangeDto>
+                    {
+                        new AuditFieldChangeDto { FieldName = "Description", OldValue = "Old description", NewValue = "New description" }
+                    }
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("error.loadAuditHistory", "Errore nel caricamento della cronologia: {0}", ex.Message), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Close the drawer.
+    /// </summary>
+    private async Task CloseDrawer()
+    {
+        await IsOpenChanged.InvokeAsync(false);
+    }
+
+    /// <summary>
+    /// Get color for audit action.
+    /// </summary>
+    private Color GetAuditColor(string action)
+    {
+        return action?.ToLower() switch
+        {
+            "created" => Color.Success,
+            "updated" => Color.Primary,
+            "deleted" => Color.Error,
+            "activated" => Color.Success,
+            "deactivated" => Color.Warning,
+            _ => Color.Default
+        };
+    }
+
+    /// <summary>
+    /// Get icon for audit action.
+    /// </summary>
+    private string GetAuditIcon(string action)
+    {
+        return action?.ToLower() switch
+        {
+            "created" => Icons.Material.Outlined.Add,
+            "updated" => Icons.Material.Outlined.Edit,
+            "deleted" => Icons.Material.Outlined.Delete,
+            "activated" => Icons.Material.Outlined.CheckCircle,
+            "deactivated" => Icons.Material.Outlined.Cancel,
+            _ => Icons.Material.Outlined.Circle
+        };
+    }
+
+    /// <summary>
+    /// Simple DTO for audit log display.
+    /// TODO: Replace with actual DTOs from EventForge.DTOs.Audit when implemented.
+    /// </summary>
+    public class AuditLogDto
+    {
+        public Guid Id { get; set; }
+        public string EntityType { get; set; } = string.Empty;
+        public Guid EntityId { get; set; }
+        public string Action { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
+        public string UserName { get; set; } = string.Empty;
+        public string Notes { get; set; } = string.Empty;
+        public List<AuditFieldChangeDto> Changes { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Simple DTO for field changes.
+    /// TODO: Replace with actual DTOs from EventForge.DTOs.Audit when implemented.
+    /// </summary>
+    public class AuditFieldChangeDto
+    {
+        public string FieldName { get; set; } = string.Empty;
+        public string OldValue { get; set; } = string.Empty;
+        public string NewValue { get; set; } = string.Empty;
+    }
+}

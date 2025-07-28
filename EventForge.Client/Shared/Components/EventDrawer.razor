@@ -1,0 +1,459 @@
+@using MudBlazor
+@using EventForge.DTOs.SuperAdmin
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Constants
+@inject ISuperAdminService SuperAdminService
+@inject ISnackbar Snackbar
+@inject ILogger<EventDrawer> Logger
+@inject ITranslationService TranslationService
+
+<EntityDrawer @bind-IsOpen="@IsOpen"
+              @bind-Mode="@Mode"
+              EntityName="@TranslationService.GetTranslation("field.event", "Evento")"
+              Model="@_model"
+              OnSave="@HandleSave"
+              OnCancel="@HandleCancel"
+              OnClose="@HandleClose"
+              CustomTitle="@_customTitle"
+              AllowEdit="@AllowEdit"
+              Width="800px">
+    
+    <FormContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.Name"
+                              Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
+                              MaxLength="100"
+                              aria-describedby="name-help" />
+                <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("help.eventName", "Nome identificativo dell'evento")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.Location"
+                              Label="@TranslationService.GetTranslation("field.location", "Location")"
+                              Variant="Variant.Outlined"
+                              MaxLength="200"
+                              aria-describedby="location-help" />
+                <MudText id="location-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("help.eventLocation", "Luogo dove si svolge l'evento")
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.ShortDescription"
+                              Label="@($"{TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")} *")"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="@TranslationService.GetTranslation("validation.shortDescriptionRequired", "La descrizione breve è obbligatoria")"
+                              MaxLength="200"
+                              Lines="2"
+                              aria-describedby="shortDescription-help" />
+                <MudText id="shortDescription-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("help.eventShortDescription", "Breve descrizione dell'evento")
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudDatePicker @bind-Date="_startDate"
+                               Label="@($"{TranslationService.GetTranslation("field.startDate", "Data Inizio")} *")"
+                               Variant="Variant.Outlined"
+                               Required="true"
+                               aria-describedby="startDate-help" />
+                <MudText id="startDate-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("help.eventStartDate", "Data di inizio dell'evento")
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudTimePicker @bind-Time="_startTime"
+                               Label="@($"{TranslationService.GetTranslation("field.startTime", "Ora Inizio")} *")"
+                               Variant="Variant.Outlined"
+                               Required="true"
+                               aria-describedby="startTime-help" />
+                <MudText id="startTime-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("help.eventStartTime", "Ora di inizio dell'evento")
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudDatePicker @bind-Date="_endDate"
+                               Label="@TranslationService.GetTranslation("field.endDate", "Data Fine")"
+                               Variant="Variant.Outlined"
+                               aria-describedby="endDate-help" />
+                <MudText id="endDate-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("help.eventEndDate", "Data di fine dell'evento (opzionale)")
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudTimePicker @bind-Time="_endTime"
+                               Label="@TranslationService.GetTranslation("field.endTime", "Ora Fine")"
+                               Variant="Variant.Outlined"
+                               Disabled="@(_endDate == null)"
+                               aria-describedby="endTime-help" />
+                <MudText id="endTime-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("help.eventEndTime", "Ora di fine dell'evento")
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudNumericField @bind-Value="_model.Capacity"
+                                 Label="@($"{TranslationService.GetTranslation("field.capacity", "Capacità")} *")"
+                                 Variant="Variant.Outlined"
+                                 Required="true"
+                                 Min="1"
+                                 Step="1"
+                                 aria-describedby="capacity-help" />
+                <MudText id="capacity-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("help.eventCapacity", "Numero massimo di partecipanti")
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="_model.Status"
+                           Label="@($"{TranslationService.GetTranslation("field.status", "Stato")} *")"
+                           Variant="Variant.Outlined"
+                           Required="true"
+                           aria-describedby="status-help">
+                    <MudSelectItem Value="@("Planned")">@TranslationService.GetTranslation("eventStatus.planned", "Pianificato")</MudSelectItem>
+                    <MudSelectItem Value="@("Ongoing")">@TranslationService.GetTranslation("eventStatus.ongoing", "In Corso")</MudSelectItem>
+                    <MudSelectItem Value="@("Completed")">@TranslationService.GetTranslation("eventStatus.completed", "Completato")</MudSelectItem>
+                    <MudSelectItem Value="@("Cancelled")">@TranslationService.GetTranslation("eventStatus.cancelled", "Annullato")</MudSelectItem>
+                </MudSelect>
+                <MudText id="status-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("help.eventStatus", "Stato corrente dell'evento")
+                </MudText>
+            </MudItem>
+        </MudGrid>
+    </FormContent>
+
+    <ViewContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@OriginalEvent?.Name"
+                              Label="@TranslationService.GetTranslation("field.name", "Nome")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@OriginalEvent?.Location"
+                              Label="@TranslationService.GetTranslation("field.location", "Location")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField Value="@OriginalEvent?.ShortDescription"
+                              Label="@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")"
+                              Variant="Variant.Outlined"
+                              Lines="2"
+                              ReadOnly="true" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@OriginalEvent?.StartDate.ToString("dd/MM/yyyy HH:mm")"
+                              Label="@TranslationService.GetTranslation("field.startDate", "Data/Ora Inizio")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalEvent?.EndDate?.ToString("dd/MM/yyyy HH:mm") ?? TranslationService.GetTranslation("common.notSpecified", "Non specificato"))"
+                              Label="@TranslationService.GetTranslation("field.endDate", "Data/Ora Fine")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@OriginalEvent?.Capacity.ToString()"
+                              Label="@TranslationService.GetTranslation("field.capacity", "Capacità")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudChip T="string" Color="@GetEventStatusColor(OriginalEvent?.Status ?? "")" 
+                         Size="Size.Medium"
+                         Icon="@GetEventStatusIcon(OriginalEvent?.Status ?? "")"
+                         aria-label="@TranslationService.GetTranslation("aria.eventStatus", "Stato evento: {0}", OriginalEvent?.Status)">
+                    @TranslationService.GetTranslation($"eventStatus.{OriginalEvent?.Status?.ToLower()}", OriginalEvent?.Status)
+                </MudChip>
+            </MudItem>
+            
+            @if (OriginalEvent != null)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalEvent.Id.ToString()"
+                              Label="@TranslationService.GetTranslation("field.id", "ID")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalEvent.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                              Label="@TranslationService.GetTranslation("field.createdAt", "Data Creazione")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@(OriginalEvent.TenantName ?? TranslationService.GetTranslation("common.notAvailable", "N/A"))"
+                              Label="@TranslationService.GetTranslation("field.tenant", "Tenant")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalEvent.TeamCount.ToString()"
+                              Label="@TranslationService.GetTranslation("field.teamCount", "Numero Team")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+                </MudItem>
+                
+                @if (OriginalEvent.ModifiedAt.HasValue)
+                {
+                    <MudItem xs="12">
+                        <MudTextField Value="@OriginalEvent.ModifiedAt.Value.ToString("dd/MM/yyyy HH:mm")"
+                                      Label="@TranslationService.GetTranslation("field.modifiedAt", "Ultima Modifica")"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="true" />
+                    </MudItem>
+                }
+            }
+        </MudGrid>
+    </ViewContent>
+    
+</EntityDrawer>
+
+@code {
+    private EventManagementDto _model = new() { Capacity = 100, Status = "Planned" };
+    private string? _customTitle;
+    private DateTime? _startDate = DateTime.Now;
+    private TimeSpan? _startTime = TimeSpan.FromHours(9);
+    private DateTime? _endDate;
+    private TimeSpan? _endTime;
+
+    /// <summary>
+    /// Whether the drawer is open.
+    /// </summary>
+    [Parameter] public bool IsOpen { get; set; }
+    
+    /// <summary>
+    /// Event callback for when IsOpen changes.
+    /// </summary>
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    
+    /// <summary>
+    /// The current mode of the drawer.
+    /// </summary>
+    [Parameter] public EntityDrawerMode Mode { get; set; } = EntityDrawerMode.Create;
+    
+    /// <summary>
+    /// Event callback for when Mode changes.
+    /// </summary>
+    [Parameter] public EventCallback<EntityDrawerMode> ModeChanged { get; set; }
+    
+    /// <summary>
+    /// The original event being viewed/edited (null for create mode).
+    /// </summary>
+    [Parameter] public EventManagementDto? OriginalEvent { get; set; }
+    
+    /// <summary>
+    /// Whether editing is allowed in the drawer.
+    /// </summary>
+    [Parameter] public bool AllowEdit { get; set; } = true;
+    
+    /// <summary>
+    /// Event callback triggered when an event is created.
+    /// </summary>
+    [Parameter] public EventCallback<EventManagementDto> OnEventCreated { get; set; }
+    
+    /// <summary>
+    /// Event callback triggered when an event is updated.
+    /// </summary>
+    [Parameter] public EventCallback<EventManagementDto> OnEventUpdated { get; set; }
+
+    /// <summary>
+    /// Update the model when the drawer opens or the original event changes.
+    /// </summary>
+    protected override void OnParametersSet()
+    {
+        if (IsOpen)
+        {
+            if (OriginalEvent != null && (Mode == EntityDrawerMode.Edit || Mode == EntityDrawerMode.View))
+            {
+                // Copy values from original for editing/viewing
+                _model = new EventManagementDto
+                {
+                    Id = OriginalEvent.Id,
+                    Name = OriginalEvent.Name,
+                    ShortDescription = OriginalEvent.ShortDescription,
+                    Location = OriginalEvent.Location,
+                    StartDate = OriginalEvent.StartDate,
+                    EndDate = OriginalEvent.EndDate,
+                    Capacity = OriginalEvent.Capacity,
+                    Status = OriginalEvent.Status,
+                    TenantId = OriginalEvent.TenantId
+                };
+
+                // Set date/time pickers
+                _startDate = OriginalEvent.StartDate.Date;
+                _startTime = OriginalEvent.StartDate.TimeOfDay;
+                
+                if (OriginalEvent.EndDate.HasValue)
+                {
+                    _endDate = OriginalEvent.EndDate.Value.Date;
+                    _endTime = OriginalEvent.EndDate.Value.TimeOfDay;
+                }
+                else
+                {
+                    _endDate = null;
+                    _endTime = null;
+                }
+
+                _customTitle = Mode == EntityDrawerMode.Edit 
+                    ? $"{TranslationService.GetTranslation("drawer.edit", "Modifica")} {OriginalEvent.Name}"
+                    : $"{TranslationService.GetTranslation("drawer.view", "Visualizza")} {OriginalEvent.Name}";
+            }
+            else if (Mode == EntityDrawerMode.Create)
+            {
+                // Reset for create mode
+                _model = new EventManagementDto { Capacity = 100, Status = "Planned" };
+                _startDate = DateTime.Now;
+                _startTime = TimeSpan.FromHours(9);
+                _endDate = null;
+                _endTime = null;
+                _customTitle = TranslationService.GetTranslation("drawer.createEvent", "Crea Nuovo Evento");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Handle save operation for create/edit modes.
+    /// </summary>
+    private async Task<bool> HandleSave()
+    {
+        try
+        {
+            // Combine date and time
+            if (_startDate.HasValue && _startTime.HasValue)
+            {
+                _model.StartDate = _startDate.Value.Date.Add(_startTime.Value);
+            }
+
+            if (_endDate.HasValue && _endTime.HasValue)
+            {
+                _model.EndDate = _endDate.Value.Date.Add(_endTime.Value);
+            }
+            else
+            {
+                _model.EndDate = null;
+            }
+
+            // Validate dates
+            if (_model.EndDate.HasValue && _model.EndDate.Value <= _model.StartDate)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("validation.endDateAfterStartDate", "La data di fine deve essere successiva alla data di inizio"), Severity.Error);
+                return false;
+            }
+
+            if (Mode == EntityDrawerMode.Create)
+            {
+                var createDto = new CreateEventManagementDto
+                {
+                    Name = _model.Name,
+                    ShortDescription = _model.ShortDescription,
+                    Location = _model.Location,
+                    StartDate = _model.StartDate,
+                    EndDate = _model.EndDate,
+                    Capacity = _model.Capacity,
+                    Status = _model.Status
+                };
+
+                var newEvent = await SuperAdminService.CreateEventAsync(createDto);
+                await OnEventCreated.InvokeAsync(newEvent);
+                Snackbar.Add(TranslationService.GetTranslation("success.eventCreated", "Evento creato con successo!"), Severity.Success);
+            }
+            else if (Mode == EntityDrawerMode.Edit && OriginalEvent != null)
+            {
+                var updateDto = new UpdateEventManagementDto
+                {
+                    Name = _model.Name,
+                    ShortDescription = _model.ShortDescription,
+                    Location = _model.Location,
+                    StartDate = _model.StartDate,
+                    EndDate = _model.EndDate,
+                    Capacity = _model.Capacity,
+                    Status = _model.Status
+                };
+
+                var updatedEvent = await SuperAdminService.UpdateEventAsync(OriginalEvent.Id, updateDto);
+                await OnEventUpdated.InvokeAsync(updatedEvent);
+                Snackbar.Add(TranslationService.GetTranslation("success.eventUpdated", "Evento aggiornato con successo!"), Severity.Success);
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving event");
+            var errorMessage = Mode == EntityDrawerMode.Create 
+                ? TranslationService.GetTranslation("error.eventCreateFailed", "Errore nella creazione dell'evento: {0}", ex.Message)
+                : TranslationService.GetTranslation("error.eventUpdateFailed", "Errore nell'aggiornamento dell'evento: {0}", ex.Message);
+            Snackbar.Add(errorMessage, Severity.Error);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Handle cancel operation.
+    /// </summary>
+    private async Task HandleCancel()
+    {
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Handle drawer close operation.
+    /// </summary>
+    private async Task HandleClose()
+    {
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Gets the appropriate color for event status display.
+    /// </summary>
+    private Color GetEventStatusColor(string status)
+    {
+        return status?.ToLower() switch
+        {
+            "planned" => Color.Primary,
+            "ongoing" => Color.Success,
+            "completed" => Color.Default,
+            "cancelled" => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    /// <summary>
+    /// Gets the appropriate icon for event status display.
+    /// </summary>
+    private string GetEventStatusIcon(string status)
+    {
+        return status?.ToLower() switch
+        {
+            "planned" => Icons.Material.Outlined.Schedule,
+            "ongoing" => Icons.Material.Outlined.PlayArrow,
+            "completed" => Icons.Material.Outlined.CheckCircle,
+            "cancelled" => Icons.Material.Outlined.Cancel,
+            _ => Icons.Material.Outlined.Help
+        };
+    }
+}
