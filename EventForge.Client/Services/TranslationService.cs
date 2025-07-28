@@ -46,6 +46,16 @@ public interface ITranslationService
     string GetTranslation(string key, params object[] parameters);
 
     /// <summary>
+    /// Gets a translation with formatted string interpolation using a fallback template.
+    /// This method provides the centralized wrapper required by issue #106 for all interpolated strings.
+    /// </summary>
+    /// <param name="key">Translation key</param>
+    /// <param name="defaultTemplate">Default template with placeholders like {0}, {1}, etc.</param>
+    /// <param name="args">Arguments to substitute in the template</param>
+    /// <returns>Formatted translated text</returns>
+    string GetTranslationFormatted(string key, string defaultTemplate, params object[] args);
+
+    /// <summary>
     /// Gets all available languages.
     /// </summary>
     /// <returns>Dictionary of language codes and display names</returns>
@@ -337,6 +347,36 @@ public class TranslationService : ITranslationService
         {
             _logger.LogError(ex, "Error formatting translation for key: {Key}", key);
             return translation;
+        }
+    }
+
+    /// <summary>
+    /// Gets a translation with formatted string interpolation using a fallback template.
+    /// This method provides the centralized wrapper required by issue #106 for all interpolated strings.
+    /// </summary>
+    /// <param name="key">Translation key</param>
+    /// <param name="defaultTemplate">Default template with placeholders like {0}, {1}, etc.</param>
+    /// <param name="args">Arguments to substitute in the template</param>
+    /// <returns>Formatted translated text</returns>
+    public string GetTranslationFormatted(string key, string defaultTemplate, params object[] args)
+    {
+        try
+        {
+            var template = GetTranslation(key, defaultTemplate);
+            return string.Format(template, args);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error formatting translation for key: {Key} with template: {Template}", key, defaultTemplate);
+            // Fallback to safe string formatting with default template
+            try
+            {
+                return string.Format(defaultTemplate, args);
+            }
+            catch
+            {
+                return $"[FORMAT_ERROR: {key}]";
+            }
         }
     }
 
