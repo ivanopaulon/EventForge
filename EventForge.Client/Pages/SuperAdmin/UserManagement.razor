@@ -10,10 +10,11 @@
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject ITranslationService TranslationService
 
 <PageTitle>Gestione Utenti Tenant - EventForge Super Admin</PageTitle>
 
-<SuperAdminBanner />
+@* SuperAdminBanner removed as per refactoring requirements *@
 
 @if (_isLoading)
 {
@@ -48,24 +49,27 @@ else
     <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
         <MudText Typo="Typo.h3" Class="mb-8">
             <MudIcon Icon="Icons.Material.Filled.People" Class="mr-3" />
-            Gestione Utenti Tenant
+            @TranslationService.GetTranslation("superAdmin.userManagement")
         </MudText>
 
         <MudGrid>
-            <!-- Selezione Tenant -->
-            <MudItem xs="12" md="4">
-                <MudCard Elevation="2">
+            <!-- Tenant Selection -->
+            <MudItem xs="12">
+                <MudCard Elevation="2" Class="mb-4">
                     <MudCardHeader>
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">
                                 <MudIcon Icon="Icons.Material.Filled.Business" Class="mr-2" />
-                                Seleziona Tenant
+                                @TranslationService.GetTranslation("superAdmin.tenantSelection")
                             </MudText>
                         </CardHeaderContent>
                     </MudCardHeader>
                     <MudCardContent>
-                        <MudSelect T="string" @bind-Value="_selectedTenant" @bind-Value:after="OnTenantChanged" Label="Tenant" Variant="Variant.Outlined">
-                            <MudSelectItem Value="@("")">Tutti i tenant</MudSelectItem>
+                        <MudSelect T="string" @bind-Value="_selectedTenant" @bind-Value:after="OnTenantChanged" 
+                                   Label="@TranslationService.GetTranslation("field.tenant")" 
+                                   Variant="Variant.Outlined"
+                                   FullWidth="true">
+                            <MudSelectItem Value="@("")">@TranslationService.GetTranslation("superAdmin.allTenants")</MudSelectItem>
                             @foreach (var tenant in _tenants)
                             {
                                 <MudSelectItem Value="@tenant.Id.ToString()">@tenant.DisplayName</MudSelectItem>
@@ -79,148 +83,130 @@ else
                 </MudCard>
             </MudItem>
 
-            <!-- Filtri e Ricerca -->
-            <MudItem xs="12" md="4">
-                <MudCard Elevation="2">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">
-                                <MudIcon Icon="Icons.Material.Filled.Search" Class="mr-2" />
-                                Ricerca Utenti
-                            </MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        <MudTextField @bind-Value="_searchTerm"
-                                      @bind-Value:after="OnSearchChanged"
-                                      Label="Cerca per nome, email o username"
-                                      Variant="Variant.Outlined"
-                                      Adornment="Adornment.End"
-                                      AdornmentIcon="Icons.Material.Filled.Search"
-                                      Class="mb-3" />
-                        <MudSelect T="string" @bind-Value="_roleFilter" @bind-Value:after="OnRoleFilterChanged" Label="Ruolo" Variant="Variant.Outlined">
-                            <MudSelectItem Value="@("all")">Tutti i ruoli</MudSelectItem>
-                            <MudSelectItem Value="@("SuperAdmin")">Super Admin</MudSelectItem>
-                            <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
-                            <MudSelectItem Value="@("Manager")">Manager</MudSelectItem>
-                            <MudSelectItem Value="@("User")">User</MudSelectItem>
-                        </MudSelect>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <!-- Statistiche Utenti -->
-            <MudItem xs="12" md="4">
-                <MudCard Elevation="2">
+            <!-- Statistics -->
+            <MudItem xs="12">
+                <MudCard Elevation="2" Class="mb-4">
                     <MudCardHeader>
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">
                                 <MudIcon Icon="Icons.Material.Filled.Analytics" Class="mr-2" />
-                                Statistiche Utenti
+                                @TranslationService.GetTranslation("superAdmin.statistics")
                             </MudText>
                         </CardHeaderContent>
                     </MudCardHeader>
                     <MudCardContent>
-                        <div class="d-flex flex-column ga-3">
-                            <div class="d-flex justify-space-between">
-                                <MudText>Utenti Totali:</MudText>
-                                <MudChip T="string" Color="Color.Info" Size="Size.Small">@(_userStats?.TotalUsers ?? 0)</MudChip>
-                            </div>
-                            <div class="d-flex justify-space-between">
-                                <MudText>Utenti Attivi:</MudText>
-                                <MudChip T="string" Color="Color.Success" Size="Size.Small">@(_userStats?.ActiveUsers ?? 0)</MudChip>
-                            </div>
-                            <div class="d-flex justify-space-between">
-                                <MudText>Admin:</MudText>
-                                <MudChip T="string" Color="Color.Warning" Size="Size.Small">@(_userStats?.AdminUsers ?? 0)</MudChip>
-                            </div>
-                        </div>
+                        <MudGrid>
+                            <MudItem xs="12" sm="3">
+                                <div class="d-flex justify-space-between">
+                                    <MudText>@TranslationService.GetTranslation("superAdmin.totalUsers"):</MudText>
+                                    <MudChip T="string" Color="Color.Info" Size="Size.Small">@(_userStats?.TotalUsers ?? 0)</MudChip>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="12" sm="3">
+                                <div class="d-flex justify-space-between">
+                                    <MudText>@TranslationService.GetTranslation("superAdmin.activeUsers"):</MudText>
+                                    <MudChip T="string" Color="Color.Success" Size="Size.Small">@(_userStats?.ActiveUsers ?? 0)</MudChip>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="12" sm="3">
+                                <div class="d-flex justify-space-between">
+                                    <MudText>@TranslationService.GetTranslation("superAdmin.adminUsers"):</MudText>
+                                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">@(_userStats?.AdminUsers ?? 0)</MudChip>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="12" sm="3">
+                                <div class="d-flex justify-space-between">
+                                    <MudText>@TranslationService.GetTranslation("superAdmin.activeTenants"):</MudText>
+                                    <MudChip T="string" Color="Color.Primary" Size="Size.Small">@(_tenants.Count(t => t.IsActive))</MudChip>
+                                </div>
+                            </MudItem>
+                        </MudGrid>
                     </MudCardContent>
                 </MudCard>
             </MudItem>
 
-            <!-- Gestione Ruoli e Permessi -->
-            <MudItem xs="12" md="6">
-                <MudCard Elevation="2">
+            <!-- Search Filters -->
+            <MudItem xs="12">
+                <MudCard Elevation="2" Class="mb-4">
                     <MudCardHeader>
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">
-                                <MudIcon Icon="Icons.Material.Filled.Security" Class="mr-2" />
-                                Ruoli e Permessi
+                                <MudIcon Icon="Icons.Material.Filled.Search" Class="mr-2" />
+                                @TranslationService.GetTranslation("superAdmin.searchFilters")
                             </MudText>
                         </CardHeaderContent>
                     </MudCardHeader>
                     <MudCardContent>
-                        <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mb-3">
-                            <strong>Modalità Solo Visualizzazione</strong><br />
-                            I ruoli e permessi sono visualizzabili ma non modificabili da questa interfaccia.
-                        </MudAlert>
-                        
-                        <!-- Ruoli Disponibili -->
-                        <MudText Typo="Typo.subtitle2" Class="mb-2">Ruoli Disponibili:</MudText>
-                        <div class="d-flex flex-wrap ga-1 mb-3">
-                            <MudChip T="string" Color="Color.Error" Size="Size.Small">SuperAdmin</MudChip>
-                            <MudChip T="string" Color="Color.Warning" Size="Size.Small">Admin</MudChip>
-                            <MudChip T="string" Color="Color.Info" Size="Size.Small">Manager</MudChip>
-                            <MudChip T="string" Color="Color.Default" Size="Size.Small">User</MudChip>
-                        </div>
-
-                        <MudAlert Severity="Severity.Warning" Icon="Icons.Material.Filled.Warning">
-                            <strong>TODO:</strong> Implementare visualizzazione dettagliata dei permessi associati a ciascun ruolo.
-                        </MudAlert>
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="_searchTerm"
+                                              @bind-Value:after="OnSearchChanged"
+                                              Label="@TranslationService.GetTranslation("superAdmin.searchByNameEmailUsername")"
+                                              Variant="Variant.Outlined"
+                                              Adornment="Adornment.End"
+                                              AdornmentIcon="Icons.Material.Filled.Search"
+                                              FullWidth="true" />
+                            </MudItem>
+                            <MudItem xs="12" md="3">
+                                <MudSelect T="string" @bind-Value="_roleFilter" @bind-Value:after="OnRoleFilterChanged" 
+                                           Label="@TranslationService.GetTranslation("field.role")" 
+                                           Variant="Variant.Outlined"
+                                           FullWidth="true">
+                                    <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("superAdmin.allRoles")</MudSelectItem>
+                                    <MudSelectItem Value="@("SuperAdmin")">Super Admin</MudSelectItem>
+                                    <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
+                                    <MudSelectItem Value="@("Manager")">Manager</MudSelectItem>
+                                    <MudSelectItem Value="@("User")">User</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" md="3">
+                                <MudSelect T="string" @bind-Value="_statusFilter" @bind-Value:after="OnStatusFilterChanged" 
+                                           Label="@TranslationService.GetTranslation("field.status")" 
+                                           Variant="Variant.Outlined"
+                                           FullWidth="true">
+                                    <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("common.selectAll")</MudSelectItem>
+                                    <MudSelectItem Value="@("active")">@TranslationService.GetTranslation("field.active")</MudSelectItem>
+                                    <MudSelectItem Value="@("inactive")">@TranslationService.GetTranslation("field.inactive")</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                        </MudGrid>
                     </MudCardContent>
                 </MudCard>
             </MudItem>
 
-            <!-- Azioni Rapide -->
-            <MudItem xs="12" md="6">
-                <MudCard Elevation="2">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">
-                                <MudIcon Icon="Icons.Material.Filled.Speed" Class="mr-2" />
-                                Azioni Rapide
-                            </MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        <div class="d-flex flex-column ga-2">
-                            <MudButton Variant="Variant.Outlined" 
-                                       Color="Color.Primary" 
-                                       StartIcon="Icons.Material.Filled.PersonAdd"
-                                       FullWidth="true"
-                                       OnClick="@OpenCreateUserDrawer">>
-                                @ButtonLabels.CreateUser
-                            </MudButton>
-                            <MudButton Variant="Variant.Outlined" 
-                                       Color="Color.Secondary" 
-                                       StartIcon="Icons.Material.Filled.LockReset"
-                                       FullWidth="true"
-                                       OnClick="@(() => Snackbar.Add("Funzionalità in arrivo", Severity.Info))">
-                                Reset Password Multiplo
-                            </MudButton>
-                            <MudButton Variant="Variant.Outlined" 
-                                       Color="Color.Info" 
-                                       StartIcon="Icons.Material.Filled.Download"
-                                       FullWidth="true"
-                                       OnClick="@(() => Snackbar.Add("Export funzionalità in arrivo", Severity.Info))">
-                                Esporta Lista Utenti
-                            </MudButton>
-                        </div>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <!-- Lista Utenti -->
+            <!-- User List -->
             <MudItem xs="12">
                 <MudCard Elevation="2">
                     <MudCardHeader>
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">
                                 <MudIcon Icon="Icons.Material.Filled.List" Class="mr-2" />
-                                Lista Utenti del Tenant
+                                @TranslationService.GetTranslation("superAdmin.userList")
                             </MudText>
                         </CardHeaderContent>
+                        <CardHeaderActions>
+                            <!-- Quick Actions Toolbar -->
+                            <MudToolBar Dense="true" WrapContent="true">
+                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refresh")">
+                                    <MudIconButton Icon="Icons.Material.Filled.Refresh" 
+                                                   Color="Color.Primary"
+                                                   OnClick="@LoadUsersAsync" />
+                                </MudTooltip>
+                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.export")">
+                                    <MudIconButton Icon="Icons.Material.Filled.Download" 
+                                                   Color="Color.Secondary"
+                                                   OnClick="@ExportUsers" />
+                                </MudTooltip>
+                                <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.newUser")">
+                                    <MudButton Variant="Variant.Filled" 
+                                               Color="Color.Primary" 
+                                               StartIcon="Icons.Material.Filled.PersonAdd"
+                                               OnClick="@OpenCreateUserDrawer">
+                                        @TranslationService.GetTranslation("superAdmin.newUser")
+                                    </MudButton>
+                                </MudTooltip>
+                            </MudToolBar>
+                        </CardHeaderActions>
                     </MudCardHeader>
                     <MudCardContent>
                         @if (_isLoadingUsers)
@@ -229,25 +215,27 @@ else
                         }
                         else
                         {
-                            <!-- Users Table -->
+                            <!-- Users Table with Sortable Columns -->
                             <MudTable T="UserManagementDto" 
                                       Items="_filteredUsers" 
                                       Hover="true" 
                                       Striped="true"
                                       Loading="_isLoadingUsers"
-                                      LoadingProgressColor="Color.Info">
+                                      LoadingProgressColor="Color.Info"
+                                      SortLabel="@TranslationService.GetTranslation("tooltip.sort")"
+                                      AllowUnsorted="false">
                                 <HeaderContent>
-                                    <MudTh>Nome Completo</MudTh>
-                                    <MudTh>Email</MudTh>
-                                    <MudTh>Username</MudTh>
-                                    <MudTh>Tenant</MudTh>
-                                    <MudTh>Ruoli</MudTh>
-                                    <MudTh>Stato</MudTh>
-                                    <MudTh>Ultimo Accesso</MudTh>
-                                    <MudTh>Azioni</MudTh>
+                                    <MudTh><MudTableSortLabel SortBy="@(new Func<UserManagementDto, object>(x => x.FullName))">@TranslationService.GetTranslation("field.fullName")</MudTableSortLabel></MudTh>
+                                    <MudTh><MudTableSortLabel SortBy="@(new Func<UserManagementDto, object>(x => x.Email))">@TranslationService.GetTranslation("field.email")</MudTableSortLabel></MudTh>
+                                    <MudTh><MudTableSortLabel SortBy="@(new Func<UserManagementDto, object>(x => x.Username))">@TranslationService.GetTranslation("field.username")</MudTableSortLabel></MudTh>
+                                    <MudTh><MudTableSortLabel SortBy="@(new Func<UserManagementDto, object>(x => x.TenantName ?? string.Empty))">@TranslationService.GetTranslation("field.tenant")</MudTableSortLabel></MudTh>
+                                    <MudTh><MudTableSortLabel SortBy="@(new Func<UserManagementDto, object>(x => string.Join(",", x.Roles)))">@TranslationService.GetTranslation("field.roles")</MudTableSortLabel></MudTh>
+                                    <MudTh><MudTableSortLabel SortBy="@(new Func<UserManagementDto, object>(x => x.IsActive))">@TranslationService.GetTranslation("field.status")</MudTableSortLabel></MudTh>
+                                    <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<UserManagementDto, object>(x => x.LastLoginAt ?? DateTime.MinValue))">@TranslationService.GetTranslation("field.lastLogin")</MudTableSortLabel></MudTh>
+                                    <MudTh>@TranslationService.GetTranslation("common.actions")</MudTh>
                                 </HeaderContent>
                                 <RowTemplate>
-                                    <MudTd DataLabel="Nome Completo">
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.fullName")">
                                         <div class="d-flex align-center">
                                             <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-3">
                                                 @(context.FirstName.FirstOrDefault())@(context.LastName.FirstOrDefault())
@@ -258,51 +246,65 @@ else
                                             </div>
                                         </div>
                                     </MudTd>
-                                    <MudTd DataLabel="Email">
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.email")">
                                         <MudText>@context.Email</MudText>
                                     </MudTd>
-                                    <MudTd DataLabel="Username">
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.username")">
                                         <MudText>@context.Username</MudText>
                                     </MudTd>
-                                    <MudTd DataLabel="Tenant">
-                                        <MudText>@(context.TenantName ?? "N/A")</MudText>
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.tenant")">
+                                        <MudText>@(context.TenantName ?? TranslationService.GetTranslation("common.notAvailable"))</MudText>
                                     </MudTd>
-                                    <MudTd DataLabel="Ruoli">
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.roles")">
                                         <div class="d-flex flex-wrap ga-1">
-                                            @foreach (var role in context.Roles)
+                                            @foreach (var role in context.Roles.Take(2))
                                             {
                                                 <MudChip T="string" Size="Size.Small" 
                                                          Color="@GetRoleColor(role)">
                                                     @role
                                                 </MudChip>
                                             }
+                                            @if (context.Roles.Count > 2)
+                                            {
+                                                <MudChip T="string" Color="Color.Default" Size="Size.Small">+@(context.Roles.Count - 2)</MudChip>
+                                            }
                                         </div>
                                     </MudTd>
-                                    <MudTd DataLabel="Stato">
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.status")">
                                         <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" 
                                                  Size="Size.Small">
-                                            @(context.IsActive ? "Attivo" : "Inattivo")
+                                            @(context.IsActive ? TranslationService.GetTranslation("field.active") : TranslationService.GetTranslation("field.inactive"))
                                         </MudChip>
                                     </MudTd>
-                                    <MudTd DataLabel="Ultimo Accesso">
-                                        <MudText>@(context.LastLoginAt?.ToString("dd/MM/yyyy HH:mm") ?? "Mai")</MudText>
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.lastLogin")">
+                                        <MudText>@(context.LastLoginAt?.ToString("dd/MM/yyyy HH:mm") ?? TranslationService.GetTranslation("common.notAvailable"))</MudText>
                                     </MudTd>
-                                    <MudTd DataLabel="Azioni">
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("common.actions")">
                                         <MudButtonGroup Color="Color.Primary" Variant="Variant.Text" Size="Size.Small">
-                                            <MudIconButton Icon="Icons.Material.Filled.Visibility" 
-                                                           Title="Visualizza"
-                                                           OnClick="@(() => ViewUser(context))" />
-                                            <MudIconButton Icon="Icons.Material.Filled.Edit" 
-                                                           Title="Modifica"
-                                                           OnClick="@(() => EditUser(context))" />
-                                            <MudIconButton Icon="Icons.Material.Filled.PersonOutline" 
-                                                           Title="Impersona"
-                                                           OnClick="@(() => ImpersonateUser(context))" 
-                                                           Color="Color.Warning" />
-                                            <MudIconButton Icon="@(context.IsActive ? Icons.Material.Filled.Block : Icons.Material.Filled.CheckCircle)" 
-                                                           Title="@(context.IsActive ? "Disabilita" : "Abilita")"
-                                                           OnClick="@(() => ToggleUserStatus(context))" 
-                                                           Color="@(context.IsActive ? Color.Error : Color.Success)" />
+                                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewUser")">
+                                                <MudIconButton Icon="Icons.Material.Filled.Visibility" 
+                                                               Color="Color.Info"
+                                                               Size="Size.Small"
+                                                               OnClick="@(() => ViewUser(context))" />
+                                            </MudTooltip>
+                                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.editUser")">
+                                                <MudIconButton Icon="Icons.Material.Filled.Edit" 
+                                                               Color="Color.Primary"
+                                                               Size="Size.Small"
+                                                               OnClick="@(() => EditUser(context))" />
+                                            </MudTooltip>
+                                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.impersonateUser")">
+                                                <MudIconButton Icon="Icons.Material.Filled.PersonOutline" 
+                                                               Color="Color.Warning"
+                                                               Size="Size.Small"
+                                                               OnClick="@(() => ImpersonateUser(context))" />
+                                            </MudTooltip>
+                                            <MudTooltip Text="@(context.IsActive ? TranslationService.GetTranslation("tooltip.disableUser") : TranslationService.GetTranslation("tooltip.enableUser"))">
+                                                <MudIconButton Icon="@(context.IsActive ? Icons.Material.Filled.Block : Icons.Material.Filled.CheckCircle)" 
+                                                               Color="@(context.IsActive ? Color.Error : Color.Success)"
+                                                               Size="Size.Small"
+                                                               OnClick="@(() => ToggleUserStatus(context))" />
+                                            </MudTooltip>
                                         </MudButtonGroup>
                                     </MudTd>
                                 </RowTemplate>
@@ -337,6 +339,7 @@ else
     private UserDto? _currentUser;
     private string _searchTerm = string.Empty;
     private string _roleFilter = "all";
+    private string _statusFilter = "all";
     private string _selectedTenant = string.Empty;
     
     // Data
@@ -352,6 +355,9 @@ else
              u.Email.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
              u.Username.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) &&
             (_roleFilter == "all" || u.Roles.Any(r => r.Equals(_roleFilter, StringComparison.OrdinalIgnoreCase))) &&
+            (_statusFilter == "all" || 
+             (_statusFilter == "active" && u.IsActive) ||
+             (_statusFilter == "inactive" && !u.IsActive)) &&
             (string.IsNullOrEmpty(_selectedTenant) || 
              _selectedTenant == "" ||
              u.TenantId?.ToString() == _selectedTenant));
@@ -465,6 +471,19 @@ else
         StateHasChanged();
     }
 
+    private async Task OnStatusFilterChanged()
+    {
+        await Task.CompletedTask;
+        StateHasChanged();
+    }
+
+    private async Task ExportUsers()
+    {
+        // TODO: Implement export functionality
+        Snackbar.Add("Export functionality will be implemented soon.", Severity.Info);
+        await Task.CompletedTask;
+    }
+
     private async Task OpenCreateUserDrawer()
     {
         _userDrawerMode = EntityDrawerMode.Create;
@@ -510,10 +529,10 @@ else
     private async Task ImpersonateUser(UserManagementDto user)
     {
         var confirm = await DialogService.ShowMessageBox(
-            "Conferma Impersonificazione",
+            TranslationService.GetTranslation("common.confirm"),
             $"Sei sicuro di voler impersonificare l'utente '{user.FullName}'? Questa azione verrà registrata nei log di audit.",
-            yesText: "Conferma",
-            cancelText: "Annulla");
+            yesText: TranslationService.GetTranslation("common.confirm"),
+            cancelText: TranslationService.GetTranslation("common.cancel"));
 
         if (confirm == true)
         {
@@ -531,12 +550,12 @@ else
 
     private async Task ToggleUserStatus(UserManagementDto user)
     {
-        var action = user.IsActive ? "disabilitare" : "abilitare";
+        var action = user.IsActive ? TranslationService.GetTranslation("superAdmin.disable") : TranslationService.GetTranslation("superAdmin.enable");
         var confirm = await DialogService.ShowMessageBox(
-            "Conferma",
-            $"Sei sicuro di voler {action} l'utente '{user.FullName}'?",
-            yesText: "Conferma",
-            cancelText: "Annulla");
+            TranslationService.GetTranslation("common.confirm"),
+            $"Sei sicuro di voler {action.ToLower()} l'utente '{user.FullName}'?",
+            yesText: TranslationService.GetTranslation("common.confirm"),
+            cancelText: TranslationService.GetTranslation("common.cancel"));
 
         if (confirm == true)
         {
@@ -545,7 +564,12 @@ else
                 // For now, just toggle locally - implement actual API call when available
                 user.IsActive = !user.IsActive;
                 await LoadUserStatisticsAsync();
-                Snackbar.Add($"Utente {(user.IsActive ? "abilitato" : "disabilitato")} con successo!", Severity.Success);
+                
+                var successMessage = user.IsActive 
+                    ? "Utente abilitato con successo!"
+                    : "Utente disabilitato con successo!";
+                    
+                Snackbar.Add(successMessage, Severity.Success);
             }
             catch (Exception ex)
             {
