@@ -1,0 +1,348 @@
+@using MudBlazor
+@using EventForge.DTOs.SuperAdmin
+@using EventForge.Client.Shared.Components
+@inject ISuperAdminService SuperAdminService
+@inject ISnackbar Snackbar
+@inject ILogger<EventTypeDrawer> Logger
+@inject ITranslationService TranslationService
+
+<EntityDrawer @bind-IsOpen="@IsOpen"
+              @bind-Mode="@Mode"
+              EntityName="@TranslationService.GetTranslation("field.eventType", "Tipo Evento")"
+              Model="@_model"
+              OnSave="@HandleSave"
+              OnCancel="@HandleCancel"
+              OnClose="@HandleClose"
+              CustomTitle="@_customTitle"
+              AllowEdit="@AllowEdit"
+              Width="700px">
+    
+    <FormContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.Name"
+                              Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
+                              MaxLength="100"
+                              aria-describedby="name-help" />
+                <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("help.eventTypeName", "Nome identificativo del tipo evento")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.Color"
+                              Label="@TranslationService.GetTranslation("field.color", "Colore")"
+                              Variant="Variant.Outlined"
+                              Placeholder="#1976d2"
+                              aria-describedby="color-help"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Outlined.Palette" />
+                <MudText id="color-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("help.eventTypeColor", "Colore distintivo per il tipo evento (formato hex)")
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.Description"
+                              Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                              Variant="Variant.Outlined"
+                              MaxLength="500"
+                              Lines="3"
+                              aria-describedby="description-help" />
+                <MudText id="description-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("help.eventTypeDescription", "Descrizione dettagliata del tipo evento")
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="_model.Icon"
+                           Label="@TranslationService.GetTranslation("field.icon", "Icona")"
+                           Variant="Variant.Outlined"
+                           aria-describedby="icon-help">
+                    @foreach (var icon in _availableIcons)
+                    {
+                        <MudSelectItem Value="@icon.Value">
+                            <div class="d-flex align-center">
+                                <MudIcon Icon="@icon.Value" Class="mr-2" />
+                                @icon.Name
+                            </div>
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudText id="icon-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("help.eventTypeIcon", "Icona rappresentativa del tipo evento")
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSwitch @bind-Value="_model.IsActive"
+                           Label="@TranslationService.GetTranslation("field.active", "Attivo")"
+                           Color="Color.Primary"
+                           aria-describedby="active-help" />
+                <MudText id="active-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("help.eventTypeActive", "Se abilitato, il tipo evento è disponibile per l'uso")
+                </MudText>
+            </MudItem>
+        </MudGrid>
+    </FormContent>
+
+    <ViewContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@OriginalEventType?.Name"
+                              Label="@TranslationService.GetTranslation("field.name", "Nome")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <div class="d-flex align-center">
+                    <div style="@($"width: 30px; height: 30px; border-radius: 50%; background-color: {OriginalEventType?.Color}; border: 1px solid #ccc;")" class="mr-3"></div>
+                    <MudTextField Value="@OriginalEventType?.Color"
+                                  Label="@TranslationService.GetTranslation("field.color", "Colore")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true" />
+                </div>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField Value="@OriginalEventType?.Description"
+                              Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                              ReadOnly="true" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <div class="d-flex align-center">
+                    <MudIcon Icon="@OriginalEventType?.Icon" Class="mr-2" />
+                    <MudTextField Value="@OriginalEventType?.Icon"
+                                  Label="@TranslationService.GetTranslation("field.icon", "Icona")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true" />
+                </div>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudChip T="string" Color="@(OriginalEventType?.IsActive == true ? Color.Success : Color.Error)" 
+                         Size="Size.Medium"
+                         Icon="@(OriginalEventType?.IsActive == true ? Icons.Material.Outlined.CheckCircle : Icons.Material.Outlined.Cancel)"
+                         aria-label="@TranslationService.GetTranslation("aria.eventTypeStatus", "Stato tipo evento: {0}", OriginalEventType?.IsActive == true ? TranslationService.GetTranslation("field.active", "Attivo") : TranslationService.GetTranslation("field.inactive", "Inattivo"))">
+                    @(OriginalEventType?.IsActive == true ? TranslationService.GetTranslation("field.active", "Attivo") : TranslationService.GetTranslation("field.inactive", "Inattivo"))
+                </MudChip>
+            </MudItem>
+            
+            @if (OriginalEventType != null)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalEventType.Id.ToString()"
+                              Label="@TranslationService.GetTranslation("field.id", "ID")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalEventType.EventCount.ToString()"
+                              Label="@TranslationService.GetTranslation("field.eventCount", "Numero Eventi")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalEventType.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                              Label="@TranslationService.GetTranslation("field.createdAt", "Data Creazione")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+                </MudItem>
+
+                @if (OriginalEventType.ModifiedAt.HasValue)
+                {
+                    <MudItem xs="12" md="6">
+                        <MudTextField Value="@OriginalEventType.ModifiedAt.Value.ToString("dd/MM/yyyy HH:mm")"
+                                      Label="@TranslationService.GetTranslation("field.modifiedAt", "Ultima Modifica")"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="true" />
+                    </MudItem>
+                }
+            }
+        </MudGrid>
+    </ViewContent>
+    
+</EntityDrawer>
+
+@code {
+    private EventTypeDto _model = new() { Color = "#1976d2", Icon = "category", IsActive = true };
+    private string? _customTitle;
+
+    private readonly List<IconOption> _availableIcons = new()
+    {
+        new("Event", Icons.Material.Outlined.Event),
+        new("Category", Icons.Material.Outlined.Category),
+        new("Label", Icons.Material.Outlined.Label),
+        new("Tag", Icons.Material.Outlined.LocalOffer),
+        new("Sports", Icons.Material.Outlined.Sports),
+        new("Music", Icons.Material.Outlined.MusicNote),
+        new("Business", Icons.Material.Outlined.Business),
+        new("Education", Icons.Material.Outlined.School),
+        new("Health", Icons.Material.Outlined.LocalHospital),
+        new("Technology", Icons.Material.Outlined.Computer),
+        new("Entertainment", Icons.Material.Outlined.Movie),
+        new("Food", Icons.Material.Outlined.Restaurant),
+        new("Art", Icons.Material.Outlined.Brush),
+        new("Travel", Icons.Material.Outlined.Flight),
+        new("Workshop", Icons.Material.Outlined.Build),
+        new("Meeting", Icons.Material.Outlined.Groups),
+        new("Conference", Icons.Material.Outlined.RecordVoiceOver),
+        new("Training", Icons.Material.Outlined.MenuBook),
+        new("Social", Icons.Material.Outlined.People),
+        new("Other", Icons.Material.Outlined.Circle)
+    };
+
+    /// <summary>
+    /// Whether the drawer is open.
+    /// </summary>
+    [Parameter] public bool IsOpen { get; set; }
+    
+    /// <summary>
+    /// Event callback for when IsOpen changes.
+    /// </summary>
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    
+    /// <summary>
+    /// The current mode of the drawer.
+    /// </summary>
+    [Parameter] public EntityDrawerMode Mode { get; set; } = EntityDrawerMode.Create;
+    
+    /// <summary>
+    /// Event callback for when Mode changes.
+    /// </summary>
+    [Parameter] public EventCallback<EntityDrawerMode> ModeChanged { get; set; }
+    
+    /// <summary>
+    /// The original event type being viewed/edited (null for create mode).
+    /// </summary>
+    [Parameter] public EventTypeDto? OriginalEventType { get; set; }
+    
+    /// <summary>
+    /// Whether editing is allowed in the drawer.
+    /// </summary>
+    [Parameter] public bool AllowEdit { get; set; } = true;
+    
+    /// <summary>
+    /// Event callback triggered when an event type is created.
+    /// </summary>
+    [Parameter] public EventCallback<EventTypeDto> OnEventTypeCreated { get; set; }
+    
+    /// <summary>
+    /// Event callback triggered when an event type is updated.
+    /// </summary>
+    [Parameter] public EventCallback<EventTypeDto> OnEventTypeUpdated { get; set; }
+
+    /// <summary>
+    /// Update the model when the drawer opens or the original event type changes.
+    /// </summary>
+    protected override void OnParametersSet()
+    {
+        if (IsOpen)
+        {
+            if (OriginalEventType != null && (Mode == EntityDrawerMode.Edit || Mode == EntityDrawerMode.View))
+            {
+                // Copy values from original for editing/viewing
+                _model = new EventTypeDto
+                {
+                    Id = OriginalEventType.Id,
+                    Name = OriginalEventType.Name,
+                    Description = OriginalEventType.Description,
+                    Color = OriginalEventType.Color,
+                    Icon = OriginalEventType.Icon,
+                    IsActive = OriginalEventType.IsActive
+                };
+
+                _customTitle = Mode == EntityDrawerMode.Edit 
+                    ? $"{TranslationService.GetTranslation("drawer.edit", "Modifica")} {OriginalEventType.Name}"
+                    : $"{TranslationService.GetTranslation("drawer.view", "Visualizza")} {OriginalEventType.Name}";
+            }
+            else if (Mode == EntityDrawerMode.Create)
+            {
+                // Reset for create mode
+                _model = new EventTypeDto { Color = "#1976d2", Icon = "category", IsActive = true };
+                _customTitle = TranslationService.GetTranslation("drawer.createEventType", "Crea Nuovo Tipo Evento");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Handle save operation for create/edit modes.
+    /// </summary>
+    private async Task<bool> HandleSave()
+    {
+        try
+        {
+            if (Mode == EntityDrawerMode.Create)
+            {
+                var createDto = new CreateEventTypeDto
+                {
+                    Name = _model.Name,
+                    Description = _model.Description,
+                    Color = _model.Color,
+                    Icon = _model.Icon,
+                    IsActive = _model.IsActive
+                };
+
+                var newEventType = await SuperAdminService.CreateEventTypeAsync(createDto);
+                await OnEventTypeCreated.InvokeAsync(newEventType);
+                Snackbar.Add(TranslationService.GetTranslation("success.eventTypeCreated", "Tipo evento creato con successo!"), Severity.Success);
+            }
+            else if (Mode == EntityDrawerMode.Edit && OriginalEventType != null)
+            {
+                var updateDto = new UpdateEventTypeDto
+                {
+                    Name = _model.Name,
+                    Description = _model.Description,
+                    Color = _model.Color,
+                    Icon = _model.Icon,
+                    IsActive = _model.IsActive
+                };
+
+                var updatedEventType = await SuperAdminService.UpdateEventTypeAsync(OriginalEventType.Id, updateDto);
+                await OnEventTypeUpdated.InvokeAsync(updatedEventType);
+                Snackbar.Add(TranslationService.GetTranslation("success.eventTypeUpdated", "Tipo evento aggiornato con successo!"), Severity.Success);
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving event type");
+            var errorMessage = Mode == EntityDrawerMode.Create 
+                ? TranslationService.GetTranslation("error.eventTypeCreateFailed", "Errore nella creazione del tipo evento: {0}", ex.Message)
+                : TranslationService.GetTranslation("error.eventTypeUpdateFailed", "Errore nell'aggiornamento del tipo evento: {0}", ex.Message);
+            Snackbar.Add(errorMessage, Severity.Error);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Handle cancel operation.
+    /// </summary>
+    private async Task HandleCancel()
+    {
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Handle drawer close operation.
+    /// </summary>
+    private async Task HandleClose()
+    {
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Icon option for the dropdown.
+    /// </summary>
+    private record IconOption(string Name, string Value);
+}
