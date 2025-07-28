@@ -2,54 +2,105 @@
 @using Microsoft.AspNetCore.Authorization
 @attribute [AllowAnonymous]
 @inject IHealthService HealthService
+@inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject ITranslationService TranslationService
 
 <PageTitle>@TranslationService.GetTranslation("home.title", "EventForge - Home")</PageTitle>
 
-<!-- Improved responsive layout with proper grid system and accessibility -->
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4 mt-sm-6 mt-md-8">
-    <MudGrid Justify="Justify.Center" Spacing="4">
-        <MudItem xs="12" sm="10" md="8" lg="6">
-            <!-- Welcome Card -->
-            <MudCard Class="pa-4 pa-sm-6 pa-md-8" Elevation="4" role="main">
-                <MudCardContent>
-                    <header class="text-center mb-6">
-                        <MudText Typo="Typo.h3" 
-                                 Component="h1" 
-                                 Align="Align.Center" 
-                                 Class="mb-4"
-                                 aria-label="EventForge Home Page">
-                            <MudIcon Icon="@Icons.Material.Filled.Event" 
-                                     Class="mr-2" 
-                                     Size="Size.Large"
-                                     aria-hidden="true" />
-                            EventForge
-                        </MudText>
-                        <MudText Typo="Typo.body1" 
-                                 Align="Align.Center" 
-                                 Color="Color.Secondary">
-                            @TranslationService.GetTranslation("home.subtitle", "Event Management and Monitoring System")
-                        </MudText>
-                    </header>
+<!-- Vertical stack layout with full-width cards (MudItem xs=12) as per issue #92 -->
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudGrid Spacing="4">
+        
+        @if (!_isAuthenticated)
+        {
+            <!-- Login/Welcome Card - Only shown when not authenticated -->
+            <MudItem xs="12">
+                <MudCard Class="pa-4 pa-sm-6 pa-md-8" Elevation="4" role="main">
+                    <MudCardContent>
+                        <header class="text-center mb-6">
+                            <MudText Typo="Typo.h3" 
+                                     Component="h1" 
+                                     Align="Align.Center" 
+                                     Class="mb-4"
+                                     aria-label="EventForge Home Page">
+                                <MudIcon Icon="@Icons.Material.Filled.Event" 
+                                         Class="mr-2" 
+                                         Size="Size.Large"
+                                         aria-hidden="true" />
+                                EventForge
+                            </MudText>
+                            <MudText Typo="Typo.body1" 
+                                     Align="Align.Center" 
+                                     Color="Color.Secondary">
+                                @TranslationService.GetTranslation("home.subtitle", "Event Management and Monitoring System")
+                            </MudText>
+                        </header>
 
-                    <!-- Action buttons with responsive layout -->
-                    <div class="d-flex justify-center">
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
-                                   Size="Size.Large"
-                                   StartIcon="@Icons.Material.Filled.Login"
-                                   OnClick="@(() => NavigationManager.NavigateTo("/login"))"
-                                   aria-label="@TranslationService.GetTranslation("auth.login", "Login")">
-                            @TranslationService.GetTranslation("auth.login", "Login")
-                        </MudButton>
-                    </div>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
+                        <!-- Action buttons with responsive layout -->
+                        <div class="d-flex justify-center">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       Size="Size.Large"
+                                       StartIcon="@Icons.Material.Filled.Login"
+                                       OnClick="@(() => NavigationManager.NavigateTo("/login"))"
+                                       aria-label="@TranslationService.GetTranslation("auth.login", "Login")">
+                                @TranslationService.GetTranslation("auth.login", "Login")
+                            </MudButton>
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        }
+        else
+        {
+            <!-- Dashboard Card - Shown when authenticated -->
+            <MudItem xs="12">
+                <MudCard Class="pa-4 pa-sm-6 pa-md-8" Elevation="4" role="main">
+                    <MudCardContent>
+                        <header class="text-center mb-6">
+                            <MudText Typo="Typo.h3" 
+                                     Component="h1" 
+                                     Align="Align.Center" 
+                                     Class="mb-4">
+                                <MudIcon Icon="@Icons.Material.Filled.Dashboard" 
+                                         Class="mr-2" 
+                                         Size="Size.Large"
+                                         aria-hidden="true" />
+                                @TranslationService.GetTranslation("home.welcomeBack", "Welcome Back")
+                            </MudText>
+                            <MudText Typo="Typo.body1" 
+                                     Align="Align.Center" 
+                                     Color="Color.Secondary">
+                                @TranslationService.GetTranslation("home.dashboardSubtitle", "Your EventForge Dashboard")
+                            </MudText>
+                        </header>
 
-        <!-- System Status Card -->
-        <MudItem xs="12" sm="10" md="8" lg="6">
+                        <!-- Quick action buttons for authenticated users -->
+                        <div class="d-flex justify-center flex-wrap ga-2">
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Person"
+                                       OnClick="@(() => NavigationManager.NavigateTo("/profile"))">
+                                @TranslationService.GetTranslation("navigation.profile", "Profile")
+                            </MudButton>
+                            @if (_isSuperAdmin)
+                            {
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Secondary"
+                                           StartIcon="@Icons.Material.Filled.AdminPanelSettings"
+                                           OnClick="@(() => NavigationManager.NavigateTo("/admin"))">
+                                    @TranslationService.GetTranslation("navigation.admin", "Admin")
+                                </MudButton>
+                            }
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        }
+
+        <!-- System Status Card - Always shown, uniform height -->
+        <MudItem xs="12">
             <MudCard Elevation="2" Class="pa-4">
                 <MudCardContent>
                     <MudText Typo="Typo.h6" Class="mb-4 d-flex align-center">
@@ -61,7 +112,7 @@
                     </MudText>
 
                     <MudGrid Spacing="2">
-                        <MudItem xs="6">
+                        <MudItem xs="12" sm="6">
                             <MudPaper Class="pa-3 text-center" Elevation="1">
                                 <MudIcon Icon="@Icons.Material.Filled.CheckCircle" 
                                          Color="Color.Success" 
@@ -76,7 +127,7 @@
                                 </MudChip>
                             </MudPaper>
                         </MudItem>
-                        <MudItem xs="6">
+                        <MudItem xs="12" sm="6">
                             <MudPaper Class="pa-3 text-center" Elevation="1">
                                 <MudIcon Icon="@Icons.Material.Filled.Storage" 
                                          Color="Color.Success" 
@@ -102,12 +153,21 @@
     private HealthStatusDto? _healthStatus;
     private string? _errorMessage;
     private string _healthJson = string.Empty;
+    private bool _isAuthenticated = false;
+    private bool _isSuperAdmin = false;
 
-    protected override Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
+        // Check authentication status
+        _isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        
+        if (_isAuthenticated)
+        {
+            _isSuperAdmin = await AuthService.IsSuperAdminAsync();
+        }
+        
         // Load health status in background
         // _ = Task.Run(async () => await LoadHealthStatus());
-        return Task.CompletedTask;
     }
 
     private async Task LoadHealthStatus()

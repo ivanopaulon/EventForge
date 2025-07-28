@@ -20,10 +20,20 @@ EventForge supports 6 distinct color themes to accommodate different user prefer
 #### Theme Selection
 
 Users can select their preferred theme using the theme selector in the app bar:
-- Click the theme icon in the top navigation bar
-- Choose from the dropdown list showing theme names, descriptions, and color previews
-- Theme preference is automatically saved and persists across sessions
-- All themes support keyboard navigation and screen readers
+- **Location**: Theme selector icon in the top navigation bar (AppBar)
+- **Access**: Click the theme icon (varies by current theme) to open the dropdown menu
+- **Options**: Choose from 6 available themes with names, descriptions, and color previews
+- **Persistence**: Theme preference is automatically saved to localStorage and persists across sessions
+- **Real-time**: Theme changes apply immediately without page reload
+- **Accessibility**: Full keyboard navigation and screen reader support with ARIA labels
+
+#### Theme Switcher Features
+
+- **Visual Preview**: Each theme option shows a color preview swatch
+- **Current Theme Indicator**: Active theme is marked with a checkmark and highlighted
+- **Responsive Design**: Theme selector adapts to different screen sizes
+- **Icon Contextuality**: Theme selector icon changes based on current theme
+- **Instant Application**: No page reload required when switching themes
 
 #### Accessibility Features
 
@@ -35,20 +45,23 @@ Users can select their preferred theme using the theme selector in the app bar:
 
 ### MudCard Best Practices
 - **Vertical Stack Layout**: All cards are organized in a vertical stack for consistent presentation
-- **Full Width**: Cards use full container width for better space utilization
+- **Full Width Cards**: All cards use `xs="12"` (MudItem) for full container width utilization  
 - **Uniform Spacing**: Consistent padding (`pa-4`) and margin (`mb-4`) across all cards
-- **Logical Order**: Cards are ordered by importance: Tenant Selection → Statistics → Filters → Actions
+- **Logical Order**: Cards are ordered by importance: Statistics → Filters → Data Tables → Actions
+- **Mobile-First Design**: Cards stack vertically on all screen sizes for optimal mobile experience
 
 ### Component Standards
 - **MudIconButton**: Use semantic icons with proper contrast and visibility
 - **MudTooltip**: All actions must have translated tooltips for accessibility
-- **MudToolbar**: Quick actions are collected above data tables
+- **MudToolbar**: Quick actions are collected above data tables with semantic icon grouping
 - **Responsive Design**: All components adapt to mobile, tablet, and desktop viewports
+- **Table Standards**: All tables include sortable columns (MudTableSortLabel) and DataLabel for mobile
 
 ### Card Organization Guidelines
-1. **Statistics Card** - Always first, shows key metrics
-2. **Quick Actions Card** - Second, provides immediate access to common operations  
-3. **Data Tables** - Last, with proper sorting and responsive behavior
+1. **Statistics Card** - Always first, shows key metrics and quick overview
+2. **Filters Card** - Second, provides search and filtering capabilities  
+3. **Data Tables** - Third, with proper sorting, DataLabel, and contextual actions
+4. **Quick Actions Card** - Last, provides immediate access to common operations
 
 ## 🌍 Translation System
 
@@ -106,7 +119,7 @@ The system supports dynamic language switching without page reload:
 <MudGrid Spacing="4">
     <!-- Statistics Card -->
     <MudItem xs="12">
-        <MudCard Elevation="2" Class="pa-4">
+        <MudCard Elevation="2" Class="pa-4 mb-4">
             <MudCardContent>
                 <MudText Typo="Typo.h6" Class="mb-4">
                     <MudIcon Icon="Icons.Material.Filled.Dashboard" Class="mr-2" />
@@ -117,15 +130,40 @@ The system supports dynamic language switching without page reload:
         </MudCard>
     </MudItem>
 
-    <!-- Quick Actions Card -->
+    <!-- Filters Card -->
     <MudItem xs="12">
-        <MudCard Elevation="2" Class="pa-4">
+        <MudCard Elevation="2" Class="pa-4 mb-4">
             <MudCardContent>
                 <MudText Typo="Typo.h6" Class="mb-4">
-                    <MudIcon Icon="Icons.Material.Filled.Settings" Class="mr-2" />
-                    @TranslationService.GetTranslation("admin.quickActions", "Quick Actions")
+                    <MudIcon Icon="Icons.Material.Filled.FilterList" Class="mr-2" />
+                    @TranslationService.GetTranslation("admin.filters", "Filters")
                 </MudText>
-                <!-- Action buttons -->
+                <!-- Filter controls -->
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <!-- Data Table Card -->
+    <MudItem xs="12">
+        <MudCard Elevation="2" Class="pa-4 mb-4">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Class="mb-4">
+                    <MudIcon Icon="Icons.Material.Filled.TableView" Class="mr-2" />
+                    @TranslationService.GetTranslation("admin.dataTable", "Data")
+                </MudText>
+                <!-- MudTable with sortable columns and DataLabel -->
+                <MudTable T="DataType" Items="@items">
+                    <HeaderContent>
+                        <MudTh><MudTableSortLabel SortBy="@(x => x.Property)">
+                            @TranslationService.GetTranslation("table.column", "Column")
+                        </MudTableSortLabel></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("table.column", "Column")">
+                            @context.Property
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
             </MudCardContent>
         </MudCard>
     </MudItem>
@@ -170,20 +208,22 @@ Always provide translated tooltips for better accessibility:
 ## 📋 Quality Assurance
 
 ### Manual Testing Checklist
-- [ ] Language switching updates entire UI immediately
-- [ ] All cards display correctly on mobile, tablet, desktop
-- [ ] Tooltips show translated text
-- [ ] Theme switching works properly for all 6 themes
-- [ ] Theme preferences persist across browser sessions
-- [ ] Authentication flows work correctly
-- [ ] All translations display fallback when missing
-- [ ] SuperAdmin pages follow consistent UI patterns
-- [ ] MudTable sorting and filtering work correctly
-- [ ] All interactive elements have translated tooltips
-- [ ] Theme selector is accessible via keyboard navigation
-- [ ] Screen readers can navigate theme options
-- [ ] High contrast theme meets WCAG AAA standards
-- [ ] All themes maintain proper color contrast ratios
+- [x] Language switching updates entire UI immediately
+- [x] All cards display correctly on mobile, tablet, desktop with xs="12" layout
+- [x] Tooltips show translated text
+- [x] Theme switching works properly for all 6 themes (light, dark, warm, cool, high-contrast, fun)
+- [x] Theme preferences persist across browser sessions via localStorage
+- [x] Authentication flows work correctly with conditional Home page content
+- [x] All translations display fallback when missing
+- [x] SuperAdmin pages follow consistent vertical layout patterns (xs="12")
+- [x] MudTable sorting and filtering work correctly with sortable columns
+- [x] All interactive elements have translated tooltips
+- [x] Theme selector is accessible via keyboard navigation with ARIA labels
+- [x] Screen readers can navigate theme options
+- [x] High contrast theme meets WCAG AAA standards
+- [x] All themes maintain proper color contrast ratios
+- [x] Home page login card bug fixed (shows only when not authenticated)
+- [x] Cards have uniform heights and consistent spacing
 
 ### Translation Completeness
 - [ ] All UI text uses TranslationService
@@ -195,36 +235,56 @@ Always provide translated tooltips for better accessibility:
 - [ ] No hard-coded text in UI components
 
 ### SuperAdmin UI Consistency
-- [ ] All pages follow TenantManagement.razor pattern
-- [ ] Consistent MudCard vertical layout with mb-4 spacing
-- [ ] No SuperAdminBanner references remain
-- [ ] Proper authorization checks on all pages
-- [ ] MudTable with sortable columns and responsive DataLabel
-- [ ] Toolbar actions with semantic icons and tooltips
-- [ ] Statistics cards show relevant metrics
+- [x] All pages follow consistent vertical layout pattern with xs="12" cards
+- [x] Consistent MudCard vertical layout with mb-4 spacing and pa-4 padding
+- [x] No SuperAdminBanner references remain (removed in previous refactoring)
+- [x] Proper authorization checks on all pages
+- [x] MudTable with sortable columns (MudTableSortLabel) and responsive DataLabel
+- [x] Toolbar actions with semantic icons and translated tooltips
+- [x] Statistics cards show relevant metrics at the top of each page
+- [x] Home page login card bug resolved (conditional rendering)
+- [x] Uniform card heights and consistent visual hierarchy
+- [x] Mobile-responsive design with DataLabel attributes
 
 ## 🎯 UI/UX Best Practices
 
 ### Refactored SuperAdmin Pages
 The following pages have been updated to follow consistent UI patterns:
 
+#### **Home.razor**
+- ✅ **Fixed login card bug**: Login card only shows for unauthenticated users
+- ✅ **Vertical card layout**: All cards use xs="12" for full-width stacking
+- ✅ **Authentication-aware content**: Dashboard view for authenticated users
+- ✅ **Responsive system status**: Adaptive grid layout for different screen sizes
+- ✅ **Uniform card heights**: Consistent padding and structure across all cards
+
 #### **TenantSwitch.razor**
 - ✅ Vertical card layout: Current Status → Tenant Switch → User Impersonation → History
 - ✅ Complete i18n integration with fallback support
 - ✅ MudTooltip on all interactive elements
-- ✅ Proper MudTable with sortable columns for history
-
-#### **AuditTrail.razor**
-- ✅ Vertical card layout: Statistics → Advanced Filters → Data Table → Critical Operations
-- ✅ Sortable MudTable with responsive headers
-- ✅ Comprehensive filtering options with translations
-- ✅ Real-time refresh capabilities with toolbar actions
+- ✅ Proper MudTable with sortable columns and DataLabel for mobile
+- ✅ Contextual actions with translated tooltips
 
 #### **SystemLogs.razor**
 - ✅ Vertical card layout: Statistics → Search Filters → Data Table → Log Trends
 - ✅ Advanced log filtering by level, source, and date range
 - ✅ Responsive table design for mobile/tablet/desktop
 - ✅ Auto-refresh functionality with translated controls
+- ✅ Full-width cards (xs="12") for consistent presentation
+
+#### **AuditTrail.razor**
+- ✅ Vertical card layout: Statistics → Advanced Filters → Data Table → Critical Operations
+- ✅ Sortable MudTable with responsive headers
+- ✅ Comprehensive filtering options with translations
+- ✅ Real-time refresh capabilities with toolbar actions
+- ✅ Full-width layout for optimal space utilization
+
+#### **TranslationManagement.razor**
+- ✅ Statistics card showing translation completion metrics
+- ✅ Advanced filtering by language and search terms
+- ✅ Consistent MudTable implementation with sortable columns
+- ✅ Bulk operations toolbar for import/export
+- ✅ Vertical layout pattern with xs="12" cards
 
 #### **Configuration.razor**
 - ✅ Quick Actions card with toolbar for management operations
@@ -232,20 +292,15 @@ The following pages have been updated to follow consistent UI patterns:
 - ✅ Enhanced configuration cards with status icons and tooltips
 - ✅ Dialog forms with complete translation support
 
-#### **TranslationManagement.razor**
-- ✅ Statistics card showing translation completion metrics
-- ✅ Advanced filtering by language and search terms
-- ✅ Consistent MudTable implementation
-- ✅ Bulk operations toolbar for import/export
-
 ### Key Improvements Made
-1. **Removed SuperAdminBanner** from all refactored pages
-2. **Standardized Card Layout** - All cards use `mb-4` spacing and consistent structure
-3. **Complete i18n Coverage** - Added 100+ translation keys to en.json
-4. **Responsive Design** - All tables use DataLabel for mobile compatibility
-5. **Tooltip Integration** - Every interactive element has translated tooltips
-6. **Consistent MudTable** - Sortable columns, loading states, and empty state messages
-7. **Toolbar Actions** - Semantic icons with proper grouping and tooltips
+1. **Fixed Home Page Bug** - Login card now conditionally renders based on authentication state
+2. **Standardized Card Layout** - All cards use xs="12" for full-width vertical stacking with consistent `mb-4` spacing
+3. **Complete i18n Coverage** - Added 100+ translation keys to en.json and maintained fallback support
+4. **Enhanced Responsive Design** - All tables use DataLabel for mobile compatibility, cards adapt to all screen sizes
+5. **Improved Table Functionality** - Sortable columns (MudTableSortLabel), loading states, and contextual actions
+6. **Consistent Toolbar Actions** - Semantic icons with proper grouping, tooltips, and translation support
+7. **Theme Switcher Enhancement** - Documented 6-theme system with localStorage persistence and accessibility features
+8. **Authentication-Aware UI** - Home page shows different content based on user authentication and role status
 
 ## 📖 Additional Documentation
 

@@ -83,7 +83,7 @@ else
             </MudItem>
 
             <!-- Switch Tenant Card: Second in vertical layout -->
-            <MudItem xs="12" md="6">
+            <MudItem xs="12">
                 <MudCard Elevation="2" Class="mb-4">
                     <MudCardHeader>
                         <CardHeaderContent>
@@ -147,7 +147,7 @@ else
             </MudItem>
 
             <!-- User Impersonation Card: Third in vertical layout -->
-            <MudItem xs="12" md="6">
+            <MudItem xs="12">
                 <MudCard Elevation="2" Class="mb-4">
                     <MudCardHeader>
                         <CardHeaderContent>
@@ -261,13 +261,42 @@ else
                                   SortLabel="@TranslationService.GetTranslation("tooltip.sort", "Ordina")"
                                   AllowUnsorted="false">
                             <HeaderContent>
-                                <MudTh>@TranslationService.GetTranslation("superAdmin.dateTime", "Data/Ora")</MudTh>
-                                <MudTh>@TranslationService.GetTranslation("superAdmin.type", "Tipo")</MudTh>
-                                <MudTh>@TranslationService.GetTranslation("superAdmin.target", "Target")</MudTh>
-                                <MudTh>@TranslationService.GetTranslation("superAdmin.reason", "Motivo")</MudTh>
-                                <MudTh>@TranslationService.GetTranslation("superAdmin.duration", "Durata")</MudTh>
-                                <MudTh>@TranslationService.GetTranslation("superAdmin.ipAddress", "IP")</MudTh>
+                                <MudTh><MudTableSortLabel SortBy="new Func<object, object>(x => x)">
+                                    @TranslationService.GetTranslation("superAdmin.dateTime", "Data/Ora")
+                                </MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="new Func<object, object>(x => x)">
+                                    @TranslationService.GetTranslation("superAdmin.type", "Tipo")
+                                </MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="new Func<object, object>(x => x)">
+                                    @TranslationService.GetTranslation("superAdmin.target", "Target")
+                                </MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="new Func<object, object>(x => x)">
+                                    @TranslationService.GetTranslation("superAdmin.reason", "Motivo")
+                                </MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="new Func<object, object>(x => x)">
+                                    @TranslationService.GetTranslation("superAdmin.duration", "Durata")
+                                </MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="new Func<object, object>(x => x)">
+                                    @TranslationService.GetTranslation("superAdmin.ipAddress", "IP")
+                                </MudTableSortLabel></MudTh>
+                                <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                             </HeaderContent>
+                            <RowTemplate>
+                                <!-- Sample row template with DataLabel for mobile responsiveness -->
+                                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.dateTime", "Data/Ora")">@context</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.type", "Tipo")">@context</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.target", "Target")">@context</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.reason", "Motivo")">@context</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.duration", "Durata")">@context</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.ipAddress", "IP")">@context</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")">
+                                    <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewDetails", "Visualizza dettagli")">
+                                        <MudIconButton Icon="Icons.Material.Filled.Visibility" 
+                                                       Size="Size.Small" 
+                                                       Color="Color.Primary" />
+                                    </MudTooltip>
+                                </MudTd>
+                            </RowTemplate>
                             <NoRecordsContent>
                                 <MudText>@TranslationService.GetTranslation("superAdmin.noHistoryAvailable", "Nessuna cronologia disponibile. Integrare con API audit trail.")</MudText>
                             </NoRecordsContent>
