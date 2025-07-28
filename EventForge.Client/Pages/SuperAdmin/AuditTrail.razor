@@ -4,10 +4,11 @@
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
 
-<PageTitle>Audit Trail - EventForge Super Admin</PageTitle>
+<PageTitle>@TranslationService.GetTranslation("superAdmin.pageTitle", "{0} - EventForge Super Admin", TranslationService.GetTranslation("superAdmin.auditTrail", "Audit Trail"))</PageTitle>
 
-<SuperAdminBanner />
+@* SuperAdminBanner removed as per refactoring requirements *@
 
 @if (_isLoading)
 {
@@ -21,15 +22,15 @@ else if (!_isAuthorized)
                 <MudItem xs="12">
                     <div class="d-flex flex-column align-center">
                         <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
-                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">Accesso Negato</MudText>
+                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">@TranslationService.GetTranslation("error.accessDenied", "Accesso Negato")</MudText>
                         <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
-                            Non hai i permessi per accedere a questa pagina. È richiesto il ruolo Super Amministratore.
+                            @TranslationService.GetTranslation("superAdmin.superAdminRoleRequired", "Non hai i permessi per accedere a questa pagina. È richiesto il ruolo Super Amministratore.")
                         </MudText>
                         <MudButton Variant="Variant.Filled" 
                                    Color="Color.Primary" 
                                    StartIcon="Icons.Material.Filled.ArrowBack"
                                    OnClick="@(() => NavigationManager.NavigateTo("/"))">
-                            Torna alla Home
+                            @TranslationService.GetTranslation("superAdmin.returnToHome", "Torna alla Home")
                         </MudButton>
                     </div>
                 </MudItem>
@@ -42,243 +43,223 @@ else
     <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
         <MudText Typo="Typo.h3" Class="mb-8">
             <MudIcon Icon="Icons.Material.Filled.History" Class="mr-3" />
-            Audit Trail
+            @TranslationService.GetTranslation("superAdmin.auditTrail", "Audit Trail")
         </MudText>
 
-        <MudGrid>
-            <!-- Filtri Avanzati -->
+        <MudGrid Spacing="4">
+            <!-- Statistics Card: First in vertical layout for high-level overview -->
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="2" Class="mb-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Analytics" Class="mr-2" />
+                                @TranslationService.GetTranslation("superAdmin.statistics", "Statistiche")
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudStack Spacing="3">
+                            <div class="d-flex justify-space-between">
+                                <MudText>@TranslationService.GetTranslation("superAdmin.events24h", "Eventi (24h)"):</MudText>
+                                <MudChip T="string" Color="Color.Info" Size="Size.Small">TODO</MudChip>
+                            </div>
+                            <div class="d-flex justify-space-between">
+                                <MudText>@TranslationService.GetTranslation("superAdmin.criticalOperations", "Operazioni Critiche"):</MudText>
+                                <MudChip T="string" Color="Color.Warning" Size="Size.Small">TODO</MudChip>
+                            </div>
+                            <div class="d-flex justify-space-between">
+                                <MudText>@TranslationService.GetTranslation("superAdmin.failedAttempts", "Tentativi Falliti"):</MudText>
+                                <MudChip T="string" Color="Color.Error" Size="Size.Small">TODO</MudChip>
+                            </div>
+                            
+                            <MudDivider />
+                            
+                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refresh", "Aggiorna dati")">
+                                <MudButton Variant="Variant.Outlined" 
+                                           Color="Color.Primary" 
+                                           StartIcon="Icons.Material.Filled.Refresh"
+                                           FullWidth="true"
+                                           OnClick="@(() => RefreshAuditTrail())">
+                                    @TranslationService.GetTranslation("common.refresh", "Aggiorna")
+                                </MudButton>
+                            </MudTooltip>
+                            
+                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.exportAudit", "Esporta audit trail")">
+                                <MudButton Variant="Variant.Outlined" 
+                                           Color="Color.Secondary" 
+                                           StartIcon="Icons.Material.Filled.Download"
+                                           FullWidth="true"
+                                           OnClick="@(() => ExportAuditTrail())">
+                                    @TranslationService.GetTranslation("common.export", "Esporta")
+                                </MudButton>
+                            </MudTooltip>
+                            
+                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.setupAlerts", "Configura alert")">
+                                <MudButton Variant="Variant.Outlined" 
+                                           Color="Color.Warning" 
+                                           StartIcon="Icons.Material.Filled.Notifications"
+                                           FullWidth="true"
+                                           OnClick="@(() => SetupAlerts())">
+                                    @TranslationService.GetTranslation("superAdmin.setupAlerts", "Configura Alert")
+                                </MudButton>
+                            </MudTooltip>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Advanced Filters Card: Second in vertical layout -->
             <MudItem xs="12" md="8">
-                <MudCard Elevation="2">
+                <MudCard Elevation="2" Class="mb-4">
                     <MudCardHeader>
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">
                                 <MudIcon Icon="Icons.Material.Filled.FilterList" Class="mr-2" />
-                                Filtri Audit
+                                @TranslationService.GetTranslation("superAdmin.advancedFilters", "Filtri Avanzati")
                             </MudText>
                         </CardHeaderContent>
                     </MudCardHeader>
                     <MudCardContent>
                         <MudGrid>
                             <MudItem xs="12" md="6">
-                                <MudSelect T="string" @bind-Value="_operationType" Label="Tipo Operazione" Variant="Variant.Outlined">
-                                    <MudSelectItem Value="@("all")">Tutte le operazioni</MudSelectItem>
-                                    <MudSelectItem Value="@("login")">Login</MudSelectItem>
-                                    <MudSelectItem Value="@("logout")">Logout</MudSelectItem>
-                                    <MudSelectItem Value="@("tenant_switch")">Switch Tenant</MudSelectItem>
-                                    <MudSelectItem Value="@("impersonation")">Impersonazione</MudSelectItem>
-                                    <MudSelectItem Value="@("user_management")">Gestione Utenti</MudSelectItem>
-                                    <MudSelectItem Value="@("tenant_management")">Gestione Tenant</MudSelectItem>
-                                    <MudSelectItem Value="@("permission_change")">Modifica Permessi</MudSelectItem>
+                                <MudSelect T="string" @bind-Value="_operationType" 
+                                           Label="@TranslationService.GetTranslation("superAdmin.operationType", "Tipo Operazione")" 
+                                           Variant="Variant.Outlined"
+                                           FullWidth="true">
+                                    <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("superAdmin.allOperations", "Tutte le operazioni")</MudSelectItem>
+                                    <MudSelectItem Value="@("login")">@TranslationService.GetTranslation("auth.login", "Login")</MudSelectItem>
+                                    <MudSelectItem Value="@("logout")">@TranslationService.GetTranslation("auth.logout", "Logout")</MudSelectItem>
+                                    <MudSelectItem Value="@("tenant_switch")">@TranslationService.GetTranslation("superAdmin.tenantSwitch", "Switch Tenant")</MudSelectItem>
+                                    <MudSelectItem Value="@("impersonation")">@TranslationService.GetTranslation("superAdmin.impersonation", "Impersonazione")</MudSelectItem>
+                                    <MudSelectItem Value="@("user_management")">@TranslationService.GetTranslation("navigation.userManagement", "Gestione Utenti")</MudSelectItem>
+                                    <MudSelectItem Value="@("tenant_management")">@TranslationService.GetTranslation("navigation.tenantManagement", "Gestione Tenant")</MudSelectItem>
+                                    <MudSelectItem Value="@("permission_change")">@TranslationService.GetTranslation("superAdmin.permissionChange", "Modifica Permessi")</MudSelectItem>
                                 </MudSelect>
                             </MudItem>
                             <MudItem xs="12" md="6">
                                 <MudTextField @bind-Value="_targetUser"
-                                              Label="Utente Target"
+                                              Label="@TranslationService.GetTranslation("superAdmin.filterByUser", "Filtra per utente")"
                                               Variant="Variant.Outlined"
-                                              Placeholder="Username o email..." />
+                                              Placeholder="@TranslationService.GetTranslation("superAdmin.usernameOrEmailPlaceholder", "Username o email...")"
+                                              FullWidth="true" />
                             </MudItem>
                             <MudItem xs="12" md="6">
-                                <MudSelect T="string" @bind-Value="_sourceTenant" Label="Tenant Sorgente" Variant="Variant.Outlined">
-                                    <MudSelectItem Value="@("all")">Tutti i tenant</MudSelectItem>
-                                    <!-- TODO: Popolare con lista tenant -->
-                                </MudSelect>
-                            </MudItem>
-                            <MudItem xs="12" md="6">
-                                <MudSelect T="string" @bind-Value="_targetTenant" Label="Tenant Target" Variant="Variant.Outlined">
-                                    <MudSelectItem Value="@("all")">Tutti i tenant</MudSelectItem>
-                                    <!-- TODO: Popolare con lista tenant -->
-                                </MudSelect>
-                            </MudItem>
-                            <MudItem xs="12" md="6">
-                                <MudDatePicker Label="Data Inizio" 
+                                <MudDatePicker Label="@TranslationService.GetTranslation("superAdmin.startDate", "Data Inizio")" 
                                                @bind-Date="_startDate" 
                                                Variant="Variant.Outlined" />
                             </MudItem>
                             <MudItem xs="12" md="6">
-                                <MudDatePicker Label="Data Fine" 
+                                <MudDatePicker Label="@TranslationService.GetTranslation("superAdmin.endDate", "Data Fine")" 
                                                @bind-Date="_endDate" 
                                                Variant="Variant.Outlined" />
                             </MudItem>
-                            <MudItem xs="12">
-                                <MudSelect T="string" @bind-Value="_auditResult" Label="Risultato" Variant="Variant.Outlined">
-                                    <MudSelectItem Value="@("all")">Tutti i risultati</MudSelectItem>
-                                    <MudSelectItem Value="@("success")">Successo</MudSelectItem>
-                                    <MudSelectItem Value="@("failure")">Fallimento</MudSelectItem>
+                            <MudItem xs="12" md="6">
+                                <MudSelect T="string" @bind-Value="_auditResult" 
+                                           Label="@TranslationService.GetTranslation("superAdmin.result", "Risultato")" 
+                                           Variant="Variant.Outlined"
+                                           FullWidth="true">
+                                    <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("superAdmin.allResults", "Tutti i risultati")</MudSelectItem>
+                                    <MudSelectItem Value="@("success")">@TranslationService.GetTranslation("common.success", "Successo")</MudSelectItem>
+                                    <MudSelectItem Value="@("failure")">@TranslationService.GetTranslation("superAdmin.failure", "Fallimento")</MudSelectItem>
                                 </MudSelect>
                             </MudItem>
                         </MudGrid>
                         
-                        <div class="d-flex ga-2 mt-3">
-                            <MudButton Variant="Variant.Filled" 
-                                       Color="Color.Primary" 
-                                       StartIcon="Icons.Material.Filled.Search"
-                                       OnClick="@(() => SearchAuditTrail())">
-                                Cerca
-                            </MudButton>
-                            <MudButton Variant="Variant.Outlined" 
-                                       Color="Color.Secondary" 
-                                       StartIcon="Icons.Material.Filled.Clear"
-                                       OnClick="@(() => ClearFilters())">
-                                Pulisci Filtri
-                            </MudButton>
-                        </div>
+                        <MudStack Direction="Row" Spacing="2" Class="mt-3">
+                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.search", "Cerca con filtri applicati")">
+                                <MudButton Variant="Variant.Filled" 
+                                           Color="Color.Primary" 
+                                           StartIcon="Icons.Material.Filled.Search"
+                                           OnClick="@(() => SearchAuditTrail())">
+                                    @TranslationService.GetTranslation("common.search", "Cerca")
+                                </MudButton>
+                            </MudTooltip>
+                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.clearFilters", "Pulisci tutti i filtri")">
+                                <MudButton Variant="Variant.Outlined" 
+                                           Color="Color.Secondary" 
+                                           StartIcon="Icons.Material.Filled.Clear"
+                                           OnClick="@(() => ClearFilters())">
+                                    @TranslationService.GetTranslation("superAdmin.clearFilters", "Pulisci Filtri")
+                                </MudButton>
+                            </MudTooltip>
+                        </MudStack>
                     </MudCardContent>
                 </MudCard>
             </MudItem>
 
-            <!-- Statistiche e Azioni -->
-            <MudItem xs="12" md="4">
-                <MudCard Elevation="2">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">
-                                <MudIcon Icon="Icons.Material.Filled.Analytics" Class="mr-2" />
-                                Statistiche Audit
-                            </MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        <div class="d-flex flex-column ga-3">
-                            <div class="d-flex justify-space-between">
-                                <MudText>Eventi (24h):</MudText>
-                                <MudChip T="string" Color="Color.Info" Size="Size.Small">TODO</MudChip>
-                            </div>
-                            <div class="d-flex justify-space-between">
-                                <MudText>Operazioni Critiche:</MudText>
-                                <MudChip T="string" Color="Color.Warning" Size="Size.Small">TODO</MudChip>
-                            </div>
-                            <div class="d-flex justify-space-between">
-                                <MudText>Tentativi Falliti:</MudText>
-                                <MudChip T="string" Color="Color.Error" Size="Size.Small">TODO</MudChip>
-                            </div>
-                            
-                            <MudDivider />
-                            
-                            <MudButton Variant="Variant.Outlined" 
-                                       Color="Color.Primary" 
-                                       StartIcon="Icons.Material.Filled.Refresh"
-                                       FullWidth="true"
-                                       OnClick="@(() => RefreshAuditTrail())">
-                                Aggiorna
-                            </MudButton>
-                            
-                            <MudButton Variant="Variant.Outlined" 
-                                       Color="Color.Secondary" 
-                                       StartIcon="Icons.Material.Filled.Download"
-                                       FullWidth="true"
-                                       OnClick="@(() => ExportAuditTrail())">
-                                Esporta Audit
-                            </MudButton>
-                            
-                            <MudButton Variant="Variant.Outlined" 
-                                       Color="Color.Warning" 
-                                       StartIcon="Icons.Material.Filled.Notifications"
-                                       FullWidth="true"
-                                       OnClick="@(() => SetupAlerts())">
-                                Configura Alert
-                            </MudButton>
-                        </div>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <!-- Operazioni Critiche Recenti -->
+            <!-- Data Table Card: Last in vertical layout with toolbar actions and sortable columns -->
             <MudItem xs="12">
-                <MudCard Elevation="2">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">
-                                <MudIcon Icon="Icons.Material.Filled.Warning" Class="mr-2" />
-                                Operazioni Critiche Recenti (24h)
-                            </MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mb-3">
-                            <strong>TODO:</strong> Implementare recupero operazioni critiche recenti:
-                            <ul class="mt-2">
-                                <li>Switch tenant da parte di SuperAdmin</li>
-                                <li>Impersonazioni utente</li>
-                                <li>Modifiche permessi critici</li>
-                                <li>Tentativi di accesso falliti multipli</li>
-                                <li>Operazioni di gestione tenant</li>
-                            </ul>
-                        </MudAlert>
-
-                        <!-- Placeholder per operazioni critiche -->
-                        <div class="d-flex flex-column ga-2">
-                            <div class="d-flex align-center pa-2 border-solid border-1 border-warning rounded">
-                                <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning" Class="mr-2" />
-                                <div class="flex-grow-1">
-                                    <MudText Typo="Typo.body2"><strong>Placeholder:</strong> Switch tenant verso "Acme Corp"</MudText>
-                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">SuperAdmin @@admin - 2h fa</MudText>
-                                </div>
-                            </div>
-                            <div class="d-flex align-center pa-2 border-solid border-1 border-error rounded">
-                                <MudIcon Icon="Icons.Material.Filled.Error" Color="Color.Error" Class="mr-2" />
-                                <div class="flex-grow-1">
-                                    <MudText Typo="Typo.body2"><strong>Placeholder:</strong> Tentativo accesso fallito per user123@example.com</MudText>
-                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">IP: 192.168.1.100 - 1h fa</MudText>
-                                </div>
-                            </div>
-                        </div>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <!-- Tabella Audit Trail -->
-            <MudItem xs="12">
-                <MudCard Elevation="2">
+                <MudCard Elevation="2" Class="mb-4">
                     <MudCardHeader>
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">
                                 <MudIcon Icon="Icons.Material.Filled.List" Class="mr-2" />
-                                Cronologia Audit Trail
+                                @TranslationService.GetTranslation("superAdmin.auditLogList", "Cronologia Audit Trail")
                             </MudText>
                         </CardHeaderContent>
                         <CardHeaderActions>
-                            <MudToggleIconButton @bind-Toggled="_autoRefresh"
-                                                 Icon="Icons.Material.Filled.PlayArrow"
-                                                 ToggledIcon="Icons.Material.Filled.Pause"
-                                                 Color="Color.Primary"
-                                                 ToggledColor="Color.Secondary" />
+                            <!-- Quick Actions Toolbar: Above table with translated tooltips -->
+                            <MudToolBar Dense="true" WrapContent="true">
+                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.autoRefresh", "Attiva/disattiva aggiornamento automatico")">
+                                    <MudToggleIconButton @bind-Toggled="_autoRefresh"
+                                                         Icon="Icons.Material.Filled.PlayArrow"
+                                                         ToggledIcon="Icons.Material.Filled.Pause"
+                                                         Color="Color.Primary"
+                                                         ToggledColor="Color.Secondary" />
+                                </MudTooltip>
+                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refresh", "Aggiorna dati")">
+                                    <MudIconButton Icon="Icons.Material.Filled.Refresh" 
+                                                   Color="Color.Primary"
+                                                   OnClick="@RefreshAuditTrail" />
+                                </MudTooltip>
+                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.export", "Esporta dati")">
+                                    <MudIconButton Icon="Icons.Material.Filled.Download" 
+                                                   Color="Color.Secondary"
+                                                   OnClick="@ExportAuditTrail" />
+                                </MudTooltip>
+                            </MudToolBar>
                         </CardHeaderActions>
                     </MudCardHeader>
                     <MudCardContent>
                         <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mb-4">
-                            <strong>TODO:</strong> Implementare integrazione con sistema audit trail.
+                            <strong>@TranslationService.GetTranslation("superAdmin.integrationTodo", "TODO:"):</strong> @TranslationService.GetTranslation("superAdmin.auditIntegrationDescription", "Implementare integrazione con sistema audit trail.")
                             <br />
-                            Le seguenti funzionalità dovranno essere implementate:
-                            <ul class="mt-2">
-                                <li>Recupero eventi audit da database con filtri avanzati</li>
-                                <li>Correlazione tra eventi correlati (sessioni, transazioni)</li>
-                                <li>Visualizzazione dettagliata di payload e context</li>
-                                <li>Ricerca full-text nei dettagli degli eventi</li>
-                                <li>Export personalizzato per compliance e reporting</li>
-                                <li>Retention policies e archiviazione automatica</li>
-                                <li>Alerting in tempo reale per eventi critici</li>
-                                <li>Dashboard analytics per pattern e anomalie</li>
-                            </ul>
+                            @TranslationService.GetTranslation("superAdmin.auditFeaturesNeeded", "Le seguenti funzionalità dovranno essere implementate: recupero eventi audit da database con filtri avanzati, correlazione tra eventi correlati (sessioni, transazioni), visualizzazione dettagliata di payload e context, ricerca full-text nei dettagli degli eventi, export personalizzato per compliance e reporting, retention policies e archiviazione automatica, alerting in tempo reale per eventi critici, dashboard analytics per pattern e anomalie.")
                         </MudAlert>
 
-                        <!-- Placeholder Table -->
-                        <MudTable T="object" Items="@(new object[0])" Hover="true" Striped="true" Dense="true">
+                        <!-- 
+                            MudTable Implementation: Follows EventForge UI standards
+                            - All columns sortable with logical default (Timestamp DESC)
+                            - Responsive with DataLabel attributes for mobile
+                            - Row actions using MudIconButton with semantic icons
+                            - Translated tooltips for all interactive elements
+                            - Loading states and empty state messages
+                        -->
+                        <MudTable T="object" Items="@(new object[0])" 
+                                  Hover="true" 
+                                  Striped="true"
+                                  Dense="true"
+                                  Loading="false"
+                                  LoadingProgressColor="Color.Info"
+                                  SortLabel="@TranslationService.GetTranslation("tooltip.sort", "Ordina")"
+                                  AllowUnsorted="false">
                             <HeaderContent>
-                                <MudTh>Timestamp</MudTh>
-                                <MudTh>Operazione</MudTh>
-                                <MudTh>Utente</MudTh>
-                                <MudTh>Tenant Sorgente</MudTh>
-                                <MudTh>Target</MudTh>
-                                <MudTh>Risultato</MudTh>
-                                <MudTh>IP</MudTh>
-                                <MudTh>Azioni</MudTh>
+                                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<object, object>(x => DateTime.Now))">@TranslationService.GetTranslation("superAdmin.timestamp", "Timestamp")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<object, object>(x => ""))">@TranslationService.GetTranslation("superAdmin.operation", "Operazione")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<object, object>(x => ""))">@TranslationService.GetTranslation("field.user", "Utente")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<object, object>(x => ""))">@TranslationService.GetTranslation("superAdmin.entityType", "Entità")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<object, object>(x => ""))">@TranslationService.GetTranslation("superAdmin.target", "Target")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<object, object>(x => ""))">@TranslationService.GetTranslation("superAdmin.result", "Risultato")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<object, object>(x => ""))">@TranslationService.GetTranslation("superAdmin.ipAddress", "IP")</MudTableSortLabel></MudTh>
+                                <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                             </HeaderContent>
                             <NoRecordsContent>
-                                <MudText>Nessun evento audit trovato. Integrare con sistema audit trail per caricare i dati.</MudText>
+                                <MudText>@TranslationService.GetTranslation("superAdmin.noAuditData", "Nessun evento audit trovato. Integrare con sistema audit trail per caricare i dati.")</MudText>
                             </NoRecordsContent>
                         </MudTable>
 
-                        <!-- Paginazione -->
+                        <!-- Pagination -->
                         <div class="d-flex justify-center mt-4">
                             <MudPagination Count="@_totalPages" 
                                            @bind-Selected="_currentPage" 
@@ -289,35 +270,66 @@ else
                 </MudCard>
             </MudItem>
 
-            <!-- Dettagli Evento Selezionato -->
+            <!-- Critical Operations Card: Additional info card -->
+            <MudItem xs="12">
+                <MudCard Elevation="2" Class="mb-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Warning" Class="mr-2" />
+                                @TranslationService.GetTranslation("superAdmin.recentCriticalOperations", "Operazioni Critiche Recenti (24h)")
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mb-3">
+                            <strong>@TranslationService.GetTranslation("superAdmin.integrationTodo", "TODO:"):</strong> @TranslationService.GetTranslation("superAdmin.criticalOperationsDescription", "Implementare recupero operazioni critiche recenti: switch tenant da parte di SuperAdmin, impersonazioni utente, modifiche permessi critici, tentativi di accesso falliti multipli, operazioni di gestione tenant.")
+                        </MudAlert>
+
+                        <!-- Placeholder for critical operations -->
+                        <MudStack Spacing="2">
+                            <div class="d-flex align-center pa-2 border-solid border-1 border-warning rounded">
+                                <MudIcon Icon="Icons.Material.Filled.Warning" Color="Color.Warning" Class="mr-2" />
+                                <div class="flex-grow-1">
+                                    <MudText Typo="Typo.body2"><strong>Placeholder:</strong> @TranslationService.GetTranslation("superAdmin.exampleTenantSwitch", "Switch tenant verso \"Acme Corp\"")</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@TranslationService.GetTranslation("superAdmin.exampleTimestamp", "SuperAdmin @admin - 2h fa")</MudText>
+                                </div>
+                            </div>
+                            <div class="d-flex align-center pa-2 border-solid border-1 border-error rounded">
+                                <MudIcon Icon="Icons.Material.Filled.Error" Color="Color.Error" Class="mr-2" />
+                                <div class="flex-grow-1">
+                                    <MudText Typo="Typo.body2"><strong>Placeholder:</strong> @TranslationService.GetTranslation("superAdmin.exampleFailedLogin", "Tentativo accesso fallito per user123@example.com")</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@TranslationService.GetTranslation("superAdmin.exampleIpTimestamp", "IP: 192.168.1.100 - 1h fa")</MudText>
+                                </div>
+                            </div>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Event Details Card: Conditional display -->
             @if (_selectedAuditEvent != null)
             {
                 <MudItem xs="12">
-                    <MudCard Elevation="2">
+                    <MudCard Elevation="2" Class="mb-4">
                         <MudCardHeader>
                             <CardHeaderContent>
                                 <MudText Typo="Typo.h6">
                                     <MudIcon Icon="Icons.Material.Filled.Info" Class="mr-2" />
-                                    Dettagli Evento Audit
+                                    @TranslationService.GetTranslation("superAdmin.eventDetails", "Dettagli Evento Audit")
                                 </MudText>
                             </CardHeaderContent>
                             <CardHeaderActions>
-                                <MudIconButton Icon="Icons.Material.Filled.Close" 
-                                               Color="Color.Default" 
-                                               OnClick="@(() => _selectedAuditEvent = null)" />
+                                <MudTooltip Text="@TranslationService.GetTranslation("common.close", "Chiudi")">
+                                    <MudIconButton Icon="Icons.Material.Filled.Close" 
+                                                   Color="Color.Default" 
+                                                   OnClick="@(() => _selectedAuditEvent = null)" />
+                                </MudTooltip>
                             </CardHeaderActions>
                         </MudCardHeader>
                         <MudCardContent>
                             <MudAlert Severity="Severity.Info">
-                                <strong>TODO:</strong> Implementare visualizzazione dettagliata dell'evento audit selezionato con:
-                                <ul class="mt-2">
-                                    <li>Payload completo dell'operazione</li>
-                                    <li>Context data (session ID, correlation ID, user agent)</li>
-                                    <li>Before/After per operazioni di modifica</li>
-                                    <li>Eventi correlati nella stessa sessione</li>
-                                    <li>Geolocalizzazione dell'IP (se disponibile)</li>
-                                    <li>Timeline di eventi correlati</li>
-                                </ul>
+                                <strong>@TranslationService.GetTranslation("superAdmin.integrationTodo", "TODO:"):</strong> @TranslationService.GetTranslation("superAdmin.eventDetailsDescription", "Implementare visualizzazione dettagliata dell'evento audit selezionato con: payload completo dell'operazione, context data (session ID, correlation ID, user agent), before/after per operazioni di modifica, eventi correlati nella stessa sessione, geolocalizzazione dell'IP (se disponibile), timeline di eventi correlati.")
                             </MudAlert>
                         </MudCardContent>
                     </MudCard>
@@ -332,16 +344,14 @@ else
     private bool _isAuthorized = false;
     private UserDto? _currentUser;
     
-    // Filtri
+    // Filters
     private string _operationType = "all";
     private string _targetUser = string.Empty;
-    private string _sourceTenant = "all";
-    private string _targetTenant = "all";
     private DateTime? _startDate = DateTime.Today.AddDays(-7);
     private DateTime? _endDate = DateTime.Today.AddDays(1);
     private string _auditResult = "all";
     
-    // Paginazione
+    // Pagination
     private int _currentPage = 1;
     private int _totalPages = 1;
     
@@ -353,7 +363,7 @@ else
     {
         try
         {
-            // Verifica autenticazione
+            // Verify authentication
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
             if (!isAuthenticated)
             {
@@ -361,23 +371,23 @@ else
                 return;
             }
 
-            // Verifica ruolo SuperAdmin
+            // Verify SuperAdmin role
             var isSuperAdmin = await AuthService.IsSuperAdminAsync();
             if (!isSuperAdmin)
             {
                 _isAuthorized = false;
                 _isLoading = false;
-                Snackbar.Add("Accesso negato. È richiesto il ruolo Super Amministratore.", Severity.Warning);
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.accessDeniedSuperAdmin", "Accesso negato. È richiesto il ruolo Super Amministratore."), Severity.Warning);
                 return;
             }
 
-            // Carica informazioni utente corrente
+            // Load current user information
             _currentUser = await AuthService.GetCurrentUserAsync();
             _isAuthorized = true;
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel caricamento della pagina: {ex.Message}", Severity.Error);
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
             NavigationManager.NavigateTo("/");
         }
         finally
@@ -388,37 +398,35 @@ else
 
     private void SearchAuditTrail()
     {
-        // TODO: Implementare ricerca audit trail con filtri
-        Snackbar.Add($"TODO: Ricerca audit - Operazione: {_operationType}, Utente: {_targetUser}, Risultato: {_auditResult}", Severity.Info);
+        // TODO: Implement audit trail search with filters
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.implementAuditSearch", "TODO: Ricerca audit - Operazione: {0}, Utente: {1}, Risultato: {2}", _operationType, _targetUser, _auditResult), Severity.Info);
     }
 
     private void ClearFilters()
     {
         _operationType = "all";
         _targetUser = string.Empty;
-        _sourceTenant = "all";
-        _targetTenant = "all";
         _startDate = DateTime.Today.AddDays(-7);
         _endDate = DateTime.Today.AddDays(1);
         _auditResult = "all";
-        Snackbar.Add("Filtri puliti", Severity.Success);
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.filtersCleared", "Filtri puliti"), Severity.Success);
     }
 
     private void RefreshAuditTrail()
     {
-        // TODO: Implementare refresh audit trail
-        Snackbar.Add("TODO: Refresh audit trail implementato", Severity.Info);
+        // TODO: Implement audit trail refresh
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.implementRefreshAudit", "TODO: Refresh audit trail implementato"), Severity.Info);
     }
 
     private void ExportAuditTrail()
     {
-        // TODO: Implementare export audit trail
-        Snackbar.Add("TODO: Export audit trail implementato", Severity.Info);
+        // TODO: Implement audit trail export
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.implementExportAudit", "TODO: Export audit trail implementato"), Severity.Info);
     }
 
     private void SetupAlerts()
     {
-        // TODO: Implementare configurazione alert
-        Snackbar.Add("TODO: Configurazione alert audit implementata", Severity.Info);
+        // TODO: Implement alert configuration
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.implementSetupAlerts", "TODO: Configurazione alert audit implementata"), Severity.Info);
     }
 }

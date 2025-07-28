@@ -6,217 +6,356 @@
 @inject ISnackbar Snackbar
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
+@inject IAuthService AuthService
 @attribute [Authorize(Roles = "SuperAdmin")]
 
-<PageTitle><Translate Key="superAdmin.translationManagement" /></PageTitle>
+<PageTitle>@TranslationService.GetTranslation("superAdmin.pageTitle", "{0} - EventForge Super Admin", TranslationService.GetTranslation("superAdmin.translationManagement", "Translation Management"))</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-4">
-    
-    <!-- Super Admin Banner -->
-    <SuperAdminBanner />
-    
-    <MudStack Spacing="4">
-        
-        <!-- Header -->
-        <MudCard>
-            <MudCardContent>
-                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                    <div>
-                        <MudText Typo="Typo.h4" Class="mb-2">
-                            <MudIcon Icon="Icons.Material.Filled.Translate" Class="mr-2" />
-                            <Translate Key="superAdmin.translationManagement" />
+@* SuperAdminBanner removed as per refactoring requirements *@
+
+@if (_isLoading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else if (!_isAuthorized)
+{
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+        <MudPaper Class="pa-8" Elevation="4">
+            <MudGrid Justify="Justify.Center">
+                <MudItem xs="12">
+                    <div class="d-flex flex-column align-center">
+                        <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
+                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">@TranslationService.GetTranslation("error.accessDenied", "Accesso Negato")</MudText>
+                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
+                            @TranslationService.GetTranslation("superAdmin.superAdminRoleRequired", "Non hai i permessi per accedere a questa pagina. È richiesto il ruolo Super Amministratore.")
                         </MudText>
-                        <MudText Typo="Typo.body1" Color="Color.Secondary">
-                            Gestione centralizzata delle traduzioni per tutte le lingue supportate
-                        </MudText>
-                    </div>
-                    
-                    <MudStack Row="true" Spacing="2">
-                        <LanguageSelector />
                         <MudButton Variant="Variant.Filled" 
                                    Color="Color.Primary" 
-                                   StartIcon="Icons.Material.Filled.Add"
-                                   OnClick="@OpenCreateDialog">
-                            <Translate Key="superAdmin.addTranslation" />
+                                   StartIcon="Icons.Material.Filled.ArrowBack"
+                                   OnClick="@(() => Navigation.NavigateTo("/"))">
+                            @TranslationService.GetTranslation("superAdmin.returnToHome", "Torna alla Home")
                         </MudButton>
-                        <MudButton Variant="Variant.Outlined" 
-                                   Color="Color.Secondary" 
-                                   StartIcon="Icons.Material.Filled.Download"
-                                   OnClick="@ExportTranslations">
-                            <Translate Key="superAdmin.exportTranslations" />
-                        </MudButton>
-                        <MudButton Variant="Variant.Outlined" 
-                                   Color="Color.Secondary" 
-                                   StartIcon="Icons.Material.Filled.Upload"
-                                   OnClick="@ImportTranslations">
-                            <Translate Key="superAdmin.importTranslations" />
-                        </MudButton>
-                    </MudStack>
-                </MudStack>
-            </MudCardContent>
-        </MudCard>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudContainer>
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+        <MudText Typo="Typo.h3" Class="mb-8">
+            <MudIcon Icon="Icons.Material.Filled.Translate" Class="mr-3" />
+            @TranslationService.GetTranslation("superAdmin.translationManagement", "Translation Management")
+        </MudText>
 
-        <!-- Filters -->
-        <MudCard>
-            <MudCardContent>
-                <MudStack Row="true" Spacing="3" AlignItems="AlignItems.End">
-                    <MudSelect T="string" 
-                               Value="@selectedLanguage" 
-                               ValueChanged="@OnLanguageFilterChanged"
-                               Label="<Translate Key='common.language' />"
-                               Variant="Variant.Outlined"
-                               Dense="true">
-                        <MudSelectItem Value="@("")">Tutte le lingue</MudSelectItem>
-                        @foreach (var lang in TranslationService.GetAvailableLanguages())
-                        {
-                            <MudSelectItem Value="@lang.Key">@lang.Value</MudSelectItem>
-                        }
-                    </MudSelect>
-                    
-                    <MudTextField T="string" 
-                                  Value="@searchTerm" 
-                                  ValueChanged="@OnSearchChanged"
-                                  Label="<Translate Key='common.search' />"
-                                  Variant="Variant.Outlined"
-                                  Adornment="Adornment.End"
-                                  AdornmentIcon="Icons.Material.Filled.Search"
-                                  Dense="true" />
-                    
-                    <MudButton Variant="Variant.Text" 
-                               StartIcon="Icons.Material.Filled.Clear"
-                               OnClick="@ClearFilters">
-                        <Translate Key="common.clear" />
-                    </MudButton>
-                </MudStack>
-            </MudCardContent>
-        </MudCard>
+        <MudGrid Spacing="4">
+            <!-- Statistics Card: First in vertical layout for overview -->
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="2" Class="mb-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.Analytics" Class="mr-2" />
+                                @TranslationService.GetTranslation("superAdmin.translationStats", "Statistiche Traduzioni")
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudStack Spacing="3">
+                            <div class="d-flex justify-space-between">
+                                <MudText>@TranslationService.GetTranslation("superAdmin.totalKeys", "Chiavi Totali"):</MudText>
+                                <MudChip T="string" Color="Color.Info" Size="Size.Small">@_totalTranslations</MudChip>
+                            </div>
+                            <div class="d-flex justify-space-between">
+                                <MudText>@TranslationService.GetTranslation("superAdmin.translatedKeys", "Chiavi Tradotte"):</MudText>
+                                <MudChip T="string" Color="Color.Success" Size="Size.Small">@_translatedKeys</MudChip>
+                            </div>
+                            <div class="d-flex justify-space-between">
+                                <MudText>@TranslationService.GetTranslation("superAdmin.missingKeys", "Chiavi Mancanti"):</MudText>
+                                <MudChip T="string" Color="Color.Warning" Size="Size.Small">@_missingKeys</MudChip>
+                            </div>
+                            <MudDivider />
+                            <div class="d-flex justify-space-between">
+                                <MudText>@TranslationService.GetTranslation("superAdmin.completionPercentage", "Completamento"):</MudText>
+                                <MudChip T="string" Color="Color.Primary" Size="Size.Small">@(_completionPercentage.ToString("F1"))%</MudChip>
+                            </div>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
 
-        <!-- Translations Table -->
-        <MudCard>
-            <MudCardContent Class="pa-0">
-                <MudDataGrid T="TranslationDto" 
-                             Items="@filteredTranslations" 
-                             Loading="@isLoading"
-                             Dense="true"
-                             Hover="true"
-                             Striped="true"
-                             FixedHeader="true"
-                             Height="600px">
-                    
-                    <Columns>
-                        <PropertyColumn Property="x => x.Language" Title="Lingua" Sortable="true">
-                            <CellTemplate>
-                                <MudChip Color="Color.Primary" Size="Size.Small">
-                                    @context.Item.Language.ToUpper()
-                                </MudChip>
-                            </CellTemplate>
-                        </PropertyColumn>
+            <!-- Search Filters Card: Second in vertical layout -->
+            <MudItem xs="12" md="8">
+                <MudCard Elevation="2" Class="mb-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.FilterList" Class="mr-2" />
+                                @TranslationService.GetTranslation("superAdmin.searchFilters", "Filtri e Ricerca")
+                            </MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <LanguageSelector />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <MudSelect T="string" 
+                                           Value="@_selectedLanguage" 
+                                           ValueChanged="@OnLanguageFilterChanged"
+                                           Label="@TranslationService.GetTranslation("common.language", "Lingua")"
+                                           Variant="Variant.Outlined"
+                                           FullWidth="true">
+                                    <MudSelectItem Value="@("")">@TranslationService.GetTranslation("superAdmin.allLanguages", "Tutte le lingue")</MudSelectItem>
+                                    @foreach (var lang in TranslationService.GetAvailableLanguages())
+                                    {
+                                        <MudSelectItem Value="@lang.Key">@lang.Value</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudTextField T="string" 
+                                              Value="@_searchTerm" 
+                                              ValueChanged="@OnSearchChanged"
+                                              Label="@TranslationService.GetTranslation("common.search", "Cerca")"
+                                              Variant="Variant.Outlined"
+                                              Adornment="Adornment.End"
+                                              AdornmentIcon="Icons.Material.Filled.Search"
+                                              FullWidth="true" />
+                            </MudItem>
+                        </MudGrid>
                         
-                        <PropertyColumn Property="x => x.Key" Title="Chiave" Sortable="true" />
-                        
-                        <PropertyColumn Property="x => x.Value" Title="Valore" Sortable="false">
-                            <CellTemplate>
-                                <MudText Style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                    @context.Item.Value
-                                </MudText>
-                            </CellTemplate>
-                        </PropertyColumn>
-                        
-                        <PropertyColumn Property="x => x.ModifiedAt" Title="Ultima modifica" Sortable="true">
-                            <CellTemplate>
-                                @if (context.Item.ModifiedAt.HasValue)
-                                {
-                                    <MudText Typo="Typo.caption">
-                                        @context.Item.ModifiedAt.Value.ToString("dd/MM/yyyy HH:mm")
+                        <MudStack Direction="Row" Spacing="2" Class="mt-3">
+                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.clearFilters", "Pulisci tutti i filtri")">
+                                <MudButton Variant="Variant.Text" 
+                                           StartIcon="Icons.Material.Filled.Clear"
+                                           OnClick="@ClearFilters">
+                                    @TranslationService.GetTranslation("superAdmin.clearFilters", "Pulisci Filtri")
+                                </MudButton>
+                            </MudTooltip>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Data Table Card: Last in vertical layout with toolbar actions -->
+            <MudItem xs="12">
+                <MudCard Elevation="2" Class="mb-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="Icons.Material.Filled.List" Class="mr-2" />
+                                @TranslationService.GetTranslation("superAdmin.translationList", "Lista Traduzioni")
+                            </MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <!-- Quick Actions Toolbar: Above table with translated tooltips -->
+                            <MudToolBar Dense="true" WrapContent="true">
+                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refresh", "Aggiorna dati")">
+                                    <MudIconButton Icon="Icons.Material.Filled.Refresh" 
+                                                   Color="Color.Primary"
+                                                   OnClick="@LoadTranslations" />
+                                </MudTooltip>
+                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.export", "Esporta dati")">
+                                    <MudIconButton Icon="Icons.Material.Filled.Download" 
+                                                   Color="Color.Secondary"
+                                                   OnClick="@ExportTranslations" />
+                                </MudTooltip>
+                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.import", "Importa dati")">
+                                    <MudIconButton Icon="Icons.Material.Filled.Upload" 
+                                                   Color="Color.Secondary"
+                                                   OnClick="@ImportTranslations" />
+                                </MudTooltip>
+                                <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.addTranslation", "Aggiungi traduzione")">
+                                    <MudButton Variant="Variant.Filled" 
+                                               Color="Color.Primary" 
+                                               StartIcon="Icons.Material.Filled.Add"
+                                               OnClick="@OpenCreateDialog">
+                                        @TranslationService.GetTranslation("superAdmin.addTranslation", "Aggiungi")
+                                    </MudButton>
+                                </MudTooltip>
+                            </MudToolBar>
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent Class="pa-0">
+                        <!-- 
+                            MudTable Implementation: Follows EventForge UI standards
+                            - All columns sortable with logical default (Key ASC)
+                            - Responsive with DataLabel attributes for mobile
+                            - Row actions using MudIconButton with semantic icons
+                            - Translated tooltips for all interactive elements
+                            - Loading states and empty state messages
+                        -->
+                        <MudTable T="TranslationDto" 
+                                  Items="@_filteredTranslations" 
+                                  Hover="true" 
+                                  Striped="true"
+                                  Dense="true"
+                                  Loading="@_isLoadingTranslations"
+                                  LoadingProgressColor="Color.Info"
+                                  SortLabel="@TranslationService.GetTranslation("tooltip.sort", "Ordina")"
+                                  AllowUnsorted="false"
+                                  FixedHeader="true"
+                                  Height="600px">
+                            <HeaderContent>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<TranslationDto, object>(x => x.Language))">@TranslationService.GetTranslation("superAdmin.languageCode", "Lingua")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="@(new Func<TranslationDto, object>(x => x.Key))">@TranslationService.GetTranslation("superAdmin.translationKey", "Chiave")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<TranslationDto, object>(x => x.Value))">@TranslationService.GetTranslation("superAdmin.translationValue", "Valore")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<TranslationDto, object>(x => x.ModifiedAt ?? x.CreatedAt))">@TranslationService.GetTranslation("superAdmin.lastModified", "Ultima Modifica")</MudTableSortLabel></MudTh>
+                                <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.languageCode", "Lingua")">
+                                    <MudChip T="string" Color="Color.Primary" Size="Size.Small">
+                                        @context.Language.ToUpper()
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.translationKey", "Chiave")">
+                                    <MudText>@context.Key</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.translationValue", "Valore")">
+                                    <MudText Style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        @context.Value
                                     </MudText>
-                                }
-                                else
-                                {
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                        @context.Item.CreatedAt.ToString("dd/MM/yyyy HH:mm")
-                                    </MudText>
-                                }
-                            </CellTemplate>
-                        </PropertyColumn>
-                        
-                        <TemplateColumn Title="Azioni" Sortable="false">
-                            <CellTemplate>
-                                <MudStack Row="true" Spacing="1">
-                                    <MudIconButton Icon="Icons.Material.Filled.Edit" 
-                                                   Color="Color.Primary" 
-                                                   Size="Size.Small"
-                                                   OnClick="@(() => EditTranslation(context.Item))"
-                                                   Title="Modifica" />
-                                    <MudIconButton Icon="Icons.Material.Filled.Delete" 
-                                                   Color="Color.Error" 
-                                                   Size="Size.Small"
-                                                   OnClick="@(() => DeleteTranslation(context.Item))"
-                                                   Title="Elimina" />
-                                </MudStack>
-                            </CellTemplate>
-                        </TemplateColumn>
-                    </Columns>
-                    
-                    <NoRecordsContent>
-                        <MudText Typo="Typo.body1" Align="Align.Center" Class="pa-4">
-                            Nessuna traduzione trovata per i filtri correnti.
-                        </MudText>
-                    </NoRecordsContent>
-                    
-                </MudDataGrid>
-            </MudCardContent>
-        </MudCard>
-        
-    </MudStack>
-</MudContainer>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.lastModified", "Ultima Modifica")">
+                                    @if (context.ModifiedAt.HasValue)
+                                    {
+                                        <MudText Typo="Typo.caption">
+                                            @context.ModifiedAt.Value.ToString("dd/MM/yyyy HH:mm")
+                                        </MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @context.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                        </MudText>
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")">
+                                    <MudButtonGroup Color="Color.Primary" Variant="Variant.Text" Size="Size.Small">
+                                        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.edit", "Modifica")">
+                                            <MudIconButton Icon="Icons.Material.Filled.Edit" 
+                                                           Color="Color.Primary" 
+                                                           Size="Size.Small"
+                                                           OnClick="@(() => EditTranslation(context))" />
+                                        </MudTooltip>
+                                        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.delete", "Elimina")">
+                                            <MudIconButton Icon="Icons.Material.Filled.Delete" 
+                                                           Color="Color.Error" 
+                                                           Size="Size.Small"
+                                                           OnClick="@(() => DeleteTranslation(context))" />
+                                        </MudTooltip>
+                                    </MudButtonGroup>
+                                </MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText>@TranslationService.GetTranslation("superAdmin.noTranslationsFound", "Nessuna traduzione trovata per i filtri correnti.")</MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    </MudContainer>
+}
 
 @code {
-    private List<TranslationDto> translations = new();
-    private IEnumerable<TranslationDto> filteredTranslations = new List<TranslationDto>();
-    private bool isLoading = true;
-    private string selectedLanguage = "";
-    private string searchTerm = "";
+    private bool _isLoading = true;
+    private bool _isAuthorized = false;
+    private bool _isLoadingTranslations = true;
+    private List<TranslationDto> _translations = new();
+    private IEnumerable<TranslationDto> _filteredTranslations = new List<TranslationDto>();
+    private string _selectedLanguage = "";
+    private string _searchTerm = "";
+    
+    // Statistics
+    private int _totalTranslations = 0;
+    private int _translatedKeys = 0;
+    private int _missingKeys = 0;
+    private double _completionPercentage = 0.0;
 
-    protected override Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
-        LoadTranslations();
-        FilterTranslations();
-        return Task.CompletedTask;
+        try
+        {
+            // Verify authentication
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                Navigation.NavigateTo("/login");
+                return;
+            }
+
+            // Verify SuperAdmin role
+            var isSuperAdmin = await AuthService.IsSuperAdminAsync();
+            if (!isSuperAdmin)
+            {
+                _isAuthorized = false;
+                _isLoading = false;
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.accessDeniedSuperAdmin", "Accesso negato. È richiesto il ruolo Super Amministratore."), Severity.Warning);
+                return;
+            }
+
+            _isAuthorized = true;
+            LoadTranslations();
+            FilterTranslations();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            Navigation.NavigateTo("/");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
     private void LoadTranslations()
     {
         try
         {
-            isLoading = true;
+            _isLoadingTranslations = true;
             
             // TODO: Replace with actual API call
             // For now, create mock data
-            translations = GenerateMockTranslations();
+            _translations = GenerateMockTranslations();
+            CalculateStatistics();
             
-            isLoading = false;
+            _isLoadingTranslations = false;
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel caricamento delle traduzioni: {ex.Message}", Severity.Error);
-            isLoading = false;
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingTranslationsError", "Errore nel caricamento delle traduzioni: {0}", ex.Message), Severity.Error);
+            _isLoadingTranslations = false;
         }
+    }
+
+    private void CalculateStatistics()
+    {
+        _totalTranslations = _translations.Count;
+        _translatedKeys = _translations.Count(t => !string.IsNullOrEmpty(t.Value) && !t.Value.StartsWith("["));
+        _missingKeys = _totalTranslations - _translatedKeys;
+        _completionPercentage = _totalTranslations > 0 ? (double)_translatedKeys / _totalTranslations * 100 : 0;
     }
 
     private void FilterTranslations()
     {
-        filteredTranslations = translations.AsEnumerable();
+        _filteredTranslations = _translations.AsEnumerable();
         
-        if (!string.IsNullOrWhiteSpace(selectedLanguage))
+        if (!string.IsNullOrWhiteSpace(_selectedLanguage))
         {
-            filteredTranslations = filteredTranslations.Where(t => t.Language == selectedLanguage);
+            _filteredTranslations = _filteredTranslations.Where(t => t.Language == _selectedLanguage);
         }
         
-        if (!string.IsNullOrWhiteSpace(searchTerm))
+        if (!string.IsNullOrWhiteSpace(_searchTerm))
         {
-            filteredTranslations = filteredTranslations.Where(t => 
-                t.Key.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                t.Value.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+            _filteredTranslations = _filteredTranslations.Where(t => 
+                t.Key.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                t.Value.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase));
         }
         
         StateHasChanged();
@@ -224,51 +363,51 @@
 
     private void OnLanguageFilterChanged(string language)
     {
-        selectedLanguage = language;
+        _selectedLanguage = language;
         FilterTranslations();
     }
 
     private void OnSearchChanged(string search)
     {
-        searchTerm = search;
+        _searchTerm = search;
         FilterTranslations();
     }
 
     private void ClearFilters()
     {
-        selectedLanguage = "";
-        searchTerm = "";
+        _selectedLanguage = "";
+        _searchTerm = "";
         FilterTranslations();
     }
 
     private void OpenCreateDialog()
     {
         // TODO: Implement create dialog
-        Snackbar.Add("Funzionalità di creazione in sviluppo", Severity.Info);
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.featureInDevelopment", "Funzionalità in sviluppo"), Severity.Info);
     }
 
     private void EditTranslation(TranslationDto translation)
     {
         // TODO: Implement edit dialog
-        Snackbar.Add($"Modifica traduzione: {translation.Key}", Severity.Info);
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.editTranslationTodo", "Modifica traduzione: {0}", translation.Key), Severity.Info);
     }
 
     private void DeleteTranslation(TranslationDto translation)
     {
         // TODO: Implement delete confirmation
-        Snackbar.Add($"Eliminazione traduzione: {translation.Key}", Severity.Warning);
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.deleteTranslationTodo", "Eliminazione traduzione: {0}", translation.Key), Severity.Warning);
     }
 
     private void ExportTranslations()
     {
         // TODO: Implement export functionality
-        Snackbar.Add("Funzionalità di esportazione in sviluppo", Severity.Info);
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.exportFunctionality", "Funzionalità di esportazione in sviluppo"), Severity.Info);
     }
 
     private void ImportTranslations()
     {
         // TODO: Implement import functionality
-        Snackbar.Add("Funzionalità di importazione in sviluppo", Severity.Info);
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.importFunctionality", "Funzionalità di importazione in sviluppo"), Severity.Info);
     }
 
     // Mock data for development
