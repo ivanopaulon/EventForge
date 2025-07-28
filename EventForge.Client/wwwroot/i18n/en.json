@@ -231,7 +231,20 @@
     "activeUser": "Active User",
     "inactiveUser": "Inactive User",
     "createUser": "Create User",
-    "newUserTitle": "Create New User"
+    "newUserTitle": "Create New User",
+    "tenantName": "Tenant Name",
+    "tenantNameRequired": "Tenant name is required",
+    "displayNameRequired": "Display name is required", 
+    "contactEmailRequired": "Contact email is required",
+    "uniqueTenantNameHelper": "Unique tenant name (e.g: company-abc)",
+    "displayNameHelper": "Name to show in interface",
+    "optionalDescriptionHelper": "Optional tenant description",
+    "customDomainHelper": "Custom domain (optional)",
+    "contactEmailHelper": "Reference email for tenant",
+    "maxUsersHelper": "Maximum number of users allowed",
+    "maxUsers": "Max Users",
+    "createTenant": "Create Tenant",
+    "optional": "Optional"
   },
   "tooltip": {
     "view": "View details",

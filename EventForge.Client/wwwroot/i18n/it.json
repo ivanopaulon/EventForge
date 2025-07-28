@@ -231,7 +231,20 @@
     "activeUser": "Utente Attivo",
     "inactiveUser": "Utente Inattivo",
     "createUser": "Crea Utente",
-    "newUserTitle": "Crea Nuovo Utente"
+    "newUserTitle": "Crea Nuovo Utente",
+    "tenantName": "Nome Tenant",
+    "tenantNameRequired": "Il nome del tenant è obbligatorio",
+    "displayNameRequired": "Il nome visualizzato è obbligatorio",
+    "contactEmailRequired": "L'email di contatto è obbligatoria", 
+    "uniqueTenantNameHelper": "Nome univoco del tenant (es: azienda-abc)",
+    "displayNameHelper": "Nome da mostrare nell'interfaccia",
+    "optionalDescriptionHelper": "Descrizione opzionale del tenant",
+    "customDomainHelper": "Dominio personalizzato (opzionale)",
+    "contactEmailHelper": "Email di riferimento per il tenant",
+    "maxUsersHelper": "Numero massimo di utenti consentiti",
+    "maxUsers": "Massimo Utenti",
+    "createTenant": "Crea Tenant",
+    "optional": "Opzionale"
   },
   "tooltip": {
     "view": "Visualizza dettagli",
