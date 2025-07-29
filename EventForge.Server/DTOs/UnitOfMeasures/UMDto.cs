@@ -28,7 +28,6 @@ public class UMDto
     /// <summary>
     /// Status of the unit of measure.
     /// </summary>
-    public ProductUMStatus Status { get; set; }
 
     /// <summary>
     /// Indicates if this is the default unit of measure.

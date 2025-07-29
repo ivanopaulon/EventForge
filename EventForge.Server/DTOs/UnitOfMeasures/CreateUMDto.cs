@@ -33,10 +33,6 @@ public class CreateUMDto
     /// <summary>
     /// Status of the unit of measure.
     /// </summary>
-    [Required]
-    [Display(Name = "Status", Description = "Current status of the unit of measure.")]
-    public ProductUMStatus Status { get; set; } = ProductUMStatus.Active;
-
     /// <summary>
     /// Indicates if this is the default unit of measure.
     /// </summary>

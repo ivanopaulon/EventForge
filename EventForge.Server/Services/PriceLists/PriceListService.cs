@@ -127,7 +127,6 @@ public class PriceListService : IPriceListService
                 ValidFrom = createPriceListDto.ValidFrom,
                 ValidTo = createPriceListDto.ValidTo,
                 Notes = createPriceListDto.Notes,
-                Status = createPriceListDto.Status,
                 IsDefault = createPriceListDto.IsDefault,
                 Priority = createPriceListDto.Priority,
                 EventId = createPriceListDto.EventId,
@@ -183,7 +182,6 @@ public class PriceListService : IPriceListService
             priceList.ValidFrom = updatePriceListDto.ValidFrom;
             priceList.ValidTo = updatePriceListDto.ValidTo;
             priceList.Notes = updatePriceListDto.Notes;
-            priceList.Status = updatePriceListDto.Status;
             priceList.IsDefault = updatePriceListDto.IsDefault;
             priceList.Priority = updatePriceListDto.Priority;
             priceList.ModifiedBy = currentUser;
@@ -318,7 +316,6 @@ public class PriceListService : IPriceListService
                 Score = createPriceListEntryDto.Score,
                 IsEditableInFrontend = createPriceListEntryDto.IsEditableInFrontend,
                 IsDiscountable = createPriceListEntryDto.IsDiscountable,
-                Status = createPriceListEntryDto.Status,
                 MinQuantity = createPriceListEntryDto.MinQuantity,
                 MaxQuantity = createPriceListEntryDto.MaxQuantity,
                 Notes = createPriceListEntryDto.Notes,
@@ -375,7 +372,6 @@ public class PriceListService : IPriceListService
             entry.Score = updatePriceListEntryDto.Score;
             entry.IsEditableInFrontend = updatePriceListEntryDto.IsEditableInFrontend;
             entry.IsDiscountable = updatePriceListEntryDto.IsDiscountable;
-            entry.Status = updatePriceListEntryDto.Status;
             entry.MinQuantity = updatePriceListEntryDto.MinQuantity;
             entry.MaxQuantity = updatePriceListEntryDto.MaxQuantity;
             entry.Notes = updatePriceListEntryDto.Notes;
@@ -495,7 +491,6 @@ public class PriceListService : IPriceListService
             ValidFrom = priceList.ValidFrom,
             ValidTo = priceList.ValidTo,
             Notes = priceList.Notes,
-            Status = priceList.Status,
             IsDefault = priceList.IsDefault,
             Priority = priceList.Priority,
             EventId = priceList.EventId,
@@ -517,7 +512,6 @@ public class PriceListService : IPriceListService
             ValidFrom = priceList.ValidFrom,
             ValidTo = priceList.ValidTo,
             Notes = priceList.Notes,
-            Status = priceList.Status,
             IsDefault = priceList.IsDefault,
             Priority = priceList.Priority,
             EventId = priceList.EventId,
@@ -541,7 +535,6 @@ public class PriceListService : IPriceListService
             Score = entry.Score,
             IsEditableInFrontend = entry.IsEditableInFrontend,
             IsDiscountable = entry.IsDiscountable,
-            Status = entry.Status,
             MinQuantity = entry.MinQuantity,
             MaxQuantity = entry.MaxQuantity,
             Notes = entry.Notes,

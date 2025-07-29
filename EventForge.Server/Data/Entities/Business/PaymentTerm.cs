@@ -36,12 +36,7 @@ public class PaymentTerm : AuditableEntity
     [Display(Name = "Payment Method", Description = "Preferred payment method.")]
     public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.BankTransfer;
 
-    /// <summary>
-    /// Status of the payment term.
-    /// </summary>
-    [Required(ErrorMessage = "The status is required.")]
-    [Display(Name = "Status", Description = "Current status of the payment term.")]
-    public PaymentTermStatus Status { get; set; } = PaymentTermStatus.Active;
+
 }
 
 /// <summary>
@@ -58,13 +53,3 @@ public enum PaymentMethod
     Other
 }
 
-/// <summary>
-/// Status for payment terms.
-/// </summary>
-public enum PaymentTermStatus
-{
-    Active,
-    Suspended,
-    Deprecated,
-    Disabled
-}

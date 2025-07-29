@@ -94,7 +94,6 @@ public class StationService : IStationService
             {
                 Name = createStationDto.Name,
                 Description = createStationDto.Description,
-                Status = createStationDto.Status,
                 Location = createStationDto.Location,
                 SortOrder = createStationDto.SortOrder,
                 Notes = createStationDto.Notes,
@@ -146,7 +145,6 @@ public class StationService : IStationService
 
             station.Name = updateStationDto.Name;
             station.Description = updateStationDto.Description;
-            station.Status = updateStationDto.Status;
             station.Location = updateStationDto.Location;
             station.SortOrder = updateStationDto.SortOrder;
             station.Notes = updateStationDto.Notes;
@@ -307,7 +305,6 @@ public class StationService : IStationService
                 Model = createPrinterDto.Model,
                 Location = createPrinterDto.Location,
                 Address = createPrinterDto.Address,
-                Status = createPrinterDto.Status,
                 StationId = createPrinterDto.StationId,
                 CreatedBy = currentUser,
                 ModifiedBy = currentUser
@@ -365,7 +362,6 @@ public class StationService : IStationService
             printer.Model = updatePrinterDto.Model;
             printer.Location = updatePrinterDto.Location;
             printer.Address = updatePrinterDto.Address;
-            printer.Status = updatePrinterDto.Status;
             printer.StationId = updatePrinterDto.StationId;
             printer.ModifiedAt = DateTime.UtcNow;
             printer.ModifiedBy = currentUser;
@@ -453,7 +449,6 @@ public class StationService : IStationService
             Id = station.Id,
             Name = station.Name,
             Description = station.Description,
-            Status = station.Status,
             Location = station.Location,
             SortOrder = station.SortOrder,
             Notes = station.Notes,
@@ -475,7 +470,6 @@ public class StationService : IStationService
             Model = printer.Model,
             Location = printer.Location,
             Address = printer.Address,
-            Status = printer.Status,
             StationId = printer.StationId,
             StationName = printer.Station?.Name,
             CreatedAt = printer.CreatedAt,

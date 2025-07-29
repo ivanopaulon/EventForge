@@ -121,7 +121,6 @@ public class ProductService : IProductService
                 Description = createProductDto.Description,
                 Code = createProductDto.Code,
                 ImageUrl = createProductDto.ImageUrl,
-                Status = createProductDto.Status,
                 IsVatIncluded = createProductDto.IsVatIncluded,
                 DefaultPrice = createProductDto.DefaultPrice,
                 VatRateId = createProductDto.VatRateId,
@@ -181,7 +180,6 @@ public class ProductService : IProductService
                 Description = product.Description,
                 Code = product.Code,
                 ImageUrl = product.ImageUrl,
-                Status = product.Status,
                 IsVatIncluded = product.IsVatIncluded,
                 DefaultPrice = product.DefaultPrice,
                 VatRateId = product.VatRateId,
@@ -203,7 +201,6 @@ public class ProductService : IProductService
             product.Description = updateProductDto.Description;
             product.Code = updateProductDto.Code;
             product.ImageUrl = updateProductDto.ImageUrl;
-            product.Status = updateProductDto.Status;
             product.IsVatIncluded = updateProductDto.IsVatIncluded;
             product.DefaultPrice = updateProductDto.DefaultPrice;
             product.VatRateId = updateProductDto.VatRateId;
@@ -260,7 +257,6 @@ public class ProductService : IProductService
                 Description = product.Description,
                 Code = product.Code,
                 ImageUrl = product.ImageUrl,
-                Status = product.Status,
                 IsVatIncluded = product.IsVatIncluded,
                 DefaultPrice = product.DefaultPrice,
                 VatRateId = product.VatRateId,
@@ -381,7 +377,6 @@ public class ProductService : IProductService
                 CodeType = createProductCodeDto.CodeType,
                 Code = createProductCodeDto.Code,
                 AlternativeDescription = createProductCodeDto.AlternativeDescription,
-                Status = createProductCodeDto.Status,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow
             };
@@ -430,7 +425,6 @@ public class ProductService : IProductService
                 CodeType = productCode.CodeType,
                 Code = productCode.Code,
                 AlternativeDescription = productCode.AlternativeDescription,
-                Status = productCode.Status,
                 CreatedBy = productCode.CreatedBy,
                 CreatedAt = productCode.CreatedAt,
                 ModifiedBy = productCode.ModifiedBy,
@@ -441,7 +435,6 @@ public class ProductService : IProductService
             productCode.CodeType = updateProductCodeDto.CodeType;
             productCode.Code = updateProductCodeDto.Code;
             productCode.AlternativeDescription = updateProductCodeDto.AlternativeDescription;
-            productCode.Status = updateProductCodeDto.Status;
             productCode.ModifiedBy = currentUser;
             productCode.ModifiedAt = DateTime.UtcNow;
 
@@ -485,7 +478,6 @@ public class ProductService : IProductService
                 CodeType = productCode.CodeType,
                 Code = productCode.Code,
                 AlternativeDescription = productCode.AlternativeDescription,
-                Status = productCode.Status,
                 CreatedBy = productCode.CreatedBy,
                 CreatedAt = productCode.CreatedAt,
                 ModifiedBy = productCode.ModifiedBy,
@@ -574,7 +566,6 @@ public class ProductService : IProductService
                 ConversionFactor = createProductUnitDto.ConversionFactor,
                 UnitType = createProductUnitDto.UnitType,
                 Description = createProductUnitDto.Description,
-                Status = createProductUnitDto.Status,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow
             };
@@ -624,7 +615,6 @@ public class ProductService : IProductService
                 ConversionFactor = productUnit.ConversionFactor,
                 UnitType = productUnit.UnitType,
                 Description = productUnit.Description,
-                Status = productUnit.Status,
                 CreatedBy = productUnit.CreatedBy,
                 CreatedAt = productUnit.CreatedAt,
                 ModifiedBy = productUnit.ModifiedBy,
@@ -636,7 +626,6 @@ public class ProductService : IProductService
             productUnit.ConversionFactor = updateProductUnitDto.ConversionFactor;
             productUnit.UnitType = updateProductUnitDto.UnitType;
             productUnit.Description = updateProductUnitDto.Description;
-            productUnit.Status = updateProductUnitDto.Status;
             productUnit.ModifiedBy = currentUser;
             productUnit.ModifiedAt = DateTime.UtcNow;
 
@@ -681,7 +670,6 @@ public class ProductService : IProductService
                 ConversionFactor = productUnit.ConversionFactor,
                 UnitType = productUnit.UnitType,
                 Description = productUnit.Description,
-                Status = productUnit.Status,
                 CreatedBy = productUnit.CreatedBy,
                 CreatedAt = productUnit.CreatedAt,
                 ModifiedBy = productUnit.ModifiedBy,
@@ -951,7 +939,6 @@ public class ProductService : IProductService
             Description = product.Description,
             Code = product.Code,
             ImageUrl = product.ImageUrl,
-            Status = product.Status,
             IsVatIncluded = product.IsVatIncluded,
             DefaultPrice = product.DefaultPrice,
             VatRateId = product.VatRateId,
@@ -981,7 +968,6 @@ public class ProductService : IProductService
             Description = product.Description,
             Code = product.Code,
             ImageUrl = product.ImageUrl,
-            Status = product.Status,
             IsVatIncluded = product.IsVatIncluded,
             DefaultPrice = product.DefaultPrice,
             VatRateId = product.VatRateId,
@@ -1010,7 +996,6 @@ public class ProductService : IProductService
             CodeType = productCode.CodeType,
             Code = productCode.Code,
             AlternativeDescription = productCode.AlternativeDescription,
-            Status = productCode.Status,
             CreatedAt = productCode.CreatedAt,
             CreatedBy = productCode.CreatedBy,
             ModifiedAt = productCode.ModifiedAt,
@@ -1028,7 +1013,6 @@ public class ProductService : IProductService
             ConversionFactor = productUnit.ConversionFactor,
             UnitType = productUnit.UnitType,
             Description = productUnit.Description,
-            Status = productUnit.Status,
             CreatedAt = productUnit.CreatedAt,
             CreatedBy = productUnit.CreatedBy,
             ModifiedAt = productUnit.ModifiedAt,

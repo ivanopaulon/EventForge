@@ -107,7 +107,6 @@ public class UMService : IUMService
                 Name = createUMDto.Name,
                 Symbol = createUMDto.Symbol,
                 Description = createUMDto.Description,
-                Status = createUMDto.Status,
                 IsDefault = createUMDto.IsDefault,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUser
@@ -152,7 +151,6 @@ public class UMService : IUMService
             um.Name = updateUMDto.Name;
             um.Symbol = updateUMDto.Symbol;
             um.Description = updateUMDto.Description;
-            um.Status = updateUMDto.Status;
             um.IsDefault = updateUMDto.IsDefault;
             um.ModifiedAt = DateTime.UtcNow;
             um.ModifiedBy = currentUser;
@@ -232,7 +230,6 @@ public class UMService : IUMService
             Name = um.Name,
             Symbol = um.Symbol,
             Description = um.Description,
-            Status = um.Status,
             IsDefault = um.IsDefault,
             CreatedAt = um.CreatedAt,
             CreatedBy = um.CreatedBy,
