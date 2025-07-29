@@ -331,8 +331,8 @@ public class ClassificationNodeService : IClassificationNodeService
             if (updateDto.Type.HasValue)
                 node.Type = updateDto.Type.Value.ToEntity();
             if (updateDto.Status.HasValue)
-            if (updateDto.Level.HasValue)
-                node.Level = updateDto.Level.Value;
+                if (updateDto.Level.HasValue)
+                    node.Level = updateDto.Level.Value;
             if (updateDto.Order.HasValue)
                 node.Order = updateDto.Order.Value;
             if (updateDto.ParentId.HasValue)
