@@ -1,6 +1,8 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace EventForge.DTOs.Products;
+namespace EventForge.DTOs.Products
+{
 
 /// <summary>
 /// DTO for Product output/display operations.
@@ -308,4 +310,5 @@ public class UpdateProductDto
     /// </summary>
     [Display(Name = "Is Bundle", Description = "Indicates if the product is a bundle.")]
     public bool IsBundle { get; set; }
+}
 }
