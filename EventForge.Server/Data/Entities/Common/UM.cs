@@ -31,12 +31,7 @@ public class UM : AuditableEntity
     [Display(Name = "Description", Description = "Description of the unit of measure.")]
     public string? Description { get; set; }
 
-    /// <summary>
-    /// Status of the unit of measure.
-    /// </summary>
-    [Required]
-    [Display(Name = "Status", Description = "Current status of the unit of measure.")]
-    public ProductUMStatus Status { get; set; } = ProductUMStatus.Active;
+
 
     /// <summary>
     /// Indicates if this is the default unit of measure.
@@ -51,12 +46,3 @@ public class UM : AuditableEntity
     public ICollection<Product> Products { get; set; } = new List<Product>();
 }
 
-/// <summary>
-/// Status for unit of measure.
-/// </summary>
-public enum ProductUMStatus
-{
-    Active,     // Unit is active and usable
-    Suspended,  // Unit is temporarily suspended
-    Deleted     // Unit is deleted/disabled
-}

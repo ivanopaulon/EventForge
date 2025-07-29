@@ -149,7 +149,6 @@ public class TeamService : ITeamService
                 ShortDescription = createTeamDto.ShortDescription,
                 LongDescription = createTeamDto.LongDescription,
                 Email = createTeamDto.Email,
-                Status = createTeamDto.Status,
                 EventId = createTeamDto.EventId,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow
@@ -204,7 +203,6 @@ public class TeamService : ITeamService
             team.ShortDescription = updateTeamDto.ShortDescription;
             team.LongDescription = updateTeamDto.LongDescription;
             team.Email = updateTeamDto.Email;
-            team.Status = updateTeamDto.Status;
             team.ModifiedBy = currentUser;
             team.ModifiedAt = DateTime.UtcNow;
 
@@ -323,7 +321,6 @@ public class TeamService : ITeamService
                 Email = createTeamMemberDto.Email,
                 Role = createTeamMemberDto.Role,
                 DateOfBirth = createTeamMemberDto.DateOfBirth,
-                Status = createTeamMemberDto.Status,
                 TeamId = createTeamMemberDto.TeamId,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow
@@ -376,7 +373,6 @@ public class TeamService : ITeamService
             member.Email = updateTeamMemberDto.Email;
             member.Role = updateTeamMemberDto.Role;
             member.DateOfBirth = updateTeamMemberDto.DateOfBirth;
-            member.Status = updateTeamMemberDto.Status;
             member.ModifiedBy = currentUser;
             member.ModifiedAt = DateTime.UtcNow;
 
@@ -456,7 +452,6 @@ public class TeamService : ITeamService
             ShortDescription = team.ShortDescription,
             LongDescription = team.LongDescription,
             Email = team.Email,
-            Status = team.Status,
             EventId = team.EventId,
             EventName = team.Event?.Name,
             MemberCount = team.Members.Count(m => !m.IsDeleted),
@@ -476,7 +471,6 @@ public class TeamService : ITeamService
             ShortDescription = team.ShortDescription,
             LongDescription = team.LongDescription,
             Email = team.Email,
-            Status = team.Status,
             EventId = team.EventId,
             EventName = team.Event?.Name,
             Members = team.Members.Where(m => !m.IsDeleted).Select(MapToTeamMemberDto).ToList(),
@@ -497,7 +491,6 @@ public class TeamService : ITeamService
             Email = member.Email,
             Role = member.Role,
             DateOfBirth = member.DateOfBirth,
-            Status = member.Status,
             TeamId = member.TeamId,
             TeamName = member.Team?.Name,
             CreatedAt = member.CreatedAt,

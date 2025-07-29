@@ -56,7 +56,6 @@ public class ClassificationNodeService : IClassificationNodeService
                     Name = cn.Name,
                     Description = cn.Description,
                     Type = cn.Type.ToDto(),
-                    Status = cn.Status.ToDto(),
                     Level = cn.Level,
                     Order = cn.Order,
                     ParentId = cn.ParentId,
@@ -97,7 +96,6 @@ public class ClassificationNodeService : IClassificationNodeService
                     Name = cn.Name,
                     Description = cn.Description,
                     Type = cn.Type.ToDto(),
-                    Status = cn.Status.ToDto(),
                     Level = cn.Level,
                     Order = cn.Order,
                     ParentId = cn.ParentId,
@@ -134,7 +132,6 @@ public class ClassificationNodeService : IClassificationNodeService
                     Name = cn.Name,
                     Description = cn.Description,
                     Type = cn.Type.ToDto(),
-                    Status = cn.Status.ToDto(),
                     Level = cn.Level,
                     Order = cn.Order,
                     ParentId = cn.ParentId,
@@ -171,7 +168,6 @@ public class ClassificationNodeService : IClassificationNodeService
                     Name = cn.Name,
                     Description = cn.Description,
                     Type = cn.Type.ToDto(),
-                    Status = cn.Status.ToDto(),
                     Level = cn.Level,
                     Order = cn.Order,
                     ParentId = cn.ParentId,
@@ -230,7 +226,6 @@ public class ClassificationNodeService : IClassificationNodeService
                 Name = createDto.Name,
                 Description = createDto.Description,
                 Type = createDto.Type?.ToEntity() ?? Data.Entities.Common.ProductClassificationType.Category,
-                Status = createDto.Status?.ToEntity() ?? Data.Entities.Common.ProductClassificationNodeStatus.Active,
                 Level = createDto.Level ?? 0,
                 Order = createDto.Order ?? 0,
                 ParentId = createDto.ParentId,
@@ -253,7 +248,6 @@ public class ClassificationNodeService : IClassificationNodeService
                 Name = node.Name,
                 Description = node.Description,
                 Type = node.Type.ToDto(),
-                Status = node.Status.ToDto(),
                 Level = node.Level,
                 Order = node.Order,
                 ParentId = node.ParentId,
@@ -337,7 +331,6 @@ public class ClassificationNodeService : IClassificationNodeService
             if (updateDto.Type.HasValue)
                 node.Type = updateDto.Type.Value.ToEntity();
             if (updateDto.Status.HasValue)
-                node.Status = updateDto.Status.Value.ToEntity();
             if (updateDto.Level.HasValue)
                 node.Level = updateDto.Level.Value;
             if (updateDto.Order.HasValue)
@@ -361,7 +354,6 @@ public class ClassificationNodeService : IClassificationNodeService
                 Name = node.Name,
                 Description = node.Description,
                 Type = node.Type.ToDto(),
-                Status = node.Status.ToDto(),
                 Level = node.Level,
                 Order = node.Order,
                 ParentId = node.ParentId,

@@ -105,7 +105,6 @@ public class PaymentTermService : IPaymentTermService
                 Description = createPaymentTermDto.Description,
                 DueDays = createPaymentTermDto.DueDays,
                 PaymentMethod = createPaymentTermDto.PaymentMethod,
-                Status = createPaymentTermDto.Status,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow
             };
@@ -160,7 +159,6 @@ public class PaymentTermService : IPaymentTermService
             paymentTerm.Description = updatePaymentTermDto.Description;
             paymentTerm.DueDays = updatePaymentTermDto.DueDays;
             paymentTerm.PaymentMethod = updatePaymentTermDto.PaymentMethod;
-            paymentTerm.Status = updatePaymentTermDto.Status;
             paymentTerm.ModifiedBy = currentUser;
             paymentTerm.ModifiedAt = DateTime.UtcNow;
 
@@ -253,7 +251,6 @@ public class PaymentTermService : IPaymentTermService
             Description = paymentTerm.Description,
             DueDays = paymentTerm.DueDays,
             PaymentMethod = paymentTerm.PaymentMethod,
-            Status = paymentTerm.Status,
             CreatedAt = paymentTerm.CreatedAt,
             CreatedBy = paymentTerm.CreatedBy,
             ModifiedAt = paymentTerm.ModifiedAt,

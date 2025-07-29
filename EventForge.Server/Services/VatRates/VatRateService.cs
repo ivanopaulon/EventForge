@@ -88,7 +88,6 @@ public class VatRateService : IVatRateService
                 Id = Guid.NewGuid(),
                 Name = createVatRateDto.Name,
                 Percentage = createVatRateDto.Percentage,
-                Status = createVatRateDto.Status,
                 ValidFrom = createVatRateDto.ValidFrom,
                 ValidTo = createVatRateDto.ValidTo,
                 Notes = createVatRateDto.Notes,
@@ -134,7 +133,6 @@ public class VatRateService : IVatRateService
 
             vatRate.Name = updateVatRateDto.Name;
             vatRate.Percentage = updateVatRateDto.Percentage;
-            vatRate.Status = updateVatRateDto.Status;
             vatRate.ValidFrom = updateVatRateDto.ValidFrom;
             vatRate.ValidTo = updateVatRateDto.ValidTo;
             vatRate.Notes = updateVatRateDto.Notes;
@@ -215,7 +213,6 @@ public class VatRateService : IVatRateService
             Id = vatRate.Id,
             Name = vatRate.Name,
             Percentage = vatRate.Percentage,
-            Status = vatRate.Status,
             ValidFrom = vatRate.ValidFrom,
             ValidTo = vatRate.ValidTo,
             Notes = vatRate.Notes,

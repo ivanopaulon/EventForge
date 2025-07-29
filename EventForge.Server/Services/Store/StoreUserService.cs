@@ -117,7 +117,6 @@ public class StoreUserService : IStoreUserService
                 Email = createStoreUserDto.Email,
                 PasswordHash = createStoreUserDto.PasswordHash,
                 Role = createStoreUserDto.Role,
-                Status = createStoreUserDto.Status,
                 Notes = createStoreUserDto.Notes,
                 CashierGroupId = createStoreUserDto.CashierGroupId,
                 CreatedBy = currentUser,
@@ -176,7 +175,6 @@ public class StoreUserService : IStoreUserService
             storeUser.Email = updateStoreUserDto.Email;
             storeUser.PasswordHash = updateStoreUserDto.PasswordHash;
             storeUser.Role = updateStoreUserDto.Role;
-            storeUser.Status = updateStoreUserDto.Status;
             storeUser.Notes = updateStoreUserDto.Notes;
             storeUser.CashierGroupId = updateStoreUserDto.CashierGroupId;
             storeUser.ModifiedAt = DateTime.UtcNow;
@@ -329,7 +327,6 @@ public class StoreUserService : IStoreUserService
                 Code = createStoreUserGroupDto.Code,
                 Name = createStoreUserGroupDto.Name,
                 Description = createStoreUserGroupDto.Description,
-                Status = createStoreUserGroupDto.Status,
                 CreatedBy = currentUser,
                 ModifiedBy = currentUser
             };
@@ -379,7 +376,6 @@ public class StoreUserService : IStoreUserService
             storeUserGroup.Code = updateStoreUserGroupDto.Code;
             storeUserGroup.Name = updateStoreUserGroupDto.Name;
             storeUserGroup.Description = updateStoreUserGroupDto.Description;
-            storeUserGroup.Status = updateStoreUserGroupDto.Status;
             storeUserGroup.ModifiedAt = DateTime.UtcNow;
             storeUserGroup.ModifiedBy = currentUser;
 
@@ -556,7 +552,6 @@ public class StoreUserService : IStoreUserService
                 Name = createStoreUserPrivilegeDto.Name,
                 Category = createStoreUserPrivilegeDto.Category,
                 Description = createStoreUserPrivilegeDto.Description,
-                Status = createStoreUserPrivilegeDto.Status,
                 SortOrder = createStoreUserPrivilegeDto.SortOrder,
                 CreatedBy = currentUser,
                 ModifiedBy = currentUser
@@ -608,7 +603,6 @@ public class StoreUserService : IStoreUserService
             storeUserPrivilege.Name = updateStoreUserPrivilegeDto.Name;
             storeUserPrivilege.Category = updateStoreUserPrivilegeDto.Category;
             storeUserPrivilege.Description = updateStoreUserPrivilegeDto.Description;
-            storeUserPrivilege.Status = updateStoreUserPrivilegeDto.Status;
             storeUserPrivilege.SortOrder = updateStoreUserPrivilegeDto.SortOrder;
             storeUserPrivilege.ModifiedAt = DateTime.UtcNow;
             storeUserPrivilege.ModifiedBy = currentUser;
@@ -702,7 +696,6 @@ public class StoreUserService : IStoreUserService
             Username = storeUser.Username,
             Email = storeUser.Email,
             Role = storeUser.Role,
-            Status = storeUser.Status,
             LastLoginAt = storeUser.LastLoginAt,
             Notes = storeUser.Notes,
             CashierGroupId = storeUser.CashierGroupId,
@@ -722,7 +715,6 @@ public class StoreUserService : IStoreUserService
             Code = storeUserGroup.Code,
             Name = storeUserGroup.Name,
             Description = storeUserGroup.Description,
-            Status = storeUserGroup.Status,
             CashierCount = cashierCount,
             PrivilegeCount = privilegeCount,
             CreatedAt = storeUserGroup.CreatedAt,
@@ -741,7 +733,6 @@ public class StoreUserService : IStoreUserService
             Name = storeUserPrivilege.Name,
             Category = storeUserPrivilege.Category,
             Description = storeUserPrivilege.Description,
-            Status = storeUserPrivilege.Status,
             SortOrder = storeUserPrivilege.SortOrder,
             GroupCount = groupCount,
             CreatedAt = storeUserPrivilege.CreatedAt,

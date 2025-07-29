@@ -36,10 +36,4 @@ public class CreatePaymentTermDto
     [Display(Name = "Payment Method", Description = "Preferred payment method.")]
     public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.BankTransfer;
 
-    /// <summary>
-    /// Status of the payment term.
-    /// </summary>
-    [Required]
-    [Display(Name = "Status", Description = "Current status of the payment term.")]
-    public PaymentTermStatus Status { get; set; } = PaymentTermStatus.Active;
 }

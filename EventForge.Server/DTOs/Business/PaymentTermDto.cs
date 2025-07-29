@@ -31,11 +31,6 @@ public class PaymentTermDto
     public PaymentMethod PaymentMethod { get; set; }
 
     /// <summary>
-    /// Status of the payment term.
-    /// </summary>
-    public PaymentTermStatus Status { get; set; }
-
-    /// <summary>
     /// Date and time when the payment term was created (UTC).
     /// </summary>
     public DateTime CreatedAt { get; set; }
