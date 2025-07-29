@@ -171,10 +171,10 @@ public class StoreUserService : IStoreUserService
             }
 
             storeUser.Name = updateStoreUserDto.Name;
-            storeUser.Username = updateStoreUserDto.Username;
+            // Note: Username and PasswordHash are intentionally not updatable via this method
             storeUser.Email = updateStoreUserDto.Email;
-            storeUser.PasswordHash = updateStoreUserDto.PasswordHash;
             storeUser.Role = updateStoreUserDto.Role;
+            storeUser.Status = updateStoreUserDto.Status;
             storeUser.Notes = updateStoreUserDto.Notes;
             storeUser.CashierGroupId = updateStoreUserDto.CashierGroupId;
             storeUser.ModifiedAt = DateTime.UtcNow;
