@@ -199,8 +199,9 @@ public class ProductService : IProductService
             product.Name = updateProductDto.Name;
             product.ShortDescription = updateProductDto.ShortDescription;
             product.Description = updateProductDto.Description;
-            product.Code = updateProductDto.Code;
+            // Note: Code and IsBundle are intentionally not updatable after creation
             product.ImageUrl = updateProductDto.ImageUrl;
+            product.Status = updateProductDto.Status;
             product.IsVatIncluded = updateProductDto.IsVatIncluded;
             product.DefaultPrice = updateProductDto.DefaultPrice;
             product.VatRateId = updateProductDto.VatRateId;
@@ -209,7 +210,6 @@ public class ProductService : IProductService
             product.FamilyNodeId = updateProductDto.FamilyNodeId;
             product.GroupNodeId = updateProductDto.GroupNodeId;
             product.StationId = updateProductDto.StationId;
-            product.IsBundle = updateProductDto.IsBundle;
             product.ModifiedBy = currentUser;
             product.ModifiedAt = DateTime.UtcNow;
 

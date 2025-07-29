@@ -4,6 +4,7 @@ namespace EventForge.Server.DTOs.Products;
 
 /// <summary>
 /// DTO for Product update operations.
+/// Contains only fields that can be modified after product creation.
 /// </summary>
 public class UpdateProductDto
 {
@@ -28,12 +29,6 @@ public class UpdateProductDto
     [MaxLength(500, ErrorMessage = "The description cannot exceed 500 characters.")]
     [Display(Name = "Description", Description = "Detailed product description.")]
     public string Description { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Product code (SKU or similar).
-    /// </summary>
-    [Display(Name = "Code", Description = "Product code (SKU or similar).")]
-    public string Code { get; set; } = string.Empty;
 
     /// <summary>
     /// Product image URL.
@@ -98,9 +93,7 @@ public class UpdateProductDto
     [Display(Name = "Station", Description = "Identifier of the station.")]
     public Guid? StationId { get; set; }
 
-    /// <summary>
-    /// Indicates if the product is a bundle.
-    /// </summary>
-    [Display(Name = "Is Bundle", Description = "Indicates if the product is a bundle.")]
-    public bool IsBundle { get; set; } = false;
+    // Note: Removed fields that should not be updatable:
+    // - Code: Product codes should be immutable after creation
+    // - IsBundle: Bundle type should not change after creation as it affects structure
 }
