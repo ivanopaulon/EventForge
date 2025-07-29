@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.Auth;
 
@@ -49,25 +50,4 @@ public class AdminTenant : AuditableEntity
     /// Navigation property: The tenant being managed.
     /// </summary>
     public virtual Tenant ManagedTenant { get; set; } = null!;
-}
-
-/// <summary>
-/// Admin access levels for tenant management.
-/// </summary>
-public enum AdminAccessLevel
-{
-    /// <summary>
-    /// Can view tenant information only.
-    /// </summary>
-    ReadOnly = 0,
-
-    /// <summary>
-    /// Can manage tenant users and settings.
-    /// </summary>
-    TenantAdmin = 1,
-
-    /// <summary>
-    /// Full administrative access to the tenant.
-    /// </summary>
-    FullAccess = 2
 }
