@@ -138,8 +138,7 @@ public class BankService : IBankService
             if (bank == null) return null;
 
             bank.Name = updateBankDto.Name;
-            bank.Code = updateBankDto.Code;
-            bank.SwiftBic = updateBankDto.SwiftBic;
+            // Note: Code and SwiftBic are intentionally not updatable - they are regulatory identifiers
             bank.Branch = updateBankDto.Branch;
             bank.Address = updateBankDto.Address;
             bank.Country = updateBankDto.Country;
