@@ -4,6 +4,7 @@ namespace EventForge.Server.DTOs.Banks;
 
 /// <summary>
 /// DTO for Bank update operations.
+/// Contains only fields that can be modified after creation.
 /// </summary>
 public class UpdateBankDto
 {
@@ -14,20 +15,6 @@ public class UpdateBankDto
     [MaxLength(100, ErrorMessage = "The bank name cannot exceed 100 characters.")]
     [Display(Name = "Bank Name", Description = "Name of the bank.")]
     public string Name { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Bank code (e.g., ABI, SWIFT/BIC).
-    /// </summary>
-    [MaxLength(20, ErrorMessage = "The bank code cannot exceed 20 characters.")]
-    [Display(Name = "Bank Code", Description = "Bank code (ABI, SWIFT/BIC, etc.).")]
-    public string? Code { get; set; }
-
-    /// <summary>
-    /// SWIFT/BIC code.
-    /// </summary>
-    [MaxLength(20, ErrorMessage = "The SWIFT/BIC code cannot exceed 20 characters.")]
-    [Display(Name = "SWIFT/BIC", Description = "SWIFT/BIC code of the bank.")]
-    public string? SwiftBic { get; set; }
 
     /// <summary>
     /// Bank branch or agency.
@@ -71,4 +58,6 @@ public class UpdateBankDto
     [MaxLength(200, ErrorMessage = "The notes cannot exceed 200 characters.")]
     [Display(Name = "Notes", Description = "Additional notes.")]
     public string? Notes { get; set; }
+
+    // Note: Removed Code and SwiftBic - these are regulatory identifiers that shouldn't change
 }

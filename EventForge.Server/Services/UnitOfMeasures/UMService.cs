@@ -149,7 +149,7 @@ public class UMService : IUMService
             if (um == null) return null;
 
             um.Name = updateUMDto.Name;
-            um.Symbol = updateUMDto.Symbol;
+            // Note: Symbol is intentionally not updatable - it's used in calculations
             um.Description = updateUMDto.Description;
             um.IsDefault = updateUMDto.IsDefault;
             um.ModifiedAt = DateTime.UtcNow;

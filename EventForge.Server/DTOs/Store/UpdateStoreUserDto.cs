@@ -4,6 +4,7 @@ namespace EventForge.Server.DTOs.Store;
 
 /// <summary>
 /// DTO for StoreUser update operations.
+/// Contains only fields that can be modified after user creation.
 /// </summary>
 public class UpdateStoreUserDto
 {
@@ -16,27 +17,12 @@ public class UpdateStoreUserDto
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Username for login.
-    /// </summary>
-    [Required(ErrorMessage = "The username is required.")]
-    [MaxLength(50, ErrorMessage = "The username cannot exceed 50 characters.")]
-    [Display(Name = "Username", Description = "Username for login.")]
-    public string Username { get; set; } = string.Empty;
-
-    /// <summary>
     /// Email address of the operator.
     /// </summary>
     [EmailAddress(ErrorMessage = "Invalid email address.")]
     [MaxLength(100, ErrorMessage = "The email cannot exceed 100 characters.")]
     [Display(Name = "Email", Description = "Email address of the operator.")]
     public string? Email { get; set; }
-
-    /// <summary>
-    /// Password hash of the operator.
-    /// </summary>
-    [MaxLength(200, ErrorMessage = "The password hash cannot exceed 200 characters.")]
-    [Display(Name = "Password Hash", Description = "Password hash of the operator.")]
-    public string? PasswordHash { get; set; }
 
     /// <summary>
     /// Role or permissions of the operator.
@@ -64,4 +50,8 @@ public class UpdateStoreUserDto
     /// </summary>
     [Display(Name = "Cashier Group", Description = "Cashier group the operator belongs to.")]
     public Guid? CashierGroupId { get; set; }
+
+    // Note: Removed fields that should not be updatable:
+    // - Username: Should be immutable after creation for security/audit reasons
+    // - PasswordHash: Should be handled through dedicated password change endpoints
 }

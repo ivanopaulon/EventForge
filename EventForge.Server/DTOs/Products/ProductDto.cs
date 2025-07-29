@@ -36,6 +36,11 @@ public class ProductDto
     public string ImageUrl { get; set; } = string.Empty;
 
     /// <summary>
+    /// Product status.
+    /// </summary>
+    public ProductStatus Status { get; set; }
+
+    /// <summary>
     /// Indicates if the price includes VAT.
     /// </summary>
     public bool IsVatIncluded { get; set; }

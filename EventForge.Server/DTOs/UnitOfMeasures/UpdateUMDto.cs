@@ -4,6 +4,7 @@ namespace EventForge.Server.DTOs.UnitOfMeasures;
 
 /// <summary>
 /// DTO for Unit of Measure update operations.
+/// Contains only fields that can be modified after creation.
 /// </summary>
 public class UpdateUMDto
 {
@@ -16,14 +17,6 @@ public class UpdateUMDto
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Symbol of the unit of measure (e.g., "kg", "l", "pcs").
-    /// </summary>
-    [Required(ErrorMessage = "The symbol is required.")]
-    [MaxLength(10, ErrorMessage = "The symbol cannot exceed 10 characters.")]
-    [Display(Name = "Symbol", Description = "Symbol of the unit of measure.")]
-    public string Symbol { get; set; } = string.Empty;
-
-    /// <summary>
     /// Description of the unit of measure.
     /// </summary>
     [MaxLength(200, ErrorMessage = "The description cannot exceed 200 characters.")]
@@ -31,11 +24,10 @@ public class UpdateUMDto
     public string? Description { get; set; }
 
     /// <summary>
-    /// Status of the unit of measure.
-    /// </summary>
-    /// <summary>
     /// Indicates if this is the default unit of measure.
     /// </summary>
     [Display(Name = "Default", Description = "Indicates if this is the default unit of measure.")]
     public bool IsDefault { get; set; }
+
+    // Note: Removed Symbol field - it's used in calculations and should be immutable
 }
