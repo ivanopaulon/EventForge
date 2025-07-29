@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.DTOs.Store;
 

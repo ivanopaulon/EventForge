@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.Common;
 
@@ -70,14 +71,4 @@ public class Address : AuditableEntity
     [MaxLength(100)]
     [Display(Name = "Notes", Description = "Additional notes.")]
     public string? Notes { get; set; } = string.Empty;
-}
-
-/// <summary>
-/// Address type enumeration.
-/// </summary>
-public enum AddressType
-{
-    Legal,
-    Operational,
-    Destination
 }

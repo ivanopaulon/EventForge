@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.Common;
 
@@ -44,16 +45,4 @@ public class Contact : AuditableEntity
     [MaxLength(100, ErrorMessage = "The notes cannot exceed 100 characters.")]
     [Display(Name = "Notes", Description = "Additional notes.")]
     public string? Notes { get; set; } = string.Empty;
-}
-
-/// <summary>
-/// Contact type enumeration.
-/// </summary>
-public enum ContactType
-{
-    Email,
-    Phone,
-    Fax,
-    PEC,
-    Other
 }

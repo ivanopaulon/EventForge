@@ -1,28 +1,8 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.Common;
 
-
-/// <summary>
-/// Defines the type of product classification node.
-/// </summary>
-public enum ProductClassificationType
-{
-    Category,
-    Subcategory,
-    Brand,
-    Line
-}
-
-/// <summary>
-/// Status for the classification node.
-/// </summary>
-public enum ProductClassificationNodeStatus
-{
-    Active,     // Node is active and visible
-    Inactive,   // Node is inactive/disabled
-    Pending     // Node is pending approval
-}
 
 /// <summary>
 /// Represents a node in the product classification hierarchy (e.g., category, family, group).
