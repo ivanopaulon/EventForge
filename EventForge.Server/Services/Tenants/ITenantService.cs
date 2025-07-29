@@ -118,6 +118,13 @@ public interface ITenantService
     /// <param name="updateDto">Updated limits data</param>
     /// <returns>Updated limits information</returns>
     Task<TenantLimitsDto> UpdateTenantLimitsAsync(Guid tenantId, EventForge.Server.DTOs.SuperAdmin.UpdateTenantLimitsDto updateDto);
+
+    /// <summary>
+    /// Soft deletes a tenant.
+    /// </summary>
+    /// <param name="tenantId">Tenant ID</param>
+    /// <param name="reason">Reason for deletion</param>
+    Task SoftDeleteTenantAsync(Guid tenantId, string reason);
 }
 
 /// <summary>

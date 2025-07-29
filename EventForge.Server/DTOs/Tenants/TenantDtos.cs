@@ -126,6 +126,16 @@ public class UpdateTenantDto
     /// </summary>
     [Range(1, int.MaxValue)]
     public int MaxUsers { get; set; } = 100;
+
+    /// <summary>
+    /// Indicates if the tenant is enabled.
+    /// </summary>
+    public bool IsEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Subscription expiry date for the tenant.
+    /// </summary>
+    public DateTime? SubscriptionExpiresAt { get; set; }
 }
 
 /// <summary>

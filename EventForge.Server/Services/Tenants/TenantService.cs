@@ -179,12 +179,10 @@ public class TenantService : ITenantService
         try
         {
             if (!_tenantContext.IsSuperAdmin)
-            {
-                _logger.LogWarning("Tentativo di accesso a tutti i tenant senza permessi.");
                 throw new UnauthorizedAccessException("Only super administrators can view all tenants.");
-            }
 
             var tenants = await _context.Tenants
+                .Where(t => !t.IsDeleted)
                 .OrderBy(t => t.Name)
                 .ToListAsync();
 
@@ -216,7 +214,7 @@ public class TenantService : ITenantService
                 throw new ArgumentException($"Tenant {tenantId} not found.");
             }
 
-            // Create copy for audit purposes
+            // Audit: copia originale
             var originalTenant = new Tenant
             {
                 Id = tenant.Id,
@@ -239,6 +237,8 @@ public class TenantService : ITenantService
             tenant.Domain = updateDto.Domain;
             tenant.ContactEmail = updateDto.ContactEmail;
             tenant.MaxUsers = updateDto.MaxUsers;
+            tenant.IsEnabled = updateDto.IsEnabled;
+            tenant.SubscriptionExpiresAt = updateDto.SubscriptionExpiresAt;
             tenant.ModifiedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -1010,5 +1010,42 @@ public class TenantService : ITenantService
         var startOfMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
         return await _context.Events
             .CountAsync(e => e.TenantId == tenantId && e.CreatedAt >= startOfMonth);
+    }
+
+    public async Task SoftDeleteTenantAsync(Guid tenantId, string reason)
+    {
+        if (!_tenantContext.IsSuperAdmin)
+            throw new UnauthorizedAccessException("Only super administrators can delete tenants.");
+
+        var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId);
+        if (tenant == null)
+            throw new ArgumentException($"Tenant {tenantId} not found.");
+
+        if (tenant.IsDeleted)
+            throw new InvalidOperationException("Tenant is already deleted.");
+
+        tenant.IsDeleted = true;
+        tenant.IsEnabled = false;
+        tenant.ModifiedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        // Audit log
+        var currentUserId = _tenantContext.CurrentUserId;
+        if (currentUserId.HasValue)
+        {
+            var auditTrail = new AuditTrail
+            {
+                TenantId = tenant.Id,
+                OperationType = AuthAuditOperationType.TenantStatusChanged,
+                PerformedByUserId = currentUserId.Value,
+                TargetTenantId = tenant.Id,
+                Details = $"Tenant soft deleted: {reason}",
+                WasSuccessful = true,
+                PerformedAt = DateTime.UtcNow
+            };
+            _context.AuditTrails.Add(auditTrail);
+            await _context.SaveChangesAsync();
+        }
     }
 }

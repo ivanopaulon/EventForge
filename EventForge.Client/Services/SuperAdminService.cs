@@ -11,7 +11,7 @@ namespace EventForge.Client.Services
         Task<TenantResponseDto?> GetTenantAsync(Guid id);
         Task<TenantResponseDto> CreateTenantAsync(CreateTenantDto createDto);
         Task<TenantResponseDto> UpdateTenantAsync(Guid id, UpdateTenantDto updateDto);
-        Task DeleteTenantAsync(Guid id);
+        Task DeleteTenantAsync(Guid id, string reason = "Soft deleted by superadmin");
         Task<TenantStatisticsDto> GetTenantStatisticsAsync();
 
         // User Management
@@ -136,10 +136,18 @@ namespace EventForge.Client.Services
                    throw new InvalidOperationException("Failed to update tenant");
         }
 
-        public async Task DeleteTenantAsync(Guid id)
+        public async Task DeleteTenantAsync(Guid id, string reason = "Soft deleted by superadmin")
         {
             var httpClient = await GetConfiguredHttpClientAsync();
-            var response = await httpClient.DeleteAsync($"api/Tenants/{id}");
+            var requestUri = $"api/Tenants/{id}/soft";
+            var content = new StringContent(System.Text.Json.JsonSerializer.Serialize(reason), System.Text.Encoding.UTF8, "application/json");
+
+            var request = new HttpRequestMessage(HttpMethod.Delete, requestUri)
+            {
+                Content = content
+            };
+
+            var response = await httpClient.SendAsync(request);
             response.EnsureSuccessStatusCode();
         }
 

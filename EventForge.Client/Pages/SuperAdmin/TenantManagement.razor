@@ -508,10 +508,12 @@
         {
             try
             {
-                // TODO: Implement actual delete API call when available
+                // Chiamata API per soft delete
+                await SuperAdminService.DeleteTenantAsync(tenant.Id, "Soft deleted by superadmin");
+
                 _tenants.Remove(tenant);
                 await LoadTenantStatisticsAsync();
-                
+
                 Snackbar.Add(TranslationService.GetTranslation("superAdmin.tenantDeleted", "Tenant eliminato con successo!"), Severity.Success);
                 StateHasChanged();
             }

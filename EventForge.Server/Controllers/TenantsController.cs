@@ -89,7 +89,7 @@ public class TenantsController : ControllerBase
     }
 
     /// <summary>
-    /// Updates tenant information.
+    /// Updates tenant information (DisplayName, Description, Domain, ContactEmail, MaxUsers, IsEnabled, SubscriptionExpiresAt).
     /// </summary>
     /// <param name="id">Tenant ID</param>
     /// <param name="updateDto">Updated tenant data</param>
@@ -600,4 +600,31 @@ public class TenantsController : ControllerBase
     }
 
     #endregion
+
+    /// <summary>
+    /// Soft delete di un tenant.
+    /// </summary>
+    /// <param name="id">Tenant ID</param>
+    /// <param name="reason">Motivazione della cancellazione</param>
+    [HttpDelete("{id}/soft")]
+    public async Task<IActionResult> SoftDeleteTenant(Guid id, [FromBody] string reason = "Soft deleted by admin")
+    {
+        try
+        {
+            await _tenantService.SoftDeleteTenantAsync(id, reason);
+            return Ok();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
 }
