@@ -84,7 +84,7 @@ public class StoreUsersController : BaseApiController
 
             if (storeUser == null)
             {
-                return NotFound(new { message = $"Store user with ID {id} not found." });
+                return CreateNotFoundProblem($"Store user with ID {id} not found.");
             }
 
             return Ok(storeUser);
@@ -176,7 +176,7 @@ public class StoreUsersController : BaseApiController
 
             if (storeUser == null)
             {
-                return NotFound(new { message = $"Store user with ID {id} not found." });
+                return CreateNotFoundProblem($"Store user with ID {id} not found.");
             }
 
             return Ok(storeUser);
@@ -207,7 +207,7 @@ public class StoreUsersController : BaseApiController
 
             if (!deleted)
             {
-                return NotFound(new { message = $"Store user with ID {id} not found." });
+                return CreateNotFoundProblem($"Store user with ID {id} not found.");
             }
 
             return NoContent();
@@ -241,12 +241,12 @@ public class StoreUsersController : BaseApiController
     {
         if (page < 1)
         {
-            return BadRequest(new { message = "Page number must be greater than 0." });
+            return CreateValidationProblemDetails("Page number must be greater than 0.");
         }
 
         if (pageSize < 1 || pageSize > 100)
         {
-            return BadRequest(new { message = "Page size must be between 1 and 100." });
+            return CreateValidationProblemDetails("Page size must be between 1 and 100.");
         }
 
         try
@@ -279,7 +279,7 @@ public class StoreUsersController : BaseApiController
 
             if (storeUserGroup == null)
             {
-                return NotFound(new { message = $"Store user group with ID {id} not found." });
+                return CreateNotFoundProblem($"Store user group with ID {id} not found.");
             }
 
             return Ok(storeUserGroup);
@@ -349,7 +349,7 @@ public class StoreUsersController : BaseApiController
 
             if (storeUserGroup == null)
             {
-                return NotFound(new { message = $"Store user group with ID {id} not found." });
+                return CreateNotFoundProblem($"Store user group with ID {id} not found.");
             }
 
             return Ok(storeUserGroup);
@@ -380,7 +380,7 @@ public class StoreUsersController : BaseApiController
 
             if (!deleted)
             {
-                return NotFound(new { message = $"Store user group with ID {id} not found." });
+                return CreateNotFoundProblem($"Store user group with ID {id} not found.");
             }
 
             return NoContent();
@@ -414,12 +414,12 @@ public class StoreUsersController : BaseApiController
     {
         if (page < 1)
         {
-            return BadRequest(new { message = "Page number must be greater than 0." });
+            return CreateValidationProblemDetails("Page number must be greater than 0.");
         }
 
         if (pageSize < 1 || pageSize > 100)
         {
-            return BadRequest(new { message = "Page size must be between 1 and 100." });
+            return CreateValidationProblemDetails("Page size must be between 1 and 100.");
         }
 
         try
@@ -452,7 +452,7 @@ public class StoreUsersController : BaseApiController
 
             if (storeUserPrivilege == null)
             {
-                return NotFound(new { message = $"Store user privilege with ID {id} not found." });
+                return CreateNotFoundProblem($"Store user privilege with ID {id} not found.");
             }
 
             return Ok(storeUserPrivilege);
@@ -544,7 +544,7 @@ public class StoreUsersController : BaseApiController
 
             if (storeUserPrivilege == null)
             {
-                return NotFound(new { message = $"Store user privilege with ID {id} not found." });
+                return CreateNotFoundProblem($"Store user privilege with ID {id} not found.");
             }
 
             return Ok(storeUserPrivilege);
@@ -575,7 +575,7 @@ public class StoreUsersController : BaseApiController
 
             if (!deleted)
             {
-                return NotFound(new { message = $"Store user privilege with ID {id} not found." });
+                return CreateNotFoundProblem($"Store user privilege with ID {id} not found.");
             }
 
             return NoContent();
