@@ -1,0 +1,323 @@
+using EventForge.DTOs.Common;
+using EventForge.Server.Filters;
+using EventForge.Server.Services.Common;
+using EventForge.Server.Services.Tenants;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace EventForge.Server.Controllers;
+
+/// <summary>
+/// Consolidated REST API controller for managing common entities (Addresses, Contacts, Classification Nodes).
+/// Provides unified CRUD operations with multi-tenant support and standardized patterns.
+/// This controller replaces individual AddressesController, ContactsController, and ClassificationNodesController
+/// to reduce endpoint fragmentation and improve maintainability.
+/// </summary>
+[Route("api/v1/entities")]
+[Authorize]
+public class EntityManagementController : BaseApiController
+{
+    private readonly IAddressService _addressService;
+    private readonly IContactService _contactService;
+    private readonly IClassificationNodeService _classificationNodeService;
+    private readonly ITenantContext _tenantContext;
+
+    public EntityManagementController(
+        IAddressService addressService,
+        IContactService contactService,
+        IClassificationNodeService classificationNodeService,
+        ITenantContext tenantContext)
+    {
+        _addressService = addressService ?? throw new ArgumentNullException(nameof(addressService));
+        _contactService = contactService ?? throw new ArgumentNullException(nameof(contactService));
+        _classificationNodeService = classificationNodeService ?? throw new ArgumentNullException(nameof(classificationNodeService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
+    }
+
+    #region Address Management
+
+    /// <summary>
+    /// Gets all addresses with optional pagination.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of addresses</returns>
+    /// <response code="200">Returns the paginated list of addresses</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("addresses")]
+    [ProducesResponseType(typeof(PagedResult<AddressDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<AddressDto>>> GetAddresses(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _addressService.GetAddressesAsync(page, pageSize, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving addresses.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets addresses by owner ID.
+    /// </summary>
+    /// <param name="ownerId">Owner ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of addresses for the owner</returns>
+    /// <response code="200">Returns the addresses for the owner</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("addresses/owner/{ownerId:guid}")]
+    [ProducesResponseType(typeof(IEnumerable<AddressDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<AddressDto>>> GetAddressesByOwner(
+        Guid ownerId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var addresses = await _addressService.GetAddressesByOwnerAsync(ownerId, cancellationToken);
+            return Ok(addresses);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving addresses for owner.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets an address by ID.
+    /// </summary>
+    /// <param name="id">Address ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Address information</returns>
+    /// <response code="200">Returns the address</response>
+    /// <response code="404">If the address is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("addresses/{id:guid}")]
+    [ProducesResponseType(typeof(AddressDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<AddressDto>> GetAddress(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var address = await _addressService.GetAddressByIdAsync(id, cancellationToken);
+            if (address == null)
+            {
+                return CreateNotFoundProblem($"Address with ID {id} not found.");
+            }
+
+            return Ok(address);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the address.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new address.
+    /// </summary>
+    /// <param name="createAddressDto">Address creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created address information</returns>
+    /// <response code="201">Address created successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("addresses")]
+    [ProducesResponseType(typeof(AddressDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<AddressDto>> CreateAddress(
+        [FromBody] CreateAddressDto createAddressDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _addressService.CreateAddressAsync(createAddressDto, GetCurrentUser(), cancellationToken);
+            return CreatedAtAction(nameof(GetAddress), new { id = result.Id }, result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while creating the address.", ex);
+        }
+    }
+
+    #endregion
+
+    #region Contact Management
+
+    /// <summary>
+    /// Gets all contacts with optional pagination.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of contacts</returns>
+    /// <response code="200">Returns the paginated list of contacts</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("contacts")]
+    [ProducesResponseType(typeof(PagedResult<ContactDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<ContactDto>>> GetContacts(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _contactService.GetContactsAsync(page, pageSize, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving contacts.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets contacts by owner ID.
+    /// </summary>
+    /// <param name="ownerId">Owner ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of contacts for the owner</returns>
+    /// <response code="200">Returns the contacts for the owner</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("contacts/owner/{ownerId:guid}")]
+    [ProducesResponseType(typeof(IEnumerable<ContactDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<ContactDto>>> GetContactsByOwner(
+        Guid ownerId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var contacts = await _contactService.GetContactsByOwnerAsync(ownerId, cancellationToken);
+            return Ok(contacts);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving contacts for owner.", ex);
+        }
+    }
+
+    #endregion
+
+    #region Classification Node Management
+
+    /// <summary>
+    /// Gets all classification nodes with optional pagination and parent filtering.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="parentId">Optional parent ID to filter children</param>
+    /// <param name="deleted">Filter for soft-deleted items: 'false' (default), 'true', or 'all'</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of classification nodes</returns>
+    /// <response code="200">Returns the paginated list of classification nodes</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("classification-nodes")]
+    [SoftDeleteFilter]
+    [ProducesResponseType(typeof(PagedResult<ClassificationNodeDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<ClassificationNodeDto>>> GetClassificationNodes(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] Guid? parentId = null,
+        [FromQuery] string deleted = "false",
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _classificationNodeService.GetClassificationNodesAsync(page, pageSize, parentId, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving classification nodes.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets root classification nodes (nodes without parents).
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of root classification nodes</returns>
+    /// <response code="200">Returns the root classification nodes</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("classification-nodes/root")]
+    [ProducesResponseType(typeof(IEnumerable<ClassificationNodeDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<ClassificationNodeDto>>> GetRootClassificationNodes(
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var nodes = await _classificationNodeService.GetRootClassificationNodesAsync(cancellationToken);
+            return Ok(nodes);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving root classification nodes.", ex);
+        }
+    }
+
+    #endregion
+}

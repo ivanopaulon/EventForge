@@ -1,22 +1,27 @@
 using EventForge.DTOs.Products;
 using EventForge.Server.Services.Products;
+using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Server.Controllers;
 
 /// <summary>
-/// REST API controller for product management.
+/// REST API controller for product management with multi-tenant support.
+/// Provides comprehensive CRUD operations for products, product codes, units, and bundles
+/// within the authenticated user's tenant context.
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
 public class ProductsController : BaseApiController
 {
     private readonly IProductService _productService;
+    private readonly ITenantContext _tenantContext;
 
-    public ProductsController(IProductService productService)
+    public ProductsController(IProductService productService, ITenantContext tenantContext)
     {
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
     }
 
     #region Product CRUD Operations
@@ -30,23 +35,23 @@ public class ProductsController : BaseApiController
     /// <returns>Paginated list of products</returns>
     /// <response code="200">Returns the paginated list of products</response>
     /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<ProductDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<ProductDto>>> GetProducts(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        if (page < 1)
-        {
-            return BadRequest(new { message = "Page number must be greater than 0." });
-        }
+        // Validate pagination parameters
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
 
-        if (pageSize < 1 || pageSize > 100)
-        {
-            return BadRequest(new { message = "Page size must be between 1 and 100." });
-        }
+        // Validate tenant access
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
 
         try
         {
@@ -55,8 +60,7 @@ public class ProductsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving products.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving products.", ex);
         }
     }
 
