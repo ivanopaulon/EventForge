@@ -1,22 +1,26 @@
 using EventForge.DTOs.Common;
 using EventForge.Server.Services.Common;
+using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Server.Controllers;
 
 /// <summary>
-/// REST API controller for common entities management (Address, Contact, Reference, ClassificationNode).
+/// REST API controller for address management with multi-tenant support.
+/// Provides CRUD operations for addresses within the authenticated user's tenant context.
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
 public class AddressesController : BaseApiController
 {
     private readonly IAddressService _addressService;
+    private readonly ITenantContext _tenantContext;
 
-    public AddressesController(IAddressService addressService)
+    public AddressesController(IAddressService addressService, ITenantContext tenantContext)
     {
         _addressService = addressService ?? throw new ArgumentNullException(nameof(addressService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
     }
 
     /// <summary>
@@ -28,23 +32,23 @@ public class AddressesController : BaseApiController
     /// <returns>Paginated list of addresses</returns>
     /// <response code="200">Returns the paginated list of addresses</response>
     /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<AddressDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<AddressDto>>> GetAddresses(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        if (page < 1)
-        {
-            return BadRequest(new { message = "Page number must be greater than 0." });
-        }
+        // Validate pagination parameters
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
 
-        if (pageSize < 1 || pageSize > 100)
-        {
-            return BadRequest(new { message = "Page size must be between 1 and 100." });
-        }
+        // Validate tenant access
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
 
         try
         {
@@ -53,8 +57,7 @@ public class AddressesController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving addresses.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving addresses.", ex);
         }
     }
 
@@ -65,12 +68,18 @@ public class AddressesController : BaseApiController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of addresses for the owner</returns>
     /// <response code="200">Returns the addresses for the owner</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("owner/{ownerId:guid}")]
     [ProducesResponseType(typeof(IEnumerable<AddressDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IEnumerable<AddressDto>>> GetAddressesByOwner(
         Guid ownerId,
         CancellationToken cancellationToken = default)
     {
+        // Validate tenant access
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
         try
         {
             var addresses = await _addressService.GetAddressesByOwnerAsync(ownerId, cancellationToken);
@@ -78,8 +87,7 @@ public class AddressesController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving addresses.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving addresses for owner.", ex);
         }
     }
 
@@ -91,28 +99,33 @@ public class AddressesController : BaseApiController
     /// <returns>Address information</returns>
     /// <response code="200">Returns the address</response>
     /// <response code="404">If the address is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(AddressDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<AddressDto>> GetAddress(
         Guid id,
         CancellationToken cancellationToken = default)
     {
+        // Validate tenant access
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
         try
         {
             var address = await _addressService.GetAddressByIdAsync(id, cancellationToken);
 
             if (address == null)
             {
-                return NotFound(new { message = $"Address with ID {id} not found." });
+                return CreateNotFoundProblem($"Address with ID {id} not found.");
             }
 
             return Ok(address);
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving the address.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the address.", ex);
         }
     }
 
