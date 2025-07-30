@@ -1,22 +1,26 @@
 using EventForge.DTOs.Business;
 using EventForge.Server.Services.Business;
+using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Server.Controllers;
 
 /// <summary>
-/// REST API controller for business party and business party accounting management.
+/// REST API controller for business party and business party accounting management with multi-tenant support.
+/// Provides comprehensive CRUD operations for business parties within the authenticated user's tenant context.
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
 public class BusinessPartiesController : BaseApiController
 {
     private readonly IBusinessPartyService _businessPartyService;
+    private readonly ITenantContext _tenantContext;
 
-    public BusinessPartiesController(IBusinessPartyService businessPartyService)
+    public BusinessPartiesController(IBusinessPartyService businessPartyService, ITenantContext tenantContext)
     {
         _businessPartyService = businessPartyService ?? throw new ArgumentNullException(nameof(businessPartyService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
     }
 
     #region BusinessParty Endpoints
@@ -30,23 +34,23 @@ public class BusinessPartiesController : BaseApiController
     /// <returns>Paginated list of business parties</returns>
     /// <response code="200">Returns the paginated list of business parties</response>
     /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<BusinessPartyDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<BusinessPartyDto>>> GetBusinessParties(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        if (page < 1)
-        {
-            return BadRequest(new { message = "Page number must be greater than 0." });
-        }
+        // Validate pagination parameters
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
 
-        if (pageSize < 1 || pageSize > 100)
-        {
-            return BadRequest(new { message = "Page size must be between 1 and 100." });
-        }
+        // Validate tenant access
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
 
         try
         {
@@ -55,7 +59,7 @@ public class BusinessPartiesController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while retrieving business parties.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving business parties.", ex);
         }
     }
 
