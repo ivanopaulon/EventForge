@@ -313,7 +313,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                 return null;
             }
 
-            documentHeader.ApprovalStatus = ApprovalStatus.Approved;
+            documentHeader.ApprovalStatus = EventForge.Server.Data.Entities.Documents.ApprovalStatus.Approved;
             documentHeader.ApprovedBy = currentUser;
             documentHeader.ApprovedAt = DateTime.UtcNow;
             documentHeader.ModifiedBy = currentUser;
@@ -360,7 +360,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                 return null;
             }
 
-            documentHeader.Status = DocumentStatus.Closed;
+            documentHeader.Status = EventForge.Server.Data.Entities.Documents.DocumentStatus.Closed;
             documentHeader.ClosedAt = DateTime.UtcNow;
             documentHeader.ModifiedBy = currentUser;
             documentHeader.ModifiedAt = DateTime.UtcNow;
@@ -422,13 +422,13 @@ public class DocumentHeaderService : IDocumentHeaderService
             query = query.Where(dh => dh.CustomerName != null && dh.CustomerName.Contains(parameters.CustomerName));
 
         if (parameters.Status.HasValue)
-            query = query.Where(dh => dh.Status == parameters.Status.Value);
+            query = query.Where(dh => dh.Status == (EventForge.Server.Data.Entities.Documents.DocumentStatus)parameters.Status.Value);
 
         if (parameters.PaymentStatus.HasValue)
-            query = query.Where(dh => dh.PaymentStatus == parameters.PaymentStatus.Value);
+            query = query.Where(dh => dh.PaymentStatus == (EventForge.Server.Data.Entities.Documents.PaymentStatus)parameters.PaymentStatus.Value);
 
         if (parameters.ApprovalStatus.HasValue)
-            query = query.Where(dh => dh.ApprovalStatus == parameters.ApprovalStatus.Value);
+            query = query.Where(dh => dh.ApprovalStatus == (EventForge.Server.Data.Entities.Documents.ApprovalStatus)parameters.ApprovalStatus.Value);
 
         if (parameters.TeamId.HasValue)
             query = query.Where(dh => dh.TeamId == parameters.TeamId.Value);

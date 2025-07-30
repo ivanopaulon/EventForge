@@ -86,6 +86,8 @@ namespace EventForge.DTOs.Tenants
         public int MaxUsers { get; set; }
         
         public bool IsEnabled { get; set; } = true;
+        
+        public DateTime? SubscriptionExpiresAt { get; set; }
     }
 
     /// <summary>
@@ -133,12 +135,15 @@ namespace EventForge.DTOs.Tenants
     {
         public Guid Id { get; set; }
         public Guid TenantId { get; set; }
+        public Guid ManagedTenantId { get; set; }
         public string TenantName { get; set; } = string.Empty;
         public Guid UserId { get; set; }
         public string Username { get; set; } = string.Empty;
+        public string? FullName { get; set; }
         public string Email { get; set; } = string.Empty;
         public string AccessLevel { get; set; } = string.Empty;
         public DateTime GrantedAt { get; set; }
+        public DateTime? ExpiresAt { get; set; }
         public string GrantedBy { get; set; } = string.Empty;
         public bool IsActive { get; set; }
     }
@@ -153,9 +158,17 @@ namespace EventForge.DTOs.Tenants
         
         public bool? IsActive { get; set; }
         
+        public string? Status { get; set; }
+        
+        public bool? NearUserLimit { get; set; }
+        
         public DateTime? CreatedFrom { get; set; }
         
         public DateTime? CreatedTo { get; set; }
+        
+        public DateTime? CreatedAfter { get; set; }
+        
+        public DateTime? CreatedBefore { get; set; }
         
         public int? MinUsers { get; set; }
         
@@ -187,9 +200,16 @@ namespace EventForge.DTOs.Tenants
         public int MaxUsers { get; set; }
         public int CurrentUsers { get; set; }
         public bool IsActive { get; set; }
+        public bool IsEnabled { get; set; }
+        public DateTime? SubscriptionExpiresAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+        public string? CreatedBy { get; set; }
+        public DateTime? ModifiedAt { get; set; }
+        public string? ModifiedBy { get; set; }
         public TenantLimitsDto Limits { get; set; } = new TenantLimitsDto();
+        public TenantUsageStatsDto? UsageStats { get; set; }
+        public List<string> RecentActivities { get; set; } = new List<string>();
         public IEnumerable<TenantAdminResponseDto> Admins { get; set; } = new List<TenantAdminResponseDto>();
     }
 

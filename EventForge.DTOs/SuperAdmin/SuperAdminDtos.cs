@@ -277,9 +277,11 @@ namespace EventForge.DTOs.SuperAdmin
     {
         public bool Success { get; set; }
         public string Message { get; set; } = string.Empty;
+        public string? ErrorMessage { get; set; }
         public Guid? UserId { get; set; }
         public string? Username { get; set; }
         public string? Email { get; set; }
+        public Dictionary<string, object>? Result { get; set; }
         public List<string> Errors { get; set; } = new List<string>();
         public List<string> Warnings { get; set; } = new List<string>();
         public DateTime ProcessedAt { get; set; } = DateTime.UtcNow;
@@ -425,6 +427,20 @@ namespace EventForge.DTOs.SuperAdmin
         public string? TenantName { get; set; }
         public Guid UserId { get; set; }
         public string Username { get; set; } = string.Empty;
+        public string? FullName { get; set; }
+        public string? Email { get; set; }
+        public Guid? CurrentTenantId { get; set; }
+        public string? CurrentTenantName { get; set; }
+        public Guid? OriginalTenantId { get; set; }
+        public string? OriginalTenantName { get; set; }
+        public Guid? ImpersonatedUserId { get; set; }
+        public string? ImpersonatedUsername { get; set; }
+        public bool IsSuperAdmin { get; set; }
+        public string? SessionId { get; set; }
+        public DateTime? LoginTime { get; set; }
+        public DateTime? LastActivity { get; set; }
+        public string? IpAddress { get; set; }
+        public List<string> ActiveSessions { get; set; } = new List<string>();
         public List<string> Roles { get; set; } = new List<string>();
         public bool IsImpersonating { get; set; }
         public string? ImpersonatingUser { get; set; }
