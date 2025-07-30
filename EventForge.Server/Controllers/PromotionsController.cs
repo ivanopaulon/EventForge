@@ -1,40 +1,56 @@
 using EventForge.DTOs.Promotions;
 using EventForge.Server.Services.Promotions;
+using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Server.Controllers;
 
 /// <summary>
-/// REST API controller for promotion management.
+/// REST API controller for promotion management with multi-tenant support.
+/// Provides CRUD operations for promotions within the authenticated user's tenant context.
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
 public class PromotionsController : BaseApiController
 {
     private readonly IPromotionService _promotionService;
+    private readonly ITenantContext _tenantContext;
 
-    public PromotionsController(IPromotionService promotionService)
+    public PromotionsController(IPromotionService promotionService, ITenantContext tenantContext)
     {
         _promotionService = promotionService ?? throw new ArgumentNullException(nameof(promotionService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
     }
 
     /// <summary>
     /// Gets all promotions with optional pagination.
     /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of promotions</returns>
+    /// <response code="200">Returns the paginated list of promotions</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<PromotionDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<PromotionDto>>> GetPromotions(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        if (page < 1)
-            return BadRequest(new { message = "Page number must be greater than 0." });
+        // Validate pagination parameters
+        var validationResult = ValidatePaginationParameters(page, pageSize);
+        if (validationResult != null)
+            return validationResult;
 
-        if (pageSize < 1 || pageSize > 100)
-            return BadRequest(new { message = "Page size must be between 1 and 100." });
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
 
         try
         {
@@ -43,19 +59,28 @@ public class PromotionsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving promotions.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving promotions.", ex);
         }
     }
 
     /// <summary>
     /// Gets active promotions.
     /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of active promotions</returns>
+    /// <response code="200">Returns the list of active promotions</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("active")]
     [ProducesResponseType(typeof(IEnumerable<PromotionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IEnumerable<PromotionDto>>> GetActivePromotions(
         CancellationToken cancellationToken = default)
     {
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
         try
         {
             var promotions = await _promotionService.GetActivePromotionsAsync(cancellationToken);
@@ -63,53 +88,75 @@ public class PromotionsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving active promotions.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving active promotions.", ex);
         }
     }
 
     /// <summary>
     /// Gets a promotion by ID.
     /// </summary>
+    /// <param name="id">Promotion ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Promotion information</returns>
+    /// <response code="200">Returns the promotion</response>
+    /// <response code="404">If the promotion is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(PromotionDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PromotionDto>> GetPromotion(
         Guid id,
         CancellationToken cancellationToken = default)
     {
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
         try
         {
             var promotion = await _promotionService.GetPromotionByIdAsync(id, cancellationToken);
 
             if (promotion == null)
-                return NotFound(new { message = $"Promotion with ID {id} not found." });
+                return CreateNotFoundProblem($"Promotion with ID {id} not found.");
 
             return Ok(promotion);
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving the promotion.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the promotion.", ex);
         }
     }
 
     /// <summary>
     /// Creates a new promotion.
     /// </summary>
+    /// <param name="createDto">Promotion creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created promotion</returns>
+    /// <response code="201">Returns the newly created promotion</response>
+    /// <response code="400">If the promotion data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPost]
     [ProducesResponseType(typeof(PromotionDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PromotionDto>> CreatePromotion(
         [FromBody] CreatePromotionDto createDto,
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
+
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
 
         try
         {
-            var currentUser = User?.Identity?.Name ?? "System";
+            var currentUser = GetCurrentUser();
             var promotion = await _promotionService.CreatePromotionAsync(createDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
@@ -117,69 +164,100 @@ public class PromotionsController : BaseApiController
                 new { id = promotion.Id },
                 promotion);
         }
+        catch (ArgumentException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while creating the promotion.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while creating the promotion.", ex);
         }
     }
 
     /// <summary>
     /// Updates an existing promotion.
     /// </summary>
+    /// <param name="id">Promotion ID</param>
+    /// <param name="updateDto">Promotion update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated promotion</returns>
+    /// <response code="200">Returns the updated promotion</response>
+    /// <response code="400">If the promotion data is invalid</response>
+    /// <response code="404">If the promotion is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(PromotionDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PromotionDto>> UpdatePromotion(
         Guid id,
         [FromBody] UpdatePromotionDto updateDto,
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
+
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
 
         try
         {
-            var currentUser = User?.Identity?.Name ?? "System";
+            var currentUser = GetCurrentUser();
             var promotion = await _promotionService.UpdatePromotionAsync(id, updateDto, currentUser, cancellationToken);
 
             if (promotion == null)
-                return NotFound(new { message = $"Promotion with ID {id} not found." });
+                return CreateNotFoundProblem($"Promotion with ID {id} not found.");
 
             return Ok(promotion);
         }
+        catch (ArgumentException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while updating the promotion.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while updating the promotion.", ex);
         }
     }
 
     /// <summary>
     /// Deletes a promotion (soft delete).
     /// </summary>
+    /// <param name="id">Promotion ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Confirmation of deletion</returns>
+    /// <response code="204">Promotion deleted successfully</response>
+    /// <response code="404">If the promotion is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> DeletePromotion(
         Guid id,
         CancellationToken cancellationToken = default)
     {
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
         try
         {
-            var currentUser = User?.Identity?.Name ?? "System";
+            var currentUser = GetCurrentUser();
             var deleted = await _promotionService.DeletePromotionAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
-                return NotFound(new { message = $"Promotion with ID {id} not found." });
+                return CreateNotFoundProblem($"Promotion with ID {id} not found.");
 
             return NoContent();
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while deleting the promotion.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while deleting the promotion.", ex);
         }
     }
 }

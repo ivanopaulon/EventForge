@@ -34,23 +34,25 @@ public class PriceListsController : BaseApiController
     /// <returns>Paginated list of price lists</returns>
     /// <response code="200">Returns the paginated list of price lists</response>
     /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<PriceListDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<PriceListDto>>> GetPriceLists(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        if (page < 1)
-        {
-            return BadRequest(new { message = "Page number must be greater than 0." });
-        }
+        // Validate pagination parameters
+        var validationResult = ValidatePaginationParameters(page, pageSize);
+        if (validationResult != null)
+            return validationResult;
 
-        if (pageSize < 1 || pageSize > 100)
-        {
-            return BadRequest(new { message = "Page size must be between 1 and 100." });
-        }
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
 
         try
         {
@@ -59,8 +61,7 @@ public class PriceListsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving price lists.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving price lists.", ex);
         }
     }
 
@@ -71,12 +72,19 @@ public class PriceListsController : BaseApiController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of price lists for the event</returns>
     /// <response code="200">Returns the list of price lists for the event</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("by-event/{eventId:guid}")]
     [ProducesResponseType(typeof(IEnumerable<PriceListDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IEnumerable<PriceListDto>>> GetPriceListsByEvent(
         Guid eventId,
         CancellationToken cancellationToken = default)
     {
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
         try
         {
             var priceLists = await _priceListService.GetPriceListsByEventAsync(eventId, cancellationToken);
@@ -84,8 +92,7 @@ public class PriceListsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving price lists for the event.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving price lists for the event.", ex);
         }
     }
 
@@ -97,28 +104,34 @@ public class PriceListsController : BaseApiController
     /// <returns>Price list information</returns>
     /// <response code="200">Returns the price list</response>
     /// <response code="404">If the price list is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(PriceListDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PriceListDto>> GetPriceList(
         Guid id,
         CancellationToken cancellationToken = default)
     {
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
         try
         {
             var priceList = await _priceListService.GetPriceListByIdAsync(id, cancellationToken);
 
             if (priceList == null)
             {
-                return NotFound(new { message = $"Price list with ID {id} not found." });
+                return CreateNotFoundProblem($"Price list with ID {id} not found.");
             }
 
             return Ok(priceList);
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving the price list.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the price list.", ex);
         }
     }
 
@@ -163,17 +176,24 @@ public class PriceListsController : BaseApiController
     /// <returns>Created price list</returns>
     /// <response code="201">Returns the newly created price list</response>
     /// <response code="400">If the price list data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPost]
     [ProducesResponseType(typeof(PriceListDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PriceListDto>> CreatePriceList(
         [FromBody] CreatePriceListDto createPriceListDto,
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
+
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
 
         try
         {
@@ -184,12 +204,11 @@ public class PriceListsController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while creating the price list.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while creating the price list.", ex);
         }
     }
 
