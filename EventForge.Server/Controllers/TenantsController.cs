@@ -32,7 +32,13 @@ public class TenantsController : BaseApiController
     /// </summary>
     /// <param name="createDto">Tenant creation data</param>
     /// <returns>Created tenant with admin user details</returns>
+    /// <response code="201">Returns the newly created tenant</response>
+    /// <response code="400">If the tenant data is invalid</response>
+    /// <response code="500">If an error occurred during creation</response>
     [HttpPost]
+    [ProducesResponseType(typeof(TenantResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<TenantResponseDto>> CreateTenant([FromBody] CreateTenantDto createDto)
     {
         try
@@ -55,7 +61,13 @@ public class TenantsController : BaseApiController
     /// </summary>
     /// <param name="id">Tenant ID</param>
     /// <returns>Tenant details</returns>
+    /// <response code="200">Returns the tenant</response>
+    /// <response code="404">If the tenant is not found</response>
+    /// <response code="500">If an error occurred</response>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(TenantResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<TenantResponseDto>> GetTenant(Guid id)
     {
         try
