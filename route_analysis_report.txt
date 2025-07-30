@@ -1,6 +1,6 @@
 EVENTFORGE - ROUTE CONFLICT ANALYSIS REPORT
 ==========================================
-Data Generazione: 2025-07-30 18:38:11
+Data Generazione: 2025-07-30 18:40:52
 Controller Analizzati: 10
 Route Totali: 68
 Conflitti Rilevati: 0
