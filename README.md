@@ -205,6 +205,69 @@ Always provide translated tooltips for better accessibility:
 3. **Run**: `dotnet run --project EventForge.Server`
 4. **Browse**: Navigate to the displayed localhost URL
 
+## 🔍 Route Conflict Detection & Swagger Maintenance
+
+EventForge include un sistema automatizzato per rilevare conflitti di route HTTP che possono impedire la generazione corretta del file Swagger/OpenAPI.
+
+### Strumenti Disponibili
+
+#### 1. Script Automatizzato di Analisi
+```bash
+# Linux/macOS
+./analyze-routes.sh
+
+# Windows
+analyze-routes.bat
+
+# Con parametri personalizzati
+./analyze-routes.sh "percorso/custom/Controllers" "report_personalizzato.txt"
+```
+
+#### 2. Applicazione Console Diretta
+```bash
+cd RouteConflictAnalyzer
+dotnet run -- "../EventForge.Server/Controllers" "../report.txt"
+```
+
+### Output dell'Analisi
+
+Lo script genera un report completo che include:
+- **Mapping completo** di tutte le route con HTTP methods
+- **Rilevamento conflitti** con route duplicate o ambigue
+- **Soluzioni suggerite** per ogni conflitto trovato
+- **Statistiche** di distribuzione delle route per controller e metodo HTTP
+
+### Risoluzione Conflitti
+
+1. **Consulta la Checklist**: Leggi `SWAGGER_ROUTE_CONFLICTS_CHECKLIST.md` per la procedura dettagliata
+2. **Analizza il Report**: Esamina il file di output per identificare i conflitti
+3. **Applica le Correzioni**: Utilizza le soluzioni suggerite nel report
+4. **Ri-esegui l'Analisi**: Verifica che i conflitti siano stati risolti
+
+### Integrazione nel Workflow di Sviluppo
+
+- **Pre-commit**: Esegui l'analisi prima di ogni commit che modifica i controller
+- **CI/CD**: Integra lo script nel pipeline per rilevare conflitti automaticamente
+- **Code Review**: Utilizza il report per documentare le modifiche alle route
+
+### Esempio di Conflitto e Risoluzione
+
+```csharp
+// ❌ CONFLITTO: Due route identiche
+[HttpGet("{id}")]
+public async Task<ActionResult<UserDto>> GetUser(Guid id) { }
+
+[HttpGet("{id}")]
+public async Task<ActionResult<UserDto>> GetUserDetails(Guid id) { }
+
+// ✅ RISOLTO: Route differenziate
+[HttpGet("{id}")]
+public async Task<ActionResult<UserDto>> GetUser(Guid id) { }
+
+[HttpGet("{id}/details")]
+public async Task<ActionResult<UserDto>> GetUserDetails(Guid id) { }
+```
+
 ## 📋 Quality Assurance
 
 ### Manual Testing Checklist
