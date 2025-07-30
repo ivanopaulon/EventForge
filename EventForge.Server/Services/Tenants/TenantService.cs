@@ -64,22 +64,9 @@ public class TenantService : ITenantService
             _context.Tenants.Add(tenant);
             await _context.SaveChangesAsync();
 
-            var currentUserId = _tenantContext.CurrentUserId;
-            if (currentUserId.HasValue)
-            {
-                var adminTenant = new AdminTenant
-                {
-                    Id = Guid.NewGuid(),
-                    TenantId = tenant.Id,
-                    UserId = currentUserId.Value,
-                    ManagedTenantId = tenant.Id,
-                    AccessLevel = AdminAccessLevel.FullAccess,
-                    GrantedAt = DateTime.UtcNow
-                };
-
-                _context.AdminTenants.Add(adminTenant);
-                await _context.SaveChangesAsync();
-            }
+            // Admin users are not automatically created during tenant creation
+            // to avoid FK constraint violations. Admin users should be assigned
+            // separately using AddTenantAdminAsync after user creation.
 
             await transaction.CommitAsync();
 
@@ -109,7 +96,8 @@ public class TenantService : ITenantService
             }
 
             var response = TenantMapper.ToServerResponseDto(tenant);
-            // No admin user is created automatically as per new policy
+            // Admin users are not automatically created or assigned during tenant creation
+            // to prevent FK constraint violations. Use AddTenantAdminAsync to assign admins after user creation.
             response.AdminUser = null;
 
             return response;
