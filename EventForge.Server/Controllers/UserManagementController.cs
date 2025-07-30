@@ -94,7 +94,7 @@ public class UserManagementController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving users");
-            return StatusCode(500, new { message = "Error retrieving users", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error retrieving users", ex);
         }
     }
 
@@ -140,7 +140,7 @@ public class UserManagementController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving user {UserId}", userId);
-            return StatusCode(500, new { message = "Error retrieving user", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error retrieving user", ex);
         }
     }
 
@@ -225,7 +225,7 @@ public class UserManagementController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating user status for {UserId}", userId);
-            return StatusCode(500, new { message = "Error updating user status", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error updating user status", ex);
         }
     }
 
@@ -336,7 +336,7 @@ public class UserManagementController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating user roles for {UserId}", userId);
-            return StatusCode(500, new { message = "Error updating user roles", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error updating user roles", ex);
         }
     }
 
@@ -398,7 +398,7 @@ public class UserManagementController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error forcing password change for {UserId}", userId);
-            return StatusCode(500, new { message = "Error forcing password change", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error forcing password change", ex);
         }
     }
 
@@ -420,7 +420,7 @@ public class UserManagementController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving roles");
-            return StatusCode(500, new { message = "Error retrieving roles", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error retrieving roles", ex);
         }
     }
 
@@ -552,7 +552,7 @@ public class UserManagementController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error searching users");
-            return StatusCode(500, new { message = "Error searching users", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error searching users", ex);
         }
     }
 
@@ -628,7 +628,7 @@ public class UserManagementController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving user statistics");
-            return StatusCode(500, new { message = "Error retrieving user statistics", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error retrieving user statistics", ex);
         }
     }
 
@@ -784,7 +784,7 @@ public class UserManagementController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error performing quick actions");
-            return StatusCode(500, new { message = "Error performing quick actions", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error performing quick actions", ex);
         }
     }
 
@@ -883,7 +883,7 @@ public class UserManagementController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating user");
-            return StatusCode(500, new { message = "Error creating user", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error creating user", ex);
         }
     }
 

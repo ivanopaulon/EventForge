@@ -42,11 +42,11 @@ public class TenantsController : BaseApiController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return CreateValidationProblemDetails(ex.Message);
         }
     }
 
@@ -63,13 +63,13 @@ public class TenantsController : BaseApiController
             var tenant = await _tenantService.GetTenantAsync(id);
             if (tenant == null)
             {
-                return NotFound($"Tenant {id} not found.");
+                return CreateNotFoundProblem("Tenant {id} not found.");
             }
             return Ok(tenant);
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
         }
     }
 
@@ -87,7 +87,7 @@ public class TenantsController : BaseApiController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
         }
     }
 
@@ -107,11 +107,11 @@ public class TenantsController : BaseApiController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
         }
         catch (ArgumentException ex)
         {
-            return NotFound(ex.Message);
+            return CreateNotFoundProblem(ex.Message);
         }
     }
 
@@ -130,11 +130,11 @@ public class TenantsController : BaseApiController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
         }
         catch (ArgumentException ex)
         {
-            return NotFound(ex.Message);
+            return CreateNotFoundProblem(ex.Message);
         }
     }
 
@@ -153,11 +153,11 @@ public class TenantsController : BaseApiController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
         }
         catch (ArgumentException ex)
         {
-            return NotFound(ex.Message);
+            return CreateNotFoundProblem(ex.Message);
         }
     }
 
@@ -176,7 +176,7 @@ public class TenantsController : BaseApiController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
         }
     }
 
@@ -200,15 +200,15 @@ public class TenantsController : BaseApiController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
         }
         catch (ArgumentException ex)
         {
-            return NotFound(ex.Message);
+            return CreateNotFoundProblem(ex.Message);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return CreateValidationProblemDetails(ex.Message);
         }
     }
 
@@ -227,11 +227,11 @@ public class TenantsController : BaseApiController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
         }
         catch (ArgumentException ex)
         {
-            return NotFound(ex.Message);
+            return CreateNotFoundProblem(ex.Message);
         }
     }
 
@@ -250,11 +250,11 @@ public class TenantsController : BaseApiController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
         }
         catch (ArgumentException ex)
         {
-            return NotFound(ex.Message);
+            return CreateNotFoundProblem(ex.Message);
         }
     }
 
@@ -272,11 +272,11 @@ public class TenantsController : BaseApiController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error retrieving tenant statistics", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error retrieving tenant statistics", ex);
         }
     }
 
@@ -295,11 +295,11 @@ public class TenantsController : BaseApiController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error searching tenants", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error searching tenants", ex);
         }
     }
 
@@ -316,17 +316,17 @@ public class TenantsController : BaseApiController
             var details = await _tenantService.GetTenantDetailsAsync(id);
             if (details == null)
             {
-                return NotFound($"Tenant {id} not found.");
+                return CreateNotFoundProblem("Tenant {id} not found.");
             }
             return Ok(details);
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error retrieving tenant details", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error retrieving tenant details", ex);
         }
     }
 
@@ -343,17 +343,17 @@ public class TenantsController : BaseApiController
             var limits = await _tenantService.GetTenantLimitsAsync(id);
             if (limits == null)
             {
-                return NotFound($"Tenant {id} not found.");
+                return CreateNotFoundProblem("Tenant {id} not found.");
             }
             return Ok(limits);
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error retrieving tenant limits", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error retrieving tenant limits", ex);
         }
     }
 
@@ -373,19 +373,19 @@ public class TenantsController : BaseApiController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
         }
         catch (ArgumentException ex)
         {
-            return NotFound(ex.Message);
+            return CreateNotFoundProblem(ex.Message);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error updating tenant limits", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error updating tenant limits", ex);
         }
     }
 
@@ -419,11 +419,11 @@ public class TenantsController : BaseApiController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error retrieving live tenant statistics", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error retrieving live tenant statistics", ex);
         }
     }
 
@@ -453,11 +453,11 @@ public class TenantsController : BaseApiController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error retrieving live activity", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error retrieving live activity", ex);
         }
     }
 
@@ -619,15 +619,15 @@ public class TenantsController : BaseApiController
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
         }
         catch (ArgumentException ex)
         {
-            return NotFound(ex.Message);
+            return CreateNotFoundProblem(ex.Message);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return CreateValidationProblemDetails(ex.Message);
         }
     }
 }

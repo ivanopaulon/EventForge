@@ -1,5 +1,8 @@
 using EventForge.DTOs.SuperAdmin;
 using EventForge.Server.Services.Configuration;
+using EventForge.Server.Services.Tenants;
+using EventForge.Server.Services.Audit;
+using EventForge.Server.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -45,7 +48,11 @@ public class SuperAdminController : BaseApiController
     /// <summary>
     /// Gets all configuration settings.
     /// </summary>
+    /// <response code="200">Returns all configuration settings</response>
+    /// <response code="500">If an error occurred while retrieving configurations</response>
     [HttpGet("configuration")]
+    [ProducesResponseType(typeof(IEnumerable<ConfigurationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<ConfigurationDto>>> GetConfigurations()
     {
         try
@@ -56,7 +63,7 @@ public class SuperAdminController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving configurations");
-            return StatusCode(500, new { message = "Error retrieving configurations", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error retrieving configurations", ex);
         }
     }
 
@@ -74,7 +81,7 @@ public class SuperAdminController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving configurations for category {Category}", category);
-            return StatusCode(500, new { message = "Error retrieving configurations", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error retrieving configurations", ex);
         }
     }
 
@@ -92,7 +99,7 @@ public class SuperAdminController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving configuration categories");
-            return StatusCode(500, new { message = "Error retrieving categories", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error retrieving categories", ex);
         }
     }
 
@@ -109,12 +116,12 @@ public class SuperAdminController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating configuration");
-            return StatusCode(500, new { message = "Error creating configuration", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error creating configuration", ex);
         }
     }
 
@@ -136,7 +143,7 @@ public class SuperAdminController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving configuration {Key}", key);
-            return StatusCode(500, new { message = "Error retrieving configuration", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error retrieving configuration", ex);
         }
     }
 
@@ -153,12 +160,12 @@ public class SuperAdminController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating configuration {Key}", key);
-            return StatusCode(500, new { message = "Error updating configuration", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error updating configuration", ex);
         }
     }
 
@@ -175,12 +182,12 @@ public class SuperAdminController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting configuration {Key}", key);
-            return StatusCode(500, new { message = "Error deleting configuration", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error deleting configuration", ex);
         }
     }
 
@@ -198,7 +205,7 @@ public class SuperAdminController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error testing SMTP configuration");
-            return StatusCode(500, new { message = "Error testing SMTP", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error testing SMTP", ex);
         }
     }
 
@@ -216,7 +223,7 @@ public class SuperAdminController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error reloading configuration");
-            return StatusCode(500, new { message = "Error reloading configuration", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error reloading configuration", ex);
         }
     }
 
@@ -242,7 +249,7 @@ public class SuperAdminController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error starting backup");
-            return StatusCode(500, new { message = "Error starting backup", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error starting backup", ex);
         }
     }
 
@@ -264,7 +271,7 @@ public class SuperAdminController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving backup status {BackupId}", backupId);
-            return StatusCode(500, new { message = "Error retrieving backup status", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error retrieving backup status", ex);
         }
     }
 
@@ -282,7 +289,7 @@ public class SuperAdminController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving backups");
-            return StatusCode(500, new { message = "Error retrieving backups", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error retrieving backups", ex);
         }
     }
 
@@ -299,12 +306,12 @@ public class SuperAdminController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error cancelling backup {BackupId}", backupId);
-            return StatusCode(500, new { message = "Error cancelling backup", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error cancelling backup", ex);
         }
     }
 
@@ -319,7 +326,7 @@ public class SuperAdminController : BaseApiController
             var result = await _backupService.DownloadBackupAsync(backupId);
             if (result == null)
             {
-                return NotFound(new { message = "Backup file not found or not completed" });
+                return CreateNotFoundProblem("Backup file not found or not completed");
             }
 
             return File(result.Value.FileStream, "application/zip", result.Value.FileName);
@@ -327,7 +334,7 @@ public class SuperAdminController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error downloading backup {BackupId}", backupId);
-            return StatusCode(500, new { message = "Error downloading backup", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error downloading backup", ex);
         }
     }
 
@@ -344,12 +351,12 @@ public class SuperAdminController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting backup {BackupId}", backupId);
-            return StatusCode(500, new { message = "Error deleting backup", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error deleting backup", ex);
         }
     }
 
