@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Common;
 using Microsoft.AspNetCore.Authorization;
