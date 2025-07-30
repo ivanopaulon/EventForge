@@ -27,76 +27,43 @@ namespace EventForge.Client.Services
 
     public class LogsService : ILogsService
     {
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IAuthService _authService;
+        private readonly IHttpClientService _httpClientService;
         private readonly SignalRService _signalRService;
         private readonly ILogger<LogsService> _logger;
 
         public LogsService(
-            IHttpClientFactory httpClientFactory,
-            IAuthService authService,
+            IHttpClientService httpClientService,
             SignalRService signalRService,
             ILogger<LogsService> logger)
         {
-            _httpClientFactory = httpClientFactory;
-            _authService = authService;
+            _httpClientService = httpClientService;
             _signalRService = signalRService;
             _logger = logger;
-        }
-
-        private async Task<HttpClient> CreateAuthenticatedHttpClientAsync()
-        {
-            var httpClient = _httpClientFactory.CreateClient("ApiClient");
-
-            var token = await _authService.GetAccessTokenAsync();
-            if (!string.IsNullOrEmpty(token))
-            {
-                httpClient.DefaultRequestHeaders.Authorization =
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            }
-
-            return httpClient;
         }
 
         #region Application Logs
 
         public async Task<PagedResult<ApplicationLogDto>> GetApplicationLogsAsync(Dictionary<string, object> queryParams)
         {
-            var httpClient = await CreateAuthenticatedHttpClientAsync();
-
             var queryString = BuildQueryString(queryParams);
-            var response = await httpClient.GetAsync($"api/v1/ApplicationLog?{queryString}");
-            response.EnsureSuccessStatusCode();
-
-            return await response.Content.ReadFromJsonAsync<PagedResult<ApplicationLogDto>>() ??
+            return await _httpClientService.GetAsync<PagedResult<ApplicationLogDto>>($"api/v1/application-logs?{queryString}") ??
                    new PagedResult<ApplicationLogDto>();
         }
 
         public async Task<ApplicationLogDto?> GetApplicationLogAsync(Guid id)
         {
-            var httpClient = await CreateAuthenticatedHttpClientAsync();
-            var response = await httpClient.GetAsync($"api/v1/ApplicationLog/{id}");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                return null;
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<ApplicationLogDto>();
+            return await _httpClientService.GetAsync<ApplicationLogDto>($"api/v1/application-logs/{id}");
         }
 
         public async Task<ApplicationLogStatisticsDto> GetApplicationLogStatisticsAsync()
         {
-            var httpClient = await CreateAuthenticatedHttpClientAsync();
-            var response = await httpClient.GetAsync("api/v1/ApplicationLog/statistics");
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<ApplicationLogStatisticsDto>() ??
+            return await _httpClientService.GetAsync<ApplicationLogStatisticsDto>("api/v1/application-logs/statistics") ??
                    new ApplicationLogStatisticsDto();
         }
 
         public async Task<Stream> ExportApplicationLogsAsync(object exportDto)
         {
-            var httpClient = await CreateAuthenticatedHttpClientAsync();
-            var response = await httpClient.PostAsJsonAsync("api/v1/ApplicationLog/export", exportDto);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadAsStreamAsync();
+            return await _httpClientService.GetStreamAsync("api/v1/application-logs/export");
         }
 
         #endregion
@@ -105,41 +72,25 @@ namespace EventForge.Client.Services
 
         public async Task<PagedResult<EntityChangeLogDto>> GetAuditLogsAsync(Dictionary<string, object> queryParams)
         {
-            var httpClient = await CreateAuthenticatedHttpClientAsync();
-
             var queryString = BuildQueryString(queryParams);
-            var response = await httpClient.GetAsync($"api/v1/AuditLog?{queryString}");
-            response.EnsureSuccessStatusCode();
-
-            return await response.Content.ReadFromJsonAsync<PagedResult<EntityChangeLogDto>>() ??
+            return await _httpClientService.GetAsync<PagedResult<EntityChangeLogDto>>($"api/v1/audit-logs?{queryString}") ??
                    new PagedResult<EntityChangeLogDto>();
         }
 
         public async Task<EntityChangeLogDto?> GetAuditLogAsync(Guid id)
         {
-            var httpClient = await CreateAuthenticatedHttpClientAsync();
-            var response = await httpClient.GetAsync($"api/v1/AuditLog/{id}");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                return null;
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<EntityChangeLogDto>();
+            return await _httpClientService.GetAsync<EntityChangeLogDto>($"api/v1/audit-logs/{id}");
         }
 
         public async Task<AuditLogStatisticsDto> GetAuditLogStatisticsAsync()
         {
-            var httpClient = await CreateAuthenticatedHttpClientAsync();
-            var response = await httpClient.GetAsync("api/v1/AuditLog/statistics");
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<AuditLogStatisticsDto>() ??
+            return await _httpClientService.GetAsync<AuditLogStatisticsDto>("api/v1/audit-logs/statistics") ??
                    new AuditLogStatisticsDto();
         }
 
         public async Task<Stream> ExportAuditLogsAsync(object exportDto)
         {
-            var httpClient = await CreateAuthenticatedHttpClientAsync();
-            var response = await httpClient.PostAsJsonAsync("api/v1/AuditLog/export", exportDto);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadAsStreamAsync();
+            return await _httpClientService.GetStreamAsync("api/v1/audit-logs/export");
         }
 
         #endregion
