@@ -109,12 +109,12 @@ public class BusinessPartyService : IBusinessPartyService
         }
     }
 
-    public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(BusinessPartyType partyType, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(DTOs.Common.BusinessPartyType partyType, CancellationToken cancellationToken = default)
     {
         try
         {
             var businessParties = await _context.BusinessParties
-                .Where(bp => bp.PartyType == partyType && !bp.IsDeleted)
+                .Where(bp => bp.PartyType == (Data.Entities.Business.BusinessPartyType)partyType && !bp.IsDeleted)
                 .OrderBy(bp => bp.Name)
                 .ToListAsync(cancellationToken);
 

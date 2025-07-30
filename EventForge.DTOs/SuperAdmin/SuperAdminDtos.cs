@@ -87,6 +87,144 @@ namespace EventForge.DTOs.SuperAdmin
     }
 
     /// <summary>
+    /// DTO for updating user status.
+    /// </summary>
+    public class UpdateUserStatusDto
+    {
+        public bool IsActive { get; set; }
+        
+        [MaxLength(500)]
+        public string? Reason { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for updating user roles.
+    /// </summary>
+    public class UpdateUserRolesDto
+    {
+        [Required]
+        public List<string> Roles { get; set; } = new List<string>();
+        
+        [MaxLength(500)]
+        public string? Reason { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for forcing password change.
+    /// </summary>
+    public class ForcePasswordChangeDto
+    {
+        [MaxLength(500)]
+        public string? Reason { get; set; }
+        
+        public bool RequireChangeOnNextLogin { get; set; } = true;
+    }
+
+    /// <summary>
+    /// DTO for user search criteria.
+    /// </summary>
+    public class UserSearchDto
+    {
+        [MaxLength(100)]
+        public string? SearchTerm { get; set; }
+        
+        public Guid? TenantId { get; set; }
+        
+        public List<string>? Roles { get; set; }
+        
+        public bool? IsActive { get; set; }
+        
+        public DateTime? CreatedFrom { get; set; }
+        
+        public DateTime? CreatedTo { get; set; }
+        
+        public DateTime? LastLoginFrom { get; set; }
+        
+        public DateTime? LastLoginTo { get; set; }
+        
+        public int PageNumber { get; set; } = 1;
+        
+        public int PageSize { get; set; } = 20;
+        
+        public string? SortBy { get; set; } = "CreatedAt";
+        
+        public string? SortOrder { get; set; } = "desc";
+    }
+
+    /// <summary>
+    /// DTO for quick user actions.
+    /// </summary>
+    public class QuickUserActionDto
+    {
+        [Required]
+        public List<Guid> UserIds { get; set; } = new List<Guid>();
+        
+        [Required]
+        public string Action { get; set; } = string.Empty; // "activate", "deactivate", "unlock", "force-password-change"
+        
+        [MaxLength(500)]
+        public string? Reason { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for quick action results.
+    /// </summary>
+    public class QuickActionResultDto
+    {
+        public string Action { get; set; } = string.Empty;
+        public int TotalUsers { get; set; }
+        public int SuccessfulActions { get; set; }
+        public int FailedActions { get; set; }
+        public List<string> Errors { get; set; } = new List<string>();
+        public DateTime ProcessedAt { get; set; } = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// DTO for creating a new user.
+    /// </summary>
+    public class CreateUserDto
+    {
+        [Required]
+        [MaxLength(100)]
+        public string Username { get; set; } = string.Empty;
+
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(100)]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(100)]
+        public string LastName { get; set; } = string.Empty;
+
+        [Required]
+        public Guid TenantId { get; set; }
+
+        public List<string> Roles { get; set; } = new List<string>();
+
+        [MaxLength(100)]
+        public string? Phone { get; set; }
+
+        public bool SendWelcomeEmail { get; set; } = true;
+    }
+
+    /// <summary>
+    /// DTO for user creation result.
+    /// </summary>
+    public class UserCreationResultDto
+    {
+        public bool Success { get; set; }
+        public Guid? UserId { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public string? TemporaryPassword { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public List<string> Warnings { get; set; } = new List<string>();
+    }
+
+    /// <summary>
     /// DTO for user statistics.
     /// </summary>
     public class UserStatisticsDto
@@ -116,6 +254,19 @@ namespace EventForge.DTOs.SuperAdmin
         public bool IncludeFiles { get; set; } = true;
         public bool IncludeDatabase { get; set; } = true;
         public bool IncludeConfiguration { get; set; } = true;
+    }
+
+    /// <summary>
+    /// DTO for backup request (simplified version for API calls).
+    /// </summary>
+    public class BackupRequestDto
+    {
+        public bool IncludeAuditLogs { get; set; } = true;
+        public bool IncludeUserData { get; set; } = true;
+        public bool IncludeConfiguration { get; set; } = true;
+        
+        [MaxLength(500)]
+        public string? Description { get; set; }
     }
 
     /// <summary>

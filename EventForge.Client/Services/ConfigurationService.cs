@@ -1,77 +1,8 @@
 using System.Net.Http.Json;
+using EventForge.DTOs.SuperAdmin;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Client.Services;
-
-/// <summary>
-/// DTOs for SuperAdmin operations - Client side.
-/// </summary>
-public class ConfigurationDto
-{
-    public Guid Id { get; set; }
-    public string Key { get; set; } = string.Empty;
-    public string Value { get; set; } = string.Empty;
-    public string? Description { get; set; }
-    public string Category { get; set; } = "General";
-    public bool IsEncrypted { get; set; } = false;
-    public bool RequiresRestart { get; set; } = false;
-    public DateTime CreatedAt { get; set; }
-    public DateTime? ModifiedAt { get; set; }
-    public string? ModifiedBy { get; set; }
-}
-
-public class CreateConfigurationDto
-{
-    public string Key { get; set; } = string.Empty;
-    public string Value { get; set; } = string.Empty;
-    public string? Description { get; set; }
-    public string Category { get; set; } = "General";
-    public bool IsEncrypted { get; set; } = false;
-    public bool RequiresRestart { get; set; } = false;
-}
-
-public class UpdateConfigurationDto
-{
-    public string Value { get; set; } = string.Empty;
-    public string? Description { get; set; }
-    public bool RequiresRestart { get; set; } = false;
-}
-
-public class SmtpTestDto
-{
-    public string ToEmail { get; set; } = string.Empty;
-    public string Subject { get; set; } = string.Empty;
-    public string Body { get; set; } = string.Empty;
-}
-
-public class SmtpTestResultDto
-{
-    public bool Success { get; set; }
-    public string? ErrorMessage { get; set; }
-    public DateTime TestedAt { get; set; } = DateTime.UtcNow;
-    public double DurationMs { get; set; }
-}
-
-public class BackupRequestDto
-{
-    public bool IncludeAuditLogs { get; set; } = true;
-    public bool IncludeUserData { get; set; } = true;
-    public bool IncludeConfiguration { get; set; } = true;
-    public string? Description { get; set; }
-}
-
-public class BackupStatusDto
-{
-    public Guid Id { get; set; }
-    public string Status { get; set; } = string.Empty;
-    public int ProgressPercentage { get; set; }
-    public string? CurrentOperation { get; set; }
-    public DateTime StartedAt { get; set; }
-    public DateTime? CompletedAt { get; set; }
-    public string? FilePath { get; set; }
-    public long? FileSizeBytes { get; set; }
-    public string? ErrorMessage { get; set; }
-    public string StartedBy { get; set; } = string.Empty;
-}
 
 /// <summary>
 /// Service for managing system configuration from the client.

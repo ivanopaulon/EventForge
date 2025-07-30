@@ -32,7 +32,7 @@ public interface IBusinessPartyService
     /// <param name="partyType">Business party type</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of business parties of the specified type</returns>
-    Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(BusinessPartyType partyType, CancellationToken cancellationToken = default);
+    Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(DTOs.Common.BusinessPartyType partyType, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates a new business party.
