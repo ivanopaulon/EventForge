@@ -1,6 +1,5 @@
 using EventForge.DTOs.UnitOfMeasures;
 using EventForge.Server.Services.UnitOfMeasures;
-using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

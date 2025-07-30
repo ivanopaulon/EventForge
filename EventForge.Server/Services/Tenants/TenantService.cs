@@ -1,7 +1,6 @@
 using EventForge.Server.Mappers;
 using Microsoft.EntityFrameworkCore;
 using AuthAuditOperationType = EventForge.DTOs.Common.AuditOperationType;
-using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Services.Tenants;
 
@@ -631,7 +630,7 @@ public class TenantService : ITenantService
 
             if (operationType.HasValue)
             {
-                query = query.Where(at => at.OperationType == (AuthAuditOperationType)operationType.Value);
+                query = query.Where(at => at.OperationType == operationType.Value);
             }
 
             var totalCount = await query.CountAsync();
@@ -643,7 +642,7 @@ public class TenantService : ITenantService
                 .Select(at => new AuditTrailResponseDto
                 {
                     Id = at.Id,
-                    OperationType = (AuditOperationType)at.OperationType,
+                    OperationType = at.OperationType,
                     PerformedByUserId = at.PerformedByUserId,
                     PerformedByUsername = at.PerformedByUser.Username,
                     SourceTenantId = at.SourceTenantId,

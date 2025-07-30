@@ -1,8 +1,6 @@
 using EventForge.DTOs.Warehouse;
-using EventForge.DTOs.Common;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Warehouse;
-using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

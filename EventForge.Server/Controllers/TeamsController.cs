@@ -1,6 +1,5 @@
 using EventForge.DTOs.Teams;
 using EventForge.Server.Services.Teams;
-using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

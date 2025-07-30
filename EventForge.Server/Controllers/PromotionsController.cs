@@ -1,6 +1,5 @@
 using EventForge.DTOs.Promotions;
 using EventForge.Server.Services.Promotions;
-using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

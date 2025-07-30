@@ -1,9 +1,6 @@
 using EventForge.Server.Services.Logs;
-using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.SuperAdmin;
 
 namespace EventForge.Server.Controllers;
 

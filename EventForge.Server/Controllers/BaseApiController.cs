@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using EventForge.Server.Services.Tenants;
 
 namespace EventForge.Server.Controllers;
 

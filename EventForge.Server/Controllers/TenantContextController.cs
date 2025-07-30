@@ -1,8 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using EventForge.DTOs.Tenants;
-using EventForge.DTOs.Common;
-using EventForge.Server.Services.Tenants;
 
 namespace EventForge.Server.Controllers;
 

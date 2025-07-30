@@ -14,9 +14,9 @@ public class TeamService : ITeamService
     private readonly ILogger<TeamService> _logger;
 
     public TeamService(
-        EventForgeDbContext context, 
-        IAuditLogService auditLogService, 
-        ITenantContext tenantContext, 
+        EventForgeDbContext context,
+        IAuditLogService auditLogService,
+        ITenantContext tenantContext,
         ILogger<TeamService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));

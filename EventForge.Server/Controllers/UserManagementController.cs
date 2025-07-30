@@ -2,12 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.SuperAdmin;
-using EventForge.Server.Services.Tenants;
-using EventForge.Server.Data;
-using EventForge.Server.Services.Audit;
-using EventForge.Server.Hubs;
 
 namespace EventForge.Server.Controllers;
 

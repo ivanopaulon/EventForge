@@ -1,6 +1,6 @@
+using EventForge.DTOs.Common;
 using System;
 using System.ComponentModel.DataAnnotations;
-using EventForge.DTOs.Common;
 
 namespace EventForge.DTOs.SuperAdmin
 {

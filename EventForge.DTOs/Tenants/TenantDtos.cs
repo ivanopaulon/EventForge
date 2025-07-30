@@ -36,7 +36,7 @@ namespace EventForge.DTOs.Tenants
         [Range(1, int.MaxValue, ErrorMessage = "Max users must be at least 1.")]
         [Display(Name = "field.maxUsers")]
         public int MaxUsers { get; set; } = 100;
-        
+
         public CreateTenantAdminDto? AdminUser { get; set; }
     }
 
@@ -84,9 +84,9 @@ namespace EventForge.DTOs.Tenants
 
         [Range(1, int.MaxValue, ErrorMessage = "Max users must be at least 1.")]
         public int MaxUsers { get; set; }
-        
+
         public bool IsEnabled { get; set; } = true;
-        
+
         public DateTime? SubscriptionExpiresAt { get; set; }
     }
 
@@ -155,34 +155,34 @@ namespace EventForge.DTOs.Tenants
     {
         [MaxLength(100)]
         public string? SearchTerm { get; set; }
-        
+
         public bool? IsActive { get; set; }
-        
+
         public string? Status { get; set; }
-        
+
         public bool? NearUserLimit { get; set; }
-        
+
         public DateTime? CreatedFrom { get; set; }
-        
+
         public DateTime? CreatedTo { get; set; }
-        
+
         public DateTime? CreatedAfter { get; set; }
-        
+
         public DateTime? CreatedBefore { get; set; }
-        
+
         public int? MinUsers { get; set; }
-        
+
         public int? MaxUsers { get; set; }
-        
+
         [MaxLength(100)]
         public string? Domain { get; set; }
-        
+
         public int PageNumber { get; set; } = 1;
-        
+
         public int PageSize { get; set; } = 20;
-        
+
         public string? SortBy { get; set; } = "CreatedAt";
-        
+
         public string? SortOrder { get; set; } = "desc";
     }
 
@@ -241,31 +241,31 @@ namespace EventForge.DTOs.Tenants
     {
         [Range(1, int.MaxValue)]
         public int MaxUsers { get; set; }
-        
+
         [Range(1, int.MaxValue)]
         public int MaxStorage { get; set; } // In MB
-        
+
         [Range(1, long.MaxValue)]
         public long MaxStorageBytes { get; set; }
-        
+
         [Range(1, int.MaxValue)]
         public int MaxApiCalls { get; set; } // Per day
-        
+
         [Range(1, int.MaxValue)]
         public int MaxEventsPerMonth { get; set; }
-        
+
         public bool CanCreateSubTenants { get; set; }
-        
+
         public bool CanAccessReports { get; set; }
-        
+
         public bool CanExportData { get; set; }
-        
+
         [Range(1, int.MaxValue)]
         public int MaxDocuments { get; set; }
-        
+
         [Range(1, int.MaxValue)]
         public int MaxProducts { get; set; }
-        
+
         [MaxLength(500)]
         public string? Reason { get; set; }
     }

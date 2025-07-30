@@ -1,7 +1,7 @@
+using EventForge.DTOs.Common;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using EventForge.DTOs.Common;
 
 namespace EventForge.Client.Services;
 

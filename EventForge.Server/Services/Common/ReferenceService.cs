@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.Server.Mappers;
 using Microsoft.EntityFrameworkCore;
 

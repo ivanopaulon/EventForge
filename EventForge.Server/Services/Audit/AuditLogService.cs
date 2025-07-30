@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using System.Reflection;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.SuperAdmin;
 
 namespace EventForge.Server.Services.Audit;
 

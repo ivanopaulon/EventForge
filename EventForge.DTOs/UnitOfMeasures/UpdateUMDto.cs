@@ -1,9 +1,8 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.DTOs.UnitOfMeasures
 {
-    
+
     /// <summary>
     /// DTO for Unit of Measure update operations.
     /// Contains only fields that can be modified after creation.
@@ -17,20 +16,20 @@ namespace EventForge.DTOs.UnitOfMeasures
         [MaxLength(50, ErrorMessage = "The name cannot exceed 50 characters.")]
         [Display(Name = "Name", Description = "Name of the unit of measure.")]
         public string Name { get; set; } = string.Empty;
-    
+
         /// <summary>
         /// Description of the unit of measure.
         /// </summary>
         [MaxLength(200, ErrorMessage = "The description cannot exceed 200 characters.")]
         [Display(Name = "Description", Description = "Description of the unit of measure.")]
         public string? Description { get; set; }
-    
+
         /// <summary>
         /// Indicates if this is the default unit of measure.
         /// </summary>
         [Display(Name = "Default", Description = "Indicates if this is the default unit of measure.")]
         public bool IsDefault { get; set; }
-    
+
         // Note: Removed Symbol field - it's used in calculations and should be immutable
     }
 }

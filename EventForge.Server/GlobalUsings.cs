@@ -3,8 +3,12 @@
 global using EventForge.DTOs.Audit;
 global using EventForge.DTOs.Auth;
 global using EventForge.DTOs.Common;
+global using EventForge.DTOs.Events;
 global using EventForge.DTOs.Health;
 global using EventForge.DTOs.Performance;
+// Logs DTOs are in SuperAdmin namespace
+global using EventForge.DTOs.SuperAdmin;
+global using EventForge.DTOs.Tenants;
 global using EventForge.Server.Data;
 global using EventForge.Server.Data.Entities.Audit;
 global using EventForge.Server.Data.Entities.Auth;
@@ -20,10 +24,6 @@ global using EventForge.Server.Data.Entities.StationMonitor;
 global using EventForge.Server.Data.Entities.Store;
 global using EventForge.Server.Data.Entities.Teams;
 global using EventForge.Server.Data.Entities.Warehouse;
-global using EventForge.DTOs.Events;
-// Logs DTOs are in SuperAdmin namespace
-global using EventForge.DTOs.SuperAdmin;
-global using EventForge.DTOs.Tenants;
 global using EventForge.Server.Extensions;
 global using EventForge.Server.Hubs;
 global using EventForge.Server.Services.Audit;

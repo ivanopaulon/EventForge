@@ -93,7 +93,7 @@ namespace EventForge.DTOs.SuperAdmin
     public class UpdateUserStatusDto
     {
         public bool IsActive { get; set; }
-        
+
         [MaxLength(500)]
         public string? Reason { get; set; }
     }
@@ -105,7 +105,7 @@ namespace EventForge.DTOs.SuperAdmin
     {
         [Required]
         public List<string> Roles { get; set; } = new List<string>();
-        
+
         [MaxLength(500)]
         public string? Reason { get; set; }
     }
@@ -117,7 +117,7 @@ namespace EventForge.DTOs.SuperAdmin
     {
         [MaxLength(500)]
         public string? Reason { get; set; }
-        
+
         public bool RequireChangeOnNextLogin { get; set; } = true;
     }
 
@@ -128,39 +128,39 @@ namespace EventForge.DTOs.SuperAdmin
     {
         [MaxLength(100)]
         public string? SearchTerm { get; set; }
-        
+
         public Guid? TenantId { get; set; }
-        
+
         public string? Role { get; set; }
-        
+
         public List<string>? Roles { get; set; }
-        
+
         public bool? IsActive { get; set; }
-        
+
         public bool? MustChangePassword { get; set; }
-        
+
         public DateTime? CreatedFrom { get; set; }
-        
+
         public DateTime? CreatedTo { get; set; }
-        
+
         public DateTime? CreatedAfter { get; set; }
-        
+
         public DateTime? CreatedBefore { get; set; }
-        
+
         public DateTime? LastLoginFrom { get; set; }
-        
+
         public DateTime? LastLoginTo { get; set; }
-        
+
         public DateTime? LastLoginAfter { get; set; }
-        
+
         public DateTime? LastLoginBefore { get; set; }
-        
+
         public int PageNumber { get; set; } = 1;
-        
+
         public int PageSize { get; set; } = 20;
-        
+
         public string? SortBy { get; set; } = "CreatedAt";
-        
+
         public string? SortOrder { get; set; } = "desc";
     }
 
@@ -171,10 +171,10 @@ namespace EventForge.DTOs.SuperAdmin
     {
         [Required]
         public List<Guid> UserIds { get; set; } = new List<Guid>();
-        
+
         [Required]
         public string Action { get; set; } = string.Empty; // "activate", "deactivate", "unlock", "force-password-change"
-        
+
         [MaxLength(500)]
         public string? Reason { get; set; }
     }
@@ -223,9 +223,9 @@ namespace EventForge.DTOs.SuperAdmin
         public string? Phone { get; set; }
 
         public bool SendWelcomeEmail { get; set; } = true;
-        
+
         public bool IsActive { get; set; } = true;
-        
+
         public bool MustChangePassword { get; set; } = true;
     }
 
@@ -312,7 +312,7 @@ namespace EventForge.DTOs.SuperAdmin
         public bool IncludeAuditLogs { get; set; } = true;
         public bool IncludeUserData { get; set; } = true;
         public bool IncludeConfiguration { get; set; } = true;
-        
+
         [MaxLength(500)]
         public string? Description { get; set; }
     }

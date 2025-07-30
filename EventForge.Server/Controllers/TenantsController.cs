@@ -2,9 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AuthAuditOperationType = EventForge.DTOs.Common.AuditOperationType;
-using EventForge.DTOs.Common;
-using EventForge.Server.Services.Tenants;
-using EventForge.Server.Data;
 
 namespace EventForge.Server.Controllers;
 

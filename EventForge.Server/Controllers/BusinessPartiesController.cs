@@ -1,6 +1,5 @@
 using EventForge.DTOs.Business;
 using EventForge.Server.Services.Business;
-using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

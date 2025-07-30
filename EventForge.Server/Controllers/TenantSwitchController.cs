@@ -3,12 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using AuthAuditOperationType = EventForge.DTOs.Common.AuditOperationType;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.SuperAdmin;
-using EventForge.Server.Data;
-using EventForge.Server.Services.Tenants;
-using EventForge.Server.Services.Audit;
-using EventForge.Server.Hubs;
 
 namespace EventForge.Server.Controllers;
 

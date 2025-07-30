@@ -1,10 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using EventForge.DTOs.Audit;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.SuperAdmin;
-using EventForge.Server.Services.Audit;
-using EventForge.Server.Services.Tenants;
 
 namespace EventForge.Server.Controllers;
 
@@ -421,7 +416,7 @@ public class AuditLogController : BaseApiController
         try
         {
             var exportResult = await _auditLogService.GetExportStatusAsync(exportId);
-            
+
             if (exportResult == null)
             {
                 return CreateNotFoundProblem("Export not found");

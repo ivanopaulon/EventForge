@@ -1,6 +1,4 @@
 using System.Linq.Expressions;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.SuperAdmin;
 
 namespace EventForge.Server.Services.Audit;
 

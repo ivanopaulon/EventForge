@@ -1,5 +1,4 @@
-﻿using System.Reflection;
-using System.Text;
+﻿using System.Text;
 using System.Text.RegularExpressions;
 
 namespace RouteConflictAnalyzer;
@@ -35,7 +34,7 @@ class Program
 
         // Analizza tutti i file controller
         await AnalyzeControllersAsync(controllersPath);
-        
+
         // Genera il report
         await GenerateReportAsync(outputPath);
 
@@ -43,7 +42,7 @@ class Program
         Console.WriteLine($"📊 Controller analizzati: {Routes.GroupBy(r => r.Controller).Count()}");
         Console.WriteLine($"🔍 Route totali trovate: {Routes.Count}");
         Console.WriteLine($"⚠️  Conflitti rilevati: {Conflicts.Count}");
-        
+
         if (Conflicts.Any())
         {
             Console.WriteLine();
@@ -56,13 +55,13 @@ class Program
     private static async Task AnalyzeControllersAsync(string controllersPath)
     {
         var controllerFiles = Directory.GetFiles(controllersPath, "*.cs");
-        
+
         foreach (var file in controllerFiles)
         {
             Console.WriteLine($"   🔍 Analizzando: {Path.GetFileName(file)}");
             await AnalyzeControllerFileAsync(file);
         }
-        
+
         Console.WriteLine();
         Console.WriteLine("🔍 Rilevamento conflitti...");
         DetectConflicts();
@@ -72,19 +71,19 @@ class Program
     {
         var content = await File.ReadAllTextAsync(filePath);
         var fileName = Path.GetFileNameWithoutExtension(filePath);
-        
+
         // Estrae il nome del controller
         var controllerMatch = Regex.Match(content, @"class\s+(\w+)\s*:\s*\w*Controller");
         var controllerName = controllerMatch.Success ? controllerMatch.Groups[1].Value : fileName;
-        
+
         // Estrae la route base del controller
         var baseRouteMatch = Regex.Match(content, @"\[Route\s*\(\s*""([^""]+)""\s*\)\]");
         var baseRoute = baseRouteMatch.Success ? baseRouteMatch.Groups[1].Value : "";
-        
+
         // Sostituisce [controller] con il nome effettivo
         if (baseRoute.Contains("[controller]"))
         {
-            var controllerRouteValue = controllerName.EndsWith("Controller") 
+            var controllerRouteValue = controllerName.EndsWith("Controller")
                 ? controllerName[..^10] // Rimuove "Controller"
                 : controllerName;
             baseRoute = baseRoute.Replace("[controller]", controllerRouteValue);
@@ -99,9 +98,9 @@ class Program
             var httpMethod = match.Groups[1].Value.ToUpper();
             var routeSuffix = match.Groups[2].Value;
             var methodName = match.Groups[3].Value;
-            
+
             var fullRoute = CombineRoutes(baseRoute, routeSuffix);
-            
+
             Routes.Add(new RouteInfo
             {
                 Controller = controllerName,
@@ -117,13 +116,13 @@ class Program
     {
         if (string.IsNullOrEmpty(baseRoute) && string.IsNullOrEmpty(suffix))
             return "/";
-            
+
         if (string.IsNullOrEmpty(suffix))
             return baseRoute;
-            
+
         if (string.IsNullOrEmpty(baseRoute))
             return suffix;
-            
+
         var combined = baseRoute.TrimEnd('/') + "/" + suffix.TrimStart('/');
         return combined.StartsWith('/') ? combined : "/" + combined;
     }
@@ -131,7 +130,7 @@ class Program
     private static void DetectConflicts()
     {
         var routeGroups = Routes.GroupBy(r => new { r.HttpMethod, Route = NormalizeRoute(r.RouteTemplate) });
-        
+
         foreach (var group in routeGroups.Where(g => g.Count() > 1))
         {
             var conflictingRoutes = group.ToList();
@@ -155,7 +154,7 @@ class Program
     private static async Task GenerateReportAsync(string outputPath)
     {
         var report = new StringBuilder();
-        
+
         // Header del report
         report.AppendLine("EVENTFORGE - ROUTE CONFLICT ANALYSIS REPORT");
         report.AppendLine("==========================================");
@@ -169,14 +168,14 @@ class Program
         report.AppendLine("📋 MAPPING COMPLETO DELLE ROUTE");
         report.AppendLine("==============================");
         report.AppendLine();
-        
+
         var groupedByController = Routes.GroupBy(r => r.Controller).OrderBy(g => g.Key);
-        
+
         foreach (var controllerGroup in groupedByController)
         {
             report.AppendLine($"Controller: {controllerGroup.Key}");
             report.AppendLine(new string('-', 50));
-            
+
             foreach (var route in controllerGroup.OrderBy(r => r.HttpMethod).ThenBy(r => r.RouteTemplate))
             {
                 report.AppendLine($"  {route.HttpMethod,-7} {route.RouteTemplate,-40} -> {route.Method}()");
@@ -190,12 +189,12 @@ class Program
             report.AppendLine("⚠️  CONFLITTI RILEVATI");
             report.AppendLine("=====================");
             report.AppendLine();
-            
+
             foreach (var conflict in Conflicts.OrderBy(c => c.HttpMethod).ThenBy(c => c.RoutePattern))
             {
                 report.AppendLine($"🚨 CONFLITTO: {conflict.HttpMethod} {conflict.RoutePattern}");
                 report.AppendLine(new string('-', 60));
-                
+
                 foreach (var route in conflict.ConflictingRoutes)
                 {
                     report.AppendLine($"   Controller: {route.Controller}");
@@ -203,7 +202,7 @@ class Program
                     report.AppendLine($"   File: {Path.GetFileName(route.FilePath)}");
                     report.AppendLine();
                 }
-                
+
                 report.AppendLine("💡 SOLUZIONI SUGGERITE:");
                 report.AppendLine("   1. Rinominare uno dei metodi con un percorso più specifico");
                 report.AppendLine("   2. Aggiungere un prefisso alla route (es. 'details', 'summary')");
@@ -226,28 +225,28 @@ class Program
         report.AppendLine("📊 STATISTICHE");
         report.AppendLine("===============");
         report.AppendLine();
-        
+
         var methodStats = Routes.GroupBy(r => r.HttpMethod)
             .Select(g => new { Method = g.Key, Count = g.Count() })
             .OrderByDescending(s => s.Count);
-            
+
         report.AppendLine("Distribuzione per HTTP Method:");
         foreach (var stat in methodStats)
         {
             report.AppendLine($"  {stat.Method}: {stat.Count} route");
         }
         report.AppendLine();
-        
+
         var controllerStats = Routes.GroupBy(r => r.Controller)
             .Select(g => new { Controller = g.Key, Count = g.Count() })
             .OrderByDescending(s => s.Count);
-            
+
         report.AppendLine("Route per Controller:");
         foreach (var stat in controllerStats.Take(10))
         {
             report.AppendLine($"  {stat.Controller}: {stat.Count} route");
         }
-        
+
         await File.WriteAllTextAsync(outputPath, report.ToString());
     }
 }

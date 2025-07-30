@@ -1,6 +1,4 @@
-using System.Net.Http.Json;
 using EventForge.DTOs.SuperAdmin;
-using EventForge.DTOs.Common;
 
 namespace EventForge.Client.Services;
 

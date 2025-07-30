@@ -1,7 +1,6 @@
 using EventForge.DTOs.Audit;
 using EventForge.DTOs.Common;
 using EventForge.DTOs.SuperAdmin;
-using System.Net.Http.Json;
 
 namespace EventForge.Client.Services
 {

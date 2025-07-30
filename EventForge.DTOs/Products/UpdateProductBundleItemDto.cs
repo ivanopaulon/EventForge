@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.DTOs.Products
 {
-    
+
     /// <summary>
     /// DTO for ProductBundleItem update operations.
     /// </summary>
@@ -15,7 +15,7 @@ namespace EventForge.DTOs.Products
         [Required(ErrorMessage = "The component product is required.")]
         [Display(Name = "Component Product", Description = "Component product (child).")]
         public Guid ComponentProductId { get; set; }
-    
+
         /// <summary>
         /// Quantity of the component in the bundle.
         /// </summary>

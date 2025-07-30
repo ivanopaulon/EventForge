@@ -14,9 +14,9 @@ public class StoreUserService : IStoreUserService
     private readonly ILogger<StoreUserService> _logger;
 
     public StoreUserService(
-        EventForgeDbContext context, 
-        IAuditLogService auditLogService, 
-        ITenantContext tenantContext, 
+        EventForgeDbContext context,
+        IAuditLogService auditLogService,
+        ITenantContext tenantContext,
         ILogger<StoreUserService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
