@@ -3,16 +3,18 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AuthAuditOperationType = EventForge.DTOs.Common.AuditOperationType;
 using EventForge.DTOs.Common;
+using EventForge.Server.Services.Tenants;
+using EventForge.Server.Data;
 
 namespace EventForge.Server.Controllers;
 
 /// <summary>
 /// Controller for tenant management operations (super admin only).
+/// Provides comprehensive CRUD operations for tenant management with proper multi-tenant support.
 /// </summary>
-[ApiController]
 [Route("api/v1/[controller]")]
 [Authorize(Policy = "RequireAdmin")]
-public class TenantsController : ControllerBase
+public class TenantsController : BaseApiController
 {
     private readonly ITenantService _tenantService;
     private readonly ITenantContext _tenantContext;
