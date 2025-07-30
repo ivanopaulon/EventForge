@@ -1,4 +1,5 @@
 using EventForge.Server.Mappers;
+using EventForge.DTOs.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Common;
