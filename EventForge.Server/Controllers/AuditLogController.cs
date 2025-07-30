@@ -3,21 +3,25 @@ using Microsoft.AspNetCore.Mvc;
 using EventForge.DTOs.Audit;
 using EventForge.DTOs.Common;
 using EventForge.DTOs.SuperAdmin;
+using EventForge.Server.Services.Audit;
+using EventForge.Server.Services.Tenants;
 
 namespace EventForge.Server.Controllers;
 
 /// <summary>
-/// REST API controller for audit log consultation.
+/// REST API controller for audit log consultation with multi-tenant support.
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
 public class AuditLogController : BaseApiController
 {
     private readonly IAuditLogService _auditLogService;
+    private readonly ITenantContext _tenantContext;
 
-    public AuditLogController(IAuditLogService auditLogService)
+    public AuditLogController(IAuditLogService auditLogService, ITenantContext tenantContext)
     {
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
     }
 
     /// <summary>
@@ -28,17 +32,24 @@ public class AuditLogController : BaseApiController
     /// <returns>Paginated audit logs</returns>
     /// <response code="200">Returns the paginated audit logs</response>
     /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<EntityChangeLogDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<EntityChangeLogDto>>> GetAuditLogs(
         [FromQuery] AuditLogQueryParameters queryParameters,
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
+
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
 
         try
         {
@@ -54,9 +65,7 @@ public class AuditLogController : BaseApiController
         }
         catch (Exception ex)
         {
-            // Log the exception (you might want to use ILogger here)
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving audit logs.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving audit logs.", ex);
         }
     }
 

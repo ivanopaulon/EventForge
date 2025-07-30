@@ -176,17 +176,24 @@ public class PriceListsController : BaseApiController
     /// <returns>Created price list</returns>
     /// <response code="201">Returns the newly created price list</response>
     /// <response code="400">If the price list data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPost]
     [ProducesResponseType(typeof(PriceListDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PriceListDto>> CreatePriceList(
         [FromBody] CreatePriceListDto createPriceListDto,
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
+
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
 
         try
         {
@@ -197,12 +204,11 @@ public class PriceListsController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while creating the price list.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while creating the price list.", ex);
         }
     }
 
