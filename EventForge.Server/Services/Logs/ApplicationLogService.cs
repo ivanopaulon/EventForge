@@ -1,5 +1,7 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
+using EventForge.DTOs.Common;
+using EventForge.DTOs.SuperAdmin;
 
 namespace EventForge.Server.Services.Logs;
 
@@ -22,7 +24,7 @@ public class ApplicationLogService : IApplicationLogService
     /// <summary>
     /// Gets a paginated list of application logs with optional filtering and sorting.
     /// </summary>
-    public async Task<PagedResult<ApplicationLogDto>> GetPagedLogsAsync(
+    public async Task<PagedResult<SystemLogDto>> GetPagedLogsAsync(
         ApplicationLogQueryParameters queryParameters,
         CancellationToken cancellationToken = default)
     {
@@ -35,9 +37,9 @@ public class ApplicationLogService : IApplicationLogService
         await connection.OpenAsync(cancellationToken);
 
         var totalCount = await connection.QuerySingleAsync<long>(countQuery, queryParameters);
-        var logs = await connection.QueryAsync<ApplicationLogDto>(query, queryParameters);
+        var logs = await connection.QueryAsync<SystemLogDto>(query, queryParameters);
 
-        return new PagedResult<ApplicationLogDto>
+        return new PagedResult<SystemLogDto>
         {
             Items = logs,
             Page = queryParameters.Page,
@@ -49,7 +51,7 @@ public class ApplicationLogService : IApplicationLogService
     /// <summary>
     /// Gets a specific application log entry by ID.
     /// </summary>
-    public async Task<ApplicationLogDto?> GetLogByIdAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<SystemLogDto?> GetLogByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         const string query = @"
             SELECT 
@@ -66,14 +68,14 @@ public class ApplicationLogService : IApplicationLogService
         using var connection = CreateConnection();
         await connection.OpenAsync(cancellationToken);
 
-        var log = await connection.QuerySingleOrDefaultAsync<ApplicationLogDto>(query, new { Id = id });
+        var log = await connection.QuerySingleOrDefaultAsync<SystemLogDto>(query, new { Id = id });
         return log;
     }
 
     /// <summary>
     /// Gets application logs filtered by log level.
     /// </summary>
-    public async Task<IEnumerable<ApplicationLogDto>> GetLogsByLevelAsync(
+    public async Task<IEnumerable<SystemLogDto>> GetLogsByLevelAsync(
         string level,
         CancellationToken cancellationToken = default)
     {
@@ -95,14 +97,14 @@ public class ApplicationLogService : IApplicationLogService
         using var connection = CreateConnection();
         await connection.OpenAsync(cancellationToken);
 
-        var logs = await connection.QueryAsync<ApplicationLogDto>(query, new { Level = level });
+        var logs = await connection.QueryAsync<SystemLogDto>(query, new { Level = level });
         return logs;
     }
 
     /// <summary>
     /// Gets application logs within a specific date range.
     /// </summary>
-    public async Task<IEnumerable<ApplicationLogDto>> GetLogsInDateRangeAsync(
+    public async Task<IEnumerable<SystemLogDto>> GetLogsInDateRangeAsync(
         DateTime fromDate,
         DateTime toDate,
         CancellationToken cancellationToken = default)
@@ -123,7 +125,7 @@ public class ApplicationLogService : IApplicationLogService
         using var connection = CreateConnection();
         await connection.OpenAsync(cancellationToken);
 
-        var logs = await connection.QueryAsync<ApplicationLogDto>(query, new { FromDate = fromDate, ToDate = toDate });
+        var logs = await connection.QueryAsync<SystemLogDto>(query, new { FromDate = fromDate, ToDate = toDate });
         return logs;
     }
 
@@ -154,7 +156,7 @@ public class ApplicationLogService : IApplicationLogService
     /// <summary>
     /// Gets recent error logs (last 24 hours).
     /// </summary>
-    public async Task<IEnumerable<ApplicationLogDto>> GetRecentErrorLogsAsync(CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<SystemLogDto>> GetRecentErrorLogsAsync(CancellationToken cancellationToken = default)
     {
         var fromDate = DateTime.UtcNow.AddHours(-24);
 
@@ -175,20 +177,20 @@ public class ApplicationLogService : IApplicationLogService
         using var connection = CreateConnection();
         await connection.OpenAsync(cancellationToken);
 
-        var logs = await connection.QueryAsync<ApplicationLogDto>(query, new { FromDate = fromDate });
+        var logs = await connection.QueryAsync<SystemLogDto>(query, new { FromDate = fromDate });
         return logs;
     }
 
     /// <summary>
     /// Gets logs for a specific correlation ID.
     /// </summary>
-    public async Task<IEnumerable<ApplicationLogDto>> GetLogsByCorrelationIdAsync(
+    public Task<IEnumerable<SystemLogDto>> GetLogsByCorrelationIdAsync(
         string correlationId,
         CancellationToken cancellationToken = default)
     {
-        // La tabella non ha CorrelationId, quindi questa funzione non può essere implementata.
+        // La tabella non ha CorrelationId, quindi questa funzione non puï¿½ essere implementata.
         // Si restituisce una lista vuota.
-        return Enumerable.Empty<ApplicationLogDto>();
+        return Task.FromResult(Enumerable.Empty<SystemLogDto>());
     }
 
     private string BuildLogsQuery(ApplicationLogQueryParameters queryParameters)
@@ -252,5 +254,74 @@ public class ApplicationLogService : IApplicationLogService
             query += " AND " + string.Join(" AND ", conditions);
 
         return query;
+    }
+
+    /// <summary>
+    /// Exports system logs with the specified parameters.
+    /// </summary>
+    public async Task<ExportResultDto> ExportSystemLogsAsync(
+        ExportRequestDto exportRequest,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(exportRequest);
+
+        // Validate format
+        if (!new[] { "JSON", "CSV", "TXT" }.Contains(exportRequest.Format.ToUpper()))
+        {
+            throw new ArgumentException("Invalid format. Supported formats: JSON, CSV, TXT");
+        }
+
+        // In a real implementation, this would queue the export job for background processing
+        await Task.Delay(100, cancellationToken); // Simulate processing
+
+        var exportResult = new ExportResultDto
+        {
+            Id = Guid.NewGuid(),
+            Type = exportRequest.Type,
+            Format = exportRequest.Format,
+            Status = "Processing",
+            RequestedAt = DateTime.UtcNow,
+            RequestedBy = "Current User" // Should get from current user context
+        };
+
+        return exportResult;
+    }
+
+    /// <summary>
+    /// Gets the current monitoring configuration.
+    /// </summary>
+    public async Task<LogMonitoringConfigDto> GetMonitoringConfigAsync(CancellationToken cancellationToken = default)
+    {
+        await Task.Delay(50, cancellationToken); // Simulate async operation
+
+        // In a real implementation, this would be retrieved from configuration storage
+        var config = new LogMonitoringConfigDto
+        {
+            EnableRealTimeUpdates = true,
+            UpdateIntervalSeconds = 5,
+            MonitoredLevels = new List<string> { "Warning", "Error", "Critical" },
+            MonitoredSources = new List<string>(),
+            MaxLiveEntries = 100,
+            AlertOnCritical = true,
+            AlertOnErrors = false
+        };
+
+        return config;
+    }
+
+    /// <summary>
+    /// Updates the monitoring configuration.
+    /// </summary>
+    public async Task<LogMonitoringConfigDto> UpdateMonitoringConfigAsync(
+        LogMonitoringConfigDto config,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(config);
+
+        await Task.Delay(50, cancellationToken); // Simulate async operation
+
+        // In a real implementation, this would save to configuration storage
+        // For now, just return the provided configuration
+        return config;
     }
 }

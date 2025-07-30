@@ -2,6 +2,7 @@ using EventForge.Server.Services.Logs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using EventForge.DTOs.Common;
+using EventForge.DTOs.SuperAdmin;
 
 namespace EventForge.Server.Controllers;
 
@@ -29,9 +30,9 @@ public class ApplicationLogController : BaseApiController
     /// <response code="200">Returns the paginated application logs</response>
     /// <response code="400">If the query parameters are invalid</response>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<ApplicationLogDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<SystemLogDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<PagedResult<ApplicationLogDto>>> GetApplicationLogs(
+    public async Task<ActionResult<PagedResult<SystemLogDto>>> GetApplicationLogs(
         [FromQuery] ApplicationLogQueryParameters queryParameters,
         CancellationToken cancellationToken = default)
     {
@@ -189,8 +190,8 @@ public class ApplicationLogController : BaseApiController
                 Timestamp = log.Timestamp,
                 Level = log.Level,
                 Message = log.Message,
-                Category = log.Logger,
-                Source = log.Logger,
+                Category = log.Source,
+                Source = log.Source,
                 // Map other properties as available
                 Properties = new Dictionary<string, object>()
             });
@@ -238,7 +239,7 @@ public class ApplicationLogController : BaseApiController
                 LogsYesterday = yesterdayLogs.Count(),
                 LogsThisWeek = weekLogs.Count(),
                 LogsByLevel = weekLogs.GroupBy(l => l.Level ?? "Unknown").ToDictionary(g => g.Key, g => g.Count()),
-                LogsBySource = weekLogs.GroupBy(l => l.Logger ?? "Unknown").ToDictionary(g => g.Key, g => g.Count()),
+                LogsBySource = weekLogs.GroupBy(l => l.Source ?? "Unknown").ToDictionary(g => g.Key, g => g.Count()),
                 ErrorsToday = todayLogs.Count(l => l.Level == "Error"),
                 WarningsToday = todayLogs.Count(l => l.Level == "Warning"),
                 LastUpdated = DateTime.UtcNow
@@ -264,24 +265,12 @@ public class ApplicationLogController : BaseApiController
     {
         try
         {
-            // Validate format
-            if (!new[] { "JSON", "CSV", "TXT" }.Contains(exportDto.Format.ToUpper()))
-            {
-                return BadRequest(new { message = "Invalid format. Supported formats: JSON, CSV, TXT" });
-            }
-
-            // Create export result (in a real implementation, this would be queued for processing)
-            var exportResult = new ExportResultDto
-            {
-                Id = Guid.NewGuid(),
-                Type = "systemlogs",
-                Format = exportDto.Format,
-                Status = "Processing",
-                RequestedAt = DateTime.UtcNow,
-                RequestedBy = "SuperAdmin" // Should get from current user context
-            };
-
+            var exportResult = await _applicationLogService.ExportSystemLogsAsync(exportDto);
             return Ok(exportResult);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -300,18 +289,7 @@ public class ApplicationLogController : BaseApiController
     {
         try
         {
-            // This would normally be retrieved from configuration storage
-            var config = new LogMonitoringConfigDto
-            {
-                EnableRealTimeUpdates = true,
-                UpdateIntervalSeconds = 5,
-                MonitoredLevels = new List<string> { "Warning", "Error", "Critical" },
-                MonitoredSources = new List<string>(),
-                MaxLiveEntries = 100,
-                AlertOnCritical = true,
-                AlertOnErrors = false
-            };
-
+            var config = await _applicationLogService.GetMonitoringConfigAsync();
             return Ok(config);
         }
         catch (Exception ex)
@@ -332,9 +310,8 @@ public class ApplicationLogController : BaseApiController
     {
         try
         {
-            // This would normally save to configuration storage
-            // For now, just return the provided configuration
-            return Ok(configDto);
+            var updatedConfig = await _applicationLogService.UpdateMonitoringConfigAsync(configDto);
+            return Ok(updatedConfig);
         }
         catch (Exception ex)
         {
@@ -370,8 +347,8 @@ public class ApplicationLogController : BaseApiController
                 Timestamp = log.Timestamp,
                 Level = log.Level,
                 Message = log.Message,
-                Category = log.Logger,
-                Source = log.Logger,
+                Category = log.Source,
+                Source = log.Source,
                 Properties = new Dictionary<string, object>()
             });
 

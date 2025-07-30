@@ -1,3 +1,6 @@
+using EventForge.DTOs.Common;
+using EventForge.DTOs.SuperAdmin;
+
 namespace EventForge.Server.Services.Logs;
 
 /// <summary>
@@ -12,7 +15,7 @@ public interface IApplicationLogService
     /// <param name="queryParameters">Query parameters for filtering, sorting and pagination</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated result of application logs</returns>
-    Task<PagedResult<ApplicationLogDto>> GetPagedLogsAsync(
+    Task<PagedResult<SystemLogDto>> GetPagedLogsAsync(
         ApplicationLogQueryParameters queryParameters,
         CancellationToken cancellationToken = default);
 
@@ -22,7 +25,7 @@ public interface IApplicationLogService
     /// <param name="id">The log entry ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The log entry or null if not found</returns>
-    Task<ApplicationLogDto?> GetLogByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task<SystemLogDto?> GetLogByIdAsync(int id, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets application logs filtered by log level.
@@ -30,7 +33,7 @@ public interface IApplicationLogService
     /// <param name="level">The log level to filter by</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Collection of application logs for the specified level</returns>
-    Task<IEnumerable<ApplicationLogDto>> GetLogsByLevelAsync(
+    Task<IEnumerable<SystemLogDto>> GetLogsByLevelAsync(
         string level,
         CancellationToken cancellationToken = default);
 
@@ -41,7 +44,7 @@ public interface IApplicationLogService
     /// <param name="toDate">End date for the range</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Collection of application logs within the date range</returns>
-    Task<IEnumerable<ApplicationLogDto>> GetLogsInDateRangeAsync(
+    Task<IEnumerable<SystemLogDto>> GetLogsInDateRangeAsync(
         DateTime fromDate,
         DateTime toDate,
         CancellationToken cancellationToken = default);
@@ -63,7 +66,7 @@ public interface IApplicationLogService
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Collection of recent error logs</returns>
-    Task<IEnumerable<ApplicationLogDto>> GetRecentErrorLogsAsync(CancellationToken cancellationToken = default);
+    Task<IEnumerable<SystemLogDto>> GetRecentErrorLogsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets logs for a specific correlation ID.
@@ -71,7 +74,34 @@ public interface IApplicationLogService
     /// <param name="correlationId">The correlation ID to filter by</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Collection of logs with the specified correlation ID</returns>
-    Task<IEnumerable<ApplicationLogDto>> GetLogsByCorrelationIdAsync(
+    Task<IEnumerable<SystemLogDto>> GetLogsByCorrelationIdAsync(
         string correlationId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Exports system logs with the specified parameters.
+    /// </summary>
+    /// <param name="exportRequest">Export request parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Export result information</returns>
+    Task<ExportResultDto> ExportSystemLogsAsync(
+        ExportRequestDto exportRequest,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the current monitoring configuration.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Current monitoring configuration</returns>
+    Task<LogMonitoringConfigDto> GetMonitoringConfigAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates the monitoring configuration.
+    /// </summary>
+    /// <param name="config">Updated monitoring configuration</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated monitoring configuration</returns>
+    Task<LogMonitoringConfigDto> UpdateMonitoringConfigAsync(
+        LogMonitoringConfigDto config,
         CancellationToken cancellationToken = default);
 }
