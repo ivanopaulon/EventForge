@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Services.Common;
 
@@ -225,7 +226,7 @@ public class ClassificationNodeService : IClassificationNodeService
                 Code = createDto.Code,
                 Name = createDto.Name,
                 Description = createDto.Description,
-                Type = createDto.Type?.ToEntity() ?? Data.Entities.Common.ProductClassificationType.Category,
+                Type = createDto.Type?.ToEntity() ?? ProductClassificationType.Category,
                 Level = createDto.Level ?? 0,
                 Order = createDto.Order ?? 0,
                 ParentId = createDto.ParentId,

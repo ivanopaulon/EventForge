@@ -8,31 +8,31 @@ namespace EventForge.DTOs.Tenants
     /// </summary>
     public class CreateTenantDto
     {
-        [Required]
-        [MaxLength(100)]
+        [Required(ErrorMessage = "Tenant name is required.")]
+        [MaxLength(100, ErrorMessage = "Tenant name cannot exceed 100 characters.")]
         [Display(Name = "field.name")]
         public string Name { get; set; } = string.Empty;
 
-        [Required]
-        [MaxLength(200)]
+        [Required(ErrorMessage = "Display name is required.")]
+        [MaxLength(200, ErrorMessage = "Display name cannot exceed 200 characters.")]
         [Display(Name = "field.displayName")]
         public string DisplayName { get; set; } = string.Empty;
 
-        [MaxLength(500)]
+        [MaxLength(500, ErrorMessage = "Description cannot exceed 500 characters.")]
         [Display(Name = "field.description")]
         public string? Description { get; set; }
 
-        [MaxLength(100)]
+        [MaxLength(100, ErrorMessage = "Domain cannot exceed 100 characters.")]
         [Display(Name = "field.domain")]
         public string? Domain { get; set; }
 
-        [Required]
-        [EmailAddress]
-        [MaxLength(256)]
+        [Required(ErrorMessage = "Contact email is required.")]
+        [EmailAddress(ErrorMessage = "Invalid email format.")]
+        [MaxLength(256, ErrorMessage = "Contact email cannot exceed 256 characters.")]
         [Display(Name = "field.contactEmail")]
         public string ContactEmail { get; set; } = string.Empty;
 
-        [Range(1, int.MaxValue)]
+        [Range(1, int.MaxValue, ErrorMessage = "Max users must be at least 1.")]
         [Display(Name = "field.maxUsers")]
         public int MaxUsers { get; set; } = 100;
     }
@@ -42,22 +42,22 @@ namespace EventForge.DTOs.Tenants
     /// </summary>
     public class UpdateTenantDto
     {
-        [Required]
-        [MaxLength(200)]
+        [Required(ErrorMessage = "Display name is required.")]
+        [MaxLength(200, ErrorMessage = "Display name cannot exceed 200 characters.")]
         public string DisplayName { get; set; } = string.Empty;
 
-        [MaxLength(500)]
+        [MaxLength(500, ErrorMessage = "Description cannot exceed 500 characters.")]
         public string? Description { get; set; }
 
-        [MaxLength(100)]
+        [MaxLength(100, ErrorMessage = "Domain cannot exceed 100 characters.")]
         public string? Domain { get; set; }
 
-        [Required]
-        [EmailAddress]
-        [MaxLength(256)]
+        [Required(ErrorMessage = "Contact email is required.")]
+        [EmailAddress(ErrorMessage = "Invalid email format.")]
+        [MaxLength(256, ErrorMessage = "Contact email cannot exceed 256 characters.")]
         public string ContactEmail { get; set; } = string.Empty;
 
-        [Range(1, int.MaxValue)]
+        [Range(1, int.MaxValue, ErrorMessage = "Max users must be at least 1.")]
         public int MaxUsers { get; set; }
     }
 

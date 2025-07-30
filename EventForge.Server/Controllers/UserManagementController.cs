@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Controllers;
 
@@ -179,7 +180,7 @@ public class UserManagementController : BaseApiController
             var auditTrail = new AuditTrail
             {
                 PerformedByUserId = _tenantContext.CurrentUserId ?? Guid.Empty,
-                OperationType = EventForge.Server.Data.Entities.Auth.AuditOperationType.TenantStatusChanged, // We can extend this enum
+                OperationType = AuditOperationType.TenantStatusChanged, // We can extend this enum
                 TargetUserId = userId,
                 Details = $"User status changed to {(updateDto.IsActive ? "Active" : "Inactive")}. Reason: {updateDto.Reason}",
                 WasSuccessful = true,
@@ -290,7 +291,7 @@ public class UserManagementController : BaseApiController
             var auditTrail = new AuditTrail
             {
                 PerformedByUserId = _tenantContext.CurrentUserId ?? Guid.Empty,
-                OperationType = EventForge.Server.Data.Entities.Auth.AuditOperationType.AdminTenantGranted, // We can extend this enum
+                OperationType = AuditOperationType.AdminTenantGranted, // We can extend this enum
                 TargetUserId = userId,
                 Details = $"User roles changed from [{string.Join(", ", oldRoles)}] to [{string.Join(", ", updateDto.Roles)}]. Reason: {updateDto.Reason}",
                 WasSuccessful = true,
@@ -371,7 +372,7 @@ public class UserManagementController : BaseApiController
             var auditTrail = new AuditTrail
             {
                 PerformedByUserId = _tenantContext.CurrentUserId ?? Guid.Empty,
-                OperationType = EventForge.Server.Data.Entities.Auth.AuditOperationType.ForcePasswordChange,
+                OperationType = AuditOperationType.ForcePasswordChange,
                 TargetUserId = userId,
                 Details = $"Password change forced for user '{user.Username}'. Reason: {forceDto.Reason}",
                 WasSuccessful = true,
@@ -576,11 +577,11 @@ public class UserManagementController : BaseApiController
 
             var today = DateTime.UtcNow.Date;
             var loginsToday = await _context.AuditTrails
-                .CountAsync(a => a.OperationType == EventForge.Server.Data.Entities.Auth.AuditOperationType.TenantSwitch &&
+                .CountAsync(a => a.OperationType == AuditOperationType.TenantSwitch &&
                                 a.PerformedAt >= today);
 
             var failedLoginsToday = await _context.AuditTrails
-                .CountAsync(a => a.OperationType == EventForge.Server.Data.Entities.Auth.AuditOperationType.TenantStatusChanged &&
+                .CountAsync(a => a.OperationType == AuditOperationType.TenantStatusChanged &&
                                 a.PerformedAt >= today);
 
             var usersByRole = await _context.UserRoles
@@ -743,7 +744,7 @@ public class UserManagementController : BaseApiController
             var auditTrail = new AuditTrail
             {
                 PerformedByUserId = _tenantContext.CurrentUserId ?? Guid.Empty,
-                OperationType = EventForge.Server.Data.Entities.Auth.AuditOperationType.TenantStatusChanged, // Using closest available enum value
+                OperationType = AuditOperationType.TenantStatusChanged, // Using closest available enum value
                 Details = $"Bulk action '{actionDto.Action}' performed on {actionDto.UserIds.Count} users. Success: {successCount}, Failed: {failCount}. Reason: {actionDto.Reason}",
                 WasSuccessful = successCount > 0,
                 PerformedAt = DateTime.UtcNow,

@@ -1,126 +1,84 @@
+using EventForge.DTOs.Common;
+
 namespace EventForge.Server.Extensions
 {
     /// <summary>
     /// Extension methods to convert between entity enums and DTO enums.
+    /// Note: These are now redundant since entities use shared DTO enums directly,
+    /// but kept for backward compatibility.
     /// </summary>
     public static class EnumMappingExtensions
     {
         /// <summary>
         /// Convert entity AddressType to DTO AddressType.
+        /// Note: Since entities now use DTO enums directly, this just returns the same value.
         /// </summary>
-        public static EventForge.DTOs.Common.AddressType ToDto(this Data.Entities.Common.AddressType entityEnum)
+        public static AddressType ToDto(this AddressType entityEnum)
         {
-            return entityEnum switch
-            {
-                Data.Entities.Common.AddressType.Legal => EventForge.DTOs.Common.AddressType.Legal,
-                Data.Entities.Common.AddressType.Operational => EventForge.DTOs.Common.AddressType.Operational,
-                Data.Entities.Common.AddressType.Destination => EventForge.DTOs.Common.AddressType.Destination,
-                _ => EventForge.DTOs.Common.AddressType.Operational
-            };
+            return entityEnum;
         }
 
         /// <summary>
         /// Convert DTO AddressType to entity AddressType.
+        /// Note: Since entities now use DTO enums directly, this just returns the same value.
         /// </summary>
-        public static Data.Entities.Common.AddressType ToEntity(this EventForge.DTOs.Common.AddressType dtoEnum)
+        public static AddressType ToEntity(this AddressType dtoEnum)
         {
-            return dtoEnum switch
-            {
-                EventForge.DTOs.Common.AddressType.Legal => Data.Entities.Common.AddressType.Legal,
-                EventForge.DTOs.Common.AddressType.Operational => Data.Entities.Common.AddressType.Operational,
-                EventForge.DTOs.Common.AddressType.Destination => Data.Entities.Common.AddressType.Destination,
-                _ => Data.Entities.Common.AddressType.Operational
-            };
+            return dtoEnum;
         }
 
         /// <summary>
         /// Convert entity ContactType to DTO ContactType.
+        /// Note: Since entities now use DTO enums directly, this just returns the same value.
         /// </summary>
-        public static EventForge.DTOs.Common.ContactType ToDto(this Data.Entities.Common.ContactType entityEnum)
+        public static ContactType ToDto(this ContactType entityEnum)
         {
-            return entityEnum switch
-            {
-                Data.Entities.Common.ContactType.Email => EventForge.DTOs.Common.ContactType.Email,
-                Data.Entities.Common.ContactType.Phone => EventForge.DTOs.Common.ContactType.Phone,
-                Data.Entities.Common.ContactType.Fax => EventForge.DTOs.Common.ContactType.Fax,
-                Data.Entities.Common.ContactType.PEC => EventForge.DTOs.Common.ContactType.PEC,
-                Data.Entities.Common.ContactType.Other => EventForge.DTOs.Common.ContactType.Other,
-                _ => EventForge.DTOs.Common.ContactType.Other
-            };
+            return entityEnum;
         }
 
         /// <summary>
         /// Convert DTO ContactType to entity ContactType.
+        /// Note: Since entities now use DTO enums directly, this just returns the same value.
         /// </summary>
-        public static Data.Entities.Common.ContactType ToEntity(this EventForge.DTOs.Common.ContactType dtoEnum)
+        public static ContactType ToEntity(this ContactType dtoEnum)
         {
-            return dtoEnum switch
-            {
-                EventForge.DTOs.Common.ContactType.Email => Data.Entities.Common.ContactType.Email,
-                EventForge.DTOs.Common.ContactType.Phone => Data.Entities.Common.ContactType.Phone,
-                EventForge.DTOs.Common.ContactType.Fax => Data.Entities.Common.ContactType.Fax,
-                EventForge.DTOs.Common.ContactType.PEC => Data.Entities.Common.ContactType.PEC,
-                EventForge.DTOs.Common.ContactType.Other => Data.Entities.Common.ContactType.Other,
-                _ => Data.Entities.Common.ContactType.Other
-            };
+            return dtoEnum;
         }
 
         /// <summary>
         /// Convert entity ProductClassificationType to DTO ProductClassificationType.
+        /// Note: Since entities now use DTO enums directly, this just returns the same value.
         /// </summary>
-        public static EventForge.DTOs.Common.ProductClassificationType ToDto(this Data.Entities.Common.ProductClassificationType entityEnum)
+        public static ProductClassificationType ToDto(this ProductClassificationType entityEnum)
         {
-            return entityEnum switch
-            {
-                Data.Entities.Common.ProductClassificationType.Category => EventForge.DTOs.Common.ProductClassificationType.Category,
-                Data.Entities.Common.ProductClassificationType.Subcategory => EventForge.DTOs.Common.ProductClassificationType.Subcategory,
-                Data.Entities.Common.ProductClassificationType.Brand => EventForge.DTOs.Common.ProductClassificationType.Brand,
-                Data.Entities.Common.ProductClassificationType.Line => EventForge.DTOs.Common.ProductClassificationType.Line,
-                _ => EventForge.DTOs.Common.ProductClassificationType.Category
-            };
+            return entityEnum;
         }
 
         /// <summary>
         /// Convert DTO ProductClassificationType to entity ProductClassificationType.
+        /// Note: Since entities now use DTO enums directly, this just returns the same value.
         /// </summary>
-        public static Data.Entities.Common.ProductClassificationType ToEntity(this EventForge.DTOs.Common.ProductClassificationType dtoEnum)
+        public static ProductClassificationType ToEntity(this ProductClassificationType dtoEnum)
         {
-            return dtoEnum switch
-            {
-                EventForge.DTOs.Common.ProductClassificationType.Category => Data.Entities.Common.ProductClassificationType.Category,
-                EventForge.DTOs.Common.ProductClassificationType.Subcategory => Data.Entities.Common.ProductClassificationType.Subcategory,
-                EventForge.DTOs.Common.ProductClassificationType.Brand => Data.Entities.Common.ProductClassificationType.Brand,
-                EventForge.DTOs.Common.ProductClassificationType.Line => Data.Entities.Common.ProductClassificationType.Line,
-                _ => Data.Entities.Common.ProductClassificationType.Category
-            };
+            return dtoEnum;
         }
 
         /// <summary>
         /// Convert entity ProductClassificationNodeStatus to DTO ProductClassificationNodeStatus.
+        /// Note: Since entities now use DTO enums directly, this just returns the same value.
         /// </summary>
-        public static EventForge.DTOs.Common.ProductClassificationNodeStatus ToDto(this Data.Entities.Common.ProductClassificationNodeStatus entityEnum)
+        public static ProductClassificationNodeStatus ToDto(this ProductClassificationNodeStatus entityEnum)
         {
-            return entityEnum switch
-            {
-                Data.Entities.Common.ProductClassificationNodeStatus.Active => EventForge.DTOs.Common.ProductClassificationNodeStatus.Active,
-                Data.Entities.Common.ProductClassificationNodeStatus.Inactive => EventForge.DTOs.Common.ProductClassificationNodeStatus.Inactive,
-                Data.Entities.Common.ProductClassificationNodeStatus.Pending => EventForge.DTOs.Common.ProductClassificationNodeStatus.Pending,
-                _ => EventForge.DTOs.Common.ProductClassificationNodeStatus.Active
-            };
+            return entityEnum;
         }
 
         /// <summary>
         /// Convert DTO ProductClassificationNodeStatus to entity ProductClassificationNodeStatus.
+        /// Note: Since entities now use DTO enums directly, this just returns the same value.
         /// </summary>
-        public static Data.Entities.Common.ProductClassificationNodeStatus ToEntity(this EventForge.DTOs.Common.ProductClassificationNodeStatus dtoEnum)
+        public static ProductClassificationNodeStatus ToEntity(this ProductClassificationNodeStatus dtoEnum)
         {
-            return dtoEnum switch
-            {
-                EventForge.DTOs.Common.ProductClassificationNodeStatus.Active => Data.Entities.Common.ProductClassificationNodeStatus.Active,
-                EventForge.DTOs.Common.ProductClassificationNodeStatus.Inactive => Data.Entities.Common.ProductClassificationNodeStatus.Inactive,
-                EventForge.DTOs.Common.ProductClassificationNodeStatus.Pending => Data.Entities.Common.ProductClassificationNodeStatus.Pending,
-                _ => Data.Entities.Common.ProductClassificationNodeStatus.Active
-            };
+            return dtoEnum;
         }
     }
 }

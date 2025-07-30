@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.Store;
 
@@ -76,15 +77,4 @@ public class StoreUser : AuditableEntity
     /// Navigation property for the cashier group.
     /// </summary>
     public StoreUserGroup? CashierGroup { get; set; }
-}
-
-/// <summary>
-/// Status for the operator/cashier.
-/// </summary>
-public enum CashierStatus
-{
-    Active,     // Operator is active
-    Suspended,  // Operator is temporarily suspended
-    Locked,     // Operator is locked for security or administrative reasons
-    Deleted     // Operator is deleted/disabled
 }

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.Auth;
 
@@ -105,55 +106,4 @@ public class AuditTrail : AuditableEntity
     /// Navigation property: The target user (for impersonation).
     /// </summary>
     public virtual User? TargetUser { get; set; }
-}
-
-/// <summary>
-/// Types of audit operations for tenant switching and impersonation.
-/// </summary>
-public enum AuditOperationType
-{
-    /// <summary>
-    /// Super admin switched to a different tenant context.
-    /// </summary>
-    TenantSwitch = 0,
-
-    /// <summary>
-    /// Super admin started impersonating a user.
-    /// </summary>
-    ImpersonationStart = 1,
-
-    /// <summary>
-    /// Super admin ended impersonation and returned to original session.
-    /// </summary>
-    ImpersonationEnd = 2,
-
-    /// <summary>
-    /// Admin tenant access was granted to a user.
-    /// </summary>
-    AdminTenantGranted = 3,
-
-    /// <summary>
-    /// Admin tenant access was revoked from a user.
-    /// </summary>
-    AdminTenantRevoked = 4,
-
-    /// <summary>
-    /// Tenant was disabled/enabled.
-    /// </summary>
-    TenantStatusChanged = 5,
-
-    /// <summary>
-    /// Tenant was created.
-    /// </summary>
-    TenantCreated = 6,
-
-    /// <summary>
-    /// Tenant was updated.
-    /// </summary>
-    TenantUpdated = 7,
-
-    /// <summary>
-    /// Forced password change for a user.
-    /// </summary>
-    ForcePasswordChange = 8
 }
