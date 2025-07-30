@@ -1,6 +1,7 @@
 using EventForge.Server.Services.Logs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Controllers;
 
@@ -164,7 +165,7 @@ public class ApplicationLogController : BaseApiController
     /// <returns>Paginated system log results</returns>
     [HttpPost("search")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<ActionResult<PaginatedResponse<SystemLogDto>>> SearchSystemLogs([FromBody] SystemLogSearchDto searchDto)
+    public async Task<ActionResult<PagedResult<SystemLogDto>>> SearchSystemLogs([FromBody] SystemLogSearchDto searchDto)
     {
         try
         {
@@ -194,11 +195,11 @@ public class ApplicationLogController : BaseApiController
                 Properties = new Dictionary<string, object>()
             });
 
-            var response = new PaginatedResponse<SystemLogDto>
+            var response = new PagedResult<SystemLogDto>
             {
                 Items = systemLogs,
                 TotalCount = (int)result.TotalCount,
-                PageNumber = searchDto.PageNumber,
+                Page = searchDto.PageNumber,
                 PageSize = searchDto.PageSize
             };
 

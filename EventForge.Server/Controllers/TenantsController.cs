@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AuthAuditOperationType = EventForge.DTOs.Common.AuditOperationType;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Controllers;
 
@@ -283,7 +284,7 @@ public class TenantsController : ControllerBase
     /// <param name="searchDto">Search criteria</param>
     /// <returns>Paginated tenant results</returns>
     [HttpPost("search")]
-    public async Task<ActionResult<PaginatedResponse<TenantResponseDto>>> SearchTenants([FromBody] TenantSearchDto searchDto)
+    public async Task<ActionResult<PagedResult<TenantResponseDto>>> SearchTenants([FromBody] TenantSearchDto searchDto)
     {
         try
         {

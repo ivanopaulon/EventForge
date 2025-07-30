@@ -1,5 +1,7 @@
 namespace EventForge.Server.Services.Tenants;
 
+using EventForge.DTOs.Common;
+
 /// <summary>
 /// Interface for tenant management operations.
 /// </summary>
@@ -78,7 +80,7 @@ public interface ITenantService
     /// <param name="pageNumber">Page number for pagination</param>
     /// <param name="pageSize">Page size for pagination</param>
     /// <returns>Paginated audit trail entries</returns>
-    Task<PaginatedResponse<AuditTrailResponseDto>> GetAuditTrailAsync(
+    Task<PagedResult<AuditTrailResponseDto>> GetAuditTrailAsync(
         Guid? tenantId = null,
         AuditOperationType? operationType = null,
         int pageNumber = 1,
@@ -95,7 +97,7 @@ public interface ITenantService
     /// </summary>
     /// <param name="searchDto">Search criteria</param>
     /// <returns>Paginated tenant results</returns>
-    Task<PaginatedResponse<TenantResponseDto>> SearchTenantsAsync(TenantSearchDto searchDto);
+    Task<PagedResult<TenantResponseDto>> SearchTenantsAsync(TenantSearchDto searchDto);
 
     /// <summary>
     /// Gets detailed information for a tenant including limits and usage.
@@ -125,19 +127,4 @@ public interface ITenantService
     /// <param name="tenantId">Tenant ID</param>
     /// <param name="reason">Reason for deletion</param>
     Task SoftDeleteTenantAsync(Guid tenantId, string reason);
-}
-
-/// <summary>
-/// Paginated response wrapper for collections.
-/// </summary>
-/// <typeparam name="T">Type of items in the collection</typeparam>
-public class PaginatedResponse<T>
-{
-    public IEnumerable<T> Items { get; set; } = Enumerable.Empty<T>();
-    public int TotalCount { get; set; }
-    public int PageNumber { get; set; }
-    public int PageSize { get; set; }
-    public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
-    public bool HasNext => PageNumber < TotalPages;
-    public bool HasPrevious => PageNumber > 1;
 }

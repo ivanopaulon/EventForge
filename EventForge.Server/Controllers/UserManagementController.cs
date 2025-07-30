@@ -423,7 +423,7 @@ public class UserManagementController : BaseApiController
     /// Searches users with advanced filtering.
     /// </summary>
     [HttpPost("search")]
-    public async Task<ActionResult<PaginatedResponse<UserManagementDto>>> SearchUsers([FromBody] UserSearchDto searchDto)
+    public async Task<ActionResult<PagedResult<UserManagementDto>>> SearchUsers([FromBody] UserSearchDto searchDto)
     {
         try
         {
@@ -534,11 +534,11 @@ public class UserManagementController : BaseApiController
                 result.Add(userDto);
             }
 
-            var paginatedResponse = new PaginatedResponse<UserManagementDto>
+            var paginatedResponse = new PagedResult<UserManagementDto>
             {
                 Items = result,
                 TotalCount = totalCount,
-                PageNumber = searchDto.PageNumber,
+                Page = searchDto.PageNumber,
                 PageSize = searchDto.PageSize
             };
 

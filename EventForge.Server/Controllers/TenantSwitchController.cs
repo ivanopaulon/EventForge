@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using AuthAuditOperationType = EventForge.DTOs.Common.AuditOperationType;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Controllers;
 
@@ -475,7 +476,7 @@ public class TenantSwitchController : BaseApiController
     /// Gets tenant switching history.
     /// </summary>
     [HttpGet("history/tenant-switches")]
-    public async Task<ActionResult<PaginatedResponse<TenantSwitchHistoryDto>>> GetTenantSwitchHistory([FromQuery] OperationHistorySearchDto searchDto)
+    public async Task<ActionResult<PagedResult<TenantSwitchHistoryDto>>> GetTenantSwitchHistory([FromQuery] OperationHistorySearchDto searchDto)
     {
         try
         {
@@ -548,11 +549,11 @@ public class TenantSwitchController : BaseApiController
                 });
             }
 
-            var response = new PaginatedResponse<TenantSwitchHistoryDto>
+            var response = new PagedResult<TenantSwitchHistoryDto>
             {
                 Items = results,
                 TotalCount = totalCount,
-                PageNumber = searchDto.PageNumber,
+                Page = searchDto.PageNumber,
                 PageSize = searchDto.PageSize
             };
 
@@ -569,7 +570,7 @@ public class TenantSwitchController : BaseApiController
     /// Gets user impersonation history.
     /// </summary>
     [HttpGet("history/impersonations")]
-    public async Task<ActionResult<PaginatedResponse<ImpersonationHistoryDto>>> GetImpersonationHistory([FromQuery] OperationHistorySearchDto searchDto)
+    public async Task<ActionResult<PagedResult<ImpersonationHistoryDto>>> GetImpersonationHistory([FromQuery] OperationHistorySearchDto searchDto)
     {
         try
         {
@@ -637,11 +638,11 @@ public class TenantSwitchController : BaseApiController
                 }
             }
 
-            var response = new PaginatedResponse<ImpersonationHistoryDto>
+            var response = new PagedResult<ImpersonationHistoryDto>
             {
                 Items = results.OrderByDescending(r => r.StartedAt).ToList(),
                 TotalCount = totalCount,
-                PageNumber = searchDto.PageNumber,
+                Page = searchDto.PageNumber,
                 PageSize = searchDto.PageSize
             };
 
