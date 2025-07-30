@@ -1,4 +1,5 @@
 using EventForge.Server.Services.Logs;
+using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using EventForge.DTOs.Common;
@@ -7,18 +8,20 @@ using EventForge.DTOs.SuperAdmin;
 namespace EventForge.Server.Controllers;
 
 /// <summary>
-/// REST API controller for application log consultation (read-only).
-/// Positioned in the observability/monitoring area.
+/// REST API controller for application log consultation (read-only) with multi-tenant support.
+/// Positioned in the observability/monitoring area for system administrators.
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
 public class ApplicationLogController : BaseApiController
 {
     private readonly IApplicationLogService _applicationLogService;
+    private readonly ITenantContext _tenantContext;
 
-    public ApplicationLogController(IApplicationLogService applicationLogService)
+    public ApplicationLogController(IApplicationLogService applicationLogService, ITenantContext tenantContext)
     {
         _applicationLogService = applicationLogService ?? throw new ArgumentNullException(nameof(applicationLogService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
     }
 
     /// <summary>
@@ -29,17 +32,23 @@ public class ApplicationLogController : BaseApiController
     /// <returns>Paginated application logs</returns>
     /// <response code="200">Returns the paginated application logs</response>
     /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<SystemLogDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<SystemLogDto>>> GetApplicationLogs(
         [FromQuery] ApplicationLogQueryParameters queryParameters,
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
+
+        // Validate tenant access for non-super admin users
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
 
         try
         {
@@ -48,9 +57,7 @@ public class ApplicationLogController : BaseApiController
         }
         catch (Exception ex)
         {
-            // Log the exception
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving application logs.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving application logs.", ex);
         }
     }
 
@@ -62,29 +69,33 @@ public class ApplicationLogController : BaseApiController
     /// <returns>The log entry</returns>
     /// <response code="200">Returns the log entry</response>
     /// <response code="404">If the log entry is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(ApplicationLogDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ApplicationLogDto>> GetApplicationLog(
         int id,
         CancellationToken cancellationToken = default)
     {
+        // Validate tenant access for non-super admin users
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
         try
         {
             var log = await _applicationLogService.GetLogByIdAsync(id, cancellationToken);
 
             if (log == null)
             {
-                return NotFound(new { message = $"Application log with ID {id} not found." });
+                return CreateNotFoundProblem($"Application log with ID {id} not found.");
             }
 
             return Ok(log);
         }
         catch (Exception ex)
         {
-            // Log the exception
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving the application log.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the application log.", ex);
         }
     }
 
@@ -96,17 +107,23 @@ public class ApplicationLogController : BaseApiController
     /// <returns>Collection of application logs for the specified level</returns>
     /// <response code="200">Returns the application logs for the level</response>
     /// <response code="400">If the level is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("level/{level}")]
     [ProducesResponseType(typeof(IEnumerable<ApplicationLogDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IEnumerable<ApplicationLogDto>>> GetApplicationLogsByLevel(
         string level,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(level))
         {
-            return BadRequest(new { message = "Log level cannot be empty." });
+            return CreateValidationProblemDetails("Log level cannot be empty.");
         }
+
+        // Validate tenant access for non-super admin users
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
 
         try
         {
@@ -115,9 +132,7 @@ public class ApplicationLogController : BaseApiController
         }
         catch (Exception ex)
         {
-            // Log the exception
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving application logs by level.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving application logs by level.", ex);
         }
     }
 
