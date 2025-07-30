@@ -1,22 +1,26 @@
 using EventForge.DTOs.PriceLists;
 using EventForge.Server.Services.PriceLists;
+using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Server.Controllers;
 
 /// <summary>
-/// REST API controller for price list management.
+/// REST API controller for price list management with multi-tenant support.
+/// Provides CRUD operations for price lists within the authenticated user's tenant context.
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
 public class PriceListsController : BaseApiController
 {
     private readonly IPriceListService _priceListService;
+    private readonly ITenantContext _tenantContext;
 
-    public PriceListsController(IPriceListService priceListService)
+    public PriceListsController(IPriceListService priceListService, ITenantContext tenantContext)
     {
         _priceListService = priceListService ?? throw new ArgumentNullException(nameof(priceListService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
     }
 
     #region PriceList CRUD Operations
