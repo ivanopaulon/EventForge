@@ -115,7 +115,7 @@ public class BusinessPartyService : IBusinessPartyService
         try
         {
             var businessParties = await _context.BusinessParties
-                .Where(bp => bp.PartyType == (Data.Entities.Business.BusinessPartyType)partyType && !bp.IsDeleted)
+                .Where(bp => bp.PartyType == partyType && !bp.IsDeleted)
                 .OrderBy(bp => bp.Name)
                 .ToListAsync(cancellationToken);
 

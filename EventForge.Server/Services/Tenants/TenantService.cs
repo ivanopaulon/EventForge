@@ -93,7 +93,7 @@ public class TenantService : ITenantService
                     TenantId = tenant.Id,
                     UserId = currentUserId.Value,
                     ManagedTenantId = tenant.Id,
-                    AccessLevel = AdminAccessLevel.FullAccess,
+                    AccessLevel = AdminAccessLevel.FullAccess.ToString(),
                     GrantedAt = DateTime.UtcNow
                 };
 
@@ -383,7 +383,7 @@ public class TenantService : ITenantService
                 TenantId = tenantId,
                 UserId = userId,
                 ManagedTenantId = tenantId,
-                AccessLevel = accessLevel,
+                AccessLevel = accessLevel.ToString(),
                 GrantedAt = DateTime.UtcNow
             };
 
@@ -414,7 +414,7 @@ public class TenantService : ITenantService
                 Id = adminTenant.Id,
                 UserId = userId,
                 ManagedTenantId = tenantId,
-                AccessLevel = accessLevel,
+                AccessLevel = accessLevel.ToString(),
                 GrantedAt = adminTenant.GrantedAt,
                 ExpiresAt = adminTenant.ExpiresAt,
                 Username = user.Username,
@@ -455,7 +455,7 @@ public class TenantService : ITenantService
                 Id = adminTenant.Id,
                 UserId = adminTenant.UserId,
                 ManagedTenantId = adminTenant.ManagedTenantId,
-                AccessLevel = adminTenant.AccessLevel,
+                AccessLevel = adminTenant.AccessLevel.ToString(),
                 GrantedAt = adminTenant.GrantedAt,
                 ExpiresAt = adminTenant.ExpiresAt,
                 CreatedAt = adminTenant.CreatedAt,
@@ -515,7 +515,7 @@ public class TenantService : ITenantService
                 Id = at.Id,
                 UserId = at.UserId,
                 ManagedTenantId = at.ManagedTenantId,
-                AccessLevel = at.AccessLevel,
+                AccessLevel = at.AccessLevel.ToString(),
                 GrantedAt = at.GrantedAt,
                 ExpiresAt = at.ExpiresAt,
                 Username = at.User.Username,

@@ -218,6 +218,7 @@ public class AuditTrailResponseDto
     public AuditOperationType OperationType { get; set; }
     public string Details { get; set; } = string.Empty;
     public DateTime PerformedAt { get; set; }
+    public Guid PerformedByUserId { get; set; }
     public string PerformedByUsername { get; set; } = string.Empty;
     public Guid? SourceTenantId { get; set; }
     public string? SourceTenantName { get; set; }
@@ -382,16 +383,24 @@ public class ImpersonationHistoryDto
     public Guid Id { get; set; }
     public Guid SuperAdminId { get; set; }
     public string SuperAdminUsername { get; set; } = string.Empty;
+    public Guid ImpersonatorUserId { get; set; }
+    public string ImpersonatorUsername { get; set; } = string.Empty;
     public Guid TargetUserId { get; set; }
     public string TargetUsername { get; set; } = string.Empty;
+    public Guid? ImpersonatedUserId { get; set; }
+    public string? ImpersonatedUsername { get; set; }
     public Guid? TargetTenantId { get; set; }
     public string? TargetTenantName { get; set; }
+    public Guid? TenantId { get; set; }
+    public string? TenantName { get; set; }
     public DateTime StartedAt { get; set; }
     public DateTime? EndedAt { get; set; }
     public string? Reason { get; set; }
     public bool IsActive { get; set; }
     public string? IpAddress { get; set; }
     public string? UserAgent { get; set; }
+    public string? SessionId { get; set; }
+    public int ActionsPerformed { get; set; }
 }
 
 /// <summary>
@@ -405,9 +414,30 @@ public class OperationSummaryDto
     public int FailedOperations { get; set; }
     public int OperationsToday { get; set; }
     public int ActiveImpersonations { get; set; }
+    public int TotalTenantSwitches { get; set; }
+    public int ActiveTenantSwitches { get; set; }
+    public int TotalImpersonations { get; set; }
+    public int OperationsThisWeek { get; set; }
+    public int OperationsThisMonth { get; set; }
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
     public Dictionary<string, int> OperationsByType { get; set; } = new Dictionary<string, int>();
     public Dictionary<string, int> OperationsByUser { get; set; } = new Dictionary<string, int>();
+    public List<RecentOperationDto> RecentOperations { get; set; } = new List<RecentOperationDto>();
+}
+
+/// <summary>
+/// DTO for recent operation information.
+/// </summary>
+public class RecentOperationDto
+{
+    public Guid Id { get; set; }
+    public string OperationType { get; set; } = string.Empty;
+    public string Username { get; set; } = string.Empty;
+    public string? TargetUsername { get; set; }
+    public string? TenantName { get; set; }
+    public DateTime PerformedAt { get; set; }
+    public bool WasSuccessful { get; set; }
+    public string? Details { get; set; }
 }
 
 /// <summary>

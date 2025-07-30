@@ -65,6 +65,10 @@ namespace EventForge.DTOs.Tenants
 
         [Range(1, int.MaxValue, ErrorMessage = "Max users must be at least 1.")]
         public int MaxUsers { get; set; }
+
+        public bool IsEnabled { get; set; } = true;
+
+        public DateTime? SubscriptionExpiresAt { get; set; }
     }
 
     /// <summary>
@@ -98,7 +102,11 @@ namespace EventForge.DTOs.Tenants
         public Guid UserId { get; set; }
         public string Username { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
+        public bool MustChangePassword { get; set; }
+        public string? GeneratedPassword { get; set; }
     }
 
     /// <summary>
@@ -132,12 +140,15 @@ namespace EventForge.DTOs.Tenants
         public Guid Id { get; set; }
         public Guid TenantId { get; set; }
         public string TenantName { get; set; } = string.Empty;
+        public Guid? ManagedTenantId { get; set; }
         public Guid UserId { get; set; }
         public string Username { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
         public string AccessLevel { get; set; } = string.Empty;
         public DateTime GrantedAt { get; set; }
         public string GrantedBy { get; set; } = string.Empty;
+        public DateTime? ExpiresAt { get; set; }
         public bool IsActive { get; set; }
     }
 
@@ -151,9 +162,13 @@ namespace EventForge.DTOs.Tenants
         
         public bool? IsActive { get; set; }
         
+        public string? Status { get; set; }
+        
         public DateTime? CreatedFrom { get; set; }
         
         public DateTime? CreatedTo { get; set; }
+        
+        public DateTime? CreatedAfter { get; set; }
         
         public int? MinUsers { get; set; }
         
