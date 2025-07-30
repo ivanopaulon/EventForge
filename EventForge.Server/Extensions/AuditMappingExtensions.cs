@@ -1,3 +1,5 @@
+using EventForge.DTOs.Audit;
+
 namespace EventForge.Server.Extensions;
 
 /// <summary>

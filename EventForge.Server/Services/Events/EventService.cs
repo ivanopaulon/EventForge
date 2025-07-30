@@ -1,3 +1,5 @@
+using EventForge.DTOs.Events;
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Teams;
 using Microsoft.EntityFrameworkCore;
 
