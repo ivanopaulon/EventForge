@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using EventForge.DTOs.Tenants;
 using EventForge.DTOs.Common;
+using EventForge.Server.Services.Tenants;
 
 namespace EventForge.Server.Controllers;
 
@@ -11,7 +12,7 @@ namespace EventForge.Server.Controllers;
 [ApiController]
 [Route("api/v1/[controller]")]
 [Authorize(Policy = "RequireAdmin")]
-public class TenantContextController : ControllerBase
+public class TenantContextController : BaseApiController
 {
     private readonly ITenantContext _tenantContext;
     private readonly ITenantService _tenantService;
@@ -26,7 +27,13 @@ public class TenantContextController : ControllerBase
     /// Gets the current tenant context information.
     /// </summary>
     /// <returns>Current tenant context details</returns>
+    /// <response code="200">Returns current tenant context information</response>
+    /// <response code="401">If user is not authenticated</response>
+    /// <response code="403">If user does not have admin privileges</response>
     [HttpGet("current")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<object>> GetCurrentContext()
     {
         var result = new
@@ -45,7 +52,16 @@ public class TenantContextController : ControllerBase
     /// Switches to a different tenant context (super admin only).
     /// </summary>
     /// <param name="request">Tenant switch request</param>
+    /// <returns>Success message with new tenant ID</returns>
+    /// <response code="200">Tenant context switched successfully</response>
+    /// <response code="400">If the request is invalid</response>
+    /// <response code="401">If user is not authenticated</response>
+    /// <response code="403">If user does not have permission to switch tenants</response>
     [HttpPost("switch-tenant")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> SwitchTenant([FromBody] SwitchTenantRequest request)
     {
         try
@@ -55,11 +71,11 @@ public class TenantContextController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return CreateValidationProblemDetails(ex.Message);
         }
     }
 

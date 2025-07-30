@@ -43,7 +43,16 @@ public class TenantSwitchController : BaseApiController
     /// <summary>
     /// Gets current context information for the SuperAdmin.
     /// </summary>
+    /// <returns>Current context information including user and tenant details</returns>
+    /// <response code="200">Returns current context information</response>
+    /// <response code="400">If no current user context</response>
+    /// <response code="404">If current user not found</response>
+    /// <response code="500">If an error occurred</response>
     [HttpGet("context")]
+    [ProducesResponseType(typeof(CurrentContextDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<CurrentContextDto>> GetCurrentContext()
     {
         try
