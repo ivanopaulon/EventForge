@@ -1,22 +1,26 @@
 using EventForge.DTOs.Station;
 using EventForge.Server.Services.Station;
+using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Server.Controllers;
 
 /// <summary>
-/// REST API controller for station and printer management.
+/// REST API controller for station and printer management with multi-tenant support.
+/// Provides CRUD operations for stations within the authenticated user's tenant context.
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
 public class StationsController : BaseApiController
 {
     private readonly IStationService _stationService;
+    private readonly ITenantContext _tenantContext;
 
-    public StationsController(IStationService stationService)
+    public StationsController(IStationService stationService, ITenantContext tenantContext)
     {
         _stationService = stationService ?? throw new ArgumentNullException(nameof(stationService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
     }
 
     #region Station Endpoints

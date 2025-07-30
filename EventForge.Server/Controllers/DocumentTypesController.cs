@@ -1,26 +1,31 @@
 using EventForge.DTOs.Documents;
 using EventForge.Server.Services.Documents;
+using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Server.Controllers;
 
 /// <summary>
-/// REST API controller for document type management
+/// REST API controller for document type management with multi-tenant support.
+/// Provides CRUD operations for document types within the authenticated user's tenant context.
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
 public class DocumentTypesController : BaseApiController
 {
     private readonly IDocumentTypeService _documentTypeService;
+    private readonly ITenantContext _tenantContext;
 
     /// <summary>
     /// Initializes a new instance of the DocumentTypesController
     /// </summary>
     /// <param name="documentTypeService">Document type service</param>
-    public DocumentTypesController(IDocumentTypeService documentTypeService)
+    /// <param name="tenantContext">Tenant context service</param>
+    public DocumentTypesController(IDocumentTypeService documentTypeService, ITenantContext tenantContext)
     {
         _documentTypeService = documentTypeService ?? throw new ArgumentNullException(nameof(documentTypeService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
     }
 
     /// <summary>
@@ -29,12 +34,19 @@ public class DocumentTypesController : BaseApiController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of document types</returns>
     /// <response code="200">Returns the list of document types</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     /// <response code="500">If an internal error occurs</response>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<DocumentTypeDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<DocumentTypeDto>>> GetDocumentTypes(CancellationToken cancellationToken = default)
     {
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
         try
         {
             var documentTypes = await _documentTypeService.GetAllAsync(cancellationToken);

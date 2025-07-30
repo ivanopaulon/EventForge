@@ -1,22 +1,26 @@
 using EventForge.DTOs.Store;
 using EventForge.Server.Services.Store;
+using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Server.Controllers;
 
 /// <summary>
-/// REST API controller for store user management.
+/// REST API controller for store user management with multi-tenant support.
+/// Provides CRUD operations for store users within the authenticated user's tenant context.
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
 public class StoreUsersController : BaseApiController
 {
     private readonly IStoreUserService _storeUserService;
+    private readonly ITenantContext _tenantContext;
 
-    public StoreUsersController(IStoreUserService storeUserService)
+    public StoreUsersController(IStoreUserService storeUserService, ITenantContext tenantContext)
     {
         _storeUserService = storeUserService ?? throw new ArgumentNullException(nameof(storeUserService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
     }
 
     #region StoreUser Endpoints
@@ -30,23 +34,25 @@ public class StoreUsersController : BaseApiController
     /// <returns>Paginated list of store users</returns>
     /// <response code="200">Returns the paginated list of store users</response>
     /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<StoreUserDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<StoreUserDto>>> GetStoreUsers(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        if (page < 1)
-        {
-            return BadRequest(new { message = "Page number must be greater than 0." });
-        }
+        // Validate pagination parameters
+        var validationResult = ValidatePaginationParameters(page, pageSize);
+        if (validationResult != null)
+            return validationResult;
 
-        if (pageSize < 1 || pageSize > 100)
-        {
-            return BadRequest(new { message = "Page size must be between 1 and 100." });
-        }
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
 
         try
         {
@@ -55,7 +61,7 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while retrieving store users.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving store users.", ex);
         }
     }
 
