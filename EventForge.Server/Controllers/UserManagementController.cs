@@ -4,13 +4,17 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using EventForge.DTOs.Common;
 using EventForge.DTOs.SuperAdmin;
+using EventForge.Server.Services.Tenants;
+using EventForge.Server.Data;
+using EventForge.Server.Services.Audit;
+using EventForge.Server.Hubs;
 
 namespace EventForge.Server.Controllers;
 
 /// <summary>
 /// Controller for SuperAdmin user management operations.
+/// Provides comprehensive user management capabilities across all tenants with proper multi-tenant support.
 /// </summary>
-[ApiController]
 [Route("api/v1/[controller]")]
 [Authorize(Roles = "SuperAdmin")]
 public class UserManagementController : BaseApiController

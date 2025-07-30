@@ -71,25 +71,30 @@ public class BusinessPartiesController : BaseApiController
     /// <returns>Business party details</returns>
     /// <response code="200">Returns the business party</response>
     /// <response code="404">If the business party is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(BusinessPartyDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<BusinessPartyDto>> GetBusinessParty(Guid id, CancellationToken cancellationToken = default)
     {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
         try
         {
             var businessParty = await _businessPartyService.GetBusinessPartyByIdAsync(id, cancellationToken);
 
             if (businessParty == null)
             {
-                return NotFound(new { message = $"Business party with ID {id} not found." });
+                return CreateNotFoundProblem($"Business party with ID {id} not found.");
             }
 
             return Ok(businessParty);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while retrieving the business party.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the business party.", ex);
         }
     }
 
@@ -100,10 +105,15 @@ public class BusinessPartiesController : BaseApiController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of business parties of the specified type</returns>
     /// <response code="200">Returns the list of business parties</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("by-type/{partyType}")]
     [ProducesResponseType(typeof(IEnumerable<BusinessPartyDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IEnumerable<BusinessPartyDto>>> GetBusinessPartiesByType(DTOs.Common.BusinessPartyType partyType, CancellationToken cancellationToken = default)
     {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
         try
         {
             var businessParties = await _businessPartyService.GetBusinessPartiesByTypeAsync(partyType, cancellationToken);
@@ -111,7 +121,7 @@ public class BusinessPartiesController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while retrieving business parties by type.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving business parties by type.", ex);
         }
     }
 
@@ -123,15 +133,20 @@ public class BusinessPartiesController : BaseApiController
     /// <returns>Created business party</returns>
     /// <response code="201">Returns the newly created business party</response>
     /// <response code="400">If the business party data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPost]
     [ProducesResponseType(typeof(BusinessPartyDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<BusinessPartyDto>> CreateBusinessParty(CreateBusinessPartyDto createBusinessPartyDto, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
 
         try
         {
@@ -142,7 +157,7 @@ public class BusinessPartiesController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while creating the business party.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while creating the business party.", ex);
         }
     }
 
@@ -156,16 +171,21 @@ public class BusinessPartiesController : BaseApiController
     /// <response code="200">Returns the updated business party</response>
     /// <response code="400">If the business party data is invalid</response>
     /// <response code="404">If the business party is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(BusinessPartyDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<BusinessPartyDto>> UpdateBusinessParty(Guid id, UpdateBusinessPartyDto updateBusinessPartyDto, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
 
         try
         {
@@ -174,14 +194,14 @@ public class BusinessPartiesController : BaseApiController
 
             if (businessParty == null)
             {
-                return NotFound(new { message = $"Business party with ID {id} not found." });
+                return CreateNotFoundProblem($"Business party with ID {id} not found.");
             }
 
             return Ok(businessParty);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while updating the business party.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while updating the business party.", ex);
         }
     }
 
@@ -193,11 +213,16 @@ public class BusinessPartiesController : BaseApiController
     /// <returns>No content if successful</returns>
     /// <response code="204">Business party deleted successfully</response>
     /// <response code="404">If the business party is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> DeleteBusinessParty(Guid id, CancellationToken cancellationToken = default)
     {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
         try
         {
             var currentUser = GetCurrentUser();
@@ -205,14 +230,14 @@ public class BusinessPartiesController : BaseApiController
 
             if (!deleted)
             {
-                return NotFound(new { message = $"Business party with ID {id} not found." });
+                return CreateNotFoundProblem($"Business party with ID {id} not found.");
             }
 
             return NoContent();
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while deleting the business party.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while deleting the business party.", ex);
         }
     }
 
@@ -229,23 +254,21 @@ public class BusinessPartiesController : BaseApiController
     /// <returns>Paginated list of business party accounting records</returns>
     /// <response code="200">Returns the paginated list of business party accounting records</response>
     /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("accounting")]
     [ProducesResponseType(typeof(PagedResult<BusinessPartyAccountingDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<BusinessPartyAccountingDto>>> GetBusinessPartyAccounting(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        if (page < 1)
-        {
-            return BadRequest(new { message = "Page number must be greater than 0." });
-        }
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
 
-        if (pageSize < 1 || pageSize > 100)
-        {
-            return BadRequest(new { message = "Page size must be between 1 and 100." });
-        }
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
 
         try
         {
@@ -254,7 +277,7 @@ public class BusinessPartiesController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while retrieving business party accounting records.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving business party accounting records.", ex);
         }
     }
 
@@ -266,25 +289,30 @@ public class BusinessPartiesController : BaseApiController
     /// <returns>Business party accounting details</returns>
     /// <response code="200">Returns the business party accounting record</response>
     /// <response code="404">If the business party accounting record is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("accounting/{id:guid}")]
     [ProducesResponseType(typeof(BusinessPartyAccountingDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<BusinessPartyAccountingDto>> GetBusinessPartyAccounting(Guid id, CancellationToken cancellationToken = default)
     {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
         try
         {
             var businessPartyAccounting = await _businessPartyService.GetBusinessPartyAccountingByIdAsync(id, cancellationToken);
 
             if (businessPartyAccounting == null)
             {
-                return NotFound(new { message = $"Business party accounting with ID {id} not found." });
+                return CreateNotFoundProblem($"Business party accounting with ID {id} not found.");
             }
 
             return Ok(businessPartyAccounting);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while retrieving the business party accounting record.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the business party accounting record.", ex);
         }
     }
 
@@ -296,25 +324,30 @@ public class BusinessPartiesController : BaseApiController
     /// <returns>Business party accounting details</returns>
     /// <response code="200">Returns the business party accounting record</response>
     /// <response code="404">If the business party accounting record is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("{businessPartyId:guid}/accounting")]
     [ProducesResponseType(typeof(BusinessPartyAccountingDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<BusinessPartyAccountingDto>> GetBusinessPartyAccountingByBusinessPartyId(Guid businessPartyId, CancellationToken cancellationToken = default)
     {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
         try
         {
             var businessPartyAccounting = await _businessPartyService.GetBusinessPartyAccountingByBusinessPartyIdAsync(businessPartyId, cancellationToken);
 
             if (businessPartyAccounting == null)
             {
-                return NotFound(new { message = $"Business party accounting for business party {businessPartyId} not found." });
+                return CreateNotFoundProblem($"Business party accounting for business party {businessPartyId} not found.");
             }
 
             return Ok(businessPartyAccounting);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while retrieving the business party accounting record.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the business party accounting record.", ex);
         }
     }
 
@@ -326,15 +359,20 @@ public class BusinessPartiesController : BaseApiController
     /// <returns>Created business party accounting record</returns>
     /// <response code="201">Returns the newly created business party accounting record</response>
     /// <response code="400">If the business party accounting data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPost("accounting")]
     [ProducesResponseType(typeof(BusinessPartyAccountingDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<BusinessPartyAccountingDto>> CreateBusinessPartyAccounting(CreateBusinessPartyAccountingDto createBusinessPartyAccountingDto, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
 
         try
         {
@@ -345,7 +383,7 @@ public class BusinessPartiesController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while creating the business party accounting record.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while creating the business party accounting record.", ex);
         }
     }
 
@@ -359,16 +397,21 @@ public class BusinessPartiesController : BaseApiController
     /// <response code="200">Returns the updated business party accounting record</response>
     /// <response code="400">If the business party accounting data is invalid</response>
     /// <response code="404">If the business party accounting record is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPut("accounting/{id:guid}")]
     [ProducesResponseType(typeof(BusinessPartyAccountingDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<BusinessPartyAccountingDto>> UpdateBusinessPartyAccounting(Guid id, UpdateBusinessPartyAccountingDto updateBusinessPartyAccountingDto, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
 
         try
         {
@@ -377,14 +420,14 @@ public class BusinessPartiesController : BaseApiController
 
             if (businessPartyAccounting == null)
             {
-                return NotFound(new { message = $"Business party accounting with ID {id} not found." });
+                return CreateNotFoundProblem($"Business party accounting with ID {id} not found.");
             }
 
             return Ok(businessPartyAccounting);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while updating the business party accounting record.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while updating the business party accounting record.", ex);
         }
     }
 
@@ -396,11 +439,16 @@ public class BusinessPartiesController : BaseApiController
     /// <returns>No content if successful</returns>
     /// <response code="204">Business party accounting record deleted successfully</response>
     /// <response code="404">If the business party accounting record is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpDelete("accounting/{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> DeleteBusinessPartyAccounting(Guid id, CancellationToken cancellationToken = default)
     {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
         try
         {
             var currentUser = GetCurrentUser();
@@ -408,14 +456,14 @@ public class BusinessPartiesController : BaseApiController
 
             if (!deleted)
             {
-                return NotFound(new { message = $"Business party accounting with ID {id} not found." });
+                return CreateNotFoundProblem($"Business party accounting with ID {id} not found.");
             }
 
             return NoContent();
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while deleting the business party accounting record.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while deleting the business party accounting record.", ex);
         }
     }
 

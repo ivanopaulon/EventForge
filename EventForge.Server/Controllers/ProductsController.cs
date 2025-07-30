@@ -72,28 +72,32 @@ public class ProductsController : BaseApiController
     /// <returns>Product information</returns>
     /// <response code="200">Returns the product</response>
     /// <response code="404">If the product is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ProductDto>> GetProduct(
         Guid id,
         CancellationToken cancellationToken = default)
     {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
         try
         {
             var product = await _productService.GetProductByIdAsync(id, cancellationToken);
 
             if (product == null)
             {
-                return NotFound(new { message = $"Product with ID {id} not found." });
+                return CreateNotFoundProblem($"Product with ID {id} not found.");
             }
 
             return Ok(product);
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving the product.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the product.", ex);
         }
     }
 
@@ -105,28 +109,32 @@ public class ProductsController : BaseApiController
     /// <returns>Detailed product information</returns>
     /// <response code="200">Returns the detailed product information</response>
     /// <response code="404">If the product is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("{id:guid}/details")]
     [ProducesResponseType(typeof(ProductDetailDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ProductDetailDto>> GetProductDetail(
         Guid id,
         CancellationToken cancellationToken = default)
     {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
         try
         {
             var productDetail = await _productService.GetProductDetailAsync(id, cancellationToken);
 
             if (productDetail == null)
             {
-                return NotFound(new { message = $"Product with ID {id} not found." });
+                return CreateNotFoundProblem($"Product with ID {id} not found.");
             }
 
             return Ok(productDetail);
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving the product details.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the product details.", ex);
         }
     }
 
@@ -138,17 +146,22 @@ public class ProductsController : BaseApiController
     /// <returns>Created product</returns>
     /// <response code="201">Returns the newly created product</response>
     /// <response code="400">If the product data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPost]
     [ProducesResponseType(typeof(ProductDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ProductDto>> CreateProduct(
         [FromBody] CreateProductDto createProductDto,
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
 
         try
         {
@@ -159,8 +172,7 @@ public class ProductsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while creating the product.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while creating the product.", ex);
         }
     }
 
@@ -174,10 +186,12 @@ public class ProductsController : BaseApiController
     /// <response code="200">Returns the updated product</response>
     /// <response code="400">If the product data is invalid</response>
     /// <response code="404">If the product is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ProductDto>> UpdateProduct(
         Guid id,
         [FromBody] UpdateProductDto updateProductDto,
@@ -185,8 +199,11 @@ public class ProductsController : BaseApiController
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
 
         try
         {
@@ -195,15 +212,14 @@ public class ProductsController : BaseApiController
 
             if (product == null)
             {
-                return NotFound(new { message = $"Product with ID {id} not found." });
+                return CreateNotFoundProblem($"Product with ID {id} not found.");
             }
 
             return Ok(product);
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while updating the product.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while updating the product.", ex);
         }
     }
 
