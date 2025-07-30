@@ -1,3 +1,6 @@
+using EventForge.DTOs.Events;
+using EventForge.DTOs.Common;
+
 namespace EventForge.Server.Services.Events;
 
 /// <summary>
