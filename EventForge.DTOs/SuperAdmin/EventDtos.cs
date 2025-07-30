@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using EventForge.DTOs.Common;
 
 namespace EventForge.DTOs.SuperAdmin
 {
@@ -15,7 +16,7 @@ namespace EventForge.DTOs.SuperAdmin
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public int Capacity { get; set; }
-        public string Status { get; set; } = string.Empty;
+        public EventStatus Status { get; set; }
         public int TeamCount { get; set; }
         public DateTime CreatedAt { get; set; }
         public string? CreatedBy { get; set; }
@@ -53,7 +54,7 @@ namespace EventForge.DTOs.SuperAdmin
         public int Capacity { get; set; } = 1;
 
         [Required]
-        public string Status { get; set; } = "Planned";
+        public EventStatus Status { get; set; } = EventStatus.Planned;
 
         public Guid? TenantId { get; set; }
     }
@@ -86,7 +87,7 @@ namespace EventForge.DTOs.SuperAdmin
         public int Capacity { get; set; }
 
         [Required]
-        public string Status { get; set; } = string.Empty;
+        public EventStatus Status { get; set; }
     }
 
     /// <summary>
