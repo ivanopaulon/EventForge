@@ -75,7 +75,7 @@ public class ClientLogsController : BaseApiController
 
         if (batchRequest.Logs.Count > ClientLogBatchDto.MaxBatchSize)
         {
-            return BadRequest(new { message = $"Batch size exceeds maximum allowed ({ClientLogBatchDto.MaxBatchSize})" });
+            return CreateValidationProblemDetails($"Batch size exceeds maximum allowed ({ClientLogBatchDto.MaxBatchSize})");
         }
 
         var results = new List<object>();

@@ -5,6 +5,10 @@ using Microsoft.EntityFrameworkCore;
 using AuthAuditOperationType = EventForge.DTOs.Common.AuditOperationType;
 using EventForge.DTOs.Common;
 using EventForge.DTOs.SuperAdmin;
+using EventForge.Server.Data;
+using EventForge.Server.Services.Tenants;
+using EventForge.Server.Services.Audit;
+using EventForge.Server.Hubs;
 
 namespace EventForge.Server.Controllers;
 
@@ -47,7 +51,7 @@ public class TenantSwitchController : BaseApiController
             var currentUserId = _tenantContext.CurrentUserId;
             if (!currentUserId.HasValue)
             {
-                return BadRequest(new { message = "No current user context" });
+                return CreateValidationProblemDetails("No current user context");
             }
 
             var user = await _context.Users
@@ -57,7 +61,7 @@ public class TenantSwitchController : BaseApiController
 
             if (user == null)
             {
-                return NotFound(new { message = "Current user not found" });
+                return CreateNotFoundProblem("Current user not found");
             }
 
             var currentTenant = await _context.Tenants.FindAsync(user.TenantId);
@@ -89,7 +93,7 @@ public class TenantSwitchController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving current context");
-            return StatusCode(500, new { message = "Error retrieving current context", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error retrieving current context", ex);
         }
     }
 
@@ -183,7 +187,7 @@ public class TenantSwitchController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error validating security");
-            return StatusCode(500, new { message = "Error validating security", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error validating security", ex);
         }
     }
 
@@ -198,20 +202,20 @@ public class TenantSwitchController : BaseApiController
             var currentUserId = _tenantContext.CurrentUserId;
             if (!currentUserId.HasValue)
             {
-                return BadRequest(new { message = "No current user context" });
+                return CreateValidationProblemDetails("No current user context");
             }
 
             // Validate target tenant
             var targetTenant = await _context.Tenants.FindAsync(switchDto.TenantId);
             if (targetTenant == null)
             {
-                return NotFound(new { message = "Target tenant not found" });
+                return CreateNotFoundProblem("Target tenant not found");
             }
 
             var currentUser = await _context.Users.FindAsync(currentUserId.Value);
             if (currentUser == null)
             {
-                return NotFound(new { message = "Current user not found" });
+                return CreateNotFoundProblem("Current user not found");
             }
 
             var originalTenantId = currentUser.TenantId;
@@ -282,7 +286,7 @@ public class TenantSwitchController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error switching tenant");
-            return StatusCode(500, new { message = "Error switching tenant", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error switching tenant", ex);
         }
     }
 
@@ -297,7 +301,7 @@ public class TenantSwitchController : BaseApiController
             var currentUserId = _tenantContext.CurrentUserId;
             if (!currentUserId.HasValue)
             {
-                return BadRequest(new { message = "No current user context" });
+                return CreateValidationProblemDetails("No current user context");
             }
 
             // Validate target user
@@ -308,13 +312,13 @@ public class TenantSwitchController : BaseApiController
 
             if (targetUser == null)
             {
-                return NotFound(new { message = "Target user not found" });
+                return CreateNotFoundProblem("Target user not found");
             }
 
             var currentUser = await _context.Users.FindAsync(currentUserId.Value);
             if (currentUser == null)
             {
-                return NotFound(new { message = "Current user not found" });
+                return CreateNotFoundProblem("Current user not found");
             }
 
             // Create impersonation audit trail
@@ -387,7 +391,7 @@ public class TenantSwitchController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error starting impersonation");
-            return StatusCode(500, new { message = "Error starting impersonation", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error starting impersonation", ex);
         }
     }
 
@@ -402,13 +406,13 @@ public class TenantSwitchController : BaseApiController
             var currentUserId = _tenantContext.CurrentUserId;
             if (!currentUserId.HasValue)
             {
-                return BadRequest(new { message = "No current user context" });
+                return CreateValidationProblemDetails("No current user context");
             }
 
             var currentUser = await _context.Users.FindAsync(currentUserId.Value);
             if (currentUser == null)
             {
-                return NotFound(new { message = "Current user not found" });
+                return CreateNotFoundProblem("Current user not found");
             }
 
             // Create impersonation end audit trail
@@ -469,7 +473,7 @@ public class TenantSwitchController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error ending impersonation");
-            return StatusCode(500, new { message = "Error ending impersonation", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error ending impersonation", ex);
         }
     }
 
@@ -563,7 +567,7 @@ public class TenantSwitchController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving tenant switch history");
-            return StatusCode(500, new { message = "Error retrieving tenant switch history", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error retrieving tenant switch history", ex);
         }
     }
 
@@ -652,7 +656,7 @@ public class TenantSwitchController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving impersonation history");
-            return StatusCode(500, new { message = "Error retrieving impersonation history", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error retrieving impersonation history", ex);
         }
     }
 
@@ -712,7 +716,7 @@ public class TenantSwitchController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving operation summary");
-            return StatusCode(500, new { message = "Error retrieving operation summary", error = ex.Message });
+            return CreateInternalServerErrorProblem("Error retrieving operation summary", ex);
         }
     }
 

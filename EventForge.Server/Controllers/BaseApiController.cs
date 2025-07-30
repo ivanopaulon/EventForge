@@ -46,7 +46,7 @@ public abstract class BaseApiController : ControllerBase
     {
         // In a real application, you would extract this from JWT claims, session, etc.
         // For now, we'll use a default user
-        return User?.Identity?.Name ?? "system";
+        return User?.Identity?.Name ?? "System";
     }
 
     /// <summary>

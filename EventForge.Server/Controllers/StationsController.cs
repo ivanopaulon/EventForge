@@ -34,23 +34,25 @@ public class StationsController : BaseApiController
     /// <returns>Paginated list of stations</returns>
     /// <response code="200">Returns the paginated list of stations</response>
     /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<StationDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<StationDto>>> GetStations(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        if (page < 1)
-        {
-            return BadRequest(new { message = "Page number must be greater than 0." });
-        }
+        // Validate pagination parameters
+        var validationResult = ValidatePaginationParameters(page, pageSize);
+        if (validationResult != null)
+            return validationResult;
 
-        if (pageSize < 1 || pageSize > 100)
-        {
-            return BadRequest(new { message = "Page size must be between 1 and 100." });
-        }
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
 
         try
         {
@@ -59,7 +61,7 @@ public class StationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while retrieving stations.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving stations.", ex);
         }
     }
 
@@ -70,26 +72,33 @@ public class StationsController : BaseApiController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Station details</returns>
     /// <response code="200">Returns the station</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     /// <response code="404">If the station is not found</response>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(StationDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<StationDto>> GetStation(Guid id, CancellationToken cancellationToken = default)
     {
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
         try
         {
             var station = await _stationService.GetStationByIdAsync(id, cancellationToken);
 
             if (station == null)
             {
-                return NotFound(new { message = $"Station with ID {id} not found." });
+                return CreateNotFoundProblem($"Station with ID {id} not found.");
             }
 
             return Ok(station);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while retrieving the station.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the station.", ex);
         }
     }
 
@@ -101,15 +110,22 @@ public class StationsController : BaseApiController
     /// <returns>Created station</returns>
     /// <response code="201">Returns the newly created station</response>
     /// <response code="400">If the station data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPost]
     [ProducesResponseType(typeof(StationDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<StationDto>> CreateStation(CreateStationDto createStationDto, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
+
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
 
         try
         {
@@ -120,7 +136,7 @@ public class StationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while creating the station.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while creating the station.", ex);
         }
     }
 
@@ -133,17 +149,24 @@ public class StationsController : BaseApiController
     /// <returns>Updated station</returns>
     /// <response code="200">Returns the updated station</response>
     /// <response code="400">If the station data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     /// <response code="404">If the station is not found</response>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(StationDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<StationDto>> UpdateStation(Guid id, UpdateStationDto updateStationDto, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
+
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
 
         try
         {
@@ -152,14 +175,14 @@ public class StationsController : BaseApiController
 
             if (station == null)
             {
-                return NotFound(new { message = $"Station with ID {id} not found." });
+                return CreateNotFoundProblem($"Station with ID {id} not found.");
             }
 
             return Ok(station);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while updating the station.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while updating the station.", ex);
         }
     }
 
@@ -170,12 +193,19 @@ public class StationsController : BaseApiController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>No content if successful</returns>
     /// <response code="204">Station deleted successfully</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     /// <response code="404">If the station is not found</response>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteStation(Guid id, CancellationToken cancellationToken = default)
     {
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
         try
         {
             var currentUser = GetCurrentUser();
@@ -183,14 +213,14 @@ public class StationsController : BaseApiController
 
             if (!deleted)
             {
-                return NotFound(new { message = $"Station with ID {id} not found." });
+                return CreateNotFoundProblem($"Station with ID {id} not found.");
             }
 
             return NoContent();
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while deleting the station.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while deleting the station.", ex);
         }
     }
 
@@ -207,23 +237,25 @@ public class StationsController : BaseApiController
     /// <returns>Paginated list of printers</returns>
     /// <response code="200">Returns the paginated list of printers</response>
     /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("printers")]
     [ProducesResponseType(typeof(PagedResult<PrinterDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<PrinterDto>>> GetPrinters(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        if (page < 1)
-        {
-            return BadRequest(new { message = "Page number must be greater than 0." });
-        }
+        // Validate pagination parameters
+        var validationResult = ValidatePaginationParameters(page, pageSize);
+        if (validationResult != null)
+            return validationResult;
 
-        if (pageSize < 1 || pageSize > 100)
-        {
-            return BadRequest(new { message = "Page size must be between 1 and 100." });
-        }
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
 
         try
         {
@@ -232,7 +264,7 @@ public class StationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while retrieving printers.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving printers.", ex);
         }
     }
 
@@ -243,26 +275,33 @@ public class StationsController : BaseApiController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Printer details</returns>
     /// <response code="200">Returns the printer</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     /// <response code="404">If the printer is not found</response>
     [HttpGet("printers/{id:guid}")]
     [ProducesResponseType(typeof(PrinterDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PrinterDto>> GetPrinter(Guid id, CancellationToken cancellationToken = default)
     {
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
         try
         {
             var printer = await _stationService.GetPrinterByIdAsync(id, cancellationToken);
 
             if (printer == null)
             {
-                return NotFound(new { message = $"Printer with ID {id} not found." });
+                return CreateNotFoundProblem($"Printer with ID {id} not found.");
             }
 
             return Ok(printer);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while retrieving the printer.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the printer.", ex);
         }
     }
 
@@ -273,10 +312,17 @@ public class StationsController : BaseApiController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of printers for the station</returns>
     /// <response code="200">Returns the list of printers</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("{stationId:guid}/printers")]
     [ProducesResponseType(typeof(IEnumerable<PrinterDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IEnumerable<PrinterDto>>> GetPrintersByStation(Guid stationId, CancellationToken cancellationToken = default)
     {
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
         try
         {
             var printers = await _stationService.GetPrintersByStationAsync(stationId, cancellationToken);
@@ -284,7 +330,7 @@ public class StationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while retrieving printers by station.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving printers by station.", ex);
         }
     }
 
@@ -296,15 +342,22 @@ public class StationsController : BaseApiController
     /// <returns>Created printer</returns>
     /// <response code="201">Returns the newly created printer</response>
     /// <response code="400">If the printer data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPost("printers")]
     [ProducesResponseType(typeof(PrinterDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PrinterDto>> CreatePrinter(CreatePrinterDto createPrinterDto, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
+
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
 
         try
         {
@@ -315,7 +368,7 @@ public class StationsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while creating the printer.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while creating the printer.", ex);
         }
     }
 
@@ -328,17 +381,24 @@ public class StationsController : BaseApiController
     /// <returns>Updated printer</returns>
     /// <response code="200">Returns the updated printer</response>
     /// <response code="400">If the printer data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     /// <response code="404">If the printer is not found</response>
     [HttpPut("printers/{id:guid}")]
     [ProducesResponseType(typeof(PrinterDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PrinterDto>> UpdatePrinter(Guid id, UpdatePrinterDto updatePrinterDto, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
+
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
 
         try
         {
@@ -347,14 +407,14 @@ public class StationsController : BaseApiController
 
             if (printer == null)
             {
-                return NotFound(new { message = $"Printer with ID {id} not found." });
+                return CreateNotFoundProblem($"Printer with ID {id} not found.");
             }
 
             return Ok(printer);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while updating the printer.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while updating the printer.", ex);
         }
     }
 
@@ -365,12 +425,19 @@ public class StationsController : BaseApiController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>No content if successful</returns>
     /// <response code="204">Printer deleted successfully</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     /// <response code="404">If the printer is not found</response>
     [HttpDelete("printers/{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeletePrinter(Guid id, CancellationToken cancellationToken = default)
     {
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
         try
         {
             var currentUser = GetCurrentUser();
@@ -378,14 +445,14 @@ public class StationsController : BaseApiController
 
             if (!deleted)
             {
-                return NotFound(new { message = $"Printer with ID {id} not found." });
+                return CreateNotFoundProblem($"Printer with ID {id} not found.");
             }
 
             return NoContent();
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while deleting the printer.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while deleting the printer.", ex);
         }
     }
 
