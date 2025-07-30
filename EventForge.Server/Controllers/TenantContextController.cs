@@ -9,7 +9,7 @@ namespace EventForge.Server.Controllers;
 /// Controller for tenant context operations (tenant switching and user impersonation).
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [Authorize(Policy = "RequireAdmin")]
 public class TenantContextController : ControllerBase
 {

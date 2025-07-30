@@ -131,7 +131,7 @@ public class StoreUsersController : BaseApiController
 
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var storeUser = await _storeUserService.CreateStoreUserAsync(createStoreUserDto, currentUser, cancellationToken);
 
             return CreatedAtAction(nameof(GetStoreUser), new { id = storeUser.Id }, storeUser);
@@ -165,7 +165,7 @@ public class StoreUsersController : BaseApiController
 
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var storeUser = await _storeUserService.UpdateStoreUserAsync(id, updateStoreUserDto, currentUser, cancellationToken);
 
             if (storeUser == null)
@@ -196,7 +196,7 @@ public class StoreUsersController : BaseApiController
     {
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var deleted = await _storeUserService.DeleteStoreUserAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
@@ -304,7 +304,7 @@ public class StoreUsersController : BaseApiController
 
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var storeUserGroup = await _storeUserService.CreateStoreUserGroupAsync(createStoreUserGroupDto, currentUser, cancellationToken);
 
             return CreatedAtAction(nameof(GetStoreUserGroup), new { id = storeUserGroup.Id }, storeUserGroup);
@@ -338,7 +338,7 @@ public class StoreUsersController : BaseApiController
 
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var storeUserGroup = await _storeUserService.UpdateStoreUserGroupAsync(id, updateStoreUserGroupDto, currentUser, cancellationToken);
 
             if (storeUserGroup == null)
@@ -369,7 +369,7 @@ public class StoreUsersController : BaseApiController
     {
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var deleted = await _storeUserService.DeleteStoreUserGroupAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
@@ -499,7 +499,7 @@ public class StoreUsersController : BaseApiController
 
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var storeUserPrivilege = await _storeUserService.CreateStoreUserPrivilegeAsync(createStoreUserPrivilegeDto, currentUser, cancellationToken);
 
             return CreatedAtAction(nameof(GetStoreUserPrivilege), new { id = storeUserPrivilege.Id }, storeUserPrivilege);
@@ -533,7 +533,7 @@ public class StoreUsersController : BaseApiController
 
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var storeUserPrivilege = await _storeUserService.UpdateStoreUserPrivilegeAsync(id, updateStoreUserPrivilegeDto, currentUser, cancellationToken);
 
             if (storeUserPrivilege == null)
@@ -564,7 +564,7 @@ public class StoreUsersController : BaseApiController
     {
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var deleted = await _storeUserService.DeleteStoreUserPrivilegeAsync(id, currentUser, cancellationToken);
 
             if (!deleted)

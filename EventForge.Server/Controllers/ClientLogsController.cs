@@ -9,7 +9,7 @@ namespace EventForge.Server.Controllers;
 /// Controller for receiving and processing client-side logs.
 /// Integrates with existing Serilog infrastructure without requiring new tables.
 /// </summary>
-[Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 public class ClientLogsController : BaseApiController
 {
     private readonly ILogger<ClientLogsController> _logger;

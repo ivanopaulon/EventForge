@@ -131,7 +131,7 @@ public class BusinessPartiesController : BaseApiController
 
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var businessParty = await _businessPartyService.CreateBusinessPartyAsync(createBusinessPartyDto, currentUser, cancellationToken);
 
             return CreatedAtAction(nameof(GetBusinessParty), new { id = businessParty.Id }, businessParty);
@@ -165,7 +165,7 @@ public class BusinessPartiesController : BaseApiController
 
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var businessParty = await _businessPartyService.UpdateBusinessPartyAsync(id, updateBusinessPartyDto, currentUser, cancellationToken);
 
             if (businessParty == null)
@@ -196,7 +196,7 @@ public class BusinessPartiesController : BaseApiController
     {
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var deleted = await _businessPartyService.DeleteBusinessPartyAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
@@ -334,7 +334,7 @@ public class BusinessPartiesController : BaseApiController
 
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var businessPartyAccounting = await _businessPartyService.CreateBusinessPartyAccountingAsync(createBusinessPartyAccountingDto, currentUser, cancellationToken);
 
             return CreatedAtAction(nameof(GetBusinessPartyAccounting), new { id = businessPartyAccounting.Id }, businessPartyAccounting);
@@ -368,7 +368,7 @@ public class BusinessPartiesController : BaseApiController
 
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var businessPartyAccounting = await _businessPartyService.UpdateBusinessPartyAccountingAsync(id, updateBusinessPartyAccountingDto, currentUser, cancellationToken);
 
             if (businessPartyAccounting == null)
@@ -399,7 +399,7 @@ public class BusinessPartiesController : BaseApiController
     {
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var deleted = await _businessPartyService.DeleteBusinessPartyAccountingAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
