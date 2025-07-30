@@ -178,11 +178,11 @@
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudChip T="string" Color="@GetEventStatusColor(OriginalEvent?.Status ?? "")" 
+                <MudChip T="string" Color="@GetEventStatusColor(OriginalEvent?.Status.ToString() ?? "")" 
                          Size="Size.Medium"
-                         Icon="@GetEventStatusIcon(OriginalEvent?.Status ?? "")"
-                         aria-label="@TranslationService.GetTranslation("aria.eventStatus", "Stato evento: {0}", OriginalEvent?.Status)">
-                    @TranslationService.GetTranslation($"eventStatus.{OriginalEvent?.Status?.ToLower()}", OriginalEvent?.Status)
+                         Icon="@GetEventStatusIcon(OriginalEvent?.Status.ToString() ?? "")"
+                         aria-label="@TranslationService.GetTranslation("aria.eventStatus", "Stato evento: {0}", OriginalEvent?.Status.ToString() ?? "")">
+                    @TranslationService.GetTranslation($"eventStatus.{(OriginalEvent?.Status.ToString() ?? "").ToLower()}", OriginalEvent?.Status.ToString() ?? "")
                 </MudChip>
             </MudItem>
             
@@ -232,7 +232,7 @@
 </EntityDrawer>
 
 @code {
-    private EventManagementDto _model = new() { Capacity = 100, Status = "Planned" };
+    private EventManagementDto _model = new() { Capacity = 100, Status = EventStatus.Planned };
     private string? _customTitle;
     private DateTime? _startDate = DateTime.Now;
     private TimeSpan? _startTime = TimeSpan.FromHours(9);
@@ -324,7 +324,7 @@
             else if (Mode == EntityDrawerMode.Create)
             {
                 // Reset for create mode
-                _model = new EventManagementDto { Capacity = 100, Status = "Planned" };
+                _model = new EventManagementDto { Capacity = 100, Status = EventStatus.Planned };
                 _startDate = DateTime.Now;
                 _startTime = TimeSpan.FromHours(9);
                 _endDate = null;

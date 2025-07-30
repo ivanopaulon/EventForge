@@ -253,7 +253,7 @@ else
                                 <RowTemplate>
                                     <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
                                         <div class="d-flex align-center">
-                                            <MudAvatar Color="@GetEventStatusColor(context.Status)" Size="Size.Small" Class="mr-3">
+                                            <MudAvatar Color="@GetEventStatusColor(context.Status.ToString())" Size="Size.Small" Class="mr-3">
                                                 <MudIcon Icon="@Icons.Material.Outlined.Event" Size="Size.Small" />
                                             </MudAvatar>
                                             <div>
@@ -278,10 +278,10 @@ else
                                         </div>
                                     </MudTd>
                                     <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
-                                        <MudChip T="string" Color="@GetEventStatusColor(context.Status)" 
+                                        <MudChip T="string" Color="@GetEventStatusColor(context.Status.ToString())" 
                                                  Size="Size.Small"
-                                                 Icon="@GetEventStatusIcon(context.Status)">
-                                            @TranslationService.GetTranslation($"eventStatus.{context.Status.ToLower()}", context.Status)
+                                                 Icon="@GetEventStatusIcon(context.Status.ToString())">
+                                            @TranslationService.GetTranslation($"eventStatus.{context.Status.ToString().ToLower()}", context.Status.ToString())
                                         </MudChip>
                                     </MudTd>
                                     <MudTd DataLabel="@TranslationService.GetTranslation("field.tenant", "Tenant")">
@@ -456,7 +456,7 @@ else
              e.Location.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
              e.ShortDescription.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) &&
             // Status filter
-            (_statusFilter == "all" || e.Status.Equals(_statusFilter, StringComparison.OrdinalIgnoreCase)) &&
+            (_statusFilter == "all" || e.Status.ToString().Equals(_statusFilter, StringComparison.OrdinalIgnoreCase)) &&
             // Tenant filter
             (string.IsNullOrEmpty(_selectedTenantFilter) ||
              e.TenantId?.ToString() == _selectedTenantFilter));
