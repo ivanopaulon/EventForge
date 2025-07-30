@@ -2,23 +2,28 @@ using EventForge.DTOs.Events;
 using EventForge.DTOs.Common;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Events;
+using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Server.Controllers;
 
 /// <summary>
-/// REST API controller for event management.
+/// REST API controller for event management with multi-tenant support.
+/// Provides comprehensive CRUD operations for events, teams, and event-related entities
+/// within the authenticated user's tenant context.
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
 public class EventsController : BaseApiController
 {
     private readonly IEventService _eventService;
+    private readonly ITenantContext _tenantContext;
 
-    public EventsController(IEventService eventService)
+    public EventsController(IEventService eventService, ITenantContext tenantContext)
     {
         _eventService = eventService ?? throw new ArgumentNullException(nameof(eventService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
     }
 
     #region Event CRUD Operations
@@ -33,10 +38,12 @@ public class EventsController : BaseApiController
     /// <returns>Paginated list of events</returns>
     /// <response code="200">Returns the paginated list of events</response>
     /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet]
     [SoftDeleteFilter]
     [ProducesResponseType(typeof(PagedResult<EventDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<EventDto>>> GetEvents(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
@@ -48,17 +55,13 @@ public class EventsController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        if (page < 1)
-        {
-            ModelState.AddModelError(nameof(page), "Page number must be greater than 0.");
-            return CreateValidationProblemDetails();
-        }
+        // Validate pagination parameters using helper
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
 
-        if (pageSize < 1 || pageSize > 100)
-        {
-            ModelState.AddModelError(nameof(pageSize), "Page size must be between 1 and 100.");
-            return CreateValidationProblemDetails();
-        }
+        // Validate tenant access
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
 
         try
         {
@@ -67,8 +70,7 @@ public class EventsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving events.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving events.", ex);
         }
     }
 

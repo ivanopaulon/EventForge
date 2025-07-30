@@ -1,22 +1,27 @@
 using EventForge.DTOs.Teams;
 using EventForge.Server.Services.Teams;
+using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Server.Controllers;
 
 /// <summary>
-/// REST API controller for team and team member management.
+/// REST API controller for team and team member management with multi-tenant support.
+/// Provides comprehensive CRUD operations for teams and team members
+/// within the authenticated user's tenant context.
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
 public class TeamsController : BaseApiController
 {
     private readonly ITeamService _teamService;
+    private readonly ITenantContext _tenantContext;
 
-    public TeamsController(ITeamService teamService)
+    public TeamsController(ITeamService teamService, ITenantContext tenantContext)
     {
         _teamService = teamService ?? throw new ArgumentNullException(nameof(teamService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
     }
 
     #region Team CRUD Operations
@@ -30,23 +35,23 @@ public class TeamsController : BaseApiController
     /// <returns>Paginated list of teams</returns>
     /// <response code="200">Returns the paginated list of teams</response>
     /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<TeamDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<TeamDto>>> GetTeams(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        if (page < 1)
-        {
-            return BadRequest(new { message = "Page number must be greater than 0." });
-        }
+        // Validate pagination parameters
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
 
-        if (pageSize < 1 || pageSize > 100)
-        {
-            return BadRequest(new { message = "Page size must be between 1 and 100." });
-        }
+        // Validate tenant access
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
 
         try
         {
@@ -55,8 +60,7 @@ public class TeamsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving teams.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving teams.", ex);
         }
     }
 

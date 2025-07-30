@@ -1,0 +1,303 @@
+using EventForge.DTOs.Banks;
+using EventForge.DTOs.Business;
+using EventForge.DTOs.VatRates;
+using EventForge.Server.Services.Banks;
+using EventForge.Server.Services.Business;
+using EventForge.Server.Services.Tenants;
+using EventForge.Server.Services.VatRates;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace EventForge.Server.Controllers;
+
+/// <summary>
+/// Consolidated REST API controller for managing financial entities (Banks, VAT Rates, Payment Terms).
+/// Provides unified CRUD operations with multi-tenant support and standardized patterns.
+/// This controller consolidates BanksController, VatRatesController, and PaymentTermsController
+/// to group related financial operations and improve maintainability.
+/// </summary>
+[Route("api/v1/financial")]
+[Authorize]
+public class FinancialEntitiesController : BaseApiController
+{
+    private readonly IBankService _bankService;
+    private readonly IVatRateService _vatRateService;
+    private readonly IPaymentTermService _paymentTermService;
+    private readonly ITenantContext _tenantContext;
+
+    public FinancialEntitiesController(
+        IBankService bankService,
+        IVatRateService vatRateService,
+        IPaymentTermService paymentTermService,
+        ITenantContext tenantContext)
+    {
+        _bankService = bankService ?? throw new ArgumentNullException(nameof(bankService));
+        _vatRateService = vatRateService ?? throw new ArgumentNullException(nameof(vatRateService));
+        _paymentTermService = paymentTermService ?? throw new ArgumentNullException(nameof(paymentTermService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
+    }
+
+    #region Bank Management
+
+    /// <summary>
+    /// Gets all banks with optional pagination.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of banks</returns>
+    /// <response code="200">Returns the paginated list of banks</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("banks")]
+    [ProducesResponseType(typeof(PagedResult<BankDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<BankDto>>> GetBanks(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _bankService.GetBanksAsync(page, pageSize, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving banks.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a bank by ID.
+    /// </summary>
+    /// <param name="id">Bank ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Bank information</returns>
+    /// <response code="200">Returns the bank</response>
+    /// <response code="404">If the bank is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("banks/{id:guid}")]
+    [ProducesResponseType(typeof(BankDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<BankDto>> GetBank(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var bank = await _bankService.GetBankByIdAsync(id, cancellationToken);
+            if (bank == null)
+            {
+                return CreateNotFoundProblem($"Bank with ID {id} not found.");
+            }
+
+            return Ok(bank);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the bank.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new bank.
+    /// </summary>
+    /// <param name="createBankDto">Bank creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created bank information</returns>
+    /// <response code="201">Bank created successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("banks")]
+    [ProducesResponseType(typeof(BankDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<BankDto>> CreateBank(
+        [FromBody] CreateBankDto createBankDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _bankService.CreateBankAsync(createBankDto, GetCurrentUser(), cancellationToken);
+            return CreatedAtAction(nameof(GetBank), new { id = result.Id }, result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while creating the bank.", ex);
+        }
+    }
+
+    #endregion
+
+    #region VAT Rate Management
+
+    /// <summary>
+    /// Gets all VAT rates with optional pagination.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of VAT rates</returns>
+    /// <response code="200">Returns the paginated list of VAT rates</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("vat-rates")]
+    [ProducesResponseType(typeof(PagedResult<VatRateDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<VatRateDto>>> GetVatRates(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _vatRateService.GetVatRatesAsync(page, pageSize, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving VAT rates.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a VAT rate by ID.
+    /// </summary>
+    /// <param name="id">VAT rate ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>VAT rate information</returns>
+    /// <response code="200">Returns the VAT rate</response>
+    /// <response code="404">If the VAT rate is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("vat-rates/{id:guid}")]
+    [ProducesResponseType(typeof(VatRateDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<VatRateDto>> GetVatRate(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var vatRate = await _vatRateService.GetVatRateByIdAsync(id, cancellationToken);
+            if (vatRate == null)
+            {
+                return CreateNotFoundProblem($"VAT rate with ID {id} not found.");
+            }
+
+            return Ok(vatRate);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the VAT rate.", ex);
+        }
+    }
+
+    #endregion
+
+    #region Payment Terms Management
+
+    /// <summary>
+    /// Gets all payment terms with optional pagination.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of payment terms</returns>
+    /// <response code="200">Returns the paginated list of payment terms</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("payment-terms")]
+    [ProducesResponseType(typeof(PagedResult<PaymentTermDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<PaymentTermDto>>> GetPaymentTerms(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _paymentTermService.GetPaymentTermsAsync(page, pageSize, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving payment terms.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a payment term by ID.
+    /// </summary>
+    /// <param name="id">Payment term ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Payment term information</returns>
+    /// <response code="200">Returns the payment term</response>
+    /// <response code="404">If the payment term is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("payment-terms/{id:guid}")]
+    [ProducesResponseType(typeof(PaymentTermDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PaymentTermDto>> GetPaymentTerm(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var paymentTerm = await _paymentTermService.GetPaymentTermByIdAsync(id, cancellationToken);
+            if (paymentTerm == null)
+            {
+                return CreateNotFoundProblem($"Payment term with ID {id} not found.");
+            }
+
+            return Ok(paymentTerm);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the payment term.", ex);
+        }
+    }
+
+    #endregion
+}

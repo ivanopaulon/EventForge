@@ -1,22 +1,26 @@
 using EventForge.DTOs.Banks;
 using EventForge.Server.Services.Banks;
+using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Server.Controllers;
 
 /// <summary>
-/// REST API controller for bank management.
+/// REST API controller for bank management with multi-tenant support.
+/// Provides CRUD operations for banks within the authenticated user's tenant context.
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
 public class BanksController : BaseApiController
 {
     private readonly IBankService _bankService;
+    private readonly ITenantContext _tenantContext;
 
-    public BanksController(IBankService bankService)
+    public BanksController(IBankService bankService, ITenantContext tenantContext)
     {
         _bankService = bankService ?? throw new ArgumentNullException(nameof(bankService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
     }
 
     /// <summary>
@@ -28,23 +32,23 @@ public class BanksController : BaseApiController
     /// <returns>Paginated list of banks</returns>
     /// <response code="200">Returns the paginated list of banks</response>
     /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<BankDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<BankDto>>> GetBanks(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        if (page < 1)
-        {
-            return BadRequest(new { message = "Page number must be greater than 0." });
-        }
+        // Validate pagination parameters
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
 
-        if (pageSize < 1 || pageSize > 100)
-        {
-            return BadRequest(new { message = "Page size must be between 1 and 100." });
-        }
+        // Validate tenant access
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
 
         try
         {
@@ -53,8 +57,7 @@ public class BanksController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving banks.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving banks.", ex);
         }
     }
 
