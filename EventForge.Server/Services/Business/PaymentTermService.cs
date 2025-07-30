@@ -104,7 +104,7 @@ public class PaymentTermService : IPaymentTermService
                 Name = createPaymentTermDto.Name,
                 Description = createPaymentTermDto.Description,
                 DueDays = createPaymentTermDto.DueDays,
-                PaymentMethod = createPaymentTermDto.PaymentMethod,
+                PaymentMethod = (EventForge.Server.Data.Entities.Business.PaymentMethod)createPaymentTermDto.PaymentMethod,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow
             };
@@ -158,7 +158,7 @@ public class PaymentTermService : IPaymentTermService
             paymentTerm.Name = updatePaymentTermDto.Name;
             paymentTerm.Description = updatePaymentTermDto.Description;
             paymentTerm.DueDays = updatePaymentTermDto.DueDays;
-            paymentTerm.PaymentMethod = updatePaymentTermDto.PaymentMethod;
+            paymentTerm.PaymentMethod = (EventForge.Server.Data.Entities.Business.PaymentMethod)updatePaymentTermDto.PaymentMethod;
             paymentTerm.ModifiedBy = currentUser;
             paymentTerm.ModifiedAt = DateTime.UtcNow;
 
@@ -250,7 +250,7 @@ public class PaymentTermService : IPaymentTermService
             Name = paymentTerm.Name,
             Description = paymentTerm.Description,
             DueDays = paymentTerm.DueDays,
-            PaymentMethod = paymentTerm.PaymentMethod,
+            PaymentMethod = (EventForge.DTOs.Common.PaymentMethod)paymentTerm.PaymentMethod,
             CreatedAt = paymentTerm.CreatedAt,
             CreatedBy = paymentTerm.CreatedBy,
             ModifiedAt = paymentTerm.ModifiedAt,

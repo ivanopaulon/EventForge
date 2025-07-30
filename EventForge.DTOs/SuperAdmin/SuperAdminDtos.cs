@@ -33,6 +33,7 @@ namespace EventForge.DTOs.SuperAdmin
         public string? TenantName { get; set; }
         public List<string> Roles { get; set; } = new List<string>();
         public bool IsActive { get; set; }
+        public bool MustChangePassword { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? LastLoginAt { get; set; }
     }
@@ -130,17 +131,29 @@ namespace EventForge.DTOs.SuperAdmin
         
         public Guid? TenantId { get; set; }
         
+        public string? Role { get; set; }
+        
         public List<string>? Roles { get; set; }
         
         public bool? IsActive { get; set; }
+        
+        public bool? MustChangePassword { get; set; }
         
         public DateTime? CreatedFrom { get; set; }
         
         public DateTime? CreatedTo { get; set; }
         
+        public DateTime? CreatedAfter { get; set; }
+        
+        public DateTime? CreatedBefore { get; set; }
+        
         public DateTime? LastLoginFrom { get; set; }
         
         public DateTime? LastLoginTo { get; set; }
+        
+        public DateTime? LastLoginAfter { get; set; }
+        
+        public DateTime? LastLoginBefore { get; set; }
         
         public int PageNumber { get; set; } = 1;
         
@@ -176,6 +189,7 @@ namespace EventForge.DTOs.SuperAdmin
         public int SuccessfulActions { get; set; }
         public int FailedActions { get; set; }
         public List<string> Errors { get; set; } = new List<string>();
+        public List<UserActionResultDto> Results { get; set; } = new List<UserActionResultDto>();
         public DateTime ProcessedAt { get; set; } = DateTime.UtcNow;
     }
 
@@ -209,6 +223,10 @@ namespace EventForge.DTOs.SuperAdmin
         public string? Phone { get; set; }
 
         public bool SendWelcomeEmail { get; set; } = true;
+        
+        public bool IsActive { get; set; } = true;
+        
+        public bool MustChangePassword { get; set; } = true;
     }
 
     /// <summary>
@@ -218,8 +236,14 @@ namespace EventForge.DTOs.SuperAdmin
     {
         public bool Success { get; set; }
         public Guid? UserId { get; set; }
+        public string? Username { get; set; }
+        public string? Email { get; set; }
+        public string? FullName { get; set; }
         public string Message { get; set; } = string.Empty;
         public string? TemporaryPassword { get; set; }
+        public string? GeneratedPassword { get; set; }
+        public bool MustChangePassword { get; set; }
+        public List<string> AssignedRoles { get; set; } = new List<string>();
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public List<string> Warnings { get; set; } = new List<string>();
     }
@@ -233,10 +257,34 @@ namespace EventForge.DTOs.SuperAdmin
         public int ActiveUsers { get; set; }
         public int InactiveUsers { get; set; }
         public int UsersThisMonth { get; set; }
+        public int NewUsersThisMonth { get; set; }
         public int AdminUsers { get; set; }
         public int ManagerUsers { get; set; }
         public int RegularUsers { get; set; }
+        public int UsersPendingPasswordChange { get; set; }
+        public int LockedUsers { get; set; }
+        public int LoginsToday { get; set; }
+        public int FailedLoginsToday { get; set; }
+        public Dictionary<string, int> UsersByRole { get; set; } = new Dictionary<string, int>();
+        public Dictionary<string, int> UsersByTenant { get; set; } = new Dictionary<string, int>();
         public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// DTO for user action result.
+    /// </summary>
+    public class UserActionResultDto
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public string? ErrorMessage { get; set; }
+        public Guid? UserId { get; set; }
+        public string? Username { get; set; }
+        public string? Email { get; set; }
+        public Dictionary<string, object>? Result { get; set; }
+        public List<string> Errors { get; set; } = new List<string>();
+        public List<string> Warnings { get; set; } = new List<string>();
+        public DateTime ProcessedAt { get; set; } = DateTime.UtcNow;
     }
 
     /// <summary>
@@ -289,12 +337,15 @@ namespace EventForge.DTOs.SuperAdmin
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
+        public string? CurrentOperation { get; set; }
         public int ProgressPercentage { get; set; }
         public DateTime StartedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
         public string? ErrorMessage { get; set; }
+        public string? FilePath { get; set; }
         public long? FileSizeBytes { get; set; }
         public string StartedByUserName { get; set; } = string.Empty;
+        public Guid? StartedBy { get; set; }
     }
 
     /// <summary>
@@ -376,6 +427,20 @@ namespace EventForge.DTOs.SuperAdmin
         public string? TenantName { get; set; }
         public Guid UserId { get; set; }
         public string Username { get; set; } = string.Empty;
+        public string? FullName { get; set; }
+        public string? Email { get; set; }
+        public Guid? CurrentTenantId { get; set; }
+        public string? CurrentTenantName { get; set; }
+        public Guid? OriginalTenantId { get; set; }
+        public string? OriginalTenantName { get; set; }
+        public Guid? ImpersonatedUserId { get; set; }
+        public string? ImpersonatedUsername { get; set; }
+        public bool IsSuperAdmin { get; set; }
+        public string? SessionId { get; set; }
+        public DateTime? LoginTime { get; set; }
+        public DateTime? LastActivity { get; set; }
+        public string? IpAddress { get; set; }
+        public List<string> ActiveSessions { get; set; } = new List<string>();
         public List<string> Roles { get; set; } = new List<string>();
         public bool IsImpersonating { get; set; }
         public string? ImpersonatingUser { get; set; }
@@ -390,6 +455,7 @@ namespace EventForge.DTOs.SuperAdmin
         public DateTime Timestamp { get; set; }
         public string Level { get; set; } = string.Empty;
         public string Source { get; set; } = string.Empty;
+        public string Logger { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;
         public string? Exception { get; set; }
         public Guid? UserId { get; set; }

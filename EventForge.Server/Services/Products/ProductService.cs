@@ -201,7 +201,7 @@ public class ProductService : IProductService
             product.Description = updateProductDto.Description;
             // Note: Code and IsBundle are intentionally not updatable after creation
             product.ImageUrl = updateProductDto.ImageUrl;
-            product.Status = updateProductDto.Status;
+            product.Status = (EventForge.Server.Data.Entities.Products.ProductStatus)updateProductDto.Status;
             product.IsVatIncluded = updateProductDto.IsVatIncluded;
             product.DefaultPrice = updateProductDto.DefaultPrice;
             product.VatRateId = updateProductDto.VatRateId;

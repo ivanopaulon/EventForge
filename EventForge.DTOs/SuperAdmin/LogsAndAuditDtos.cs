@@ -218,6 +218,7 @@ public class AuditTrailResponseDto
     public AuditOperationType OperationType { get; set; }
     public string Details { get; set; } = string.Empty;
     public DateTime PerformedAt { get; set; }
+    public Guid PerformedByUserId { get; set; }
     public string PerformedByUsername { get; set; } = string.Empty;
     public Guid? SourceTenantId { get; set; }
     public string? SourceTenantName { get; set; }
@@ -303,6 +304,9 @@ public class SecurityValidationDto
     [Required]
     public string RequestType { get; set; } = string.Empty; // "tenant-switch", "impersonation", etc.
     
+    [Required]
+    public string Action { get; set; } = string.Empty; // "switch", "impersonate", etc.
+    
     public Guid? TargetTenantId { get; set; }
     
     public Guid? TargetUserId { get; set; }
@@ -318,9 +322,13 @@ public class SecurityValidationResultDto
 {
     public bool IsValid { get; set; }
     public string Message { get; set; } = string.Empty;
+    public string? ValidationMessage { get; set; }
     public DateTime ValidatedAt { get; set; } = DateTime.UtcNow;
     public int RemainingAttempts { get; set; }
     public DateTime? NextAttemptAllowedAt { get; set; }
+    public List<string> Warnings { get; set; } = new List<string>();
+    public List<string> Requirements { get; set; } = new List<string>();
+    public bool RequiresAdditionalConfirmation { get; set; }
 }
 
 /// <summary>
@@ -333,9 +341,16 @@ public class TenantSwitchHistoryDto
     public string Username { get; set; } = string.Empty;
     public Guid? SourceTenantId { get; set; }
     public string? SourceTenantName { get; set; }
+    public Guid? FromTenantId { get; set; }
+    public string? FromTenantName { get; set; }
     public Guid TargetTenantId { get; set; }
     public string TargetTenantName { get; set; } = string.Empty;
+    public Guid ToTenantId { get; set; }
+    public string ToTenantName { get; set; } = string.Empty;
     public DateTime SwitchedAt { get; set; }
+    public DateTime? SwitchedBackAt { get; set; }
+    public bool IsActive { get; set; }
+    public string? SessionId { get; set; }
     public string? Reason { get; set; }
     public bool WasSuccessful { get; set; }
     public string? ErrorMessage { get; set; }
@@ -353,6 +368,8 @@ public class OperationHistorySearchDto
     
     public Guid? UserId { get; set; }
     
+    public Guid? TenantId { get; set; }
+    
     public List<string>? OperationTypes { get; set; }
     
     public Guid? SourceTenantId { get; set; }
@@ -364,6 +381,8 @@ public class OperationHistorySearchDto
     public DateTime? FromDate { get; set; }
     
     public DateTime? ToDate { get; set; }
+    
+    public string? SessionId { get; set; }
     
     public int PageNumber { get; set; } = 1;
     
@@ -380,18 +399,26 @@ public class OperationHistorySearchDto
 public class ImpersonationHistoryDto
 {
     public Guid Id { get; set; }
+    public Guid ImpersonatorUserId { get; set; }
     public Guid SuperAdminId { get; set; }
+    public string ImpersonatorUsername { get; set; } = string.Empty;
     public string SuperAdminUsername { get; set; } = string.Empty;
+    public Guid ImpersonatedUserId { get; set; }
     public Guid TargetUserId { get; set; }
+    public string ImpersonatedUsername { get; set; } = string.Empty;
     public string TargetUsername { get; set; } = string.Empty;
+    public Guid? TenantId { get; set; }
     public Guid? TargetTenantId { get; set; }
+    public string? TenantName { get; set; }
     public string? TargetTenantName { get; set; }
     public DateTime StartedAt { get; set; }
     public DateTime? EndedAt { get; set; }
     public string? Reason { get; set; }
     public bool IsActive { get; set; }
+    public string? SessionId { get; set; }
     public string? IpAddress { get; set; }
     public string? UserAgent { get; set; }
+    public List<string> ActionsPerformed { get; set; } = new List<string>();
 }
 
 /// <summary>
@@ -400,14 +427,40 @@ public class ImpersonationHistoryDto
 public class OperationSummaryDto
 {
     public int TotalOperations { get; set; }
+    public int TotalTenantSwitches { get; set; }
+    public int ActiveTenantSwitches { get; set; }
     public int TenantSwitches { get; set; }
+    public int TotalImpersonations { get; set; }
+    public int ActiveImpersonations { get; set; }
     public int ImpersonationSessions { get; set; }
     public int FailedOperations { get; set; }
     public int OperationsToday { get; set; }
-    public int ActiveImpersonations { get; set; }
+    public int OperationsThisWeek { get; set; }
+    public int OperationsThisMonth { get; set; }
+    public List<RecentOperationDto> RecentOperations { get; set; } = new List<RecentOperationDto>();
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
     public Dictionary<string, int> OperationsByType { get; set; } = new Dictionary<string, int>();
     public Dictionary<string, int> OperationsByUser { get; set; } = new Dictionary<string, int>();
+}
+
+/// <summary>
+/// DTO for recent operation.
+/// </summary>
+public class RecentOperationDto
+{
+    public Guid Id { get; set; }
+    public string Type { get; set; } = string.Empty;
+    public string OperationType { get; set; } = string.Empty;
+    public string Username { get; set; } = string.Empty;
+    public string? TenantName { get; set; }
+    public string? TargetTenantName { get; set; }
+    public string? TargetUsername { get; set; }
+    public DateTime PerformedAt { get; set; }
+    public DateTime Timestamp { get; set; }
+    public bool WasSuccessful { get; set; }
+    public bool IsActive { get; set; }
+    public string? Reason { get; set; }
+    public string? ErrorMessage { get; set; }
 }
 
 /// <summary>
@@ -420,6 +473,7 @@ public class TenantSwitchWithAuditDto
     public string Username { get; set; } = string.Empty;
     public Guid? SourceTenantId { get; set; }
     public string? SourceTenantName { get; set; }
+    public Guid TenantId { get; set; }
     public Guid TargetTenantId { get; set; }
     public string TargetTenantName { get; set; } = string.Empty;
     public DateTime SwitchedAt { get; set; }
@@ -429,6 +483,7 @@ public class TenantSwitchWithAuditDto
     public string? IpAddress { get; set; }
     public string? UserAgent { get; set; }
     public AuditTrailResponseDto? AuditTrail { get; set; }
+    public bool CreateAuditEntry { get; set; } = true;
 }
 
 /// <summary>
@@ -437,6 +492,7 @@ public class TenantSwitchWithAuditDto
 public class ImpersonationWithAuditDto
 {
     public Guid Id { get; set; }
+    public Guid UserId { get; set; }
     public Guid SuperAdminId { get; set; }
     public string SuperAdminUsername { get; set; } = string.Empty;
     public Guid TargetUserId { get; set; }
@@ -450,6 +506,7 @@ public class ImpersonationWithAuditDto
     public string? IpAddress { get; set; }
     public string? UserAgent { get; set; }
     public AuditTrailResponseDto? AuditTrail { get; set; }
+    public bool CreateAuditEntry { get; set; } = true;
 }
 
 }

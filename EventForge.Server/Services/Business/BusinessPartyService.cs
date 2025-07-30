@@ -155,7 +155,7 @@ public class BusinessPartyService : IBusinessPartyService
             var businessParty = new BusinessParty
             {
                 TenantId = currentTenantId.Value,
-                PartyType = createBusinessPartyDto.PartyType,
+                PartyType = (EventForge.Server.Data.Entities.Business.BusinessPartyType)createBusinessPartyDto.PartyType,
                 Name = createBusinessPartyDto.Name,
                 TaxCode = createBusinessPartyDto.TaxCode,
                 VatNumber = createBusinessPartyDto.VatNumber,
@@ -208,7 +208,7 @@ public class BusinessPartyService : IBusinessPartyService
             if (businessParty == null)
                 return null;
 
-            businessParty.PartyType = updateBusinessPartyDto.PartyType;
+            businessParty.PartyType = (EventForge.Server.Data.Entities.Business.BusinessPartyType)updateBusinessPartyDto.PartyType;
             businessParty.Name = updateBusinessPartyDto.Name;
             businessParty.TaxCode = updateBusinessPartyDto.TaxCode;
             businessParty.VatNumber = updateBusinessPartyDto.VatNumber;
@@ -548,7 +548,7 @@ public class BusinessPartyService : IBusinessPartyService
         return new BusinessPartyDto
         {
             Id = businessParty.Id,
-            PartyType = businessParty.PartyType,
+            PartyType = (EventForge.DTOs.Common.BusinessPartyType)businessParty.PartyType,
             Name = businessParty.Name,
             TaxCode = businessParty.TaxCode,
             VatNumber = businessParty.VatNumber,
