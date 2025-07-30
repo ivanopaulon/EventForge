@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using System.Reflection;
+using EventForge.DTOs.Common;
+using EventForge.DTOs.SuperAdmin;
 
 namespace EventForge.Server.Services.Audit;
 
@@ -353,5 +355,119 @@ public class AuditLogService : IAuditLogService
                        !typeof(System.Collections.IEnumerable).IsAssignableFrom(p.PropertyType) ||
                        p.PropertyType == typeof(string))
             .ToArray();
+    }
+
+    /// <summary>
+    /// Searches audit trail with advanced filtering.
+    /// </summary>
+    public async Task<PagedResult<AuditTrailResponseDto>> SearchAuditTrailAsync(
+        AuditTrailSearchDto searchDto,
+        CancellationToken cancellationToken = default)
+    {
+        await Task.Delay(100, cancellationToken); // Simulate async operation
+
+        // In a real implementation, this would search through audit logs with the specified criteria
+        var results = new PagedResult<AuditTrailResponseDto>
+        {
+            Items = new List<AuditTrailResponseDto>(),
+            TotalCount = 0,
+            Page = searchDto.PageNumber,
+            PageSize = searchDto.PageSize
+        };
+
+        return results;
+    }
+
+    /// <summary>
+    /// Gets audit trail statistics.
+    /// </summary>
+    public async Task<AuditTrailStatisticsDto> GetAuditTrailStatisticsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await Task.Delay(100, cancellationToken); // Simulate async operation
+
+        // In a real implementation, this would calculate statistics from audit logs
+        var statistics = new AuditTrailStatisticsDto
+        {
+            TotalOperations = 0,
+            SuccessfulOperations = 0,
+            FailedOperations = 0,
+            CriticalOperations = 0,
+            OperationsToday = 0,
+            OperationsThisWeek = 0,
+            OperationsThisMonth = 0,
+            OperationsByType = new Dictionary<string, int>(),
+            OperationsByUser = new Dictionary<string, int>(),
+            OperationsByTenant = new Dictionary<string, int>(),
+            RecentTrends = new List<AuditTrendDto>(),
+            LastUpdated = DateTime.UtcNow
+        };
+
+        return statistics;
+    }
+
+    /// <summary>
+    /// Exports audit data in the specified format.
+    /// </summary>
+    public async Task<ExportResultDto> ExportAdvancedAsync(
+        ExportRequestDto exportRequest,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(exportRequest);
+
+        // Validate export request
+        if (!new[] { "JSON", "CSV", "EXCEL" }.Contains(exportRequest.Format.ToUpper()))
+        {
+            throw new ArgumentException("Invalid format. Supported formats: JSON, CSV, EXCEL");
+        }
+
+        if (!new[] { "audit", "systemlogs", "users", "tenants" }.Contains(exportRequest.Type.ToLower()))
+        {
+            throw new ArgumentException("Invalid type. Supported types: audit, systemlogs, users, tenants");
+        }
+
+        await Task.Delay(100, cancellationToken); // Simulate async processing
+
+        // In a real implementation, this would queue the export job for background processing
+        var exportResult = new ExportResultDto
+        {
+            Id = Guid.NewGuid(),
+            Type = exportRequest.Type,
+            Format = exportRequest.Format,
+            Status = "Processing",
+            RequestedAt = DateTime.UtcNow,
+            RequestedBy = "Current User" // Should get from current user context
+        };
+
+        return exportResult;
+    }
+
+    /// <summary>
+    /// Gets the status of an export operation.
+    /// </summary>
+    public async Task<ExportResultDto?> GetExportStatusAsync(
+        Guid exportId,
+        CancellationToken cancellationToken = default)
+    {
+        await Task.Delay(50, cancellationToken); // Simulate async operation
+
+        // In a real implementation, this would check the status of the export job from storage
+        var exportResult = new ExportResultDto
+        {
+            Id = exportId,
+            Type = "audit",
+            Format = "JSON",
+            Status = "Completed",
+            TotalRecords = 150,
+            FileName = $"audit_export_{exportId:N}.json",
+            DownloadUrl = $"/api/v1/auditlog/export/{exportId}/download",
+            FileSizeBytes = 1024 * 50, // 50KB
+            RequestedAt = DateTime.UtcNow.AddMinutes(-5),
+            CompletedAt = DateTime.UtcNow.AddMinutes(-2),
+            RequestedBy = "Current User",
+            ExpiresAt = DateTime.UtcNow.AddDays(7)
+        };
+
+        return exportResult;
     }
 }
