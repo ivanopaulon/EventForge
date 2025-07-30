@@ -1,3 +1,5 @@
+using EventForge.DTOs.Performance;
+using EventForge.Server.Services.Performance;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

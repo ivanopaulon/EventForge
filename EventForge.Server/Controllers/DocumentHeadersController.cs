@@ -340,14 +340,4 @@ public class DocumentHeadersController : BaseApiController
         }
     }
 
-    /// <summary>
-    /// Gets the current user from the request context.
-    /// This overrides the base implementation with specific logic for document headers.
-    /// </summary>
-    /// <returns>Current user identifier</returns>
-    private new string GetCurrentUser()
-    {
-        // TODO: Implement proper user context retrieval from authentication
-        return User?.Identity?.Name ?? "system";
-    }
 }

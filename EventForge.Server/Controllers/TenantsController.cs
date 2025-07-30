@@ -10,7 +10,7 @@ namespace EventForge.Server.Controllers;
 /// Controller for tenant management operations (super admin only).
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [Authorize(Policy = "RequireAdmin")]
 public class TenantsController : ControllerBase
 {

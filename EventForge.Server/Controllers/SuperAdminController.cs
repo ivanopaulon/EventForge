@@ -1,3 +1,5 @@
+using EventForge.DTOs.SuperAdmin;
+using EventForge.Server.Services.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -8,7 +10,7 @@ namespace EventForge.Server.Controllers;
 /// Controller for SuperAdmin advanced operations.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [Authorize(Roles = "SuperAdmin")]
 public class SuperAdminController : BaseApiController
 {

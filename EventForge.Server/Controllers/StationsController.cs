@@ -109,7 +109,7 @@ public class StationsController : BaseApiController
 
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var station = await _stationService.CreateStationAsync(createStationDto, currentUser, cancellationToken);
 
             return CreatedAtAction(nameof(GetStation), new { id = station.Id }, station);
@@ -143,7 +143,7 @@ public class StationsController : BaseApiController
 
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var station = await _stationService.UpdateStationAsync(id, updateStationDto, currentUser, cancellationToken);
 
             if (station == null)
@@ -174,7 +174,7 @@ public class StationsController : BaseApiController
     {
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var deleted = await _stationService.DeleteStationAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
@@ -304,7 +304,7 @@ public class StationsController : BaseApiController
 
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var printer = await _stationService.CreatePrinterAsync(createPrinterDto, currentUser, cancellationToken);
 
             return CreatedAtAction(nameof(GetPrinter), new { id = printer.Id }, printer);
@@ -338,7 +338,7 @@ public class StationsController : BaseApiController
 
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var printer = await _stationService.UpdatePrinterAsync(id, updatePrinterDto, currentUser, cancellationToken);
 
             if (printer == null)
@@ -369,7 +369,7 @@ public class StationsController : BaseApiController
     {
         try
         {
-            var currentUser = "system"; // TODO: Get from authentication context
+            var currentUser = GetCurrentUser();
             var deleted = await _stationService.DeletePrinterAsync(id, currentUser, cancellationToken);
 
             if (!deleted)

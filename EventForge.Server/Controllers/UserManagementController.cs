@@ -11,7 +11,7 @@ namespace EventForge.Server.Controllers;
 /// Controller for SuperAdmin user management operations.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [Authorize(Roles = "SuperAdmin")]
 public class UserManagementController : BaseApiController
 {

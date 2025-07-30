@@ -12,7 +12,7 @@ namespace EventForge.Server.Controllers;
 /// Controller for SuperAdmin tenant switching and user impersonation operations.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [Authorize(Roles = "SuperAdmin")]
 public class TenantSwitchController : BaseApiController
 {
