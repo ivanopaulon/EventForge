@@ -1,6 +1,7 @@
 @page "/superadmin/configuration"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.Client.Services
+@using EventForge.DTOs.SuperAdmin
 @attribute [Authorize(Roles = "SuperAdmin")]
 @inject IAuthService AuthService
 @inject IConfigurationService ConfigurationService

@@ -98,7 +98,7 @@ public class BusinessPartiesController : BaseApiController
     /// <response code="200">Returns the list of business parties</response>
     [HttpGet("by-type/{partyType}")]
     [ProducesResponseType(typeof(IEnumerable<BusinessPartyDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<BusinessPartyDto>>> GetBusinessPartiesByType(BusinessPartyType partyType, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<IEnumerable<BusinessPartyDto>>> GetBusinessPartiesByType(DTOs.Common.BusinessPartyType partyType, CancellationToken cancellationToken = default)
     {
         try
         {

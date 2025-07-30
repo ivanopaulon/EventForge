@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Client.Services;
 
@@ -316,18 +317,4 @@ public class HttpClientService : IHttpClientService
 
         throw new HttpRequestException(message, null, response.StatusCode);
     }
-}
-
-/// <summary>
-/// DTO for handling ProblemDetails responses.
-/// </summary>
-public class ProblemDetailsDto
-{
-    public string? Type { get; set; }
-    public string? Title { get; set; }
-    public int? Status { get; set; }
-    public string? Detail { get; set; }
-    public string? Instance { get; set; }
-    public string? CorrelationId { get; set; }
-    public Dictionary<string, object>? Extensions { get; set; }
 }
