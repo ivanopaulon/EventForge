@@ -148,6 +148,87 @@ public class FinancialManagementController : BaseApiController
         }
     }
 
+    /// <summary>
+    /// Updates an existing bank.
+    /// </summary>
+    /// <param name="id">Bank ID</param>
+    /// <param name="updateBankDto">Bank update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated bank information</returns>
+    /// <response code="200">Bank updated successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="404">If the bank is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPut("banks/{id:guid}")]
+    [ProducesResponseType(typeof(BankDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<BankDto>> UpdateBank(
+        Guid id,
+        [FromBody] UpdateBankDto updateBankDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _bankService.UpdateBankAsync(id, updateBankDto, GetCurrentUser(), cancellationToken);
+            if (result == null)
+            {
+                return CreateNotFoundProblem($"Bank with ID {id} not found.");
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while updating the bank.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a bank.
+    /// </summary>
+    /// <param name="id">Bank ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content on success</returns>
+    /// <response code="204">Bank deleted successfully</response>
+    /// <response code="404">If the bank is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("banks/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> DeleteBank(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _bankService.DeleteBankAsync(id, GetCurrentUser(), cancellationToken);
+            if (!result)
+            {
+                return CreateNotFoundProblem($"Bank with ID {id} not found.");
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while deleting the bank.", ex);
+        }
+    }
+
     #endregion
 
     #region Payment Terms Management
@@ -221,6 +302,123 @@ public class FinancialManagementController : BaseApiController
         catch (Exception ex)
         {
             return CreateInternalServerErrorProblem("An error occurred while retrieving the payment term.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new payment term.
+    /// </summary>
+    /// <param name="createPaymentTermDto">Payment term creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created payment term information</returns>
+    /// <response code="201">Payment term created successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("payment-terms")]
+    [ProducesResponseType(typeof(PaymentTermDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PaymentTermDto>> CreatePaymentTerm(
+        [FromBody] CreatePaymentTermDto createPaymentTermDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _paymentTermService.CreatePaymentTermAsync(createPaymentTermDto, GetCurrentUser(), cancellationToken);
+            return CreatedAtAction(nameof(GetPaymentTerm), new { id = result.Id }, result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while creating the payment term.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing payment term.
+    /// </summary>
+    /// <param name="id">Payment term ID</param>
+    /// <param name="updatePaymentTermDto">Payment term update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated payment term information</returns>
+    /// <response code="200">Payment term updated successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="404">If the payment term is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPut("payment-terms/{id:guid}")]
+    [ProducesResponseType(typeof(PaymentTermDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PaymentTermDto>> UpdatePaymentTerm(
+        Guid id,
+        [FromBody] UpdatePaymentTermDto updatePaymentTermDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _paymentTermService.UpdatePaymentTermAsync(id, updatePaymentTermDto, GetCurrentUser(), cancellationToken);
+            if (result == null)
+            {
+                return CreateNotFoundProblem($"Payment term with ID {id} not found.");
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while updating the payment term.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a payment term.
+    /// </summary>
+    /// <param name="id">Payment term ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content on success</returns>
+    /// <response code="204">Payment term deleted successfully</response>
+    /// <response code="404">If the payment term is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("payment-terms/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> DeletePaymentTerm(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _paymentTermService.DeletePaymentTermAsync(id, GetCurrentUser(), cancellationToken);
+            if (!result)
+            {
+                return CreateNotFoundProblem($"Payment term with ID {id} not found.");
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while deleting the payment term.", ex);
         }
     }
 
@@ -333,6 +531,87 @@ public class FinancialManagementController : BaseApiController
         catch (Exception ex)
         {
             return CreateInternalServerErrorProblem("An error occurred while creating the VAT rate.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing VAT rate.
+    /// </summary>
+    /// <param name="id">VAT rate ID</param>
+    /// <param name="updateVatRateDto">VAT rate update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated VAT rate information</returns>
+    /// <response code="200">VAT rate updated successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="404">If the VAT rate is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPut("vat-rates/{id:guid}")]
+    [ProducesResponseType(typeof(VatRateDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<VatRateDto>> UpdateVatRate(
+        Guid id,
+        [FromBody] UpdateVatRateDto updateVatRateDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _vatRateService.UpdateVatRateAsync(id, updateVatRateDto, GetCurrentUser(), cancellationToken);
+            if (result == null)
+            {
+                return CreateNotFoundProblem($"VAT rate with ID {id} not found.");
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while updating the VAT rate.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a VAT rate.
+    /// </summary>
+    /// <param name="id">VAT rate ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content on success</returns>
+    /// <response code="204">VAT rate deleted successfully</response>
+    /// <response code="404">If the VAT rate is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("vat-rates/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> DeleteVatRate(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _vatRateService.DeleteVatRateAsync(id, GetCurrentUser(), cancellationToken);
+            if (!result)
+            {
+                return CreateNotFoundProblem($"VAT rate with ID {id} not found.");
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while deleting the VAT rate.", ex);
         }
     }
 
