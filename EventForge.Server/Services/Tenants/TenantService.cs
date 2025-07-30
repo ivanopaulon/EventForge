@@ -1,6 +1,7 @@
 using EventForge.Server.Mappers;
 using Microsoft.EntityFrameworkCore;
 using AuthAuditOperationType = EventForge.DTOs.Common.AuditOperationType;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Services.Tenants;
 
@@ -602,7 +603,7 @@ public class TenantService : ITenantService
         }
     }
 
-    public async Task<PaginatedResponse<AuditTrailResponseDto>> GetAuditTrailAsync(
+    public async Task<PagedResult<AuditTrailResponseDto>> GetAuditTrailAsync(
         Guid? tenantId = null,
         AuditOperationType? operationType = null,
         int pageNumber = 1,
@@ -661,11 +662,11 @@ public class TenantService : ITenantService
                 })
                 .ToListAsync();
 
-            return new PaginatedResponse<AuditTrailResponseDto>
+            return new PagedResult<AuditTrailResponseDto>
             {
                 Items = items,
                 TotalCount = totalCount,
-                PageNumber = pageNumber,
+                Page = pageNumber,
                 PageSize = pageSize
             };
         }
@@ -734,7 +735,7 @@ public class TenantService : ITenantService
         };
     }
 
-    public async Task<PaginatedResponse<TenantResponseDto>> SearchTenantsAsync(TenantSearchDto searchDto)
+    public async Task<PagedResult<TenantResponseDto>> SearchTenantsAsync(TenantSearchDto searchDto)
     {
         if (!_tenantContext.IsSuperAdmin)
         {
@@ -820,11 +821,11 @@ public class TenantService : ITenantService
             ModifiedBy = t.ModifiedBy
         }).ToList();
 
-        return new PaginatedResponse<TenantResponseDto>
+        return new PagedResult<TenantResponseDto>
         {
             Items = tenantDtos,
             TotalCount = totalCount,
-            PageNumber = searchDto.PageNumber,
+            Page = searchDto.PageNumber,
             PageSize = searchDto.PageSize
         };
     }

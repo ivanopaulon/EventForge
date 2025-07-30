@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using EventForge.DTOs.Tenants;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Controllers;
 
@@ -114,7 +116,7 @@ public class TenantContextController : ControllerBase
     /// <param name="pageSize">Page size for pagination</param>
     /// <returns>Paginated audit trail entries</returns>
     [HttpGet("audit-trail")]
-    public async Task<ActionResult<PaginatedResponse<AuditTrailResponseDto>>> GetAuditTrail(
+    public async Task<ActionResult<PagedResult<AuditTrailResponseDto>>> GetAuditTrail(
         [FromQuery] Guid? tenantId = null,
         [FromQuery] AuditOperationType? operationType = null,
         [FromQuery] int pageNumber = 1,
@@ -141,47 +143,4 @@ public class TenantContextController : ControllerBase
         var canAccess = await _tenantContext.CanAccessTenantAsync(tenantId);
         return Ok(new { TenantId = tenantId, CanAccess = canAccess });
     }
-}
-
-/// <summary>
-/// Request DTO for tenant switching.
-/// </summary>
-public class SwitchTenantRequest
-{
-    /// <summary>
-    /// Target tenant ID to switch to.
-    /// </summary>
-    public Guid TenantId { get; set; }
-
-    /// <summary>
-    /// Reason for the tenant switch.
-    /// </summary>
-    public string Reason { get; set; } = "Tenant switch by admin";
-}
-
-/// <summary>
-/// Request DTO for starting user impersonation.
-/// </summary>
-public class StartImpersonationRequest
-{
-    /// <summary>
-    /// User ID to impersonate.
-    /// </summary>
-    public Guid UserId { get; set; }
-
-    /// <summary>
-    /// Reason for impersonation.
-    /// </summary>
-    public string Reason { get; set; } = "User impersonation by admin";
-}
-
-/// <summary>
-/// Request DTO for ending user impersonation.
-/// </summary>
-public class EndImpersonationRequest
-{
-    /// <summary>
-    /// Reason for ending impersonation.
-    /// </summary>
-    public string Reason { get; set; } = "Impersonation ended by admin";
 }

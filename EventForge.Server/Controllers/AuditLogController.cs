@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Controllers;
 
@@ -338,17 +339,17 @@ public class AuditLogController : BaseApiController
     /// <returns>Paginated audit trail results</returns>
     [HttpPost("audit-trail/search")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<ActionResult<PaginatedResponse<AuditTrailResponseDto>>> SearchAuditTrail([FromBody] AuditTrailSearchDto searchDto)
+    public async Task<ActionResult<PagedResult<AuditTrailResponseDto>>> SearchAuditTrail([FromBody] AuditTrailSearchDto searchDto)
     {
         try
         {
             // This would need to be implemented in the audit service or a separate audit trail service
             // For now, returning a placeholder implementation
-            var results = new PaginatedResponse<AuditTrailResponseDto>
+            var results = new PagedResult<AuditTrailResponseDto>
             {
                 Items = new List<AuditTrailResponseDto>(),
                 TotalCount = 0,
-                PageNumber = searchDto.PageNumber,
+                Page = searchDto.PageNumber,
                 PageSize = searchDto.PageSize
             };
 
