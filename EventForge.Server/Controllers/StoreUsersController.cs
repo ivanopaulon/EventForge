@@ -1,22 +1,26 @@
 using EventForge.DTOs.Store;
 using EventForge.Server.Services.Store;
+using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.Server.Controllers;
 
 /// <summary>
-/// REST API controller for store user management.
+/// REST API controller for store user management with multi-tenant support.
+/// Provides CRUD operations for store users within the authenticated user's tenant context.
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
 public class StoreUsersController : BaseApiController
 {
     private readonly IStoreUserService _storeUserService;
+    private readonly ITenantContext _tenantContext;
 
-    public StoreUsersController(IStoreUserService storeUserService)
+    public StoreUsersController(IStoreUserService storeUserService, ITenantContext tenantContext)
     {
         _storeUserService = storeUserService ?? throw new ArgumentNullException(nameof(storeUserService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
     }
 
     #region StoreUser Endpoints
