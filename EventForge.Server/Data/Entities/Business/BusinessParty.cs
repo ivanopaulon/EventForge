@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.Business;
 
@@ -75,14 +76,4 @@ public class BusinessParty : AuditableEntity
     /// </summary>
     [Display(Name = "References", Description = "Reference persons.")]
     public ICollection<Reference> References { get; set; } = new List<Reference>();
-}
-
-/// <summary>
-/// Business party type.
-/// </summary>
-public enum BusinessPartyType
-{
-    Cliente,
-    Fornitore,
-    ClienteFornitore
 }

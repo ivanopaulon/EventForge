@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.Documents;
 
@@ -255,36 +256,4 @@ public class DocumentHeader : AuditableEntity
             return total < 0 ? 0 : total;
         }
     }
-}
-
-/// <summary>
-/// Document status enumeration.
-/// </summary>
-public enum DocumentStatus
-{
-    Open,
-    Closed,
-    Cancelled
-}
-
-/// <summary>
-/// Payment status enumeration.
-/// </summary>
-public enum PaymentStatus
-{
-    Unpaid,
-    PartiallyPaid,
-    Paid,
-    Overdue
-}
-
-/// <summary>
-/// Approval status enumeration.
-/// </summary>
-public enum ApprovalStatus
-{
-    None,
-    Pending,
-    Approved,
-    Rejected
 }

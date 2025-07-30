@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.Business;
 
@@ -37,19 +38,5 @@ public class PaymentTerm : AuditableEntity
     public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.BankTransfer;
 
 
-}
-
-/// <summary>
-/// Payment method enumeration.
-/// </summary>
-public enum PaymentMethod
-{
-    BankTransfer,
-    Cash,
-    CreditCard,
-    DebitCard,
-    Check,
-    RID, // Direct debit
-    Other
 }
 

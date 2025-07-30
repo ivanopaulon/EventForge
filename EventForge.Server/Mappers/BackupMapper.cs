@@ -43,7 +43,8 @@ public static class BackupMapper
             FilePath = backup.FilePath,
             FileSizeBytes = backup.FileSizeBytes,
             ErrorMessage = backup.ErrorMessage,
-            StartedBy = startedByUserName
+            StartedByUserId = backup.StartedByUserId,
+            StartedByUserName = startedByUserName
         };
     }
 }

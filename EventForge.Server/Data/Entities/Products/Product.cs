@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.Products;
 
@@ -157,15 +158,4 @@ public class Product : AuditableEntity
     /// </summary>
     [Display(Name = "Is Bundle", Description = "Indicates if the product is a bundle.")]
     public bool IsBundle { get; set; } = false;
-}
-
-/// <summary>
-/// Status for the product.
-/// </summary>
-public enum ProductStatus
-{
-    Active,     // Product is active and available
-    Suspended,  // Product is temporarily suspended
-    OutOfStock, // Product is out of stock
-    Deleted     // Product is deleted/disabled
 }

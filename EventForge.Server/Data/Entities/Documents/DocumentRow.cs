@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.Documents;
 
@@ -175,16 +176,4 @@ public class DocumentRow : AuditableEntity
     /// </summary>
     [NotMapped]
     public ICollection<DocumentSummaryLink> IncludedInSummaries { get; set; } = new List<DocumentSummaryLink>();
-}
-
-/// <summary>
-/// Document row type enumeration.
-/// </summary>
-public enum DocumentRowType
-{
-    Product,
-    Discount,
-    Service,
-    Bundle,
-    Other
 }

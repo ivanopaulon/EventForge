@@ -33,6 +33,7 @@ namespace EventForge.DTOs.SuperAdmin
         public string? TenantName { get; set; }
         public List<string> Roles { get; set; } = new List<string>();
         public bool IsActive { get; set; }
+        public bool MustChangePassword { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? LastLoginAt { get; set; }
     }
@@ -132,15 +133,27 @@ namespace EventForge.DTOs.SuperAdmin
         
         public List<string>? Roles { get; set; }
         
+        public string? Role { get; set; }
+        
         public bool? IsActive { get; set; }
+        
+        public bool? MustChangePassword { get; set; }
         
         public DateTime? CreatedFrom { get; set; }
         
         public DateTime? CreatedTo { get; set; }
         
+        public DateTime? CreatedAfter { get; set; }
+        
+        public DateTime? CreatedBefore { get; set; }
+        
         public DateTime? LastLoginFrom { get; set; }
         
         public DateTime? LastLoginTo { get; set; }
+        
+        public DateTime? LastLoginAfter { get; set; }
+        
+        public DateTime? LastLoginBefore { get; set; }
         
         public int PageNumber { get; set; } = 1;
         
@@ -209,6 +222,8 @@ namespace EventForge.DTOs.SuperAdmin
         public string? Phone { get; set; }
 
         public bool SendWelcomeEmail { get; set; } = true;
+
+        public bool MustChangePassword { get; set; } = true;
     }
 
     /// <summary>
@@ -219,7 +234,13 @@ namespace EventForge.DTOs.SuperAdmin
         public bool Success { get; set; }
         public Guid? UserId { get; set; }
         public string Message { get; set; } = string.Empty;
+        public string? Username { get; set; }
+        public string? Email { get; set; }
+        public string? FullName { get; set; }
+        public string? GeneratedPassword { get; set; }
         public string? TemporaryPassword { get; set; }
+        public bool MustChangePassword { get; set; } = true;
+        public List<string> AssignedRoles { get; set; } = new List<string>();
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public List<string> Warnings { get; set; } = new List<string>();
     }
@@ -289,11 +310,14 @@ namespace EventForge.DTOs.SuperAdmin
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
+        public string? CurrentOperation { get; set; }
         public int ProgressPercentage { get; set; }
         public DateTime StartedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
         public string? ErrorMessage { get; set; }
         public long? FileSizeBytes { get; set; }
+        public string? FilePath { get; set; }
+        public Guid StartedByUserId { get; set; }
         public string StartedByUserName { get; set; } = string.Empty;
     }
 
@@ -389,6 +413,7 @@ namespace EventForge.DTOs.SuperAdmin
         public Guid Id { get; set; }
         public DateTime Timestamp { get; set; }
         public string Level { get; set; } = string.Empty;
+        public string Logger { get; set; } = string.Empty;
         public string Source { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;
         public string? Exception { get; set; }

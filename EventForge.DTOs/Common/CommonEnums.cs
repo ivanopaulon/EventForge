@@ -132,6 +132,8 @@ namespace EventForge.DTOs.Common
     public enum DocumentStatus
     {
         Draft,      // Document is in draft state
+        Open,       // Document is open/active
+        Closed,     // Document is closed/completed
         Approved,   // Document is approved
         Rejected,   // Document is rejected
         Cancelled   // Document is cancelled
@@ -144,7 +146,10 @@ namespace EventForge.DTOs.Common
     {
         Product,    // Product row
         Service,    // Service row
-        Note        // Note row
+        Note,       // Note row
+        Discount,   // Discount row
+        Bundle,     // Bundle row
+        Other       // Other type row
     }
 
     /// <summary>
@@ -152,10 +157,13 @@ namespace EventForge.DTOs.Common
     /// </summary>
     public enum PaymentStatus
     {
-        Pending,    // Payment is pending
-        Paid,       // Payment is completed
-        Partial,    // Payment is partially completed
-        Cancelled   // Payment is cancelled
+        Pending,        // Payment is pending
+        Unpaid,         // Payment is not yet made
+        PartiallyPaid,  // Payment is partially completed
+        Partial,        // Payment is partially completed (alternative)
+        Paid,           // Payment is completed
+        Overdue,        // Payment is overdue
+        Cancelled       // Payment is cancelled
     }
 
     /// <summary>
@@ -163,6 +171,7 @@ namespace EventForge.DTOs.Common
     /// </summary>
     public enum ApprovalStatus
     {
+        None,       // No approval status set
         Pending,    // Approval is pending
         Approved,   // Approved
         Rejected    // Rejected
@@ -235,10 +244,12 @@ namespace EventForge.DTOs.Common
     /// </summary>
     public enum BusinessPartyType
     {
-        Cliente,    // Customer (keeping original Italian value)
-        Customer,   // Customer (English alternative)
-        Supplier,   // Supplier
-        Both        // Both customer and supplier
+        Cliente,            // Customer (keeping original Italian value)
+        Customer,           // Customer (English alternative)
+        Supplier,           // Supplier
+        Fornitore,          // Supplier (Italian)
+        Both,               // Both customer and supplier
+        ClienteFornitore    // Both customer and supplier (Italian)
     }
 
     /// <summary>
@@ -288,8 +299,11 @@ namespace EventForge.DTOs.Common
     {
         Cash,           // Cash payment
         Card,           // Card payment
+        CreditCard,     // Credit card payment
+        DebitCard,      // Debit card payment
         BankTransfer,   // Bank transfer
         Check,          // Check payment
+        RID,            // Direct debit
         Other           // Other payment methods
     }
 }

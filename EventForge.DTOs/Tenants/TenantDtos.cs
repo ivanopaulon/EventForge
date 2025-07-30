@@ -36,6 +36,11 @@ namespace EventForge.DTOs.Tenants
         [Range(1, int.MaxValue, ErrorMessage = "Max users must be at least 1.")]
         [Display(Name = "field.maxUsers")]
         public int MaxUsers { get; set; } = 100;
+
+        /// <summary>
+        /// Admin user information for the tenant.
+        /// </summary>
+        public CreateTenantAdminDto? AdminUser { get; set; }
     }
 
     /// <summary>
@@ -75,8 +80,13 @@ namespace EventForge.DTOs.Tenants
         public string ContactEmail { get; set; } = string.Empty;
         public int MaxUsers { get; set; }
         public bool IsActive { get; set; }
+        public bool IsEnabled { get; set; }
+        public DateTime? SubscriptionExpiresAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+        public string? CreatedBy { get; set; }
+        public DateTime? ModifiedAt { get; set; }
+        public string? ModifiedBy { get; set; }
         public TenantAdminResponseDto? AdminUser { get; set; }
     }
 
@@ -89,6 +99,29 @@ namespace EventForge.DTOs.Tenants
         public string Username { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// DTO for creating a tenant admin user.
+    /// </summary>
+    public class CreateTenantAdminDto
+    {
+        [Required(ErrorMessage = "Username is required.")]
+        [MaxLength(100, ErrorMessage = "Username cannot exceed 100 characters.")]
+        public string Username { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress(ErrorMessage = "Invalid email format.")]
+        [MaxLength(256, ErrorMessage = "Email cannot exceed 256 characters.")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "First name is required.")]
+        [MaxLength(100, ErrorMessage = "First name cannot exceed 100 characters.")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Last name is required.")]
+        [MaxLength(100, ErrorMessage = "Last name cannot exceed 100 characters.")]
+        public string LastName { get; set; } = string.Empty;
     }
 
     /// <summary>
