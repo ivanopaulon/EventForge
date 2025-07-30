@@ -48,6 +48,8 @@ builder.Services.AddScoped<IClientLogService, ClientLogService>();
 // Add SuperAdmin services
 builder.Services.AddScoped<ISuperAdminService, SuperAdminService>();
 builder.Services.AddScoped<ILogsService, LogsService>();
+builder.Services.AddScoped<IEntityManagementService, EntityManagementService>();
+builder.Services.AddScoped<IFinancialService, FinancialService>();
 
 // Add authentication services
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
