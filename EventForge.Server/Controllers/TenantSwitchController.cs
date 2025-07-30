@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using AuthAuditOperationType = EventForge.DTOs.Common.AuditOperationType;
 using EventForge.DTOs.Common;
+using EventForge.DTOs.SuperAdmin;
 
 namespace EventForge.Server.Controllers;
 

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using EventForge.DTOs.Audit;
 using EventForge.DTOs.Common;
+using EventForge.DTOs.SuperAdmin;
 
 namespace EventForge.Server.Controllers;
 
@@ -344,16 +345,7 @@ public class AuditLogController : BaseApiController
     {
         try
         {
-            // This would need to be implemented in the audit service or a separate audit trail service
-            // For now, returning a placeholder implementation
-            var results = new PagedResult<AuditTrailResponseDto>
-            {
-                Items = new List<AuditTrailResponseDto>(),
-                TotalCount = 0,
-                Page = searchDto.PageNumber,
-                PageSize = searchDto.PageSize
-            };
-
+            var results = await _auditLogService.SearchAuditTrailAsync(searchDto);
             return Ok(results);
         }
         catch (Exception ex)
@@ -373,19 +365,7 @@ public class AuditLogController : BaseApiController
     {
         try
         {
-            // This would need to be implemented in a dedicated service
-            // For now, returning a placeholder implementation
-            var statistics = new AuditTrailStatisticsDto
-            {
-                TotalOperations = 0,
-                SuccessfulOperations = 0,
-                FailedOperations = 0,
-                CriticalOperations = 0,
-                OperationsToday = 0,
-                OperationsThisWeek = 0,
-                OperationsThisMonth = 0
-            };
-
+            var statistics = await _auditLogService.GetAuditTrailStatisticsAsync();
             return Ok(statistics);
         }
         catch (Exception ex)
@@ -406,34 +386,12 @@ public class AuditLogController : BaseApiController
     {
         try
         {
-            // Validate export request
-            if (!new[] { "JSON", "CSV", "EXCEL" }.Contains(exportDto.Format.ToUpper()))
-            {
-                return BadRequest(new { message = "Invalid format. Supported formats: JSON, CSV, EXCEL" });
-            }
-
-            if (!new[] { "audit", "systemlogs", "users", "tenants" }.Contains(exportDto.Type.ToLower()))
-            {
-                return BadRequest(new { message = "Invalid type. Supported types: audit, systemlogs, users, tenants" });
-            }
-
-            // Create export result (in a real implementation, this would be queued for processing)
-            var exportResult = new ExportResultDto
-            {
-                Id = Guid.NewGuid(),
-                Type = exportDto.Type,
-                Format = exportDto.Format,
-                Status = "Processing",
-                RequestedAt = DateTime.UtcNow,
-                RequestedBy = "SuperAdmin" // Should get from current user context
-            };
-
-            // In a real implementation, you would:
-            // 1. Queue the export job for background processing
-            // 2. Return the export ID for status checking
-            // 3. Provide a separate endpoint to check export status and download
-
+            var exportResult = await _auditLogService.ExportAdvancedAsync(exportDto);
             return Ok(exportResult);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -453,22 +411,12 @@ public class AuditLogController : BaseApiController
     {
         try
         {
-            // In a real implementation, this would check the status of the export job
-            var exportResult = new ExportResultDto
+            var exportResult = await _auditLogService.GetExportStatusAsync(exportId);
+            
+            if (exportResult == null)
             {
-                Id = exportId,
-                Type = "audit",
-                Format = "JSON",
-                Status = "Completed",
-                TotalRecords = 150,
-                FileName = $"audit_export_{exportId:N}.json",
-                DownloadUrl = $"/api/v1/auditlog/export/{exportId}/download",
-                FileSizeBytes = 1024 * 50, // 50KB
-                RequestedAt = DateTime.UtcNow.AddMinutes(-5),
-                CompletedAt = DateTime.UtcNow.AddMinutes(-2),
-                RequestedBy = "SuperAdmin",
-                ExpiresAt = DateTime.UtcNow.AddDays(7)
-            };
+                return NotFound(new { message = "Export not found" });
+            }
 
             return Ok(exportResult);
         }
@@ -486,7 +434,7 @@ public class AuditLogController : BaseApiController
     /// <returns>Export file for download</returns>
     [HttpGet("export/{exportId}/download")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<IActionResult> DownloadExport(Guid exportId)
+    public IActionResult DownloadExport(Guid exportId)
     {
         try
         {

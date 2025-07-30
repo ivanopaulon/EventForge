@@ -1,4 +1,6 @@
 using System.Linq.Expressions;
+using EventForge.DTOs.Common;
+using EventForge.DTOs.SuperAdmin;
 
 namespace EventForge.Server.Services.Audit;
 
@@ -125,5 +127,43 @@ public interface IAuditLogService
     /// <returns>The audit log entry or null if not found</returns>
     Task<EntityChangeLog?> GetLogByIdAsync(
         Guid id,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Searches audit trail with advanced filtering.
+    /// </summary>
+    /// <param name="searchDto">Search criteria</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated audit trail results</returns>
+    Task<PagedResult<AuditTrailResponseDto>> SearchAuditTrailAsync(
+        AuditTrailSearchDto searchDto,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets audit trail statistics.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Audit trail statistics</returns>
+    Task<AuditTrailStatisticsDto> GetAuditTrailStatisticsAsync(
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Exports audit data in the specified format.
+    /// </summary>
+    /// <param name="exportRequest">Export request parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Export result information</returns>
+    Task<ExportResultDto> ExportAdvancedAsync(
+        ExportRequestDto exportRequest,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the status of an export operation.
+    /// </summary>
+    /// <param name="exportId">Export operation ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Export status information</returns>
+    Task<ExportResultDto?> GetExportStatusAsync(
+        Guid exportId,
         CancellationToken cancellationToken = default);
 }
