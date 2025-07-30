@@ -22,27 +22,20 @@ public interface IConfigurationService
 
 public class ConfigurationService : IConfigurationService
 {
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IHttpClientService _httpClientService;
     private readonly ILogger<ConfigurationService> _logger;
 
-    public ConfigurationService(IHttpClientFactory httpClientFactory, ILogger<ConfigurationService> logger)
+    public ConfigurationService(IHttpClientService httpClientService, ILogger<ConfigurationService> logger)
     {
-        _httpClientFactory = httpClientFactory;
+        _httpClientService = httpClientService;
         _logger = logger;
-    }
-
-    private HttpClient CreateHttpClient()
-    {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
-        return httpClient;
     }
 
     public async Task<IEnumerable<ConfigurationDto>> GetAllConfigurationsAsync()
     {
         try
         {
-            var httpClient = CreateHttpClient();
-            var response = await httpClient.GetFromJsonAsync<IEnumerable<ConfigurationDto>>("api/SuperAdmin/configuration");
+            var response = await _httpClientService.GetAsync<IEnumerable<ConfigurationDto>>("api/SuperAdmin/configuration");
             return response ?? Enumerable.Empty<ConfigurationDto>();
         }
         catch (Exception ex)
@@ -56,7 +49,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var response = await CreateHttpClient().GetFromJsonAsync<IEnumerable<ConfigurationDto>>($"api/SuperAdmin/configuration/category/{category}");
+            var response = await _httpClientService.GetAsync<IEnumerable<ConfigurationDto>>($"api/SuperAdmin/configuration/category/{category}");
             return response ?? Enumerable.Empty<ConfigurationDto>();
         }
         catch (Exception ex)
@@ -70,7 +63,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var response = await CreateHttpClient().GetFromJsonAsync<IEnumerable<string>>("api/SuperAdmin/configuration/categories");
+            var response = await _httpClientService.GetAsync<IEnumerable<string>>("api/SuperAdmin/configuration/categories");
             return response ?? Enumerable.Empty<string>();
         }
         catch (Exception ex)
@@ -84,7 +77,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            return await CreateHttpClient().GetFromJsonAsync<ConfigurationDto>($"api/SuperAdmin/configuration/{key}");
+            return await _httpClientService.GetAsync<ConfigurationDto>($"api/SuperAdmin/configuration/{key}");
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("404"))
         {
@@ -101,10 +94,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var response = await CreateHttpClient().PostAsJsonAsync("api/SuperAdmin/configuration", createDto);
-            response.EnsureSuccessStatusCode();
-
-            var result = await response.Content.ReadFromJsonAsync<ConfigurationDto>();
+            var result = await _httpClientService.PostAsync<CreateConfigurationDto, ConfigurationDto>("api/SuperAdmin/configuration", createDto);
             return result ?? throw new InvalidOperationException("Failed to deserialize response");
         }
         catch (Exception ex)
@@ -118,10 +108,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var response = await CreateHttpClient().PutAsJsonAsync($"api/SuperAdmin/configuration/{key}", updateDto);
-            response.EnsureSuccessStatusCode();
-
-            var result = await response.Content.ReadFromJsonAsync<ConfigurationDto>();
+            var result = await _httpClientService.PutAsync<UpdateConfigurationDto, ConfigurationDto>($"api/SuperAdmin/configuration/{key}", updateDto);
             return result ?? throw new InvalidOperationException("Failed to deserialize response");
         }
         catch (Exception ex)
@@ -135,8 +122,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var response = await CreateHttpClient().DeleteAsync($"api/SuperAdmin/configuration/{key}");
-            response.EnsureSuccessStatusCode();
+            await _httpClientService.DeleteAsync($"api/SuperAdmin/configuration/{key}");
         }
         catch (Exception ex)
         {
@@ -149,10 +135,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var response = await CreateHttpClient().PostAsJsonAsync("api/SuperAdmin/configuration/test-smtp", testDto);
-            response.EnsureSuccessStatusCode();
-
-            var result = await response.Content.ReadFromJsonAsync<SmtpTestResultDto>();
+            var result = await _httpClientService.PostAsync<SmtpTestDto, SmtpTestResultDto>("api/SuperAdmin/configuration/test-smtp", testDto);
             return result ?? throw new InvalidOperationException("Failed to deserialize response");
         }
         catch (Exception ex)
@@ -166,8 +149,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var response = await CreateHttpClient().PostAsync("api/SuperAdmin/configuration/reload", null);
-            response.EnsureSuccessStatusCode();
+            await _httpClientService.PostAsync<object?>("api/SuperAdmin/configuration/reload", null);
         }
         catch (Exception ex)
         {
