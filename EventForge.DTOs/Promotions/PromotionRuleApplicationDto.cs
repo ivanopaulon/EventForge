@@ -14,7 +14,7 @@ namespace EventForge.DTOs.Promotions
         /// <summary>
         /// Collection of cart items to apply promotions to.
         /// </summary>
-        public List<CartItemDto> CartItems { get; set; } = new();
+        public List<CartItemDto> CartItems { get; set; } = new List<CartItemDto>();
     
         /// <summary>
         /// Customer ID (optional, for customer-specific promotions).
@@ -106,17 +106,17 @@ namespace EventForge.DTOs.Promotions
         /// <summary>
         /// Collection of applied promotions with details.
         /// </summary>
-        public List<AppliedPromotionDto> AppliedPromotions { get; set; } = new();
+        public List<AppliedPromotionDto> AppliedPromotions { get; set; } = new List<AppliedPromotionDto>();
     
         /// <summary>
         /// Updated cart items with applied discounts.
         /// </summary>
-        public List<CartItemResultDto> CartItems { get; set; } = new();
+        public List<CartItemResultDto> CartItems { get; set; } = new List<CartItemResultDto>();
     
         /// <summary>
         /// Warnings or messages about promotion application.
         /// </summary>
-        public List<string> Messages { get; set; } = new();
+        public List<string> Messages { get; set; } = new List<string>();
     
         /// <summary>
         /// Whether all promotions were successfully applied.
@@ -167,7 +167,7 @@ namespace EventForge.DTOs.Promotions
         /// <summary>
         /// Product IDs affected by this promotion.
         /// </summary>
-        public List<Guid> AffectedProductIds { get; set; } = new();
+        public List<Guid> AffectedProductIds { get; set; } = new List<Guid>();
     }
     
     /// <summary>
@@ -198,6 +198,6 @@ namespace EventForge.DTOs.Promotions
         /// <summary>
         /// Promotions applied to this line item.
         /// </summary>
-        public List<AppliedPromotionDto> AppliedPromotions { get; set; } = new();
+        public List<AppliedPromotionDto> AppliedPromotions { get; set; } = new List<AppliedPromotionDto>();
     }
 }

@@ -1,4 +1,4 @@
-using EventForge.Server.DTOs.Products;
+using EventForge.DTOs.Products;
 
 namespace EventForge.Server.Services.Products;
 

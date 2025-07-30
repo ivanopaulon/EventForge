@@ -116,10 +116,10 @@ public class AuditTrailStatisticsDto
     public int OperationsToday { get; set; }
     public int OperationsThisWeek { get; set; }
     public int OperationsThisMonth { get; set; }
-    public Dictionary<string, int> OperationsByType { get; set; } = new();
-    public Dictionary<string, int> OperationsByUser { get; set; } = new();
-    public Dictionary<string, int> OperationsByTenant { get; set; } = new();
-    public List<AuditTrendDto> RecentTrends { get; set; } = new();
+    public Dictionary<string, int> OperationsByType { get; set; } = new Dictionary<string, int>();
+    public Dictionary<string, int> OperationsByUser { get; set; } = new Dictionary<string, int>();
+    public Dictionary<string, int> OperationsByTenant { get; set; } = new Dictionary<string, int>();
+    public List<AuditTrendDto> RecentTrends { get; set; } = new List<AuditTrendDto>();
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
 }
 
@@ -187,8 +187,8 @@ public class LogMonitoringConfigDto
 {
     public bool EnableRealTimeUpdates { get; set; } = true;
     public int UpdateIntervalSeconds { get; set; } = 5;
-    public List<string> MonitoredLevels { get; set; } = new() { "Warning", "Error", "Critical" };
-    public List<string> MonitoredSources { get; set; } = new();
+    public List<string> MonitoredLevels { get; set; } = new List<string>() { "Warning", "Error", "Critical" };
+    public List<string> MonitoredSources { get; set; } = new List<string>();
     public int MaxLiveEntries { get; set; } = 100;
     public bool AlertOnCritical { get; set; } = true;
     public bool AlertOnErrors { get; set; } = false;

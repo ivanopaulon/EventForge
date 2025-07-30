@@ -1,4 +1,4 @@
-using EventForge.Server.DTOs.Business;
+using EventForge.DTOs.Business;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Business;

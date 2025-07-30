@@ -1,4 +1,4 @@
-using EventForge.Server.DTOs.Documents;
+using EventForge.DTOs.Documents;
 
 namespace EventForge.Server.Extensions;
 

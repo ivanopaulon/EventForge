@@ -36,7 +36,7 @@ namespace EventForge.Client.Services
         Task<ConfigurationDto> CreateConfigurationAsync(CreateConfigurationDto createDto);
         Task<ConfigurationDto> UpdateConfigurationAsync(string key, UpdateConfigurationDto updateDto);
         Task DeleteConfigurationAsync(string key);
-        Task<bool> TestSmtpConfigurationAsync(TestSmtpConfigurationDto testDto);
+        Task<bool> TestSmtpConfigurationAsync(SmtpTestDto testDto);
         Task ReloadConfigurationAsync();
 
         // Backup Management
@@ -325,7 +325,7 @@ namespace EventForge.Client.Services
             response.EnsureSuccessStatusCode();
         }
 
-        public async Task<bool> TestSmtpConfigurationAsync(TestSmtpConfigurationDto testDto)
+        public async Task<bool> TestSmtpConfigurationAsync(SmtpTestDto testDto)
         {
             var httpClient = await GetConfiguredHttpClientAsync();
             var response = await httpClient.PostAsJsonAsync("api/SuperAdmin/configuration/test-smtp", testDto);

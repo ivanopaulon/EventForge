@@ -30,7 +30,7 @@ namespace EventForge.DTOs.VatRates
         /// </summary>
         [Required]
         [Display(Name = "Status", Description = "Current status of the VAT rate.")]
-        public ProductVatRateStatus Status { get; set; }
+        public VatRateStatus Status { get; set; }
     
         /// <summary>
         /// Start date of the VAT rate validity.

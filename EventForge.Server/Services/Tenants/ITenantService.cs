@@ -117,7 +117,7 @@ public interface ITenantService
     /// <param name="tenantId">Tenant ID</param>
     /// <param name="updateDto">Updated limits data</param>
     /// <returns>Updated limits information</returns>
-    Task<TenantLimitsDto> UpdateTenantLimitsAsync(Guid tenantId, EventForge.Server.DTOs.SuperAdmin.UpdateTenantLimitsDto updateDto);
+    Task<TenantLimitsDto> UpdateTenantLimitsAsync(Guid tenantId, EventForge.DTOs.SuperAdmin.UpdateTenantLimitsDto updateDto);
 
     /// <summary>
     /// Soft deletes a tenant.

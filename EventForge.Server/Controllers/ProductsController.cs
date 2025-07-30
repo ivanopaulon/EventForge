@@ -1,4 +1,4 @@
-using EventForge.Server.DTOs.Products;
+using EventForge.DTOs.Products;
 using EventForge.Server.Services.Products;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

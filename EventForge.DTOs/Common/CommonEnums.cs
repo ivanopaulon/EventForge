@@ -121,7 +121,8 @@ namespace EventForge.DTOs.Common
     /// </summary>
     public enum PriceListEntryStatus
     {
-        Active,     // Active and usable entry
+        Attivo,     // Active and usable entry (keeping original Italian value)
+        Active,     // Active and usable entry (English alternative)
         Deleted     // Deleted/disabled entry
     }
 
@@ -234,7 +235,8 @@ namespace EventForge.DTOs.Common
     /// </summary>
     public enum BusinessPartyType
     {
-        Customer,   // Customer
+        Cliente,    // Customer (keeping original Italian value)
+        Customer,   // Customer (English alternative)
         Supplier,   // Supplier
         Both        // Both customer and supplier
     }
@@ -284,10 +286,10 @@ namespace EventForge.DTOs.Common
     /// </summary>
     public enum PaymentMethod
     {
-        Cash,       // Cash payment
-        Card,       // Card payment
-        Transfer,   // Bank transfer
-        Check,      // Check payment
-        Other       // Other payment methods
+        Cash,           // Cash payment
+        Card,           // Card payment
+        BankTransfer,   // Bank transfer
+        Check,          // Check payment
+        Other           // Other payment methods
     }
 }

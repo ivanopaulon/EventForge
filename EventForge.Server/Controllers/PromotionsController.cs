@@ -1,4 +1,4 @@
-using EventForge.Server.DTOs.Promotions;
+using EventForge.DTOs.Promotions;
 using EventForge.Server.Services.Promotions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

@@ -28,7 +28,7 @@ namespace EventForge.DTOs.VatRates
         /// <summary>
         /// Status of the VAT rate.
         /// </summary>
-        public ProductVatRateStatus Status { get; set; }
+        public VatRateStatus Status { get; set; }
     
         /// <summary>
         /// Start date of the VAT rate validity.
