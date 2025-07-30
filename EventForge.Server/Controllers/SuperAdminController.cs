@@ -136,7 +136,7 @@ public class SuperAdminController : BaseApiController
             var configuration = await _configurationService.GetConfigurationAsync(key);
             if (configuration == null)
             {
-                return NotFound(new { message = $"Configuration with key '{key}' not found" });
+                return CreateNotFoundProblem($"Configuration with key '{key}' not found");
             }
             return Ok(configuration);
         }
@@ -264,7 +264,7 @@ public class SuperAdminController : BaseApiController
             var backup = await _backupService.GetBackupStatusAsync(backupId);
             if (backup == null)
             {
-                return NotFound(new { message = $"Backup operation {backupId} not found" });
+                return CreateNotFoundProblem($"Backup operation {backupId} not found");
             }
             return Ok(backup);
         }

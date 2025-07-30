@@ -128,7 +128,7 @@ public class EventsController : BaseApiController
 
             if (eventDetail == null)
             {
-                return NotFound(new { message = $"Event with ID {id} not found." });
+                return CreateNotFoundProblem($"Event with ID {id} not found.");
             }
 
             return Ok(eventDetail);
@@ -172,11 +172,11 @@ public class EventsController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -216,18 +216,18 @@ public class EventsController : BaseApiController
 
             if (eventEntity == null)
             {
-                return NotFound(new { message = $"Event with ID {id} not found." });
+                return CreateNotFoundProblem($"Event with ID {id} not found.");
             }
 
             return Ok(eventEntity);
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -258,7 +258,7 @@ public class EventsController : BaseApiController
 
             if (!result)
             {
-                return NotFound(new { message = $"Event with ID {id} not found." });
+                return CreateNotFoundProblem($"Event with ID {id} not found.");
             }
 
             return NoContent();

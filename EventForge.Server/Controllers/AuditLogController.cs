@@ -90,7 +90,7 @@ public class AuditLogController : BaseApiController
 
             if (auditLog == null)
             {
-                return NotFound(new { message = $"Audit log with ID {id} not found." });
+                return CreateNotFoundProblem($"Audit log with ID {id} not found.");
             }
 
             return Ok(auditLog.ToDto());
@@ -146,7 +146,7 @@ public class AuditLogController : BaseApiController
     {
         if (string.IsNullOrWhiteSpace(entityName))
         {
-            return BadRequest(new { message = "Entity name cannot be empty." });
+            return CreateValidationProblemDetails("Entity name cannot be empty.");
         }
 
         try
@@ -179,7 +179,7 @@ public class AuditLogController : BaseApiController
     {
         if (string.IsNullOrWhiteSpace(username))
         {
-            return BadRequest(new { message = "Username cannot be empty." });
+            return CreateValidationProblemDetails("Username cannot be empty.");
         }
 
         try
@@ -215,7 +215,7 @@ public class AuditLogController : BaseApiController
         {
             if (!new[] { "JSON", "CSV", "TXT" }.Contains(exportDto.Format.ToUpper()))
             {
-                return BadRequest(new { message = "Invalid format. Supported formats: JSON, CSV, TXT" });
+                return CreateValidationProblemDetails("Invalid format. Supported formats: JSON, CSV, TXT");
             }
 
             // Build query parameters for filtering
@@ -274,7 +274,7 @@ public class AuditLogController : BaseApiController
                     break;
 
                 default:
-                    return BadRequest(new { message = "Unsupported format" });
+                    return CreateValidationProblemDetails("Unsupported format");
             }
 
             return File(fileContent, contentType, fileName);
@@ -400,7 +400,7 @@ public class AuditLogController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -424,7 +424,7 @@ public class AuditLogController : BaseApiController
             
             if (exportResult == null)
             {
-                return NotFound(new { message = "Export not found" });
+                return CreateNotFoundProblem("Export not found");
             }
 
             return Ok(exportResult);

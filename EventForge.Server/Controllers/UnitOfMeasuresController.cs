@@ -82,7 +82,7 @@ public class UnitOfMeasuresController : BaseApiController
 
             if (um == null)
             {
-                return NotFound(new { message = $"Unit of measure with ID {id} not found." });
+                return CreateNotFoundProblem($"Unit of measure with ID {id} not found.");
             }
 
             return Ok(um);
@@ -162,7 +162,7 @@ public class UnitOfMeasuresController : BaseApiController
 
             if (um == null)
             {
-                return NotFound(new { message = $"Unit of measure with ID {id} not found." });
+                return CreateNotFoundProblem($"Unit of measure with ID {id} not found.");
             }
 
             return Ok(um);
@@ -196,7 +196,7 @@ public class UnitOfMeasuresController : BaseApiController
 
             if (!deleted)
             {
-                return NotFound(new { message = $"Unit of measure with ID {id} not found." });
+                return CreateNotFoundProblem($"Unit of measure with ID {id} not found.");
             }
 
             return NoContent();

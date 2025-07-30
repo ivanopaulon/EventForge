@@ -113,7 +113,7 @@ public class UserManagementController : BaseApiController
 
             if (user == null)
             {
-                return NotFound(new { message = $"User {userId} not found" });
+                return CreateNotFoundProblem($"User {userId} not found");
             }
 
             var tenant = await _context.Tenants.FindAsync(user.TenantId);
@@ -159,7 +159,7 @@ public class UserManagementController : BaseApiController
 
             if (user == null)
             {
-                return NotFound(new { message = $"User {userId} not found" });
+                return CreateNotFoundProblem($"User {userId} not found");
             }
 
             var oldStatus = user.IsActive;
@@ -244,7 +244,7 @@ public class UserManagementController : BaseApiController
 
             if (user == null)
             {
-                return NotFound(new { message = $"User {userId} not found" });
+                return CreateNotFoundProblem($"User {userId} not found");
             }
 
             // Get the roles by name
@@ -255,7 +255,7 @@ public class UserManagementController : BaseApiController
             if (roles.Count != updateDto.Roles.Count)
             {
                 var missingRoles = updateDto.Roles.Except(roles.Select(r => r.Name));
-                return BadRequest(new { message = $"Invalid roles: {string.Join(", ", missingRoles)}" });
+                return CreateValidationProblemDetails($"Invalid roles: {string.Join(", ", missingRoles)}");
             }
 
             var oldRoles = user.UserRoles.Select(ur => ur.Role.Name).ToList();
@@ -352,7 +352,7 @@ public class UserManagementController : BaseApiController
 
             if (user == null)
             {
-                return NotFound(new { message = $"User {userId} not found" });
+                return CreateNotFoundProblem($"User {userId} not found");
             }
 
             user.MustChangePassword = true;
@@ -802,14 +802,14 @@ public class UserManagementController : BaseApiController
 
             if (existingUser)
             {
-                return BadRequest(new { message = "Username or email already exists" });
+                return CreateValidationProblemDetails("Username or email already exists");
             }
 
             // Verify tenant exists
             var tenant = await _context.Tenants.FindAsync(createDto.TenantId);
             if (tenant == null)
             {
-                return BadRequest(new { message = "Invalid tenant ID" });
+                return CreateValidationProblemDetails("Invalid tenant ID");
             }
 
             // Generate a temporary password

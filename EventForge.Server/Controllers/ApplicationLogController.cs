@@ -83,7 +83,7 @@ public class ApplicationLogController : BaseApiController
 
             if (log == null)
             {
-                return NotFound(new { message = $"Application log with ID {id} not found." });
+                return CreateNotFoundProblem($"Application log with ID {id} not found.");
             }
 
             return Ok(log);
@@ -113,7 +113,7 @@ public class ApplicationLogController : BaseApiController
     {
         if (string.IsNullOrWhiteSpace(level))
         {
-            return BadRequest(new { message = "Log level cannot be empty." });
+            return CreateValidationProblemDetails("Log level cannot be empty.");
         }
 
         try
@@ -148,7 +148,7 @@ public class ApplicationLogController : BaseApiController
     {
         if (fromDate > toDate)
         {
-            return BadRequest(new { message = "From date cannot be greater than to date." });
+            return CreateValidationProblemDetails("From date cannot be greater than to date.");
         }
 
         try
@@ -278,7 +278,7 @@ public class ApplicationLogController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {

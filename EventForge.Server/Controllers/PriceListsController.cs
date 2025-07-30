@@ -156,7 +156,7 @@ public class PriceListsController : BaseApiController
 
             if (priceListDetail == null)
             {
-                return NotFound(new { message = $"Price list with ID {id} not found." });
+                return CreateNotFoundProblem($"Price list with ID {id} not found.");
             }
 
             return Ok(priceListDetail);
@@ -243,7 +243,7 @@ public class PriceListsController : BaseApiController
 
             if (priceList == null)
             {
-                return NotFound(new { message = $"Price list with ID {id} not found." });
+                return CreateNotFoundProblem($"Price list with ID {id} not found.");
             }
 
             return Ok(priceList);
@@ -277,7 +277,7 @@ public class PriceListsController : BaseApiController
 
             if (!deleted)
             {
-                return NotFound(new { message = $"Price list with ID {id} not found." });
+                return CreateNotFoundProblem($"Price list with ID {id} not found.");
             }
 
             return NoContent();
@@ -312,7 +312,7 @@ public class PriceListsController : BaseApiController
         {
             if (!await _priceListService.PriceListExistsAsync(priceListId, cancellationToken))
             {
-                return NotFound(new { message = $"Price list with ID {priceListId} not found." });
+                return CreateNotFoundProblem($"Price list with ID {priceListId} not found.");
             }
 
             var entries = await _priceListService.GetPriceListEntriesAsync(priceListId, cancellationToken);
@@ -346,7 +346,7 @@ public class PriceListsController : BaseApiController
 
             if (entry == null)
             {
-                return NotFound(new { message = $"Price list entry with ID {id} not found." });
+                return CreateNotFoundProblem($"Price list entry with ID {id} not found.");
             }
 
             return Ok(entry);
@@ -387,7 +387,7 @@ public class PriceListsController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -427,7 +427,7 @@ public class PriceListsController : BaseApiController
 
             if (entry == null)
             {
-                return NotFound(new { message = $"Price list entry with ID {id} not found." });
+                return CreateNotFoundProblem($"Price list entry with ID {id} not found.");
             }
 
             return Ok(entry);
@@ -461,7 +461,7 @@ public class PriceListsController : BaseApiController
 
             if (!deleted)
             {
-                return NotFound(new { message = $"Price list entry with ID {id} not found." });
+                return CreateNotFoundProblem($"Price list entry with ID {id} not found.");
             }
 
             return NoContent();

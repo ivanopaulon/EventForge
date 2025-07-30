@@ -110,7 +110,7 @@ public class TeamsController : BaseApiController
 
             if (team == null)
             {
-                return NotFound(new { message = $"Team with ID {id} not found." });
+                return CreateNotFoundProblem($"Team with ID {id} not found.");
             }
 
             return Ok(team);
@@ -143,7 +143,7 @@ public class TeamsController : BaseApiController
 
             if (teamDetail == null)
             {
-                return NotFound(new { message = $"Team with ID {id} not found." });
+                return CreateNotFoundProblem($"Team with ID {id} not found.");
             }
 
             return Ok(teamDetail);
@@ -187,7 +187,7 @@ public class TeamsController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -227,7 +227,7 @@ public class TeamsController : BaseApiController
 
             if (team == null)
             {
-                return NotFound(new { message = $"Team with ID {id} not found." });
+                return CreateNotFoundProblem($"Team with ID {id} not found.");
             }
 
             return Ok(team);
@@ -261,7 +261,7 @@ public class TeamsController : BaseApiController
 
             if (!result)
             {
-                return NotFound(new { message = $"Team with ID {id} not found." });
+                return CreateNotFoundProblem($"Team with ID {id} not found.");
             }
 
             return NoContent();
@@ -323,7 +323,7 @@ public class TeamsController : BaseApiController
 
             if (member == null)
             {
-                return NotFound(new { message = $"Team member with ID {memberId} not found." });
+                return CreateNotFoundProblem($"Team member with ID {memberId} not found.");
             }
 
             return Ok(member);
@@ -367,7 +367,7 @@ public class TeamsController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -407,7 +407,7 @@ public class TeamsController : BaseApiController
 
             if (member == null)
             {
-                return NotFound(new { message = $"Team member with ID {memberId} not found." });
+                return CreateNotFoundProblem($"Team member with ID {memberId} not found.");
             }
 
             return Ok(member);
@@ -441,7 +441,7 @@ public class TeamsController : BaseApiController
 
             if (!result)
             {
-                return NotFound(new { message = $"Team member with ID {memberId} not found." });
+                return CreateNotFoundProblem($"Team member with ID {memberId} not found.");
             }
 
             return NoContent();

@@ -245,7 +245,7 @@ public class ProductsController : BaseApiController
 
             if (!deleted)
             {
-                return NotFound(new { message = $"Product with ID {id} not found." });
+                return CreateNotFoundProblem($"Product with ID {id} not found.");
             }
 
             return NoContent();
@@ -280,7 +280,7 @@ public class ProductsController : BaseApiController
         {
             if (!await _productService.ProductExistsAsync(productId, cancellationToken))
             {
-                return NotFound(new { message = $"Product with ID {productId} not found." });
+                return CreateNotFoundProblem($"Product with ID {productId} not found.");
             }
 
             var codes = await _productService.GetProductCodesAsync(productId, cancellationToken);
@@ -314,7 +314,7 @@ public class ProductsController : BaseApiController
 
             if (code == null)
             {
-                return NotFound(new { message = $"Product code with ID {id} not found." });
+                return CreateNotFoundProblem($"Product code with ID {id} not found.");
             }
 
             return Ok(code);
@@ -355,7 +355,7 @@ public class ProductsController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -395,7 +395,7 @@ public class ProductsController : BaseApiController
 
             if (code == null)
             {
-                return NotFound(new { message = $"Product code with ID {id} not found." });
+                return CreateNotFoundProblem($"Product code with ID {id} not found.");
             }
 
             return Ok(code);
@@ -429,7 +429,7 @@ public class ProductsController : BaseApiController
 
             if (!deleted)
             {
-                return NotFound(new { message = $"Product code with ID {id} not found." });
+                return CreateNotFoundProblem($"Product code with ID {id} not found.");
             }
 
             return NoContent();
@@ -464,7 +464,7 @@ public class ProductsController : BaseApiController
         {
             if (!await _productService.ProductExistsAsync(productId, cancellationToken))
             {
-                return NotFound(new { message = $"Product with ID {productId} not found." });
+                return CreateNotFoundProblem($"Product with ID {productId} not found.");
             }
 
             var units = await _productService.GetProductUnitsAsync(productId, cancellationToken);
@@ -498,7 +498,7 @@ public class ProductsController : BaseApiController
 
             if (unit == null)
             {
-                return NotFound(new { message = $"Product unit with ID {id} not found." });
+                return CreateNotFoundProblem($"Product unit with ID {id} not found.");
             }
 
             return Ok(unit);
@@ -539,7 +539,7 @@ public class ProductsController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -579,7 +579,7 @@ public class ProductsController : BaseApiController
 
             if (unit == null)
             {
-                return NotFound(new { message = $"Product unit with ID {id} not found." });
+                return CreateNotFoundProblem($"Product unit with ID {id} not found.");
             }
 
             return Ok(unit);
@@ -613,7 +613,7 @@ public class ProductsController : BaseApiController
 
             if (!deleted)
             {
-                return NotFound(new { message = $"Product unit with ID {id} not found." });
+                return CreateNotFoundProblem($"Product unit with ID {id} not found.");
             }
 
             return NoContent();
@@ -648,7 +648,7 @@ public class ProductsController : BaseApiController
         {
             if (!await _productService.ProductExistsAsync(bundleProductId, cancellationToken))
             {
-                return NotFound(new { message = $"Bundle product with ID {bundleProductId} not found." });
+                return CreateNotFoundProblem($"Bundle product with ID {bundleProductId} not found.");
             }
 
             var bundleItems = await _productService.GetProductBundleItemsAsync(bundleProductId, cancellationToken);
@@ -682,7 +682,7 @@ public class ProductsController : BaseApiController
 
             if (bundleItem == null)
             {
-                return NotFound(new { message = $"Bundle item with ID {id} not found." });
+                return CreateNotFoundProblem($"Bundle item with ID {id} not found.");
             }
 
             return Ok(bundleItem);
@@ -723,7 +723,7 @@ public class ProductsController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -763,14 +763,14 @@ public class ProductsController : BaseApiController
 
             if (bundleItem == null)
             {
-                return NotFound(new { message = $"Bundle item with ID {id} not found." });
+                return CreateNotFoundProblem($"Bundle item with ID {id} not found.");
             }
 
             return Ok(bundleItem);
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -801,7 +801,7 @@ public class ProductsController : BaseApiController
 
             if (!deleted)
             {
-                return NotFound(new { message = $"Bundle item with ID {id} not found." });
+                return CreateNotFoundProblem($"Bundle item with ID {id} not found.");
             }
 
             return NoContent();
@@ -839,14 +839,14 @@ public class ProductsController : BaseApiController
         // Validate file presence
         if (file == null || file.Length == 0)
         {
-            return BadRequest(new { message = "No file was uploaded." });
+            return CreateValidationProblemDetails("No file was uploaded.");
         }
 
         // Validate file size (max 5MB)
         const long maxFileSize = 5 * 1024 * 1024; // 5MB
         if (file.Length > maxFileSize)
         {
-            return BadRequest(new { message = "File size exceeds the maximum limit of 5MB." });
+            return CreateValidationProblemDetails("File size exceeds the maximum limit of 5MB.");
         }
 
         // Validate file format
@@ -855,14 +855,14 @@ public class ProductsController : BaseApiController
 
         if (string.IsNullOrEmpty(fileExtension) || !allowedExtensions.Contains(fileExtension))
         {
-            return BadRequest(new { message = "Invalid file format. Only JPG, JPEG, PNG, and GIF files are allowed." });
+            return CreateValidationProblemDetails("Invalid file format. Only JPG, JPEG, PNG, and GIF files are allowed.");
         }
 
         // Validate content type
         var allowedContentTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif" };
         if (!allowedContentTypes.Contains(file.ContentType.ToLowerInvariant()))
         {
-            return BadRequest(new { message = "Invalid file content type. Only image files are allowed." });
+            return CreateValidationProblemDetails("Invalid file content type. Only image files are allowed.");
         }
 
         try
@@ -870,7 +870,7 @@ public class ProductsController : BaseApiController
             // Check if product exists
             if (!await _productService.ProductExistsAsync(id, cancellationToken))
             {
-                return NotFound(new { message = $"Product with ID {id} not found." });
+                return CreateNotFoundProblem($"Product with ID {id} not found.");
             }
 
             // Create directory if it doesn't exist
@@ -904,7 +904,7 @@ public class ProductsController : BaseApiController
                 {
                     System.IO.File.Delete(filePath);
                 }
-                return NotFound(new { message = $"Product with ID {id} not found." });
+                return CreateNotFoundProblem($"Product with ID {id} not found.");
             }
 
             return Ok(updatedProduct);

@@ -51,13 +51,24 @@ public class AuthController : BaseApiController
 
         if (result == null)
         {
-            // Check if account is locked
-            var user = await _authenticationService.GetUserAsync(Guid.Empty, cancellationToken); // This won't work, need to find by username
-            // For now, return generic unauthorized
-            return Problem(
-                title: "Authentication Failed",
-                detail: "Invalid username or password, or account is locked.",
-                statusCode: StatusCodes.Status401Unauthorized);
+            var problemDetails = new ProblemDetails
+            {
+                Type = "https://tools.ietf.org/html/rfc7235#section-3.1",
+                Title = "Authentication Failed",
+                Status = StatusCodes.Status401Unauthorized,
+                Detail = "Invalid username or password, or account is locked.",
+                Instance = HttpContext.Request.Path
+            };
+
+            // Add correlation ID if available
+            if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId))
+            {
+                problemDetails.Extensions["correlationId"] = correlationId;
+            }
+
+            problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+            return Unauthorized(problemDetails);
         }
 
         return Ok(result);
@@ -89,20 +100,48 @@ public class AuthController : BaseApiController
         var userIdClaim = HttpContext.User.FindFirst("user_id")?.Value;
         if (!Guid.TryParse(userIdClaim, out var userId))
         {
-            return Problem(
-                title: "Invalid User Context",
-                detail: "Unable to identify current user.",
-                statusCode: StatusCodes.Status401Unauthorized);
+            var problemDetails = new ProblemDetails
+            {
+                Type = "https://tools.ietf.org/html/rfc7235#section-3.1",
+                Title = "Invalid User Context",
+                Status = StatusCodes.Status401Unauthorized,
+                Detail = "Unable to identify current user.",
+                Instance = HttpContext.Request.Path
+            };
+
+            // Add correlation ID if available
+            if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId))
+            {
+                problemDetails.Extensions["correlationId"] = correlationId;
+            }
+
+            problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+            return Unauthorized(problemDetails);
         }
 
         var success = await _authenticationService.ChangePasswordAsync(userId, request, cancellationToken);
 
         if (!success)
         {
-            return Problem(
-                title: "Password Change Failed",
-                detail: "Unable to change password. Please verify your current password and ensure the new password meets security requirements.",
-                statusCode: StatusCodes.Status403Forbidden);
+            var problemDetails = new ProblemDetails
+            {
+                Type = "https://tools.ietf.org/html/rfc7231#section-6.5.3",
+                Title = "Password Change Failed",
+                Status = StatusCodes.Status403Forbidden,
+                Detail = "Unable to change password. Please verify your current password and ensure the new password meets security requirements.",
+                Instance = HttpContext.Request.Path
+            };
+
+            // Add correlation ID if available
+            if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId2))
+            {
+                problemDetails.Extensions["correlationId"] = correlationId2;
+            }
+
+            problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+            return StatusCode(StatusCodes.Status403Forbidden, problemDetails);
         }
 
         return Ok(new { message = "Password changed successfully." });
@@ -126,20 +165,31 @@ public class AuthController : BaseApiController
         var userIdClaim = HttpContext.User.FindFirst("user_id")?.Value;
         if (!Guid.TryParse(userIdClaim, out var userId))
         {
-            return Problem(
-                title: "Invalid User Context",
-                detail: "Unable to identify current user.",
-                statusCode: StatusCodes.Status401Unauthorized);
+            var problemDetails = new ProblemDetails
+            {
+                Type = "https://tools.ietf.org/html/rfc7235#section-3.1",
+                Title = "Invalid User Context",
+                Status = StatusCodes.Status401Unauthorized,
+                Detail = "Unable to identify current user.",
+                Instance = HttpContext.Request.Path
+            };
+
+            // Add correlation ID if available
+            if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId))
+            {
+                problemDetails.Extensions["correlationId"] = correlationId;
+            }
+
+            problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+            return Unauthorized(problemDetails);
         }
 
         var user = await _authenticationService.GetUserAsync(userId, cancellationToken);
 
         if (user == null)
         {
-            return Problem(
-                title: "User Not Found",
-                detail: "Current user information could not be retrieved.",
-                statusCode: StatusCodes.Status404NotFound);
+            return CreateNotFoundProblem("Current user information could not be retrieved.");
         }
 
         return Ok(user);
