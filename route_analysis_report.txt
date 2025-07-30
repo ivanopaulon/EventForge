@@ -1,0 +1,132 @@
+EVENTFORGE - ROUTE CONFLICT ANALYSIS REPORT
+==========================================
+Data Generazione: 2025-07-30 18:40:52
+Controller Analizzati: 10
+Route Totali: 68
+Conflitti Rilevati: 0
+
+📋 MAPPING COMPLETO DELLE ROUTE
+==============================
+
+Controller: ApplicationLogController
+--------------------------------------------------
+  GET     /api/v1/ApplicationLog/monitoring/config -> GetMonitoringConfig()
+  GET     /api/v1/ApplicationLog/monitoring/recent -> GetRecentCriticalLogs()
+  GET     /api/v1/ApplicationLog/statistics        -> GetSystemLogStatistics()
+  POST    /api/v1/ApplicationLog/export            -> ExportSystemLogs()
+  POST    /api/v1/ApplicationLog/search            -> SearchSystemLogs()
+  PUT     /api/v1/ApplicationLog/monitoring/config -> UpdateMonitoringConfig()
+
+Controller: AuditLogController
+--------------------------------------------------
+  GET     /api/v1/AuditLog/audit-trail/statistics  -> GetAuditTrailStatistics()
+  GET     /api/v1/AuditLog/entity/{entityId:guid}  -> GetEntityAuditLogs()
+  GET     /api/v1/AuditLog/export/{exportId}/download -> DownloadExport()
+  GET     /api/v1/AuditLog/export/{exportId}/status -> GetExportStatus()
+  POST    /api/v1/AuditLog/audit-trail/search      -> SearchAuditTrail()
+  POST    /api/v1/AuditLog/export-advanced         -> ExportAdvanced()
+
+Controller: HealthController
+--------------------------------------------------
+  GET     /api/v1/Health/detailed                  -> GetDetailedHealth()
+
+Controller: StoreUsersController
+--------------------------------------------------
+  GET     /api/v1/StoreUsers/by-group/{groupId:guid} -> GetStoreUsersByGroup()
+  GET     /api/v1/StoreUsers/privileges/by-group/{groupId:guid} -> GetStoreUserPrivilegesByGroup()
+
+Controller: SuperAdminController
+--------------------------------------------------
+  DELETE  /api/v1/SuperAdmin/backup/{backupId}     -> DeleteBackup()
+  DELETE  /api/v1/SuperAdmin/configuration/{key}   -> DeleteConfiguration()
+  GET     /api/v1/SuperAdmin/backup                -> GetBackups()
+  GET     /api/v1/SuperAdmin/backup/{backupId}     -> GetBackupStatus()
+  GET     /api/v1/SuperAdmin/backup/{backupId}/download -> DownloadBackup()
+  GET     /api/v1/SuperAdmin/configuration/{key}   -> GetConfiguration()
+  GET     /api/v1/SuperAdmin/configuration/categories -> GetConfigurationCategories()
+  GET     /api/v1/SuperAdmin/configuration/category/{category} -> GetConfigurationsByCategory()
+  POST    /api/v1/SuperAdmin/backup                -> StartBackup()
+  POST    /api/v1/SuperAdmin/backup/{backupId}/cancel -> CancelBackup()
+  POST    /api/v1/SuperAdmin/configuration         -> CreateConfiguration()
+  POST    /api/v1/SuperAdmin/configuration/reload  -> ReloadConfiguration()
+  POST    /api/v1/SuperAdmin/configuration/test-smtp -> TestSmtp()
+  PUT     /api/v1/SuperAdmin/configuration/{key}   -> UpdateConfiguration()
+
+Controller: TeamsController
+--------------------------------------------------
+  GET     /api/v1/Teams/{teamId:guid}/members      -> GetTeamMembers()
+  GET     /api/v1/Teams/by-event/{eventId:guid}    -> GetTeamsByEvent()
+
+Controller: TenantContextController
+--------------------------------------------------
+  GET     /api/v1/TenantContext/audit-trail        -> GetAuditTrail()
+  GET     /api/v1/TenantContext/validate-access/{tenantId} -> ValidateAccess()
+  POST    /api/v1/TenantContext/end-impersonation  -> EndImpersonation()
+  POST    /api/v1/TenantContext/start-impersonation -> StartImpersonation()
+
+Controller: TenantsController
+--------------------------------------------------
+  DELETE  /api/v1/Tenants/{id}/admins/{userId}     -> RemoveTenantAdmin()
+  DELETE  /api/v1/Tenants/{id}/soft                -> SoftDeleteTenant()
+  GET     /api/v1/Tenants/{id}/admins              -> GetTenantAdmins()
+  GET     /api/v1/Tenants/{id}/details             -> GetTenantDetails()
+  GET     /api/v1/Tenants/{id}/limits              -> GetTenantLimits()
+  GET     /api/v1/Tenants/activity/live            -> GetLiveActivity()
+  GET     /api/v1/Tenants/statistics               -> GetTenantStatistics()
+  GET     /api/v1/Tenants/statistics/live          -> GetLiveStatistics()
+  GET     api/v1/Tenants                           -> GetAllTenants()
+  POST    /api/v1/Tenants/{id}/admins/{userId}     -> AddTenantAdmin()
+  POST    /api/v1/Tenants/{id}/disable             -> DisableTenant()
+  POST    /api/v1/Tenants/{id}/enable              -> EnableTenant()
+  POST    /api/v1/Tenants/{id}/users/{userId}/force-password-change -> ForcePasswordChange()
+  POST    /api/v1/Tenants/search                   -> SearchTenants()
+  PUT     /api/v1/Tenants/{id}                     -> UpdateTenant()
+  PUT     /api/v1/Tenants/{id}/limits              -> UpdateTenantLimits()
+
+Controller: TenantSwitchController
+--------------------------------------------------
+  GET     /api/v1/TenantSwitch/history/impersonations -> GetImpersonationHistory()
+  GET     /api/v1/TenantSwitch/history/tenant-switches -> GetTenantSwitchHistory()
+  GET     /api/v1/TenantSwitch/statistics          -> GetOperationSummary()
+  POST    /api/v1/TenantSwitch/end-impersonation   -> EndImpersonation()
+  POST    /api/v1/TenantSwitch/impersonate         -> StartImpersonation()
+  POST    /api/v1/TenantSwitch/switch              -> SwitchTenant()
+  POST    /api/v1/TenantSwitch/validate            -> ValidateSecurity()
+
+Controller: UserManagementController
+--------------------------------------------------
+  GET     /api/v1/UserManagement/{userId}          -> GetUser()
+  GET     /api/v1/UserManagement/roles             -> GetRoles()
+  GET     /api/v1/UserManagement/statistics        -> GetUserStatistics()
+  GET     api/v1/UserManagement                    -> GetAllUsers()
+  POST    /api/v1/UserManagement/{userId}/force-password-change -> ForcePasswordChange()
+  POST    /api/v1/UserManagement/quick-actions     -> PerformQuickActions()
+  POST    /api/v1/UserManagement/search            -> SearchUsers()
+  POST    api/v1/UserManagement                    -> CreateUser()
+  PUT     /api/v1/UserManagement/{userId}/roles    -> UpdateUserRoles()
+  PUT     /api/v1/UserManagement/{userId}/status   -> UpdateUserStatus()
+
+✅ NESSUN CONFLITTO RILEVATO
+============================
+Tutte le route sono uniche e non presentano conflitti.
+
+📊 STATISTICHE
+===============
+
+Distribuzione per HTTP Method:
+  GET: 34 route
+  POST: 24 route
+  PUT: 6 route
+  DELETE: 4 route
+
+Route per Controller:
+  TenantsController: 16 route
+  SuperAdminController: 14 route
+  UserManagementController: 10 route
+  TenantSwitchController: 7 route
+  ApplicationLogController: 6 route
+  AuditLogController: 6 route
+  TenantContextController: 4 route
+  TeamsController: 2 route
+  StoreUsersController: 2 route
+  HealthController: 1 route

@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventForge.DTOs", "EventFor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventForge.Client", "EventForge.Client\EventForge.Client.csproj", "{2A1B3C4D-5E6F-7A8B-9C0D-1E2F3A4B5C6D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RouteConflictAnalyzer", "RouteConflictAnalyzer\RouteConflictAnalyzer.csproj", "{7CB01EDC-BF5D-4611-83ED-AE67185A1854}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{2A1B3C4D-5E6F-7A8B-9C0D-1E2F3A4B5C6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2A1B3C4D-5E6F-7A8B-9C0D-1E2F3A4B5C6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2A1B3C4D-5E6F-7A8B-9C0D-1E2F3A4B5C6D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7CB01EDC-BF5D-4611-83ED-AE67185A1854}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7CB01EDC-BF5D-4611-83ED-AE67185A1854}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7CB01EDC-BF5D-4611-83ED-AE67185A1854}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7CB01EDC-BF5D-4611-83ED-AE67185A1854}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
