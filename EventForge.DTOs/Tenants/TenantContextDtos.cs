@@ -12,12 +12,14 @@ namespace EventForge.DTOs.Tenants
         /// Target tenant ID to switch to.
         /// </summary>
         [Required(ErrorMessage = "Tenant ID is required.")]
+        [Display(Name = "field.tenantId")]
         public Guid TenantId { get; set; }
 
         /// <summary>
         /// Reason for the tenant switch.
         /// </summary>
         [MaxLength(500, ErrorMessage = "Reason cannot exceed 500 characters.")]
+        [Display(Name = "field.reason")]
         public string Reason { get; set; } = "Tenant switch by admin";
     }
 
@@ -30,12 +32,14 @@ namespace EventForge.DTOs.Tenants
         /// User ID to impersonate.
         /// </summary>
         [Required(ErrorMessage = "User ID is required.")]
+        [Display(Name = "field.userId")]
         public Guid UserId { get; set; }
 
         /// <summary>
         /// Reason for impersonation.
         /// </summary>
         [MaxLength(500, ErrorMessage = "Reason cannot exceed 500 characters.")]
+        [Display(Name = "field.reason")]
         public string Reason { get; set; } = "User impersonation by admin";
     }
 
@@ -48,6 +52,7 @@ namespace EventForge.DTOs.Tenants
         /// Reason for ending impersonation.
         /// </summary>
         [MaxLength(500, ErrorMessage = "Reason cannot exceed 500 characters.")]
+        [Display(Name = "field.reason")]
         public string Reason { get; set; } = "Impersonation ended by admin";
     }
 }
