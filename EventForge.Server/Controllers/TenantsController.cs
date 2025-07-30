@@ -25,10 +25,10 @@ public class TenantsController : BaseApiController
     }
 
     /// <summary>
-    /// Creates a new tenant with an auto-generated admin user.
+    /// Creates a new tenant without generating any default admin users.
     /// </summary>
     /// <param name="createDto">Tenant creation data</param>
-    /// <returns>Created tenant with admin user details</returns>
+    /// <returns>Created tenant details</returns>
     /// <response code="201">Returns the newly created tenant</response>
     /// <response code="400">If the tenant data is invalid</response>
     /// <response code="500">If an error occurred during creation</response>

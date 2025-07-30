@@ -64,26 +64,6 @@ public class TenantService : ITenantService
             _context.Tenants.Add(tenant);
             await _context.SaveChangesAsync();
 
-            var generatedPassword = GenerateRandomPassword();
-            var (passwordHash, salt) = _passwordService.HashPassword(generatedPassword);
-
-            var adminUser = new User
-            {
-                Id = Guid.NewGuid(),
-                TenantId = tenant.Id,
-                Username = createDto.AdminUser.Username,
-                Email = createDto.AdminUser.Email,
-                FirstName = createDto.AdminUser.FirstName,
-                LastName = createDto.AdminUser.LastName,
-                PasswordHash = passwordHash,
-                PasswordSalt = salt,
-                MustChangePassword = true,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _context.Users.Add(adminUser);
-            await _context.SaveChangesAsync();
-
             var currentUserId = _tenantContext.CurrentUserId;
             if (currentUserId.HasValue)
             {
@@ -129,17 +109,8 @@ public class TenantService : ITenantService
             }
 
             var response = TenantMapper.ToServerResponseDto(tenant);
-            response.AdminUser = new TenantAdminResponseDto
-            {
-                UserId = adminUser.Id,
-                Username = adminUser.Username,
-                Email = adminUser.Email,
-                FirstName = adminUser.FirstName,
-                LastName = adminUser.LastName,
-                FullName = adminUser.FullName,
-                MustChangePassword = adminUser.MustChangePassword,
-                GeneratedPassword = generatedPassword
-            };
+            // No admin user is created automatically as per new policy
+            response.AdminUser = null;
 
             return response;
         }
@@ -674,34 +645,6 @@ public class TenantService : ITenantService
             _logger.LogError(ex, "Errore durante il recupero dell'audit trail.");
             throw;
         }
-    }
-
-    private static string GenerateRandomPassword()
-    {
-        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
-        const string specialChars = "!@#$%&*";
-
-        var random = new Random();
-        var password = new List<char>();
-
-        password.Add(chars[random.Next(0, 26)]);
-        password.Add(chars[random.Next(26, 52)]);
-        password.Add(chars[random.Next(52, chars.Length)]);
-        password.Add(specialChars[random.Next(specialChars.Length)]);
-
-        for (int i = 4; i < 12; i++)
-        {
-            var allChars = chars + specialChars;
-            password.Add(allChars[random.Next(allChars.Length)]);
-        }
-
-        for (int i = password.Count - 1; i > 0; i--)
-        {
-            int j = random.Next(i + 1);
-            (password[i], password[j]) = (password[j], password[i]);
-        }
-
-        return new string(password.ToArray());
     }
 
     public async Task<TenantStatisticsDto> GetTenantStatisticsAsync()

@@ -8,10 +8,10 @@ using EventForge.DTOs.Common;
 public interface ITenantService
 {
     /// <summary>
-    /// Creates a new tenant with an auto-generated admin user.
+    /// Creates a new tenant without any default admin users.
     /// </summary>
     /// <param name="createDto">Tenant creation data</param>
-    /// <returns>Created tenant with admin user details</returns>
+    /// <returns>Created tenant details</returns>
     Task<TenantResponseDto> CreateTenantAsync(CreateTenantDto createDto);
 
     /// <summary>
