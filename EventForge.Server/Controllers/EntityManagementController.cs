@@ -173,6 +173,87 @@ public class EntityManagementController : BaseApiController
         }
     }
 
+    /// <summary>
+    /// Updates an existing address.
+    /// </summary>
+    /// <param name="id">Address ID</param>
+    /// <param name="updateAddressDto">Address update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated address information</returns>
+    /// <response code="200">Address updated successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="404">If the address is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPut("addresses/{id:guid}")]
+    [ProducesResponseType(typeof(AddressDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<AddressDto>> UpdateAddress(
+        Guid id,
+        [FromBody] UpdateAddressDto updateAddressDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _addressService.UpdateAddressAsync(id, updateAddressDto, GetCurrentUser(), cancellationToken);
+            if (result == null)
+            {
+                return CreateNotFoundProblem($"Address with ID {id} not found.");
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while updating the address.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes an address (soft delete).
+    /// </summary>
+    /// <param name="id">Address ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content</returns>
+    /// <response code="204">Address deleted successfully</response>
+    /// <response code="404">If the address is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("addresses/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteAddress(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var deleted = await _addressService.DeleteAddressAsync(id, GetCurrentUser(), cancellationToken);
+            if (!deleted)
+            {
+                return CreateNotFoundProblem($"Address with ID {id} not found.");
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while deleting the address.", ex);
+        }
+    }
+
     #endregion
 
     #region Contact Management
@@ -239,6 +320,159 @@ public class EntityManagementController : BaseApiController
         catch (Exception ex)
         {
             return CreateInternalServerErrorProblem("An error occurred while retrieving contacts for owner.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a contact by ID.
+    /// </summary>
+    /// <param name="id">Contact ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Contact information</returns>
+    /// <response code="200">Returns the contact</response>
+    /// <response code="404">If the contact is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("contacts/{id:guid}")]
+    [ProducesResponseType(typeof(ContactDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ContactDto>> GetContact(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var contact = await _contactService.GetContactByIdAsync(id, cancellationToken);
+            if (contact == null)
+            {
+                return CreateNotFoundProblem($"Contact with ID {id} not found.");
+            }
+
+            return Ok(contact);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the contact.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new contact.
+    /// </summary>
+    /// <param name="createContactDto">Contact creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created contact information</returns>
+    /// <response code="201">Contact created successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("contacts")]
+    [ProducesResponseType(typeof(ContactDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ContactDto>> CreateContact(
+        [FromBody] CreateContactDto createContactDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _contactService.CreateContactAsync(createContactDto, GetCurrentUser(), cancellationToken);
+            return CreatedAtAction(nameof(GetContact), new { id = result.Id }, result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while creating the contact.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing contact.
+    /// </summary>
+    /// <param name="id">Contact ID</param>
+    /// <param name="updateContactDto">Contact update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated contact information</returns>
+    /// <response code="200">Contact updated successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="404">If the contact is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPut("contacts/{id:guid}")]
+    [ProducesResponseType(typeof(ContactDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ContactDto>> UpdateContact(
+        Guid id,
+        [FromBody] UpdateContactDto updateContactDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _contactService.UpdateContactAsync(id, updateContactDto, GetCurrentUser(), cancellationToken);
+            if (result == null)
+            {
+                return CreateNotFoundProblem($"Contact with ID {id} not found.");
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while updating the contact.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a contact (soft delete).
+    /// </summary>
+    /// <param name="id">Contact ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content</returns>
+    /// <response code="204">Contact deleted successfully</response>
+    /// <response code="404">If the contact is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("contacts/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteContact(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var deleted = await _contactService.DeleteContactAsync(id, GetCurrentUser(), cancellationToken);
+            if (!deleted)
+            {
+                return CreateNotFoundProblem($"Contact with ID {id} not found.");
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while deleting the contact.", ex);
         }
     }
 
@@ -316,6 +550,159 @@ public class EntityManagementController : BaseApiController
         catch (Exception ex)
         {
             return CreateInternalServerErrorProblem("An error occurred while retrieving root classification nodes.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a classification node by ID.
+    /// </summary>
+    /// <param name="id">Classification node ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Classification node information</returns>
+    /// <response code="200">Returns the classification node</response>
+    /// <response code="404">If the classification node is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("classification-nodes/{id:guid}")]
+    [ProducesResponseType(typeof(ClassificationNodeDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ClassificationNodeDto>> GetClassificationNode(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var node = await _classificationNodeService.GetClassificationNodeByIdAsync(id, cancellationToken);
+            if (node == null)
+            {
+                return CreateNotFoundProblem($"Classification node with ID {id} not found.");
+            }
+
+            return Ok(node);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the classification node.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new classification node.
+    /// </summary>
+    /// <param name="createClassificationNodeDto">Classification node creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created classification node information</returns>
+    /// <response code="201">Classification node created successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("classification-nodes")]
+    [ProducesResponseType(typeof(ClassificationNodeDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ClassificationNodeDto>> CreateClassificationNode(
+        [FromBody] CreateClassificationNodeDto createClassificationNodeDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _classificationNodeService.CreateClassificationNodeAsync(createClassificationNodeDto, GetCurrentUser(), cancellationToken);
+            return CreatedAtAction(nameof(GetClassificationNode), new { id = result.Id }, result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while creating the classification node.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing classification node.
+    /// </summary>
+    /// <param name="id">Classification node ID</param>
+    /// <param name="updateClassificationNodeDto">Classification node update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated classification node information</returns>
+    /// <response code="200">Classification node updated successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="404">If the classification node is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPut("classification-nodes/{id:guid}")]
+    [ProducesResponseType(typeof(ClassificationNodeDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ClassificationNodeDto>> UpdateClassificationNode(
+        Guid id,
+        [FromBody] UpdateClassificationNodeDto updateClassificationNodeDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _classificationNodeService.UpdateClassificationNodeAsync(id, updateClassificationNodeDto, GetCurrentUser(), cancellationToken);
+            if (result == null)
+            {
+                return CreateNotFoundProblem($"Classification node with ID {id} not found.");
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while updating the classification node.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a classification node (soft delete).
+    /// </summary>
+    /// <param name="id">Classification node ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content</returns>
+    /// <response code="204">Classification node deleted successfully</response>
+    /// <response code="404">If the classification node is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("classification-nodes/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteClassificationNode(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var deleted = await _classificationNodeService.DeleteClassificationNodeAsync(id, GetCurrentUser(), Array.Empty<byte>(), cancellationToken);
+            if (!deleted)
+            {
+                return CreateNotFoundProblem($"Classification node with ID {id} not found.");
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while deleting the classification node.", ex);
         }
     }
 
