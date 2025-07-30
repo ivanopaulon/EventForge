@@ -22,6 +22,11 @@ public interface IHttpClientService
     Task<Stream> GetStreamAsync(string endpoint, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Performs a POST request with JSON payload and returns the response stream.
+    /// </summary>
+    Task<Stream> PostStreamAsync<TRequest>(string endpoint, TRequest data, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Performs a POST request with JSON payload.
     /// </summary>
     Task<TResponse?> PostAsync<TRequest, TResponse>(string endpoint, TRequest data, CancellationToken cancellationToken = default);
@@ -114,6 +119,26 @@ public class HttpClientService : IHttpClientService
         catch (Exception ex)
         {
             _logger.LogError(ex, "GET stream request failed for endpoint {Endpoint}", endpoint);
+            throw;
+        }
+    }
+
+    public async Task<Stream> PostStreamAsync<TRequest>(string endpoint, TRequest data, CancellationToken cancellationToken = default)
+    {
+        var httpClient = await GetConfiguredHttpClientAsync();
+
+        try
+        {
+            _logger.LogDebug("POST stream request to {Endpoint}", endpoint);
+
+            var response = await httpClient.PostAsJsonAsync(endpoint, data, _jsonOptions, cancellationToken);
+            await EnsureSuccessStatusCodeAsync(response, endpoint);
+
+            return await response.Content.ReadAsStreamAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "POST stream request failed for endpoint {Endpoint}", endpoint);
             throw;
         }
     }

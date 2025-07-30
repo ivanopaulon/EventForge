@@ -11,13 +11,13 @@ namespace EventForge.Client.Services
         Task<PagedResult<ApplicationLogDto>> GetApplicationLogsAsync(Dictionary<string, object> queryParams);
         Task<ApplicationLogDto?> GetApplicationLogAsync(Guid id);
         Task<ApplicationLogStatisticsDto> GetApplicationLogStatisticsAsync();
-        Task<Stream> ExportApplicationLogsAsync(object exportDto);
+        Task<Stream> ExportApplicationLogsAsync(ExportRequestDto exportDto);
 
         // Audit Logs  
         Task<PagedResult<EntityChangeLogDto>> GetAuditLogsAsync(Dictionary<string, object> queryParams);
         Task<EntityChangeLogDto?> GetAuditLogAsync(Guid id);
         Task<AuditLogStatisticsDto> GetAuditLogStatisticsAsync();
-        Task<Stream> ExportAuditLogsAsync(object exportDto);
+        Task<Stream> ExportAuditLogsAsync(AuditLogExportDto exportDto);
 
         // Real-time subscriptions
         Task SubscribeToApplicationLogsAsync(Func<ApplicationLogDto, Task> onLogReceived);
@@ -61,9 +61,9 @@ namespace EventForge.Client.Services
                    new ApplicationLogStatisticsDto();
         }
 
-        public async Task<Stream> ExportApplicationLogsAsync(object exportDto)
+        public async Task<Stream> ExportApplicationLogsAsync(ExportRequestDto exportDto)
         {
-            return await _httpClientService.GetStreamAsync("api/v1/application-logs/export");
+            return await _httpClientService.PostStreamAsync("api/v1/ApplicationLog/export", exportDto);
         }
 
         #endregion
@@ -88,9 +88,9 @@ namespace EventForge.Client.Services
                    new AuditLogStatisticsDto();
         }
 
-        public async Task<Stream> ExportAuditLogsAsync(object exportDto)
+        public async Task<Stream> ExportAuditLogsAsync(AuditLogExportDto exportDto)
         {
-            return await _httpClientService.GetStreamAsync("api/v1/audit-logs/export");
+            return await _httpClientService.PostStreamAsync("api/v1/AuditLog/export", exportDto);
         }
 
         #endregion
