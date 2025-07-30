@@ -1,4 +1,4 @@
-using EventForge.Server.DTOs.Store;
+using EventForge.DTOs.Store;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Store;

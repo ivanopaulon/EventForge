@@ -1,4 +1,4 @@
-using EventForge.Server.DTOs.Warehouse;
+using EventForge.DTOs.Warehouse;
 
 namespace EventForge.Server.Services.Warehouse;
 

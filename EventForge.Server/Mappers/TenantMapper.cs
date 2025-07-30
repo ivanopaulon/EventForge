@@ -1,4 +1,4 @@
-using ServerTenantDtos = EventForge.Server.DTOs.Tenants;
+using ServerTenantDtos = EventForge.DTOs.Tenants;
 using SharedTenantDtos = EventForge.DTOs.Tenants;
 
 namespace EventForge.Server.Mappers;

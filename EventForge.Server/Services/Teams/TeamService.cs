@@ -1,4 +1,4 @@
-using EventForge.Server.DTOs.Teams;
+using EventForge.DTOs.Teams;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Teams;

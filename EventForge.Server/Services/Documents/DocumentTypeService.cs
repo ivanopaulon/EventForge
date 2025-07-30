@@ -1,4 +1,4 @@
-using EventForge.Server.DTOs.Documents;
+using EventForge.DTOs.Documents;
 using EventForge.Server.Mappers;
 using Microsoft.EntityFrameworkCore;
 

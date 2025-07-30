@@ -1,4 +1,4 @@
-using EventForge.Server.DTOs.Banks;
+using EventForge.DTOs.Banks;
 
 namespace EventForge.Server.Services.Banks;
 

@@ -1,4 +1,4 @@
-using EventForge.Server.DTOs.Documents;
+using EventForge.DTOs.Documents;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Documents;

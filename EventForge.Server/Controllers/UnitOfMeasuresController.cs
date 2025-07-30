@@ -1,4 +1,4 @@
-using EventForge.Server.DTOs.UnitOfMeasures;
+using EventForge.DTOs.UnitOfMeasures;
 using EventForge.Server.Services.UnitOfMeasures;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

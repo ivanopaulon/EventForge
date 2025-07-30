@@ -1,4 +1,4 @@
-using ServerSuperAdminDtos = EventForge.Server.DTOs.SuperAdmin;
+using ServerSuperAdminDtos = EventForge.DTOs.SuperAdmin;
 using SharedSuperAdminDtos = EventForge.DTOs.SuperAdmin;
 
 namespace EventForge.Server.Mappers;

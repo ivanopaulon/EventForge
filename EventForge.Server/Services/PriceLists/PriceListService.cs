@@ -1,4 +1,4 @@
-using EventForge.Server.DTOs.PriceLists;
+using EventForge.DTOs.PriceLists;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.PriceLists;
