@@ -1,0 +1,558 @@
+@page "/notifications"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+
+<PageTitle>@TranslationService.GetTranslation("notifications.title", "Centro Notifiche - EventForge")</PageTitle>
+
+<!-- Main container following existing project pattern -->
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudGrid Spacing="4">
+        
+        <!-- Page Header Card -->
+        <MudItem xs="12">
+            <MudCard Class="pa-4 pa-sm-6 pa-md-8" Elevation="4">
+                <MudCardContent>
+                    <header class="text-center mb-6">
+                        <MudText Typo="Typo.h3" 
+                                 Component="h1" 
+                                 Align="Align.Center" 
+                                 Class="mb-4"
+                                 aria-label="@TranslationService.GetTranslation("notifications.pageTitle", "Centro Notifiche")">
+                            <MudIcon Icon="@Icons.Material.Filled.Notifications" 
+                                     Class="mr-2" 
+                                     Size="Size.Large"
+                                     aria-hidden="true" />
+                            @TranslationService.GetTranslation("notifications.pageTitle", "Centro Notifiche")
+                        </MudText>
+                        <MudText Typo="Typo.body1" 
+                                 Align="Align.Center" 
+                                 Color="Color.Secondary">
+                            @TranslationService.GetTranslation("notifications.subtitle", "Gestisci le tue notifiche e preferenze")
+                        </MudText>
+                    </header>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Notification Actions Toolbar -->
+        <MudItem xs="12">
+            <MudCard Elevation="2" Class="pa-4">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" Class="mb-4 d-flex align-center">
+                        <MudIcon Icon="@Icons.Material.Filled.Settings" 
+                                 Class="mr-2" 
+                                 Color="Color.Primary"
+                                 aria-hidden="true" />
+                        @TranslationService.GetTranslation("notifications.actions", "Azioni Notifiche")
+                    </MudText>
+
+                    <!-- Action buttons following MudBlazor pattern -->
+                    <div class="d-flex justify-start flex-wrap ga-2 mb-4">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.DoneAll"
+                                   OnClick="@MarkAllAsReadAsync"
+                                   Disabled="@_isLoading">
+                            @TranslationService.GetTranslation("notifications.markAllRead", "Segna tutte come lette")
+                        </MudButton>
+                        
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Secondary"
+                                   StartIcon="@Icons.Material.Filled.Archive"
+                                   OnClick="@ArchiveAllReadAsync"
+                                   Disabled="@_isLoading">
+                            @TranslationService.GetTranslation("notifications.archiveRead", "Archivia lette")
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Text"
+                                   Color="Color.Info"
+                                   StartIcon="@Icons.Material.Filled.Refresh"
+                                   OnClick="@RefreshNotificationsAsync"
+                                   Disabled="@_isLoading">
+                            @TranslationService.GetTranslation("notifications.refresh", "Aggiorna")
+                        </MudButton>
+
+                        <!-- Help tooltip following existing pattern -->
+                        <MudTooltip Text="@TranslationService.GetTranslation("notifications.helpTooltip", "Le notifiche vengono aggiornate in tempo reale")">
+                            <MudIconButton Icon="@Icons.Material.Filled.Help" 
+                                           Size="Size.Small"
+                                           Color="Color.Info"
+                                           aria-label="@TranslationService.GetTranslation("common.help", "Aiuto")" />
+                        </MudTooltip>
+                    </div>
+
+                    <!-- Filter options -->
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" sm="6" md="4">
+                            <MudSelect T="string" @bind-Value="_selectedFilter" 
+                                       Label="@TranslationService.GetTranslation("notifications.filter", "Filtra per stato")" 
+                                       Variant="Variant.Outlined"
+                                       Clearable="true">
+                                <MudSelectItem Value="@("")">@TranslationService.GetTranslation("notifications.allNotifications", "Tutte")</MudSelectItem>
+                                <MudSelectItem Value="@("unread")">@TranslationService.GetTranslation("notifications.unreadOnly", "Non lette")</MudSelectItem>
+                                <MudSelectItem Value="@("important")">@TranslationService.GetTranslation("notifications.importantOnly", "Importanti")</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="4">
+                            <MudSelect T="string" @bind-Value="_selectedType" 
+                                       Label="@TranslationService.GetTranslation("notifications.type", "Tipo notifica")" 
+                                       Variant="Variant.Outlined"
+                                       Clearable="true">
+                                <MudSelectItem Value="@("")">@TranslationService.GetTranslation("notifications.allTypes", "Tutti i tipi")</MudSelectItem>
+                                <MudSelectItem Value="@("event")">@TranslationService.GetTranslation("notifications.eventNotifications", "Eventi")</MudSelectItem>
+                                <MudSelectItem Value="@("system")">@TranslationService.GetTranslation("notifications.systemNotifications", "Sistema")</MudSelectItem>
+                                <MudSelectItem Value="@("chat")">@TranslationService.GetTranslation("notifications.chatNotifications", "Chat")</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                    </MudGrid>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Notification List -->
+        <MudItem xs="12">
+            <MudCard Elevation="2" Class="pa-4">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" Class="mb-4 d-flex align-center justify-space-between">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.List" 
+                                     Class="mr-2" 
+                                     Color="Color.Primary"
+                                     aria-hidden="true" />
+                            @TranslationService.GetTranslation("notifications.list", "Lista Notifiche")
+                        </div>
+                        <!-- Notification count badge -->
+                        <MudBadge Content="@_unreadCount.ToString()" 
+                                  Color="Color.Error" 
+                                  Overlap="true" 
+                                  Bordered="true">
+                            <MudIcon Icon="@Icons.Material.Filled.NotificationsActive" 
+                                     Color="Color.Primary" />
+                        </MudBadge>
+                    </MudText>
+
+                    <!-- Loading state -->
+                    @if (_isLoading)
+                    {
+                        <MudProgressLinear Indeterminate="true" 
+                                           Color="Color.Primary" 
+                                           Class="mb-4" />
+                        <MudText Align="Align.Center" Class="pa-4">
+                            @TranslationService.GetTranslation("common.loading", "Caricamento...")
+                        </MudText>
+                    }
+                    else if (_notifications?.Any() == true)
+                    {
+                        <!-- Notification list using MudList -->
+                        <MudList T="object" Clickable="true" Dense="false">
+                            @foreach (var notification in _notifications)
+                            {
+                                <MudListItem>
+                                    <div class="d-flex align-center justify-space-between w-100">
+                                        <div class="d-flex align-center flex-grow-1">
+                                            <!-- Notification icon based on type -->
+                                            <MudIcon Icon="@GetNotificationIcon(notification.Type)" 
+                                                     Color="@GetNotificationColor(notification.Priority)"
+                                                     Class="mr-3" />
+                                            
+                                            <div class="flex-grow-1">
+                                                <MudText Typo="Typo.body1" 
+                                                         Class="@(notification.IsRead ? "" : "font-weight-bold")">
+                                                    @notification.Title
+                                                </MudText>
+                                                <MudText Typo="Typo.body2" 
+                                                         Color="Color.Secondary">
+                                                    @notification.Message
+                                                </MudText>
+                                                <MudText Typo="Typo.caption" 
+                                                         Color="Color.Tertiary">
+                                                    @notification.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                                </MudText>
+                                            </div>
+                                        </div>
+
+                                        <!-- Action buttons -->
+                                        <div class="d-flex align-center ga-1">
+                                            @if (!notification.IsRead)
+                                            {
+                                                <MudIconButton Icon="@Icons.Material.Filled.MarkEmailRead"
+                                                               Size="Size.Small"
+                                                               Color="Color.Primary"
+                                                               OnClick="@(() => MarkAsReadAsync(notification.Id))"
+                                                               aria-label="@TranslationService.GetTranslation("notifications.markAsRead", "Segna come letta")" />
+                                            }
+                                            
+                                            <MudIconButton Icon="@Icons.Material.Filled.Archive"
+                                                           Size="Size.Small"
+                                                           Color="Color.Secondary"
+                                                           OnClick="@(() => ArchiveNotificationAsync(notification.Id))"
+                                                           aria-label="@TranslationService.GetTranslation("notifications.archive", "Archivia")" />
+                                                           
+                                            <MudIconButton Icon="@Icons.Material.Filled.MoreVert"
+                                                           Size="Size.Small"
+                                                           OnClick="@(() => ShowNotificationDetailsAsync(notification))"
+                                                           aria-label="@TranslationService.GetTranslation("notifications.details", "Dettagli")" />
+                                        </div>
+                                    </div>
+                                </MudListItem>
+                                <MudDivider />
+                            }
+                        </MudList>
+
+                        <!-- Pagination placeholder -->
+                        <div class="d-flex justify-center mt-4">
+                            <MudPagination Count="@_totalPages" 
+                                           @bind-Selected="_currentPage" 
+                                           Color="Color.Primary"
+                                           Size="Size.Medium" />
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Empty state -->
+                        <div class="text-center pa-8">
+                            <MudIcon Icon="@Icons.Material.Filled.NotificationsNone" 
+                                     Size="Size.Large" 
+                                     Color="Color.Tertiary" 
+                                     Class="mb-4" />
+                            <MudText Typo="Typo.h6" Color="Color.Tertiary">
+                                @TranslationService.GetTranslation("notifications.noNotifications", "Nessuna notifica disponibile")
+                            </MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+                                @TranslationService.GetTranslation("notifications.noNotificationsSubtext", "Le tue notifiche appariranno qui")
+                            </MudText>
+                        </div>
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Settings Card -->
+        <MudItem xs="12">
+            <MudCard Elevation="2" Class="pa-4">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" Class="mb-4 d-flex align-center">
+                        <MudIcon Icon="@Icons.Material.Filled.Tune" 
+                                 Class="mr-2" 
+                                 Color="Color.Primary"
+                                 aria-hidden="true" />
+                        @TranslationService.GetTranslation("notifications.settings", "Impostazioni Notifiche")
+                    </MudText>
+
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" sm="6">
+                            <MudSwitch T="bool" 
+                                       @bind-Value="_emailNotificationsEnabled"
+                                       Label="@TranslationService.GetTranslation("notifications.emailEnabled", "Notifiche email")"
+                                       Color="Color.Primary" />
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @TranslationService.GetTranslation("notifications.emailDescription", "Ricevi notifiche via email")
+                            </MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudSwitch T="bool" 
+                                       @bind-Value="_pushNotificationsEnabled"
+                                       Label="@TranslationService.GetTranslation("notifications.pushEnabled", "Notifiche push")"
+                                       Color="Color.Primary" />
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @TranslationService.GetTranslation("notifications.pushDescription", "Notifiche in tempo reale nel browser")
+                            </MudText>
+                        </MudItem>
+                    </MudGrid>
+
+                    <div class="mt-4">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Save"
+                                   OnClick="@SaveSettingsAsync"
+                                   Disabled="@_isLoading">
+                            @TranslationService.GetTranslation("common.save", "Salva Impostazioni")
+                        </MudButton>
+                    </div>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    // State variables following existing patterns
+    private bool _isLoading = false;
+    private string _selectedFilter = "";
+    private string _selectedType = "";
+    private int _currentPage = 1;
+    private int _totalPages = 1;
+    private int _unreadCount = 0;
+    private bool _emailNotificationsEnabled = true;
+    private bool _pushNotificationsEnabled = true;
+
+    // Placeholder data - will be replaced with actual service calls
+    private List<NotificationDto> _notifications = new();
+
+    /// <summary>
+    /// Initialize the notification center component
+    /// Loads user notifications and settings on component initialization
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadNotificationsAsync();
+        await LoadSettingsAsync();
+    }
+
+    /// <summary>
+    /// Load notifications from service (placeholder implementation)
+    /// TODO: Implement actual notification service integration
+    /// </summary>
+    private async Task LoadNotificationsAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            // TODO: Replace with actual service call
+            // var notifications = await NotificationService.GetNotificationsAsync();
+            
+            // Placeholder data for UI structure
+            _notifications = GenerateNotificationPlaceholders();
+            _unreadCount = _notifications.Count(n => !n.IsRead);
+            _totalPages = (int)Math.Ceiling(_notifications.Count / 10.0);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento delle notifiche: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Load user notification settings (placeholder implementation)
+    /// TODO: Implement actual settings service integration
+    /// </summary>
+    private async Task LoadSettingsAsync()
+    {
+        try
+        {
+            // TODO: Replace with actual service call
+            // var settings = await NotificationService.GetSettingsAsync();
+            await Task.Delay(100); // Placeholder
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento delle impostazioni: {ex.Message}", Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Mark all notifications as read
+    /// TODO: Implement actual service integration
+    /// </summary>
+    private async Task MarkAllAsReadAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            // TODO: Replace with actual service call
+            await Task.Delay(500); // Placeholder
+            
+            foreach (var notification in _notifications)
+            {
+                notification.IsRead = true;
+            }
+            _unreadCount = 0;
+            
+            Snackbar.Add(TranslationService.GetTranslation("notifications.allMarkedRead", "Tutte le notifiche sono state segnate come lette"), Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nell'operazione: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Archive all read notifications
+    /// TODO: Implement actual service integration
+    /// </summary>
+    private async Task ArchiveAllReadAsync()
+    {
+        try
+        {
+            // TODO: Replace with actual service call
+            await Task.Delay(500); // Placeholder
+            
+            _notifications.RemoveAll(n => n.IsRead);
+            
+            Snackbar.Add(TranslationService.GetTranslation("notifications.readArchived", "Notifiche lette archiviate"), Severity.Success);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nell'archiviazione: {ex.Message}", Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Refresh notifications list
+    /// </summary>
+    private async Task RefreshNotificationsAsync()
+    {
+        await LoadNotificationsAsync();
+        Snackbar.Add(TranslationService.GetTranslation("notifications.refreshed", "Notifiche aggiornate"), Severity.Info);
+    }
+
+    /// <summary>
+    /// Mark single notification as read
+    /// TODO: Implement actual service integration
+    /// </summary>
+    private async Task MarkAsReadAsync(int notificationId)
+    {
+        try
+        {
+            // TODO: Replace with actual service call
+            await Task.Delay(200); // Placeholder
+            
+            var notification = _notifications.FirstOrDefault(n => n.Id == notificationId);
+            if (notification != null)
+            {
+                notification.IsRead = true;
+                _unreadCount = _notifications.Count(n => !n.IsRead);
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nell'operazione: {ex.Message}", Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Archive single notification
+    /// TODO: Implement actual service integration
+    /// </summary>
+    private async Task ArchiveNotificationAsync(int notificationId)
+    {
+        try
+        {
+            // TODO: Replace with actual service call
+            await Task.Delay(200); // Placeholder
+            
+            _notifications.RemoveAll(n => n.Id == notificationId);
+            _unreadCount = _notifications.Count(n => !n.IsRead);
+            StateHasChanged();
+            
+            Snackbar.Add(TranslationService.GetTranslation("notifications.archived", "Notifica archiviata"), Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nell'archiviazione: {ex.Message}", Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Show notification details in dialog
+    /// TODO: Implement notification details modal
+    /// </summary>
+    private async Task ShowNotificationDetailsAsync(NotificationDto notification)
+    {
+        // TODO: Implement dialog with notification details
+        await Task.Delay(100); // Placeholder
+        Snackbar.Add(TranslationService.GetTranslation("notifications.detailsPlaceholder", "Dettagli notifica - Da implementare"), Severity.Info);
+    }
+
+    /// <summary>
+    /// Save notification settings
+    /// TODO: Implement actual settings service integration
+    /// </summary>
+    private async Task SaveSettingsAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            // TODO: Replace with actual service call
+            await Task.Delay(500); // Placeholder
+            
+            Snackbar.Add(TranslationService.GetTranslation("notifications.settingsSaved", "Impostazioni salvate con successo"), Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel salvataggio: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Get icon based on notification type
+    /// </summary>
+    private string GetNotificationIcon(string type) => type?.ToLower() switch
+    {
+        "event" => Icons.Material.Filled.Event,
+        "system" => Icons.Material.Filled.Computer,
+        "chat" => Icons.Material.Filled.Chat,
+        "warning" => Icons.Material.Filled.Warning,
+        "error" => Icons.Material.Filled.Error,
+        _ => Icons.Material.Filled.Notifications
+    };
+
+    /// <summary>
+    /// Get color based on notification priority
+    /// </summary>
+    private Color GetNotificationColor(string priority) => priority?.ToLower() switch
+    {
+        "high" => Color.Error,
+        "medium" => Color.Warning,
+        "low" => Color.Info,
+        _ => Color.Default
+    };
+
+    /// <summary>
+    /// Generate placeholder notifications for UI structure testing
+    /// TODO: Remove when actual service is implemented
+    /// </summary>
+    private List<NotificationDto> GenerateNotificationPlaceholders()
+    {
+        return new List<NotificationDto>
+        {
+            new() { Id = 1, Title = "Nuovo evento creato", Message = "L'evento 'Meeting Settimanale' è stato creato", Type = "event", Priority = "medium", IsRead = false, CreatedAt = DateTime.Now.AddMinutes(-5) },
+            new() { Id = 2, Title = "Messaggio ricevuto", Message = "Hai ricevuto un nuovo messaggio da Mario Rossi", Type = "chat", Priority = "low", IsRead = false, CreatedAt = DateTime.Now.AddMinutes(-15) },
+            new() { Id = 3, Title = "Aggiornamento sistema", Message = "Il sistema è stato aggiornato alla versione 2.1.0", Type = "system", Priority = "low", IsRead = true, CreatedAt = DateTime.Now.AddHours(-2) },
+            new() { Id = 4, Title = "Evento in scadenza", Message = "L'evento 'Revisione Progetto' scade tra 1 ora", Type = "event", Priority = "high", IsRead = false, CreatedAt = DateTime.Now.AddHours(-1) }
+        };
+    }
+
+    /// <summary>
+    /// Placeholder DTO for notifications
+    /// TODO: Move to appropriate DTO project location
+    /// </summary>
+    private class NotificationDto
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Message { get; set; } = "";
+        public string Type { get; set; } = "";
+        public string Priority { get; set; } = "";
+        public bool IsRead { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+}
