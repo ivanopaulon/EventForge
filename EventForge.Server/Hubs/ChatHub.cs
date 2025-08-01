@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using EventForge.DTOs.Chat;
+using EventForge.Server.Services.Chat;
 using System.Security.Claims;
 
 namespace EventForge.Server.Hubs;
@@ -14,13 +15,14 @@ namespace EventForge.Server.Hubs;
 public class ChatHub : Hub
 {
     private readonly ILogger<ChatHub> _logger;
-    
-    // TODO: Inject chat service when implemented
-    // private readonly IChatService _chatService;
+    private readonly IChatService _chatService;
 
-    public ChatHub(ILogger<ChatHub> logger)
+    public ChatHub(
+        ILogger<ChatHub> logger,
+        IChatService chatService)
     {
         _logger = logger;
+        _chatService = chatService;
     }
 
     #region Connection Management
@@ -231,33 +233,17 @@ public class ChatHub : Hub
 
         try
         {
-            // TODO: Implement chat service call to save message
-            // var savedMessage = await _chatService.SendMessageAsync(messageDto);
-            
-            // Stub implementation
-            var messageId = Guid.NewGuid();
-            var chatMessage = new ChatMessageDto
-            {
-                Id = messageId,
-                ChatId = messageDto.ChatId,
-                SenderId = userId.Value,
-                Content = messageDto.Content,
-                ReplyToMessageId = messageDto.ReplyToMessageId,
-                Attachments = messageDto.Attachments,
-                Status = MessageStatus.Sent,
-                SentAt = DateTime.UtcNow,
-                Locale = messageDto.Locale,
-                Metadata = messageDto.Metadata
-            };
+            // Call the chat service to save and send the message
+            var savedMessage = await _chatService.SendMessageAsync(messageDto);
 
             // Send message to all chat participants
-            await Clients.Group($"chat_{messageDto.ChatId}").SendAsync("MessageReceived", chatMessage);
+            await Clients.Group($"chat_{messageDto.ChatId}").SendAsync("MessageReceived", savedMessage);
             
             // Update chat's last activity
             await Clients.Group($"chat_{messageDto.ChatId}").SendAsync("ChatUpdated", new { ChatId = messageDto.ChatId, LastActivity = DateTime.UtcNow });
             
             _logger.LogInformation("User {UserId} sent message {MessageId} in chat {ChatId}", 
-                userId.Value, messageId, messageDto.ChatId);
+                userId.Value, savedMessage.Id, messageDto.ChatId);
         }
         catch (Exception ex)
         {
