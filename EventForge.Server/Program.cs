@@ -2,6 +2,7 @@ using EventForge.Server.Middleware;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
+using EventForge.Server.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -191,5 +192,7 @@ app.MapControllers();
 
 // Map SignalR hubs
 app.MapHub<AuditLogHub>("/hubs/audit-log");
+app.MapHub<NotificationHub>("/hubs/notifications");
+app.MapHub<ChatHub>("/hubs/chat");
 
 app.Run();
