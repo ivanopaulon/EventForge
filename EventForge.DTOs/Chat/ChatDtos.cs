@@ -52,6 +52,23 @@ namespace EventForge.DTOs.Chat
     }
 
     /// <summary>
+    /// Enumeration of chat operation types for rate limiting.
+    /// </summary>
+    public enum ChatOperationType
+    {
+        SendMessage = 0,
+        CreateChat = 1,
+        EditMessage = 2,
+        DeleteMessage = 3,
+        UploadFile = 4,
+        AddMember = 5,
+        RemoveMember = 6,
+        UpdateChat = 7,
+        JoinChat = 8,
+        LeaveChat = 9
+    }
+
+    /// <summary>
     /// DTO for creating a new chat thread/conversation.
     /// </summary>
     public class CreateChatDto
@@ -385,5 +402,17 @@ namespace EventForge.DTOs.Chat
         public string? Username { get; set; }
         public bool IsTyping { get; set; }
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// DTO for chat operation rate limiting status.
+    /// </summary>
+    public class ChatRateLimitStatusDto
+    {
+        public bool IsAllowed { get; set; }
+        public int RemainingQuota { get; set; }
+        public TimeSpan ResetTime { get; set; }
+        public ChatOperationType OperationType { get; set; }
+        public Dictionary<string, object> LimitDetails { get; set; } = new Dictionary<string, object>();
     }
 }

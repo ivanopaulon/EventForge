@@ -212,7 +212,10 @@ public class NotificationHub : Hub
 
         try
         {
-            // TODO: Implement notification service call
+            // Call the notification service to silence the notification
+            var result = await _notificationService.SilenceNotificationAsync(notificationId, userId.Value, reason);
+            
+            // Create update DTO for other user sessions
             var updateDto = new UpdateNotificationStatusDto
             {
                 NotificationId = notificationId,
@@ -248,7 +251,10 @@ public class NotificationHub : Hub
 
         try
         {
-            // TODO: Implement notification service call
+            // Call the notification service to archive the notification
+            var result = await _notificationService.ArchiveNotificationAsync(notificationId, userId.Value);
+            
+            // Create update DTO for other user sessions
             var updateDto = new UpdateNotificationStatusDto
             {
                 NotificationId = notificationId,
