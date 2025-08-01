@@ -424,7 +424,7 @@ public class EventForgeDbContext : DbContext
 
         // Unique constraints for chat and notification entities
         modelBuilder.Entity<NotificationRecipient>()
-            .HasIndex(nr => new { nr.NotificationId, nr.RecipientUserId })
+            .HasIndex(nr => new { nr.NotificationId, nr.UserId })
             .IsUnique();
 
         modelBuilder.Entity<ChatMember>()

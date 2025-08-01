@@ -11,7 +11,7 @@ namespace EventForge.Server.Data.Entities.Notifications;
 [Table("NotificationRecipients")]
 [Index(nameof(TenantId))]
 [Index(nameof(NotificationId))]
-[Index(nameof(RecipientUserId))]
+[Index(nameof(UserId))]
 [Index(nameof(Status))]
 [Index(nameof(ReadAt))]
 public class NotificationRecipient : AuditableEntity
@@ -26,7 +26,7 @@ public class NotificationRecipient : AuditableEntity
     /// ID of the recipient user.
     /// </summary>
     [Required]
-    public Guid RecipientUserId { get; set; }
+    public Guid UserId { get; set; }
 
     /// <summary>
     /// Recipient-specific status of the notification.
@@ -48,6 +48,11 @@ public class NotificationRecipient : AuditableEntity
     /// Timestamp when this recipient silenced the notification.
     /// </summary>
     public DateTime? SilencedAt { get; set; }
+
+    /// <summary>
+    /// Timestamp until when the notification is silenced (null for permanent silence).
+    /// </summary>
+    public DateTime? SilencedUntil { get; set; }
 
     /// <summary>
     /// Timestamp when this recipient archived the notification.
