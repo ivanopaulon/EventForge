@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using EventForge.Server.Data.Entities.Notifications;
+using EventForge.Server.Data.Entities.Chat;
 
 namespace EventForge.Server.Data;
 
@@ -89,6 +91,17 @@ public class EventForgeDbContext : DbContext
     // Configuration & System Management
     public DbSet<SystemConfiguration> SystemConfigurations { get; set; }
     public DbSet<BackupOperation> BackupOperations { get; set; }
+
+    // Notifications
+    public DbSet<Notification> Notifications { get; set; }
+    public DbSet<NotificationRecipient> NotificationRecipients { get; set; }
+
+    // Chat
+    public DbSet<ChatThread> ChatThreads { get; set; }
+    public DbSet<ChatMember> ChatMembers { get; set; }
+    public DbSet<ChatMessage> ChatMessages { get; set; }
+    public DbSet<MessageAttachment> MessageAttachments { get; set; }
+    public DbSet<MessageReadReceipt> MessageReadReceipts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -370,6 +383,57 @@ public class EventForgeDbContext : DbContext
             .WithMany(u => u.TargetedAuditTrails)
             .HasForeignKey(at => at.TargetUserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Notification relationships
+        modelBuilder.Entity<NotificationRecipient>()
+            .HasOne(nr => nr.Notification)
+            .WithMany(n => n.Recipients)
+            .HasForeignKey(nr => nr.NotificationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Chat relationships
+        modelBuilder.Entity<ChatMember>()
+            .HasOne(cm => cm.ChatThread)
+            .WithMany(ct => ct.Members)
+            .HasForeignKey(cm => cm.ChatThreadId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ChatMessage>()
+            .HasOne(cm => cm.ChatThread)
+            .WithMany(ct => ct.Messages)
+            .HasForeignKey(cm => cm.ChatThreadId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ChatMessage>()
+            .HasOne(cm => cm.ReplyToMessage)
+            .WithMany(m => m.Replies)
+            .HasForeignKey(cm => cm.ReplyToMessageId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<MessageAttachment>()
+            .HasOne(ma => ma.Message)
+            .WithMany(m => m.Attachments)
+            .HasForeignKey(ma => ma.MessageId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<MessageReadReceipt>()
+            .HasOne(mrr => mrr.Message)
+            .WithMany(m => m.ReadReceipts)
+            .HasForeignKey(mrr => mrr.MessageId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Unique constraints for chat and notification entities
+        modelBuilder.Entity<NotificationRecipient>()
+            .HasIndex(nr => new { nr.NotificationId, nr.RecipientUserId })
+            .IsUnique();
+
+        modelBuilder.Entity<ChatMember>()
+            .HasIndex(cm => new { cm.ChatThreadId, cm.UserId })
+            .IsUnique();
+
+        modelBuilder.Entity<MessageReadReceipt>()
+            .HasIndex(mrr => new { mrr.MessageId, mrr.UserId })
+            .IsUnique();
     }
 
     /// <summary>
