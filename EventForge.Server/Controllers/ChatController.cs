@@ -646,7 +646,7 @@ public class ChatController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status413PayloadTooLarge)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
     public async Task<ActionResult<FileUploadResultDto>> UploadFileAsync(
-        [FromRoute] Guid chatId,
+        [FromForm] Guid chatId,
         [FromForm] IFormFile file,
         CancellationToken cancellationToken = default)
     {

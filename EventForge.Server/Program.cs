@@ -122,6 +122,9 @@ builder.Services.AddSwaggerGen(c =>
             Array.Empty<string>()
         }
     });
+
+    // Supporto per upload file
+    c.OperationFilter<FileUploadOperationFilter>();
 });
 
 builder.Services.AddCors(options =>
