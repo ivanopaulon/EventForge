@@ -1,9 +1,11 @@
 using EventForge.Server.Services.Banks;
 using EventForge.Server.Services.Business;
+using EventForge.Server.Services.Chat;
 using EventForge.Server.Services.Common;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Events;
 using EventForge.Server.Services.Logs;
+using EventForge.Server.Services.Notifications;
 using EventForge.Server.Services.PriceLists;
 using EventForge.Server.Services.Products;
 using EventForge.Server.Services.Promotions;
@@ -124,6 +126,10 @@ public static class ServiceCollectionExtensions
 
         // Register application log services
         services.AddScoped<IApplicationLogService, ApplicationLogService>();
+
+        // Register notification and chat services - Step 3 SignalR Implementation
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IChatService, ChatService>();
 
         // Register team services
         services.AddScoped<ITeamService, TeamService>();

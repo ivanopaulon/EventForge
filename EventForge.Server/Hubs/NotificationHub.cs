@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using EventForge.DTOs.Notifications;
+using EventForge.Server.Services.Notifications;
 using System.Security.Claims;
 
 namespace EventForge.Server.Hubs;
@@ -14,13 +15,14 @@ namespace EventForge.Server.Hubs;
 public class NotificationHub : Hub
 {
     private readonly ILogger<NotificationHub> _logger;
-    
-    // TODO: Inject notification service when implemented
-    // private readonly INotificationService _notificationService;
+    private readonly INotificationService _notificationService;
 
-    public NotificationHub(ILogger<NotificationHub> logger)
+    public NotificationHub(
+        ILogger<NotificationHub> logger,
+        INotificationService notificationService)
     {
         _logger = logger;
+        _notificationService = notificationService;
     }
 
     #region Connection Management
@@ -169,23 +171,23 @@ public class NotificationHub : Hub
 
         try
         {
-            // TODO: Implement notification service call
-            // var success = await _notificationService.AcknowledgeNotificationAsync(notificationId, userId.Value);
+            // Call the notification service to acknowledge the notification
+            var result = await _notificationService.AcknowledgeNotificationAsync(notificationId, userId.Value);
             
-            // Stub implementation
+            _logger.LogInformation("User {UserId} acknowledged notification {NotificationId}", userId.Value, notificationId);
+            
+            // Notify the user that the acknowledgment was successful
+            await Clients.Caller.SendAsync("NotificationAcknowledged", notificationId);
+            
+            // Create update DTO for other user sessions
             var updateDto = new UpdateNotificationStatusDto
             {
                 NotificationId = notificationId,
                 Status = NotificationStatus.Acknowledged,
                 UserId = userId.Value
             };
-
-            _logger.LogInformation("User {UserId} acknowledged notification {NotificationId}", userId.Value, notificationId);
             
-            // Notify the user that the acknowledgment was successful
-            await Clients.Caller.SendAsync("NotificationAcknowledged", notificationId);
-            
-            // Optionally notify other connected devices/sessions of the same user
+            // Notify other connected devices/sessions of the same user
             await Clients.Group($"user_{userId.Value}").SendAsync("NotificationStatusUpdated", updateDto);
         }
         catch (Exception ex)
