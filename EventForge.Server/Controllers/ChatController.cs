@@ -633,8 +633,7 @@ public class ChatController : ControllerBase
     /// Uploads a file attachment to a chat with comprehensive validation.
     /// Supports multiple file types, virus scanning, and thumbnail generation.
     /// </summary>
-    /// <param name="chatId">Chat identifier</param>
-    /// <param name="file">File to upload</param>
+    /// <param name="uploadRequest">File upload request parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Upload result with file metadata and access information</returns>
     /// <response code="201">File uploaded successfully</response>
@@ -642,13 +641,13 @@ public class ChatController : ControllerBase
     /// <response code="413">File too large</response>
     /// <response code="429">Rate limit exceeded</response>
     [HttpPost("upload")]
-    public async Task<IActionResult> UploadFileAsync(
-        [FromForm] IFormFile file,
-        [FromForm] string chatId,
-        CancellationToken cancellationToken
+    [ProducesResponseType(typeof(FileUploadResultDto), StatusCodes.Status201Created)]
+    public async Task<ActionResult<FileUploadResultDto>> UploadFileAsync(
+        [FromForm] ChatFileUploadRequestDto uploadRequest,
+        CancellationToken cancellationToken = default
     )
     {
-        if (file == null || file.Length == 0)
+        if (uploadRequest.File == null || uploadRequest.File.Length == 0)
         {
             return BadRequest(new ProblemDetails
             {
@@ -659,7 +658,7 @@ public class ChatController : ControllerBase
 
         // Check file size limit (example: 50MB)
         const long maxFileSize = 50 * 1024 * 1024; // 50MB
-        if (file.Length > maxFileSize)
+        if (uploadRequest.File.Length > maxFileSize)
         {
             return StatusCode(StatusCodes.Status413PayloadTooLarge,
                 new ProblemDetails
@@ -676,12 +675,12 @@ public class ChatController : ControllerBase
 
             var uploadDto = new FileUploadDto
             {
-                ChatId = Guid.Parse(chatId),
+                ChatId = Guid.Parse(uploadRequest.ChatId),
                 UploadedBy = userId,
-                FileName = file.FileName,
-                ContentType = file.ContentType,
-                FileSize = file.Length,
-                FileStream = file.OpenReadStream()
+                FileName = uploadRequest.File.FileName,
+                ContentType = uploadRequest.File.ContentType,
+                FileSize = uploadRequest.File.Length,
+                FileStream = uploadRequest.File.OpenReadStream()
             };
 
             var result = await _chatService.UploadFileAsync(uploadDto, cancellationToken);
@@ -714,7 +713,7 @@ public class ChatController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to upload file to chat {ChatId}", chatId);
+            _logger.LogError(ex, "Failed to upload file to chat {ChatId}", uploadRequest.ChatId);
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new ProblemDetails
                 {
@@ -1078,6 +1077,26 @@ public class ChatController : ControllerBase
 }
 
 #region Supporting DTOs for API
+
+/// <summary>
+/// DTO for file upload request parameters.
+/// Provides Swagger-compatible structure for chat file uploads.
+/// </summary>
+public class ChatFileUploadRequestDto
+{
+    /// <summary>
+    /// File to upload to the chat.
+    /// </summary>
+    [Required]
+    public IFormFile File { get; set; } = null!;
+
+    /// <summary>
+    /// Chat identifier where the file will be uploaded.
+    /// </summary>
+    [Required]
+    [MaxLength(36)] // GUID string length
+    public string ChatId { get; set; } = string.Empty;
+}
 
 /// <summary>
 /// DTO for chat deletion parameters.
