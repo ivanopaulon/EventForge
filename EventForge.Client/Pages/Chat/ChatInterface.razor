@@ -1,0 +1,654 @@
+@page "/chat"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+
+<PageTitle>@TranslationService.GetTranslation("chat.title", "Chat - EventForge")</PageTitle>
+
+<!-- Chat layout with sidebar following existing patterns -->
+<MudDrawerContainer Class="mud-height-full">
+    
+    <!-- Chat Sidebar/List -->
+    <MudDrawer @bind-Open="_drawerOpen" 
+               Elevation="2" 
+               Variant="@DrawerVariant.Responsive" 
+               OpenMiniOnHover="false"
+               Width="350px"
+               ClipMode="DrawerClipMode.Always">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h6" Class="d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.Chat" 
+                         Class="mr-2" 
+                         Color="Color.Primary" />
+                @TranslationService.GetTranslation("chat.title", "Chat")
+                <!-- Unread messages badge -->
+                @if (_totalUnreadMessages > 0)
+                {
+                    <MudBadge Content="@_totalUnreadMessages.ToString()" 
+                              Color="Color.Error" 
+                              Class="ml-2">
+                    </MudBadge>
+                }
+            </MudText>
+        </MudDrawerHeader>
+        
+        <MudDrawerContent>
+            <!-- Search and filters -->
+            <div class="pa-3">
+                <MudTextField T="string" 
+                              @bind-Value="_searchText"
+                              Label="@TranslationService.GetTranslation("chat.search", "Cerca chat...")"
+                              StartIcon="@Icons.Material.Filled.Search"
+                              Variant="Variant.Outlined"
+                              FullWidth="true"
+                              Margin="Margin.Dense" />
+                
+                <!-- Chat type filter -->
+                <MudButtonGroup Class="mt-2" OverrideStyles="false" Size="Size.Small" Variant="Variant.Text">
+                    <MudButton StartIcon="@Icons.Material.Filled.People"
+                               Color="@(_chatFilter == "all" ? Color.Primary : Color.Default)"
+                               OnClick="@(() => SetChatFilter("all"))">
+                        @TranslationService.GetTranslation("chat.allChats", "Tutte")
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Filled.Person"
+                               Color="@(_chatFilter == "direct" ? Color.Primary : Color.Default)"
+                               OnClick="@(() => SetChatFilter("direct"))">
+                        @TranslationService.GetTranslation("chat.directMessages", "Diretti")
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Filled.Group"
+                               Color="@(_chatFilter == "group" ? Color.Primary : Color.Default)" 
+                               OnClick="@(() => SetChatFilter("group"))">
+                        @TranslationService.GetTranslation("chat.groups", "Gruppi")
+                    </MudButton>
+                </MudButtonGroup>
+            </div>
+
+            <MudDivider />
+
+            <!-- Chat list -->
+            @if (_isLoadingChats)
+            {
+                <div class="pa-4 text-center">
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                    <MudText Typo="Typo.body2" Class="mt-2">
+                        @TranslationService.GetTranslation("common.loading", "Caricamento...")
+                    </MudText>
+                </div>
+            }
+            else if (_chatList?.Any() == true)
+            {
+                <MudList T="object" Clickable="true" Dense="true">
+                    @foreach (var chat in _chatList)
+                    {
+                        <MudListItem OnClick="@(() => SelectChatAsync(chat))"
+                                     Class="@(chat.Id == _selectedChatId ? "mud-selected-item" : "")">
+                            <div class="d-flex align-center w-100">
+                                <!-- Chat avatar/icon -->
+                                <MudAvatar Size="Size.Small" 
+                                           Color="@(chat.IsGroup ? Color.Secondary : Color.Primary)"
+                                           Class="mr-3">
+                                    <MudIcon Icon="@(chat.IsGroup ? Icons.Material.Filled.Group : Icons.Material.Filled.Person)" />
+                                </MudAvatar>
+                                
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <div class="d-flex justify-space-between align-center">
+                                        <MudText Typo="Typo.body2" 
+                                                 Class="@(chat.UnreadCount > 0 ? "font-weight-bold" : "")"
+                                                 Style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                            @chat.Name
+                                        </MudText>
+                                        @if (chat.UnreadCount > 0)
+                                        {
+                                            <MudBadge Content="@chat.UnreadCount.ToString()" 
+                                                      Color="Color.Error" 
+                                                      Size="Size.Small">
+                                            </MudBadge>
+                                        }
+                                    </div>
+                                    
+                                    <MudText Typo="Typo.caption" 
+                                             Color="Color.Secondary"
+                                             Style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        @chat.LastMessage
+                                    </MudText>
+                                    
+                                    <MudText Typo="Typo.caption" 
+                                             Color="Color.Tertiary">
+                                        @FormatLastMessageTime(chat.LastMessageTime)
+                                    </MudText>
+                                </div>
+                            </div>
+                        </MudListItem>
+                        <MudDivider />
+                    }
+                </MudList>
+            }
+            else
+            {
+                <!-- Empty state -->
+                <div class="pa-4 text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" 
+                             Size="Size.Large" 
+                             Color="Color.Tertiary" 
+                             Class="mb-2" />
+                    <MudText Typo="Typo.body2" Color="Color.Tertiary">
+                        @TranslationService.GetTranslation("chat.noChats", "Nessuna chat disponibile")
+                    </MudText>
+                </div>
+            }
+
+            <!-- New chat button -->
+            <div class="pa-3 mt-auto">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           FullWidth="true"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="@StartNewChatAsync">
+                    @TranslationService.GetTranslation("chat.newChat", "Nuova Chat")
+                </MudButton>
+            </div>
+        </MudDrawerContent>
+    </MudDrawer>
+
+    <!-- Main chat content -->
+    <MudMainContent>
+        @if (_selectedChatId.HasValue)
+        {
+            <!-- Chat header -->
+            <MudAppBar Dense="true" Fixed="false" Elevation="1">
+                <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                               Color="Color.Inherit"
+                               OnClick="@(() => _drawerOpen = !_drawerOpen)"
+                               Class="d-block d-md-none mr-2" />
+                
+                <MudAvatar Size="Size.Small" 
+                           Color="@(_selectedChat?.IsGroup == true ? Color.Secondary : Color.Primary)"
+                           Class="mr-3">
+                    <MudIcon Icon="@(_selectedChat?.IsGroup == true ? Icons.Material.Filled.Group : Icons.Material.Filled.Person)" />
+                </MudAvatar>
+                
+                <MudText Typo="Typo.h6" Class="flex-grow-1">
+                    @_selectedChat?.Name
+                </MudText>
+
+                <!-- Chat actions -->
+                <MudTooltip Text="@TranslationService.GetTranslation("chat.chatInfo", "Informazioni chat")">
+                    <MudIconButton Icon="@Icons.Material.Filled.Info" 
+                                   Color="Color.Inherit"
+                                   OnClick="@ShowChatInfoAsync" />
+                </MudTooltip>
+                
+                @if (_selectedChat?.IsGroup == true)
+                {
+                    <MudTooltip Text="@TranslationService.GetTranslation("chat.manageGroup", "Gestisci gruppo")">
+                        <MudIconButton Icon="@Icons.Material.Filled.Settings" 
+                                       Color="Color.Inherit"
+                                       OnClick="@ManageGroupAsync" />
+                    </MudTooltip>
+                }
+            </MudAppBar>
+
+            <!-- Messages area -->
+            <MudContainer MaxWidth="MaxWidth.False" Class="pa-0 chat-messages-container" Style="height: calc(100vh - 120px); overflow-y: auto;">
+                @if (_isLoadingMessages)
+                {
+                    <div class="d-flex justify-center align-center" Style="height: 200px;">
+                        <MudProgressCircular Indeterminate="true" />
+                    </div>
+                }
+                else if (_messages?.Any() == true)
+                {
+                    <div class="pa-4">
+                        @foreach (var message in _messages)
+                        {
+                            <div class="@GetMessageAlignment(message.IsFromCurrentUser) mb-3">
+                                <MudCard Elevation="1" 
+                                         Class="@GetMessageCardClass(message.IsFromCurrentUser)"
+                                         Style="@GetMessageCardStyle(message.IsFromCurrentUser)">
+                                    <MudCardContent Class="pa-3">
+                                        @if (!message.IsFromCurrentUser && _selectedChat?.IsGroup == true)
+                                        {
+                                            <MudText Typo="Typo.caption" 
+                                                     Color="Color.Primary" 
+                                                     Class="mb-1 font-weight-bold">
+                                                @message.SenderName
+                                            </MudText>
+                                        }
+                                        
+                                        <MudText Typo="Typo.body2">
+                                            @message.Content
+                                        </MudText>
+                                        
+                                        @if (!string.IsNullOrEmpty(message.AttachmentName))
+                                        {
+                                            <div class="mt-2">
+                                                <MudChip T="string" 
+                                                         StartIcon="@Icons.Material.Filled.AttachFile"
+                                                         Size="Size.Small"
+                                                         OnClick="@(() => DownloadAttachmentAsync(message.AttachmentName))">
+                                                    @message.AttachmentName
+                                                </MudChip>
+                                            </div>
+                                        }
+                                        
+                                        <div class="d-flex justify-space-between align-center mt-2">
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                @message.Timestamp.ToString("HH:mm")
+                                            </MudText>
+                                            
+                                            @if (message.IsFromCurrentUser)
+                                            {
+                                                <MudIcon Icon="@GetMessageStatusIcon(message.Status)" 
+                                                         Size="Size.Small"
+                                                         Color="@GetMessageStatusColor(message.Status)" />
+                                            }
+                                        </div>
+                                    </MudCardContent>
+                                </MudCard>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <!-- Empty messages state -->
+                    <div class="d-flex justify-center align-center" Style="height: 200px;">
+                        <div class="text-center">
+                            <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" 
+                                     Size="Size.Large" 
+                                     Color="Color.Tertiary" 
+                                     Class="mb-2" />
+                            <MudText Typo="Typo.body2" Color="Color.Tertiary">
+                                @TranslationService.GetTranslation("chat.noMessages", "Nessun messaggio in questa chat")
+                            </MudText>
+                        </div>
+                    </div>
+                }
+            </MudContainer>
+
+            <!-- Message input -->
+            <MudPaper Elevation="3" Class="pa-3 d-flex align-center gap-2" Style="position: fixed; bottom: 0; left: 350px; right: 0; z-index: 10;">
+                <!-- File attachment button -->
+                <MudTooltip Text="@TranslationService.GetTranslation("chat.attachFile", "Allega file")">
+                    <MudIconButton Icon="@Icons.Material.Filled.AttachFile"
+                                   Color="Color.Primary"
+                                   OnClick="@SelectFileAsync" />
+                </MudTooltip>
+
+                <!-- Message input field -->
+                <MudTextField T="string" 
+                              @bind-Value="_newMessage"
+                              Label="@TranslationService.GetTranslation("chat.typeMessage", "Scrivi un messaggio...")"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Class="flex-grow-1"
+                              MaxLength="1000"
+                              @onkeypress="@OnMessageKeyPress" />
+
+                <!-- Send button -->
+                <MudIconButton Icon="@Icons.Material.Filled.Send"
+                               Color="Color.Primary"
+                               Variant="Variant.Filled"
+                               OnClick="@SendMessageAsync"
+                               Disabled="@(string.IsNullOrWhiteSpace(_newMessage) || _isSendingMessage)" />
+            </MudPaper>
+        }
+        else
+        {
+            <!-- No chat selected state -->
+            <div class="d-flex justify-center align-center" Style="height: 100vh;">
+                <div class="text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" 
+                             Size="Size.Large" 
+                             Color="Color.Tertiary" 
+                             Class="mb-4" />
+                    <MudText Typo="Typo.h5" Color="Color.Tertiary" Class="mb-2">
+                        @TranslationService.GetTranslation("chat.welcomeTitle", "Benvenuto in Chat")
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        @TranslationService.GetTranslation("chat.welcomeMessage", "Seleziona una chat dalla sidebar per iniziare a chattare")
+                    </MudText>
+                </div>
+            </div>
+        }
+    </MudMainContent>
+</MudDrawerContainer>
+
+@code {
+    // State variables
+    private bool _drawerOpen = true;
+    private bool _isLoadingChats = false;
+    private bool _isLoadingMessages = false;
+    private bool _isSendingMessage = false;
+    private string _searchText = "";
+    private string _chatFilter = "all";
+    private string _newMessage = "";
+    private int _totalUnreadMessages = 0;
+    private int? _selectedChatId;
+    private ChatDto? _selectedChat;
+
+    // Data collections
+    private List<ChatDto> _chatList = new();
+    private List<MessageDto> _messages = new();
+
+    /// <summary>
+    /// Initialize chat interface
+    /// Loads user chats on component initialization
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadChatsAsync();
+    }
+
+    /// <summary>
+    /// Load user chats from service (placeholder implementation)
+    /// TODO: Implement actual chat service integration
+    /// </summary>
+    private async Task LoadChatsAsync()
+    {
+        _isLoadingChats = true;
+        StateHasChanged();
+
+        try
+        {
+            // TODO: Replace with actual service call
+            // var chats = await ChatService.GetUserChatsAsync();
+            
+            // Placeholder data for UI structure
+            _chatList = GenerateChatPlaceholders();
+            _totalUnreadMessages = _chatList.Sum(c => c.UnreadCount);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento delle chat: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoadingChats = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Select a chat and load its messages
+    /// TODO: Implement actual message loading service integration
+    /// </summary>
+    private async Task SelectChatAsync(ChatDto chat)
+    {
+        _selectedChatId = chat.Id;
+        _selectedChat = chat;
+        _isLoadingMessages = true;
+        StateHasChanged();
+
+        try
+        {
+            // TODO: Replace with actual service call
+            // var messages = await ChatService.GetChatMessagesAsync(chat.Id);
+            
+            // Placeholder data for UI structure
+            _messages = GenerateMessagePlaceholders();
+            
+            // Mark chat as read
+            chat.UnreadCount = 0;
+            _totalUnreadMessages = _chatList.Sum(c => c.UnreadCount);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento dei messaggi: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoadingMessages = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Set chat filter and refresh list
+    /// </summary>
+    private async Task SetChatFilter(string filter)
+    {
+        _chatFilter = filter;
+        await LoadChatsAsync(); // In real implementation, this would filter the existing list
+    }
+
+    /// <summary>
+    /// Start new chat dialog
+    /// TODO: Implement new chat creation dialog
+    /// </summary>
+    private async Task StartNewChatAsync()
+    {
+        // TODO: Show dialog to select users and create new chat
+        await Task.Delay(100); // Placeholder
+        Snackbar.Add(TranslationService.GetTranslation("chat.newChatPlaceholder", "Creazione nuova chat - Da implementare"), Severity.Info);
+    }
+
+    /// <summary>
+    /// Show chat info dialog
+    /// TODO: Implement chat information modal
+    /// </summary>
+    private async Task ShowChatInfoAsync()
+    {
+        // TODO: Show dialog with chat details, participants, settings
+        await Task.Delay(100); // Placeholder
+        Snackbar.Add(TranslationService.GetTranslation("chat.chatInfoPlaceholder", "Informazioni chat - Da implementare"), Severity.Info);
+    }
+
+    /// <summary>
+    /// Manage group settings
+    /// TODO: Implement group management dialog
+    /// </summary>
+    private async Task ManageGroupAsync()
+    {
+        // TODO: Show dialog for group management (add/remove users, settings)
+        await Task.Delay(100); // Placeholder
+        Snackbar.Add(TranslationService.GetTranslation("chat.manageGroupPlaceholder", "Gestione gruppo - Da implementare"), Severity.Info);
+    }
+
+    /// <summary>
+    /// Select file for attachment
+    /// TODO: Implement file selection and upload
+    /// </summary>
+    private async Task SelectFileAsync()
+    {
+        // TODO: Implement file selection dialog and upload
+        await Task.Delay(100); // Placeholder
+        Snackbar.Add(TranslationService.GetTranslation("chat.fileAttachmentPlaceholder", "Allegato file - Da implementare"), Severity.Info);
+    }
+
+    /// <summary>
+    /// Download attachment
+    /// TODO: Implement file download
+    /// </summary>
+    private async Task DownloadAttachmentAsync(string fileName)
+    {
+        // TODO: Implement file download
+        await Task.Delay(100); // Placeholder
+        Snackbar.Add($"Download file: {fileName} - Da implementare", Severity.Info);
+    }
+
+    /// <summary>
+    /// Handle message key press (Enter to send)
+    /// </summary>
+    private async Task OnMessageKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey && !string.IsNullOrWhiteSpace(_newMessage))
+        {
+            await SendMessageAsync();
+        }
+    }
+
+    /// <summary>
+    /// Send new message
+    /// TODO: Implement actual message sending service integration
+    /// </summary>
+    private async Task SendMessageAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newMessage) || !_selectedChatId.HasValue)
+            return;
+
+        _isSendingMessage = true;
+        var messageContent = _newMessage;
+        _newMessage = ""; // Clear input immediately
+        StateHasChanged();
+
+        try
+        {
+            // TODO: Replace with actual service call
+            // await ChatService.SendMessageAsync(_selectedChatId.Value, messageContent);
+            
+            // Add message to UI immediately (optimistic update)
+            var newMessage = new MessageDto
+            {
+                Id = _messages.Count + 1,
+                Content = messageContent,
+                SenderName = "Tu",
+                IsFromCurrentUser = true,
+                Timestamp = DateTime.Now,
+                Status = "sent"
+            };
+            
+            _messages.Add(newMessage);
+            
+            // Update chat last message
+            if (_selectedChat != null)
+            {
+                _selectedChat.LastMessage = messageContent;
+                _selectedChat.LastMessageTime = DateTime.Now;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nell'invio del messaggio: {ex.Message}", Severity.Error);
+            _newMessage = messageContent; // Restore message on error
+        }
+        finally
+        {
+            _isSendingMessage = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Format last message time for display
+    /// </summary>
+    private string FormatLastMessageTime(DateTime time)
+    {
+        var now = DateTime.Now;
+        var diff = now - time;
+
+        if (diff.TotalMinutes < 1)
+            return TranslationService.GetTranslation("chat.timeNow", "ora");
+        if (diff.TotalHours < 1)
+            return $"{(int)diff.TotalMinutes}m";
+        if (diff.TotalDays < 1)
+            return time.ToString("HH:mm");
+        if (diff.TotalDays < 7)
+            return time.ToString("ddd");
+        
+        return time.ToString("dd/MM");
+    }
+
+    /// <summary>
+    /// Get message alignment based on sender
+    /// </summary>
+    private string GetMessageAlignment(bool isFromCurrentUser) =>
+        isFromCurrentUser ? "d-flex justify-end" : "d-flex justify-start";
+
+    /// <summary>
+    /// Get message card CSS class based on sender
+    /// </summary>
+    private string GetMessageCardClass(bool isFromCurrentUser) =>
+        isFromCurrentUser ? "max-width-75" : "max-width-75";
+
+    /// <summary>
+    /// Get message card inline style based on sender
+    /// </summary>
+    private string GetMessageCardStyle(bool isFromCurrentUser) =>
+        $"max-width: 75%; background-color: {(isFromCurrentUser ? "var(--mud-palette-primary)" : "var(--mud-palette-surface)")};";
+
+    /// <summary>
+    /// Get message status icon
+    /// </summary>
+    private string GetMessageStatusIcon(string status) => status?.ToLower() switch
+    {
+        "sent" => Icons.Material.Filled.Check,
+        "delivered" => Icons.Material.Filled.DoneAll,
+        "read" => Icons.Material.Filled.DoneAll,
+        _ => Icons.Material.Filled.Schedule
+    };
+
+    /// <summary>
+    /// Get message status color
+    /// </summary>
+    private Color GetMessageStatusColor(string status) => status?.ToLower() switch
+    {
+        "sent" => Color.Default,
+        "delivered" => Color.Default,
+        "read" => Color.Primary,
+        _ => Color.Secondary
+    };
+
+    /// <summary>
+    /// Generate placeholder chats for UI structure testing
+    /// TODO: Remove when actual service is implemented
+    /// </summary>
+    private List<ChatDto> GenerateChatPlaceholders()
+    {
+        return new List<ChatDto>
+        {
+            new() { Id = 1, Name = "Mario Rossi", IsGroup = false, UnreadCount = 2, LastMessage = "Ciao, come va?", LastMessageTime = DateTime.Now.AddMinutes(-5) },
+            new() { Id = 2, Name = "Team Sviluppo", IsGroup = true, UnreadCount = 5, LastMessage = "Nuova release disponibile", LastMessageTime = DateTime.Now.AddMinutes(-30) },
+            new() { Id = 3, Name = "Anna Verdi", IsGroup = false, UnreadCount = 0, LastMessage = "Perfetto, grazie!", LastMessageTime = DateTime.Now.AddHours(-2) },
+            new() { Id = 4, Name = "Progetto Alpha", IsGroup = true, UnreadCount = 1, LastMessage = "Meeting domani alle 10", LastMessageTime = DateTime.Now.AddHours(-4) }
+        };
+    }
+
+    /// <summary>
+    /// Generate placeholder messages for UI structure testing
+    /// TODO: Remove when actual service is implemented
+    /// </summary>
+    private List<MessageDto> GenerateMessagePlaceholders()
+    {
+        return new List<MessageDto>
+        {
+            new() { Id = 1, Content = "Ciao! Come stai?", SenderName = "Mario Rossi", IsFromCurrentUser = false, Timestamp = DateTime.Now.AddHours(-1), Status = "read" },
+            new() { Id = 2, Content = "Tutto bene, grazie! Tu come stai?", SenderName = "Tu", IsFromCurrentUser = true, Timestamp = DateTime.Now.AddMinutes(-50), Status = "read" },
+            new() { Id = 3, Content = "Benissimo! Hai visto il nuovo aggiornamento?", SenderName = "Mario Rossi", IsFromCurrentUser = false, Timestamp = DateTime.Now.AddMinutes(-45), Status = "read" },
+            new() { Id = 4, Content = "Sì, molto interessante! Le nuove funzionalità sono ottime.", SenderName = "Tu", IsFromCurrentUser = true, Timestamp = DateTime.Now.AddMinutes(-40), Status = "delivered", AttachmentName = "documento.pdf" }
+        };
+    }
+
+    /// <summary>
+    /// Placeholder DTO for chats
+    /// TODO: Move to appropriate DTO project location
+    /// </summary>
+    private class ChatDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public bool IsGroup { get; set; }
+        public int UnreadCount { get; set; }
+        public string LastMessage { get; set; } = "";
+        public DateTime LastMessageTime { get; set; }
+    }
+
+    /// <summary>
+    /// Placeholder DTO for messages
+    /// TODO: Move to appropriate DTO project location
+    /// </summary>
+    private class MessageDto
+    {
+        public int Id { get; set; }
+        public string Content { get; set; } = "";
+        public string SenderName { get; set; } = "";
+        public bool IsFromCurrentUser { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string Status { get; set; } = "";
+        public string AttachmentName { get; set; } = "";
+    }
+}
