@@ -439,7 +439,7 @@ public class EventForgeDbContext : DbContext
             .HasOne(cm => cm.ReplyToMessage)
             .WithMany(m => m.Replies)
             .HasForeignKey(cm => cm.ReplyToMessageId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.NoAction);
 
         modelBuilder.Entity<MessageAttachment>()
             .HasOne(ma => ma.Message)

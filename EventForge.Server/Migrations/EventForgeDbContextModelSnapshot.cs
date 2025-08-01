@@ -4590,7 +4590,7 @@ namespace EventForge.Server.Migrations
                     b.HasOne("EventForge.Server.Data.Entities.Chat.ChatMessage", "ReplyToMessage")
                         .WithMany("Replies")
                         .HasForeignKey("ReplyToMessageId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("ChatThread");
 
