@@ -24,6 +24,10 @@ public class FileUploadOperationFilter : IOperationFilter
                                 {
                                     Type = "string",
                                     Format = "binary"
+                                },
+                                ["chatId"] = new OpenApiSchema
+                                {
+                                    Type = "string"
                                 }
                             }
                         }

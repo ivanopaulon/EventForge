@@ -641,14 +641,12 @@ public class ChatController : ControllerBase
     /// <response code="400">Invalid file or request parameters</response>
     /// <response code="413">File too large</response>
     /// <response code="429">Rate limit exceeded</response>
-    [HttpPost("{chatId:guid}/files")]
-    [ProducesResponseType(typeof(FileUploadResultDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status413PayloadTooLarge)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
-    public async Task<ActionResult<FileUploadResultDto>> UploadFileAsync(
-        [FromForm] Guid chatId,
+    [HttpPost("upload")]
+    public async Task<IActionResult> UploadFileAsync(
         [FromForm] IFormFile file,
-        CancellationToken cancellationToken = default)
+        [FromForm] string chatId,
+        CancellationToken cancellationToken
+    )
     {
         if (file == null || file.Length == 0)
         {
@@ -678,7 +676,7 @@ public class ChatController : ControllerBase
 
             var uploadDto = new FileUploadDto
             {
-                ChatId = chatId,
+                ChatId = Guid.Parse(chatId),
                 UploadedBy = userId,
                 FileName = file.FileName,
                 ContentType = file.ContentType,
