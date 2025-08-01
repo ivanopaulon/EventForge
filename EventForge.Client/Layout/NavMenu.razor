@@ -55,6 +55,11 @@
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.auditTrail", "Audit Trail")
                 </MudNavLink>
+                <MudNavLink Href="/superadmin/chat-moderation" 
+                            Icon="@Icons.Material.Outlined.Forum" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.chatModeration", "Moderazione Chat")
+                </MudNavLink>
                 <MudNavLink Href="/superadmin/configuration" 
                             Icon="@Icons.Material.Outlined.Settings" 
                             Match="NavLinkMatch.All">
@@ -89,6 +94,34 @@
             </MudNavGroup>
         }
         
+        <!-- Communication section -->
+        <MudNavGroup title="@TranslationService.GetTranslation("nav.communication", "Comunicazione")" 
+                     Icon="@Icons.Material.Outlined.Forum" 
+                     Expanded="false">
+            <MudNavLink Href="/notifications" 
+                        Icon="@Icons.Material.Outlined.Notifications" 
+                        Match="NavLinkMatch.All">
+                <div class="d-flex align-center justify-space-between w-100">
+                    <span>@TranslationService.GetTranslation("nav.notifications", "Notifiche")</span>
+                    <NotificationBadge Count="@_unreadNotificationCount" 
+                                       ShowIcon="false"
+                                       BadgeColor="Color.Error"
+                                       BadgeSize="Size.Small" />
+                </div>
+            </MudNavLink>
+            <MudNavLink Href="/chat" 
+                        Icon="@Icons.Material.Outlined.Chat" 
+                        Match="NavLinkMatch.All">
+                <div class="d-flex align-center justify-space-between w-100">
+                    <span>@TranslationService.GetTranslation("nav.chat", "Chat")</span>
+                    <NotificationBadge Count="@_unreadMessageCount" 
+                                       ShowIcon="false"
+                                       BadgeColor="Color.Primary"
+                                       BadgeSize="Size.Small" />
+                </div>
+            </MudNavLink>
+        </MudNavGroup>
+        
         <!-- Common user links -->
         <MudNavLink Href="/profile" Icon="@Icons.Material.Outlined.Person" Match="NavLinkMatch.All">
             @TranslationService.GetTranslation("nav.profile", "Profilo")
@@ -108,6 +141,8 @@
     private bool _isSuperAdmin = false;
     private bool _isManager = false;
     private bool _canManageEvents = false;
+    private int _unreadNotificationCount = 0;
+    private int _unreadMessageCount = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -128,6 +163,9 @@
             
             // "Gestione Eventi" visible to SuperAdmin, Admin, Manager as per requirements
             _canManageEvents = _isSuperAdmin || _isAdmin || _isManager;
+            
+            // Load notification and message counts
+            await LoadCommunicationCountsAsync();
         }
         else
         {
@@ -135,6 +173,8 @@
             _isSuperAdmin = false;
             _isManager = false;
             _canManageEvents = false;
+            _unreadNotificationCount = 0;
+            _unreadMessageCount = 0;
         }
         StateHasChanged();
     }
@@ -154,5 +194,32 @@
     {
         AuthService.OnAuthenticationStateChanged -= OnAuthenticationStateChanged;
         TranslationService.LanguageChanged -= OnLanguageChanged;
+    }
+
+    /// <summary>
+    /// Load unread notification and message counts for navigation badges
+    /// TODO: Implement actual service integration and SignalR real-time updates
+    /// </summary>
+    private async Task LoadCommunicationCountsAsync()
+    {
+        try
+        {
+            // TODO: Replace with actual service calls
+            // _unreadNotificationCount = await NotificationService.GetUnreadCountAsync();
+            // _unreadMessageCount = await ChatService.GetUnreadMessageCountAsync();
+            
+            // Placeholder counts for UI demonstration
+            _unreadNotificationCount = 3;
+            _unreadMessageCount = 5;
+            
+            await Task.Delay(100); // Placeholder
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't show to user as this is background loading
+            Console.WriteLine($"[NavMenu] Error loading communication counts: {ex.Message}");
+            _unreadNotificationCount = 0;
+            _unreadMessageCount = 0;
+        }
     }
 }

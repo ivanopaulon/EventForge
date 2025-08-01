@@ -1,0 +1,137 @@
+@using MudBlazor
+@inject ITranslationService TranslationService
+
+<!-- 
+    NotificationBadge Component
+    Displays notification count with icon and badge, designed for inclusion in navigation/toolbar
+    Supports real-time updates and accessibility features
+    TODO: Integrate with actual notification service and SignalR updates
+-->
+
+<div class="d-flex align-center">
+    @if (ShowIcon)
+    {
+        <MudTooltip Text="@GetTooltipText()">
+            <MudIconButton Icon="@NotificationIcon"
+                           Color="@IconColor"
+                           Size="@IconSize"
+                           OnClick="@OnNotificationClick"
+                           aria-label="@GetAriaLabel()">
+                @if (Count > 0)
+                {
+                    <MudBadge Content="@BadgeContent"
+                              Color="@BadgeColor"
+                              Overlap="true"
+                              Bordered="true"
+                              Max="@MaxBadgeCount"
+                              ShowZero="false">
+                    </MudBadge>
+                }
+            </MudIconButton>
+        </MudTooltip>
+    }
+    else
+    {
+        <!-- Badge only mode -->
+        @if (Count > 0)
+        {
+            <MudBadge Content="@BadgeContent"
+                      Color="@BadgeColor"
+                      Size="@BadgeSize"
+                      Max="@MaxBadgeCount"
+                      ShowZero="false">
+                @ChildContent
+            </MudBadge>
+        }
+        else
+        {
+            @ChildContent
+        }
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Number of unread notifications to display
+    /// </summary>
+    [Parameter] public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Whether to show the notification icon (default: true)
+    /// When false, only the badge is shown around ChildContent
+    /// </summary>
+    [Parameter] public bool ShowIcon { get; set; } = true;
+
+    /// <summary>
+    /// Icon to display for notifications
+    /// </summary>
+    [Parameter] public string NotificationIcon { get; set; } = Icons.Material.Filled.Notifications;
+
+    /// <summary>
+    /// Color of the notification icon
+    /// </summary>
+    [Parameter] public Color IconColor { get; set; } = Color.Default;
+
+    /// <summary>
+    /// Size of the notification icon
+    /// </summary>
+    [Parameter] public Size IconSize { get; set; } = Size.Medium;
+
+    /// <summary>
+    /// Color of the notification badge
+    /// </summary>
+    [Parameter] public Color BadgeColor { get; set; } = Color.Error;
+
+    /// <summary>
+    /// Size of the notification badge
+    /// </summary>
+    [Parameter] public Size BadgeSize { get; set; } = Size.Medium;
+
+    /// <summary>
+    /// Maximum number to show in badge (shows "99+" if exceeded)
+    /// </summary>
+    [Parameter] public int MaxBadgeCount { get; set; } = 99;
+
+    /// <summary>
+    /// Custom tooltip text (auto-generated if not provided)
+    /// </summary>
+    [Parameter] public string? TooltipText { get; set; }
+
+    /// <summary>
+    /// Custom aria-label for accessibility (auto-generated if not provided)
+    /// </summary>
+    [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>
+    /// Callback when notification icon is clicked
+    /// </summary>
+    [Parameter] public EventCallback OnNotificationClick { get; set; }
+
+    /// <summary>
+    /// Child content for badge-only mode
+    /// </summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Get formatted badge content
+    /// </summary>
+    private string BadgeContent => Count > MaxBadgeCount ? $"{MaxBadgeCount}+" : Count.ToString();
+
+    /// <summary>
+    /// Get auto-generated tooltip text
+    /// </summary>
+    private string GetTooltipText() => 
+        !string.IsNullOrEmpty(TooltipText) ? TooltipText :
+        Count == 0 ? TranslationService.GetTranslation("notifications.noNewNotifications", "Nessuna nuova notifica") :
+        Count == 1 ? TranslationService.GetTranslation("notifications.oneNewNotification", "1 nuova notifica") :
+        TranslationService.GetTranslation("notifications.multipleNewNotifications", "{0} nuove notifiche", Count);
+
+    /// <summary>
+    /// Get auto-generated aria-label for accessibility
+    /// </summary>
+    private string GetAriaLabel() =>
+        !string.IsNullOrEmpty(AriaLabel) ? AriaLabel :
+        Count == 0 ? TranslationService.GetTranslation("notifications.noNewNotificationsAria", "Notifiche, nessuna nuova notifica") :
+        Count == 1 ? TranslationService.GetTranslation("notifications.oneNewNotificationAria", "Notifiche, 1 nuova notifica") :
+        TranslationService.GetTranslation("notifications.multipleNewNotificationsAria", "Notifiche, {0} nuove notifiche", Count);
+}
