@@ -1052,7 +1052,8 @@ namespace EventForge.Server.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_ChatMembers_UserId");
 
                     b.HasIndex("ChatThreadId", "UserId")
                         .IsUnique();
@@ -1147,7 +1148,8 @@ namespace EventForge.Server.Migrations
 
                     b.HasIndex("ReplyToMessageId");
 
-                    b.HasIndex("SenderId");
+                    b.HasIndex("SenderId")
+                        .HasDatabaseName("IX_ChatMessages_SenderId");
 
                     b.HasIndex("SentAt");
 
@@ -1389,7 +1391,8 @@ namespace EventForge.Server.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_MessageReadReceipts_UserId");
 
                     b.HasIndex("MessageId", "UserId")
                         .IsUnique();
@@ -2105,7 +2108,8 @@ namespace EventForge.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("StartedByUserId");
+                    b.HasIndex("StartedByUserId")
+                        .HasDatabaseName("IX_BackupOperations_StartedByUserId");
 
                     b.ToTable("BackupOperations");
                 });
@@ -2907,9 +2911,6 @@ namespace EventForge.Server.Migrations
                     b.Property<DateTime?>("ReadAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("RecipientUserId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -2918,10 +2919,16 @@ namespace EventForge.Server.Migrations
                     b.Property<DateTime?>("SilencedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("SilencedUntil")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
                     b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
@@ -2930,13 +2937,14 @@ namespace EventForge.Server.Migrations
 
                     b.HasIndex("ReadAt");
 
-                    b.HasIndex("RecipientUserId");
-
                     b.HasIndex("Status");
 
                     b.HasIndex("TenantId");
 
-                    b.HasIndex("NotificationId", "RecipientUserId")
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_NotificationRecipients_UserId");
+
+                    b.HasIndex("NotificationId", "UserId")
                         .IsUnique();
 
                     b.ToTable("NotificationRecipients");

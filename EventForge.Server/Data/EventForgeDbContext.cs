@@ -301,7 +301,11 @@ public class EventForgeDbContext : DbContext
             .HasIndex(p => new { p.Category, p.Resource, p.Action })
             .IsUnique();
 
-        // UserRole relationships
+        // Authentication & Authorization Relationships
+        // Configured to prevent cascade delete cycles that are prohibited in SQL Server
+        
+        // UserRole relationships - using Cascade for UserRole deletion is safe
+        // because UserRole is a junction table and doesn't create cycles
         modelBuilder.Entity<UserRole>()
             .HasOne(ur => ur.User)
             .WithMany(u => u.UserRoles)
@@ -314,7 +318,8 @@ public class EventForgeDbContext : DbContext
             .HasForeignKey(ur => ur.RoleId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // RolePermission relationships
+        // RolePermission relationships - using Cascade for RolePermission deletion is safe
+        // because RolePermission is a junction table and doesn't create cycles
         modelBuilder.Entity<RolePermission>()
             .HasOne(rp => rp.Role)
             .WithMany(r => r.RolePermissions)
@@ -327,7 +332,8 @@ public class EventForgeDbContext : DbContext
             .HasForeignKey(rp => rp.PermissionId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // LoginAudit relationships
+        // LoginAudit relationships - using SetNull to preserve audit history 
+        // even if the user is deleted (which should be rare due to soft delete)
         modelBuilder.Entity<LoginAudit>()
             .HasOne(la => la.User)
             .WithMany(u => u.LoginAudits)
@@ -341,7 +347,9 @@ public class EventForgeDbContext : DbContext
             .HasIndex(t => t.Name)
             .IsUnique();
 
-        // AdminTenant relationships
+        // AdminTenant relationships - manages which users can administer which tenants
+        // Cascade delete on User to remove admin privileges when user is deleted
+        // Restrict delete on Tenant to prevent accidental tenant deletion if admins exist
         modelBuilder.Entity<AdminTenant>()
             .HasOne(at => at.User)
             .WithMany(u => u.AdminTenants)
@@ -359,7 +367,8 @@ public class EventForgeDbContext : DbContext
             .HasIndex(at => new { at.UserId, at.ManagedTenantId })
             .IsUnique();
 
-        // AuditTrail relationships
+        // AuditTrail relationships - preserve audit history integrity
+        // All audit relationships use Restrict to prevent loss of audit history
         modelBuilder.Entity<AuditTrail>()
             .HasOne(at => at.PerformedByUser)
             .WithMany(u => u.PerformedAuditTrails)
@@ -391,6 +400,13 @@ public class EventForgeDbContext : DbContext
             .HasForeignKey(nr => nr.NotificationId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // Note: NotificationRecipient.UserId references User but no FK is configured
+        // This is intentional to avoid cascade delete cycles since User entities
+        // should not be deleted when notifications are deleted
+        modelBuilder.Entity<NotificationRecipient>()
+            .HasIndex(nr => nr.UserId)
+            .HasDatabaseName("IX_NotificationRecipients_UserId");
+
         // Chat relationships
         modelBuilder.Entity<ChatMember>()
             .HasOne(cm => cm.ChatThread)
@@ -398,12 +414,27 @@ public class EventForgeDbContext : DbContext
             .HasForeignKey(cm => cm.ChatThreadId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // Note: ChatMember.UserId references User but no FK is configured
+        // This is intentional to avoid cascade delete cycles with User entity
+        modelBuilder.Entity<ChatMember>()
+            .HasIndex(cm => cm.UserId)
+            .HasDatabaseName("IX_ChatMembers_UserId");
+
         modelBuilder.Entity<ChatMessage>()
             .HasOne(cm => cm.ChatThread)
             .WithMany(ct => ct.Messages)
             .HasForeignKey(cm => cm.ChatThreadId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Note: ChatMessage.SenderId references User but no FK is configured
+        // This is intentional to avoid cascade delete cycles with User entity
+        modelBuilder.Entity<ChatMessage>()
+            .HasIndex(cm => cm.SenderId)
+            .HasDatabaseName("IX_ChatMessages_SenderId");
+
+        // Self-referential relationship for message replies
+        // Using SetNull to prevent cascade delete cycles when parent messages are deleted
+        // This ensures that when a message is deleted, its replies remain but lose the reference
         modelBuilder.Entity<ChatMessage>()
             .HasOne(cm => cm.ReplyToMessage)
             .WithMany(m => m.Replies)
@@ -421,6 +452,19 @@ public class EventForgeDbContext : DbContext
             .WithMany(m => m.ReadReceipts)
             .HasForeignKey(mrr => mrr.MessageId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Note: MessageReadReceipt.UserId references User but no FK is configured
+        // This is intentional to avoid cascade delete cycles with User entity
+        modelBuilder.Entity<MessageReadReceipt>()
+            .HasIndex(mrr => mrr.UserId)
+            .HasDatabaseName("IX_MessageReadReceipts_UserId");
+
+        // Configuration & System Management relationships
+        // BackupOperation references User but doesn't use FK constraint to avoid cascade cycles
+        // Using index only for performance while preserving referential flexibility
+        modelBuilder.Entity<BackupOperation>()
+            .HasIndex(bo => bo.StartedByUserId)
+            .HasDatabaseName("IX_BackupOperations_StartedByUserId");
 
         // Unique constraints for chat and notification entities
         modelBuilder.Entity<NotificationRecipient>()
