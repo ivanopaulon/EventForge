@@ -1,0 +1,629 @@
+@using EventForge.DTOs.Chat
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject ITranslationService TranslationService
+@inject IJSRuntime JSRuntime
+
+<div class="enhanced-message @GetMessageWrapperClass()" id="message-@Message.Id">
+    <!-- Reply preview (if this message is a reply) -->
+    @if (Message.ReplyToMessage != null)
+    {
+        <div class="reply-preview mb-2 ml-4" 
+             style="border-left: 2px solid var(--mud-palette-primary); padding-left: 8px; opacity: 0.7;">
+            <MudText Typo="Typo.caption" Color="Color.Primary" Class="d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.Reply" Size="Size.Small" Class="mr-1" />
+                @Message.ReplyToMessage.SenderName
+            </MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="text-truncate">
+                @{
+                    var content = Message.ReplyToMessage.Content ?? "";
+                    var displayContent = content.Length > 100 ? content.Substring(0, 100) + "..." : content;
+                }
+                @displayContent
+            </MudText>
+        </div>
+    }
+
+    <div class="@GetMessageAlignment() mb-3">
+        <MudCard Elevation="@(IsSelected ? 3 : 1)" 
+                 Class="@GetMessageCardClass()"
+                 Style="@GetMessageCardStyle()">
+            <MudCardContent Class="pa-3">
+                
+                <!-- Message header (sender info for group chats) -->
+                @if (ShowSenderInfo)
+                {
+                    <div class="d-flex align-center mb-2">
+                        <MudAvatar Size="Size.Small" Class="mr-2">
+                            @if (!string.IsNullOrEmpty(Message.SenderAvatarUrl))
+                            {
+                                <MudImage Src="@Message.SenderAvatarUrl" Alt="@Message.SenderName" />
+                            }
+                            else
+                            {
+                                @Message.SenderName?.FirstOrDefault()
+                            }
+                        </MudAvatar>
+                        <MudText Typo="Typo.caption" 
+                                 Color="Color.Primary" 
+                                 Class="font-weight-bold mr-2">
+                            @Message.SenderName
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @Message.SentAt.ToString("MMM dd, HH:mm")
+                        </MudText>
+                        @if (Message.IsEdited)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Edit" 
+                                     Size="Size.Small" 
+                                     Color="Color.Secondary" 
+                                     Class="ml-1" />
+                        }
+                    </div>
+                }
+                
+                <!-- Message content -->
+                <div class="message-content">
+                    @if (Message.Format == MessageFormat.Markdown)
+                    {
+                        <!-- Render markdown content -->
+                        <div class="markdown-content">
+                            @((MarkupString)RenderMarkdown(Message.Content ?? ""))
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Render plain text with mention highlighting -->
+                        <MudText Typo="Typo.body2" Class="message-text">
+                            @((MarkupString)RenderContentWithMentions(Message.Content ?? ""))
+                        </MudText>
+                    }
+                </div>
+                
+                <!-- Attachments -->
+                @if (Message.Attachments?.Any() == true)
+                {
+                    <div class="attachments-container mt-2">
+                        @foreach (var attachment in Message.Attachments)
+                        {
+                            <div class="attachment-item mb-2">
+                                @if (IsImageAttachment(attachment))
+                                {
+                                    <!-- Image preview -->
+                                    <MudImage Src="@attachment.FileUrl" 
+                                              Alt="@attachment.OriginalFileName"
+                                              Class="attachment-image"
+                                              Style="max-width: 300px; max-height: 200px; border-radius: 8px; cursor: pointer;"
+                                              @onclick="@(() => OpenImagePreview(attachment))" />
+                                }
+                                else
+                                {
+                                    <!-- File attachment -->
+                                    <MudCard Class="attachment-card pa-2" Elevation="1">
+                                        <div class="d-flex align-center">
+                                            <MudIcon Icon="@GetAttachmentIcon(attachment)" 
+                                                     Class="mr-2" 
+                                                     Color="Color.Primary" />
+                                            <div class="flex-grow-1">
+                                                <MudText Typo="Typo.body2" Class="font-weight-medium">
+                                                    @attachment.OriginalFileName
+                                                </MudText>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                    @FormatFileSize(attachment.FileSize)
+                                                </MudText>
+                                            </div>
+                                            <MudIconButton Icon="@Icons.Material.Filled.Download"
+                                                           Size="Size.Small"
+                                                           OnClick="@(() => DownloadAttachment(attachment))"
+                                                           aria-label="@TranslationService.GetTranslation("chat.downloadFile", "Download file")" />
+                                        </div>
+                                    </MudCard>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- Reactions -->
+                @if (Message.Reactions?.Any() == true)
+                {
+                    <div class="reactions-container mt-2">
+                        <div class="d-flex flex-wrap gap-1">
+                            @foreach (var reaction in Message.Reactions)
+                            {
+                                <MudChip T="string"
+                                         Text="@($"{reaction.Emoji} {reaction.Count}")"
+                                         Size="Size.Small"
+                                         Variant="@(reaction.HasCurrentUserReacted ? Variant.Filled : Variant.Outlined)"
+                                         Color="@(reaction.HasCurrentUserReacted ? Color.Primary : Color.Default)"
+                                         OnClick="@(() => ToggleReaction(reaction.Emoji))"
+                                         Style="cursor: pointer; min-height: 24px;"
+                                         aria-label="@($"{reaction.Emoji} reaction, {reaction.Count} users, {(reaction.HasCurrentUserReacted ? "remove" : "add")} your reaction")" />
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Message footer -->
+                <div class="d-flex justify-space-between align-center mt-2">
+                    
+                    <!-- Left side: Timestamp and status -->
+                    <div class="d-flex align-center">
+                        @if (!ShowSenderInfo) // Show timestamp for current user messages
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mr-2">
+                                @Message.SentAt.ToString("HH:mm")
+                            </MudText>
+                        }
+                        
+                        @if (IsFromCurrentUser)
+                        {
+                            <MudTooltip Text="@GetStatusTooltip()">
+                                <MudIcon Icon="@GetMessageStatusIcon()" 
+                                         Size="Size.Small"
+                                         Color="@GetMessageStatusColor()" />
+                            </MudTooltip>
+                        }
+
+                        <!-- Thread reply count -->
+                        @if (Message.ThreadReplyCount > 0)
+                        {
+                            <MudButton Variant="Variant.Text" 
+                                       Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.ChatBubbleOutline"
+                                       Class="ml-2"
+                                       OnClick="@(() => ShowThreadReplies())"
+                                       aria-label="@TranslationService.GetTranslation("chat.viewReplies", "View replies")">
+                                @Message.ThreadReplyCount @TranslationService.GetTranslation("chat.replies", "replies")
+                            </MudButton>
+                        }
+                    </div>
+
+                    <!-- Right side: Action buttons -->
+                    <div class="message-actions d-flex align-center">
+                        @if (ShowActions)
+                        {
+                            <!-- Add reaction button -->
+                            <MudTooltip Text="@TranslationService.GetTranslation("chat.addReaction", "Add reaction")">
+                                <MudIconButton Icon="@Icons.Material.Filled.EmojiEmotions"
+                                               Size="Size.Small"
+                                               OnClick="@ShowReactionPicker"
+                                               aria-label="@TranslationService.GetTranslation("chat.addReaction", "Add reaction")" />
+                            </MudTooltip>
+
+                            <!-- Reply button -->
+                            <MudTooltip Text="@TranslationService.GetTranslation("chat.reply", "Reply")">
+                                <MudIconButton Icon="@Icons.Material.Filled.Reply"
+                                               Size="Size.Small"
+                                               OnClick="@(() => OnReply.InvokeAsync(Message))"
+                                               aria-label="@TranslationService.GetTranslation("chat.reply", "Reply")" />
+                            </MudTooltip>
+
+                            <!-- More actions menu -->
+                            <MudMenu Icon="@Icons.Material.Filled.MoreVert" 
+                                     Size="Size.Small"
+                                     AnchorOrigin="Origin.BottomRight"
+                                     TransformOrigin="Origin.TopRight"
+                                     aria-label="@TranslationService.GetTranslation("chat.moreActions", "More actions")">
+                                
+                                @if (CanEditMessage)
+                                {
+                                    <MudMenuItem Icon="@Icons.Material.Filled.Edit"
+                                                 OnClick="@(() => OnEdit.InvokeAsync(Message))">
+                                        @TranslationService.GetTranslation("chat.editMessage", "Edit message")
+                                    </MudMenuItem>
+                                }
+
+                                <MudMenuItem Icon="@Icons.Material.Filled.ContentCopy"
+                                             OnClick="@CopyMessageContent">
+                                    @TranslationService.GetTranslation("chat.copyMessage", "Copy message")
+                                </MudMenuItem>
+
+                                <MudMenuItem Icon="@Icons.Material.Filled.Share"
+                                             OnClick="@(() => OnShare.InvokeAsync(Message))">
+                                    @TranslationService.GetTranslation("chat.shareMessage", "Share message")
+                                </MudMenuItem>
+
+                                @if (CanDeleteMessage)
+                                {
+                                    <MudDivider />
+                                    <MudMenuItem Icon="@Icons.Material.Filled.Delete"
+                                                 IconColor="Color.Error"
+                                                 OnClick="@(() => OnDelete.InvokeAsync(Message))">
+                                        @TranslationService.GetTranslation("chat.deleteMessage", "Delete message")
+                                    </MudMenuItem>
+                                }
+
+                                @if (CanReportMessage)
+                                {
+                                    <MudMenuItem Icon="@Icons.Material.Filled.Report"
+                                                 IconColor="Color.Warning"
+                                                 OnClick="@(() => OnReport.InvokeAsync(Message))">
+                                        @TranslationService.GetTranslation("chat.reportMessage", "Report message")
+                                    </MudMenuItem>
+                                }
+                            </MudMenu>
+                        }
+                    </div>
+                </div>
+            </MudCardContent>
+        </MudCard>
+    </div>
+
+    <!-- Quick reaction picker -->
+    @if (_showReactionPicker)
+    {
+        <div class="reaction-picker position-absolute" 
+             style="bottom: 100%; right: 0; z-index: 1000; margin-bottom: 8px;">
+            <MudPaper Elevation="8" Class="pa-2">
+                <div class="d-flex gap-1">
+                    @foreach (var emoji in QuickReactions)
+                    {
+                        <MudButton Variant="Variant.Text"
+                                   Size="Size.Small"
+                                   Style="min-width: 32px; height: 32px; padding: 2px;"
+                                   OnClick="@(() => AddReaction(emoji))"
+                                   aria-label="@($"React with {emoji}")">
+                            @emoji
+                        </MudButton>
+                    }
+                </div>
+            </MudPaper>
+        </div>
+    }
+</div>
+
+<style>
+.enhanced-message {
+    position: relative;
+}
+
+.enhanced-message:hover .message-actions {
+    opacity: 1;
+}
+
+.message-actions {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.attachment-image:hover {
+    opacity: 0.9;
+}
+
+.attachment-card {
+    max-width: 300px;
+    border: 1px solid var(--mud-palette-grey-lighten2);
+}
+
+.reactions-container .mud-chip {
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+
+.reactions-container .mud-chip:hover {
+    transform: scale(1.05);
+}
+
+.reply-preview {
+    font-size: 0.875em;
+}
+
+.markdown-content h1, .markdown-content h2, .markdown-content h3 {
+    margin: 0.5em 0;
+}
+
+.markdown-content p {
+    margin: 0.25em 0;
+}
+
+.markdown-content code {
+    background-color: var(--mud-palette-grey-lighten4);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+}
+
+.markdown-content pre {
+    background-color: var(--mud-palette-grey-lighten4);
+    padding: 8px;
+    border-radius: 4px;
+    overflow-x: auto;
+}
+
+.mention {
+    background-color: var(--mud-palette-primary-lighten4);
+    color: var(--mud-palette-primary-darken2);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.mention:hover {
+    background-color: var(--mud-palette-primary-lighten3);
+}
+
+.message-selected {
+    background-color: var(--mud-palette-primary-lighten5) !important;
+    border-left: 3px solid var(--mud-palette-primary) !important;
+}
+</style>
+
+@code {
+    [Parameter] public ChatMessageDto Message { get; set; } = new();
+    [Parameter] public bool IsFromCurrentUser { get; set; }
+    [Parameter] public bool ShowSenderInfo { get; set; } = true;
+    [Parameter] public bool ShowActions { get; set; } = true;
+    [Parameter] public bool IsSelected { get; set; }
+    [Parameter] public bool CanEditMessage { get; set; }
+    [Parameter] public bool CanDeleteMessage { get; set; }
+    [Parameter] public bool CanReportMessage { get; set; } = true;
+    [Parameter] public Guid CurrentUserId { get; set; }
+    [Parameter] public ChatType ChatType { get; set; }
+
+    [Parameter] public EventCallback<ChatMessageDto> OnReply { get; set; }
+    [Parameter] public EventCallback<ChatMessageDto> OnEdit { get; set; }
+    [Parameter] public EventCallback<ChatMessageDto> OnDelete { get; set; }
+    [Parameter] public EventCallback<ChatMessageDto> OnShare { get; set; }
+    [Parameter] public EventCallback<ChatMessageDto> OnReport { get; set; }
+    [Parameter] public EventCallback<string> OnReaction { get; set; }
+    [Parameter] public EventCallback<MessageAttachmentDto> OnDownloadAttachment { get; set; }
+    [Parameter] public EventCallback<MessageAttachmentDto> OnPreviewImage { get; set; }
+
+    private bool _showReactionPicker = false;
+
+    private readonly string[] QuickReactions = new[]
+    {
+        "👍", "❤️", "😄", "😮", "😢", "😡"
+    };
+
+    protected override void OnParametersSet()
+    {
+        // Set edit/delete permissions based on message ownership
+        CanEditMessage = IsFromCurrentUser && !Message.IsDeleted;
+        CanDeleteMessage = IsFromCurrentUser && !Message.IsDeleted;
+        
+        // Don't show sender info for direct messages from current user
+        if (ChatType == ChatType.DirectMessage && IsFromCurrentUser)
+        {
+            ShowSenderInfo = false;
+        }
+    }
+
+    private string GetMessageWrapperClass()
+    {
+        var classes = new List<string> { "message-wrapper" };
+        
+        if (IsSelected)
+        {
+            classes.Add("message-selected");
+        }
+
+        return string.Join(" ", classes);
+    }
+
+    private string GetMessageAlignment()
+    {
+        return IsFromCurrentUser ? "d-flex justify-end" : "d-flex justify-start";
+    }
+
+    private string GetMessageCardClass()
+    {
+        var classes = new List<string> { "message-card" };
+        
+        if (IsFromCurrentUser)
+        {
+            classes.Add("current-user-message");
+        }
+        else
+        {
+            classes.Add("other-user-message");
+        }
+
+        return string.Join(" ", classes);
+    }
+
+    private string GetMessageCardStyle()
+    {
+        var maxWidth = Message.Attachments?.Any() == true ? "400px" : "300px";
+        var backgroundColor = IsFromCurrentUser 
+            ? "var(--mud-palette-primary-lighten4)" 
+            : "var(--mud-palette-grey-lighten5)";
+            
+        return $"max-width: {maxWidth}; background-color: {backgroundColor};";
+    }
+
+    private string RenderMarkdown(string content)
+    {
+        // Basic markdown rendering - in a real implementation, use a proper markdown library
+        // Handle bold text
+        if (content.Contains("**"))
+        {
+            var firstBold = content.IndexOf("**");
+            if (firstBold >= 0)
+            {
+                var afterFirst = content.Substring(firstBold + 2);
+                var secondBold = afterFirst.IndexOf("**");
+                if (secondBold >= 0)
+                {
+                    content = content.Substring(0, firstBold) + "<strong>" + 
+                             afterFirst.Substring(0, secondBold) + "</strong>" +
+                             afterFirst.Substring(secondBold + 2);
+                }
+            }
+        }
+        
+        // Handle italic text
+        if (content.Contains("*") && !content.Contains("**"))
+        {
+            var firstItalic = content.IndexOf("*");
+            if (firstItalic >= 0)
+            {
+                var afterFirst = content.Substring(firstItalic + 1);
+                var secondItalic = afterFirst.IndexOf("*");
+                if (secondItalic >= 0)
+                {
+                    content = content.Substring(0, firstItalic) + "<em>" + 
+                             afterFirst.Substring(0, secondItalic) + "</em>" +
+                             afterFirst.Substring(secondItalic + 1);
+                }
+            }
+        }
+        
+        // Handle code text
+        if (content.Contains("`"))
+        {
+            var firstCode = content.IndexOf("`");
+            if (firstCode >= 0)
+            {
+                var afterFirst = content.Substring(firstCode + 1);
+                var secondCode = afterFirst.IndexOf("`");
+                if (secondCode >= 0)
+                {
+                    content = content.Substring(0, firstCode) + "<code>" + 
+                             afterFirst.Substring(0, secondCode) + "</code>" +
+                             afterFirst.Substring(secondCode + 1);
+                }
+            }
+        }
+            
+        return RenderContentWithMentions(content);
+    }
+
+    private string RenderContentWithMentions(string content)
+    {
+        if (Message.MentionedUsers?.Any() != true)
+        {
+            return content;
+        }
+
+        // Replace @username with styled mentions
+        foreach (var mention in Message.MentionedUsers)
+        {
+            var pattern = $"@{mention.Username}";
+            var replacement = $"<span class=\"mention\" data-user-id=\"{mention.UserId}\" title=\"{mention.DisplayName}\">@{mention.Username}</span>";
+            content = content.Replace(pattern, replacement);
+        }
+
+        return content;
+    }
+
+    private bool IsImageAttachment(MessageAttachmentDto attachment)
+    {
+        return attachment.MediaType == MediaType.Image || 
+               attachment.ContentType?.StartsWith("image/") == true;
+    }
+
+    private string GetAttachmentIcon(MessageAttachmentDto attachment)
+    {
+        return attachment.MediaType switch
+        {
+            MediaType.Image => Icons.Material.Filled.Image,
+            MediaType.Video => Icons.Material.Filled.VideoFile,
+            MediaType.Audio => Icons.Material.Filled.AudioFile,
+            MediaType.Document => Icons.Material.Filled.Description,
+            MediaType.Archive => Icons.Material.Filled.Archive,
+            _ => Icons.Material.Filled.AttachFile
+        };
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+
+    private string GetMessageStatusIcon()
+    {
+        return Message.Status switch
+        {
+            MessageStatus.Pending => Icons.Material.Filled.Schedule,
+            MessageStatus.Sent => Icons.Material.Filled.Done,
+            MessageStatus.Delivered => Icons.Material.Filled.DoneAll,
+            MessageStatus.Read => Icons.Material.Filled.DoneAll,
+            MessageStatus.Failed => Icons.Material.Filled.Error,
+            _ => Icons.Material.Filled.Help
+        };
+    }
+
+    private Color GetMessageStatusColor()
+    {
+        return Message.Status switch
+        {
+            MessageStatus.Pending => Color.Warning,
+            MessageStatus.Sent => Color.Secondary,
+            MessageStatus.Delivered => Color.Info,
+            MessageStatus.Read => Color.Success,
+            MessageStatus.Failed => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private string GetStatusTooltip()
+    {
+        return Message.Status switch
+        {
+            MessageStatus.Pending => TranslationService.GetTranslation("chat.status.pending", "Sending..."),
+            MessageStatus.Sent => TranslationService.GetTranslation("chat.status.sent", "Sent"),
+            MessageStatus.Delivered => TranslationService.GetTranslation("chat.status.delivered", "Delivered"),
+            MessageStatus.Read => TranslationService.GetTranslation("chat.status.read", "Read"),
+            MessageStatus.Failed => TranslationService.GetTranslation("chat.status.failed", "Failed to send"),
+            _ => ""
+        };
+    }
+
+    private void ShowReactionPicker()
+    {
+        _showReactionPicker = !_showReactionPicker;
+        StateHasChanged();
+    }
+
+    private async Task AddReaction(string emoji)
+    {
+        _showReactionPicker = false;
+        await OnReaction.InvokeAsync(emoji);
+    }
+
+    private async Task ToggleReaction(string emoji)
+    {
+        await OnReaction.InvokeAsync(emoji);
+    }
+
+    private async Task CopyMessageContent()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", Message.Content);
+            // Show success notification
+        }
+        catch
+        {
+            // Fallback or show error
+        }
+    }
+
+    private async Task DownloadAttachment(MessageAttachmentDto attachment)
+    {
+        await OnDownloadAttachment.InvokeAsync(attachment);
+    }
+
+    private async Task OpenImagePreview(MessageAttachmentDto attachment)
+    {
+        await OnPreviewImage.InvokeAsync(attachment);
+    }
+
+    private async Task ShowThreadReplies()
+    {
+        // TODO: Implement thread view
+        // This could open a side panel or navigate to a thread view
+    }
+}

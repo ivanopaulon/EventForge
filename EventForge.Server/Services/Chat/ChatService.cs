@@ -1474,5 +1474,33 @@ public class ChatService : IChatService
         };
     }
 
+    /// <summary>
+    /// Toggle message reaction (add or remove).
+    /// TODO: Implement actual reaction persistence and real-time updates.
+    /// </summary>
+    public async Task<MessageOperationResultDto> ToggleMessageReactionAsync(
+        MessageReactionActionDto reactionDto,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(
+            "Toggling reaction {Emoji} on message {MessageId} by user {UserId}",
+            reactionDto.Emoji, reactionDto.MessageId, reactionDto.UserId);
+
+        // TODO: Implement actual reaction logic
+        // 1. Check if user has permission to react to this message
+        // 2. Check if reaction already exists
+        // 3. Add or remove reaction from database
+        // 4. Send real-time update via SignalR
+        // 5. Update message reaction counts
+
+        await Task.Delay(100, cancellationToken); // Placeholder
+
+        return new MessageOperationResultDto
+        {
+            Success = true,
+            MessageId = reactionDto.MessageId
+        };
+    }
+
     #endregion
 }

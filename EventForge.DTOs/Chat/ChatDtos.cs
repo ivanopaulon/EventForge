@@ -52,6 +52,16 @@ namespace EventForge.DTOs.Chat
     }
 
     /// <summary>
+    /// Message formatting types.
+    /// </summary>
+    public enum MessageFormat
+    {
+        Plain = 0,
+        Markdown = 1,
+        Html = 2
+    }
+
+    /// <summary>
     /// Enumeration of chat operation types for rate limiting.
     /// </summary>
     public enum ChatOperationType
@@ -160,7 +170,7 @@ namespace EventForge.DTOs.Chat
     }
 
     /// <summary>
-    /// DTO for sending a new message.
+    /// DTO for sending a new message with enhanced features.
     /// </summary>
     public class SendMessageDto
     {
@@ -183,7 +193,7 @@ namespace EventForge.DTOs.Chat
         public string? Content { get; set; }
 
         /// <summary>
-        /// Optional message this is replying to.
+        /// Optional message this is replying to (for threading).
         /// </summary>
         public Guid? ReplyToMessageId { get; set; }
 
@@ -191,6 +201,21 @@ namespace EventForge.DTOs.Chat
         /// Optional file/media attachments.
         /// </summary>
         public List<MessageAttachmentDto>? Attachments { get; set; }
+
+        /// <summary>
+        /// List of mentioned user IDs in this message.
+        /// </summary>
+        public List<Guid>? MentionedUserIds { get; set; }
+
+        /// <summary>
+        /// List of emojis/reactions used in this message.
+        /// </summary>
+        public List<string>? EmojiTags { get; set; }
+
+        /// <summary>
+        /// Message formatting type (plain, markdown, html).
+        /// </summary>
+        public MessageFormat Format { get; set; } = MessageFormat.Plain;
 
         /// <summary>
         /// Message locale for localization.
@@ -227,7 +252,7 @@ namespace EventForge.DTOs.Chat
     }
 
     /// <summary>
-    /// DTO for chat message response.
+    /// DTO for chat message response with enhanced features.
     /// </summary>
     public class ChatMessageDto
     {
@@ -252,9 +277,83 @@ namespace EventForge.DTOs.Chat
         public Dictionary<string, object>? Metadata { get; set; }
         
         /// <summary>
+        /// List of mentioned user IDs in this message.
+        /// </summary>
+        public List<Guid>? MentionedUserIds { get; set; }
+
+        /// <summary>
+        /// List of mentioned users with names for display.
+        /// </summary>
+        public List<MentionedUserDto>? MentionedUsers { get; set; }
+
+        /// <summary>
+        /// List of emojis/reactions used in this message.
+        /// </summary>
+        public List<string>? EmojiTags { get; set; }
+
+        /// <summary>
+        /// Message reactions from users.
+        /// </summary>
+        public List<MessageReactionDto>? Reactions { get; set; }
+
+        /// <summary>
+        /// Message formatting type.
+        /// </summary>
+        public MessageFormat Format { get; set; } = MessageFormat.Plain;
+        
+        /// <summary>
         /// List of users who have read this message (for group chats).
         /// </summary>
         public List<MessageReadReceiptDto>? ReadReceipts { get; set; }
+
+        /// <summary>
+        /// Count of thread replies to this message.
+        /// </summary>
+        public int ThreadReplyCount { get; set; }
+
+        /// <summary>
+        /// Latest reply in thread (if any).
+        /// </summary>
+        public ChatMessageDto? LatestThreadReply { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for mentioned users in messages.
+    /// </summary>
+    public class MentionedUserDto
+    {
+        public Guid UserId { get; set; }
+        public string? Username { get; set; }
+        public string? DisplayName { get; set; }
+        public string? AvatarUrl { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for message reactions.
+    /// </summary>
+    public class MessageReactionDto
+    {
+        public string Emoji { get; set; } = string.Empty;
+        public int Count { get; set; }
+        public List<Guid> UserIds { get; set; } = new List<Guid>();
+        public bool HasCurrentUserReacted { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for adding/removing message reactions.
+    /// </summary>
+    public class MessageReactionActionDto
+    {
+        [Required]
+        public Guid MessageId { get; set; }
+        
+        [Required]
+        public Guid UserId { get; set; }
+        
+        [Required]
+        public string Emoji { get; set; } = string.Empty;
+        
+        public bool IsAdding { get; set; } = true; // true = add, false = remove
     }
 
     /// <summary>
@@ -265,6 +364,20 @@ namespace EventForge.DTOs.Chat
         public Guid UserId { get; set; }
         public string? Username { get; set; }
         public DateTime ReadAt { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for user search/mention suggestions.
+    /// </summary>
+    public class UserMentionSuggestionDto
+    {
+        public Guid Id { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string? AvatarUrl { get; set; }
+        public string? Email { get; set; }
+        public bool IsOnline { get; set; }
+        public DateTime? LastActive { get; set; }
     }
 
     /// <summary>
