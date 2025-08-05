@@ -1,0 +1,126 @@
+/* HealthStatusFooter Styles */
+.health-status-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--mud-palette-surface);
+    border-top: 1px solid var(--mud-palette-divider);
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1300;
+    transition: all 0.3s ease-in-out;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.health-status-footer.minimized {
+    background: var(--mud-palette-surface);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.minimized-bar {
+    cursor: pointer;
+    padding: 4px 0;
+    transition: background-color 0.2s ease;
+}
+
+.minimized-bar:hover {
+    background-color: var(--mud-palette-action-hover);
+}
+
+.health-chip {
+    font-size: 0.75rem;
+    height: 24px;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.health-tooltip .mud-tooltip {
+    max-width: 320px;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 2px;
+}
+
+.status-healthy {
+    background-color: var(--mud-palette-success);
+}
+
+.status-warning {
+    background-color: var(--mud-palette-warning);
+}
+
+.status-error {
+    background-color: var(--mud-palette-error);
+}
+
+.status-unknown {
+    background-color: var(--mud-palette-text-disabled);
+}
+
+/* Responsive adjustments */
+@media (max-width: 959px) {
+    .health-status-footer {
+        padding: 0;
+    }
+    
+    .health-chip {
+        font-size: 0.7rem;
+        height: 20px;
+        min-width: 20px;
+        border-radius: 10px;
+    }
+}
+
+@media (max-width: 599px) {
+    .health-status-footer.minimized {
+        font-size: 0.7rem;
+    }
+    
+    .status-dot {
+        width: 6px;
+        height: 6px;
+    }
+}
+
+/* Animation for status changes */
+.health-chip {
+    transition: all 0.3s ease;
+}
+
+.health-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    .health-status-footer,
+    .minimized-bar,
+    .health-chip {
+        transition: none;
+    }
+}
+
+/* Focus styles for accessibility */
+.health-status-footer button:focus-visible {
+    outline: 2px solid var(--mud-palette-primary);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .health-status-footer {
+        border-top: 2px solid var(--mud-palette-text-primary);
+    }
+    
+    .status-dot {
+        border: 1px solid var(--mud-palette-text-primary);
+    }
+}

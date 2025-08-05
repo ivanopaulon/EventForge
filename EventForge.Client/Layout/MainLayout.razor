@@ -148,7 +148,7 @@
     }
     
     <!-- Main content area with proper semantic structure -->
-    <MudMainContent Class="mt-16 pa-2 pa-sm-4" role="main">
+    <MudMainContent Class="mt-16 pa-2 pa-sm-4 pb-16" role="main">
         <!-- Skip link for accessibility -->
         <a href="#main-content" 
            class="sr-only sr-only-focusable position-absolute" 
@@ -162,6 +162,12 @@
             </CustomErrorBoundary>
         </div>
     </MudMainContent>
+    
+    <!-- Health Status Footer -->
+    @if (_isAuthenticated)
+    {
+        <HealthStatusFooter />
+    }
 </MudLayout>
 
 @code {

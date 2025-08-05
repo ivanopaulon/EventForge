@@ -1,0 +1,398 @@
+@using EventForge.DTOs.Health
+@using EventForge.Client.Services
+@inject IHealthService HealthService
+@inject ILogger<HealthStatusFooter> Logger
+@implements IDisposable
+
+<div class="health-status-footer @(_isMinimized ? "minimized" : "")">
+    @if (!_isMinimized)
+    {
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="1">
+                <!-- Status Groups -->
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-grow-1">
+                    @foreach (var group in _healthGroups)
+                    {
+                        <MudTooltip Arrow="true" Placement="Placement.Top" Class="health-tooltip">
+                            <TooltipContent>
+                                <div class="pa-3" style="max-width: 300px;">
+                                    <MudText Typo="Typo.subtitle2" Class="mb-2">@group.Name</MudText>
+                                    @if (group.Details.Any())
+                                    {
+                                        @foreach (var detail in group.Details)
+                                        {
+                                            <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-1">
+                                                <MudText Typo="Typo.caption">@detail.Key:</MudText>
+                                                <MudText Typo="Typo.caption" Class="text-right">@detail.Value</MudText>
+                                            </MudStack>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">No details available</MudText>
+                                    }
+                                </div>
+                            </TooltipContent>
+                            <ChildContent>
+                                <MudChip T="string" 
+                                         Size="Size.Small" 
+                                         Variant="Variant.Filled"
+                                         Color="@GetStatusColor(group.Status)"
+                                         Icon="@GetStatusIcon(group.Status)"
+                                         Class="health-chip">
+                                    <span class="d-none d-sm-inline">@group.Name</span>
+                                    <span class="d-inline d-sm-none">@group.ShortName</span>
+                                </MudChip>
+                            </ChildContent>
+                        </MudTooltip>
+                    }
+                </MudStack>
+
+                <!-- Controls -->
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <!-- Last Update Time -->
+                    <MudText Typo="Typo.caption" Class="d-none d-md-block text-nowrap">
+                        @if (_lastUpdateTime.HasValue)
+                        {
+                            <text>Updated: @_lastUpdateTime.Value.ToString("HH:mm:ss")</text>
+                        }
+                        else
+                        {
+                            <text>Loading...</text>
+                        }
+                    </MudText>
+
+                    <!-- Refresh Button -->
+                    <MudIconButton Icon="@Icons.Material.Filled.Refresh" 
+                                   Size="Size.Small" 
+                                   Color="Color.Default"
+                                   OnClick="RefreshHealthStatus"
+                                   Disabled="_isLoading"
+                                   title="Refresh health status" />
+
+                    <!-- Minimize Button -->
+                    <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowDown" 
+                                   Size="Size.Small" 
+                                   Color="Color.Default"
+                                   OnClick="ToggleMinimized"
+                                   title="Minimize footer" />
+                </MudStack>
+            </MudStack>
+        </MudContainer>
+    }
+    else
+    {
+        <!-- Minimized View -->
+        <div class="minimized-bar" @onclick="ToggleMinimized">
+            <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-1">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        @foreach (var group in _healthGroups.Take(3))
+                        {
+                            <div class="status-dot @GetStatusClass(group.Status)" title="@group.Name: @group.Status"></div>
+                        }
+                        <MudText Typo="Typo.caption" Class="ml-2">Health Status</MudText>
+                    </MudStack>
+                    <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowUp" 
+                                   Size="Size.Small" 
+                                   Color="Color.Default"
+                                   title="Expand footer" />
+                </MudStack>
+            </MudContainer>
+        </div>
+    }
+</div>
+
+@code {
+    private Timer? _refreshTimer;
+    private DetailedHealthStatusDto? _healthStatus;
+    private List<HealthGroup> _healthGroups = new();
+    private bool _isLoading = false;
+    private bool _isMinimized = false;
+    private DateTime? _lastUpdateTime;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshHealthStatus();
+        StartPeriodicRefresh();
+    }
+
+    private void StartPeriodicRefresh()
+    {
+        _refreshTimer = new Timer(async _ => 
+        {
+            await InvokeAsync(async () =>
+            {
+                await RefreshHealthStatus();
+                StateHasChanged();
+            });
+        }, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+    }
+
+    private async Task RefreshHealthStatus()
+    {
+        try
+        {
+            _isLoading = true;
+            StateHasChanged();
+
+            _healthStatus = await HealthService.GetDetailedHealthAsync();
+            _lastUpdateTime = DateTime.Now;
+            
+            if (_healthStatus != null)
+            {
+                _healthGroups = ProcessHealthData(_healthStatus);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error refreshing health status");
+            _healthGroups = GetErrorHealthGroups();
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private List<HealthGroup> ProcessHealthData(DetailedHealthStatusDto health)
+    {
+        var groups = new List<HealthGroup>();
+
+        // API Group
+        groups.Add(new HealthGroup
+        {
+            Name = "API",
+            ShortName = "API",
+            Status = health.ApiStatus ?? "Unknown",
+            Details = new Dictionary<string, string>
+            {
+                ["Status"] = health.ApiStatus ?? "Unknown",
+                ["Version"] = health.Version ?? "Unknown",
+                ["Timestamp"] = health.Timestamp.ToString("yyyy-MM-dd HH:mm:ss UTC")
+            }
+        });
+
+        // Database Group
+        groups.Add(new HealthGroup
+        {
+            Name = "Database",
+            ShortName = "DB",
+            Status = health.DatabaseStatus ?? "Unknown",
+            Details = GetDatabaseDetails(health)
+        });
+
+        // Authentication Group
+        groups.Add(new HealthGroup
+        {
+            Name = "Authentication",
+            ShortName = "Auth",
+            Status = health.AuthenticationStatus ?? "Unknown",
+            Details = GetAuthenticationDetails(health)
+        });
+
+        // Migrations Group
+        groups.Add(new HealthGroup
+        {
+            Name = "Migrations",
+            ShortName = "Mig",
+            Status = health.AppliedMigrations?.Any() == true ? "Healthy" : "Unknown",
+            Details = new Dictionary<string, string>
+            {
+                ["Applied Migrations"] = health.AppliedMigrations?.Count().ToString() ?? "0",
+                ["Latest Migration"] = health.AppliedMigrations?.LastOrDefault() ?? "None"
+            }
+        });
+
+        // Performance Group
+        groups.Add(new HealthGroup
+        {
+            Name = "Performance",
+            ShortName = "Perf",
+            Status = GetPerformanceStatus(health),
+            Details = GetPerformanceDetails(health)
+        });
+
+        // Environment Group
+        groups.Add(new HealthGroup
+        {
+            Name = "Environment",
+            ShortName = "Env",
+            Status = "Healthy",
+            Details = new Dictionary<string, string>
+            {
+                ["Environment"] = health.Environment ?? "Unknown",
+                ["Machine"] = health.MachineName ?? "Unknown",
+                ["Process ID"] = health.ProcessId.ToString()
+            }
+        });
+
+        // Dependencies Group
+        groups.Add(new HealthGroup
+        {
+            Name = "Dependencies",
+            ShortName = "Deps",
+            Status = GetDependenciesStatus(health),
+            Details = health.Dependencies ?? new Dictionary<string, string>()
+        });
+
+        return groups;
+    }
+
+    private Dictionary<string, string> GetDatabaseDetails(DetailedHealthStatusDto health)
+    {
+        var details = new Dictionary<string, string>
+        {
+            ["Status"] = health.DatabaseStatus ?? "Unknown"
+        };
+
+        if (health.DatabaseDetails != null)
+        {
+            foreach (var kvp in health.DatabaseDetails)
+            {
+                details[kvp.Key] = kvp.Value?.ToString() ?? "N/A";
+            }
+        }
+
+        return details;
+    }
+
+    private Dictionary<string, string> GetAuthenticationDetails(DetailedHealthStatusDto health)
+    {
+        var details = new Dictionary<string, string>
+        {
+            ["Status"] = health.AuthenticationStatus ?? "Unknown"
+        };
+
+        if (health.AuthenticationDetails != null)
+        {
+            foreach (var kvp in health.AuthenticationDetails)
+            {
+                details[kvp.Key] = kvp.Value?.ToString() ?? "N/A";
+            }
+        }
+
+        return details;
+    }
+
+    private string GetPerformanceStatus(DetailedHealthStatusDto health)
+    {
+        // Simple performance status based on memory usage
+        if (health.WorkingSet > 500 * 1024 * 1024) // > 500MB
+            return "Warning";
+        else if (health.WorkingSet > 1024 * 1024 * 1024) // > 1GB
+            return "Error";
+        else
+            return "Healthy";
+    }
+
+    private Dictionary<string, string> GetPerformanceDetails(DetailedHealthStatusDto health)
+    {
+        return new Dictionary<string, string>
+        {
+            ["Working Set"] = FormatBytes(health.WorkingSet),
+            ["Uptime"] = FormatTimeSpan(health.Uptime),
+            ["Process ID"] = health.ProcessId.ToString()
+        };
+    }
+
+    private string GetDependenciesStatus(DetailedHealthStatusDto health)
+    {
+        if (health.Dependencies == null || !health.Dependencies.Any())
+            return "Unknown";
+
+        var hasError = health.Dependencies.Values.Any(v => v.Contains("Error") || v.Contains("Unhealthy"));
+        var hasWarning = health.Dependencies.Values.Any(v => v.Contains("Warning") || v.Contains("Degraded"));
+
+        if (hasError) return "Error";
+        if (hasWarning) return "Warning";
+        return "Healthy";
+    }
+
+    private List<HealthGroup> GetErrorHealthGroups()
+    {
+        return new List<HealthGroup>
+        {
+            new HealthGroup { Name = "System", ShortName = "Sys", Status = "Error", Details = new Dictionary<string, string> { ["Message"] = "Unable to fetch health status" } }
+        };
+    }
+
+    private Color GetStatusColor(string status)
+    {
+        return status?.ToLower() switch
+        {
+            "healthy" => Color.Success,
+            "warning" or "degraded" => Color.Warning,
+            "error" or "unhealthy" => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private string GetStatusIcon(string status)
+    {
+        return status?.ToLower() switch
+        {
+            "healthy" => Icons.Material.Filled.CheckCircle,
+            "warning" or "degraded" => Icons.Material.Filled.Warning,
+            "error" or "unhealthy" => Icons.Material.Filled.Error,
+            _ => Icons.Material.Filled.Help
+        };
+    }
+
+    private string GetStatusClass(string status)
+    {
+        return status?.ToLower() switch
+        {
+            "healthy" => "status-healthy",
+            "warning" or "degraded" => "status-warning",
+            "error" or "unhealthy" => "status-error",
+            _ => "status-unknown"
+        };
+    }
+
+    private void ToggleMinimized()
+    {
+        _isMinimized = !_isMinimized;
+    }
+
+    private string FormatBytes(long bytes)
+    {
+        if (bytes == 0) return "0 B";
+        
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        int order = 0;
+        double len = bytes;
+        
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        
+        return $"{len:0.##} {sizes[order]}";
+    }
+
+    private string FormatTimeSpan(TimeSpan timeSpan)
+    {
+        if (timeSpan.TotalDays >= 1)
+            return $"{timeSpan.Days}d {timeSpan.Hours}h";
+        else if (timeSpan.TotalHours >= 1)
+            return $"{timeSpan.Hours}h {timeSpan.Minutes}m";
+        else
+            return $"{timeSpan.Minutes}m {timeSpan.Seconds}s";
+    }
+
+    public void Dispose()
+    {
+        _refreshTimer?.Dispose();
+    }
+
+    private class HealthGroup
+    {
+        public string Name { get; set; } = string.Empty;
+        public string ShortName { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public Dictionary<string, string> Details { get; set; } = new();
+    }
+}
