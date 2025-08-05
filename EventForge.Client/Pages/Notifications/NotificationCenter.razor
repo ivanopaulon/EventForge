@@ -1,11 +1,15 @@
 @page "/notifications"
 @using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Notifications
 @attribute [Authorize]
 @inject IAuthService AuthService
+@inject INotificationService NotificationService
+@inject SignalRService SignalRService
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
+@implements IDisposable
 
 <PageTitle>@TranslationService.GetTranslation("notifications.title", "Centro Notifiche - EventForge")</PageTitle>
 
@@ -92,7 +96,8 @@
                             <MudSelect T="string" @bind-Value="_selectedFilter" 
                                        Label="@TranslationService.GetTranslation("notifications.filter", "Filtra per stato")" 
                                        Variant="Variant.Outlined"
-                                       Clearable="true">
+                                       Clearable="true"
+                                       @bind-Value:after="OnFilterChanged">
                                 <MudSelectItem Value="@("")">@TranslationService.GetTranslation("notifications.allNotifications", "Tutte")</MudSelectItem>
                                 <MudSelectItem Value="@("unread")">@TranslationService.GetTranslation("notifications.unreadOnly", "Non lette")</MudSelectItem>
                                 <MudSelectItem Value="@("important")">@TranslationService.GetTranslation("notifications.importantOnly", "Importanti")</MudSelectItem>
@@ -162,12 +167,12 @@
                                             
                                             <div class="flex-grow-1">
                                                 <MudText Typo="Typo.body1" 
-                                                         Class="@(notification.IsRead ? "" : "font-weight-bold")">
-                                                    @notification.Title
+                                                         Class="@(notification.Status == NotificationStatus.Read ? "" : "font-weight-bold")">
+                                                    @notification.Payload.Title
                                                 </MudText>
                                                 <MudText Typo="Typo.body2" 
                                                          Color="Color.Secondary">
-                                                    @notification.Message
+                                                    @notification.Payload.Message
                                                 </MudText>
                                                 <MudText Typo="Typo.caption" 
                                                          Color="Color.Tertiary">
@@ -178,7 +183,7 @@
 
                                         <!-- Action buttons -->
                                         <div class="d-flex align-center ga-1">
-                                            @if (!notification.IsRead)
+                                            @if (notification.Status != NotificationStatus.Read)
                                             {
                                                 <MudIconButton Icon="@Icons.Material.Filled.MarkEmailRead"
                                                                Size="Size.Small"
@@ -209,7 +214,8 @@
                             <MudPagination Count="@_totalPages" 
                                            @bind-Selected="_currentPage" 
                                            Color="Color.Primary"
-                                           Size="Size.Medium" />
+                                           Size="Size.Medium"
+                                           @bind-Selected:after="(() => OnPageChanged(_currentPage))" />
                         </div>
                     }
                     else
@@ -291,22 +297,49 @@
     private bool _emailNotificationsEnabled = true;
     private bool _pushNotificationsEnabled = true;
 
-    // Placeholder data - will be replaced with actual service calls
-    private List<NotificationDto> _notifications = new();
+    // Real notification data from service
+    private List<NotificationResponseDto> _notifications = new();
+    private NotificationStatsDto _stats = new();
+    private List<NotificationTypes> _subscriptions = new();
 
-    /// <summary>
-    /// Initialize the notification center component
-    /// Loads user notifications and settings on component initialization
-    /// </summary>
     protected override async Task OnInitializedAsync()
     {
-        await LoadNotificationsAsync();
-        await LoadSettingsAsync();
+        try
+        {
+            // Start SignalR connections if not already started
+            if (!SignalRService.IsNotificationConnected)
+            {
+                await SignalRService.StartNotificationConnectionAsync();
+            }
+
+            // Subscribe to real-time events
+            NotificationService.NotificationReceived += OnNotificationReceived;
+            NotificationService.NotificationRead += OnNotificationRead;
+            NotificationService.NotificationArchived += OnNotificationArchived;
+            NotificationService.StatsUpdated += OnStatsUpdated;
+
+            // Load initial data
+            await LoadNotificationsAsync();
+            await LoadStatsAsync();
+            await LoadSubscriptionsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore durante l'inizializzazione: {ex.Message}", Severity.Error);
+        }
+    }
+
+    public void Dispose()
+    {
+        // Unsubscribe from events
+        NotificationService.NotificationReceived -= OnNotificationReceived;
+        NotificationService.NotificationRead -= OnNotificationRead;
+        NotificationService.NotificationArchived -= OnNotificationArchived;
+        NotificationService.StatsUpdated -= OnStatsUpdated;
     }
 
     /// <summary>
-    /// Load notifications from service (placeholder implementation)
-    /// TODO: Implement actual notification service integration
+    /// Load notifications from the API
     /// </summary>
     private async Task LoadNotificationsAsync()
     {
@@ -315,13 +348,18 @@
 
         try
         {
-            // TODO: Replace with actual service call
-            // var notifications = await NotificationService.GetNotificationsAsync();
+            var filterValue = _selectedFilter switch
+            {
+                "unread" => "unread",
+                "important" => "high",
+                _ => null
+            };
+
+            _notifications = await NotificationService.GetNotificationsAsync(_currentPage, 20, filterValue);
+            _unreadCount = _notifications.Count(n => n.Status != NotificationStatus.Read);
             
-            // Placeholder data for UI structure
-            _notifications = GenerateNotificationPlaceholders();
-            _unreadCount = _notifications.Count(n => !n.IsRead);
-            _totalPages = (int)Math.Ceiling(_notifications.Count / 10.0);
+            // Calculate total pages (assuming API returns paged results)
+            _totalPages = Math.Max(1, (int)Math.Ceiling(_notifications.Count / 20.0));
         }
         catch (Exception ex)
         {
@@ -335,26 +373,37 @@
     }
 
     /// <summary>
-    /// Load user notification settings (placeholder implementation)
-    /// TODO: Implement actual settings service integration
+    /// Load notification statistics
     /// </summary>
-    private async Task LoadSettingsAsync()
+    private async Task LoadStatsAsync()
     {
         try
         {
-            // TODO: Replace with actual service call
-            // var settings = await NotificationService.GetSettingsAsync();
-            await Task.Delay(100); // Placeholder
+            _stats = await NotificationService.GetNotificationStatsAsync();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel caricamento delle impostazioni: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Errore nel caricamento delle statistiche: {ex.Message}", Severity.Error);
         }
     }
 
     /// <summary>
-    /// Mark all notifications as read
-    /// TODO: Implement actual service integration
+    /// Load notification subscriptions
+    /// </summary>
+    private async Task LoadSubscriptionsAsync()
+    {
+        try
+        {
+            _subscriptions = await NotificationService.GetSubscriptionsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento delle preferenze: {ex.Message}", Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Mark all notifications as read using real API
     /// </summary>
     private async Task MarkAllAsReadAsync()
     {
@@ -363,16 +412,22 @@
 
         try
         {
-            // TODO: Replace with actual service call
-            await Task.Delay(500); // Placeholder
-            
-            foreach (var notification in _notifications)
+            var success = await NotificationService.MarkAllAsReadAsync();
+            if (success)
             {
-                notification.IsRead = true;
+                // Update local state
+                foreach (var notification in _notifications)
+                {
+                    notification.Status = NotificationStatus.Read;
+                }
+                _unreadCount = 0;
+                
+                Snackbar.Add(TranslationService.GetTranslation("notifications.allMarkedRead", "Tutte le notifiche sono state segnate come lette"), Severity.Success);
             }
-            _unreadCount = 0;
-            
-            Snackbar.Add(TranslationService.GetTranslation("notifications.allMarkedRead", "Tutte le notifiche sono state segnate come lette"), Severity.Success);
+            else
+            {
+                Snackbar.Add("Errore nell'operazione", Severity.Error);
+            }
         }
         catch (Exception ex)
         {
@@ -386,20 +441,25 @@
     }
 
     /// <summary>
-    /// Archive all read notifications
-    /// TODO: Implement actual service integration
+    /// Archive all read notifications using real API
     /// </summary>
     private async Task ArchiveAllReadAsync()
     {
         try
         {
-            // TODO: Replace with actual service call
-            await Task.Delay(500); // Placeholder
-            
-            _notifications.RemoveAll(n => n.IsRead);
-            
-            Snackbar.Add(TranslationService.GetTranslation("notifications.readArchived", "Notifiche lette archiviate"), Severity.Success);
-            StateHasChanged();
+            var success = await NotificationService.ArchiveAllReadAsync();
+            if (success)
+            {
+                // Remove archived notifications from local state
+                _notifications.RemoveAll(n => n.Status == NotificationStatus.Read);
+                
+                Snackbar.Add(TranslationService.GetTranslation("notifications.readArchived", "Notifiche lette archiviate"), Severity.Success);
+                StateHasChanged();
+            }
+            else
+            {
+                Snackbar.Add("Errore nell'archiviazione", Severity.Error);
+            }
         }
         catch (Exception ex)
         {
@@ -417,22 +477,22 @@
     }
 
     /// <summary>
-    /// Mark single notification as read
-    /// TODO: Implement actual service integration
+    /// Mark single notification as read using real API
     /// </summary>
-    private async Task MarkAsReadAsync(int notificationId)
+    private async Task MarkAsReadAsync(Guid notificationId)
     {
         try
         {
-            // TODO: Replace with actual service call
-            await Task.Delay(200); // Placeholder
-            
-            var notification = _notifications.FirstOrDefault(n => n.Id == notificationId);
-            if (notification != null)
+            var success = await NotificationService.MarkAsReadAsync(notificationId);
+            if (success)
             {
-                notification.IsRead = true;
-                _unreadCount = _notifications.Count(n => !n.IsRead);
-                StateHasChanged();
+                var notification = _notifications.FirstOrDefault(n => n.Id == notificationId);
+                if (notification != null)
+                {
+                    notification.Status = NotificationStatus.Read;
+                    _unreadCount = _notifications.Count(n => n.Status != NotificationStatus.Read);
+                    StateHasChanged();
+                }
             }
         }
         catch (Exception ex)
@@ -442,21 +502,21 @@
     }
 
     /// <summary>
-    /// Archive single notification
-    /// TODO: Implement actual service integration
+    /// Archive single notification using real API
     /// </summary>
-    private async Task ArchiveNotificationAsync(int notificationId)
+    private async Task ArchiveNotificationAsync(Guid notificationId)
     {
         try
         {
-            // TODO: Replace with actual service call
-            await Task.Delay(200); // Placeholder
-            
-            _notifications.RemoveAll(n => n.Id == notificationId);
-            _unreadCount = _notifications.Count(n => !n.IsRead);
-            StateHasChanged();
-            
-            Snackbar.Add(TranslationService.GetTranslation("notifications.archived", "Notifica archiviata"), Severity.Success);
+            var success = await NotificationService.ArchiveNotificationAsync(notificationId);
+            if (success)
+            {
+                _notifications.RemoveAll(n => n.Id == notificationId);
+                _unreadCount = _notifications.Count(n => n.Status != NotificationStatus.Read);
+                StateHasChanged();
+                
+                Snackbar.Add(TranslationService.GetTranslation("notifications.archived", "Notifica archiviata"), Severity.Success);
+            }
         }
         catch (Exception ex)
         {
@@ -466,18 +526,16 @@
 
     /// <summary>
     /// Show notification details in dialog
-    /// TODO: Implement notification details modal
     /// </summary>
-    private async Task ShowNotificationDetailsAsync(NotificationDto notification)
+    private async Task ShowNotificationDetailsAsync(NotificationResponseDto notification)
     {
-        // TODO: Implement dialog with notification details
-        await Task.Delay(100); // Placeholder
-        Snackbar.Add(TranslationService.GetTranslation("notifications.detailsPlaceholder", "Dettagli notifica - Da implementare"), Severity.Info);
+        // For now, just show a snackbar with the notification details
+        Snackbar.Add($"{notification.Payload.Title}: {notification.Payload.Message}", Severity.Info);
+        await Task.CompletedTask;
     }
 
     /// <summary>
-    /// Save notification settings
-    /// TODO: Implement actual settings service integration
+    /// Save notification settings using real API
     /// </summary>
     private async Task SaveSettingsAsync()
     {
@@ -486,10 +544,23 @@
 
         try
         {
-            // TODO: Replace with actual service call
-            await Task.Delay(500); // Placeholder
-            
-            Snackbar.Add(TranslationService.GetTranslation("notifications.settingsSaved", "Impostazioni salvate con successo"), Severity.Success);
+            // Update subscriptions based on settings
+            var newSubscriptions = new List<NotificationTypes>();
+            if (_emailNotificationsEnabled)
+            {
+                newSubscriptions.AddRange(Enum.GetValues<NotificationTypes>());
+            }
+
+            var success = await NotificationService.UpdateSubscriptionsAsync(newSubscriptions);
+            if (success)
+            {
+                _subscriptions = newSubscriptions;
+                Snackbar.Add(TranslationService.GetTranslation("notifications.settingsSaved", "Impostazioni salvate con successo"), Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Errore nel salvataggio delle impostazioni", Severity.Error);
+            }
         }
         catch (Exception ex)
         {
@@ -503,56 +574,90 @@
     }
 
     /// <summary>
+    /// Handle filter changes
+    /// </summary>
+    private async Task OnFilterChanged()
+    {
+        _currentPage = 1;
+        await LoadNotificationsAsync();
+    }
+
+    /// <summary>
+    /// Handle page changes
+    /// </summary>
+    private async Task OnPageChanged(int page)
+    {
+        _currentPage = page;
+        await LoadNotificationsAsync();
+    }
+
+    /// <summary>
     /// Get icon based on notification type
     /// </summary>
-    private string GetNotificationIcon(string type) => type?.ToLower() switch
+    private string GetNotificationIcon(NotificationTypes type) => type switch
     {
-        "event" => Icons.Material.Filled.Event,
-        "system" => Icons.Material.Filled.Computer,
-        "chat" => Icons.Material.Filled.Chat,
-        "warning" => Icons.Material.Filled.Warning,
-        "error" => Icons.Material.Filled.Error,
+        NotificationTypes.Event => Icons.Material.Filled.Event,
+        NotificationTypes.System => Icons.Material.Filled.Computer,
+        NotificationTypes.User => Icons.Material.Filled.Person,
+        NotificationTypes.Security => Icons.Material.Filled.Security,
+        NotificationTypes.Audit => Icons.Material.Filled.Assignment,
+        NotificationTypes.Marketing => Icons.Material.Filled.Campaign,
         _ => Icons.Material.Filled.Notifications
     };
 
     /// <summary>
     /// Get color based on notification priority
     /// </summary>
-    private Color GetNotificationColor(string priority) => priority?.ToLower() switch
+    private Color GetNotificationColor(NotificationPriority priority) => priority switch
     {
-        "high" => Color.Error,
-        "medium" => Color.Warning,
-        "low" => Color.Info,
+        NotificationPriority.Critical => Color.Error,
+        NotificationPriority.High => Color.Warning,
+        NotificationPriority.Normal => Color.Info,
+        NotificationPriority.Low => Color.Default,
         _ => Color.Default
     };
 
-    /// <summary>
-    /// Generate placeholder notifications for UI structure testing
-    /// TODO: Remove when actual service is implemented
-    /// </summary>
-    private List<NotificationDto> GenerateNotificationPlaceholders()
+    #region Real-time Event Handlers
+
+    private void OnNotificationReceived(NotificationResponseDto notification)
     {
-        return new List<NotificationDto>
+        // Add new notification to the beginning of the list
+        _notifications.Insert(0, notification);
+        
+        if (notification.Status != NotificationStatus.Read)
         {
-            new() { Id = 1, Title = "Nuovo evento creato", Message = "L'evento 'Meeting Settimanale' è stato creato", Type = "event", Priority = "medium", IsRead = false, CreatedAt = DateTime.Now.AddMinutes(-5) },
-            new() { Id = 2, Title = "Messaggio ricevuto", Message = "Hai ricevuto un nuovo messaggio da Mario Rossi", Type = "chat", Priority = "low", IsRead = false, CreatedAt = DateTime.Now.AddMinutes(-15) },
-            new() { Id = 3, Title = "Aggiornamento sistema", Message = "Il sistema è stato aggiornato alla versione 2.1.0", Type = "system", Priority = "low", IsRead = true, CreatedAt = DateTime.Now.AddHours(-2) },
-            new() { Id = 4, Title = "Evento in scadenza", Message = "L'evento 'Revisione Progetto' scade tra 1 ora", Type = "event", Priority = "high", IsRead = false, CreatedAt = DateTime.Now.AddHours(-1) }
-        };
+            _unreadCount++;
+        }
+
+        InvokeAsync(StateHasChanged);
+        
+        // Show snackbar for new notification
+        InvokeAsync(() => Snackbar.Add($"Nuova notifica: {notification.Payload.Title}", Severity.Info));
     }
 
-    /// <summary>
-    /// Placeholder DTO for notifications
-    /// TODO: Move to appropriate DTO project location
-    /// </summary>
-    private class NotificationDto
+    private void OnNotificationRead(Guid notificationId)
     {
-        public int Id { get; set; }
-        public string Title { get; set; } = "";
-        public string Message { get; set; } = "";
-        public string Type { get; set; } = "";
-        public string Priority { get; set; } = "";
-        public bool IsRead { get; set; }
-        public DateTime CreatedAt { get; set; }
+        var notification = _notifications.FirstOrDefault(n => n.Id == notificationId);
+        if (notification != null && notification.Status != NotificationStatus.Read)
+        {
+            notification.Status = NotificationStatus.Read;
+            _unreadCount = _notifications.Count(n => n.Status != NotificationStatus.Read);
+            InvokeAsync(StateHasChanged);
+        }
     }
+
+    private void OnNotificationArchived(Guid notificationId)
+    {
+        _notifications.RemoveAll(n => n.Id == notificationId);
+        _unreadCount = _notifications.Count(n => n.Status != NotificationStatus.Read);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnStatsUpdated(NotificationStatsDto stats)
+    {
+        _stats = stats;
+        InvokeAsync(StateHasChanged);
+    }
+
+    #endregion
 }

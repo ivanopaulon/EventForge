@@ -64,6 +64,30 @@ public class SignalRService : IAsyncDisposable
         _logger = logger;
     }
 
+    #region Connection Status Properties
+
+    /// <summary>
+    /// Gets whether the audit hub connection is connected.
+    /// </summary>
+    public bool IsAuditConnected => _auditHubConnection?.State == HubConnectionState.Connected;
+
+    /// <summary>
+    /// Gets whether the notification hub connection is connected.
+    /// </summary>
+    public bool IsNotificationConnected => _notificationHubConnection?.State == HubConnectionState.Connected;
+
+    /// <summary>
+    /// Gets whether the chat hub connection is connected.
+    /// </summary>
+    public bool IsChatConnected => _chatHubConnection?.State == HubConnectionState.Connected;
+
+    /// <summary>
+    /// Gets whether all hub connections are connected.
+    /// </summary>
+    public bool IsAllConnected => IsAuditConnected && IsNotificationConnected && IsChatConnected;
+
+    #endregion
+
     #region Connection Management
 
     /// <summary>
@@ -904,21 +928,6 @@ public class SignalRService : IAsyncDisposable
     /// </summary>
     [Obsolete("Use AuditConnectionState instead")]
     public HubConnectionState ConnectionState => AuditConnectionState;
-
-    /// <summary>
-    /// Checks if the audit connection is active.
-    /// </summary>
-    public bool IsAuditConnected => _auditHubConnection?.State == HubConnectionState.Connected;
-
-    /// <summary>
-    /// Checks if the notification connection is active.
-    /// </summary>
-    public bool IsNotificationConnected => _notificationHubConnection?.State == HubConnectionState.Connected;
-
-    /// <summary>
-    /// Checks if the chat connection is active.
-    /// </summary>
-    public bool IsChatConnected => _chatHubConnection?.State == HubConnectionState.Connected;
 
     /// <summary>
     /// Legacy property - checks if audit connection is active for backward compatibility.
