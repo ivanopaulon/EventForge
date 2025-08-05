@@ -1,0 +1,410 @@
+@using EventForge.DTOs.Notifications
+@inject ITranslationService TranslationService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<MudCard Class="@($"notification-card {GetNotificationCssClass()}")" Elevation="@(Notification.Status == NotificationStatus.Read ? 1 : 3)">
+    <MudCardContent Class="pa-3">
+        <div class="d-flex align-start">
+            <!-- Avatar or Notification Icon -->
+            <div class="mr-3">
+                @if (Notification.Payload.Avatar != null)
+                {
+                    <MudAvatar Size="Size.Medium" Class="@GetAvatarClass()">
+                        @if (!string.IsNullOrEmpty(Notification.Payload.Avatar.ImageUrl))
+                        {
+                            <MudImage Src="@Notification.Payload.Avatar.ImageUrl" 
+                                      Alt="@Notification.Payload.Avatar.DisplayName" />
+                        }
+                        else if (!string.IsNullOrEmpty(Notification.Payload.Avatar.Initials))
+                        {
+                            <MudText Typo="Typo.subtitle2" Style="@GetAvatarTextStyle()">
+                                @Notification.Payload.Avatar.Initials
+                            </MudText>
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@GetNotificationIcon()" />
+                        }
+                    </MudAvatar>
+                }
+                else
+                {
+                    <MudIcon Icon="@GetNotificationIcon()" 
+                             Color="@GetNotificationColor()"
+                             Size="Size.Large" />
+                }
+            </div>
+
+            <!-- Content -->
+            <div class="flex-grow-1">
+                <!-- Header -->
+                <div class="d-flex justify-space-between align-start mb-2">
+                    <div class="flex-grow-1">
+                        <MudText Typo="Typo.subtitle1" 
+                                 Class="@(Notification.Status == NotificationStatus.Read ? "" : "font-weight-bold")">
+                            @Notification.Payload.Title
+                        </MudText>
+                        @if (!string.IsNullOrEmpty(Notification.SenderName))
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @TranslationService.GetTranslation("notifications.from", "Da") @Notification.SenderName
+                            </MudText>
+                        }
+                    </div>
+                    <div class="d-flex align-center ga-1">
+                        <MudText Typo="Typo.caption" Color="Color.Tertiary">
+                            @FormatTimestamp(Notification.CreatedAt)
+                        </MudText>
+                        @if (ShowBadge && Notification.Status != NotificationStatus.Read)
+                        {
+                            <MudBadge Dot="true" Color="Color.Primary" />
+                        }
+                    </div>
+                </div>
+
+                <!-- Message -->
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                    @Notification.Payload.Message
+                </MudText>
+
+                <!-- Tags -->
+                @if (Notification.Payload.Tags?.Any() == true)
+                {
+                    <div class="d-flex flex-wrap ga-1 mb-2">
+                        @foreach (var tag in Notification.Payload.Tags)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">
+                                @tag
+                            </MudChip>
+                        }
+                    </div>
+                }
+
+                <!-- Attachments -->
+                @if (Notification.Payload.Attachments?.Any() == true)
+                {
+                    <div class="mb-2">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">
+                            @TranslationService.GetTranslation("notifications.attachments", "Allegati")
+                        </MudText>
+                        <div class="d-flex flex-wrap ga-1">
+                            @foreach (var attachment in Notification.Payload.Attachments)
+                            {
+                                <MudButton Size="Size.Small" 
+                                           Variant="Variant.Outlined"
+                                           StartIcon="@GetAttachmentIcon(attachment.Type)"
+                                           OnClick="@(() => DownloadAttachment(attachment))"
+                                           Class="ma-1">
+                                    @attachment.Name
+                                    @if (attachment.Size.HasValue)
+                                    {
+                                        <MudText Typo="Typo.caption" Class="ml-1">
+                                            (@FormatFileSize(attachment.Size.Value))
+                                        </MudText>
+                                    }
+                                </MudButton>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Actions -->
+                @if (ShowActions && (Notification.Payload.Actions?.Any() == true || !string.IsNullOrEmpty(Notification.Payload.ActionUrl)))
+                {
+                    <div class="d-flex flex-wrap ga-1 mb-2">
+                        @if (!string.IsNullOrEmpty(Notification.Payload.ActionUrl))
+                        {
+                            <MudButton Size="Size.Small" 
+                                       Variant="Variant.Filled" 
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Launch"
+                                       OnClick="@(() => NavigateToUrl(Notification.Payload.ActionUrl))">
+                                @TranslationService.GetTranslation("notifications.viewDetails", "Visualizza")
+                            </MudButton>
+                        }
+                        
+                        @if (Notification.Payload.Actions?.Any() == true)
+                        {
+                            @foreach (var action in Notification.Payload.Actions)
+                            {
+                                <MudButton Size="Size.Small" 
+                                           Variant="@GetActionVariant(action.Style)" 
+                                           Color="@GetActionColor(action.Style)"
+                                           StartIcon="@action.Icon"
+                                           OnClick="@(() => ExecuteAction(action))"
+                                           Disabled="@IsActionExecuting">
+                                    @action.Label
+                                </MudButton>
+                            }
+                        }
+                    </div>
+                }
+
+                <!-- Standard notification actions -->
+                @if (ShowStandardActions)
+                {
+                    <div class="d-flex ga-1 mt-2">
+                        @if (Notification.Status != NotificationStatus.Read)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.MarkEmailRead"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           OnClick="@MarkAsRead"
+                                           title="@TranslationService.GetTranslation("notifications.markAsRead", "Segna come letta")" />
+                        }
+                        
+                        <MudIconButton Icon="@Icons.Material.Filled.Archive"
+                                       Size="Size.Small"
+                                       Color="Color.Secondary"
+                                       OnClick="@Archive"
+                                       title="@TranslationService.GetTranslation("notifications.archive", "Archivia")" />
+                                       
+                        <MudIconButton Icon="@Icons.Material.Filled.MoreVert"
+                                       Size="Size.Small"
+                                       OnClick="@ShowDetails"
+                                       title="@TranslationService.GetTranslation("notifications.details", "Dettagli")" />
+                    </div>
+                }
+            </div>
+        </div>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public NotificationResponseDto Notification { get; set; } = new();
+    [Parameter] public bool ShowActions { get; set; } = true;
+    [Parameter] public bool ShowStandardActions { get; set; } = true;
+    [Parameter] public bool ShowBadge { get; set; } = true;
+    [Parameter] public EventCallback<NotificationResponseDto> OnMarkAsRead { get; set; }
+    [Parameter] public EventCallback<NotificationResponseDto> OnArchive { get; set; }
+    [Parameter] public EventCallback<NotificationResponseDto> OnShowDetails { get; set; }
+    [Parameter] public EventCallback<NotificationActionDto> OnActionExecuted { get; set; }
+
+    private bool IsActionExecuting = false;
+
+    private string GetNotificationCssClass()
+    {
+        var classes = new List<string>();
+        
+        if (Notification.Status != NotificationStatus.Read)
+            classes.Add("unread");
+            
+        classes.Add($"priority-{Notification.Priority.ToString().ToLower()}");
+        classes.Add($"type-{Notification.Type.ToString().ToLower()}");
+        
+        return string.Join(" ", classes);
+    }
+
+    private string GetAvatarClass()
+    {
+        if (!string.IsNullOrEmpty(Notification.Payload.Avatar?.BackgroundColor))
+            return "";
+        
+        return "mud-avatar-color-default";
+    }
+
+    private string GetAvatarTextStyle()
+    {
+        var styles = new List<string>();
+        
+        if (!string.IsNullOrEmpty(Notification.Payload.Avatar?.BackgroundColor))
+            styles.Add($"background-color: {Notification.Payload.Avatar.BackgroundColor}");
+            
+        if (!string.IsNullOrEmpty(Notification.Payload.Avatar?.TextColor))
+            styles.Add($"color: {Notification.Payload.Avatar.TextColor}");
+            
+        return string.Join("; ", styles);
+    }
+
+    private string GetNotificationIcon()
+    {
+        if (!string.IsNullOrEmpty(Notification.Payload.IconUrl))
+            return Notification.Payload.IconUrl;
+            
+        return Notification.Type switch
+        {
+            NotificationTypes.System => Icons.Material.Filled.Settings,
+            NotificationTypes.Event => Icons.Material.Filled.Event,
+            NotificationTypes.User => Icons.Material.Filled.Person,
+            NotificationTypes.Security => Icons.Material.Filled.Security,
+            NotificationTypes.Audit => Icons.Material.Filled.Visibility,
+            NotificationTypes.Marketing => Icons.Material.Filled.Campaign,
+            _ => Icons.Material.Filled.Notifications
+        };
+    }
+
+    private Color GetNotificationColor()
+    {
+        return Notification.Priority switch
+        {
+            NotificationPriority.Critical => Color.Error,
+            NotificationPriority.High => Color.Warning,
+            NotificationPriority.Normal => Color.Primary,
+            NotificationPriority.Low => Color.Default,
+            _ => Color.Default
+        };
+    }
+
+    private string GetAttachmentIcon(AttachmentType type)
+    {
+        return type switch
+        {
+            AttachmentType.Image => Icons.Material.Filled.Image,
+            AttachmentType.Video => Icons.Material.Filled.VideoFile,
+            AttachmentType.Audio => Icons.Material.Filled.AudioFile,
+            AttachmentType.Document => Icons.Material.Filled.Description,
+            AttachmentType.Link => Icons.Material.Filled.Link,
+            AttachmentType.File => Icons.Material.Filled.AttachFile,
+            _ => Icons.Material.Filled.AttachFile
+        };
+    }
+
+    private Variant GetActionVariant(ActionStyle style)
+    {
+        return style switch
+        {
+            ActionStyle.Primary => Variant.Filled,
+            ActionStyle.Secondary => Variant.Outlined,
+            _ => Variant.Text
+        };
+    }
+
+    private Color GetActionColor(ActionStyle style)
+    {
+        return style switch
+        {
+            ActionStyle.Primary => Color.Primary,
+            ActionStyle.Secondary => Color.Secondary,
+            ActionStyle.Success => Color.Success,
+            ActionStyle.Warning => Color.Warning,
+            ActionStyle.Error => Color.Error,
+            ActionStyle.Info => Color.Info,
+            _ => Color.Default
+        };
+    }
+
+    private string FormatTimestamp(DateTime timestamp)
+    {
+        var now = DateTime.UtcNow;
+        var diff = now - timestamp;
+
+        if (diff.TotalMinutes < 1)
+            return TranslationService.GetTranslation("notifications.justNow", "Ora");
+        else if (diff.TotalMinutes < 60)
+            return TranslationService.GetTranslation("notifications.minutesAgo", "{0}m fa", (int)diff.TotalMinutes);
+        else if (diff.TotalHours < 24)
+            return TranslationService.GetTranslation("notifications.hoursAgo", "{0}h fa", (int)diff.TotalHours);
+        else if (diff.TotalDays < 7)
+            return TranslationService.GetTranslation("notifications.daysAgo", "{0}g fa", (int)diff.TotalDays);
+        else
+            return timestamp.ToString("dd/MM/yyyy");
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+
+    private async Task MarkAsRead()
+    {
+        await OnMarkAsRead.InvokeAsync(Notification);
+    }
+
+    private async Task Archive()
+    {
+        await OnArchive.InvokeAsync(Notification);
+    }
+
+    private async Task ShowDetails()
+    {
+        await OnShowDetails.InvokeAsync(Notification);
+    }
+
+    private void NavigateToUrl(string url)
+    {
+        NavigationManager.NavigateTo(url);
+    }
+
+    private void DownloadAttachment(NotificationAttachmentDto attachment)
+    {
+        NavigationManager.NavigateTo(attachment.Url, true);
+    }
+
+    private async Task ExecuteAction(NotificationActionDto action)
+    {
+        if (action.RequiresConfirmation && !string.IsNullOrEmpty(action.ConfirmationMessage))
+        {
+            // TODO: Show confirmation dialog
+            Snackbar.Add(action.ConfirmationMessage, Severity.Info);
+            return;
+        }
+
+        IsActionExecuting = true;
+        try
+        {
+            if (!string.IsNullOrEmpty(action.Url))
+            {
+                NavigationManager.NavigateTo(action.Url);
+            }
+            else if (!string.IsNullOrEmpty(action.ApiEndpoint))
+            {
+                // TODO: Call API endpoint
+                Snackbar.Add($"Azione {action.Label} eseguita", Severity.Success);
+            }
+
+            await OnActionExecuted.InvokeAsync(action);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nell'esecuzione dell'azione: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            IsActionExecuting = false;
+            StateHasChanged();
+        }
+    }
+}
+
+<style>
+    .notification-card {
+        margin-bottom: 8px;
+        border-left: 4px solid transparent;
+        transition: all 0.2s ease-in-out;
+    }
+
+    .notification-card.unread {
+        border-left-color: var(--mud-palette-primary);
+        background-color: var(--mud-palette-primary-lighten);
+    }
+
+    .notification-card.priority-critical {
+        border-left-color: var(--mud-palette-error);
+    }
+
+    .notification-card.priority-high {
+        border-left-color: var(--mud-palette-warning);
+    }
+
+    .notification-card.priority-normal {
+        border-left-color: var(--mud-palette-primary);
+    }
+
+    .notification-card.priority-low {
+        border-left-color: var(--mud-palette-secondary);
+    }
+
+    .notification-card:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+        transform: translateY(-1px);
+    }
+</style>

@@ -1,0 +1,124 @@
+@using EventForge.DTOs.Notifications
+@inject ITranslationService TranslationService
+
+<!-- Mobile-optimized floating notification badge -->
+<div class="mobile-notification-badge @GetBadgeClass()" @onclick="OnClick">
+    <div class="badge-content">
+        <!-- Primary notification count -->
+        <div class="primary-badge">
+            <MudIcon Icon="@Icons.Material.Filled.Notifications" 
+                     Color="Color.Inherit" 
+                     Size="Size.Medium" />
+            @if (NotificationCount > 0)
+            {
+                <MudBadge Content="@GetBadgeContent(NotificationCount)" 
+                          Color="Color.Error" 
+                          Overlap="true"
+                          Bordered="true"
+                          Max="99">
+                </MudBadge>
+            }
+        </div>
+
+        <!-- Secondary badges for different types -->
+        @if (ShowSubBadges && HasSubBadges())
+        {
+            <div class="sub-badges">
+                @if (ActivityCount > 0)
+                {
+                    <div class="sub-badge activity">
+                        <MudIcon Icon="@Icons.Material.Filled.Timeline" Size="Size.Small" />
+                        <span class="count">@GetBadgeContent(ActivityCount)</span>
+                    </div>
+                }
+                @if (ChatCount > 0)
+                {
+                    <div class="sub-badge chat">
+                        <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Small" />
+                        <span class="count">@GetBadgeContent(ChatCount)</span>
+                    </div>
+                }
+                @if (UrgentCount > 0)
+                {
+                    <div class="sub-badge urgent">
+                        <MudIcon Icon="@Icons.Material.Filled.PriorityHigh" Size="Size.Small" />
+                        <span class="count">@GetBadgeContent(UrgentCount)</span>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Tooltip for accessibility -->
+    @if (ShowTooltip)
+    {
+        <MudTooltip Text="@GetTooltipText()">
+        </MudTooltip>
+    }
+</div>
+
+@code {
+    [Parameter] public int NotificationCount { get; set; } = 0;
+    [Parameter] public int ActivityCount { get; set; } = 0;
+    [Parameter] public int ChatCount { get; set; } = 0;
+    [Parameter] public int UrgentCount { get; set; } = 0;
+    [Parameter] public bool ShowSubBadges { get; set; } = true;
+    [Parameter] public bool ShowTooltip { get; set; } = true;
+    [Parameter] public bool IsFloating { get; set; } = true;
+    [Parameter] public string Position { get; set; } = "bottom-right"; // bottom-right, bottom-left, top-right, top-left
+    [Parameter] public EventCallback OnClick { get; set; }
+    [Parameter] public EventCallback OnActivityClick { get; set; }
+    [Parameter] public EventCallback OnChatClick { get; set; }
+    [Parameter] public EventCallback OnUrgentClick { get; set; }
+
+    private string GetBadgeClass()
+    {
+        var classes = new List<string> { "mobile-notification-badge" };
+        
+        if (IsFloating)
+        {
+            classes.Add("floating");
+            classes.Add($"position-{Position}");
+        }
+        
+        if (NotificationCount > 0)
+            classes.Add("has-notifications");
+        
+        if (UrgentCount > 0)
+            classes.Add("has-urgent");
+            
+        return string.Join(" ", classes);
+    }
+
+    private bool HasSubBadges()
+    {
+        return ActivityCount > 0 || ChatCount > 0 || UrgentCount > 0;
+    }
+
+    private string GetBadgeContent(int count)
+    {
+        return count > 99 ? "99+" : count.ToString();
+    }
+
+    private string GetTooltipText()
+    {
+        var messages = new List<string>();
+        
+        if (NotificationCount > 0)
+            messages.Add(TranslationService.GetTranslation("mobileBadge.notifications", "{0} notifiche", NotificationCount));
+        
+        if (ActivityCount > 0)
+            messages.Add(TranslationService.GetTranslation("mobileBadge.activities", "{0} attività", ActivityCount));
+            
+        if (ChatCount > 0)
+            messages.Add(TranslationService.GetTranslation("mobileBadge.messages", "{0} messaggi", ChatCount));
+            
+        if (UrgentCount > 0)
+            messages.Add(TranslationService.GetTranslation("mobileBadge.urgent", "{0} urgenti", UrgentCount));
+        
+        if (!messages.Any())
+            return TranslationService.GetTranslation("mobileBadge.noNotifications", "Nessuna notifica");
+            
+        return string.Join(", ", messages);
+    }
+}

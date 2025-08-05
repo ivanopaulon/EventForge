@@ -117,6 +117,20 @@
                                        BadgeSize="Size.Small" />
                 </div>
             </MudNavLink>
+            <MudNavLink Href="/activity-feed" 
+                        Icon="@Icons.Material.Outlined.Timeline" 
+                        Match="NavLinkMatch.All">
+                <div class="d-flex align-center justify-space-between w-100">
+                    <span>@TranslationService.GetTranslation("nav.activityFeed", "Feed Attività")</span>
+                    @if (_totalActivityCount > 0)
+                    {
+                        <MudBadge Content="@_totalActivityCount.ToString()" 
+                                  Color="Color.Info"
+                                  Size="Size.Small"
+                                  Max="99" />
+                    }
+                </div>
+            </MudNavLink>
             <MudNavLink Href="/chat" 
                         Icon="@Icons.Material.Outlined.Chat" 
                         Match="NavLinkMatch.All">
@@ -170,6 +184,7 @@
     private bool _canManageEvents = false;
     private int _unreadNotificationCount = 0;
     private int _unreadMessageCount = 0;
+    private int _totalActivityCount = 0;
 
     protected override async Task OnInitializedAsync()
     {

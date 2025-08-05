@@ -1,0 +1,526 @@
+@page "/notifications/preferences"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Notifications
+@attribute [Authorize]
+@inject IAuthService AuthService
+@inject INotificationService NotificationService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject IHelpService HelpService
+
+<PageTitle>@TranslationService.GetTranslation("notificationPreferences.title", "Preferenze Notifiche - EventForge")</PageTitle>
+
+<!-- Main container following existing project pattern -->
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudGrid Spacing="4">
+        
+        <!-- Page Header Card -->
+        <MudItem xs="12">
+            <MudCard Class="pa-4 pa-sm-6 pa-md-8" Elevation="4" id="preferences-header">
+                <MudCardContent>
+                    <header class="text-center mb-6">
+                        <div class="d-flex justify-center align-center mb-4">
+                            <MudText Typo="Typo.h3" 
+                                     Component="h1" 
+                                     Align="Align.Center" 
+                                     Class="mr-2"
+                                     aria-label="@TranslationService.GetTranslation("notificationPreferences.pageTitle", "Preferenze Notifiche")">
+                                <MudIcon Icon="@Icons.Material.Filled.Tune" 
+                                         Class="mr-2" 
+                                         Size="Size.Large"
+                                         aria-hidden="true" />
+                                @TranslationService.GetTranslation("notificationPreferences.pageTitle", "Preferenze Notifiche")
+                            </MudText>
+                            <HelpTooltip TranslationKey="help.tooltips.notificationPreferences.center"
+                                        FallbackText="Customize your notification experience and delivery preferences"
+                                        ShowHelpIcon="true"
+                                        Placement="Placement.Right" />
+                        </div>
+                        <MudText Typo="Typo.body1" 
+                                 Align="Align.Center" 
+                                 Color="Color.Secondary">
+                            @TranslationService.GetTranslation("notificationPreferences.subtitle", "Personalizza come ricevi e visualizzi le notifiche")
+                        </MudText>
+                    </header>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- General Settings -->
+        <MudItem xs="12" md="6">
+            <MudCard Class="pa-4" Elevation="2">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" Class="mb-4">
+                        <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mr-2" />
+                        @TranslationService.GetTranslation("notificationPreferences.generalSettings", "Impostazioni Generali")
+                    </MudText>
+
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12">
+                            <MudSwitch @bind-Value="_preferences.NotificationsEnabled"
+                                       Label="@TranslationService.GetTranslation("notificationPreferences.enableNotifications", "Abilita notifiche")"
+                                       Color="Color.Primary"
+                                       @bind-Value:after="OnPreferenceChanged" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudSwitch @bind-Value="_preferences.SoundEnabled"
+                                       Label="@TranslationService.GetTranslation("notificationPreferences.enableSound", "Abilita suoni")"
+                                       Color="Color.Primary"
+                                       Disabled="@(!_preferences.NotificationsEnabled)"
+                                       @bind-Value:after="OnPreferenceChanged" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudSelect T="NotificationPriority" 
+                                       @bind-Value="_preferences.MinPriority"
+                                       Label="@TranslationService.GetTranslation("notificationPreferences.minPriority", "Priorità minima")"
+                                       Variant="Variant.Outlined"
+                                       Disabled="@(!_preferences.NotificationsEnabled)"
+                                       @bind-Value:after="OnPreferenceChanged">
+                                <MudSelectItem Value="NotificationPriority.Low">@TranslationService.GetTranslation("notificationPriority.low", "Bassa")</MudSelectItem>
+                                <MudSelectItem Value="NotificationPriority.Normal">@TranslationService.GetTranslation("notificationPriority.normal", "Normale")</MudSelectItem>
+                                <MudSelectItem Value="NotificationPriority.High">@TranslationService.GetTranslation("notificationPriority.high", "Alta")</MudSelectItem>
+                                <MudSelectItem Value="NotificationPriority.Critical">@TranslationService.GetTranslation("notificationPriority.critical", "Critica")</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudSelect T="string" 
+                                       @bind-Value="_preferences.PreferredLocale"
+                                       Label="@TranslationService.GetTranslation("notificationPreferences.language", "Lingua notifiche")"
+                                       Variant="Variant.Outlined"
+                                       @bind-Value:after="OnPreferenceChanged">
+                                <MudSelectItem Value="@("it-IT")">Italiano</MudSelectItem>
+                                <MudSelectItem Value="@("en-US")">English</MudSelectItem>
+                                <MudSelectItem Value="@("fr-FR")">Français</MudSelectItem>
+                                <MudSelectItem Value="@("de-DE")">Deutsch</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudNumericField T="int?" 
+                                             @bind-Value="_preferences.AutoArchiveAfterDays"
+                                             Label="@TranslationService.GetTranslation("notificationPreferences.autoArchive", "Archivia automaticamente dopo (giorni)")"
+                                             Variant="Variant.Outlined"
+                                             Min="1" Max="365"
+                                             Clearable="true"
+                                             HelperText="@TranslationService.GetTranslation("notificationPreferences.autoArchiveHelp", "Lascia vuoto per disabilitare")"
+                                             @bind-Value:after="OnPreferenceChanged" />
+                        </MudItem>
+                    </MudGrid>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Notification Types -->
+        <MudItem xs="12" md="6">
+            <MudCard Class="pa-4" Elevation="2">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" Class="mb-4">
+                        <MudIcon Icon="@Icons.Material.Filled.Category" Class="mr-2" />
+                        @TranslationService.GetTranslation("notificationPreferences.notificationTypes", "Tipi di Notifica")
+                    </MudText>
+
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                        @TranslationService.GetTranslation("notificationPreferences.typesDescription", "Seleziona i tipi di notifica che desideri ricevere")
+                    </MudText>
+
+                    <MudGrid Spacing="2">
+                        @foreach (var type in Enum.GetValues<NotificationTypes>())
+                        {
+                            <MudItem xs="12">
+                                <MudCheckBox T="bool" 
+                                             Value="@_preferences.EnabledTypes.Contains(type)"
+                                             ValueChanged="@((bool value) => OnTypeToggle(type, value))"
+                                             Label="@GetNotificationTypeLabel(type)"
+                                             Color="Color.Primary"
+                                             Disabled="@(!_preferences.NotificationsEnabled)" />
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-6">
+                                    @GetNotificationTypeDescription(type)
+                                </MudText>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Display Settings -->
+        <MudItem xs="12" md="6">
+            <MudCard Class="pa-4" Elevation="2">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" Class="mb-4">
+                        <MudIcon Icon="@Icons.Material.Filled.Visibility" Class="mr-2" />
+                        @TranslationService.GetTranslation("notificationPreferences.displaySettings", "Impostazioni Visualizzazione")
+                    </MudText>
+
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12">
+                            <MudSwitch @bind-Value="_displaySettings.EnableGrouping"
+                                       Label="@TranslationService.GetTranslation("notificationPreferences.enableGrouping", "Abilita raggruppamento")"
+                                       Color="Color.Primary"
+                                       @bind-Value:after="OnDisplaySettingChanged" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudSwitch @bind-Value="_displaySettings.ShowAvatars"
+                                       Label="@TranslationService.GetTranslation("notificationPreferences.showAvatars", "Mostra avatar")"
+                                       Color="Color.Primary"
+                                       @bind-Value:after="OnDisplaySettingChanged" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudSwitch @bind-Value="_displaySettings.ShowPreviews"
+                                       Label="@TranslationService.GetTranslation("notificationPreferences.showPreviews", "Mostra anteprime")"
+                                       Color="Color.Primary"
+                                       @bind-Value:after="OnDisplaySettingChanged" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudSwitch @bind-Value="_displaySettings.ShowTimestamps"
+                                       Label="@TranslationService.GetTranslation("notificationPreferences.showTimestamps", "Mostra orari")"
+                                       Color="Color.Primary"
+                                       @bind-Value:after="OnDisplaySettingChanged" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudSelect T="string" 
+                                       @bind-Value="_displaySettings.Theme"
+                                       Label="@TranslationService.GetTranslation("notificationPreferences.theme", "Tema notifiche")"
+                                       Variant="Variant.Outlined"
+                                       @bind-Value:after="OnDisplaySettingChanged">
+                                <MudSelectItem Value="@("default")">@TranslationService.GetTranslation("theme.default", "Predefinito")</MudSelectItem>
+                                <MudSelectItem Value="@("compact")">@TranslationService.GetTranslation("theme.compact", "Compatto")</MudSelectItem>
+                                <MudSelectItem Value="@("detailed")">@TranslationService.GetTranslation("theme.detailed", "Dettagliato")</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudSlider T="int" 
+                                       @bind-Value="_displaySettings.ItemsPerPage"
+                                       Min="5" Max="50" Step="5"
+                                       Text="@(_displaySettings.ItemsPerPage.ToString())"
+                                       Label="@TranslationService.GetTranslation("notificationPreferences.itemsPerPage", "Notifiche per pagina")"
+                                       @bind-Value:after="OnDisplaySettingChanged" />
+                        </MudItem>
+                    </MudGrid>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Privacy & Security -->
+        <MudItem xs="12" md="6">
+            <MudCard Class="pa-4" Elevation="2">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" Class="mb-4">
+                        <MudIcon Icon="@Icons.Material.Filled.Security" Class="mr-2" />
+                        @TranslationService.GetTranslation("notificationPreferences.privacySettings", "Privacy e Sicurezza")
+                    </MudText>
+
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12">
+                            <MudSwitch @bind-Value="_privacySettings.AllowDataCollection"
+                                       Label="@TranslationService.GetTranslation("notificationPreferences.allowDataCollection", "Consenti raccolta dati per miglioramenti")"
+                                       Color="Color.Primary"
+                                       @bind-Value:after="OnPrivacySettingChanged" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudSwitch @bind-Value="_privacySettings.AllowPersonalization"
+                                       Label="@TranslationService.GetTranslation("notificationPreferences.allowPersonalization", "Abilita personalizzazione automatica")"
+                                       Color="Color.Primary"
+                                       @bind-Value:after="OnPrivacySettingChanged" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudSwitch @bind-Value="_privacySettings.ShowInActivityFeed"
+                                       Label="@TranslationService.GetTranslation("notificationPreferences.showInActivityFeed", "Mostra nel feed attività")"
+                                       Color="Color.Primary"
+                                       @bind-Value:after="OnPrivacySettingChanged" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudSelect T="int" 
+                                       @bind-Value="_privacySettings.DataRetentionDays"
+                                       Label="@TranslationService.GetTranslation("notificationPreferences.dataRetention", "Conservazione dati (giorni)")"
+                                       Variant="Variant.Outlined"
+                                       @bind-Value:after="OnPrivacySettingChanged">
+                                <MudSelectItem Value="30">30 giorni</MudSelectItem>
+                                <MudSelectItem Value="90">90 giorni</MudSelectItem>
+                                <MudSelectItem Value="180">6 mesi</MudSelectItem>
+                                <MudSelectItem Value="365">1 anno</MudSelectItem>
+                                <MudSelectItem Value="0">@TranslationService.GetTranslation("dataRetention.indefinite", "Indefinito")</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                    </MudGrid>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Action Buttons -->
+        <MudItem xs="12">
+            <MudCard Class="pa-4" Elevation="2">
+                <MudCardContent>
+                    <div class="d-flex justify-space-between align-center flex-wrap ga-2">
+                        <div class="d-flex ga-2">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Save"
+                                       OnClick="@SavePreferences"
+                                       Disabled="@_isSaving">
+                                @if (_isSaving)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Class="mr-2" />
+                                }
+                                @TranslationService.GetTranslation("notificationPreferences.save", "Salva Preferenze")
+                            </MudButton>
+
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Secondary"
+                                       StartIcon="@Icons.Material.Filled.Refresh"
+                                       OnClick="@ResetToDefaults"
+                                       Disabled="@_isSaving">
+                                @TranslationService.GetTranslation("notificationPreferences.reset", "Ripristina Default")
+                            </MudButton>
+                        </div>
+
+                        <div class="d-flex ga-2">
+                            <MudButton Variant="Variant.Text"
+                                       Color="Color.Info"
+                                       StartIcon="@Icons.Material.Filled.Preview"
+                                       OnClick="@PreviewSettings">
+                                @TranslationService.GetTranslation("notificationPreferences.preview", "Anteprima")
+                            </MudButton>
+
+                            <MudButton Variant="Variant.Text"
+                                       Color="Color.Default"
+                                       StartIcon="@Icons.Material.Filled.ArrowBack"
+                                       OnClick="@(() => NavigationManager.NavigateTo("/notifications"))">
+                                @TranslationService.GetTranslation("common.back", "Indietro")
+                            </MudButton>
+                        </div>
+                    </div>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private bool _isSaving = false;
+    private NotificationPreferencesDto _preferences = new();
+    
+    // Additional settings not in the main DTO
+    private DisplaySettings _displaySettings = new();
+    private PrivacySettings _privacySettings = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadPreferences();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento delle preferenze: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadPreferences()
+    {
+        try
+        {
+            // TODO: Load from actual service
+            // _preferences = await NotificationService.GetPreferencesAsync();
+            
+            // Mock data for demonstration
+            _preferences = new NotificationPreferencesDto
+            {
+                NotificationsEnabled = true,
+                MinPriority = NotificationPriority.Low,
+                EnabledTypes = new List<NotificationTypes> 
+                { 
+                    NotificationTypes.System, 
+                    NotificationTypes.Event, 
+                    NotificationTypes.User 
+                },
+                PreferredLocale = "it-IT",
+                SoundEnabled = true,
+                AutoArchiveAfterDays = 30
+            };
+
+            _displaySettings = new DisplaySettings
+            {
+                EnableGrouping = true,
+                ShowAvatars = true,
+                ShowPreviews = true,
+                ShowTimestamps = true,
+                Theme = "default",
+                ItemsPerPage = 20
+            };
+
+            _privacySettings = new PrivacySettings
+            {
+                AllowDataCollection = true,
+                AllowPersonalization = true,
+                ShowInActivityFeed = true,
+                DataRetentionDays = 90
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OnPreferenceChanged()
+    {
+        // Auto-save or mark as dirty
+        StateHasChanged();
+    }
+
+    private async Task OnDisplaySettingChanged()
+    {
+        StateHasChanged();
+    }
+
+    private async Task OnPrivacySettingChanged()
+    {
+        StateHasChanged();
+    }
+
+    private async Task OnTypeToggle(NotificationTypes type, bool enabled)
+    {
+        if (enabled)
+        {
+            if (!_preferences.EnabledTypes.Contains(type))
+            {
+                _preferences.EnabledTypes.Add(type);
+            }
+        }
+        else
+        {
+            _preferences.EnabledTypes.Remove(type);
+        }
+        StateHasChanged();
+    }
+
+    private async Task SavePreferences()
+    {
+        _isSaving = true;
+        try
+        {
+            // TODO: Save to actual service
+            // await NotificationService.SavePreferencesAsync(_preferences);
+            
+            await Task.Delay(1000); // Simulate API call
+            
+            Snackbar.Add(TranslationService.GetTranslation("notificationPreferences.saved", "Preferenze salvate con successo"), Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel salvataggio: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ResetToDefaults()
+    {
+        try
+        {
+            _preferences = new NotificationPreferencesDto
+            {
+                NotificationsEnabled = true,
+                MinPriority = NotificationPriority.Low,
+                EnabledTypes = Enum.GetValues<NotificationTypes>().ToList(),
+                PreferredLocale = "it-IT",
+                SoundEnabled = true,
+                AutoArchiveAfterDays = null
+            };
+
+            _displaySettings = new DisplaySettings
+            {
+                EnableGrouping = false,
+                ShowAvatars = true,
+                ShowPreviews = true,
+                ShowTimestamps = true,
+                Theme = "default",
+                ItemsPerPage = 20
+            };
+
+            _privacySettings = new PrivacySettings
+            {
+                AllowDataCollection = false,
+                AllowPersonalization = true,
+                ShowInActivityFeed = true,
+                DataRetentionDays = 90
+            };
+
+            Snackbar.Add(TranslationService.GetTranslation("notificationPreferences.resetToDefaults", "Preferenze ripristinate ai valori predefiniti"), Severity.Info);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel ripristino: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task PreviewSettings()
+    {
+        // TODO: Show preview modal with sample notifications
+        Snackbar.Add(TranslationService.GetTranslation("notificationPreferences.previewFeatureComingSoon", "Funzione anteprima in arrivo"), Severity.Info);
+    }
+
+    private string GetNotificationTypeLabel(NotificationTypes type)
+    {
+        return type switch
+        {
+            NotificationTypes.System => TranslationService.GetTranslation("notificationType.system", "Sistema"),
+            NotificationTypes.Event => TranslationService.GetTranslation("notificationType.event", "Eventi"),
+            NotificationTypes.User => TranslationService.GetTranslation("notificationType.user", "Utente"),
+            NotificationTypes.Security => TranslationService.GetTranslation("notificationType.security", "Sicurezza"),
+            NotificationTypes.Audit => TranslationService.GetTranslation("notificationType.audit", "Audit"),
+            NotificationTypes.Marketing => TranslationService.GetTranslation("notificationType.marketing", "Marketing"),
+            _ => type.ToString()
+        };
+    }
+
+    private string GetNotificationTypeDescription(NotificationTypes type)
+    {
+        return type switch
+        {
+            NotificationTypes.System => TranslationService.GetTranslation("notificationTypeDesc.system", "Notifiche di sistema e manutenzione"),
+            NotificationTypes.Event => TranslationService.GetTranslation("notificationTypeDesc.event", "Notifiche relative agli eventi"),
+            NotificationTypes.User => TranslationService.GetTranslation("notificationTypeDesc.user", "Notifiche di attività utente"),
+            NotificationTypes.Security => TranslationService.GetTranslation("notificationTypeDesc.security", "Avvisi di sicurezza e accesso"),
+            NotificationTypes.Audit => TranslationService.GetTranslation("notificationTypeDesc.audit", "Log di audit e controllo"),
+            NotificationTypes.Marketing => TranslationService.GetTranslation("notificationTypeDesc.marketing", "Comunicazioni marketing"),
+            _ => ""
+        };
+    }
+
+    // Helper classes for additional settings
+    public class DisplaySettings
+    {
+        public bool EnableGrouping { get; set; }
+        public bool ShowAvatars { get; set; }
+        public bool ShowPreviews { get; set; }
+        public bool ShowTimestamps { get; set; }
+        public string Theme { get; set; } = "default";
+        public int ItemsPerPage { get; set; } = 20;
+    }
+
+    public class PrivacySettings
+    {
+        public bool AllowDataCollection { get; set; }
+        public bool AllowPersonalization { get; set; }
+        public bool ShowInActivityFeed { get; set; }
+        public int DataRetentionDays { get; set; } = 90;
+    }
+}

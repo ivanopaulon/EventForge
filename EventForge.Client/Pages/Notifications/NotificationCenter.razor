@@ -122,6 +122,18 @@
                             </MudButton>
                         </HelpTooltip>
 
+                        <!-- Preferences Button -->
+                        <HelpTooltip TranslationKey="help.tooltips.notifications.preferences"
+                                    FallbackText="Customize your notification preferences and settings"
+                                    Placement="Placement.Top">
+                            <MudButton Variant="Variant.Text"
+                                       Color="Color.Default"
+                                       StartIcon="@Icons.Material.Filled.Settings"
+                                       OnClick="@(() => NavigationManager.NavigateTo("/notifications/preferences"))">
+                                @TranslationService.GetTranslation("notifications.preferences", "Preferenze")
+                            </MudButton>
+                        </HelpTooltip>
+
                         <!-- Help tooltip following existing pattern -->
                         <MudTooltip Text="@TranslationService.GetTranslation("notifications.helpTooltip", "Le notifiche vengono aggiornate in tempo reale")">
                             <MudIconButton Icon="@Icons.Material.Filled.Help" 
@@ -133,7 +145,7 @@
 
                     <!-- Filter options -->
                     <MudGrid Spacing="2">
-                        <MudItem xs="12" sm="6" md="4">
+                        <MudItem xs="12" sm="6" md="3">
                             <MudSelect T="string" @bind-Value="_selectedFilter" 
                                        Label="@TranslationService.GetTranslation("notifications.filter", "Filtra per stato")" 
                                        Variant="Variant.Outlined"
@@ -144,7 +156,7 @@
                                 <MudSelectItem Value="@("important")">@TranslationService.GetTranslation("notifications.importantOnly", "Importanti")</MudSelectItem>
                             </MudSelect>
                         </MudItem>
-                        <MudItem xs="12" sm="6" md="4">
+                        <MudItem xs="12" sm="6" md="3">
                             <MudSelect T="string" @bind-Value="_selectedType" 
                                        Label="@TranslationService.GetTranslation("notifications.type", "Tipo notifica")" 
                                        Variant="Variant.Outlined"
@@ -154,6 +166,21 @@
                                 <MudSelectItem Value="@("system")">@TranslationService.GetTranslation("notifications.systemNotifications", "Sistema")</MudSelectItem>
                                 <MudSelectItem Value="@("chat")">@TranslationService.GetTranslation("notifications.chatNotifications", "Chat")</MudSelectItem>
                             </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudTextField @bind-Value="_searchText"
+                                          Label="@TranslationService.GetTranslation("notifications.search", "Cerca notifiche")"
+                                          Variant="Variant.Outlined"
+                                          StartIcon="@Icons.Material.Filled.Search"
+                                          Clearable="true"
+                                          Immediate="true"
+                                          DebounceInterval="300" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3" Class="d-flex align-center">
+                            <MudSwitch @bind-Value="_enableGrouping"
+                                       Label="@TranslationService.GetTranslation("notifications.grouping", "Raggruppa")"
+                                       Color="Color.Primary"
+                                       @bind-Value:after="OnGroupingChanged" />
                         </MudItem>
                     </MudGrid>
                 </MudCardContent>
@@ -194,61 +221,39 @@
                     }
                     else if (_notifications?.Any() == true)
                     {
-                        <!-- Notification list using MudList -->
-                        <MudList T="object" Clickable="true" Dense="false">
-                            @foreach (var notification in _notifications)
-                            {
-                                <MudListItem>
-                                    <div class="d-flex align-center justify-space-between w-100">
-                                        <div class="d-flex align-center flex-grow-1">
-                                            <!-- Notification icon based on type -->
-                                            <MudIcon Icon="@GetNotificationIcon(notification.Type)" 
-                                                     Color="@GetNotificationColor(notification.Priority)"
-                                                     Class="mr-3" />
-                                            
-                                            <div class="flex-grow-1">
-                                                <MudText Typo="Typo.body1" 
-                                                         Class="@(notification.Status == NotificationStatus.Read ? "" : "font-weight-bold")">
-                                                    @notification.Payload.Title
-                                                </MudText>
-                                                <MudText Typo="Typo.body2" 
-                                                         Color="Color.Secondary">
-                                                    @notification.Payload.Message
-                                                </MudText>
-                                                <MudText Typo="Typo.caption" 
-                                                         Color="Color.Tertiary">
-                                                    @notification.CreatedAt.ToString("dd/MM/yyyy HH:mm")
-                                                </MudText>
-                                            </div>
-                                        </div>
-
-                                        <!-- Action buttons -->
-                                        <div class="d-flex align-center ga-1">
-                                            @if (notification.Status != NotificationStatus.Read)
-                                            {
-                                                <MudIconButton Icon="@Icons.Material.Filled.MarkEmailRead"
-                                                               Size="Size.Small"
-                                                               Color="Color.Primary"
-                                                               OnClick="@(() => MarkAsReadAsync(notification.Id))"
-                                                               aria-label="@TranslationService.GetTranslation("notifications.markAsRead", "Segna come letta")" />
-                                            }
-                                            
-                                            <MudIconButton Icon="@Icons.Material.Filled.Archive"
-                                                           Size="Size.Small"
-                                                           Color="Color.Secondary"
-                                                           OnClick="@(() => ArchiveNotificationAsync(notification.Id))"
-                                                           aria-label="@TranslationService.GetTranslation("notifications.archive", "Archivia")" />
-                                                           
-                                            <MudIconButton Icon="@Icons.Material.Filled.MoreVert"
-                                                           Size="Size.Small"
-                                                           OnClick="@(() => ShowNotificationDetailsAsync(notification))"
-                                                           aria-label="@TranslationService.GetTranslation("notifications.details", "Dettagli")" />
-                                        </div>
-                                    </div>
-                                </MudListItem>
-                                <MudDivider />
-                            }
-                        </MudList>
+                        @if (_enableGrouping && _notificationGroups?.Any() == true)
+                        {
+                            <!-- Grouped Notification Display -->
+                            <div class="notification-groups">
+                                @foreach (var group in _notificationGroups)
+                                {
+                                    <NotificationGrouping Group="@group" 
+                                                          AllNotifications="@_notifications"
+                                                          OnGroupToggle="@OnGroupToggle"
+                                                          OnGroupMarkAsRead="@OnGroupMarkAsRead"
+                                                          OnGroupArchive="@OnGroupArchive"
+                                                          OnGroupUngroup="@OnGroupUngroup"
+                                                          OnNotificationMarkAsRead="@OnNotificationMarkAsRead"
+                                                          OnNotificationArchive="@OnNotificationArchive"
+                                                          OnNotificationShowDetails="@OnNotificationShowDetails"
+                                                          OnNotificationActionExecuted="@OnNotificationActionExecuted" />
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- Individual Rich Notification Cards -->
+                            <div class="notification-cards">
+                                @foreach (var notification in GetFilteredNotifications())
+                                {
+                                    <RichNotificationCard Notification="@notification"
+                                                          OnMarkAsRead="@OnNotificationMarkAsRead"
+                                                          OnArchive="@OnNotificationArchive"
+                                                          OnShowDetails="@OnNotificationShowDetails"
+                                                          OnActionExecuted="@OnNotificationActionExecuted" />
+                                }
+                            </div>
+                        }
 
                         <!-- Pagination placeholder -->
                         <div class="d-flex justify-center mt-4">
@@ -341,11 +346,13 @@
     private bool _isLoading = false;
     private string _selectedFilter = "";
     private string _selectedType = "";
+    private string _searchText = "";
     private int _currentPage = 1;
     private int _totalPages = 1;
     private int _unreadCount = 0;
     private bool _emailNotificationsEnabled = true;
     private bool _pushNotificationsEnabled = true;
+    private bool _enableGrouping = false;
     
     // Help system state
     private bool _showOnboarding = false;
@@ -353,6 +360,7 @@
 
     // Real notification data from service
     private List<NotificationResponseDto> _notifications = new();
+    private List<NotificationGroupDto> _notificationGroups = new();
     private NotificationStatsDto _stats = new();
     private List<NotificationTypes> _subscriptions = new();
 
@@ -790,6 +798,215 @@
     {
         _stats = stats;
         InvokeAsync(StateHasChanged);
+    }
+
+    #endregion
+
+    #region Rich Notification and Grouping Methods
+
+    private IEnumerable<NotificationResponseDto> GetFilteredNotifications()
+    {
+        var filtered = _notifications.AsEnumerable();
+
+        // Apply filters
+        if (!string.IsNullOrEmpty(_selectedFilter))
+        {
+            filtered = _selectedFilter switch
+            {
+                "unread" => filtered.Where(n => n.Status != NotificationStatus.Read),
+                "important" => filtered.Where(n => n.Priority == NotificationPriority.High || n.Priority == NotificationPriority.Critical),
+                _ => filtered
+            };
+        }
+
+        if (!string.IsNullOrEmpty(_selectedType))
+        {
+            if (Enum.TryParse<NotificationTypes>(_selectedType, true, out var type))
+            {
+                filtered = filtered.Where(n => n.Type == type);
+            }
+        }
+
+        if (!string.IsNullOrEmpty(_searchText))
+        {
+            var search = _searchText.ToLower();
+            filtered = filtered.Where(n => 
+                n.Payload.Title.ToLower().Contains(search) ||
+                n.Payload.Message.ToLower().Contains(search) ||
+                (n.Payload.Tags?.Any(t => t.ToLower().Contains(search)) == true));
+        }
+
+        return filtered.OrderByDescending(n => n.CreatedAt);
+    }
+
+    private async Task OnGroupingChanged()
+    {
+        if (_enableGrouping)
+        {
+            await GenerateNotificationGroups();
+        }
+        else
+        {
+            _notificationGroups.Clear();
+        }
+        StateHasChanged();
+    }
+
+    private async Task GenerateNotificationGroups()
+    {
+        try
+        {
+            // Group notifications by GroupId or by Type if no GroupId
+            var groups = _notifications
+                .GroupBy(n => !string.IsNullOrEmpty(n.Payload.GroupId) ? n.Payload.GroupId : n.Type.ToString())
+                .Select(g => new NotificationGroupDto
+                {
+                    GroupId = g.Key,
+                    Title = GetGroupTitle(g.Key, g.First().Type),
+                    Count = g.Count(),
+                    UnreadCount = g.Count(n => n.Status != NotificationStatus.Read),
+                    LatestNotification = g.OrderByDescending(n => n.CreatedAt).First(),
+                    PreviewNotifications = g.OrderByDescending(n => n.CreatedAt).Take(3).ToList(),
+                    IsCollapsed = true,
+                    CreatedAt = g.Min(n => n.CreatedAt),
+                    UpdatedAt = g.Max(n => n.CreatedAt)
+                })
+                .OrderByDescending(g => g.UpdatedAt)
+                .ToList();
+
+            _notificationGroups = groups;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel raggruppamento: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private string GetGroupTitle(string groupId, NotificationTypes fallbackType)
+    {
+        if (groupId == fallbackType.ToString())
+        {
+            return fallbackType switch
+            {
+                NotificationTypes.System => TranslationService.GetTranslation("notifications.groups.system", "Notifiche di Sistema"),
+                NotificationTypes.Event => TranslationService.GetTranslation("notifications.groups.event", "Notifiche Eventi"),
+                NotificationTypes.User => TranslationService.GetTranslation("notifications.groups.user", "Notifiche Utente"),
+                NotificationTypes.Security => TranslationService.GetTranslation("notifications.groups.security", "Notifiche di Sicurezza"),
+                NotificationTypes.Audit => TranslationService.GetTranslation("notifications.groups.audit", "Notifiche Audit"),
+                NotificationTypes.Marketing => TranslationService.GetTranslation("notifications.groups.marketing", "Notifiche Marketing"),
+                _ => groupId
+            };
+        }
+        return groupId;
+    }
+
+    // Group event handlers
+    private async Task OnGroupToggle(NotificationGroupDto group)
+    {
+        // Group toggle is handled by the component itself
+        StateHasChanged();
+    }
+
+    private async Task OnGroupMarkAsRead(NotificationGroupDto group)
+    {
+        try
+        {
+            var groupNotifications = _notifications.Where(n => 
+                (!string.IsNullOrEmpty(n.Payload.GroupId) ? n.Payload.GroupId : n.Type.ToString()) == group.GroupId)
+                .Where(n => n.Status != NotificationStatus.Read)
+                .ToList();
+
+            foreach (var notification in groupNotifications)
+            {
+                await NotificationService.MarkAsReadAsync(notification.Id);
+            }
+
+            Snackbar.Add(TranslationService.GetTranslation("notifications.groupMarkedAsRead", "Gruppo segnato come letto"), Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OnGroupArchive(NotificationGroupDto group)
+    {
+        try
+        {
+            var groupNotifications = _notifications.Where(n => 
+                (!string.IsNullOrEmpty(n.Payload.GroupId) ? n.Payload.GroupId : n.Type.ToString()) == group.GroupId)
+                .ToList();
+
+            foreach (var notification in groupNotifications)
+            {
+                await NotificationService.ArchiveNotificationAsync(notification.Id);
+            }
+
+            Snackbar.Add(TranslationService.GetTranslation("notifications.groupArchived", "Gruppo archiviato"), Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OnGroupUngroup(NotificationGroupDto group)
+    {
+        try
+        {
+            // Remove grouping for this group by clearing GroupId
+            var groupNotifications = _notifications.Where(n => 
+                (!string.IsNullOrEmpty(n.Payload.GroupId) ? n.Payload.GroupId : n.Type.ToString()) == group.GroupId)
+                .ToList();
+
+            foreach (var notification in groupNotifications)
+            {
+                if (!string.IsNullOrEmpty(notification.Payload.GroupId))
+                {
+                    notification.Payload.GroupId = null;
+                }
+            }
+
+            await GenerateNotificationGroups();
+            Snackbar.Add(TranslationService.GetTranslation("notifications.groupUngrouped", "Notifiche separate"), Severity.Info);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+        }
+    }
+
+    // Individual notification event handlers for rich cards
+    private async Task OnNotificationMarkAsRead(NotificationResponseDto notification)
+    {
+        await MarkAsReadAsync(notification.Id);
+    }
+
+    private async Task OnNotificationArchive(NotificationResponseDto notification)
+    {
+        await ArchiveNotificationAsync(notification.Id);
+    }
+
+    private async Task OnNotificationShowDetails(NotificationResponseDto notification)
+    {
+        await ShowNotificationDetailsAsync(notification);
+    }
+
+    private async Task OnNotificationActionExecuted(NotificationActionDto action)
+    {
+        try
+        {
+            // Handle custom action execution
+            if (!string.IsNullOrEmpty(action.ApiEndpoint))
+            {
+                // TODO: Implement API call for custom actions
+                Snackbar.Add($"Azione '{action.Label}' eseguita", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nell'esecuzione dell'azione: {ex.Message}", Severity.Error);
+        }
     }
 
     #endregion
