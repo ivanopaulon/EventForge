@@ -1,11 +1,15 @@
 @page "/chat"
 @using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Chat
 @attribute [Authorize]
 @inject IAuthService AuthService
+@inject IChatService ChatService
+@inject SignalRService SignalRService
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
+@implements IDisposable
 
 <PageTitle>@TranslationService.GetTranslation("chat.title", "Chat - EventForge")</PageTitle>
 
@@ -89,9 +93,9 @@
                             <div class="d-flex align-center w-100">
                                 <!-- Chat avatar/icon -->
                                 <MudAvatar Size="Size.Small" 
-                                           Color="@(chat.IsGroup ? Color.Secondary : Color.Primary)"
+                                           Color="@(chat.Type != ChatType.DirectMessage ? Color.Secondary : Color.Primary)"
                                            Class="mr-3">
-                                    <MudIcon Icon="@(chat.IsGroup ? Icons.Material.Filled.Group : Icons.Material.Filled.Person)" />
+                                    <MudIcon Icon="@(chat.Type != ChatType.DirectMessage ? Icons.Material.Filled.Group : Icons.Material.Filled.Person)" />
                                 </MudAvatar>
                                 
                                 <div class="flex-grow-1 overflow-hidden">
@@ -113,12 +117,12 @@
                                     <MudText Typo="Typo.caption" 
                                              Color="Color.Secondary"
                                              Style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                        @chat.LastMessage
+                                        @(chat.LastMessage?.Content ?? "")
                                     </MudText>
                                     
                                     <MudText Typo="Typo.caption" 
                                              Color="Color.Tertiary">
-                                        @FormatLastMessageTime(chat.LastMessageTime)
+                                        @(chat.LastMessage != null ? FormatLastMessageTime(chat.LastMessage.SentAt) : "")
                                     </MudText>
                                 </div>
                             </div>
@@ -166,9 +170,9 @@
                                Class="d-block d-md-none mr-2" />
                 
                 <MudAvatar Size="Size.Small" 
-                           Color="@(_selectedChat?.IsGroup == true ? Color.Secondary : Color.Primary)"
+                           Color="@(_selectedChat?.Type != ChatType.DirectMessage ? Color.Secondary : Color.Primary)"
                            Class="mr-3">
-                    <MudIcon Icon="@(_selectedChat?.IsGroup == true ? Icons.Material.Filled.Group : Icons.Material.Filled.Person)" />
+                    <MudIcon Icon="@(_selectedChat?.Type != ChatType.DirectMessage ? Icons.Material.Filled.Group : Icons.Material.Filled.Person)" />
                 </MudAvatar>
                 
                 <MudText Typo="Typo.h6" Class="flex-grow-1">
@@ -182,7 +186,7 @@
                                    OnClick="@ShowChatInfoAsync" />
                 </MudTooltip>
                 
-                @if (_selectedChat?.IsGroup == true)
+                @if (_selectedChat?.Type != ChatType.DirectMessage)
                 {
                     <MudTooltip Text="@TranslationService.GetTranslation("chat.manageGroup", "Gestisci gruppo")">
                         <MudIconButton Icon="@Icons.Material.Filled.Settings" 
@@ -205,12 +209,12 @@
                     <div class="pa-4">
                         @foreach (var message in _messages)
                         {
-                            <div class="@GetMessageAlignment(message.IsFromCurrentUser) mb-3">
+                            <div class="@GetMessageAlignment(IsFromCurrentUser(message)) mb-3">
                                 <MudCard Elevation="1" 
-                                         Class="@GetMessageCardClass(message.IsFromCurrentUser)"
-                                         Style="@GetMessageCardStyle(message.IsFromCurrentUser)">
+                                         Class="@GetMessageCardClass(IsFromCurrentUser(message))"
+                                         Style="@GetMessageCardStyle(IsFromCurrentUser(message))">
                                     <MudCardContent Class="pa-3">
-                                        @if (!message.IsFromCurrentUser && _selectedChat?.IsGroup == true)
+                                        @if (!IsFromCurrentUser(message) && _selectedChat?.Type != ChatType.DirectMessage)
                                         {
                                             <MudText Typo="Typo.caption" 
                                                      Color="Color.Primary" 
@@ -223,24 +227,27 @@
                                             @message.Content
                                         </MudText>
                                         
-                                        @if (!string.IsNullOrEmpty(message.AttachmentName))
+                                        @if (message.Attachments?.Any() == true)
                                         {
                                             <div class="mt-2">
-                                                <MudChip T="string" 
-                                                         StartIcon="@Icons.Material.Filled.AttachFile"
-                                                         Size="Size.Small"
-                                                         OnClick="@(() => DownloadAttachmentAsync(message.AttachmentName))">
-                                                    @message.AttachmentName
-                                                </MudChip>
+                                                @foreach (var attachment in message.Attachments)
+                                                {
+                                                    <MudChip T="string" 
+                                                             StartIcon="@Icons.Material.Filled.AttachFile"
+                                                             Size="Size.Small"
+                                                             OnClick="@(() => DownloadAttachmentAsync(attachment.FileName))">
+                                                        @attachment.FileName
+                                                    </MudChip>
+                                                }
                                             </div>
                                         }
                                         
                                         <div class="d-flex justify-space-between align-center mt-2">
                                             <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                                @message.Timestamp.ToString("HH:mm")
+                                                @message.SentAt.ToString("HH:mm")
                                             </MudText>
                                             
-                                            @if (message.IsFromCurrentUser)
+                                            @if (IsFromCurrentUser(message))
                                             {
                                                 <MudIcon Icon="@GetMessageStatusIcon(message.Status)" 
                                                          Size="Size.Small"
@@ -328,25 +335,55 @@
     private string _chatFilter = "all";
     private string _newMessage = "";
     private int _totalUnreadMessages = 0;
-    private int? _selectedChatId;
-    private ChatDto? _selectedChat;
+    private Guid? _selectedChatId;
+    private ChatResponseDto? _selectedChat;
 
-    // Data collections
-    private List<ChatDto> _chatList = new();
-    private List<MessageDto> _messages = new();
+    // Data collections using real DTOs
+    private List<ChatResponseDto> _chatList = new();
+    private List<ChatMessageDto> _messages = new();
 
     /// <summary>
-    /// Initialize chat interface
-    /// Loads user chats on component initialization
+    /// Initialize chat interface with real services
     /// </summary>
     protected override async Task OnInitializedAsync()
     {
-        await LoadChatsAsync();
+        try
+        {
+            // Start SignalR connections if not already started
+            if (!SignalRService.IsChatConnected)
+            {
+                await SignalRService.StartChatConnectionAsync();
+            }
+
+            // Subscribe to real-time events
+            ChatService.ChatCreated += OnChatCreated;
+            ChatService.MessageReceived += OnMessageReceived;
+            ChatService.MessageEdited += OnMessageEdited;
+            ChatService.MessageDeleted += OnMessageDeleted;
+            ChatService.MessageRead += OnMessageRead;
+            ChatService.TypingIndicator += OnTypingIndicator;
+
+            await LoadChatsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore durante l'inizializzazione: {ex.Message}", Severity.Error);
+        }
+    }
+
+    public void Dispose()
+    {
+        // Unsubscribe from events
+        ChatService.ChatCreated -= OnChatCreated;
+        ChatService.MessageReceived -= OnMessageReceived;
+        ChatService.MessageEdited -= OnMessageEdited;
+        ChatService.MessageDeleted -= OnMessageDeleted;
+        ChatService.MessageRead -= OnMessageRead;
+        ChatService.TypingIndicator -= OnTypingIndicator;
     }
 
     /// <summary>
-    /// Load user chats from service (placeholder implementation)
-    /// TODO: Implement actual chat service integration
+    /// Load user chats from the API
     /// </summary>
     private async Task LoadChatsAsync()
     {
@@ -355,11 +392,14 @@
 
         try
         {
-            // TODO: Replace with actual service call
-            // var chats = await ChatService.GetUserChatsAsync();
-            
-            // Placeholder data for UI structure
-            _chatList = GenerateChatPlaceholders();
+            var filterValue = _chatFilter switch
+            {
+                "direct" => "DirectMessage",
+                "group" => "Group",
+                _ => null
+            };
+
+            _chatList = await ChatService.GetChatsAsync(1, 50, filterValue);
             _totalUnreadMessages = _chatList.Sum(c => c.UnreadCount);
         }
         catch (Exception ex)
@@ -374,10 +414,9 @@
     }
 
     /// <summary>
-    /// Select a chat and load its messages
-    /// TODO: Implement actual message loading service integration
+    /// Select a chat and load its messages using real API
     /// </summary>
-    private async Task SelectChatAsync(ChatDto chat)
+    private async Task SelectChatAsync(ChatResponseDto chat)
     {
         _selectedChatId = chat.Id;
         _selectedChat = chat;
@@ -386,13 +425,12 @@
 
         try
         {
-            // TODO: Replace with actual service call
-            // var messages = await ChatService.GetChatMessagesAsync(chat.Id);
+            _messages = await ChatService.GetMessagesAsync(chat.Id, 1, 50);
             
-            // Placeholder data for UI structure
-            _messages = GenerateMessagePlaceholders();
+            // Mark messages as read
+            await ChatService.MarkMessagesAsReadAsync(chat.Id);
             
-            // Mark chat as read
+            // Update local state
             chat.UnreadCount = 0;
             _totalUnreadMessages = _chatList.Sum(c => c.UnreadCount);
         }
@@ -413,7 +451,7 @@
     private async Task SetChatFilter(string filter)
     {
         _chatFilter = filter;
-        await LoadChatsAsync(); // In real implementation, this would filter the existing list
+        await LoadChatsAsync();
     }
 
     /// <summary>
@@ -483,8 +521,7 @@
     }
 
     /// <summary>
-    /// Send new message
-    /// TODO: Implement actual message sending service integration
+    /// Send new message using real API
     /// </summary>
     private async Task SendMessageAsync()
     {
@@ -498,27 +535,21 @@
 
         try
         {
-            // TODO: Replace with actual service call
-            // await ChatService.SendMessageAsync(_selectedChatId.Value, messageContent);
+            var messageDto = new SendMessageDto
+            {
+                ChatId = _selectedChatId.Value,
+                Content = messageContent
+            };
+
+            var sentMessage = await ChatService.SendMessageAsync(messageDto);
             
             // Add message to UI immediately (optimistic update)
-            var newMessage = new MessageDto
-            {
-                Id = _messages.Count + 1,
-                Content = messageContent,
-                SenderName = "Tu",
-                IsFromCurrentUser = true,
-                Timestamp = DateTime.Now,
-                Status = "sent"
-            };
-            
-            _messages.Add(newMessage);
+            _messages.Add(sentMessage);
             
             // Update chat last message
             if (_selectedChat != null)
             {
-                _selectedChat.LastMessage = messageContent;
-                _selectedChat.LastMessageTime = DateTime.Now;
+                _selectedChat.LastMessage = sentMessage;
             }
         }
         catch (Exception ex)
@@ -574,24 +605,107 @@
     /// <summary>
     /// Get message status icon
     /// </summary>
-    private string GetMessageStatusIcon(string status) => status?.ToLower() switch
+    private string GetMessageStatusIcon(MessageStatus status) => status switch
     {
-        "sent" => Icons.Material.Filled.Check,
-        "delivered" => Icons.Material.Filled.DoneAll,
-        "read" => Icons.Material.Filled.DoneAll,
+        MessageStatus.Sent => Icons.Material.Filled.Check,
+        MessageStatus.Delivered => Icons.Material.Filled.DoneAll,
+        MessageStatus.Read => Icons.Material.Filled.DoneAll,
         _ => Icons.Material.Filled.Schedule
     };
 
     /// <summary>
     /// Get message status color
     /// </summary>
-    private Color GetMessageStatusColor(string status) => status?.ToLower() switch
+    private Color GetMessageStatusColor(MessageStatus status) => status switch
     {
-        "sent" => Color.Default,
-        "delivered" => Color.Default,
-        "read" => Color.Primary,
+        MessageStatus.Sent => Color.Default,
+        MessageStatus.Delivered => Color.Default,
+        MessageStatus.Read => Color.Primary,
         _ => Color.Secondary
     };
+
+    #region Real-time Event Handlers
+
+    private void OnChatCreated(ChatResponseDto chat)
+    {
+        _chatList.Insert(0, chat);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnMessageReceived(ChatMessageDto message)
+    {
+        // Add message to current chat if it's selected
+        if (_selectedChatId == message.ChatId)
+        {
+            _messages.Add(message);
+            InvokeAsync(StateHasChanged);
+        }
+
+        // Update chat list last message
+        var chat = _chatList.FirstOrDefault(c => c.Id == message.ChatId);
+        if (chat != null)
+        {
+            chat.LastMessage = message;
+            if (_selectedChatId != message.ChatId)
+            {
+                chat.UnreadCount++;
+                _totalUnreadMessages++;
+            }
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void OnMessageEdited(EditMessageDto editMessage)
+    {
+        var message = _messages.FirstOrDefault(m => m.Id == editMessage.MessageId);
+        if (message != null)
+        {
+            message.Content = editMessage.Content;
+            message.IsEdited = true;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void OnMessageDeleted(Guid messageId)
+    {
+        _messages.RemoveAll(m => m.Id == messageId);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnMessageRead(Guid chatId, Guid messageId)
+    {
+        if (_selectedChatId == chatId)
+        {
+            var message = _messages.FirstOrDefault(m => m.Id == messageId);
+            if (message != null)
+            {
+                message.Status = MessageStatus.Read;
+                InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    private void OnTypingIndicator(TypingIndicatorDto typingIndicator)
+    {
+        // Handle typing indicators in the UI
+        // For now, just log it
+        if (_selectedChatId == typingIndicator.ChatId)
+        {
+            // TODO: Show typing indicator in chat UI
+        }
+    }
+
+    /// <summary>
+    /// Check if a message is from the current user
+    /// </summary>
+    private bool IsFromCurrentUser(ChatMessageDto message)
+    {
+        // TODO: Get current user ID from auth service and compare with SenderId
+        // For now, return true if SenderName contains "Tu" (placeholder logic)
+        return message.SenderName == "Tu" || message.SenderName == "You";
+    }
+
+    #endregion
 
     /// <summary>
     /// Generate placeholder chats for UI structure testing
