@@ -9,6 +9,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
+@inject IHelpService HelpService
 @implements IDisposable
 
 <PageTitle>@TranslationService.GetTranslation("chat.title", "Chat - EventForge")</PageTitle>
@@ -24,20 +25,44 @@
                Width="350px"
                ClipMode="DrawerClipMode.Always">
         <MudDrawerHeader>
-            <MudText Typo="Typo.h6" Class="d-flex align-center">
-                <MudIcon Icon="@Icons.Material.Filled.Chat" 
-                         Class="mr-2" 
-                         Color="Color.Primary" />
-                @TranslationService.GetTranslation("chat.title", "Chat")
-                <!-- Unread messages badge -->
-                @if (_totalUnreadMessages > 0)
-                {
-                    <MudBadge Content="@_totalUnreadMessages.ToString()" 
-                              Color="Color.Error" 
-                              Class="ml-2">
-                    </MudBadge>
-                }
-            </MudText>
+            <div class="d-flex justify-space-between align-center w-100">
+                <MudText Typo="Typo.h6" Class="d-flex align-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Chat" 
+                             Class="mr-2" 
+                             Color="Color.Primary" />
+                    @TranslationService.GetTranslation("chat.title", "Chat")
+                    <!-- Unread messages badge -->
+                    @if (_totalUnreadMessages > 0)
+                    {
+                        <MudBadge Content="@_totalUnreadMessages.ToString()" 
+                                  Color="Color.Error" 
+                                  Class="ml-2">
+                        </MudBadge>
+                    }
+                </MudText>
+                <HelpTooltip TranslationKey="help.tooltips.chat.channels"
+                            FallbackText="Browse and join different chat channels"
+                            ShowHelpIcon="true"
+                            IconSize="Size.Small"
+                            Placement="Placement.Bottom" />
+            </div>
+            <!-- Quick help buttons -->
+            <div class="d-flex ga-1 mt-2">
+                <MudButton Size="Size.Small" 
+                           Variant="Variant.Text" 
+                           Color="Color.Info"
+                           StartIcon="@Icons.Material.Filled.Help"
+                           OnClick="@(() => _showOnboarding = true)">
+                    @TranslationService.GetTranslation("help.quickStart", "Quick Start")
+                </MudButton>
+                <MudButton Size="Size.Small" 
+                           Variant="Variant.Text" 
+                           Color="Color.Info"
+                           StartIcon="@Icons.Material.Filled.Tour"
+                           OnClick="@StartWalkthrough">
+                    @TranslationService.GetTranslation("help.takeATour", "Take a Tour")
+                </MudButton>
+            </div>
         </MudDrawerHeader>
         
         <MudDrawerContent>
@@ -325,12 +350,25 @@
     </MudMainContent>
 </MudDrawerContainer>
 
+<!-- Help Components -->
+<OnboardingModal ComponentId="chat" 
+                 @bind-IsVisible="_showOnboarding"
+                 OnOnboardingCompleted="@OnOnboardingCompleted" />
+
+<InteractiveWalkthrough ComponentId="chat" 
+                        @bind-IsActive="_showWalkthrough"
+                        OnWalkthroughCompleted="@OnWalkthroughCompleted" />
+
 @code {
     // State variables
     private bool _drawerOpen = true;
     private bool _isLoadingChats = false;
     private bool _isLoadingMessages = false;
     private bool _isSendingMessage = false;
+    
+    // Help system state
+    private bool _showOnboarding = false;
+    private bool _showWalkthrough = false;
     private string _searchText = "";
     private string _chatFilter = "all";
     private string _newMessage = "";
@@ -736,6 +774,59 @@
             new() { Id = 4, Content = "Sì, molto interessante! Le nuove funzionalità sono ottime.", SenderName = "Tu", IsFromCurrentUser = true, Timestamp = DateTime.Now.AddMinutes(-40), Status = "delivered", AttachmentName = "documento.pdf" }
         };
     }
+
+    #region Help System Methods
+
+    /// <summary>
+    /// Starts the interactive walkthrough for chat.
+    /// </summary>
+    private async Task StartWalkthrough()
+    {
+        try
+        {
+            _showWalkthrough = true;
+            StateHasChanged();
+            await Task.Delay(100); // Small delay for UI to update
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error starting walkthrough: {ex.Message}", Severity.Warning);
+        }
+    }
+
+    /// <summary>
+    /// Called when onboarding is completed.
+    /// </summary>
+    private async Task OnOnboardingCompleted()
+    {
+        try
+        {
+            await HelpService.SetOnboardingStepCompletedAsync("chat_onboarding_completed");
+            Snackbar.Add(TranslationService.GetTranslation("onboarding.completed", "Onboarding completed successfully!"), Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error completing onboarding: {ex.Message}", Severity.Warning);
+        }
+    }
+
+    /// <summary>
+    /// Called when walkthrough is completed.
+    /// </summary>
+    private async Task OnWalkthroughCompleted()
+    {
+        try
+        {
+            await HelpService.SetOnboardingStepCompletedAsync("chat_walkthrough_completed");
+            Snackbar.Add(TranslationService.GetTranslation("walkthrough.completed", "Tour completed! You're now ready to use chat effectively."), Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error completing walkthrough: {ex.Message}", Severity.Warning);
+        }
+    }
+
+    #endregion
 
     /// <summary>
     /// Placeholder DTO for chats

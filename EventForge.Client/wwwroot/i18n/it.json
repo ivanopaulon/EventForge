@@ -62,7 +62,11 @@
     "auditTrail": "Audit Trail",
     "configuration": "Configurazione",
     "translationManagement": "Gestione Traduzioni",
-    "settingsDescription": "Vai alle impostazioni"
+    "settingsDescription": "Vai alle impostazioni",
+    "help": "Aiuto e Supporto",
+    "helpCenter": "Centro Aiuto",
+    "interactiveTour": "Tour Interattivo",
+    "tutorialCenter": "Centro Tutorial"
   },
   "home": {
     "title": "EventForge - Home",
@@ -202,6 +206,18 @@
     "userDisabled": "Utente disabilitato con successo!",
     "tenantEnabled": "Tenant abilitato con successo!",
     "tenantDisabled": "Tenant disabilitato con successo!",
+    "quickStart": "Avvio Rapido",
+    "takeATour": "Fai un Tour",
+    "onboardingCompleted": "Onboarding completato con successo!",
+    "walkthroughCompleted": "Tour completato! Ora sei pronto per utilizzare questa funzionalità efficacemente.",
+    "help": "Aiuto",
+    "helpCenter": "Centro Aiuto",
+    "interactiveTour": "Tour Interattivo", 
+    "tutorialCenter": "Centro Tutorial",
+    "generalHelpTitle": "Centro Aiuto EventForge",
+    "generalHelpContent": "Benvenuto nell'Aiuto di EventForge! Usa questa applicazione per gestire eventi, notifiche, chat e altro. Ogni sezione ha il proprio sistema di aiuto con tutorial dettagliati e guide interattive.",
+    "selectMessage": "Visita le sezioni specifiche (Notifiche, Chat, SuperAdmin) e clicca 'Fai un Tour' per iniziare una guida interattiva di quella funzionalità.",
+    "centerMessage": "Centro Tutorial: Accedi a guide passo-passo per ogni funzionalità. Puoi reimpostare i tuoi progressi e rivedere i tutorial in qualsiasi momento. Visita le sezioni Notifiche, Chat o SuperAdmin e clicca 'Avvio Rapido' per iniziare.",
     "confirmUserStatusChange": "Sei sicuro di voler {0} l'utente '{1}'? Questa azione verrà registrata nei log di audit.",
     "confirmTenantStatusChange": "Sei sicuro di voler {0} il tenant '{1}'? Questa azione verrà registrata nei log di audit e potrebbe influenzare tutti gli utenti del tenant.",
     "confirmImpersonation": "Sei sicuro di voler impersonificare l'utente '{0}'? Questa azione verrà registrata nei log di audit e terminerà la sessione corrente.",
@@ -558,6 +574,218 @@
       "admin": "Amministrazione completa del tenant",
       "superadmin": "Accesso completo al sistema",
       "default": "Ruolo personalizzato"
+    }
+  },
+  "help": {
+    "general": {
+      "overview": "Benvenuto in EventForge! Questa sezione fornisce informazioni utili sull'utilizzo di questa funzionalità.",
+      "gettingStarted": "Inizia esplorando le opzioni e gli strumenti disponibili.",
+      "tips": "Suggerimenti utili per utilizzare efficacemente questa funzionalità."
+    },
+    "iconAriaLabel": "Ottieni aiuto per questa funzionalità",
+    "moreInfo": "Maggiori Info",
+    "tooltips": {
+      "notifications": {
+        "center": "Visualizza e gestisci tutte le tue notifiche in un unico posto",
+        "filter": "Filtra le notifiche per tipo, stato o data",
+        "markRead": "Segna le notifiche selezionate come lette",
+        "delete": "Elimina le notifiche selezionate",
+        "settings": "Configura le tue preferenze di notifica",
+        "refresh": "Aggiorna manualmente l'elenco delle notifiche"
+      },
+      "chat": {
+        "channels": "Sfoglia e unisciti a diversi canali chat",
+        "messages": "Invia e ricevi messaggi in tempo reale",
+        "files": "Condividi file con i membri del tuo team",
+        "search": "Cerca nella cronologia chat"
+      },
+      "superadmin": {
+        "users": "Gestisci account utente e permessi",
+        "tenants": "Amministra configurazioni tenant",
+        "audit": "Visualizza audit trail e log di sistema",
+        "config": "Configura impostazioni di sistema"
+      },
+      "files": {
+        "upload": "Carica file da condividere con il tuo team",
+        "manage": "Organizza e gestisci i tuoi file",
+        "share": "Controlla permessi di condivisione file",
+        "download": "Scarica file sul tuo dispositivo"
+      }
+    },
+    "notifications": {
+      "overview": "Il centro notifiche ti aiuta a rimanere informato su eventi e aggiornamenti importanti in EventForge. Qui puoi visualizzare, filtrare e gestire tutte le tue notifiche in modo efficiente.",
+      "filtering": "Usa le opzioni di filtro per trovare notifiche specifiche. Puoi filtrare per tipo (info, avviso, errore), stato (letto/non letto) o intervallo di date.",
+      "actions": "Seleziona una o più notifiche per eseguire azioni di massa come segnare come lette o eliminare. Puoi anche cliccare su singole notifiche per vedere più dettagli.",
+      "preferences": "Personalizza quali tipi di notifiche vuoi ricevere e come vuoi essere notificato (email, in-app, ecc.)."
+    },
+    "chat": {
+      "overview": "Il sistema chat consente comunicazione in tempo reale con i membri del tuo team. Unisciti ai canali, invia messaggi e condividi file senza problemi.",
+      "channels": "I canali sono conversazioni organizzate attorno a argomenti o team specifici. Unisciti ai canali rilevanti per rimanere connesso con i tuoi colleghi.",
+      "messaging": "Invia messaggi di testo, usa opzioni di formattazione e menziona altri utenti con @username. I messaggi vengono consegnati istantaneamente a tutti i membri del canale.",
+      "files": "Condividi documenti, immagini e altri file direttamente in chat. I file sono memorizzati in modo sicuro e accessibili ai membri del canale."
+    },
+    "superadmin": {
+      "overview": "Gli strumenti SuperAdmin forniscono capacità di amministrazione del sistema complete. Gestisci utenti, configura impostazioni e monitora la salute del sistema.",
+      "users": "Crea, modifica e gestisci account utente. Assegna ruoli, imposta permessi e monitora l'attività utente in tutto il sistema.",
+      "configuration": "Configura impostazioni di sistema inclusi policy di sicurezza, toggle delle funzionalità e parametri di integrazione.",
+      "audit": "Monitora tutte le attività del sistema attraverso log di audit completi. Traccia azioni utente, modifiche del sistema ed eventi di sicurezza."
+    },
+    "files": {
+      "overview": "La gestione file ti permette di caricare, organizzare e condividere file in modo sicuro all'interno di EventForge.",
+      "upload": "Trascina e rilascia file o clicca per sfogliare. I formati supportati includono documenti, immagini e archivi fino a 50MB.",
+      "management": "Organizza file in cartelle, rinomina elementi e gestisci permessi. Usa la ricerca per trovare rapidamente file specifici.",
+      "sharing": "Controlla chi può accedere ai tuoi file. Imposta permessi per visualizzazione, download o modifica del contenuto condiviso."
+    }
+  },
+  "onboarding": {
+    "progress": "Passo {0} di {1}",
+    "progressAria": "Progresso onboarding",
+    "skip": "Salta",
+    "skipAria": "Salta l'intero onboarding",
+    "previousAria": "Vai al passo precedente",
+    "nextAria": "Vai al passo successivo",
+    "complete": "Completa",
+    "completeAria": "Completa onboarding",
+    "tips": "Suggerimenti:",
+    "dontShowAgain": "Non mostrare più questo onboarding",
+    "dontShowAgainHelp": "Puoi sempre accedere all'aiuto dal menu",
+    "notifications": {
+      "welcome": {
+        "title": "Benvenuto nelle Notifiche",
+        "content": "Impara come gestire le tue notifiche efficacemente. Questo centro mostra tutti gli aggiornamenti e avvisi importanti da EventForge.",
+        "imageAlt": "Schermata di benvenuto centro notifiche"
+      },
+      "filters": {
+        "title": "Filtra le Tue Notifiche",
+        "content": "Usa i filtri per organizzare le tue notifiche per tipo, stato o data. Questo ti aiuta a concentrarti su ciò che è più importante.",
+        "imageAlt": "Opzioni filtro notifiche"
+      },
+      "actions": {
+        "title": "Azioni",
+        "content": "Segna notifiche come lette, eliminale o rispondi direttamente. Le azioni di massa ti permettono di gestire più notifiche insieme.",
+        "imageAlt": "Pulsanti azione notifiche"
+      },
+      "preferences": {
+        "title": "Imposta le Tue Preferenze",
+        "content": "Personalizza quali notifiche ricevi e come vieni avvisato. Adatta l'esperienza alle tue esigenze.",
+        "imageAlt": "Pannello preferenze notifiche"
+      }
+    },
+    "chat": {
+      "welcome": {
+        "title": "Benvenuto nella Chat",
+        "content": "Inizia a comunicare con il tuo team in tempo reale. I canali chat aiutano a organizzare conversazioni per argomento o progetto.",
+        "imageAlt": "Benvenuto interfaccia chat"
+      },
+      "channels": {
+        "title": "Unisciti ai Canali",
+        "content": "Sfoglia i canali disponibili e unisciti a quelli rilevanti per il tuo lavoro. Ogni canale ha la propria cronologia conversazione.",
+        "imageAlt": "Lista canali chat"
+      },
+      "messaging": {
+        "title": "Invia Messaggi",
+        "content": "Digita il tuo messaggio e premi Invio per inviare. Usa @menzioni per notificare utenti specifici e formattazione per enfasi.",
+        "imageAlt": "Area input messaggio chat"
+      },
+      "files": {
+        "title": "Condividi File",
+        "content": "Clicca l'icona allegato per condividere file con il tuo team. I file sono memorizzati in modo sicuro e accessibili ai membri del canale.",
+        "imageAlt": "Condivisione file in chat"
+      }
+    },
+    "superadmin": {
+      "welcome": {
+        "title": "Panoramica SuperAdmin",
+        "content": "Accedi a potenti strumenti amministrativi per gestire l'intero sistema EventForge. Monitora, configura e mantieni la salute del sistema.",
+        "imageAlt": "Dashboard SuperAdmin"
+      },
+      "users": {
+        "title": "Gestisci Utenti",
+        "content": "Crea e gestisci account utente, assegna ruoli e monitora attività utente. Assicura controllo accessi appropriato in tutto il sistema.",
+        "imageAlt": "Interfaccia gestione utenti"
+      },
+      "config": {
+        "title": "Configurazione Sistema",
+        "content": "Configura impostazioni di sistema, policy di sicurezza e toggle funzionalità. I cambiamenti qui influenzano tutti gli utenti.",
+        "imageAlt": "Pannello configurazione sistema"
+      },
+      "audit": {
+        "title": "Audit Trail",
+        "content": "Monitora tutte le attività e modifiche del sistema. L'audit trail fornisce visibilità completa sulle operazioni del sistema.",
+        "imageAlt": "Interfaccia audit trail"
+      }
+    }
+  },
+  "walkthrough": {
+    "step": "Passo {0} di {1}",
+    "close": "Chiudi tutorial",
+    "skip": "Salta Tour",
+    "finish": "Termina",
+    "notifications": {
+      "notification-header": {
+        "title": "Centro Notifiche",
+        "description": "Questo è il tuo centro notifiche dove sono visualizzate tutte le tue notifiche.",
+        "action": "Guarda l'intestazione e il titolo delle notifiche"
+      },
+      "notification-filters": {
+        "title": "Opzioni Filtro",
+        "description": "Usa questi filtri per organizzare le tue notifiche per tipo, stato o data.",
+        "action": "Prova a cliccare sui pulsanti filtro per restringere i risultati"
+      },
+      "notification-list": {
+        "title": "Lista Notifiche",
+        "description": "Le tue notifiche appaiono qui. Clicca su qualsiasi notifica per vedere i dettagli.",
+        "action": "Scorri attraverso le tue notifiche"
+      },
+      "notification-actions": {
+        "title": "Azioni Rapide",
+        "description": "Usa questi pulsanti per segnare notifiche come lette, eliminare o compiere altre azioni.",
+        "action": "Prova a cliccare il pulsante 'Segna Tutte Come Lette'"
+      }
+    },
+    "chat": {
+      "chat-channels": {
+        "title": "Canali Chat",
+        "description": "Questi sono i tuoi canali chat disponibili. Clicca per unirti a una conversazione.",
+        "action": "Seleziona un canale per vedere i suoi messaggi"
+      },
+      "chat-messages": {
+        "title": "Area Messaggi",
+        "description": "I messaggi della tua conversazione appaiono qui in tempo reale.",
+        "action": "Scorri attraverso la cronologia messaggi"
+      },
+      "chat-input": {
+        "title": "Input Messaggio",
+        "description": "Digita il tuo messaggio qui e premi Invio per inviare.",
+        "action": "Prova a digitare un messaggio"
+      },
+      "chat-files": {
+        "title": "Condivisione File",
+        "description": "Clicca l'icona allegato per condividere file con il tuo team.",
+        "action": "Clicca il pulsante allegato file"
+      }
+    },
+    "superadmin": {
+      "admin-navigation": {
+        "title": "Navigazione Admin",
+        "description": "Usa questa navigazione per accedere a diverse funzioni amministrative.",
+        "action": "Esplora il menu di navigazione"
+      },
+      "admin-dashboard": {
+        "title": "Panoramica Dashboard",
+        "description": "Ottieni una rapida panoramica dello stato del sistema e metriche chiave.",
+        "action": "Rivedi le informazioni della dashboard"
+      },
+      "admin-users": {
+        "title": "Gestione Utenti",
+        "description": "Gestisci account utente, ruoli e permessi qui.",
+        "action": "Clicca per vedere gli strumenti di gestione utenti"
+      },
+      "admin-settings": {
+        "title": "Impostazioni Sistema",
+        "description": "Configura impostazioni di sistema e preferenze.",
+        "action": "Accedi al pannello impostazioni"
+      }
     }
   }
 }

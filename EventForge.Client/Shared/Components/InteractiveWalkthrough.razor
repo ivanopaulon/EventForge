@@ -1,0 +1,336 @@
+@inject IJSRuntime JSRuntime
+@inject ITranslationService TranslationService
+@inject IHelpService HelpService
+
+@* Interactive walkthrough overlay *@
+@if (IsActive)
+{
+    <div class="walkthrough-overlay" @onclick="@StopWalkthrough" role="dialog" aria-modal="true" aria-labelledby="walkthrough-title" aria-describedby="walkthrough-description">
+        <div class="walkthrough-backdrop" aria-hidden="true"></div>
+        
+        <!-- Highlight current element -->
+        <div class="walkthrough-highlight" style="@HighlightStyle" aria-hidden="true"></div>
+        
+        <!-- Step content card -->
+        <div class="walkthrough-card" style="@CardStyle" @onclick:stopPropagation="true">
+            <MudCard Class="pa-4" Elevation="8">
+                <MudCardContent>
+                    <!-- Step indicator -->
+                    <div class="d-flex justify-space-between align-center mb-3">
+                        <MudChip T="string" Label="true" Color="Color.Primary" Size="Size.Small">
+                            @TranslationService.GetTranslation("walkthrough.step", "Step {0} of {1}", CurrentStepIndex + 1, WalkthroughSteps.Count)
+                        </MudChip>
+                        <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                                       Size="Size.Small" 
+                                       OnClick="@StopWalkthrough"
+                                       aria-label="@TranslationService.GetTranslation("walkthrough.close", "Close walkthrough")" />
+                    </div>
+                    
+                    <!-- Title and content -->
+                    <MudText id="walkthrough-title" Typo="Typo.h6" Class="mb-2">
+                        @CurrentStepTitle
+                    </MudText>
+                    <MudText id="walkthrough-description" Typo="Typo.body2" Class="mb-3">
+                        @CurrentStepDescription
+                    </MudText>
+                    
+                    <!-- Action suggestion -->
+                    @if (!string.IsNullOrEmpty(CurrentStepAction))
+                    {
+                        <MudAlert Severity="Severity.Info" Class="mb-3" Icon="@Icons.Material.Filled.TouchApp">
+                            @CurrentStepAction
+                        </MudAlert>
+                    }
+                    
+                    <!-- Navigation buttons -->
+                    <div class="d-flex justify-space-between">
+                        <MudButton Variant="Variant.Text" 
+                                   Color="Color.Default"
+                                   OnClick="@StopWalkthrough">
+                            @TranslationService.GetTranslation("walkthrough.skip", "Skip Tour")
+                        </MudButton>
+                        
+                        <div class="d-flex ga-2">
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Primary"
+                                       Disabled="@(CurrentStepIndex == 0)"
+                                       OnClick="@PreviousStep">
+                                @TranslationService.GetTranslation("common.previous", "Previous")
+                            </MudButton>
+                            
+                            @if (CurrentStepIndex < WalkthroughSteps.Count - 1)
+                            {
+                                <MudButton Variant="Variant.Filled" 
+                                           Color="Color.Primary"
+                                           OnClick="@NextStep">
+                                    @TranslationService.GetTranslation("common.next", "Next")
+                                </MudButton>
+                            }
+                            else
+                            {
+                                <MudButton Variant="Variant.Filled" 
+                                           Color="Color.Success"
+                                           OnClick="@CompleteWalkthrough">
+                                    @TranslationService.GetTranslation("walkthrough.finish", "Finish")
+                                </MudButton>
+                            }
+                        </div>
+                    </div>
+                </MudCardContent>
+            </MudCard>
+        </div>
+    </div>
+}
+
+<style>
+    .walkthrough-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        pointer-events: auto;
+    }
+
+    .walkthrough-backdrop {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        transition: background-color 0.3s ease;
+    }
+
+    .walkthrough-highlight {
+        position: absolute;
+        border: 3px solid var(--mud-palette-primary);
+        border-radius: 8px;
+        background-color: rgba(255, 255, 255, 0.1);
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7);
+        transition: all 0.3s ease;
+        pointer-events: none;
+    }
+
+    .walkthrough-card {
+        position: absolute;
+        max-width: 400px;
+        min-width: 300px;
+        transition: all 0.3s ease;
+        z-index: 10000;
+    }
+
+    @@media (max-width: 600px) {
+        .walkthrough-card {
+            max-width: 90vw;
+            min-width: 280px;
+        }
+    }
+</style>
+
+@code {
+    /// <summary>
+    /// Component ID for the walkthrough (e.g., "notifications", "chat").
+    /// </summary>
+    [Parameter] public string ComponentId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Whether the walkthrough is currently active.
+    /// </summary>
+    [Parameter] public bool IsActive { get; set; }
+
+    /// <summary>
+    /// Callback when walkthrough state changes.
+    /// </summary>
+    [Parameter] public EventCallback<bool> IsActiveChanged { get; set; }
+
+    /// <summary>
+    /// Callback when walkthrough is completed.
+    /// </summary>
+    [Parameter] public EventCallback OnWalkthroughCompleted { get; set; }
+
+    /// <summary>
+    /// List of walkthrough steps.
+    /// </summary>
+    private List<WalkthroughStep> WalkthroughSteps { get; set; } = new();
+
+    /// <summary>
+    /// Current step index.
+    /// </summary>
+    private int CurrentStepIndex { get; set; } = 0;
+
+    private WalkthroughStep? CurrentStep => CurrentStepIndex < WalkthroughSteps.Count ? WalkthroughSteps[CurrentStepIndex] : null;
+
+    private string CurrentStepTitle => CurrentStep != null 
+        ? TranslationService.GetTranslation($"walkthrough.{ComponentId}.{CurrentStep.Id}.title", CurrentStep.Title)
+        : string.Empty;
+
+    private string CurrentStepDescription => CurrentStep != null 
+        ? TranslationService.GetTranslation($"walkthrough.{ComponentId}.{CurrentStep.Id}.description", CurrentStep.Description)
+        : string.Empty;
+
+    private string? CurrentStepAction => CurrentStep != null 
+        ? TranslationService.GetTranslation($"walkthrough.{ComponentId}.{CurrentStep.Id}.action", CurrentStep.ActionText ?? string.Empty)
+        : null;
+
+    private string HighlightStyle { get; set; } = string.Empty;
+    private string CardStyle { get; set; } = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        LoadStepsForComponent();
+        
+        if (IsActive && WalkthroughSteps.Any())
+        {
+            await UpdateHighlight();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsActive && WalkthroughSteps.Any())
+        {
+            await UpdateHighlight();
+        }
+    }
+
+    private void LoadStepsForComponent()
+    {
+        WalkthroughSteps = ComponentId switch
+        {
+            "notifications" => new List<WalkthroughStep>
+            {
+                new("notification-header", "Notification Center", "This is your notification center where all your notifications are displayed.", "#notification-header"),
+                new("notification-filters", "Filter Options", "Use these filters to organize your notifications by type, status, or date.", ".notification-filters"),
+                new("notification-list", "Notification List", "Your notifications appear here. Click on any notification to view details.", ".notification-list"),
+                new("notification-actions", "Quick Actions", "Use these buttons to mark notifications as read, delete, or take other actions.", ".notification-actions", "Try clicking the 'Mark All as Read' button")
+            },
+            "chat" => new List<WalkthroughStep>
+            {
+                new("chat-channels", "Chat Channels", "These are your available chat channels. Click to join a conversation.", ".chat-channels"),
+                new("chat-messages", "Message Area", "Your conversation messages appear here in real-time.", ".chat-messages"),
+                new("chat-input", "Message Input", "Type your message here and press Enter to send.", ".chat-input", "Try typing a message"),
+                new("chat-files", "File Sharing", "Click the attachment icon to share files with your team.", ".chat-file-button")
+            },
+            "superadmin" => new List<WalkthroughStep>
+            {
+                new("admin-navigation", "Admin Navigation", "Use this navigation to access different administrative functions.", ".admin-nav"),
+                new("admin-dashboard", "Dashboard Overview", "Get a quick overview of system status and key metrics.", ".admin-dashboard"),
+                new("admin-users", "User Management", "Manage user accounts, roles, and permissions here.", ".admin-users"),
+                new("admin-settings", "System Settings", "Configure system-wide settings and preferences.", ".admin-settings")
+            },
+            _ => new List<WalkthroughStep>()
+        };
+    }
+
+    private async Task UpdateHighlight()
+    {
+        if (CurrentStep == null) return;
+
+        try
+        {
+            // Get element position and size
+            var elementInfo = await JSRuntime.InvokeAsync<ElementInfo>("getElementInfo", CurrentStep.Selector);
+            
+            if (elementInfo != null)
+            {
+                // Position highlight
+                HighlightStyle = $"top: {elementInfo.Top - 10}px; left: {elementInfo.Left - 10}px; width: {elementInfo.Width + 20}px; height: {elementInfo.Height + 20}px;";
+                
+                // Position card (try to place it beside the highlighted element)
+                var cardTop = elementInfo.Top;
+                var cardLeft = elementInfo.Left + elementInfo.Width + 20;
+                
+                // Adjust if card would go off-screen
+                if (cardLeft + 400 > elementInfo.ViewportWidth)
+                {
+                    cardLeft = elementInfo.Left - 420;
+                }
+                
+                if (cardLeft < 20)
+                {
+                    cardLeft = 20;
+                    cardTop = elementInfo.Top + elementInfo.Height + 20;
+                }
+                
+                if (cardTop < 20)
+                {
+                    cardTop = 20;
+                }
+                
+                CardStyle = $"top: {cardTop}px; left: {cardLeft}px;";
+                
+                // Scroll element into view if needed
+                await JSRuntime.InvokeVoidAsync("scrollIntoViewIfNeeded", CurrentStep.Selector);
+            }
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // Element might not exist yet, continue with default positioning
+            HighlightStyle = "top: 50%; left: 50%; transform: translate(-50%, -50%); width: 200px; height: 100px;";
+            CardStyle = "top: 60%; left: 50%; transform: translateX(-50%);";
+            StateHasChanged();
+        }
+    }
+
+    private async Task NextStep()
+    {
+        if (CurrentStepIndex < WalkthroughSteps.Count - 1)
+        {
+            CurrentStepIndex++;
+            await UpdateHighlight();
+        }
+    }
+
+    private async Task PreviousStep()
+    {
+        if (CurrentStepIndex > 0)
+        {
+            CurrentStepIndex--;
+            await UpdateHighlight();
+        }
+    }
+
+    private async Task CompleteWalkthrough()
+    {
+        await HelpService.SetOnboardingStepCompletedAsync($"{ComponentId}_walkthrough_completed");
+        await StopWalkthrough();
+        
+        if (OnWalkthroughCompleted.HasDelegate)
+        {
+            await OnWalkthroughCompleted.InvokeAsync();
+        }
+    }
+
+    private async Task StopWalkthrough()
+    {
+        IsActive = false;
+        await IsActiveChanged.InvokeAsync(false);
+    }
+
+    /// <summary>
+    /// Starts the walkthrough for this component.
+    /// </summary>
+    public async Task StartWalkthrough()
+    {
+        CurrentStepIndex = 0;
+        IsActive = true;
+        await IsActiveChanged.InvokeAsync(true);
+        await UpdateHighlight();
+    }
+
+    private record WalkthroughStep(string Id, string Title, string Description, string Selector, string? ActionText = null);
+
+    private class ElementInfo
+    {
+        public double Top { get; set; }
+        public double Left { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+        public double ViewportWidth { get; set; }
+        public double ViewportHeight { get; set; }
+    }
+}

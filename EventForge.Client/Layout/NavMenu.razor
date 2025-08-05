@@ -5,6 +5,9 @@
 @inject IChatService ChatService
 @inject SignalRService SignalRService
 @inject ITranslationService TranslationService
+@inject IHelpService HelpService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 @implements IDisposable
 
 <MudNavMenu>
@@ -131,6 +134,25 @@
         <MudNavLink Href="/profile" Icon="@Icons.Material.Outlined.Person" Match="NavLinkMatch.All">
             @TranslationService.GetTranslation("nav.profile", "Profilo")
         </MudNavLink>
+
+        <!-- Help Section -->
+        <MudDivider Class="my-4" />
+        <MudNavGroup title="@TranslationService.GetTranslation("nav.help", "Aiuto e Supporto")" 
+                     Icon="@Icons.Material.Outlined.Help" 
+                     Expanded="false">
+            <MudNavLink Icon="@Icons.Material.Outlined.QuestionMark" 
+                        OnClick="@ShowGeneralHelp">
+                @TranslationService.GetTranslation("nav.helpCenter", "Centro Aiuto")
+            </MudNavLink>
+            <MudNavLink Icon="@Icons.Material.Outlined.Tour" 
+                        OnClick="@ShowInteractiveTour">
+                @TranslationService.GetTranslation("nav.interactiveTour", "Tour Interattivo")
+            </MudNavLink>
+            <MudNavLink Icon="@Icons.Material.Outlined.School" 
+                        OnClick="@ShowOnboarding">
+                @TranslationService.GetTranslation("nav.tutorialCenter", "Centro Tutorial")
+            </MudNavLink>
+        </MudNavGroup>
     }
     else
     {
@@ -275,6 +297,104 @@
     {
         _unreadMessageCount = Math.Max(0, _unreadMessageCount - 1);
         InvokeAsync(StateHasChanged);
+    }
+
+    #endregion
+
+    #region Help System Methods
+
+    /// <summary>
+    /// Shows general help dialog.
+    /// </summary>
+    private async Task ShowGeneralHelp()
+    {
+        try
+        {
+            var options = new DialogOptions 
+            { 
+                MaxWidth = MaxWidth.Medium, 
+                FullWidth = true,
+                CloseOnEscapeKey = true
+            };
+
+            var parameters = new DialogParameters
+            {
+                ["Title"] = TranslationService.GetTranslation("help.generalHelpTitle", "EventForge Help Center"),
+                ["Content"] = TranslationService.GetTranslation("help.generalHelpContent", "Welcome to EventForge Help! Use this application to manage events, notifications, chat, and more. Each section has its own help system with detailed tutorials and walkthroughs.")
+            };
+
+            await DialogService.ShowAsync<MudMessageBox>(TranslationService.GetTranslation("help.helpCenter", "Help Center"), parameters, options);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error showing help: {ex.Message}", Severity.Warning);
+        }
+    }
+
+    /// <summary>
+    /// Shows interactive tour selector.
+    /// </summary>
+    private async Task ShowInteractiveTour()
+    {
+        try
+        {
+            var options = new DialogOptions 
+            { 
+                MaxWidth = MaxWidth.Medium, 
+                FullWidth = true,
+                CloseOnEscapeKey = true
+            };
+
+            var tourOptions = new List<string>
+            {
+                TranslationService.GetTranslation("tour.notifications", "Notifications Tour"),
+                TranslationService.GetTranslation("tour.chat", "Chat Tour"),
+                TranslationService.GetTranslation("tour.superadmin", "SuperAdmin Tour")
+            };
+
+            // For now, show a simple message. This could be expanded to a custom component
+            var message = TranslationService.GetTranslation("tour.selectMessage", "Visit the specific sections (Notifications, Chat, SuperAdmin) and click 'Take a Tour' to start an interactive walkthrough of that feature.");
+            
+            await DialogService.ShowMessageBox(
+                TranslationService.GetTranslation("nav.interactiveTour", "Interactive Tour"),
+                message,
+                TranslationService.GetTranslation("common.ok", "OK"),
+                options: options
+            );
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error showing tour options: {ex.Message}", Severity.Warning);
+        }
+    }
+
+    /// <summary>
+    /// Shows onboarding options.
+    /// </summary>
+    private async Task ShowOnboarding()
+    {
+        try
+        {
+            var options = new DialogOptions 
+            { 
+                MaxWidth = MaxWidth.Medium, 
+                FullWidth = true,
+                CloseOnEscapeKey = true
+            };
+
+            var message = TranslationService.GetTranslation("onboarding.centerMessage", "Tutorial Center: Access step-by-step guides for each feature. You can reset your progress and replay tutorials at any time. Visit Notifications, Chat, or SuperAdmin sections and click 'Quick Start' to begin.");
+            
+            await DialogService.ShowMessageBox(
+                TranslationService.GetTranslation("nav.tutorialCenter", "Tutorial Center"),
+                message,
+                TranslationService.GetTranslation("common.ok", "OK"),
+                options: options
+            );
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error showing tutorial center: {ex.Message}", Severity.Warning);
+        }
     }
 
     #endregion

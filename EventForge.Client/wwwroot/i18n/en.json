@@ -61,7 +61,11 @@
     "auditTrail": "Audit Trail",
     "configuration": "Configuration",
     "translationManagement": "Translation Management",
-    "settingsDescription": "Go to settings"
+    "settingsDescription": "Go to settings",
+    "help": "Help & Support",
+    "helpCenter": "Help Center",
+    "interactiveTour": "Interactive Tour",
+    "tutorialCenter": "Tutorial Center"
   },
   "home": {
     "title": "EventForge - Home",
@@ -200,6 +204,18 @@
     "userDisabled": "User disabled successfully!",
     "tenantEnabled": "Tenant enabled successfully!",
     "tenantDisabled": "Tenant disabled successfully!",
+    "quickStart": "Quick Start",
+    "takeATour": "Take a Tour",
+    "onboardingCompleted": "Onboarding completed successfully!",
+    "walkthroughCompleted": "Tour completed! You're now ready to use this feature effectively.",
+    "help": "Help",
+    "helpCenter": "Help Center",
+    "interactiveTour": "Interactive Tour",
+    "tutorialCenter": "Tutorial Center",
+    "generalHelpTitle": "EventForge Help Center",
+    "generalHelpContent": "Welcome to EventForge Help! Use this application to manage events, notifications, chat, and more. Each section has its own help system with detailed tutorials and walkthroughs.",
+    "selectMessage": "Visit the specific sections (Notifications, Chat, SuperAdmin) and click 'Take a Tour' to start an interactive walkthrough of that feature.",
+    "centerMessage": "Tutorial Center: Access step-by-step guides for each feature. You can reset your progress and replay tutorials at any time. Visit Notifications, Chat, or SuperAdmin sections and click 'Quick Start' to begin.",
     "confirmUserStatusChange": "Are you sure you want to {0} user '{1}'? This action will be logged in the audit trail.",
     "confirmTenantStatusChange": "Are you sure you want to {0} tenant '{1}'? This action will be logged in the audit trail and may affect all tenant users.",
     "confirmImpersonation": "Are you sure you want to impersonate user '{0}'? This action will be logged in the audit trail and will end the current session.",
@@ -769,6 +785,218 @@
       "admin": "Complete tenant administration",
       "superadmin": "Full system access",
       "default": "Custom role"
+    }
+  },
+  "help": {
+    "general": {
+      "overview": "Welcome to EventForge! This section provides helpful information about using this feature.",
+      "gettingStarted": "Get started by exploring the available options and tools.",
+      "tips": "Helpful tips and tricks for using this feature effectively."
+    },
+    "iconAriaLabel": "Get help for this feature",
+    "moreInfo": "More Info",
+    "tooltips": {
+      "notifications": {
+        "center": "View and manage all your notifications in one place",
+        "filter": "Filter notifications by type, status, or date",
+        "markRead": "Mark selected notifications as read",
+        "delete": "Delete selected notifications",
+        "settings": "Configure your notification preferences",
+        "refresh": "Refresh the notification list manually"
+      },
+      "chat": {
+        "channels": "Browse and join different chat channels",
+        "messages": "Send and receive real-time messages",
+        "files": "Share files with your team members",
+        "search": "Search through chat history"
+      },
+      "superadmin": {
+        "users": "Manage user accounts and permissions",
+        "tenants": "Administer tenant configurations",
+        "audit": "View system audit trail and logs",
+        "config": "Configure system-wide settings"
+      },
+      "files": {
+        "upload": "Upload files to share with your team",
+        "manage": "Organize and manage your files",
+        "share": "Control file sharing permissions",
+        "download": "Download files to your device"
+      }
+    },
+    "notifications": {
+      "overview": "The notification center helps you stay informed about important events and updates in EventForge. Here you can view, filter, and manage all your notifications efficiently.",
+      "filtering": "Use the filter options to find specific notifications. You can filter by type (info, warning, error), status (read/unread), or date range.",
+      "actions": "Select one or more notifications to perform bulk actions like marking as read or deleting. You can also click on individual notifications to view more details.",
+      "preferences": "Customize which types of notifications you want to receive and how you want to be notified (email, in-app, etc.)."
+    },
+    "chat": {
+      "overview": "The chat system enables real-time communication with your team members. Join channels, send messages, and share files seamlessly.",
+      "channels": "Channels are organized conversations around specific topics or teams. Join relevant channels to stay connected with your colleagues.",
+      "messaging": "Send text messages, use formatting options, and mention other users with @username. Messages are delivered instantly to all channel members.",
+      "files": "Share documents, images, and other files directly in chat. Files are securely stored and accessible to channel members."
+    },
+    "superadmin": {
+      "overview": "SuperAdmin tools provide comprehensive system administration capabilities. Manage users, configure settings, and monitor system health.",
+      "users": "Create, edit, and manage user accounts. Assign roles, set permissions, and monitor user activity across the system.",
+      "configuration": "Configure system-wide settings including security policies, feature toggles, and integration parameters.",
+      "audit": "Monitor all system activities through comprehensive audit logs. Track user actions, system changes, and security events."
+    },
+    "files": {
+      "overview": "File management allows you to upload, organize, and share files securely within EventForge.",
+      "upload": "Drag and drop files or click to browse. Supported formats include documents, images, and archives up to 50MB.",
+      "management": "Organize files in folders, rename items, and manage permissions. Use search to quickly find specific files.",
+      "sharing": "Control who can access your files. Set permissions for viewing, downloading, or editing shared content."
+    }
+  },
+  "onboarding": {
+    "progress": "Step {0} of {1}",
+    "progressAria": "Onboarding progress",
+    "skip": "Skip",
+    "skipAria": "Skip the entire onboarding",
+    "previousAria": "Go to previous step",
+    "nextAria": "Go to next step",
+    "complete": "Complete",
+    "completeAria": "Complete onboarding",
+    "tips": "Tips:",
+    "dontShowAgain": "Don't show this onboarding again",
+    "dontShowAgainHelp": "You can always access help from the menu",
+    "notifications": {
+      "welcome": {
+        "title": "Welcome to Notifications",
+        "content": "Learn how to manage your notifications effectively. This center displays all important updates and alerts from EventForge.",
+        "imageAlt": "Notification center welcome screen"
+      },
+      "filters": {
+        "title": "Filter Your Notifications",
+        "content": "Use filters to organize your notifications by type, status, or date. This helps you focus on what's most important.",
+        "imageAlt": "Notification filter options"
+      },
+      "actions": {
+        "title": "Take Action",
+        "content": "Mark notifications as read, delete them, or respond directly. Bulk actions let you manage multiple notifications at once.",
+        "imageAlt": "Notification action buttons"
+      },
+      "preferences": {
+        "title": "Set Your Preferences",
+        "content": "Customize which notifications you receive and how you're alerted. Tailor the experience to your needs.",
+        "imageAlt": "Notification preferences panel"
+      }
+    },
+    "chat": {
+      "welcome": {
+        "title": "Welcome to Chat",
+        "content": "Start communicating with your team in real-time. Chat channels help organize conversations by topic or project.",
+        "imageAlt": "Chat interface welcome"
+      },
+      "channels": {
+        "title": "Join Channels",
+        "content": "Browse available channels and join those relevant to your work. Each channel has its own conversation history.",
+        "imageAlt": "Chat channels list"
+      },
+      "messaging": {
+        "title": "Send Messages",
+        "content": "Type your message and press Enter to send. Use @mentions to notify specific users and formatting for emphasis.",
+        "imageAlt": "Chat message input area"
+      },
+      "files": {
+        "title": "Share Files",
+        "content": "Click the attachment icon to share files with your team. Files are stored securely and accessible to channel members.",
+        "imageAlt": "File sharing in chat"
+      }
+    },
+    "superadmin": {
+      "welcome": {
+        "title": "SuperAdmin Overview",
+        "content": "Access powerful administrative tools to manage the entire EventForge system. Monitor, configure, and maintain system health.",
+        "imageAlt": "SuperAdmin dashboard"
+      },
+      "users": {
+        "title": "Manage Users",
+        "content": "Create and manage user accounts, assign roles, and monitor user activity. Ensure proper access control across the system.",
+        "imageAlt": "User management interface"
+      },
+      "config": {
+        "title": "System Configuration",
+        "content": "Configure system-wide settings, security policies, and feature toggles. Changes here affect all users.",
+        "imageAlt": "System configuration panel"
+      },
+      "audit": {
+        "title": "Audit Trail",
+        "content": "Monitor all system activities and changes. The audit trail provides complete visibility into system operations.",
+        "imageAlt": "Audit trail interface"
+      }
+    }
+  },
+  "walkthrough": {
+    "step": "Step {0} of {1}",
+    "close": "Close walkthrough",
+    "skip": "Skip Tour",
+    "finish": "Finish",
+    "notifications": {
+      "notification-header": {
+        "title": "Notification Center",
+        "description": "This is your notification center where all your notifications are displayed.",
+        "action": "Look at the notification header and title"
+      },
+      "notification-filters": {
+        "title": "Filter Options",
+        "description": "Use these filters to organize your notifications by type, status, or date.",
+        "action": "Try clicking on filter buttons to narrow down results"
+      },
+      "notification-list": {
+        "title": "Notification List",
+        "description": "Your notifications appear here. Click on any notification to view details.",
+        "action": "Scroll through your notifications"
+      },
+      "notification-actions": {
+        "title": "Quick Actions",
+        "description": "Use these buttons to mark notifications as read, delete, or take other actions.",
+        "action": "Try clicking the 'Mark All as Read' button"
+      }
+    },
+    "chat": {
+      "chat-channels": {
+        "title": "Chat Channels",
+        "description": "These are your available chat channels. Click to join a conversation.",
+        "action": "Select a channel to view its messages"
+      },
+      "chat-messages": {
+        "title": "Message Area",
+        "description": "Your conversation messages appear here in real-time.",
+        "action": "Scroll through the message history"
+      },
+      "chat-input": {
+        "title": "Message Input",
+        "description": "Type your message here and press Enter to send.",
+        "action": "Try typing a message"
+      },
+      "chat-files": {
+        "title": "File Sharing",
+        "description": "Click the attachment icon to share files with your team.",
+        "action": "Click the file attachment button"
+      }
+    },
+    "superadmin": {
+      "admin-navigation": {
+        "title": "Admin Navigation",
+        "description": "Use this navigation to access different administrative functions.",
+        "action": "Explore the navigation menu"
+      },
+      "admin-dashboard": {
+        "title": "Dashboard Overview",
+        "description": "Get a quick overview of system status and key metrics.",
+        "action": "Review the dashboard information"
+      },
+      "admin-users": {
+        "title": "User Management",
+        "description": "Manage user accounts, roles, and permissions here.",
+        "action": "Click to view user management tools"
+      },
+      "admin-settings": {
+        "title": "System Settings",
+        "description": "Configure system-wide settings and preferences.",
+        "action": "Access the settings panel"
+      }
     }
   }
 }
