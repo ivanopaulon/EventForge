@@ -1,4 +1,9 @@
-﻿@inject IAuthService AuthService
+﻿@using EventForge.DTOs.Notifications
+@using EventForge.DTOs.Chat
+@inject IAuthService AuthService
+@inject INotificationService NotificationService
+@inject IChatService ChatService
+@inject SignalRService SignalRService
 @inject ITranslationService TranslationService
 @implements IDisposable
 
@@ -148,6 +153,13 @@
     {
         AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
         TranslationService.LanguageChanged += OnLanguageChanged;
+        
+        // Subscribe to real-time updates
+        NotificationService.NotificationReceived += OnNotificationReceived;
+        NotificationService.NotificationRead += OnNotificationRead;
+        ChatService.MessageReceived += OnMessageReceived;
+        ChatService.MessageRead += OnMessageRead;
+        
         await CheckAuthenticationState();
     }
 
@@ -194,25 +206,41 @@
     {
         AuthService.OnAuthenticationStateChanged -= OnAuthenticationStateChanged;
         TranslationService.LanguageChanged -= OnLanguageChanged;
+        
+        // Unsubscribe from real-time updates
+        NotificationService.NotificationReceived -= OnNotificationReceived;
+        NotificationService.NotificationRead -= OnNotificationRead;
+        ChatService.MessageReceived -= OnMessageReceived;
+        ChatService.MessageRead -= OnMessageRead;
     }
 
     /// <summary>
     /// Load unread notification and message counts for navigation badges
-    /// TODO: Implement actual service integration and SignalR real-time updates
     /// </summary>
     private async Task LoadCommunicationCountsAsync()
     {
         try
         {
-            // TODO: Replace with actual service calls
-            // _unreadNotificationCount = await NotificationService.GetUnreadCountAsync();
-            // _unreadMessageCount = await ChatService.GetUnreadMessageCountAsync();
+            // Start SignalR connections if not already started
+            if (!SignalRService.IsNotificationConnected)
+            {
+                await SignalRService.StartNotificationConnectionAsync();
+            }
+            if (!SignalRService.IsChatConnected)
+            {
+                await SignalRService.StartChatConnectionAsync();
+            }
+
+            // Get notification stats to calculate unread count
+            var notificationStats = await NotificationService.GetNotificationStatsAsync();
+            _unreadNotificationCount = notificationStats.UnreadCount;
+
+            // Get chat stats to calculate unread messages
+            // Note: ChatStatsDto doesn't have unread count, so we'll rely on real-time updates for now
+            var chatStats = await ChatService.GetChatStatsAsync();
+            // _unreadMessageCount will be updated via real-time events
             
-            // Placeholder counts for UI demonstration
-            _unreadNotificationCount = 3;
-            _unreadMessageCount = 5;
-            
-            await Task.Delay(100); // Placeholder
+            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -222,4 +250,32 @@
             _unreadMessageCount = 0;
         }
     }
+
+    #region Real-time Event Handlers
+
+    private void OnNotificationReceived(NotificationResponseDto notification)
+    {
+        _unreadNotificationCount++;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnNotificationRead(Guid notificationId)
+    {
+        _unreadNotificationCount = Math.Max(0, _unreadNotificationCount - 1);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnMessageReceived(ChatMessageDto message)
+    {
+        _unreadMessageCount++;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnMessageRead(Guid chatId, Guid messageId)
+    {
+        _unreadMessageCount = Math.Max(0, _unreadMessageCount - 1);
+        InvokeAsync(StateHasChanged);
+    }
+
+    #endregion
 }
