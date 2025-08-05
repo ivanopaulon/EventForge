@@ -208,7 +208,7 @@ public class ChatController : ControllerBase
                 Detail = ex.Message
             });
         }
-        catch (UnauthorizedAccessException ex)
+        catch (UnauthorizedAccessException)
         {
             return Forbid();
         }
@@ -261,7 +261,7 @@ public class ChatController : ControllerBase
                 Detail = ex.Message
             });
         }
-        catch (UnauthorizedAccessException ex)
+        catch (UnauthorizedAccessException)
         {
             return Forbid();
         }
@@ -459,7 +459,7 @@ public class ChatController : ControllerBase
                 Detail = ex.Message
             });
         }
-        catch (UnauthorizedAccessException ex)
+        catch (UnauthorizedAccessException)
         {
             return Forbid();
         }
@@ -512,7 +512,7 @@ public class ChatController : ControllerBase
                 Detail = ex.Message
             });
         }
-        catch (UnauthorizedAccessException ex)
+        catch (UnauthorizedAccessException)
         {
             return Forbid();
         }

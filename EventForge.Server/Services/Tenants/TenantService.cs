@@ -613,7 +613,7 @@ public class TenantService : ITenantService
                     SessionId = at.SessionId,
                     IpAddress = at.IpAddress,
                     UserAgent = at.UserAgent,
-                    Details = at.Details,
+                    Details = at.Details ?? string.Empty,
                     WasSuccessful = at.WasSuccessful,
                     ErrorMessage = at.ErrorMessage,
                     PerformedAt = at.PerformedAt
@@ -798,7 +798,7 @@ public class TenantService : ITenantService
                 UserId = a.UserId,
                 Username = a.Username,
                 Email = a.Email,
-                FullName = a.FullName,
+                FullName = a.FullName ?? string.Empty,
                 MustChangePassword = false, // Default value since not available in AdminTenantResponseDto
                 GeneratedPassword = null // Only for creation
             }).ToList(),

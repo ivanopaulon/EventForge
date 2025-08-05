@@ -1309,7 +1309,7 @@ public class ChatService : IChatService
             Metadata = new Dictionary<string, object>
             {
                 ["ModeratorId"] = moderationAction.ModeratorId,
-                ["ExpiresAt"] = moderationAction.ExpiresAt?.ToString(),
+                ["ExpiresAt"] = moderationAction.ExpiresAt?.ToString() ?? string.Empty,
                 ["NotifyMembers"] = moderationAction.NotifyMembers
             }
         };
