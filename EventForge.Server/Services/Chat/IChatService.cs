@@ -554,6 +554,16 @@ public interface IChatService
         ChatLocalizationPreferencesDto preferences,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Toggle message reaction (add or remove).
+    /// </summary>
+    /// <param name="reactionDto">Reaction action details</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Operation result with updated reaction state</returns>
+    Task<MessageOperationResultDto> ToggleMessageReactionAsync(
+        MessageReactionActionDto reactionDto,
+        CancellationToken cancellationToken = default);
+
     #endregion
 }
 

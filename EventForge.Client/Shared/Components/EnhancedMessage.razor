@@ -15,7 +15,11 @@
                 @Message.ReplyToMessage.SenderName
             </MudText>
             <MudText Typo="Typo.caption" Color="Color.Secondary" Class="text-truncate">
-                @(Message.ReplyToMessage.Content?.Substring(0, Math.Min(100, Message.ReplyToMessage.Content.Length ?? 0)))@(Message.ReplyToMessage.Content?.Length > 100 ? "..." : "")
+                @{
+                    var content = Message.ReplyToMessage.Content ?? "";
+                    var displayContent = content.Length > 100 ? content.Substring(0, 100) + "..." : content;
+                }
+                @displayContent
             </MudText>
         </div>
     }
@@ -145,7 +149,7 @@
                     
                     <!-- Left side: Timestamp and status -->
                     <div class="d-flex align-center">
-                        @if (!ShowSenderInfo) <!-- Show timestamp for current user messages -->
+                        @if (!ShowSenderInfo) // Show timestamp for current user messages
                         {
                             <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mr-2">
                                 @Message.SentAt.ToString("HH:mm")
@@ -434,10 +438,56 @@
     private string RenderMarkdown(string content)
     {
         // Basic markdown rendering - in a real implementation, use a proper markdown library
-        content = content
-            .Replace("**", "<strong>", 1).Replace("**", "</strong>", 1)
-            .Replace("*", "<em>", 1).Replace("*", "</em>", 1)
-            .Replace("`", "<code>", 1).Replace("`", "</code>", 1);
+        // Handle bold text
+        if (content.Contains("**"))
+        {
+            var firstBold = content.IndexOf("**");
+            if (firstBold >= 0)
+            {
+                var afterFirst = content.Substring(firstBold + 2);
+                var secondBold = afterFirst.IndexOf("**");
+                if (secondBold >= 0)
+                {
+                    content = content.Substring(0, firstBold) + "<strong>" + 
+                             afterFirst.Substring(0, secondBold) + "</strong>" +
+                             afterFirst.Substring(secondBold + 2);
+                }
+            }
+        }
+        
+        // Handle italic text
+        if (content.Contains("*") && !content.Contains("**"))
+        {
+            var firstItalic = content.IndexOf("*");
+            if (firstItalic >= 0)
+            {
+                var afterFirst = content.Substring(firstItalic + 1);
+                var secondItalic = afterFirst.IndexOf("*");
+                if (secondItalic >= 0)
+                {
+                    content = content.Substring(0, firstItalic) + "<em>" + 
+                             afterFirst.Substring(0, secondItalic) + "</em>" +
+                             afterFirst.Substring(secondItalic + 1);
+                }
+            }
+        }
+        
+        // Handle code text
+        if (content.Contains("`"))
+        {
+            var firstCode = content.IndexOf("`");
+            if (firstCode >= 0)
+            {
+                var afterFirst = content.Substring(firstCode + 1);
+                var secondCode = afterFirst.IndexOf("`");
+                if (secondCode >= 0)
+                {
+                    content = content.Substring(0, firstCode) + "<code>" + 
+                             afterFirst.Substring(0, secondCode) + "</code>" +
+                             afterFirst.Substring(secondCode + 1);
+                }
+            }
+        }
             
         return RenderContentWithMentions(content);
     }

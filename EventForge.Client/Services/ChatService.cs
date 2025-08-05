@@ -17,6 +17,7 @@ public interface IChatService
     Task<bool> EditMessageAsync(Guid messageId, EditMessageDto editDto, CancellationToken cancellationToken = default);
     Task<bool> DeleteMessageAsync(Guid messageId, CancellationToken cancellationToken = default);
     Task<bool> MarkMessagesAsReadAsync(Guid chatId, CancellationToken cancellationToken = default);
+    Task<bool> ToggleMessageReactionAsync(MessageReactionActionDto reactionDto, CancellationToken cancellationToken = default);
     Task<bool> AddMemberToChatAsync(Guid chatId, UpdateChatMembersDto memberDto, CancellationToken cancellationToken = default);
     Task<bool> RemoveMemberFromChatAsync(Guid chatId, Guid userId, CancellationToken cancellationToken = default);
     Task<bool> UpdateTypingStatusAsync(Guid chatId, bool isTyping, CancellationToken cancellationToken = default);
@@ -371,6 +372,22 @@ public class ChatService : IChatService
                     UserLeftChat?.Invoke(chatId, userId);
                 }
             }
+        }
+    }
+
+    #endregion
+
+    public async Task<bool> ToggleMessageReactionAsync(MessageReactionActionDto reactionDto, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await _httpClientService.PostAsync<MessageReactionActionDto, object>($"api/v1/chat/messages/{reactionDto.MessageId}/reactions", reactionDto, cancellationToken);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error toggling reaction on message {MessageId}", reactionDto.MessageId);
+            return false;
         }
     }
 

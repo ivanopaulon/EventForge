@@ -34,7 +34,7 @@
         <MudTooltip Text="@TranslationService.GetTranslation("chat.attachFile", "Attach file")">
             <MudIconButton Icon="@Icons.Material.Filled.AttachFile"
                            Color="Color.Primary"
-                           OnClick="@OnAttachFile"
+                           OnClick="@SelectFile"
                            aria-label="@TranslationService.GetTranslation("chat.attachFile", "Attach file")" />
         </MudTooltip>
 
@@ -132,7 +132,7 @@
             <MudIconButton Icon="@Icons.Material.Filled.Send"
                            Color="Color.Primary"
                            Variant="Variant.Filled"
-                           OnClick="@OnSendMessage"
+                           OnClick="@SendMessage"
                            Disabled="@(string.IsNullOrWhiteSpace(MessageText) || IsSending)"
                            aria-label="@TranslationService.GetTranslation("chat.sendMessage", "Send message")" />
         </MudTooltip>
@@ -182,10 +182,11 @@
 
 <!-- Hidden file input -->
 <InputFile @ref="fileInput" 
-           @onchange="OnFileSelected" 
+           @onchange="@(async (InputFileChangeEventArgs e) => await OnFileSelected(e))" 
            multiple 
            accept="*/*" 
-           style="display: none;" />
+           style="display: none;" 
+           id="file-input" />
 
 <style>
 .enhanced-message-composer {
@@ -303,7 +304,6 @@
             else
             {
                 // Send message with Enter
-                e.PreventDefault();
                 await SendMessage();
             }
         }
@@ -503,6 +503,12 @@
     {
         // File selection will be handled by parent component
         await OnAttachFile.InvokeAsync();
+    }
+
+    private async Task SelectFile()
+    {
+        // Trigger file input click
+        await JSRuntime.InvokeVoidAsync("eval", "document.getElementById('file-input').click()");
     }
 
     private string GetFileIcon(string? contentType)
