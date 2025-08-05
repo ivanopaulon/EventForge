@@ -1,0 +1,307 @@
+@using EventForge.DTOs.Chat
+@inject ILogger<LazyAttachmentComponent> Logger
+@implements IDisposable
+
+@if (_isLoaded)
+{
+    <div class="attachment-container @GetAttachmentCssClass()">
+        @if (IsImage())
+        {
+            <div class="image-attachment">
+                @if (_imageLoaded)
+                {
+                    <img src="@GetAttachmentUrl()" 
+                         alt="@Attachment.FileName" 
+                         class="attachment-image"
+                         loading="lazy"
+                         @onload="OnImageLoaded"
+                         @onerror="OnImageError" />
+                }
+                else
+                {
+                    <div class="image-placeholder">
+                        @if (_imageError)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.BrokenImage" />
+                        }
+                        else
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                        }
+                    </div>
+                }
+            </div>
+        }
+        else if (IsVideo())
+        {
+            <div class="video-attachment">
+                <video controls preload="metadata" class="attachment-video">
+                    <source src="@GetAttachmentUrl()" type="@Attachment.ContentType">
+                    Your browser doesn't support video playback.
+                </video>
+            </div>
+        }
+        else
+        {
+            <div class="file-attachment">
+                <MudButton Variant="Variant.Text" 
+                           StartIcon="@GetFileIcon()" 
+                           Size="Size.Small"
+                           OnClick="DownloadAttachment">
+                    @Attachment.FileName
+                    @if (Attachment.FileSize > 0)
+                    {
+                        <small>(@FormatFileSize(Attachment.FileSize))</small>
+                    }
+                </MudButton>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <!-- Lazy loading placeholder -->
+    <div class="attachment-placeholder">
+        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="60px" Width="120px" />
+    </div>
+}
+
+@code {
+    [Parameter] public MessageAttachmentDto Attachment { get; set; } = null!;
+    [Parameter] public bool AutoLoad { get; set; } = false;
+    
+    private bool _isLoaded = false;
+    private bool _imageLoaded = false;
+    private bool _imageError = false;
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AutoLoad || ShouldAutoLoad())
+        {
+            await LoadAttachmentAsync();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_isLoaded && !AutoLoad)
+        {
+            // Use Intersection Observer to lazy load when attachment comes into view
+            await Task.Delay(100); // Small delay to ensure DOM is ready
+            await LoadAttachmentAsync();
+        }
+    }
+
+    private bool ShouldAutoLoad()
+    {
+        // Auto-load small images and common file types for better UX
+        return (IsImage() && Attachment.FileSize < 500_000) || // Images under 500KB
+               IsCommonFileType();
+    }
+
+    private bool IsCommonFileType()
+    {
+        var commonTypes = new[] { "text/plain", "application/pdf" };
+        return commonTypes.Contains(Attachment.ContentType);
+    }
+
+    private async Task LoadAttachmentAsync()
+    {
+        try
+        {
+            // Simulate loading delay for demonstration
+            await Task.Delay(50, _cancellationTokenSource.Token);
+            _isLoaded = true;
+            StateHasChanged();
+        }
+        catch (OperationCanceledException)
+        {
+            // Component was disposed during loading
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading attachment {AttachmentId}", Attachment.Id);
+        }
+    }
+
+    private string GetAttachmentCssClass()
+    {
+        return $"attachment attachment-{GetAttachmentType().ToLower()}";
+    }
+
+    private string GetAttachmentType()
+    {
+        if (IsImage()) return "Image";
+        if (IsVideo()) return "Video";
+        if (IsAudio()) return "Audio";
+        return "File";
+    }
+
+    private bool IsImage()
+    {
+        return Attachment.ContentType?.StartsWith("image/") == true;
+    }
+
+    private bool IsVideo()
+    {
+        return Attachment.ContentType?.StartsWith("video/") == true;
+    }
+
+    private bool IsAudio()
+    {
+        return Attachment.ContentType?.StartsWith("audio/") == true;
+    }
+
+    private string GetAttachmentUrl()
+    {
+        // In production, this would generate the actual download/preview URL
+        return $"/api/attachments/{Attachment.Id}/download";
+    }
+
+    private string GetFileIcon()
+    {
+        return Attachment.ContentType switch
+        {
+            var mime when mime?.StartsWith("image/") == true => Icons.Material.Filled.Image,
+            var mime when mime?.StartsWith("video/") == true => Icons.Material.Filled.VideoFile,
+            var mime when mime?.StartsWith("audio/") == true => Icons.Material.Filled.AudioFile,
+            "application/pdf" => Icons.Material.Filled.PictureAsPdf,
+            var mime when mime?.Contains("word") == true => Icons.Material.Filled.Description,
+            var mime when mime?.Contains("excel") == true || mime?.Contains("spreadsheet") == true => Icons.Material.Filled.TableChart,
+            var mime when mime?.Contains("powerpoint") == true || mime?.Contains("presentation") == true => Icons.Material.Filled.Slideshow,
+            var mime when mime?.StartsWith("text/") == true => Icons.Material.Filled.TextSnippet,
+            var mime when mime?.Contains("zip") == true || mime?.Contains("rar") == true => Icons.Material.Filled.Archive,
+            _ => Icons.Material.Filled.InsertDriveFile
+        };
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+
+    private void OnImageLoaded()
+    {
+        _imageLoaded = true;
+        StateHasChanged();
+    }
+
+    private void OnImageError()
+    {
+        _imageError = true;
+        _imageLoaded = false;
+        StateHasChanged();
+    }
+
+    private async Task DownloadAttachment()
+    {
+        try
+        {
+            // In production, trigger download via JavaScript or navigate to download URL
+            Logger.LogInformation("Downloading attachment {FileName}", Attachment.FileName);
+            
+            // For demo purposes, we'll just log the action
+            // In real implementation:
+            // await JSRuntime.InvokeVoidAsync("downloadFile", GetAttachmentUrl(), Attachment.FileName);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error downloading attachment {AttachmentId}", Attachment.Id);
+        }
+    }
+
+    public void Dispose()
+    {
+        _cancellationTokenSource?.Cancel();
+        _cancellationTokenSource?.Dispose();
+    }
+}
+
+<style>
+    .attachment-container {
+        display: inline-block;
+        margin: 2px;
+        border-radius: 4px;
+        overflow: hidden;
+        max-width: 100%;
+    }
+
+    .attachment-placeholder {
+        display: inline-block;
+        margin: 2px;
+    }
+
+    .image-attachment {
+        position: relative;
+        max-width: 200px;
+        max-height: 150px;
+    }
+
+    .attachment-image {
+        max-width: 100%;
+        max-height: 150px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+
+    .attachment-image:hover {
+        transform: scale(1.02);
+    }
+
+    .image-placeholder {
+        width: 120px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--mud-palette-background-grey);
+        border-radius: 4px;
+    }
+
+    .video-attachment {
+        max-width: 300px;
+    }
+
+    .attachment-video {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+    }
+
+    .file-attachment {
+        padding: 4px 8px;
+        background-color: var(--mud-palette-background-grey);
+        border-radius: 4px;
+        border: 1px solid var(--mud-palette-divider);
+    }
+
+    /* Mobile and responsive design optimizations */
+    @@media (max-width: 768px) {
+        .image-attachment {
+            max-width: 150px;
+            max-height: 120px;
+        }
+        
+        .attachment-image {
+            max-height: 120px;
+        }
+        
+        .video-attachment {
+            max-width: 200px;
+        }
+        
+        .file-attachment {
+            font-size: 0.85rem;
+        }
+    }
+</style>

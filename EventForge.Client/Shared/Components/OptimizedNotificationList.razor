@@ -1,0 +1,566 @@
+@using EventForge.DTOs.Notifications
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@inject IPerformanceOptimizationService PerformanceService
+@inject INotificationService NotificationService
+@inject ILogger<OptimizedNotificationList> Logger
+@implements IDisposable
+
+<div class="notification-list-container">
+    <!-- Search and filters with debouncing -->
+    <div class="notification-filters">
+        <MudTextField @bind-Value="_searchText" 
+                      @oninput="OnSearchTextChanged"
+                      Label="Search notifications..." 
+                      Variant="Variant.Outlined"
+                      StartIcon="@Icons.Material.Filled.Search"
+                      Clearable="true"
+                      FullWidth="true"
+                      Margin="Margin.Dense"
+                      DebounceInterval="300" />
+        
+        <div class="filter-buttons">
+            <MudButtonGroup Size="Size.Small" Variant="Variant.Text" OverrideStyles="false">
+                <MudButton Color="@(_filter == "all" ? Color.Primary : Color.Default)"
+                           OnClick="@(() => SetFilter("all"))">
+                    All (@_totalCount)
+                </MudButton>
+                <MudButton Color="@(_filter == "unread" ? Color.Primary : Color.Default)"
+                           OnClick="@(() => SetFilter("unread"))">
+                    Unread (@_unreadCount)
+                </MudButton>
+                <MudButton Color="@(_filter == "important" ? Color.Primary : Color.Default)"
+                           OnClick="@(() => SetFilter("important"))">
+                    Important
+                </MudButton>
+            </MudButtonGroup>
+        </div>
+    </div>
+
+    <!-- Notification list with virtualization -->
+    <div class="notification-list" style="height: @Height;">
+        @if (FilteredNotifications?.Any() == true)
+        {
+            <Virtualize Items="@FilteredNotifications" Context="notification" ItemSize="@EstimatedItemSize" OverscanCount="@OverscanCount">
+                <ItemContent>
+                    <div class="notification-item @GetNotificationCssClass(notification)" @key="notification.Id">
+                        <div class="notification-content" @onclick="@(() => HandleNotificationClick(notification))">
+                            <!-- Notification icon -->
+                            <div class="notification-icon">
+                                <MudIcon Icon="@GetNotificationIcon(notification)" 
+                                         Color="@GetNotificationColor(notification)" 
+                                         Size="Size.Medium" />
+                            </div>
+                            
+                            <!-- Notification details -->
+                            <div class="notification-details">
+                                <div class="notification-header">
+                                    <span class="notification-title">@notification.Payload.Title</span>
+                                    <small class="notification-time">@FormatNotificationTime(notification.CreatedAt)</small>
+                                </div>
+                                
+                                @if (!string.IsNullOrEmpty(notification.Payload.Message))
+                                {
+                                    <div class="notification-message">
+                                        @if (notification.Payload.Message.Length > MaxMessageLength)
+                                        {
+                                            <text>@notification.Payload.Message.Substring(0, MaxMessageLength)...</text>
+                                        }
+                                        else
+                                        {
+                                            @notification.Payload.Message
+                                        }
+                                    </div>
+                                }
+                                
+                                @if (notification.Metadata?.Any() == true)
+                                {
+                                    <div class="notification-metadata">
+                                        @foreach (var item in notification.Metadata.Take(2))
+                                        {
+                                            <span class="metadata-item">@item.Key: @item.Value</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                            
+                            <!-- Notification actions -->
+                            <div class="notification-actions">
+                                @if (notification.ReadAt == null)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.MarkEmailRead"
+                                                   Size="Size.Small"
+                                                   Color="Color.Primary"
+                                                   OnClick="@((e) => MarkAsRead(e, notification))"
+                                                   Title="Mark as read" />
+                                }
+                                
+                                <MudIconButton Icon="@Icons.Material.Filled.Archive"
+                                               Size="Size.Small"
+                                               Color="Color.Default"
+                                               OnClick="@((e) => ArchiveNotification(e, notification))"
+                                               Title="Archive" />
+                            </div>
+                        </div>
+                    </div>
+                </ItemContent>
+                <Placeholder>
+                    <div class="notification-placeholder" style="height: @EstimatedItemSize">
+                        <div class="notification-skeleton">
+                            <MudSkeleton SkeletonType="SkeletonType.Circle" Width="40px" Height="40px" />
+                            <div class="skeleton-content">
+                                <MudSkeleton SkeletonType="SkeletonType.Text" Height="20px" Width="70%" />
+                                <MudSkeleton SkeletonType="SkeletonType.Text" Height="16px" Width="90%" />
+                            </div>
+                        </div>
+                    </div>
+                </Placeholder>
+            </Virtualize>
+        }
+        else if (IsLoading)
+        {
+            <div class="notification-loading">
+                @for (int i = 0; i < 8; i++)
+                {
+                    int widthPercent1 = 70 - i * 5;
+                    int widthPercent2 = 90 - i * 3;
+                    <div class="notification-skeleton">
+                        <MudSkeleton SkeletonType="SkeletonType.Circle" Width="40px" Height="40px" />
+                        <div class="skeleton-content">
+                            <MudSkeleton SkeletonType="SkeletonType.Text" Height="20px" Width="@($"{widthPercent1}%")" />
+                            <MudSkeleton SkeletonType="SkeletonType.Text" Height="16px" Width="@($"{widthPercent2}%")" />
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="no-notifications">
+                <MudIcon Icon="@Icons.Material.Filled.Notifications" Size="Size.Large" Color="Color.Default" />
+                <MudText Typo="Typo.h6" Class="mt-2">No notifications</MudText>
+                <MudText Typo="Typo.body2" Class="text-muted">
+                    @if (!string.IsNullOrEmpty(_searchText))
+                    {
+                        <span>No notifications match your search criteria.</span>
+                    }
+                    else
+                    {
+                        <span>You're all caught up!</span>
+                    }
+                </MudText>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<NotificationResponseDto>? Notifications { get; set; }
+    [Parameter] public string Height { get; set; } = "500px";
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public EventCallback<NotificationResponseDto> OnNotificationClick { get; set; }
+    [Parameter] public EventCallback<NotificationResponseDto> OnNotificationRead { get; set; }
+    [Parameter] public EventCallback<NotificationResponseDto> OnNotificationArchived { get; set; }
+    
+    // Performance optimization parameters
+    [Parameter] public int EstimatedItemSize { get; set; } = 80;
+    [Parameter] public int OverscanCount { get; set; } = 5;
+    [Parameter] public int MaxMessageLength { get; set; } = 100;
+    
+    private string _searchText = string.Empty;
+    private string _filter = "all";
+    private List<NotificationResponseDto> FilteredNotifications = new();
+    private Timer? _searchDebounceTimer;
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
+    
+    private int _totalCount => Notifications?.Count ?? 0;
+    private int _unreadCount => Notifications?.Count(n => n.ReadAt == null) ?? 0;
+
+    protected override void OnParametersSet()
+    {
+        UpdateFilteredNotifications();
+    }
+
+    protected override void OnInitialized()
+    {
+        UpdateFilteredNotifications();
+    }
+
+    private async void OnSearchTextChanged(ChangeEventArgs e)
+    {
+        var searchText = e.Value?.ToString() ?? string.Empty;
+        
+        try
+        {
+            await PerformanceService.DebounceAsync(
+                DebounceKeys.NOTIFICATION_SEARCH,
+                async () =>
+                {
+                    _searchText = searchText;
+                    await InvokeAsync(() =>
+                    {
+                        UpdateFilteredNotifications();
+                        StateHasChanged();
+                    });
+                    return true;
+                },
+                TimeSpan.FromMilliseconds(300)
+            );
+        }
+        catch (OperationCanceledException)
+        {
+            // Debounced operation was cancelled, this is expected
+        }
+    }
+
+    private async Task SetFilter(string filter)
+    {
+        if (_filter != filter)
+        {
+            _filter = filter;
+            UpdateFilteredNotifications();
+            
+            // Cache the filtered results for performance
+            var cacheKey = $"notifications_filtered_{_filter}_{_searchText}";
+            await PerformanceService.GetCachedDataAsync(cacheKey, 
+                async () => 
+                {
+                    await Task.Delay(1); // Simulate async operation
+                    return FilteredNotifications;
+                }, 
+                TimeSpan.FromMinutes(5));
+        }
+    }
+
+    private void UpdateFilteredNotifications()
+    {
+        if (Notifications == null)
+        {
+            FilteredNotifications = new List<NotificationResponseDto>();
+            return;
+        }
+
+        var filtered = Notifications.AsEnumerable();
+
+        // Apply search filter
+        if (!string.IsNullOrWhiteSpace(_searchText))
+        {
+            var searchLower = _searchText.ToLowerInvariant();
+            filtered = filtered.Where(n => 
+                n.Payload.Title?.ToLowerInvariant().Contains(searchLower) == true ||
+                n.Payload.Message?.ToLowerInvariant().Contains(searchLower) == true);
+        }
+
+        // Apply status filter
+        filtered = _filter switch
+        {
+            "unread" => filtered.Where(n => n.ReadAt == null),
+            "important" => filtered.Where(n => n.Priority == NotificationPriority.High || n.Priority == NotificationPriority.Critical),
+            _ => filtered
+        };
+
+        // Sort by creation date (newest first) and read status
+        FilteredNotifications = filtered
+            .OrderBy(n => n.ReadAt == null ? 0 : 1)
+            .ThenByDescending(n => n.CreatedAt)
+            .ToList();
+    }
+
+    private string GetNotificationCssClass(NotificationResponseDto notification)
+    {
+        var cssClasses = new List<string> { "notification" };
+        
+        if (notification.ReadAt == null)
+        {
+            cssClasses.Add("notification-unread");
+        }
+            
+        if (notification.Priority == NotificationPriority.High || notification.Priority == NotificationPriority.Critical)
+            cssClasses.Add("notification-important");
+            
+        return string.Join(" ", cssClasses);
+    }
+
+    private string GetNotificationIcon(NotificationResponseDto notification)
+    {
+        return notification.Type switch
+        {
+            NotificationTypes.System => Icons.Material.Filled.Warning,
+            NotificationTypes.User => Icons.Material.Filled.Message,
+            NotificationTypes.Event => Icons.Material.Filled.Event,
+            NotificationTypes.Security => Icons.Material.Filled.Security,
+            NotificationTypes.Audit => Icons.Material.Filled.Build,
+            NotificationTypes.Marketing => Icons.Material.Filled.Campaign,
+            _ => Icons.Material.Filled.Notifications
+        };
+    }
+
+    private Color GetNotificationColor(NotificationResponseDto notification)
+    {
+        return notification.Priority switch
+        {
+            NotificationPriority.Critical => Color.Error,
+            NotificationPriority.High => Color.Warning,
+            NotificationPriority.Normal => Color.Info,
+            NotificationPriority.Low => Color.Default,
+            _ => Color.Default
+        };
+    }
+
+    private string FormatNotificationTime(DateTime timestamp)
+    {
+        var diff = DateTime.UtcNow - timestamp;
+        
+        return diff.TotalMinutes < 1 ? "Just now" :
+               diff.TotalHours < 1 ? $"{(int)diff.TotalMinutes}m ago" :
+               diff.TotalDays < 1 ? $"{(int)diff.TotalHours}h ago" :
+               diff.TotalDays < 7 ? $"{(int)diff.TotalDays}d ago" :
+               timestamp.ToString("MMM dd");
+    }
+
+    private async Task HandleNotificationClick(NotificationResponseDto notification)
+    {
+        // Mark as read if not already read
+        if (notification.ReadAt == null)
+        {
+            await MarkAsReadInternal(notification);
+        }
+        
+        await OnNotificationClick.InvokeAsync(notification);
+    }
+
+    private async Task MarkAsRead(MouseEventArgs e, NotificationResponseDto notification)
+    {
+        // Prevent event bubbling for clean UX
+        await MarkAsReadInternal(notification);
+    }
+
+    private async Task MarkAsReadInternal(NotificationResponseDto notification)
+    {
+        try
+        {
+            // Optimistically update UI
+            notification.ReadAt = DateTime.UtcNow;
+            UpdateFilteredNotifications();
+            StateHasChanged();
+            
+            // Perform API call
+            await OnNotificationRead.InvokeAsync(notification);
+            
+            // Invalidate relevant cache
+            PerformanceService.InvalidateCache(CacheKeys.NOTIFICATION_LIST);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error marking notification as read: {NotificationId}", notification.Id);
+            // Revert optimistic update on error
+            notification.ReadAt = null;
+            UpdateFilteredNotifications();
+            StateHasChanged();
+        }
+    }
+
+    private async Task ArchiveNotification(MouseEventArgs e, NotificationResponseDto notification)
+    {        
+        try
+        {
+            // Optimistically remove from list
+            var originalList = FilteredNotifications.ToList();
+            FilteredNotifications.Remove(notification);
+            StateHasChanged();
+            
+            await OnNotificationArchived.InvokeAsync(notification);
+            
+            // Invalidate cache
+            PerformanceService.InvalidateCache(CacheKeys.NOTIFICATION_LIST);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error archiving notification: {NotificationId}", notification.Id);
+            // Revert optimistic update on error
+            UpdateFilteredNotifications();
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        _searchDebounceTimer?.Dispose();
+        _cancellationTokenSource?.Cancel();
+        _cancellationTokenSource?.Dispose();
+    }
+}
+
+<style>
+    .notification-list-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .notification-filters {
+        padding: 16px;
+        border-bottom: 1px solid var(--mud-palette-divider);
+        background-color: var(--mud-palette-surface);
+    }
+
+    .filter-buttons {
+        margin-top: 8px;
+    }
+
+    .notification-list {
+        flex: 1;
+        overflow: auto;
+    }
+
+    .notification-item {
+        border-bottom: 1px solid var(--mud-palette-divider);
+        transition: background-color 0.2s ease;
+    }
+
+    .notification-item:hover {
+        background-color: var(--mud-palette-action-hover);
+    }
+
+    .notification-unread {
+        background-color: var(--mud-palette-primary-lighten);
+        border-left: 4px solid var(--mud-palette-primary);
+    }
+
+    .notification-important {
+        border-left: 4px solid var(--mud-palette-warning);
+    }
+
+    .notification-content {
+        display: flex;
+        align-items: flex-start;
+        padding: 12px 16px;
+        cursor: pointer;
+        gap: 12px;
+    }
+
+    .notification-icon {
+        flex-shrink: 0;
+        margin-top: 4px;
+    }
+
+    .notification-details {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .notification-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 4px;
+    }
+
+    .notification-title {
+        font-weight: 600;
+        color: var(--mud-palette-text-primary);
+        word-break: break-word;
+    }
+
+    .notification-time {
+        color: var(--mud-palette-text-secondary);
+        white-space: nowrap;
+        margin-left: 8px;
+    }
+
+    .notification-message {
+        color: var(--mud-palette-text-secondary);
+        font-size: 0.9rem;
+        line-height: 1.4;
+        word-break: break-word;
+    }
+
+    .notification-metadata {
+        margin-top: 4px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .metadata-item {
+        font-size: 0.8rem;
+        color: var(--mud-palette-text-secondary);
+        background-color: var(--mud-palette-background-grey);
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+
+    .notification-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    /* Mobile optimizations */
+    .notification-item:hover .notification-actions {
+        opacity: 1;
+    }
+
+    .notification-placeholder {
+        padding: 12px 16px;
+    }
+
+    .notification-skeleton {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .skeleton-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .notification-loading {
+        padding: 16px;
+    }
+
+    .no-notifications {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 16px;
+        text-align: center;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    @@media (max-width: 768px) {
+        .notification-filters {
+            padding: 12px;
+        }
+        
+        .notification-content {
+            padding: 8px 12px;
+            gap: 8px;
+        }
+        
+        .notification-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .notification-time {
+            margin-left: 0;
+            margin-top: 2px;
+        }
+        
+        .notification-actions {
+            flex-direction: row;
+            opacity: 1; /* Always visible on mobile */
+        }
+        
+        .metadata-item {
+            font-size: 0.75rem;
+        }
+    }
+</style>
