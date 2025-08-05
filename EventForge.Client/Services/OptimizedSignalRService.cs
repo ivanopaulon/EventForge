@@ -180,7 +180,7 @@ public class OptimizedSignalRService : IAsyncDisposable
                     ws.KeepAliveInterval = TimeSpan.FromSeconds(30);
                 };
             })
-            .WithAutomaticReconnect(new OptimizedRetryPolicy(_retryConfig))
+            .WithAutomaticReconnect(new OptimizedRetryPolicy(new OptimizedRetryPolicy.RetryConfiguration()))
             .ConfigureLogging(logging =>
             {
                 // Reduce logging overhead in production

@@ -93,8 +93,11 @@ public class PerformanceOptimizationService : IPerformanceOptimizationService, I
             var cacheOptions = _defaultCacheOptions;
             if (expiration.HasValue)
             {
-                cacheOptions = new MemoryCacheEntryOptions(_defaultCacheOptions)
+                cacheOptions = new MemoryCacheEntryOptions
                 {
+                    SlidingExpiration = _defaultCacheOptions.SlidingExpiration,
+                    Priority = _defaultCacheOptions.Priority,
+                    Size = _defaultCacheOptions.Size,
                     AbsoluteExpirationRelativeToNow = expiration.Value
                 };
             }
@@ -209,8 +212,11 @@ public class PerformanceOptimizationService : IPerformanceOptimizationService, I
     {
         if (_cache.TryGetValue(key, out var value))
         {
-            var options = new MemoryCacheEntryOptions(_defaultCacheOptions)
+            var options = new MemoryCacheEntryOptions
             {
+                SlidingExpiration = _defaultCacheOptions.SlidingExpiration,
+                Priority = _defaultCacheOptions.Priority,
+                Size = _defaultCacheOptions.Size,
                 AbsoluteExpirationRelativeToNow = expiration
             };
             _cache.Set(key, value, options);

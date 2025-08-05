@@ -13,8 +13,8 @@
                 <div class="message-item @GetMessageCssClass(message)" @key="message.Id">
                     <!-- Optimized message rendering with minimal DOM -->
                     <div class="message-header">
-                        <span class="message-sender">@message.SenderDisplayName</span>
-                        <small class="message-time">@FormatMessageTime(message.Timestamp)</small>
+                        <span class="message-sender">@message.SenderName</span>
+                        <small class="message-time">@FormatMessageTime(message.SentAt)</small>
                     </div>
                     <div class="message-content">
                         @if (!string.IsNullOrEmpty(message.Content))
@@ -50,13 +50,13 @@
                     {
                         <div class="message-actions">
                             <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Reply"
-                                       OnClick="@(() => OnReplyMessage?.Invoke(message))">
+                                       OnClick="@(() => OnReplyMessage.InvokeAsync(message))">
                                 Reply
                             </MudButton>
                             @if (CanEditMessage(message))
                             {
                                 <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Edit"
-                                           OnClick="@(() => OnEditMessage?.Invoke(message))">
+                                           OnClick="@(() => OnEditMessage.InvokeAsync(message))">
                                     Edit
                                 </MudButton>
                             }
@@ -136,7 +136,7 @@
 
     private bool IsRecentMessage(ChatMessageDto message)
     {
-        return DateTime.UtcNow - message.Timestamp < TimeSpan.FromMinutes(5);
+        return DateTime.UtcNow - message.SentAt < TimeSpan.FromMinutes(5);
     }
 
     private string FormatMessageTime(DateTime timestamp)
@@ -207,7 +207,7 @@
     private bool CanEditMessage(ChatMessageDto message)
     {
         return message.SenderId == CurrentUserId && 
-               DateTime.UtcNow - message.Timestamp < TimeSpan.FromMinutes(15);
+               DateTime.UtcNow - message.SentAt < TimeSpan.FromMinutes(15);
     }
 
     private void UpdateVisibleMessages(object? state)
@@ -305,6 +305,7 @@
         transition: opacity 0.2s ease;
     }
 
+    /* Mobile optimizations */
     .message:hover .message-actions {
         opacity: 1;
     }
@@ -332,8 +333,7 @@
         height: 200px;
     }
 
-    /* Mobile optimizations */
-    @media (max-width: 768px) {
+    @@media (max-width: 768px) {
         .message {
             max-width: 85%;
             font-size: 0.9rem;

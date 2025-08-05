@@ -54,28 +54,28 @@
                             <!-- Notification details -->
                             <div class="notification-details">
                                 <div class="notification-header">
-                                    <span class="notification-title">@notification.Title</span>
+                                    <span class="notification-title">@notification.Payload.Title</span>
                                     <small class="notification-time">@FormatNotificationTime(notification.CreatedAt)</small>
                                 </div>
                                 
-                                @if (!string.IsNullOrEmpty(notification.Message))
+                                @if (!string.IsNullOrEmpty(notification.Payload.Message))
                                 {
                                     <div class="notification-message">
-                                        @if (notification.Message.Length > MaxMessageLength)
+                                        @if (notification.Payload.Message.Length > MaxMessageLength)
                                         {
-                                            @notification.Message.Substring(0, MaxMessageLength)...
+                                            <text>@notification.Payload.Message.Substring(0, MaxMessageLength)...</text>
                                         }
                                         else
                                         {
-                                            @notification.Message
+                                            @notification.Payload.Message
                                         }
                                     </div>
                                 }
                                 
-                                @if (notification.Data?.Any() == true)
+                                @if (notification.Metadata?.Any() == true)
                                 {
                                     <div class="notification-metadata">
-                                        @foreach (var item in notification.Data.Take(2))
+                                        @foreach (var item in notification.Metadata.Take(2))
                                         {
                                             <span class="metadata-item">@item.Key: @item.Value</span>
                                         }
@@ -85,7 +85,7 @@
                             
                             <!-- Notification actions -->
                             <div class="notification-actions">
-                                @if (!notification.IsRead)
+                                @if (notification.ReadAt == null)
                                 {
                                     <MudIconButton Icon="@Icons.Material.Filled.MarkEmailRead"
                                                    Size="Size.Small"
@@ -173,7 +173,7 @@
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     
     private int _totalCount => Notifications?.Count ?? 0;
-    private int _unreadCount => Notifications?.Count(n => !n.IsRead) ?? 0;
+    private int _unreadCount => Notifications?.Count(n => n.ReadAt == null) ?? 0;
 
     protected override void OnParametersSet()
     {
@@ -246,21 +246,21 @@
         {
             var searchLower = _searchText.ToLowerInvariant();
             filtered = filtered.Where(n => 
-                n.Title?.ToLowerInvariant().Contains(searchLower) == true ||
-                n.Message?.ToLowerInvariant().Contains(searchLower) == true);
+                n.Payload.Title?.ToLowerInvariant().Contains(searchLower) == true ||
+                n.Payload.Message?.ToLowerInvariant().Contains(searchLower) == true);
         }
 
         // Apply status filter
         filtered = _filter switch
         {
-            "unread" => filtered.Where(n => !n.IsRead),
+            "unread" => filtered.Where(n => n.ReadAt == null),
             "important" => filtered.Where(n => n.Priority == NotificationPriority.High || n.Priority == NotificationPriority.Critical),
             _ => filtered
         };
 
         // Sort by creation date (newest first) and read status
         FilteredNotifications = filtered
-            .OrderBy(n => n.IsRead)
+            .OrderBy(n => n.ReadAt == null ? 0 : 1)
             .ThenByDescending(n => n.CreatedAt)
             .ToList();
     }
@@ -269,8 +269,10 @@
     {
         var cssClasses = new List<string> { "notification" };
         
-        if (!notification.IsRead)
+        if (notification.ReadAt == null)
+        {
             cssClasses.Add("notification-unread");
+        }
             
         if (notification.Priority == NotificationPriority.High || notification.Priority == NotificationPriority.Critical)
             cssClasses.Add("notification-important");
@@ -282,11 +284,12 @@
     {
         return notification.Type switch
         {
-            NotificationTypes.SystemAlert => Icons.Material.Filled.Warning,
-            NotificationTypes.UserMessage => Icons.Material.Filled.Message,
-            NotificationTypes.EventUpdate => Icons.Material.Filled.Event,
-            NotificationTypes.SystemMaintenance => Icons.Material.Filled.Build,
-            NotificationTypes.SecurityAlert => Icons.Material.Filled.Security,
+            NotificationTypes.System => Icons.Material.Filled.Warning,
+            NotificationTypes.User => Icons.Material.Filled.Message,
+            NotificationTypes.Event => Icons.Material.Filled.Event,
+            NotificationTypes.Security => Icons.Material.Filled.Security,
+            NotificationTypes.Audit => Icons.Material.Filled.Build,
+            NotificationTypes.Marketing => Icons.Material.Filled.Campaign,
             _ => Icons.Material.Filled.Notifications
         };
     }
@@ -297,7 +300,8 @@
         {
             NotificationPriority.Critical => Color.Error,
             NotificationPriority.High => Color.Warning,
-            NotificationPriority.Medium => Color.Info,
+            NotificationPriority.Normal => Color.Info,
+            NotificationPriority.Low => Color.Default,
             _ => Color.Default
         };
     }
@@ -316,7 +320,7 @@
     private async Task HandleNotificationClick(NotificationResponseDto notification)
     {
         // Mark as read if not already read
-        if (!notification.IsRead)
+        if (notification.ReadAt == null)
         {
             await MarkAsReadInternal(notification);
         }
@@ -326,7 +330,7 @@
 
     private async Task MarkAsRead(MouseEventArgs e, NotificationResponseDto notification)
     {
-        e.StopPropagation(); // Prevent triggering the parent click event
+        // Prevent event bubbling for clean UX
         await MarkAsReadInternal(notification);
     }
 
@@ -335,7 +339,7 @@
         try
         {
             // Optimistically update UI
-            notification.IsRead = true;
+            notification.ReadAt = DateTime.UtcNow;
             UpdateFilteredNotifications();
             StateHasChanged();
             
@@ -349,16 +353,14 @@
         {
             Logger.LogError(ex, "Error marking notification as read: {NotificationId}", notification.Id);
             // Revert optimistic update on error
-            notification.IsRead = false;
+            notification.ReadAt = null;
             UpdateFilteredNotifications();
             StateHasChanged();
         }
     }
 
     private async Task ArchiveNotification(MouseEventArgs e, NotificationResponseDto notification)
-    {
-        e.StopPropagation();
-        
+    {        
         try
         {
             // Optimistically remove from list
@@ -495,6 +497,7 @@
         transition: opacity 0.2s ease;
     }
 
+    /* Mobile optimizations */
     .notification-item:hover .notification-actions {
         opacity: 1;
     }
@@ -531,8 +534,7 @@
         color: var(--mud-palette-text-secondary);
     }
 
-    /* Mobile optimizations */
-    @media (max-width: 768px) {
+    @@media (max-width: 768px) {
         .notification-filters {
             padding: 12px;
         }
