@@ -182,7 +182,7 @@
 
 <!-- Hidden file input -->
 <InputFile @ref="fileInput" 
-           @onchange="@(async (InputFileChangeEventArgs e) => await OnFileSelected(e))" 
+           @onchange="@(async (e) => await OnFileSelected(e))" 
            multiple 
            accept="*/*" 
            style="display: none;" 
@@ -499,10 +499,15 @@
         // This would send a typing event to other chat participants
     }
 
-    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    private async Task OnFileSelected(ChangeEventArgs e)
     {
         // File selection will be handled by parent component
         await OnAttachFile.InvokeAsync();
+    }
+
+    private async Task OnFileInputChanged(InputFileChangeEventArgs e)
+    {
+        await OnFileSelected(new ChangeEventArgs());
     }
 
     private async Task SelectFile()
