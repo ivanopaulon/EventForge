@@ -10,6 +10,7 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 // Configure HttpClient instances using best practices for performance
+// Note: WebAssembly uses BrowserHttpHandler which doesn't support HttpClientHandler configuration
 builder.Services.AddHttpClient("ApiClient", client =>
 {
     client.BaseAddress = new Uri("https://localhost:7241/");
@@ -19,12 +20,6 @@ builder.Services.AddHttpClient("ApiClient", client =>
     client.DefaultRequestHeaders.Add("User-Agent", "EventForge-Client/1.0");
     // Enable compression for better mobile performance
     client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate, br");
-}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler()
-{
-    // Configure for optimal performance
-    UseCookies = false, // Disable cookies for API calls
-    MaxConnectionsPerServer = 10, // Increase connection pool for better concurrency
-    UseProxy = false
 });
 
 // Configure StaticClient for translation files and static assets
