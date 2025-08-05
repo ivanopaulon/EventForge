@@ -1,0 +1,254 @@
+@inherits LayoutComponentBase
+@using EventForge.Client.Constants
+@inject IThemeService ThemeService
+@inject ITranslationService TranslationService
+@implements IDisposable
+
+<!-- 
+    LoginLayout - Dedicated layout for login page
+    
+    This layout provides:
+    - No AppBar (as per requirements)
+    - Universal footer (identical to other pages)
+    - Theme provider setup
+    - Clean, minimal design focused on login experience
+    - Proper semantic structure for accessibility
+-->
+
+<MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" />
+
+<!-- Skip link for accessibility -->
+<a href="#main-content" 
+   class="sr-only sr-only-focusable position-absolute" 
+   style="top: 1rem; left: 1rem; z-index: 9999;">
+    @TranslationService.GetTranslation("accessibility.skipToContent", "Skip to main content")
+</a>
+
+<!-- Main content area without AppBar -->
+<main id="main-content" 
+      class="login-main-content" 
+      role="main"
+      tabindex="-1">
+    @Body
+</main>
+
+<!-- Universal Footer - identical to other pages -->
+<UniversalFooter />
+
+@code {
+    private MudThemeProvider? _mudThemeProvider;
+    private MudTheme _currentTheme = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        ThemeService.OnThemeChanged += OnThemeChanged;
+        TranslationService.LanguageChanged += OnLanguageChanged;
+        
+        await ThemeService.InitializeAsync();
+        UpdateTheme();
+    }
+
+    private void OnThemeChanged()
+    {
+        UpdateTheme();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnLanguageChanged(object? sender, string newLanguage)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void UpdateTheme()
+    {
+        _currentTheme = new MudTheme()
+        {
+            PaletteLight = GetLightPalette(ThemeService.CurrentTheme),
+            PaletteDark = GetDarkPalette(ThemeService.CurrentTheme)
+        };
+    }
+
+    private PaletteLight GetLightPalette(string themeKey)
+    {
+        // Light theme variants - same as MainLayout for consistency
+        return themeKey switch
+        {
+            "dark" => new PaletteLight()
+            {
+                Black = "#1a1a2e",
+                Background = "#1a1a2e",
+                Surface = "#2d2d30",
+                TextPrimary = "#e0e0e0",
+                TextSecondary = "#b0b0b0",
+                AppbarBackground = "#1a1a2e",
+                AppbarText = "#e0e0e0",
+                DrawerBackground = "#1a1a2e",
+                DrawerText = "#b0b0b0",
+                Primary = "#4fc3f7",
+                Secondary = "#ffb74d",
+                Tertiary = "#4fc3f7",
+                Info = "#4fc3f7",
+                Success = "#66bb6a",
+                Warning = "#ffb74d",
+                Error = "#f06292"
+            },
+            "warm" => new PaletteLight()
+            {
+                Primary = "#c0392b",        // Rust Red
+                Secondary = "#e67e22",      // Burnt Orange
+                Tertiary = "#f39c12",       // Golden Yellow
+                AppbarBackground = "#c0392b",
+                AppbarText = "#ffffff",
+                Background = "#fdf2e9",     // Warm Beige
+                Surface = "#ffffff",
+                DrawerBackground = "#c0392b",
+                DrawerText = "#f8d7da",
+                TextPrimary = "#5d4037",    // Coffee Brown
+                TextSecondary = "#8d6e63",
+                Info = "#e67e22",
+                Success = "#689f38",
+                Warning = "#ffa000",
+                Error = "#d32f2f"
+            },
+            "cool" => new PaletteLight()
+            {
+                Primary = "#006064",        // Deep Teal
+                Secondary = "#0097a7",      // Cyan Blue
+                Tertiary = "#4db6ac",       // Mint Green
+                AppbarBackground = "#006064",
+                AppbarText = "#ffffff",
+                Background = "#e0f2f1",     // Ice Blue
+                Surface = "#ffffff",
+                DrawerBackground = "#006064",
+                DrawerText = "#b2dfdb",
+                TextPrimary = "#37474f",    // Slate Gray
+                TextSecondary = "#607d8b",
+                Info = "#0097a7",
+                Success = "#388e3c",
+                Warning = "#f57c00",
+                Error = "#d32f2f"
+            },
+            "high-contrast" => new PaletteLight()
+            {
+                Primary = "#000000",        // Pure Black
+                Secondary = "#ffeb3b",      // Bright Yellow
+                Tertiary = "#ff9800",       // Warning Orange
+                AppbarBackground = "#000000",
+                AppbarText = "#ffffff",
+                Background = "#ffffff",     // Pure White
+                Surface = "#f5f5f5",
+                DrawerBackground = "#000000",
+                DrawerText = "#ffffff",
+                TextPrimary = "#000000",
+                TextSecondary = "#000000",
+                Info = "#1565c0",
+                Success = "#2e7d32",
+                Warning = "#e65100",
+                Error = "#c62828"
+            },
+            "fun" => new PaletteLight()
+            {
+                Primary = "#9c27b0",        // Vibrant Purple
+                Secondary = "#e91e63",      // Hot Pink
+                Tertiary = "#8bc34a",       // Lime Green
+                AppbarBackground = "#9c27b0",
+                AppbarText = "#ffffff",
+                Background = "#f3e5f5",     // Soft Lavender
+                Surface = "#ffffff",
+                DrawerBackground = "#9c27b0",
+                DrawerText = "#e1bee7",
+                TextPrimary = "#4a148c",    // Deep Purple
+                TextSecondary = "#7b1fa2",
+                Info = "#e91e63",
+                Success = "#4caf50",
+                Warning = "#ff9800",
+                Error = "#f44336"
+            },
+            _ => new PaletteLight() // Default "light" theme
+            {
+                Primary = "#1F2F46",        // Navy Blue
+                Secondary = "#247BFF",      // Electric Blue
+                Tertiary = "#FF6B2C",       // Orange Fire
+                AppbarBackground = "#1F2F46",
+                AppbarText = "#ffffff",
+                Background = "#F5F6FA",     // Light Gray
+                Surface = "#ffffff",
+                DrawerBackground = "#1F2F46",
+                DrawerText = "#d7d7d7",
+                TextPrimary = "#2D2D2D",    // Charcoal
+                TextSecondary = "#666666",
+                Info = "#247BFF",
+                Success = "#4caf50",
+                Warning = "#ff9800",
+                Error = "#f44336"
+            }
+        };
+    }
+
+    private PaletteDark GetDarkPalette(string themeKey)
+    {
+        // For now, use a consistent dark palette that works well with all themes
+        return new PaletteDark()
+        {
+            Black = "#1a1a2e",
+            Background = "#1a1a2e",
+            Surface = "#2d2d30",
+            TextPrimary = "#e0e0e0",
+            TextSecondary = "#b0b0b0",
+            AppbarBackground = "#1a1a2e",
+            AppbarText = "#e0e0e0",
+            DrawerBackground = "#1a1a2e",
+            DrawerText = "#b0b0b0",
+            Primary = "#4fc3f7",
+            Secondary = "#ffb74d",
+            Tertiary = "#4fc3f7",
+            Info = "#4fc3f7",
+            Success = "#66bb6a",
+            Warning = "#ffb74d",
+            Error = "#f06292"
+        };
+    }
+
+    public void Dispose()
+    {
+        ThemeService.OnThemeChanged -= OnThemeChanged;
+        TranslationService.LanguageChanged -= OnLanguageChanged;
+    }
+}
+
+<style>
+    .login-main-content {
+        min-height: 100vh;
+        padding-bottom: 80px; /* Account for fixed footer */
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Screen reader only classes */
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .sr-only-focusable:focus {
+        position: static;
+        width: auto;
+        height: auto;
+        padding: 0.25rem 0.5rem;
+        margin: 0;
+        overflow: visible;
+        clip: auto;
+        white-space: normal;
+        background-color: var(--mud-palette-primary);
+        color: var(--mud-palette-primary-text);
+        text-decoration: none;
+        border-radius: 0.25rem;
+    }
+</style>

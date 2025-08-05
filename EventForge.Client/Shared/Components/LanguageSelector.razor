@@ -5,22 +5,31 @@
 <MudSelect T="string" 
            Value="@TranslationService.CurrentLanguage" 
            ValueChanged="@OnLanguageChanged"
-           Label="@TranslationService.GetTranslation("common.language")"
+           Label="@(ShowFlags ? "" : TranslationService.GetTranslation("common.language"))"
            Variant="Variant.Outlined"
            Dense="@Dense"
-           Class="@Class"
-           aria-label="@TranslationService.GetTranslation("accessibility.selectLanguage")"
+           Class="@($"language-selector {Class}")"
+           aria-label="@TranslationService.GetTranslation("accessibility.selectLanguage", "Select language")"
            role="combobox"
            aria-expanded="false"
            aria-describedby="language-selector-description">
     @foreach (var language in TranslationService.GetAvailableLanguages())
     {
         <MudSelectItem Value="@language.Key">
-            <div class="d-flex align-center">
-                <MudIcon Icon="@GetLanguageIcon(language.Key)" 
-                         Style="margin-right: 8px;" 
-                         aria-hidden="true" />
-                @language.Value
+            <div class="d-flex align-center language-item">
+                @if (ShowFlags)
+                {
+                    <div class="flag-icon @GetFlagClass(language.Key)" 
+                         aria-hidden="true" 
+                         title="@language.Value"></div>
+                }
+                else
+                {
+                    <MudIcon Icon="@GetLanguageIcon(language.Key)" 
+                             Style="margin-right: 8px;" 
+                             aria-hidden="true" />
+                }
+                <span class="language-name">@language.Value</span>
             </div>
         </MudSelectItem>
     }
@@ -33,6 +42,7 @@
 @code {
     [Parameter] public bool Dense { get; set; } = true;
     [Parameter] public string? Class { get; set; }
+    [Parameter] public bool ShowFlags { get; set; } = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -81,6 +91,18 @@
         };
     }
 
+    private string GetFlagClass(string languageCode)
+    {
+        return languageCode switch
+        {
+            "it" => "flag-it",
+            "en" => "flag-en", 
+            "es" => "flag-es",
+            "fr" => "flag-fr",
+            _ => "flag-default"
+        };
+    }
+
     public void Dispose()
     {
         TranslationService.LanguageChanged -= OnLanguageChangedEvent;
@@ -90,9 +112,80 @@
 <style>
     .language-selector {
         min-width: 120px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
     .language-selector .mud-select-input {
         padding: 8px 12px;
+    }
+
+    .language-item {
+        transition: all 0.2s ease;
+    }
+
+    .language-item:hover {
+        background-color: rgba(var(--mud-palette-action-hover), 0.04);
+    }
+
+    .language-name {
+        margin-left: 8px;
+    }
+
+    /* Flag icons using CSS - flat design */
+    .flag-icon {
+        width: 20px;
+        height: 14px;
+        border-radius: 2px;
+        display: inline-block;
+        margin-right: 8px;
+        background-size: cover;
+        background-position: center;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .flag-it {
+        background: linear-gradient(to right, #009246 33.33%, #ffffff 33.33%, #ffffff 66.66%, #ce2b37 66.66%);
+    }
+
+    .flag-en {
+        background: linear-gradient(to bottom, #012169 25%, #ffffff 25%, #ffffff 75%, #c8102e 75%),
+                    linear-gradient(to right, #012169 25%, #ffffff 25%, #ffffff 75%, #c8102e 75%);
+        background-size: 100% 33.33%, 33.33% 100%;
+        background-position: 0 0, 0 0;
+        background-repeat: no-repeat;
+    }
+
+    .flag-es {
+        background: linear-gradient(to bottom, #aa151b 25%, #f1bf00 25%, #f1bf00 75%, #aa151b 75%);
+    }
+
+    .flag-fr {
+        background: linear-gradient(to right, #0055a4 33.33%, #ffffff 33.33%, #ffffff 66.66%, #ef4135 66.66%);
+    }
+
+    .flag-default {
+        background: #cccccc;
+    }
+
+    /* Animation for language changes */
+    .language-selector.changing {
+        animation: languageChange 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+</style>
+
+<style>
+    @@keyframes languageChange {
+        0% {
+            transform: scale(1);
+            opacity: 1;
+        }
+        50% {
+            transform: scale(0.98);
+            opacity: 0.8;
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
     }
 </style>

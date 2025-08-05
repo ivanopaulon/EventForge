@@ -44,6 +44,8 @@
                             </MudGrid>
                         </MudPaper>
                     </MudContainer>
+                    <!-- Universal Footer for authentication required pages -->
+                    <UniversalFooter />
                 </NotAuthorized>
             </AuthorizeRouteView>
             <FocusOnNavigate RouteData="@routeData" Selector="h1" />
@@ -72,6 +74,8 @@
                         </MudGrid>
                     </MudPaper>
                 </MudContainer>
+                <!-- Universal Footer for not found pages -->
+                <UniversalFooter />
             </LayoutView>
         </NotFound>
     </Router>

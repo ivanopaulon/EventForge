@@ -69,34 +69,12 @@
                 @TranslationService.GetTranslation("navigation.settings", "Settings")
             </MudMenuItem>
             
-            <!-- Mobile-only responsive controls -->
-            @if (IncludeMobileControls)
-            {
-                <MudDivider />
-                
-                <!-- Language Selector - only visible on mobile -->
-                <MudMenuItem Icon="@Icons.Material.Filled.Language">
-                    <div class="d-flex align-center ga-2 pa-2">
-                        <MudText Typo="Typo.body2" Class="flex-grow-1">
-                            @TranslationService.GetTranslation("common.language", "Language")
-                        </MudText>
-                        <div style="min-width: 120px;">
-                            <LanguageSelector Dense="true" />
-                        </div>
-                    </div>
-                </MudMenuItem>
-                
-                <!-- Theme Selector - enhanced mobile presentation -->
-                <MudMenuItem>
-                    <div class="d-flex align-center ga-2 pa-2">
-                        <MudIcon Icon="Icons.Material.Filled.Palette" Size="Size.Small" />
-                        <MudText Typo="Typo.body2" Class="flex-grow-1">
-                            @TranslationService.GetTranslation("theme.selector", "Theme")
-                        </MudText>
-                        <ThemeSelector />
-                    </div>
-                </MudMenuItem>
-            }
+            <!-- Future ready: Placeholder for notifications -->
+            <MudMenuItem Icon="@Icons.Material.Filled.Notifications" 
+                         OnClick="@(() => NavigationManager.NavigateTo("/notifications"))"
+                         aria-label="@TranslationService.GetTranslation("navigation.notificationsDescription", "View notifications")">
+                @TranslationService.GetTranslation("navigation.notifications", "Notifications")
+            </MudMenuItem>
             
             <MudDivider />
             
@@ -112,12 +90,6 @@
 
 @code {
     private UserDto? _currentUser;
-
-    /// <summary>
-    /// Whether to include mobile-specific controls (language and theme selectors) in the menu.
-    /// Should be true when this menu is used as the primary way to access these controls on mobile.
-    /// </summary>
-    [Parameter] public bool IncludeMobileControls { get; set; } = true;
 
     /// <summary>
     /// Event callback fired when user logs out successfully.

@@ -22,6 +22,16 @@
    NOTE: Avoid defining colors directly here - use custom theme variables instead.
 */
 
+/* Global body padding for universal footer */
+body {
+    padding-bottom: 80px !important; /* Account for fixed universal footer */
+}
+
+/* Layout adjustments for main content with footer */
+.main-content-with-footer {
+    padding-bottom: 80px; /* Additional padding for content */
+}
+
 /* Accessibility improvements */
 .sr-only {
     position: absolute !important;
