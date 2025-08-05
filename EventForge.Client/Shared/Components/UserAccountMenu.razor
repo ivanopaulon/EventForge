@@ -1,0 +1,232 @@
+@using EventForge.DTOs.Auth
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@implements IDisposable
+
+<!--
+    User Account Menu Component
+    
+    This component provides a centralized user account menu that handles user authentication state,
+    displays user information, and provides access to profile, settings, and logout functionality.
+    
+    Responsive Design Strategy:
+    - On desktop: Shows user avatar, name, and role information alongside menu trigger
+    - On mobile: Shows only avatar and dropdown arrow to conserve space
+    - Language and theme controls are conditionally included based on device size
+    
+    UX Design Decisions:
+    - Avatar with user initials provides visual identity
+    - Role badge shows current user permissions at a glance
+    - Dropdown menu groups related actions logically
+    - Mobile-specific controls reduce duplication while maintaining functionality
+    - Responsive visibility ensures optimal experience across screen sizes
+-->
+
+@if (_currentUser != null)
+{
+    <MudMenu Icon="@Icons.Material.Filled.AccountCircle" 
+             Color="Color.Inherit" 
+             Direction="Origin.BottomLeft"
+             OffsetX="true"
+             Dense="true"
+             aria-label="@TranslationService.GetTranslation("userMenu.ariaLabel", "User menu")">
+        <ActivatorContent>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudAvatar Color="Color.Primary" 
+                           Size="Size.Small"
+                           aria-label="@TranslationService.GetTranslation("userMenu.avatarLabel", "User avatar")">
+                    @GetUserInitials()
+                </MudAvatar>
+                <!-- User info - responsive visibility: show only on larger screens -->
+                <div class="d-none d-sm-flex flex-column">
+                    <MudText Typo="Typo.body2" Class="ma-0">@_currentUser.FullName</MudText>
+                    @if (_currentUser.Roles?.Any() == true)
+                    {
+                        <MudChip T="string"
+                                 Size="Size.Small" 
+                                 Color="Color.Secondary" 
+                                 Variant="Variant.Filled"
+                                 Text="@GetRolesDisplayText()" />
+                    }
+                </div>
+                <MudIcon Icon="@Icons.Material.Filled.ArrowDropDown" 
+                         Size="Size.Small" 
+                         aria-hidden="true" />
+            </MudStack>
+        </ActivatorContent>
+        <ChildContent>
+            <!-- Profile and Settings Actions -->
+            <MudMenuItem Icon="@Icons.Material.Filled.Person" 
+                         OnClick="@(() => NavigationManager.NavigateTo("/profile"))"
+                         aria-label="@TranslationService.GetTranslation("profile.viewProfile", "View profile")">
+                @TranslationService.GetTranslation("navigation.profile", "Profile")
+            </MudMenuItem>
+            <MudMenuItem Icon="@Icons.Material.Filled.Settings" 
+                         OnClick="@(() => NavigationManager.NavigateTo("/settings"))"
+                         aria-label="@TranslationService.GetTranslation("navigation.settingsDescription", "Go to settings")">
+                @TranslationService.GetTranslation("navigation.settings", "Settings")
+            </MudMenuItem>
+            
+            <!-- Mobile-only responsive controls -->
+            @if (IncludeMobileControls)
+            {
+                <MudDivider />
+                
+                <!-- Language Selector - only visible on mobile -->
+                <MudMenuItem Icon="@Icons.Material.Filled.Language">
+                    <div class="d-flex align-center ga-2 pa-2">
+                        <MudText Typo="Typo.body2" Class="flex-grow-1">
+                            @TranslationService.GetTranslation("common.language", "Language")
+                        </MudText>
+                        <div style="min-width: 120px;">
+                            <LanguageSelector Dense="true" />
+                        </div>
+                    </div>
+                </MudMenuItem>
+                
+                <!-- Theme Selector - enhanced mobile presentation -->
+                <MudMenuItem>
+                    <div class="d-flex align-center ga-2 pa-2">
+                        <MudIcon Icon="Icons.Material.Filled.Palette" Size="Size.Small" />
+                        <MudText Typo="Typo.body2" Class="flex-grow-1">
+                            @TranslationService.GetTranslation("theme.selector", "Theme")
+                        </MudText>
+                        <ThemeSelector />
+                    </div>
+                </MudMenuItem>
+            }
+            
+            <MudDivider />
+            
+            <!-- Logout Action -->
+            <MudMenuItem Icon="@Icons.Material.Filled.Logout" 
+                         OnClick="@HandleLogout"
+                         aria-label="@TranslationService.GetTranslation("auth.logoutDescription", "Logout from system")">
+                @TranslationService.GetTranslation("auth.logout", "Logout")
+            </MudMenuItem>
+        </ChildContent>
+    </MudMenu>
+}
+
+@code {
+    private UserDto? _currentUser;
+
+    /// <summary>
+    /// Whether to include mobile-specific controls (language and theme selectors) in the menu.
+    /// Should be true when this menu is used as the primary way to access these controls on mobile.
+    /// </summary>
+    [Parameter] public bool IncludeMobileControls { get; set; } = true;
+
+    /// <summary>
+    /// Event callback fired when user logs out successfully.
+    /// </summary>
+    [Parameter] public EventCallback OnLogout { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
+        await CheckAuthenticationState();
+    }
+
+    private async Task CheckAuthenticationState()
+    {
+        var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        if (isAuthenticated)
+        {
+            _currentUser = await AuthService.GetCurrentUserAsync();
+        }
+        else
+        {
+            _currentUser = null;
+        }
+        StateHasChanged();
+    }
+
+    private async void OnAuthenticationStateChanged()
+    {
+        await CheckAuthenticationState();
+    }
+
+    private async Task HandleLogout()
+    {
+        try
+        {
+            await AuthService.LogoutAsync();
+            Snackbar.Add(TranslationService.GetTranslation("auth.logoutSuccess", "Successfully logged out"), Severity.Success);
+            
+            // Trigger the logout callback if provided
+            if (OnLogout.HasDelegate)
+            {
+                await OnLogout.InvokeAsync();
+            }
+            else
+            {
+                // Default behavior: navigate to login
+                NavigationManager.NavigateTo("/login");
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("auth.logoutError", "Logout error: {0}", ex.Message), Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Generates user initials from first and last name, falling back to username if names are not available.
+    /// This provides a consistent visual identity for users in the avatar.
+    /// </summary>
+    private string GetUserInitials()
+    {
+        if (_currentUser == null) return "?";
+        
+        var firstName = _currentUser.FirstName?.Trim();
+        var lastName = _currentUser.LastName?.Trim();
+        
+        if (string.IsNullOrEmpty(firstName) && string.IsNullOrEmpty(lastName))
+            return _currentUser.Username?.Substring(0, 1).ToUpper() ?? "?";
+        
+        var firstInitial = !string.IsNullOrEmpty(firstName) ? firstName.Substring(0, 1).ToUpper() : "";
+        var lastInitial = !string.IsNullOrEmpty(lastName) ? lastName.Substring(0, 1).ToUpper() : "";
+        
+        return $"{firstInitial}{lastInitial}";
+    }
+
+    /// <summary>
+    /// Formats the user's roles for display in the UI.
+    /// Shows single role name or role count for multiple roles to maintain compact presentation.
+    /// </summary>
+    private string GetRolesDisplayText()
+    {
+        if (_currentUser?.Roles == null || !_currentUser.Roles.Any())
+            return "No Role";
+        
+        if (_currentUser.Roles.Count == 1)
+            return _currentUser.Roles.First();
+        
+        return $"{_currentUser.Roles.Count} Roles";
+    }
+
+    public void Dispose()
+    {
+        AuthService.OnAuthenticationStateChanged -= OnAuthenticationStateChanged;
+    }
+}
+
+<style>
+    /* Ensure proper spacing and alignment for mobile controls */
+    .user-menu-mobile-control {
+        min-width: 250px;
+    }
+    
+    .user-menu-mobile-control .mud-select {
+        min-width: 120px;
+    }
+    
+    /* Responsive role chip styling */
+    .user-role-chip {
+        font-size: 0.6rem;
+        height: 18px;
+    }
+</style>

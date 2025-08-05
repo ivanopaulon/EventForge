@@ -2,6 +2,7 @@
    ===========================
    
    Updated to use EventForge custom theme variables for consistent styling.
+   Added support for health status footer with proper spacing.
 */
 
 .page {
@@ -12,6 +13,11 @@
 
 main {
     flex: 1;
+}
+
+/* Main content area with footer spacing */
+.main-content-with-footer {
+    padding-bottom: 60px !important;
 }
 
 .sidebar {
@@ -49,6 +55,11 @@ main {
 
     .top-row ::deep a, .top-row ::deep .btn-link {
         margin-left: 0;
+    }
+    
+    /* Adjust footer spacing for mobile */
+    .main-content-with-footer {
+        padding-bottom: 50px !important;
     }
 }
 

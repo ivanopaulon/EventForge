@@ -38,88 +38,16 @@
         
         @if (_isAuthenticated)
         {
-            <!-- Responsive user controls -->
+            <!-- Responsive user controls - separated for better mobile/desktop experience -->
             <nav class="d-flex align-center ga-2" role="navigation" aria-label="User controls">
-                <!-- Language Selector - hide on small screens -->
-                <div class="d-none d-md-block">
+                <!-- Desktop-only controls: Language and Theme selectors as separate components -->
+                <div class="d-none d-md-flex align-center ga-2">
                     <LanguageSelector Dense="true" />
+                    <ThemeSelector />
                 </div>
                 
-                <!-- Theme Selector with improved accessibility -->
-                <ThemeSelector />
-                
-                @if (_currentUser != null)
-                {
-                    <!-- User Profile Menu with responsive layout -->
-                    <MudMenu Icon="@Icons.Material.Filled.AccountCircle" 
-                             Color="Color.Inherit" 
-                             Direction="Origin.BottomLeft"
-                             OffsetX="true"
-                             Dense="true"
-                             aria-label="Menu utente">
-                        <ActivatorContent>
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                <MudAvatar Color="Color.Primary" 
-                                           Size="Size.Small"
-                                           aria-label="Avatar utente">
-                                    @GetUserInitials()
-                                </MudAvatar>
-                                <!-- User info - responsive visibility -->
-                                <div class="d-none d-sm-flex flex-column">
-                                    <MudText Typo="Typo.body2" Class="ma-0">@_currentUser.FullName</MudText>
-                                    @if (_currentUser.Roles?.Any() == true)
-                                    {
-                                        <MudChip T="string"
-                                                 Size="Size.Small" 
-                                                 Color="Color.Secondary" 
-                                                 Variant="Variant.Filled"
-                                                 Text="@GetRolesDisplayText()" />
-                                    }
-                                </div>
-                                <MudIcon Icon="@Icons.Material.Filled.ArrowDropDown" 
-                                         Size="Size.Small" 
-                                         aria-hidden="true" />
-                            </MudStack>
-                        </ActivatorContent>
-                        <ChildContent>
-                            <MudMenuItem Icon="@Icons.Material.Filled.Person" 
-                                         OnClick="@(() => NavigationManager.NavigateTo("/profile"))"
-                                         aria-label="@TranslationService.GetTranslation("profile.viewProfile", "View profile")">
-                                @TranslationService.GetTranslation("navigation.profile", "Profile")
-                            </MudMenuItem>
-                            <MudMenuItem Icon="@Icons.Material.Filled.Settings" 
-                                         OnClick="@(() => NavigationManager.NavigateTo("/settings"))"
-                                         aria-label="@TranslationService.GetTranslation("navigation.settingsDescription", "Go to settings")">
-                                @TranslationService.GetTranslation("navigation.settings", "Settings")
-                            </MudMenuItem>
-                            
-                            <!-- Mobile-only language selector -->
-                            <div class="d-block d-md-none">
-                                <MudDivider />
-                                <MudMenuItem Icon="@Icons.Material.Filled.Language">
-                                    <LanguageSelector Dense="true" />
-                                </MudMenuItem>
-                            </div>
-                            
-                            <MudDivider />
-                            <MudMenuItem>
-                                <div class="d-flex align-center ga-2">
-                                    <MudIcon Icon="Icons.Material.Filled.Palette" Size="Size.Small" />
-                                    <div class="flex-grow-1">
-                                        <MudText Typo="Typo.body2">@TranslationService.GetTranslation("theme.selector", "Theme")</MudText>
-                                    </div>
-                                    <ThemeSelector />
-                                </div>
-                            </MudMenuItem>
-                            <MudDivider />
-                            <MudMenuItem Icon="@Icons.Material.Filled.Logout" 
-                                         OnClick="@HandleLogout"
-                                         aria-label="@TranslationService.GetTranslation("auth.logoutDescription", "Logout from system")">
-                                @TranslationService.GetTranslation("auth.logout", "Logout")
-                            </MudMenuItem>
-                        </ChildContent>
-                    </MudMenu>
-                }
+                <!-- User Account Menu - includes mobile controls when needed -->
+                <UserAccountMenu IncludeMobileControls="true" OnLogout="@HandleLogout" />
             </nav>
         }
         else
@@ -148,7 +76,7 @@
     }
     
     <!-- Main content area with proper semantic structure -->
-    <MudMainContent Class="mt-16 pa-2 pa-sm-4" role="main">
+    <MudMainContent Class="mt-16 pa-2 pa-sm-4 main-content-with-footer" role="main">
         <!-- Skip link for accessibility -->
         <a href="#main-content" 
            class="sr-only sr-only-focusable position-absolute" 
@@ -164,10 +92,12 @@
     </MudMainContent>
 </MudLayout>
 
+<!-- Health Status Footer - always visible for system monitoring -->
+<HealthStatusFooter RefreshInterval="30000" IsVisible="true" />
+
 @code {
     private bool _drawerOpen = true;
     private bool _isAuthenticated = false;
-    private UserDto? _currentUser;
     private MudThemeProvider? _mudThemeProvider;
     private MudTheme _currentTheme = new();
 
@@ -349,14 +279,6 @@
     private async Task CheckAuthenticationState()
     {
         _isAuthenticated = await AuthService.IsAuthenticatedAsync();
-        if (_isAuthenticated)
-        {
-            _currentUser = await AuthService.GetCurrentUserAsync();
-        }
-        else
-        {
-            _currentUser = null;
-        }
         StateHasChanged();
     }
 
@@ -367,43 +289,9 @@
 
     private async Task HandleLogout()
     {
-        try
-        {
-            await AuthService.LogoutAsync();
-            Snackbar.Add(TranslationService.GetTranslation("auth.logoutSuccess", "Successfully logged out"), Severity.Success);
-            NavigationManager.NavigateTo("/login");
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add(TranslationService.GetTranslation("auth.logoutError", "Logout error: {0}", ex.Message), Severity.Error);
-        }
-    }
-
-    private string GetUserInitials()
-    {
-        if (_currentUser == null) return "?";
-        
-        var firstName = _currentUser.FirstName?.Trim();
-        var lastName = _currentUser.LastName?.Trim();
-        
-        if (string.IsNullOrEmpty(firstName) && string.IsNullOrEmpty(lastName))
-            return _currentUser.Username?.Substring(0, 1).ToUpper() ?? "?";
-        
-        var firstInitial = !string.IsNullOrEmpty(firstName) ? firstName.Substring(0, 1).ToUpper() : "";
-        var lastInitial = !string.IsNullOrEmpty(lastName) ? lastName.Substring(0, 1).ToUpper() : "";
-        
-        return $"{firstInitial}{lastInitial}";
-    }
-
-    private string GetRolesDisplayText()
-    {
-        if (_currentUser?.Roles == null || !_currentUser.Roles.Any())
-            return "No Role";
-        
-        if (_currentUser.Roles.Count == 1)
-            return _currentUser.Roles.First();
-        
-        return $"{_currentUser.Roles.Count} Roles";
+        // This method is called from UserAccountMenu component
+        // Default behavior is handled by the component itself
+        await Task.CompletedTask;
     }
 
     private Task HandleError(Exception exception)

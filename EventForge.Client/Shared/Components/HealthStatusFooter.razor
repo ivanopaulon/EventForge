@@ -1,0 +1,618 @@
+@using EventForge.DTOs.Health
+@using EventForge.Client.Services
+@inject IHealthService HealthService
+@inject ITranslationService TranslationService
+@implements IDisposable
+
+<!-- 
+    Health Status Footer Component
+    
+    This component provides continuous health monitoring by periodically calling /api/v1/health/detailed
+    and displaying system status in a compact, fixed footer. Health information is organized into 
+    thematic areas to help users quickly identify system status and potential issues.
+    
+    Grouping Logic:
+    - API: Overall API health and uptime information
+    - Database: Database connectivity, performance metrics, and migration status  
+    - Authentication: Security system status and configuration validation
+    - Performance: Query performance, monitoring service status, and resource usage
+    - Environment: Runtime environment details and system configuration
+    - Dependencies: External service dependencies and integration status
+    
+    UX Design Decisions:
+    - Fixed positioning ensures always-visible system status
+    - Compact design minimizes screen real estate usage
+    - Color-coded status indicators provide quick visual feedback
+    - Tooltips provide detailed information without cluttering the interface
+    - Responsive design adapts to different screen sizes
+    - Auto-refresh prevents stale status information
+-->
+
+<div class="health-status-footer @(_isVisible ? "visible" : "hidden")">
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-2">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="2">
+            <!-- System Status Overview -->
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="d-none d-sm-flex">
+                <MudIcon Icon="@Icons.Material.Filled.MonitorHeart" 
+                         Size="Size.Small" 
+                         Color="@GetOverallStatusColor()" />
+                <MudText Typo="Typo.caption" Class="text-nowrap">
+                    @TranslationService.GetTranslation("health.systemStatus", "System Status")
+                </MudText>
+                <MudText Typo="Typo.caption" Color="@GetOverallStatusColor()" Class="font-weight-medium">
+                    @GetOverallStatusText()
+                </MudText>
+            </MudStack>
+
+            <!-- Health Status Indicators - Grouped by thematic areas -->
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="flex-grow-1 justify-center">
+                @if (_healthData != null)
+                {
+                    <!-- API Status Group -->
+                    <MudTooltip>
+                        <ChildContent>
+                            <MudChip T="string"
+                                     Size="Size.Small" 
+                                     Color="@GetStatusColor(_healthData.ApiStatus)" 
+                                     Variant="Variant.Filled"
+                                     Class="pa-1 health-chip">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.Api" Size="Size.Small" />
+                                    <span class="d-none d-md-inline">API</span>
+                                </MudStack>
+                            </MudChip>
+                        </ChildContent>
+                        <TooltipContent>
+                            <div class="pa-2">
+                                <MudText Typo="Typo.body2" Class="font-weight-bold mb-2">
+                                    @TranslationService.GetTranslation("health.api.title", "API Status")
+                                </MudText>
+                                <MudGrid>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption">Status:</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption" Color="@GetStatusColor(_healthData.ApiStatus)">
+                                            @_healthData.ApiStatus
+                                        </MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption">Version:</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption">@_healthData.Version</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption">Uptime:</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption">@FormatUptime(_healthData.Uptime)</MudText>
+                                    </MudItem>
+                                </MudGrid>
+                            </div>
+                        </TooltipContent>
+                    </MudTooltip>
+
+                    <!-- Database Status Group -->
+                    <MudTooltip>
+                        <ChildContent>
+                            <MudChip T="string" Size="Size.Small" 
+                                     Color="@GetStatusColor(_healthData.DatabaseStatus)" 
+                                     Variant="Variant.Filled"
+                                     Class="pa-1 health-chip">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.Storage" Size="Size.Small" />
+                                    <span class="d-none d-md-inline">DB</span>
+                                </MudStack>
+                            </MudChip>
+                        </ChildContent>
+                        <TooltipContent>
+                            <div class="pa-2" style="max-width: 300px;">
+                                <MudText Typo="Typo.body2" Class="font-weight-bold mb-2">
+                                    @TranslationService.GetTranslation("health.database.title", "Database Status")
+                                </MudText>
+                                @if (_healthData.DatabaseDetails != null)
+                                {
+                                    <MudGrid>
+                                        <MudItem xs="6">
+                                            <MudText Typo="Typo.caption">Status:</MudText>
+                                        </MudItem>
+                                        <MudItem xs="6">
+                                            <MudText Typo="Typo.caption" Color="@GetStatusColor(_healthData.DatabaseStatus)">
+                                                @_healthData.DatabaseStatus
+                                            </MudText>
+                                        </MudItem>
+                                        @if (_healthData.DatabaseDetails.ContainsKey("ResponseTimeMs"))
+                                        {
+                                            <MudItem xs="6">
+                                                <MudText Typo="Typo.caption">Response:</MudText>
+                                            </MudItem>
+                                            <MudItem xs="6">
+                                                <MudText Typo="Typo.caption">@($"{_healthData.DatabaseDetails["ResponseTimeMs"]:F1}ms")</MudText>
+                                            </MudItem>
+                                        }
+                                        @if (_healthData.DatabaseDetails.ContainsKey("ProviderName"))
+                                        {
+                                            <MudItem xs="6">
+                                                <MudText Typo="Typo.caption">Provider:</MudText>
+                                            </MudItem>
+                                            <MudItem xs="6">
+                                                <MudText Typo="Typo.caption">@_healthData.DatabaseDetails["ProviderName"]</MudText>
+                                            </MudItem>
+                                        }
+                                    </MudGrid>
+                                }
+                            </div>
+                        </TooltipContent>
+                    </MudTooltip>
+
+                    <!-- Authentication Status Group -->
+                    <MudTooltip>
+                        <ChildContent>
+                            <MudChip T="string" Size="Size.Small" 
+                                     Color="@GetStatusColor(_healthData.AuthenticationStatus)" 
+                                     Variant="Variant.Filled"
+                                     Class="pa-1 health-chip">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" />
+                                    <span class="d-none d-md-inline">Auth</span>
+                                </MudStack>
+                            </MudChip>
+                        </ChildContent>
+                        <TooltipContent>
+                            <div class="pa-2" style="max-width: 350px;">
+                                <MudText Typo="Typo.body2" Class="font-weight-bold mb-2">
+                                    @TranslationService.GetTranslation("health.authentication.title", "Authentication Status")
+                                </MudText>
+                                @if (_healthData.AuthenticationDetails != null)
+                                {
+                                    <MudGrid>
+                                        <MudItem xs="6">
+                                            <MudText Typo="Typo.caption">Status:</MudText>
+                                        </MudItem>
+                                        <MudItem xs="6">
+                                            <MudText Typo="Typo.caption" Color="@GetStatusColor(_healthData.AuthenticationStatus)">
+                                                @_healthData.AuthenticationStatus
+                                            </MudText>
+                                        </MudItem>
+                                        @if (_healthData.AuthenticationDetails.ContainsKey("AuthenticationScheme"))
+                                        {
+                                            <MudItem xs="6">
+                                                <MudText Typo="Typo.caption">Scheme:</MudText>
+                                            </MudItem>
+                                            <MudItem xs="6">
+                                                <MudText Typo="Typo.caption">@_healthData.AuthenticationDetails["AuthenticationScheme"]</MudText>
+                                            </MudItem>
+                                        }
+                                        @if (_healthData.AuthenticationDetails.ContainsKey("HasSecretKey"))
+                                        {
+                                            <MudItem xs="6">
+                                                <MudText Typo="Typo.caption">JWT Config:</MudText>
+                                            </MudItem>
+                                            <MudItem xs="6">
+                                                <MudText Typo="Typo.caption" Color="@((bool)_healthData.AuthenticationDetails["HasSecretKey"] ? Color.Success : Color.Error)">
+                                                    @((bool)_healthData.AuthenticationDetails["HasSecretKey"] ? "Valid" : "Invalid")
+                                                </MudText>
+                                            </MudItem>
+                                        }
+                                    </MudGrid>
+                                }
+                            </div>
+                        </TooltipContent>
+                    </MudTooltip>
+
+                    <!-- Performance Status Group -->
+                    <MudTooltip>
+                        <ChildContent>
+                            <MudChip T="string" Size="Size.Small" 
+                                     Color="@GetPerformanceStatusColor()" 
+                                     Variant="Variant.Filled"
+                                     Class="pa-1 health-chip">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.Speed" Size="Size.Small" />
+                                    <span class="d-none d-md-inline">Perf</span>
+                                </MudStack>
+                            </MudChip>
+                        </ChildContent>
+                        <TooltipContent>
+                            <div class="pa-2" style="max-width: 350px;">
+                                <MudText Typo="Typo.body2" Class="font-weight-bold mb-2">
+                                    @TranslationService.GetTranslation("health.performance.title", "Performance Metrics")
+                                </MudText>
+                                @if (_healthData.AuthenticationDetails != null)
+                                {
+                                    <MudGrid>
+                                        <MudItem xs="6">
+                                            <MudText Typo="Typo.caption">Memory:</MudText>
+                                        </MudItem>
+                                        <MudItem xs="6">
+                                            <MudText Typo="Typo.caption">@FormatBytes(_healthData.WorkingSet)</MudText>
+                                        </MudItem>
+                                        @if (_healthData.AuthenticationDetails.ContainsKey("PerformanceMonitoring"))
+                                        {
+                                            <MudItem xs="6">
+                                                <MudText Typo="Typo.caption">Monitoring:</MudText>
+                                            </MudItem>
+                                            <MudItem xs="6">
+                                                <MudText Typo="Typo.caption">@_healthData.AuthenticationDetails["PerformanceMonitoring"]</MudText>
+                                            </MudItem>
+                                        }
+                                        @if (_healthData.AuthenticationDetails.ContainsKey("AverageQueryDurationMs"))
+                                        {
+                                            <MudItem xs="6">
+                                                <MudText Typo="Typo.caption">Avg Query:</MudText>
+                                            </MudItem>
+                                            <MudItem xs="6">
+                                                <MudText Typo="Typo.caption">@($"{_healthData.AuthenticationDetails["AverageQueryDurationMs"]}ms")</MudText>
+                                            </MudItem>
+                                        }
+                                    </MudGrid>
+                                }
+                            </div>
+                        </TooltipContent>
+                    </MudTooltip>
+
+                    <!-- Migrations Status Group -->
+                    <MudTooltip>
+                        <ChildContent>
+                            <MudChip T="string" Size="Size.Small" 
+                                     Color="@GetMigrationsStatusColor()" 
+                                     Variant="Variant.Filled"
+                                     Class="pa-1 health-chip">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.Update" Size="Size.Small" />
+                                    <span class="d-none d-md-inline">Mig</span>
+                                </MudStack>
+                            </MudChip>
+                        </ChildContent>
+                        <TooltipContent>
+                            <div class="pa-2" style="max-width: 400px;">
+                                <MudText Typo="Typo.body2" Class="font-weight-bold mb-2">
+                                    @TranslationService.GetTranslation("health.migrations.title", "Database Migrations")
+                                </MudText>
+                                <MudText Typo="Typo.caption" Class="mb-2">
+                                    Applied: @(_healthData.AppliedMigrations?.Count() ?? 0) migrations
+                                </MudText>
+                                @if (_healthData.AppliedMigrations?.Any() == true)
+                                {
+                                    <MudText Typo="Typo.caption" Class="text-muted">
+                                        Latest: @_healthData.AppliedMigrations.LastOrDefault()?.Split('_').LastOrDefault()
+                                    </MudText>
+                                }
+                            </div>
+                        </TooltipContent>
+                    </MudTooltip>
+
+                    <!-- Environment Status Group -->
+                    <MudTooltip>
+                        <ChildContent>
+                            <MudChip T="string" Size="Size.Small" 
+                                     Color="@GetEnvironmentStatusColor()" 
+                                     Variant="Variant.Filled"
+                                     Class="pa-1 health-chip">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.CloudQueue" Size="Size.Small" />
+                                    <span class="d-none d-md-inline">Env</span>
+                                </MudStack>
+                            </MudChip>
+                        </ChildContent>
+                        <TooltipContent>
+                            <div class="pa-2">
+                                <MudText Typo="Typo.body2" Class="font-weight-bold mb-2">
+                                    @TranslationService.GetTranslation("health.environment.title", "Environment Info")
+                                </MudText>
+                                <MudGrid>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption">Environment:</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption">@_healthData.Environment</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption">Machine:</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption">@_healthData.MachineName</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption">Process ID:</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption">@_healthData.ProcessId</MudText>
+                                    </MudItem>
+                                </MudGrid>
+                            </div>
+                        </TooltipContent>
+                    </MudTooltip>
+
+                    <!-- Dependencies Status Group -->
+                    @if (_healthData.Dependencies != null)
+                    {
+                        <MudTooltip>
+                            <ChildContent>
+                                <MudChip T="string" Size="Size.Small" 
+                                         Color="@GetDependenciesStatusColor()" 
+                                         Variant="Variant.Filled"
+                                         Class="pa-1 health-chip">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                        <MudIcon Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small" />
+                                        <span class="d-none d-md-inline">Deps</span>
+                                    </MudStack>
+                                </MudChip>
+                            </ChildContent>
+                            <TooltipContent>
+                                <div class="pa-2">
+                                    <MudText Typo="Typo.body2" Class="font-weight-bold mb-2">
+                                        @TranslationService.GetTranslation("health.dependencies.title", "Dependencies Status")
+                                    </MudText>
+                                    <MudGrid>
+                                        @foreach (var dep in _healthData.Dependencies)
+                                        {
+                                            <MudItem xs="8">
+                                                <MudText Typo="Typo.caption">@dep.Key:</MudText>
+                                            </MudItem>
+                                            <MudItem xs="4">
+                                                <MudText Typo="Typo.caption" Color="@GetStatusColor(dep.Value)">
+                                                    @dep.Value
+                                                </MudText>
+                                            </MudItem>
+                                        }
+                                    </MudGrid>
+                                </div>
+                            </TooltipContent>
+                        </MudTooltip>
+                    }
+                }
+                else
+                {
+                    <!-- Loading state -->
+                    <MudProgressLinear Color="Color.Info" Indeterminate="true" Class="ma-2" Style="width: 100px;" />
+                }
+            </MudStack>
+
+            <!-- Last Updated and Refresh Controls -->
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="d-none d-sm-flex">
+                <MudText Typo="Typo.caption" Class="text-muted">
+                    @if (_lastUpdated.HasValue)
+                    {
+                        @TranslationService.GetTranslation("health.lastUpdated", "Updated") @FormatLastUpdated(_lastUpdated.Value)
+                    }
+                </MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh" 
+                               Size="Size.Small" 
+                               OnClick="RefreshHealthData"
+                               Color="Color.Default"
+                               aria-label="@TranslationService.GetTranslation("health.refresh", "Refresh health status")" />
+            </MudStack>
+        </MudStack>
+    </MudContainer>
+</div>
+
+@code {
+    private DetailedHealthStatusDto? _healthData;
+    private DateTime? _lastUpdated;
+    private Timer? _refreshTimer;
+    private bool _isVisible = true;
+
+    /// <summary>
+    /// Refresh interval in milliseconds. Default is 30 seconds.
+    /// </summary>
+    [Parameter] public int RefreshInterval { get; set; } = 30000;
+
+    /// <summary>
+    /// Whether the footer should be visible. Default is true.
+    /// </summary>
+    [Parameter] public bool IsVisible { get; set; } = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isVisible = IsVisible;
+        
+        // Initial load
+        await RefreshHealthData();
+        
+        // Set up periodic refresh
+        _refreshTimer = new Timer(async _ => 
+        {
+            await InvokeAsync(async () =>
+            {
+                await RefreshHealthData();
+                StateHasChanged();
+            });
+        }, null, RefreshInterval, RefreshInterval);
+    }
+
+    private async Task RefreshHealthData()
+    {
+        try
+        {
+            _healthData = await HealthService.GetDetailedHealthAsync();
+            _lastUpdated = DateTime.Now;
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't break the UI
+            Console.Error.WriteLine($"Health status refresh failed: {ex.Message}");
+        }
+    }
+
+    #region Status Color Helpers
+    
+    /// <summary>
+    /// Determines the overall system status color based on all health indicators.
+    /// Green = All systems healthy, Yellow = Some degradation, Red = Critical issues
+    /// </summary>
+    private Color GetOverallStatusColor()
+    {
+        if (_healthData == null) return Color.Default;
+        
+        var statuses = new[] { 
+            _healthData.ApiStatus, 
+            _healthData.DatabaseStatus, 
+            _healthData.AuthenticationStatus 
+        };
+        
+        if (statuses.Any(s => s?.ToLower().Contains("error") == true || s?.ToLower().Contains("unhealthy") == true))
+            return Color.Error;
+            
+        if (statuses.Any(s => s?.ToLower().Contains("degraded") == true || s?.ToLower().Contains("warning") == true))
+            return Color.Warning;
+            
+        return Color.Success;
+    }
+
+    private Color GetStatusColor(string? status)
+    {
+        if (string.IsNullOrEmpty(status)) return Color.Default;
+        
+        return status.ToLower() switch
+        {
+            "healthy" => Color.Success,
+            "degraded" => Color.Warning,
+            "unhealthy" or "error" => Color.Error,
+            "disabled" => Color.Info,
+            _ => Color.Default
+        };
+    }
+
+    private Color GetPerformanceStatusColor()
+    {
+        if (_healthData?.AuthenticationDetails?.ContainsKey("PerformanceMonitoring") == true)
+        {
+            var perfStatus = _healthData.AuthenticationDetails["PerformanceMonitoring"]?.ToString();
+            return GetStatusColor(perfStatus == "Enabled" ? "healthy" : perfStatus);
+        }
+        return Color.Default;
+    }
+
+    private Color GetMigrationsStatusColor()
+    {
+        if (_healthData?.AppliedMigrations?.Any() == true)
+            return Color.Success;
+        return Color.Warning;
+    }
+
+    private Color GetEnvironmentStatusColor()
+    {
+        if (!string.IsNullOrEmpty(_healthData?.Environment))
+        {
+            return _healthData.Environment.ToLower() switch
+            {
+                "production" => Color.Success,
+                "development" => Color.Info,
+                "staging" => Color.Warning,
+                _ => Color.Default
+            };
+        }
+        return Color.Default;
+    }
+
+    private Color GetDependenciesStatusColor()
+    {
+        if (_healthData?.Dependencies == null) return Color.Default;
+        
+        var unhealthy = _healthData.Dependencies.Values.Any(v => 
+            v.ToLower().Contains("error") || v.ToLower().Contains("unhealthy"));
+        var degraded = _healthData.Dependencies.Values.Any(v => 
+            v.ToLower().Contains("degraded") || v.ToLower().Contains("warning"));
+            
+        if (unhealthy) return Color.Error;
+        if (degraded) return Color.Warning;
+        return Color.Success;
+    }
+
+    #endregion
+
+    #region Formatting Helpers
+
+    private string GetOverallStatusText()
+    {
+        if (_healthData == null) return "Loading...";
+        
+        var color = GetOverallStatusColor();
+        return color switch
+        {
+            Color.Success => TranslationService.GetTranslation("health.status.healthy", "Healthy"),
+            Color.Warning => TranslationService.GetTranslation("health.status.degraded", "Degraded"),
+            Color.Error => TranslationService.GetTranslation("health.status.unhealthy", "Unhealthy"),
+            _ => TranslationService.GetTranslation("health.status.unknown", "Unknown")
+        };
+    }
+
+    private string FormatUptime(TimeSpan uptime)
+    {
+        if (uptime.TotalDays >= 1)
+            return $"{uptime.Days}d {uptime.Hours}h";
+        if (uptime.TotalHours >= 1)
+            return $"{uptime.Hours}h {uptime.Minutes}m";
+        return $"{uptime.Minutes}m";
+    }
+
+    private string FormatBytes(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+
+    private string FormatLastUpdated(DateTime lastUpdated)
+    {
+        var timeAgo = DateTime.Now - lastUpdated;
+        if (timeAgo.TotalMinutes < 1)
+            return TranslationService.GetTranslation("time.justNow", "just now");
+        if (timeAgo.TotalMinutes < 60)
+            return $"{(int)timeAgo.TotalMinutes}m ago";
+        return $"{(int)timeAgo.TotalHours}h ago";
+    }
+
+    #endregion
+
+    public void Dispose()
+    {
+        _refreshTimer?.Dispose();
+    }
+}
+
+<style>
+    .health-status-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--mud-palette-surface);
+        border-top: 1px solid var(--mud-palette-lines-default);
+        backdrop-filter: blur(10px);
+        z-index: 1000;
+        transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .health-status-footer.visible {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    .health-status-footer.hidden {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+
+    .health-chip {
+        min-width: 48px;
+        height: 24px;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .health-chip:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+</style>
