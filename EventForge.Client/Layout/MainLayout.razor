@@ -92,8 +92,11 @@
     </MudMainContent>
 </MudLayout>
 
-<!-- Health Status Footer - always visible for system monitoring -->
-<HealthStatusFooter RefreshInterval="30000" IsVisible="true" />
+<!-- Health Status Footer - Conditionally visible based on authentication and page -->
+@if (ShouldShowHealthFooter())
+{
+    <HealthStatusFooter RefreshInterval="30000" IsVisible="true" />
+}
 
 @code {
     private bool _drawerOpen = true;
@@ -101,11 +104,37 @@
     private MudThemeProvider? _mudThemeProvider;
     private MudTheme _currentTheme = new();
 
+    /// <summary>
+    /// List of routes where the health footer should not be displayed.
+    /// </summary>
+    private readonly string[] _hiddenFooterRoutes = { "/login", "/" };
+
+    /// <summary>
+    /// Determines whether to show the health status footer based on authentication state and current route.
+    /// </summary>
+    private bool ShouldShowHealthFooter()
+    {
+        var currentPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        
+        // Remove query parameters and fragments for route matching
+        var routePath = "/" + currentPath.Split('?')[0].Split('#')[0];
+        
+        // Don't show on login page or home page for unauthenticated users
+        if (_hiddenFooterRoutes.Any(route => routePath.Equals(route, StringComparison.OrdinalIgnoreCase)))
+        {
+            return false;
+        }
+        
+        // Show footer for authenticated users on all other pages
+        return _isAuthenticated;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
         ThemeService.OnThemeChanged += OnThemeChanged;
         TranslationService.LanguageChanged += OnLanguageChanged;
+        NavigationManager.LocationChanged += OnLocationChanged;
         
         await ThemeService.InitializeAsync();
         await CheckAuthenticationState();
@@ -287,6 +316,11 @@
         await CheckAuthenticationState();
     }
 
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
     private async Task HandleLogout()
     {
         // This method is called from UserAccountMenu component
@@ -309,5 +343,6 @@
         AuthService.OnAuthenticationStateChanged -= OnAuthenticationStateChanged;
         ThemeService.OnThemeChanged -= OnThemeChanged;
         TranslationService.LanguageChanged -= OnLanguageChanged;
+        NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }

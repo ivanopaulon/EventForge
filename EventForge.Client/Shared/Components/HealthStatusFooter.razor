@@ -52,10 +52,10 @@
                     <MudTooltip>
                         <ChildContent>
                             <MudChip T="string"
-                                     Size="Size.Small" 
+                                     Size="Size.Medium" 
                                      Color="@GetStatusColor(_healthData.ApiStatus)" 
                                      Variant="Variant.Filled"
-                                     Class="pa-1 health-chip">
+                                     Class="pa-2 health-chip">
                                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                                     <MudIcon Icon="@Icons.Material.Filled.Api" Size="Size.Small" />
                                     <span class="d-none d-md-inline">API</span>
@@ -96,10 +96,10 @@
                     <!-- Database Status Group -->
                     <MudTooltip>
                         <ChildContent>
-                            <MudChip T="string" Size="Size.Small" 
+                            <MudChip T="string" Size="Size.Medium" 
                                      Color="@GetStatusColor(_healthData.DatabaseStatus)" 
                                      Variant="Variant.Filled"
-                                     Class="pa-1 health-chip">
+                                     Class="pa-2 health-chip">
                                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                                     <MudIcon Icon="@Icons.Material.Filled.Storage" Size="Size.Small" />
                                     <span class="d-none d-md-inline">DB</span>
@@ -128,7 +128,7 @@
                                                 <MudText Typo="Typo.caption">Response:</MudText>
                                             </MudItem>
                                             <MudItem xs="6">
-                                                <MudText Typo="Typo.caption">@($"{_healthData.DatabaseDetails["ResponseTimeMs"]:F1}ms")</MudText>
+                                                <MudText Typo="Typo.caption">@FormatResponseTime(_healthData.DatabaseDetails["ResponseTimeMs"])</MudText>
                                             </MudItem>
                                         }
                                         @if (_healthData.DatabaseDetails.ContainsKey("ProviderName"))
@@ -149,10 +149,10 @@
                     <!-- Authentication Status Group -->
                     <MudTooltip>
                         <ChildContent>
-                            <MudChip T="string" Size="Size.Small" 
+                            <MudChip T="string" Size="Size.Medium" 
                                      Color="@GetStatusColor(_healthData.AuthenticationStatus)" 
                                      Variant="Variant.Filled"
-                                     Class="pa-1 health-chip">
+                                     Class="pa-2 health-chip">
                                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                                     <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" />
                                     <span class="d-none d-md-inline">Auth</span>
@@ -190,8 +190,8 @@
                                                 <MudText Typo="Typo.caption">JWT Config:</MudText>
                                             </MudItem>
                                             <MudItem xs="6">
-                                                <MudText Typo="Typo.caption" Color="@((bool)_healthData.AuthenticationDetails["HasSecretKey"] ? Color.Success : Color.Error)">
-                                                    @((bool)_healthData.AuthenticationDetails["HasSecretKey"] ? "Valid" : "Invalid")
+                                                <MudText Typo="Typo.caption" Color="@GetJwtConfigColor(_healthData.AuthenticationDetails["HasSecretKey"])">
+                                                    @GetJwtConfigText(_healthData.AuthenticationDetails["HasSecretKey"])
                                                 </MudText>
                                             </MudItem>
                                         }
@@ -204,10 +204,10 @@
                     <!-- Performance Status Group -->
                     <MudTooltip>
                         <ChildContent>
-                            <MudChip T="string" Size="Size.Small" 
+                            <MudChip T="string" Size="Size.Medium" 
                                      Color="@GetPerformanceStatusColor()" 
                                      Variant="Variant.Filled"
-                                     Class="pa-1 health-chip">
+                                     Class="pa-2 health-chip">
                                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                                     <MudIcon Icon="@Icons.Material.Filled.Speed" Size="Size.Small" />
                                     <span class="d-none d-md-inline">Perf</span>
@@ -243,7 +243,7 @@
                                                 <MudText Typo="Typo.caption">Avg Query:</MudText>
                                             </MudItem>
                                             <MudItem xs="6">
-                                                <MudText Typo="Typo.caption">@($"{_healthData.AuthenticationDetails["AverageQueryDurationMs"]}ms")</MudText>
+                                                <MudText Typo="Typo.caption">@FormatQueryDuration(_healthData.AuthenticationDetails["AverageQueryDurationMs"])</MudText>
                                             </MudItem>
                                         }
                                     </MudGrid>
@@ -255,10 +255,10 @@
                     <!-- Migrations Status Group -->
                     <MudTooltip>
                         <ChildContent>
-                            <MudChip T="string" Size="Size.Small" 
+                            <MudChip T="string" Size="Size.Medium" 
                                      Color="@GetMigrationsStatusColor()" 
                                      Variant="Variant.Filled"
-                                     Class="pa-1 health-chip">
+                                     Class="pa-2 health-chip">
                                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                                     <MudIcon Icon="@Icons.Material.Filled.Update" Size="Size.Small" />
                                     <span class="d-none d-md-inline">Mig</span>
@@ -286,10 +286,10 @@
                     <!-- Environment Status Group -->
                     <MudTooltip>
                         <ChildContent>
-                            <MudChip T="string" Size="Size.Small" 
+                            <MudChip T="string" Size="Size.Medium" 
                                      Color="@GetEnvironmentStatusColor()" 
                                      Variant="Variant.Filled"
-                                     Class="pa-1 health-chip">
+                                     Class="pa-2 health-chip">
                                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                                     <MudIcon Icon="@Icons.Material.Filled.CloudQueue" Size="Size.Small" />
                                     <span class="d-none d-md-inline">Env</span>
@@ -330,10 +330,10 @@
                     {
                         <MudTooltip>
                             <ChildContent>
-                                <MudChip T="string" Size="Size.Small" 
+                                <MudChip T="string" Size="Size.Medium" 
                                          Color="@GetDependenciesStatusColor()" 
                                          Variant="Variant.Filled"
-                                         Class="pa-1 health-chip">
+                                         Class="pa-2 health-chip">
                                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                                         <MudIcon Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small" />
                                         <span class="d-none d-md-inline">Deps</span>
@@ -573,6 +573,111 @@
 
     #endregion
 
+    #region Safe Casting Helpers
+
+    /// <summary>
+    /// Safely formats response time with proper null checking and type validation.
+    /// </summary>
+    private string FormatResponseTime(object? responseTime)
+    {
+        if (responseTime == null) return "N/A";
+        
+        try
+        {
+            // Handle different numeric types that might come from JSON
+            return responseTime switch
+            {
+                double d => $"{d:F1}ms",
+                float f => $"{f:F1}ms", 
+                decimal dec => $"{dec:F1}ms",
+                int i => $"{i:F1}ms",
+                long l => $"{l:F1}ms",
+                string s when double.TryParse(s, out var parsed) => $"{parsed:F1}ms",
+                _ => $"{responseTime}ms"
+            };
+        }
+        catch
+        {
+            return $"{responseTime}ms";
+        }
+    }
+
+    /// <summary>
+    /// Safely gets JWT configuration color with proper type checking.
+    /// </summary>
+    private Color GetJwtConfigColor(object? hasSecretKey)
+    {
+        if (hasSecretKey == null) return Color.Default;
+        
+        try
+        {
+            return hasSecretKey switch
+            {
+                bool b => b ? Color.Success : Color.Error,
+                string s when bool.TryParse(s, out var parsed) => parsed ? Color.Success : Color.Error,
+                string s when s.Equals("true", StringComparison.OrdinalIgnoreCase) => Color.Success,
+                string s when s.Equals("false", StringComparison.OrdinalIgnoreCase) => Color.Error,
+                _ => Color.Default
+            };
+        }
+        catch
+        {
+            return Color.Default;
+        }
+    }
+
+    /// <summary>
+    /// Safely gets JWT configuration text with proper type checking.
+    /// </summary>
+    private string GetJwtConfigText(object? hasSecretKey)
+    {
+        if (hasSecretKey == null) return "Unknown";
+        
+        try
+        {
+            return hasSecretKey switch
+            {
+                bool b => b ? "Valid" : "Invalid",
+                string s when bool.TryParse(s, out var parsed) => parsed ? "Valid" : "Invalid",
+                string s when s.Equals("true", StringComparison.OrdinalIgnoreCase) => "Valid",
+                string s when s.Equals("false", StringComparison.OrdinalIgnoreCase) => "Invalid",
+                _ => hasSecretKey.ToString() ?? "Unknown"
+            };
+        }
+        catch
+        {
+            return hasSecretKey.ToString() ?? "Unknown";
+        }
+    }
+
+    /// <summary>
+    /// Safely formats query duration with proper type checking.
+    /// </summary>
+    private string FormatQueryDuration(object? queryDuration)
+    {
+        if (queryDuration == null) return "N/A";
+        
+        try
+        {
+            return queryDuration switch
+            {
+                double d => $"{d}ms",
+                float f => $"{f}ms",
+                decimal dec => $"{dec}ms", 
+                int i => $"{i}ms",
+                long l => $"{l}ms",
+                string s when double.TryParse(s, out var parsed) => $"{parsed}ms",
+                _ => $"{queryDuration}ms"
+            };
+        }
+        catch
+        {
+            return $"{queryDuration}ms";
+        }
+    }
+
+    #endregion
+
     public void Dispose()
     {
         _refreshTimer?.Dispose();
@@ -604,11 +709,12 @@
     }
 
     .health-chip {
-        min-width: 48px;
-        height: 24px;
-        font-size: 0.75rem;
+        min-width: 72px;
+        height: 32px;
+        font-size: 0.813rem;
         cursor: pointer;
         transition: all 0.2s ease;
+        border-radius: 16px;
     }
 
     .health-chip:hover {
