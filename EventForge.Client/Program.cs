@@ -9,7 +9,7 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// Configure HttpClient instances using best practices
+// Configure HttpClient instances using best practices for performance
 builder.Services.AddHttpClient("ApiClient", client =>
 {
     client.BaseAddress = new Uri("https://localhost:7241/");
@@ -17,6 +17,14 @@ builder.Services.AddHttpClient("ApiClient", client =>
     // Add default headers for API requests
     client.DefaultRequestHeaders.Add("Accept", "application/json");
     client.DefaultRequestHeaders.Add("User-Agent", "EventForge-Client/1.0");
+    // Enable compression for better mobile performance
+    client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate, br");
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler()
+{
+    // Configure for optimal performance
+    UseCookies = false, // Disable cookies for API calls
+    MaxConnectionsPerServer = 10, // Increase connection pool for better concurrency
+    UseProxy = false
 });
 
 // Configure StaticClient for translation files and static assets
@@ -29,8 +37,26 @@ builder.Services.AddHttpClient("StaticClient", client =>
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
-// Add MudBlazor services
-builder.Services.AddMudServices();
+// Add MudBlazor services with performance optimizations
+builder.Services.AddMudServices(config =>
+{
+    // Optimize for mobile and high-load scenarios
+    config.SnackbarConfiguration.PositionClass = "mud-snackbar-location-top-right";
+    config.SnackbarConfiguration.MaxDisplayedSnackbars = 5;
+    config.SnackbarConfiguration.NewestOnTop = true;
+    config.SnackbarConfiguration.ShowCloseIcon = true;
+    config.SnackbarConfiguration.VisibleStateDuration = 3000;
+    config.SnackbarConfiguration.HideTransitionDuration = 500;
+    config.SnackbarConfiguration.ShowTransitionDuration = 500;
+});
+
+// Add memory cache for performance optimization
+builder.Services.AddMemoryCache(options =>
+{
+    // Configure cache for mobile-optimized performance
+    options.SizeLimit = 50 * 1024 * 1024; // 50MB limit for mobile devices
+    options.CompactionPercentage = 0.25; // Remove 25% of cache when limit is reached
+});
 
 // Add centralized HTTP client service
 builder.Services.AddScoped<IHttpClientService, HttpClientService>();
@@ -39,6 +65,8 @@ builder.Services.AddScoped<IHttpClientService, HttpClientService>();
 builder.Services.AddScoped<IHealthService, HealthService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<SignalRService>();
+builder.Services.AddScoped<IPerformanceOptimizationService, PerformanceOptimizationService>();
+builder.Services.AddScoped<OptimizedSignalRService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IConfigurationService, ConfigurationService>();

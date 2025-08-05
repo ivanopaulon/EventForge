@@ -37,15 +37,18 @@ public class ChatService : IChatService
 {
     private readonly IHttpClientService _httpClientService;
     private readonly SignalRService _signalRService;
+    private readonly IPerformanceOptimizationService _performanceService;
     private readonly ILogger<ChatService> _logger;
 
     public ChatService(
         IHttpClientService httpClientService,
         SignalRService signalRService,
+        IPerformanceOptimizationService performanceService,
         ILogger<ChatService> logger)
     {
         _httpClientService = httpClientService;
         _signalRService = signalRService;
+        _performanceService = performanceService;
         _logger = logger;
 
         // Subscribe to SignalR events
@@ -76,20 +79,26 @@ public class ChatService : IChatService
     {
         try
         {
-            var queryParams = new List<string>
+            // Use caching for improved performance
+            var cacheKey = $"{CacheKeys.CHAT_LIST}_{page}_{pageSize}_{filter}";
+            
+            return await _performanceService.GetCachedDataAsync(cacheKey, async () =>
             {
-                $"page={page}",
-                $"pageSize={pageSize}"
-            };
+                var queryParams = new List<string>
+                {
+                    $"page={page}",
+                    $"pageSize={pageSize}"
+                };
 
-            if (!string.IsNullOrEmpty(filter))
-            {
-                queryParams.Add($"type={filter}");
-            }
+                if (!string.IsNullOrEmpty(filter))
+                {
+                    queryParams.Add($"type={filter}");
+                }
 
-            var query = string.Join("&", queryParams);
-            var pagedResult = await _httpClientService.GetAsync<PagedResult<ChatResponseDto>>($"api/v1/chat?{query}", cancellationToken);
-            return pagedResult?.Items?.ToList() ?? new List<ChatResponseDto>();
+                var query = string.Join("&", queryParams);
+                var pagedResult = await _httpClientService.GetAsync<PagedResult<ChatResponseDto>>($"api/v1/chat?{query}", cancellationToken);
+                return pagedResult?.Items?.ToList() ?? new List<ChatResponseDto>();
+            }, TimeSpan.FromMinutes(5)) ?? new List<ChatResponseDto>();
         }
         catch (Exception ex)
         {
@@ -129,9 +138,15 @@ public class ChatService : IChatService
     {
         try
         {
-            var query = $"page={page}&pageSize={pageSize}";
-            var pagedResult = await _httpClientService.GetAsync<PagedResult<ChatMessageDto>>($"api/v1/chat/{chatId}/messages?{query}", cancellationToken);
-            return pagedResult?.Items?.ToList() ?? new List<ChatMessageDto>();
+            // Use caching for chat messages with shorter expiration for real-time updates
+            var cacheKey = $"{CacheKeys.ChatMessages(chatId)}_{page}_{pageSize}";
+            
+            return await _performanceService.GetCachedDataAsync(cacheKey, async () =>
+            {
+                var query = $"page={page}&pageSize={pageSize}";
+                var pagedResult = await _httpClientService.GetAsync<PagedResult<ChatMessageDto>>($"api/v1/chat/{chatId}/messages?{query}", cancellationToken);
+                return pagedResult?.Items?.ToList() ?? new List<ChatMessageDto>();
+            }, TimeSpan.FromMinutes(2)) ?? new List<ChatMessageDto>(); // Shorter cache for messages
         }
         catch (Exception ex)
         {
@@ -145,6 +160,10 @@ public class ChatService : IChatService
         try
         {
             var result = await _httpClientService.PostAsync<SendMessageDto, ChatMessageDto>($"api/v1/chat/{messageDto.ChatId}/messages", messageDto, cancellationToken);
+            
+            // Invalidate cache for this chat's messages
+            _performanceService.InvalidateCachePattern(CacheKeys.ChatMessages(messageDto.ChatId));
+            
             return result ?? throw new InvalidOperationException("Failed to send message");
         }
         catch (Exception ex)
@@ -228,13 +247,25 @@ public class ChatService : IChatService
     {
         try
         {
-            // Send typing indicator via SignalR
-            if (_signalRService.IsChatConnected)
-            {
-                await _signalRService.SendTypingIndicatorAsync(chatId, isTyping);
-                return true;
-            }
-            return false;
+            // Use debouncing to reduce network traffic for typing indicators
+            await _performanceService.DebounceAsync(
+                $"{DebounceKeys.TYPING_INDICATOR}_{chatId}",
+                async () =>
+                {
+                    if (_signalRService.IsChatConnected)
+                    {
+                        await _signalRService.SendTypingIndicatorAsync(chatId, isTyping);
+                    }
+                    return true;
+                },
+                TimeSpan.FromMilliseconds(300) // 300ms debounce
+            );
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            // Debounced operation was cancelled, this is expected
+            return true;
         }
         catch (Exception ex)
         {
