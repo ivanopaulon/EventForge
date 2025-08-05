@@ -85,10 +85,14 @@
             </MudStack>
 
             <!-- Desktop: Language and Theme selectors always visible -->
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="d-none d-md-flex selectors-section">
-                <LanguageSelector Dense="true" ShowFlags="true" />
-                <ThemeSelector TextLabels="true" />
-            </MudStack>
+            <div class="d-none d-md-flex selectors-section" 
+                 role="group" 
+                 aria-label="@TranslationService.GetTranslation("footer.preferencesGroup", "User preferences")">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                    <LanguageSelector Dense="true" ShowFlags="true" />
+                    <ThemeSelector TextLabels="true" />
+                </MudStack>
+            </div>
 
             <!-- Mobile: Expandable menu button -->
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="d-flex d-md-none mobile-section">
