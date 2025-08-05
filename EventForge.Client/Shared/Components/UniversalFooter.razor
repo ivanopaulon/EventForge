@@ -1,0 +1,384 @@
+@using EventForge.DTOs.Health
+@using EventForge.Client.Services
+@inject IHealthService HealthService
+@inject ITranslationService TranslationService
+@inject IThemeService ThemeService
+@implements IDisposable
+
+<!-- 
+    Universal Footer Component
+    
+    This footer component is visible on ALL pages including login, providing:
+    - Health status chip with system overview
+    - Language selector with flag icons (4 languages: it, en, es, fr)
+    - Theme selector with text labels for custom themes
+    - Mobile-responsive with expandable menu
+    - Keyboard and screen reader accessible
+    - Discrete animations for theme/language changes
+    - Centralized across all layouts
+-->
+
+<footer class="universal-footer @(_isExpanded ? "expanded" : "collapsed")" 
+        role="contentinfo" 
+        aria-label="@TranslationService.GetTranslation("footer.ariaLabel", "Site footer with system status and preferences")">
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-2">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="2">
+            
+            <!-- Health Status Chip -->
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="health-section">
+                @if (_healthData != null)
+                {
+                    <MudTooltip>
+                        <ChildContent>
+                            <MudChip T="string"
+                                     Size="Size.Medium" 
+                                     Color="@GetOverallStatusColor()" 
+                                     Variant="Variant.Filled"
+                                     Class="health-chip clickable"
+                                     OnClick="@(() => _isHealthExpanded = !_isHealthExpanded)"
+                                     aria-label="@($"{TranslationService.GetTranslation("health.systemStatus", "System status")} - {GetOverallStatusText()}")">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.MonitorHeart" Size="Size.Small" />
+                                    <span class="d-none d-sm-inline">@GetOverallStatusText()</span>
+                                </MudStack>
+                            </MudChip>
+                        </ChildContent>
+                        <TooltipContent>
+                            <div class="pa-2">
+                                <MudText Typo="Typo.body2" Class="font-weight-bold mb-2">
+                                    @TranslationService.GetTranslation("health.systemOverview", "System Overview")
+                                </MudText>
+                                <MudGrid>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption">API:</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption" Color="@GetStatusColor(_healthData.ApiStatus)">
+                                            @_healthData.ApiStatus
+                                        </MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption">Database:</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption" Color="@GetStatusColor(_healthData.DatabaseStatus)">
+                                            @_healthData.DatabaseStatus
+                                        </MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption">Auth:</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption" Color="@GetStatusColor(_healthData.AuthenticationStatus)">
+                                            @_healthData.AuthenticationStatus
+                                        </MudText>
+                                    </MudItem>
+                                </MudGrid>
+                            </div>
+                        </TooltipContent>
+                    </MudTooltip>
+                }
+                else
+                {
+                    <MudProgressLinear Color="Color.Info" Indeterminate="true" Class="ma-2" Style="width: 80px;" />
+                }
+            </MudStack>
+
+            <!-- Desktop: Language and Theme selectors always visible -->
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="d-none d-md-flex selectors-section">
+                <LanguageSelector Dense="true" ShowFlags="true" />
+                <ThemeSelector TextLabels="true" />
+            </MudStack>
+
+            <!-- Mobile: Expandable menu button -->
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="d-flex d-md-none mobile-section">
+                <MudIconButton Icon="@(_isExpanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                               Size="Size.Medium"
+                               Color="Color.Inherit"
+                               OnClick="@(() => _isExpanded = !_isExpanded)"
+                               aria-label="@TranslationService.GetTranslation("footer.expandMenu", "Expand preferences menu")"
+                               aria-expanded="@_isExpanded"
+                               aria-controls="mobile-preferences-menu" />
+            </MudStack>
+        </MudStack>
+
+        <!-- Mobile Expanded Menu -->
+        <MudCollapse Expanded="@_isExpanded" Class="d-flex d-md-none">
+            <div id="mobile-preferences-menu" 
+                 class="mobile-preferences-menu pa-4 mt-2"
+                 role="region"
+                 aria-label="@TranslationService.GetTranslation("footer.preferencesMenu", "Preferences menu")">
+                <MudStack Spacing="3">
+                    <!-- Language Selector -->
+                    <div class="mobile-selector-group">
+                        <MudText Typo="Typo.body2" Class="font-weight-medium mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Language" Size="Size.Small" Class="mr-2" />
+                            @TranslationService.GetTranslation("common.language", "Language")
+                        </MudText>
+                        <LanguageSelector Dense="false" ShowFlags="true" Class="mobile-selector" />
+                    </div>
+                    
+                    <!-- Theme Selector -->
+                    <div class="mobile-selector-group">
+                        <MudText Typo="Typo.body2" Class="font-weight-medium mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Palette" Size="Size.Small" Class="mr-2" />
+                            @TranslationService.GetTranslation("theme.selector", "Theme")
+                        </MudText>
+                        <ThemeSelector TextLabels="true" Class="mobile-selector" />
+                    </div>
+                </MudStack>
+            </div>
+        </MudCollapse>
+    </MudContainer>
+</footer>
+
+@code {
+    private DetailedHealthStatusDto? _healthData;
+    private DateTime? _lastUpdated;
+    private Timer? _refreshTimer;
+    private bool _isExpanded = false;
+    private bool _isHealthExpanded = false;
+
+    /// <summary>
+    /// Refresh interval for health data in milliseconds. Default is 60 seconds.
+    /// </summary>
+    [Parameter] public int RefreshInterval { get; set; } = 60000;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Subscribe to theme and language changes for animations
+        ThemeService.OnThemeChanged += OnThemeChanged;
+        TranslationService.LanguageChanged += OnLanguageChanged;
+        
+        // Initial health data load
+        await RefreshHealthData();
+        
+        // Set up periodic refresh
+        _refreshTimer = new Timer(async _ => 
+        {
+            await InvokeAsync(async () =>
+            {
+                await RefreshHealthData();
+                StateHasChanged();
+            });
+        }, null, RefreshInterval, RefreshInterval);
+    }
+
+    private async Task RefreshHealthData()
+    {
+        try
+        {
+            _healthData = await HealthService.GetDetailedHealthAsync();
+            _lastUpdated = DateTime.Now;
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't break the UI
+            Console.Error.WriteLine($"Health status refresh failed: {ex.Message}");
+        }
+    }
+
+    private void OnThemeChanged()
+    {
+        // Add discrete animation class and trigger state change
+        InvokeAsync(() =>
+        {
+            StateHasChanged();
+        });
+    }
+
+    private void OnLanguageChanged(object? sender, string newLanguage)
+    {
+        // Add discrete animation class and trigger state change
+        InvokeAsync(() =>
+        {
+            StateHasChanged();
+        });
+    }
+
+    #region Status Helpers
+
+    private Color GetOverallStatusColor()
+    {
+        if (_healthData == null) return Color.Default;
+        
+        var statuses = new[] { 
+            _healthData.ApiStatus, 
+            _healthData.DatabaseStatus, 
+            _healthData.AuthenticationStatus 
+        };
+        
+        if (statuses.Any(s => s?.ToLower().Contains("error") == true || s?.ToLower().Contains("unhealthy") == true))
+            return Color.Error;
+            
+        if (statuses.Any(s => s?.ToLower().Contains("degraded") == true || s?.ToLower().Contains("warning") == true))
+            return Color.Warning;
+            
+        return Color.Success;
+    }
+
+    private Color GetStatusColor(string? status)
+    {
+        if (string.IsNullOrEmpty(status)) return Color.Default;
+        
+        return status.ToLower() switch
+        {
+            "healthy" => Color.Success,
+            "degraded" => Color.Warning,
+            "unhealthy" or "error" => Color.Error,
+            "disabled" => Color.Info,
+            _ => Color.Default
+        };
+    }
+
+    private string GetOverallStatusText()
+    {
+        if (_healthData == null) return TranslationService.GetTranslation("health.loading", "Loading...");
+        
+        var color = GetOverallStatusColor();
+        return color switch
+        {
+            Color.Success => TranslationService.GetTranslation("health.status.healthy", "Healthy"),
+            Color.Warning => TranslationService.GetTranslation("health.status.degraded", "Degraded"),
+            Color.Error => TranslationService.GetTranslation("health.status.unhealthy", "Unhealthy"),
+            _ => TranslationService.GetTranslation("health.status.unknown", "Unknown")
+        };
+    }
+
+    #endregion
+
+    public void Dispose()
+    {
+        _refreshTimer?.Dispose();
+        ThemeService.OnThemeChanged -= OnThemeChanged;
+        TranslationService.LanguageChanged -= OnLanguageChanged;
+    }
+}
+
+<style>
+    .universal-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--mud-palette-surface);
+        border-top: 1px solid var(--mud-palette-lines-default);
+        backdrop-filter: blur(10px);
+        z-index: 1000;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+        min-height: 56px;
+    }
+
+    .universal-footer.expanded {
+        /* Additional height when mobile menu is expanded */
+    }
+
+    .health-chip {
+        min-width: 80px;
+        height: 36px;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-radius: 18px;
+    }
+
+    .health-chip:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .health-chip.clickable:hover {
+        opacity: 0.9;
+    }
+
+    .selectors-section {
+        flex-grow: 1;
+        justify-content: center;
+    }
+
+    .mobile-preferences-menu {
+        background: var(--mud-palette-surface);
+        border-radius: 8px;
+        border: 1px solid var(--mud-palette-lines-default);
+        animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .mobile-selector-group {
+        animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .mobile-selector {
+        width: 100%;
+    }
+
+    /* Discrete animations for theme/language changes */
+    .selectors-section > * {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .mobile-selector-group > * {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Ensure body has padding to account for fixed footer */
+    body {
+        padding-bottom: 70px;
+    }
+
+    /* Accessibility improvements */
+    .health-chip:focus-visible {
+        outline: 2px solid var(--mud-palette-primary);
+        outline-offset: 2px;
+    }
+
+    .mobile-preferences-menu:focus-within {
+        border-color: var(--mud-palette-primary);
+    }
+
+    /* Screen reader only text */
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .sr-only:focus {
+        position: static;
+        width: auto;
+        height: auto;
+        padding: 0.25rem 0.5rem;
+        margin: 0;
+        overflow: visible;
+        clip: auto;
+        white-space: normal;
+    }
+</style>
+
+<style>
+    @@keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+</style>

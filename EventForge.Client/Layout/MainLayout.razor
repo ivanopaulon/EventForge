@@ -10,16 +10,15 @@
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" />
 
 <MudLayout>
-    <!-- Improved AppBar with accessibility enhancements -->
+    <!-- Improved AppBar with accessibility enhancements and dynamic title -->
     <MudAppBar Elevation="1" role="banner">
         <MudIconButton Icon="Icons.Material.Filled.Menu" 
                        Color="Color.Inherit" 
                        Edge="Edge.Start" 
                        OnClick="@(() => _drawerOpen = !_drawerOpen)"
-                       aria-label="Apri menu di navigazione"
+                       aria-label="@TranslationService.GetTranslation("navigation.openMenu", "Open navigation menu")"
                        aria-expanded="@_drawerOpen"
                        aria-controls="navigation-drawer" />
-        <MudSpacer />
         
         <!-- Logo and brand with improved accessibility -->
         <div class="d-flex align-center" role="img" aria-label="EventForge Logo">
@@ -34,20 +33,21 @@
                 EventForge
             </MudText>
         </div>
+        
+        <!-- Dynamic Page Title -->
+        <MudText Typo="Typo.h6" 
+                 Class="ml-4 d-none d-md-block"
+                 Color="Color.Inherit">
+            @GetPageTitle()
+        </MudText>
+        
         <MudSpacer />
         
         @if (_isAuthenticated)
         {
-            <!-- Responsive user controls - separated for better mobile/desktop experience -->
+            <!-- User Account Menu - no longer includes theme/language controls -->
             <nav class="d-flex align-center ga-2" role="navigation" aria-label="User controls">
-                <!-- Desktop-only controls: Language and Theme selectors as separate components -->
-                <div class="d-none d-md-flex align-center ga-2">
-                    <LanguageSelector Dense="true" />
-                    <ThemeSelector />
-                </div>
-                
-                <!-- User Account Menu - includes mobile controls when needed -->
-                <UserAccountMenu IncludeMobileControls="true" OnLogout="@HandleLogout" />
+                <UserAccountMenu IncludeMobileControls="false" OnLogout="@HandleLogout" />
             </nav>
         }
         else
@@ -70,7 +70,7 @@
                    ClipMode="DrawerClipMode.Always" 
                    Elevation="2"
                    id="navigation-drawer"
-                   aria-label="Menu di navigazione principale">
+                   aria-label="@TranslationService.GetTranslation("navigation.mainMenu", "Main navigation menu")">
             <NavMenu />
         </MudDrawer>
     }
@@ -81,7 +81,7 @@
         <a href="#main-content" 
            class="sr-only sr-only-focusable position-absolute" 
            style="top: 1rem; left: 1rem; z-index: 9999;">
-            Vai al contenuto principale
+            @TranslationService.GetTranslation("accessibility.skipToContent", "Skip to main content")
         </a>
         
         <div id="main-content" tabindex="-1">
@@ -92,42 +92,14 @@
     </MudMainContent>
 </MudLayout>
 
-<!-- Health Status Footer - Conditionally visible based on authentication and page -->
-@if (ShouldShowHealthFooter())
-{
-    <HealthStatusFooter RefreshInterval="30000" IsVisible="true" />
-}
+<!-- Universal Footer - centralized for all layouts -->
+<UniversalFooter />
 
 @code {
     private bool _drawerOpen = true;
     private bool _isAuthenticated = false;
     private MudThemeProvider? _mudThemeProvider;
     private MudTheme _currentTheme = new();
-
-    /// <summary>
-    /// List of routes where the health footer should not be displayed.
-    /// </summary>
-    private readonly string[] _hiddenFooterRoutes = { "/login", "/" };
-
-    /// <summary>
-    /// Determines whether to show the health status footer based on authentication state and current route.
-    /// </summary>
-    private bool ShouldShowHealthFooter()
-    {
-        var currentPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-        
-        // Remove query parameters and fragments for route matching
-        var routePath = "/" + currentPath.Split('?')[0].Split('#')[0];
-        
-        // Don't show on login page or home page for unauthenticated users
-        if (_hiddenFooterRoutes.Any(route => routePath.Equals(route, StringComparison.OrdinalIgnoreCase)))
-        {
-            return false;
-        }
-        
-        // Show footer for authenticated users on all other pages
-        return _isAuthenticated;
-    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -159,6 +131,27 @@
         {
             PaletteLight = GetLightPalette(ThemeService.CurrentTheme),
             PaletteDark = GetDarkPalette(ThemeService.CurrentTheme)
+        };
+    }
+
+    private string GetPageTitle()
+    {
+        var currentPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        var routePath = "/" + currentPath.Split('?')[0].Split('#')[0];
+
+        return routePath.ToLower() switch
+        {
+            "/" => TranslationService.GetTranslation("navigation.home", "Home"),
+            "/admin" => TranslationService.GetTranslation("navigation.admin", "Administration"),
+            "/events" => TranslationService.GetTranslation("navigation.events", "Events"),
+            "/notifications" => TranslationService.GetTranslation("navigation.notifications", "Notifications"),
+            "/chat" => TranslationService.GetTranslation("navigation.chat", "Chat"),
+            "/profile" => TranslationService.GetTranslation("navigation.profile", "Profile"),
+            "/settings" => TranslationService.GetTranslation("navigation.settings", "Settings"),
+            "/superadmin" => TranslationService.GetTranslation("navigation.superadmin", "Super Admin"),
+            var path when path.StartsWith("/superadmin/") => TranslationService.GetTranslation("navigation.superadmin", "Super Admin"),
+            var path when path.StartsWith("/admin/") => TranslationService.GetTranslation("navigation.admin", "Administration"),
+            _ => TranslationService.GetTranslation("navigation.eventforge", "EventForge")
         };
     }
 

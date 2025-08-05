@@ -2,58 +2,98 @@
 @inject IThemeService ThemeService
 @inject ITranslationService TranslationService
 
-<MudMenu Icon="@GetCurrentThemeIcon()"
-         Color="Color.Inherit"
-         Direction="Origin.BottomLeft"
-         OffsetX="true"
-         Dense="true"
-         aria-label="@TranslationService.GetTranslation("theme.selector", "Theme selector")">
-    <ActivatorContent>
-        <MudTooltip Text="@TranslationService.GetTranslation("theme.selectTheme", "Select theme")">
-            <MudIconButton Icon="@GetCurrentThemeIcon()" 
-                           Color="Color.Inherit"
-                           aria-label="@TranslationService.GetTranslation("theme.selectTheme", "Select theme")" />
-        </MudTooltip>
-    </ActivatorContent>
-    <ChildContent>
+@if (TextLabels)
+{
+    <MudSelect T="string" 
+               Value="@ThemeService.CurrentTheme" 
+               ValueChanged="@HandleThemeSelection"
+               Label="@TranslationService.GetTranslation("theme.selector", "Theme")"
+               Variant="Variant.Outlined"
+               Dense="true"
+               Class="@($"theme-selector-text {Class}")"
+               aria-label="@TranslationService.GetTranslation("theme.selectTheme", "Select theme")">
         @foreach (var theme in ThemeService.AvailableThemes)
         {
-            <MudMenuItem OnClick="@(() => HandleThemeSelection(theme.Key))"
-                         aria-label="@TranslationService.GetTranslation($"theme.{theme.Key}.description", theme.Description)"
-                         Class="@(theme.Key == ThemeService.CurrentTheme ? "mud-selected" : "")">
-                <div class="d-flex align-center ga-3">
-                    <MudIcon Icon="@GetThemeIcon(theme.Key)" 
-                             Color="@(theme.Key == ThemeService.CurrentTheme ? Color.Primary : Color.Default)"
-                             Size="Size.Small" />
-                    
-                    <div class="flex-grow-1">
-                        <MudText Typo="Typo.body2" Class="mb-1">
-                            @TranslationService.GetTranslation($"theme.{theme.Key}.name", theme.Name)
-                        </MudText>
-                        <MudText Typo="Typo.caption" Class="text-muted">
-                            @TranslationService.GetTranslation($"theme.{theme.Key}.description", theme.Description)
-                        </MudText>
-                    </div>
-                    
+            <MudSelectItem Value="@theme.Key">
+                <div class="d-flex align-center theme-item">
                     <div class="theme-color-preview" 
-                         style="background-color: @theme.ColorPreview; width: 20px; height: 20px; border-radius: 4px; border: 1px solid var(--border-primary);"
+                         style="background-color: @theme.ColorPreview; width: 16px; height: 16px; border-radius: 3px; border: 1px solid var(--border-primary); margin-right: 8px;"
                          aria-hidden="true">
                     </div>
-                    
+                    <span class="theme-name">
+                        @TranslationService.GetTranslation($"theme.{theme.Key}.name", theme.Name)
+                    </span>
                     @if (theme.Key == ThemeService.CurrentTheme)
                     {
                         <MudIcon Icon="Icons.Material.Filled.Check" 
                                  Color="Color.Primary" 
                                  Size="Size.Small" 
+                                 Style="margin-left: auto;"
                                  aria-label="@TranslationService.GetTranslation("theme.currentTheme", "Current theme")" />
                     }
                 </div>
-            </MudMenuItem>
+            </MudSelectItem>
         }
-    </ChildContent>
-</MudMenu>
+    </MudSelect>
+}
+else
+{
+    <MudMenu Icon="@GetCurrentThemeIcon()"
+             Color="Color.Inherit"
+             Direction="Origin.BottomLeft"
+             OffsetX="true"
+             Dense="true"
+             aria-label="@TranslationService.GetTranslation("theme.selector", "Theme selector")">
+        <ActivatorContent>
+            <MudTooltip Text="@TranslationService.GetTranslation("theme.selectTheme", "Select theme")">
+                <MudIconButton Icon="@GetCurrentThemeIcon()" 
+                               Color="Color.Inherit"
+                               aria-label="@TranslationService.GetTranslation("theme.selectTheme", "Select theme")" />
+            </MudTooltip>
+        </ActivatorContent>
+        <ChildContent>
+            @foreach (var theme in ThemeService.AvailableThemes)
+            {
+                <MudMenuItem OnClick="@(() => HandleThemeSelection(theme.Key))"
+                             aria-label="@TranslationService.GetTranslation($"theme.{theme.Key}.description", theme.Description)"
+                             Class="@(theme.Key == ThemeService.CurrentTheme ? "mud-selected" : "")">
+                    <div class="d-flex align-center ga-3">
+                        <MudIcon Icon="@GetThemeIcon(theme.Key)" 
+                                 Color="@(theme.Key == ThemeService.CurrentTheme ? Color.Primary : Color.Default)"
+                                 Size="Size.Small" />
+                        
+                        <div class="flex-grow-1">
+                            <MudText Typo="Typo.body2" Class="mb-1">
+                                @TranslationService.GetTranslation($"theme.{theme.Key}.name", theme.Name)
+                            </MudText>
+                            <MudText Typo="Typo.caption" Class="text-muted">
+                                @TranslationService.GetTranslation($"theme.{theme.Key}.description", theme.Description)
+                            </MudText>
+                        </div>
+                        
+                        <div class="theme-color-preview" 
+                             style="background-color: @theme.ColorPreview; width: 20px; height: 20px; border-radius: 4px; border: 1px solid var(--border-primary);"
+                             aria-hidden="true">
+                        </div>
+                        
+                        @if (theme.Key == ThemeService.CurrentTheme)
+                        {
+                            <MudIcon Icon="Icons.Material.Filled.Check" 
+                                     Color="Color.Primary" 
+                                     Size="Size.Small" 
+                                     aria-label="@TranslationService.GetTranslation("theme.currentTheme", "Current theme")" />
+                        }
+                    </div>
+                </MudMenuItem>
+            }
+        </ChildContent>
+    </MudMenu>
+}
 
 @code {
+    [Parameter] public bool TextLabels { get; set; } = false;
+    [Parameter] public string? Class { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         ThemeService.OnThemeChanged += OnThemeChanged;
@@ -106,5 +146,44 @@
     
     .mud-selected {
         background-color: rgba(var(--primary-rgb), 0.08);
+    }
+
+    .theme-selector-text {
+        min-width: 140px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .theme-item {
+        transition: all 0.2s ease;
+    }
+
+    .theme-item:hover {
+        background-color: rgba(var(--mud-palette-action-hover), 0.04);
+    }
+
+    .theme-name {
+        flex-grow: 1;
+    }
+
+    /* Animation for theme changes */
+    .theme-selector-text.changing {
+        animation: themeChange 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+</style>
+
+<style>
+    @@keyframes themeChange {
+        0% {
+            transform: scale(1);
+            opacity: 1;
+        }
+        50% {
+            transform: scale(0.98);
+            opacity: 0.8;
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
     }
 </style>
