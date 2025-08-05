@@ -1,0 +1,532 @@
+@using EventForge.DTOs.Chat
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject ITranslationService TranslationService
+@inject IJSRuntime JSRuntime
+@inject ISnackbar Snackbar
+
+<MudPaper Elevation="3" Class="pa-3 enhanced-message-composer" Style="@ComposerStyle">
+    <!-- Reply indicator if replying to a message -->
+    @if (ReplyToMessage != null)
+    {
+        <div class="reply-indicator mb-2 pa-2" style="background: var(--mud-palette-grey-lighten4); border-left: 3px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-start">
+                <div class="flex-grow-1">
+                    <MudText Typo="Typo.caption" Color="Color.Primary" Class="font-weight-bold">
+                        @TranslationService.GetTranslation("chat.replyingTo", "Replying to") @ReplyToMessage.SenderName
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="text-truncate">
+                        @ReplyToMessage.Content
+                    </MudText>
+                </div>
+                <MudIconButton Icon="@Icons.Material.Filled.Close"
+                               Size="Size.Small"
+                               OnClick="@CancelReply"
+                               aria-label="@TranslationService.GetTranslation("chat.cancelReply", "Cancel reply")" />
+            </div>
+        </div>
+    }
+
+    <!-- Main composer area -->
+    <div class="d-flex align-center gap-2">
+        
+        <!-- File attachment button -->
+        <MudTooltip Text="@TranslationService.GetTranslation("chat.attachFile", "Attach file")">
+            <MudIconButton Icon="@Icons.Material.Filled.AttachFile"
+                           Color="Color.Primary"
+                           OnClick="@OnAttachFile"
+                           aria-label="@TranslationService.GetTranslation("chat.attachFile", "Attach file")" />
+        </MudTooltip>
+
+        <!-- Emoji picker button -->
+        <MudTooltip Text="@TranslationService.GetTranslation("chat.addEmoji", "Add emoji")">
+            <MudIconButton Icon="@Icons.Material.Filled.EmojiEmotions"
+                           Color="Color.Primary"
+                           OnClick="@ToggleEmojiPicker"
+                           aria-label="@TranslationService.GetTranslation("chat.addEmoji", "Add emoji")" />
+        </MudTooltip>
+
+        <!-- Message input field with mention support -->
+        <div class="flex-grow-1 position-relative">
+            <MudTextField T="string" 
+                          @bind-Value="@MessageText"
+                          @ref="messageInput"
+                          Label="@TranslationService.GetTranslation("chat.typeMessage", "Type a message...")"
+                          Placeholder="@GetPlaceholderText()"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="4000"
+                          Lines="@(MessageText.Contains('\n') ? Math.Min(5, MessageText.Split('\n').Length) : 1)"
+                          @onkeydown="@OnKeyDown"
+                          @oninput="@OnInput"
+                          HelperText="@GetHelperText()"
+                          aria-describedby="message-composer-help" />
+            
+            <!-- Mention suggestions dropdown -->
+            @if (ShowMentionSuggestions && MentionSuggestions?.Any() == true)
+            {
+                <MudPaper Class="mention-suggestions position-absolute w-100" 
+                          Style="top: 100%; z-index: 1000; max-height: 200px; overflow-y: auto;"
+                          Elevation="8">
+                    @foreach (var user in MentionSuggestions.Take(5))
+                    {
+                        <MudButton Class="w-100 justify-start pa-2"
+                                   Variant="Variant.Text"
+                                   StartIcon="@Icons.Material.Filled.Person"
+                                   OnClick="@(() => InsertMention(user))"
+                                   tabindex="0"
+                                   role="option"
+                                   aria-label="@($"Mention {user.DisplayName}")">
+                            <div class="d-flex align-center w-100">
+                                <MudAvatar Size="Size.Small" Class="mr-2">
+                                    @if (!string.IsNullOrEmpty(user.AvatarUrl))
+                                    {
+                                        <MudImage Src="@user.AvatarUrl" Alt="@user.DisplayName" />
+                                    }
+                                    else
+                                    {
+                                        @user.DisplayName?.FirstOrDefault()
+                                    }
+                                </MudAvatar>
+                                <div class="flex-grow-1 text-left">
+                                    <MudText Typo="Typo.body2">@user.DisplayName</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@@@user.Username</MudText>
+                                </div>
+                                @if (user.IsOnline)
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Circle" 
+                                             Color="Color.Success" 
+                                             Size="Size.Small" />
+                                }
+                            </div>
+                        </MudButton>
+                    }
+                </MudPaper>
+            }
+        </div>
+
+        <!-- Format toggle buttons -->
+        <MudButtonGroup Variant="Variant.Text" Size="Size.Small" Class="format-buttons">
+            <MudTooltip Text="@TranslationService.GetTranslation("chat.formatBold", "Bold")">
+                <MudIconButton Icon="@Icons.Material.Filled.FormatBold"
+                               Size="Size.Small"
+                               OnClick="@(() => ToggleFormat("**", "**"))"
+                               aria-label="@TranslationService.GetTranslation("chat.formatBold", "Bold")" />
+            </MudTooltip>
+            <MudTooltip Text="@TranslationService.GetTranslation("chat.formatItalic", "Italic")">
+                <MudIconButton Icon="@Icons.Material.Filled.FormatItalic"
+                               Size="Size.Small"
+                               OnClick="@(() => ToggleFormat("*", "*"))"
+                               aria-label="@TranslationService.GetTranslation("chat.formatItalic", "Italic")" />
+            </MudTooltip>
+            <MudTooltip Text="@TranslationService.GetTranslation("chat.formatCode", "Code")">
+                <MudIconButton Icon="@Icons.Material.Filled.Code"
+                               Size="Size.Small"
+                               OnClick="@(() => ToggleFormat("`", "`"))"
+                               aria-label="@TranslationService.GetTranslation("chat.formatCode", "Code")" />
+            </MudTooltip>
+        </MudButtonGroup>
+
+        <!-- Send button -->
+        <MudTooltip Text="@TranslationService.GetTranslation("chat.sendMessage", "Send message")">
+            <MudIconButton Icon="@Icons.Material.Filled.Send"
+                           Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           OnClick="@OnSendMessage"
+                           Disabled="@(string.IsNullOrWhiteSpace(MessageText) || IsSending)"
+                           aria-label="@TranslationService.GetTranslation("chat.sendMessage", "Send message")" />
+        </MudTooltip>
+    </div>
+
+    <!-- Emoji picker -->
+    @if (ShowEmojiPicker)
+    {
+        <div class="emoji-picker mt-2 pa-2" style="background: var(--mud-palette-grey-lighten5); border-radius: 4px;">
+            <div class="d-flex flex-wrap gap-1">
+                @foreach (var emoji in CommonEmojis)
+                {
+                    <MudButton Variant="Variant.Text"
+                               Size="Size.Small"
+                               Style="min-width: 32px; height: 32px; padding: 2px;"
+                               OnClick="@(() => InsertEmoji(emoji))"
+                               tabindex="0"
+                               aria-label="@($"Insert {emoji} emoji")">
+                        @emoji
+                    </MudButton>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- File attachments preview -->
+    @if (PendingAttachments?.Any() == true)
+    {
+        <div class="attachments-preview mt-2">
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">
+                @TranslationService.GetTranslation("chat.attachments", "Attachments")
+            </MudText>
+            <div class="d-flex flex-wrap gap-2">
+                @foreach (var attachment in PendingAttachments)
+                {
+                    <MudChip T="string"
+                             Text="@attachment.FileName"
+                             StartIcon="@GetFileIcon(attachment.ContentType)"
+                             OnClose="@(() => RemoveAttachment(attachment))"
+                             Closable="true"
+                             Size="Size.Small" />
+                }
+            </div>
+        </div>
+    }
+</MudPaper>
+
+<!-- Hidden file input -->
+<InputFile @ref="fileInput" 
+           @onchange="OnFileSelected" 
+           multiple 
+           accept="*/*" 
+           style="display: none;" />
+
+<style>
+.enhanced-message-composer {
+    position: relative;
+}
+
+.format-buttons .mud-button-group > .mud-icon-button {
+    border-radius: 0;
+}
+
+.format-buttons .mud-button-group > .mud-icon-button:first-child {
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+}
+
+.format-buttons .mud-button-group > .mud-icon-button:last-child {
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+
+.mention-suggestions .mud-button:hover {
+    background-color: var(--mud-palette-action-hover);
+}
+
+.emoji-picker .mud-button:hover {
+    background-color: var(--mud-palette-action-hover);
+}
+
+.reply-indicator {
+    border-radius: 4px;
+}
+
+.attachments-preview .mud-chip {
+    max-width: 200px;
+}
+</style>
+
+@code {
+    [Parameter] public ChatResponseDto? CurrentChat { get; set; }
+    [Parameter] public ChatMessageDto? ReplyToMessage { get; set; }
+    [Parameter] public EventCallback<SendMessageDto> OnSendMessage { get; set; }
+    [Parameter] public EventCallback OnAttachFile { get; set; }
+    [Parameter] public EventCallback OnCancelReply { get; set; }
+    [Parameter] public List<MessageAttachmentDto>? PendingAttachments { get; set; }
+    [Parameter] public EventCallback<MessageAttachmentDto> OnRemoveAttachment { get; set; }
+    [Parameter] public string ComposerStyle { get; set; } = "";
+    [Parameter] public bool IsSending { get; set; }
+
+    private MudTextField<string>? messageInput;
+    private InputFile? fileInput;
+    private string MessageText = "";
+    private bool ShowEmojiPicker = false;
+    private bool ShowMentionSuggestions = false;
+    private string LastMentionQuery = "";
+    private int MentionStartPosition = -1;
+    private List<UserMentionSuggestionDto>? MentionSuggestions = new();
+    private readonly List<Guid> MentionedUserIds = new();
+
+    private readonly string[] CommonEmojis = new[]
+    {
+        "😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "🙂", "🙃",
+        "😉", "😊", "😇", "😍", "🤩", "😘", "😗", "😚", "😙", "😋",
+        "😎", "🤓", "🧐", "🤔", "😐", "😑", "😶", "🙄", "😏", "😣",
+        "👍", "👎", "👌", "🤞", "✌️", "🤟", "🤘", "🤙", "👈", "👉",
+        "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔",
+        "🔥", "💯", "💢", "💥", "💦", "💨", "🎉", "🎊", "👏", "🙌"
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("addMessageComposerKeyboardShortcuts");
+        }
+    }
+
+    private string GetPlaceholderText()
+    {
+        if (ReplyToMessage != null)
+        {
+            return TranslationService.GetTranslation("chat.replyPlaceholder", $"Reply to {ReplyToMessage.SenderName}...");
+        }
+        return TranslationService.GetTranslation("chat.typeMessage", "Type a message...");
+    }
+
+    private string GetHelperText()
+    {
+        var parts = new List<string>();
+        
+        if (MessageText.Length > 3800)
+        {
+            parts.Add($"{4000 - MessageText.Length} characters remaining");
+        }
+        
+        if (MentionedUserIds.Count > 0)
+        {
+            parts.Add($"{MentionedUserIds.Count} mentioned");
+        }
+
+        parts.Add("Use @ to mention users, ** for bold, * for italic");
+        
+        return string.Join(" • ", parts);
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        // Handle Enter key
+        if (e.Key == "Enter")
+        {
+            if (e.ShiftKey)
+            {
+                // Allow new line with Shift+Enter
+                return;
+            }
+            else
+            {
+                // Send message with Enter
+                e.PreventDefault();
+                await SendMessage();
+            }
+        }
+        
+        // Handle Escape key
+        if (e.Key == "Escape")
+        {
+            if (ShowMentionSuggestions)
+            {
+                ShowMentionSuggestions = false;
+                StateHasChanged();
+            }
+            else if (ReplyToMessage != null)
+            {
+                await CancelReply();
+            }
+        }
+
+        // Handle navigation in mention suggestions
+        if (ShowMentionSuggestions && (e.Key == "ArrowUp" || e.Key == "ArrowDown"))
+        {
+            // TODO: Implement keyboard navigation for mention suggestions
+        }
+    }
+
+    private async Task OnInput(ChangeEventArgs e)
+    {
+        var text = e.Value?.ToString() ?? "";
+        MessageText = text;
+
+        // Check for mentions
+        await CheckForMentions(text);
+        
+        // Send typing indicator
+        await SendTypingIndicator();
+    }
+
+    private async Task CheckForMentions(string text)
+    {
+        // Find @ symbol and check if we should show mention suggestions
+        var lastAtIndex = text.LastIndexOf('@');
+        
+        if (lastAtIndex >= 0)
+        {
+            var afterAt = text.Substring(lastAtIndex + 1);
+            var spaceIndex = afterAt.IndexOfAny(new char[] { ' ', '\n', '\t' });
+            
+            if (spaceIndex == -1) // Still typing the mention
+            {
+                var query = afterAt.ToLower();
+                if (query != LastMentionQuery)
+                {
+                    LastMentionQuery = query;
+                    MentionStartPosition = lastAtIndex;
+                    await SearchUsers(query);
+                }
+            }
+            else
+            {
+                ShowMentionSuggestions = false;
+            }
+        }
+        else
+        {
+            ShowMentionSuggestions = false;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task SearchUsers(string query)
+    {
+        if (CurrentChat == null) return;
+
+        try
+        {
+            // For now, filter from current chat members
+            // In real implementation, this would call a service method
+            var filteredMembers = CurrentChat.Members
+                .Where(m => m.Username?.ToLower().Contains(query) == true || 
+                           m.DisplayName?.ToLower().Contains(query) == true)
+                .Select(m => new UserMentionSuggestionDto
+                {
+                    Id = m.UserId,
+                    Username = m.Username ?? "",
+                    DisplayName = m.DisplayName ?? m.Username ?? "",
+                    AvatarUrl = m.AvatarUrl,
+                    IsOnline = m.IsOnline
+                })
+                .ToList();
+
+            MentionSuggestions = filteredMembers;
+            ShowMentionSuggestions = filteredMembers.Any();
+        }
+        catch (Exception ex)
+        {
+            // Log error and hide suggestions
+            ShowMentionSuggestions = false;
+        }
+    }
+
+    private async Task InsertMention(UserMentionSuggestionDto user)
+    {
+        if (MentionStartPosition >= 0)
+        {
+            var beforeMention = MessageText.Substring(0, MentionStartPosition);
+            var afterMention = MessageText.Substring(MentionStartPosition + LastMentionQuery.Length + 1);
+            
+            MessageText = $"{beforeMention}@{user.Username} {afterMention}";
+            
+            if (!MentionedUserIds.Contains(user.Id))
+            {
+                MentionedUserIds.Add(user.Id);
+            }
+        }
+
+        ShowMentionSuggestions = false;
+        StateHasChanged();
+
+        // Focus back to input
+        if (messageInput != null)
+        {
+            await messageInput.FocusAsync();
+        }
+    }
+
+    private void ToggleEmojiPicker()
+    {
+        ShowEmojiPicker = !ShowEmojiPicker;
+        StateHasChanged();
+    }
+
+    private async Task InsertEmoji(string emoji)
+    {
+        MessageText += emoji;
+        ShowEmojiPicker = false;
+        StateHasChanged();
+
+        // Focus back to input
+        if (messageInput != null)
+        {
+            await messageInput.FocusAsync();
+        }
+    }
+
+    private async Task ToggleFormat(string startTag, string endTag)
+    {
+        // TODO: Implement text formatting with selection support
+        // For now, just append the format tags
+        var selectionStart = MessageText.Length;
+        MessageText = MessageText.Insert(selectionStart, startTag + endTag);
+        StateHasChanged();
+
+        if (messageInput != null)
+        {
+            await messageInput.FocusAsync();
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(MessageText) || CurrentChat == null)
+            return;
+
+        var message = new SendMessageDto
+        {
+            ChatId = CurrentChat.Id,
+            SenderId = Guid.Empty, // Will be set by the service
+            Content = MessageText.Trim(),
+            ReplyToMessageId = ReplyToMessage?.Id,
+            MentionedUserIds = MentionedUserIds.ToList(),
+            Format = MessageFormat.Markdown, // Assuming markdown for now
+            Attachments = PendingAttachments?.ToList()
+        };
+
+        // Clear the composer
+        MessageText = "";
+        MentionedUserIds.Clear();
+        ShowEmojiPicker = false;
+        ShowMentionSuggestions = false;
+
+        await OnSendMessage.InvokeAsync(message);
+    }
+
+    private async Task CancelReply()
+    {
+        await OnCancelReply.InvokeAsync();
+    }
+
+    private async Task SendTypingIndicator()
+    {
+        // TODO: Implement typing indicator via SignalR
+        // This would send a typing event to other chat participants
+    }
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        // File selection will be handled by parent component
+        await OnAttachFile.InvokeAsync();
+    }
+
+    private string GetFileIcon(string? contentType)
+    {
+        return contentType?.ToLower() switch
+        {
+            var ct when ct.StartsWith("image/") => Icons.Material.Filled.Image,
+            var ct when ct.StartsWith("video/") => Icons.Material.Filled.VideoFile,
+            var ct when ct.StartsWith("audio/") => Icons.Material.Filled.AudioFile,
+            var ct when ct.Contains("pdf") => Icons.Material.Filled.PictureAsPdf,
+            var ct when ct.Contains("word") => Icons.Material.Filled.Description,
+            var ct when ct.Contains("excel") => Icons.Material.Filled.TableChart,
+            var ct when ct.Contains("powerpoint") => Icons.Material.Filled.Slideshow,
+            _ => Icons.Material.Filled.AttachFile
+        };
+    }
+
+    private void RemoveAttachment(MessageAttachmentDto attachment)
+    {
+        OnRemoveAttachment.InvokeAsync(attachment);
+    }
+
+    public void Dispose()
+    {
+        // Clean up any subscriptions or resources
+    }
+}
