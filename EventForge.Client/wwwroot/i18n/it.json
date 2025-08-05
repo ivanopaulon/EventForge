@@ -62,7 +62,11 @@
     "auditTrail": "Audit Trail",
     "configuration": "Configurazione",
     "translationManagement": "Gestione Traduzioni",
-    "settingsDescription": "Vai alle impostazioni"
+    "settingsDescription": "Vai alle impostazioni",
+    "help": "Aiuto e Supporto",
+    "helpCenter": "Centro Aiuto",
+    "interactiveTour": "Tour Interattivo",
+    "tutorialCenter": "Centro Tutorial"
   },
   "home": {
     "title": "EventForge - Home",
@@ -202,6 +206,18 @@
     "userDisabled": "Utente disabilitato con successo!",
     "tenantEnabled": "Tenant abilitato con successo!",
     "tenantDisabled": "Tenant disabilitato con successo!",
+    "quickStart": "Avvio Rapido",
+    "takeATour": "Fai un Tour",
+    "onboardingCompleted": "Onboarding completato con successo!",
+    "walkthroughCompleted": "Tour completato! Ora sei pronto per utilizzare questa funzionalità efficacemente.",
+    "help": "Aiuto",
+    "helpCenter": "Centro Aiuto",
+    "interactiveTour": "Tour Interattivo", 
+    "tutorialCenter": "Centro Tutorial",
+    "generalHelpTitle": "Centro Aiuto EventForge",
+    "generalHelpContent": "Benvenuto nell'Aiuto di EventForge! Usa questa applicazione per gestire eventi, notifiche, chat e altro. Ogni sezione ha il proprio sistema di aiuto con tutorial dettagliati e guide interattive.",
+    "selectMessage": "Visita le sezioni specifiche (Notifiche, Chat, SuperAdmin) e clicca 'Fai un Tour' per iniziare una guida interattiva di quella funzionalità.",
+    "centerMessage": "Centro Tutorial: Accedi a guide passo-passo per ogni funzionalità. Puoi reimpostare i tuoi progressi e rivedere i tutorial in qualsiasi momento. Visita le sezioni Notifiche, Chat o SuperAdmin e clicca 'Avvio Rapido' per iniziare.",
     "confirmUserStatusChange": "Sei sicuro di voler {0} l'utente '{1}'? Questa azione verrà registrata nei log di audit.",
     "confirmTenantStatusChange": "Sei sicuro di voler {0} il tenant '{1}'? Questa azione verrà registrata nei log di audit e potrebbe influenzare tutti gli utenti del tenant.",
     "confirmImpersonation": "Sei sicuro di voler impersonificare l'utente '{0}'? Questa azione verrà registrata nei log di audit e terminerà la sessione corrente.",
@@ -574,7 +590,8 @@
         "filter": "Filtra le notifiche per tipo, stato o data",
         "markRead": "Segna le notifiche selezionate come lette",
         "delete": "Elimina le notifiche selezionate",
-        "settings": "Configura le tue preferenze di notifica"
+        "settings": "Configura le tue preferenze di notifica",
+        "refresh": "Aggiorna manualmente l'elenco delle notifiche"
       },
       "chat": {
         "channels": "Sfoglia e unisciti a diversi canali chat",

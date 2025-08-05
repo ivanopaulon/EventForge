@@ -61,7 +61,11 @@
     "auditTrail": "Audit Trail",
     "configuration": "Configuration",
     "translationManagement": "Translation Management",
-    "settingsDescription": "Go to settings"
+    "settingsDescription": "Go to settings",
+    "help": "Help & Support",
+    "helpCenter": "Help Center",
+    "interactiveTour": "Interactive Tour",
+    "tutorialCenter": "Tutorial Center"
   },
   "home": {
     "title": "EventForge - Home",
@@ -200,6 +204,18 @@
     "userDisabled": "User disabled successfully!",
     "tenantEnabled": "Tenant enabled successfully!",
     "tenantDisabled": "Tenant disabled successfully!",
+    "quickStart": "Quick Start",
+    "takeATour": "Take a Tour",
+    "onboardingCompleted": "Onboarding completed successfully!",
+    "walkthroughCompleted": "Tour completed! You're now ready to use this feature effectively.",
+    "help": "Help",
+    "helpCenter": "Help Center",
+    "interactiveTour": "Interactive Tour",
+    "tutorialCenter": "Tutorial Center",
+    "generalHelpTitle": "EventForge Help Center",
+    "generalHelpContent": "Welcome to EventForge Help! Use this application to manage events, notifications, chat, and more. Each section has its own help system with detailed tutorials and walkthroughs.",
+    "selectMessage": "Visit the specific sections (Notifications, Chat, SuperAdmin) and click 'Take a Tour' to start an interactive walkthrough of that feature.",
+    "centerMessage": "Tutorial Center: Access step-by-step guides for each feature. You can reset your progress and replay tutorials at any time. Visit Notifications, Chat, or SuperAdmin sections and click 'Quick Start' to begin.",
     "confirmUserStatusChange": "Are you sure you want to {0} user '{1}'? This action will be logged in the audit trail.",
     "confirmTenantStatusChange": "Are you sure you want to {0} tenant '{1}'? This action will be logged in the audit trail and may affect all tenant users.",
     "confirmImpersonation": "Are you sure you want to impersonate user '{0}'? This action will be logged in the audit trail and will end the current session.",
@@ -785,7 +801,8 @@
         "filter": "Filter notifications by type, status, or date",
         "markRead": "Mark selected notifications as read",
         "delete": "Delete selected notifications",
-        "settings": "Configure your notification preferences"
+        "settings": "Configure your notification preferences",
+        "refresh": "Refresh the notification list manually"
       },
       "chat": {
         "channels": "Browse and join different chat channels",

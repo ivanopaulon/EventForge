@@ -9,6 +9,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
+@inject IHelpService HelpService
 @implements IDisposable
 
 <PageTitle>@TranslationService.GetTranslation("notifications.title", "Centro Notifiche - EventForge")</PageTitle>
@@ -19,25 +20,49 @@
         
         <!-- Page Header Card -->
         <MudItem xs="12">
-            <MudCard Class="pa-4 pa-sm-6 pa-md-8" Elevation="4">
+            <MudCard Class="pa-4 pa-sm-6 pa-md-8" Elevation="4" id="notification-header">
                 <MudCardContent>
                     <header class="text-center mb-6">
-                        <MudText Typo="Typo.h3" 
-                                 Component="h1" 
-                                 Align="Align.Center" 
-                                 Class="mb-4"
-                                 aria-label="@TranslationService.GetTranslation("notifications.pageTitle", "Centro Notifiche")">
-                            <MudIcon Icon="@Icons.Material.Filled.Notifications" 
-                                     Class="mr-2" 
-                                     Size="Size.Large"
-                                     aria-hidden="true" />
-                            @TranslationService.GetTranslation("notifications.pageTitle", "Centro Notifiche")
-                        </MudText>
+                        <div class="d-flex justify-center align-center mb-4">
+                            <MudText Typo="Typo.h3" 
+                                     Component="h1" 
+                                     Align="Align.Center" 
+                                     Class="mr-2"
+                                     aria-label="@TranslationService.GetTranslation("notifications.pageTitle", "Centro Notifiche")">
+                                <MudIcon Icon="@Icons.Material.Filled.Notifications" 
+                                         Class="mr-2" 
+                                         Size="Size.Large"
+                                         aria-hidden="true" />
+                                @TranslationService.GetTranslation("notifications.pageTitle", "Centro Notifiche")
+                            </MudText>
+                            <HelpTooltip TranslationKey="help.tooltips.notifications.center"
+                                        FallbackText="View and manage all your notifications in one place"
+                                        ShowHelpIcon="true"
+                                        Placement="Placement.Right" />
+                        </div>
                         <MudText Typo="Typo.body1" 
                                  Align="Align.Center" 
                                  Color="Color.Secondary">
                             @TranslationService.GetTranslation("notifications.subtitle", "Gestisci le tue notifiche e preferenze")
                         </MudText>
+                        
+                        <!-- Quick Start Help Buttons -->
+                        <div class="d-flex justify-center ga-2 mt-4">
+                            <MudButton Variant="Variant.Text" 
+                                       Color="Color.Info"
+                                       Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.Help"
+                                       OnClick="@(() => _showOnboarding = true)">
+                                @TranslationService.GetTranslation("help.quickStart", "Quick Start")
+                            </MudButton>
+                            <MudButton Variant="Variant.Text" 
+                                       Color="Color.Info"
+                                       Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.Tour"
+                                       OnClick="@StartWalkthrough">
+                                @TranslationService.GetTranslation("help.takeATour", "Take a Tour")
+                            </MudButton>
+                        </div>
                     </header>
                 </MudCardContent>
             </MudCard>
@@ -47,39 +72,55 @@
         <MudItem xs="12">
             <MudCard Elevation="2" Class="pa-4">
                 <MudCardContent>
-                    <MudText Typo="Typo.h6" Class="mb-4 d-flex align-center">
-                        <MudIcon Icon="@Icons.Material.Filled.Settings" 
-                                 Class="mr-2" 
-                                 Color="Color.Primary"
-                                 aria-hidden="true" />
-                        @TranslationService.GetTranslation("notifications.actions", "Azioni Notifiche")
-                    </MudText>
+                    <div class="d-flex justify-space-between align-center mb-4">
+                        <MudText Typo="Typo.h6" Class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Settings" 
+                                     Class="mr-2" 
+                                     Color="Color.Primary"
+                                     aria-hidden="true" />
+                            @TranslationService.GetTranslation("notifications.actions", "Azioni Notifiche")
+                        </MudText>
+                        <HelpTooltip TranslationKey="help.tooltips.notifications.markRead"
+                                    FallbackText="Mark selected notifications as read"
+                                    ShowHelpIcon="true"
+                                    Placement="Placement.Left" />
+                    </div>
 
                     <!-- Action buttons following MudBlazor pattern -->
-                    <div class="d-flex justify-start flex-wrap ga-2 mb-4">
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Filled.DoneAll"
-                                   OnClick="@MarkAllAsReadAsync"
-                                   Disabled="@_isLoading">
-                            @TranslationService.GetTranslation("notifications.markAllRead", "Segna tutte come lette")
-                        </MudButton>
+                    <div class="d-flex justify-start flex-wrap ga-2 mb-4 notification-actions">
+                        <HelpTooltip TranslationKey="help.tooltips.notifications.markRead"
+                                    FallbackText="Mark all notifications as read at once">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.DoneAll"
+                                       OnClick="@MarkAllAsReadAsync"
+                                       Disabled="@_isLoading">
+                                @TranslationService.GetTranslation("notifications.markAllRead", "Segna tutte come lette")
+                            </MudButton>
+                        </HelpTooltip>
                         
-                        <MudButton Variant="Variant.Outlined"
-                                   Color="Color.Secondary"
-                                   StartIcon="@Icons.Material.Filled.Archive"
-                                   OnClick="@ArchiveAllReadAsync"
-                                   Disabled="@_isLoading">
-                            @TranslationService.GetTranslation("notifications.archiveRead", "Archivia lette")
-                        </MudButton>
+                        <HelpTooltip TranslationKey="help.tooltips.notifications.delete"
+                                    FallbackText="Archive read notifications to clean up your list">
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Secondary"
+                                       StartIcon="@Icons.Material.Filled.Archive"
+                                       OnClick="@ArchiveAllReadAsync"
+                                       Disabled="@_isLoading">
+                                @TranslationService.GetTranslation("notifications.archiveRead", "Archivia lette")
+                            </MudButton>
+                        </HelpTooltip>
 
-                        <MudButton Variant="Variant.Text"
-                                   Color="Color.Info"
-                                   StartIcon="@Icons.Material.Filled.Refresh"
-                                   OnClick="@RefreshNotificationsAsync"
-                                   Disabled="@_isLoading">
-                            @TranslationService.GetTranslation("notifications.refresh", "Aggiorna")
-                        </MudButton>
+                        <HelpTooltip TranslationKey="help.tooltips.notifications.refresh"
+                                    FallbackText="Refresh the notification list manually"
+                                    Placement="Placement.Top">
+                            <MudButton Variant="Variant.Text"
+                                       Color="Color.Info"
+                                       StartIcon="@Icons.Material.Filled.Refresh"
+                                       OnClick="@RefreshNotificationsAsync"
+                                       Disabled="@_isLoading">
+                                @TranslationService.GetTranslation("notifications.refresh", "Aggiorna")
+                            </MudButton>
+                        </HelpTooltip>
 
                         <!-- Help tooltip following existing pattern -->
                         <MudTooltip Text="@TranslationService.GetTranslation("notifications.helpTooltip", "Le notifiche vengono aggiornate in tempo reale")">
@@ -286,6 +327,15 @@
     </MudGrid>
 </MudContainer>
 
+<!-- Help Components -->
+<OnboardingModal ComponentId="notifications" 
+                 @bind-IsVisible="_showOnboarding"
+                 OnOnboardingCompleted="@OnOnboardingCompleted" />
+
+<InteractiveWalkthrough ComponentId="notifications" 
+                        @bind-IsActive="_showWalkthrough"
+                        OnWalkthroughCompleted="@OnWalkthroughCompleted" />
+
 @code {
     // State variables following existing patterns
     private bool _isLoading = false;
@@ -296,6 +346,10 @@
     private int _unreadCount = 0;
     private bool _emailNotificationsEnabled = true;
     private bool _pushNotificationsEnabled = true;
+    
+    // Help system state
+    private bool _showOnboarding = false;
+    private bool _showWalkthrough = false;
 
     // Real notification data from service
     private List<NotificationResponseDto> _notifications = new();
@@ -322,6 +376,9 @@
             await LoadNotificationsAsync();
             await LoadStatsAsync();
             await LoadSubscriptionsAsync();
+            
+            // Check if user needs onboarding for notifications
+            await CheckOnboardingStatusAsync();
         }
         catch (Exception ex)
         {
@@ -337,6 +394,82 @@
         NotificationService.NotificationArchived -= OnNotificationArchived;
         NotificationService.StatsUpdated -= OnStatsUpdated;
     }
+
+    #region Help System Methods
+
+    /// <summary>
+    /// Checks if user needs onboarding and shows it if required.
+    /// </summary>
+    private async Task CheckOnboardingStatusAsync()
+    {
+        try
+        {
+            var hasCompletedOnboarding = await HelpService.IsOnboardingStepCompletedAsync("notifications_onboarding_completed");
+            if (!hasCompletedOnboarding)
+            {
+                // Add a small delay to ensure the page is fully loaded
+                await Task.Delay(1000);
+                _showOnboarding = true;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Non-critical error, just log it
+            Console.WriteLine($"Error checking onboarding status: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Starts the interactive walkthrough for notifications.
+    /// </summary>
+    private async Task StartWalkthrough()
+    {
+        try
+        {
+            _showWalkthrough = true;
+            StateHasChanged();
+            await Task.Delay(100); // Small delay for UI to update
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error starting walkthrough: {ex.Message}", Severity.Warning);
+        }
+    }
+
+    /// <summary>
+    /// Called when onboarding is completed.
+    /// </summary>
+    private async Task OnOnboardingCompleted()
+    {
+        try
+        {
+            await HelpService.SetOnboardingStepCompletedAsync("notifications_onboarding_completed");
+            Snackbar.Add(TranslationService.GetTranslation("onboarding.completed", "Onboarding completed successfully!"), Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error completing onboarding: {ex.Message}", Severity.Warning);
+        }
+    }
+
+    /// <summary>
+    /// Called when walkthrough is completed.
+    /// </summary>
+    private async Task OnWalkthroughCompleted()
+    {
+        try
+        {
+            await HelpService.SetOnboardingStepCompletedAsync("notifications_walkthrough_completed");
+            Snackbar.Add(TranslationService.GetTranslation("walkthrough.completed", "Tour completed! You're now ready to use notifications effectively."), Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error completing walkthrough: {ex.Message}", Severity.Warning);
+        }
+    }
+
+    #endregion
 
     /// <summary>
     /// Load notifications from the API
