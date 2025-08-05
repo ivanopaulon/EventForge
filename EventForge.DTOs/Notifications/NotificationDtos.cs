@@ -132,6 +132,32 @@ namespace EventForge.DTOs.Notifications
         /// Localization parameters for dynamic content substitution.
         /// </summary>
         public Dictionary<string, string>? LocalizationParams { get; set; }
+
+        /// <summary>
+        /// Rich content attachments (files, images, links)
+        /// </summary>
+        public List<NotificationAttachmentDto>? Attachments { get; set; }
+
+        /// <summary>
+        /// Contextual actions that users can perform on this notification
+        /// </summary>
+        public List<NotificationActionDto>? Actions { get; set; }
+
+        /// <summary>
+        /// Avatar information for sender display
+        /// </summary>
+        public NotificationAvatarDto? Avatar { get; set; }
+
+        /// <summary>
+        /// Group identifier for related notifications
+        /// </summary>
+        [MaxLength(100)]
+        public string? GroupId { get; set; }
+
+        /// <summary>
+        /// Tags for categorization and filtering
+        /// </summary>
+        public List<string>? Tags { get; set; }
     }
 
     /// <summary>
@@ -271,5 +297,303 @@ namespace EventForge.DTOs.Notifications
         public Dictionary<NotificationTypes, int> CountByType { get; set; } = new Dictionary<NotificationTypes, int>();
         public Dictionary<NotificationPriority, int> CountByPriority { get; set; } = new Dictionary<NotificationPriority, int>();
         public DateTime LastCalculated { get; set; } = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// DTO for notification attachments (files, images, links)
+    /// </summary>
+    public class NotificationAttachmentDto
+    {
+        /// <summary>
+        /// Unique identifier for the attachment
+        /// </summary>
+        public Guid Id { get; set; }
+
+        /// <summary>
+        /// Display name for the attachment
+        /// </summary>
+        [Required]
+        [MaxLength(200)]
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// MIME type of the attachment
+        /// </summary>
+        [MaxLength(100)]
+        public string? MimeType { get; set; }
+
+        /// <summary>
+        /// Size of the attachment in bytes
+        /// </summary>
+        public long? Size { get; set; }
+
+        /// <summary>
+        /// URL to download or view the attachment
+        /// </summary>
+        [Required]
+        [MaxLength(500)]
+        public string Url { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Thumbnail URL for images/videos
+        /// </summary>
+        [MaxLength(500)]
+        public string? ThumbnailUrl { get; set; }
+
+        /// <summary>
+        /// Type of attachment for UI rendering
+        /// </summary>
+        public AttachmentType Type { get; set; }
+    }
+
+    /// <summary>
+    /// Enumeration for attachment types
+    /// </summary>
+    public enum AttachmentType
+    {
+        File = 0,
+        Image = 1,
+        Video = 2,
+        Audio = 3,
+        Document = 4,
+        Link = 5,
+        Other = 6
+    }
+
+    /// <summary>
+    /// DTO for notification actions that users can perform
+    /// </summary>
+    public class NotificationActionDto
+    {
+        /// <summary>
+        /// Unique identifier for the action
+        /// </summary>
+        [Required]
+        [MaxLength(50)]
+        public string Id { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Display label for the action button
+        /// </summary>
+        [Required]
+        [MaxLength(100)]
+        public string Label { get; set; } = string.Empty;
+
+        /// <summary>
+        /// URL to navigate to when action is clicked
+        /// </summary>
+        [MaxLength(500)]
+        public string? Url { get; set; }
+
+        /// <summary>
+        /// API endpoint to call when action is clicked
+        /// </summary>
+        [MaxLength(500)]
+        public string? ApiEndpoint { get; set; }
+
+        /// <summary>
+        /// HTTP method for API calls (GET, POST, PUT, DELETE)
+        /// </summary>
+        [MaxLength(10)]
+        public string? HttpMethod { get; set; } = "GET";
+
+        /// <summary>
+        /// Icon to display with the action
+        /// </summary>
+        [MaxLength(100)]
+        public string? Icon { get; set; }
+
+        /// <summary>
+        /// Style/color of the action button
+        /// </summary>
+        public ActionStyle Style { get; set; } = ActionStyle.Default;
+
+        /// <summary>
+        /// Whether this action requires confirmation
+        /// </summary>
+        public bool RequiresConfirmation { get; set; }
+
+        /// <summary>
+        /// Confirmation message if RequiresConfirmation is true
+        /// </summary>
+        [MaxLength(200)]
+        public string? ConfirmationMessage { get; set; }
+    }
+
+    /// <summary>
+    /// Enumeration for action button styles
+    /// </summary>
+    public enum ActionStyle
+    {
+        Default = 0,
+        Primary = 1,
+        Secondary = 2,
+        Success = 3,
+        Warning = 4,
+        Error = 5,
+        Info = 6
+    }
+
+    /// <summary>
+    /// DTO for avatar information in notifications
+    /// </summary>
+    public class NotificationAvatarDto
+    {
+        /// <summary>
+        /// Display name for the avatar
+        /// </summary>
+        [MaxLength(100)]
+        public string? DisplayName { get; set; }
+
+        /// <summary>
+        /// URL to the avatar image
+        /// </summary>
+        [MaxLength(500)]
+        public string? ImageUrl { get; set; }
+
+        /// <summary>
+        /// Initials to display if no image is available
+        /// </summary>
+        [MaxLength(5)]
+        public string? Initials { get; set; }
+
+        /// <summary>
+        /// Background color for the avatar (hex color)
+        /// </summary>
+        [MaxLength(7)]
+        public string? BackgroundColor { get; set; }
+
+        /// <summary>
+        /// Text color for the avatar (hex color)
+        /// </summary>
+        [MaxLength(7)]
+        public string? TextColor { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for activity feed entries
+    /// </summary>
+    public class ActivityFeedEntryDto
+    {
+        public Guid Id { get; set; }
+        public Guid? TenantId { get; set; }
+        public Guid UserId { get; set; }
+        public string? UserName { get; set; }
+        public NotificationAvatarDto? UserAvatar { get; set; }
+        
+        /// <summary>
+        /// Type of activity (notification, event, chat, etc.)
+        /// </summary>
+        [Required]
+        [MaxLength(50)]
+        public string ActivityType { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Action performed (created, updated, deleted, etc.)
+        /// </summary>
+        [Required]
+        [MaxLength(50)]
+        public string Action { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Title of the activity
+        /// </summary>
+        [Required]
+        [MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Description of the activity
+        /// </summary>
+        [MaxLength(500)]
+        public string? Description { get; set; }
+
+        /// <summary>
+        /// URL to view the related item
+        /// </summary>
+        [MaxLength(500)]
+        public string? Url { get; set; }
+
+        /// <summary>
+        /// Icon representing the activity
+        /// </summary>
+        [MaxLength(100)]
+        public string? Icon { get; set; }
+
+        /// <summary>
+        /// Color theme for the activity
+        /// </summary>
+        [MaxLength(20)]
+        public string? Color { get; set; }
+
+        /// <summary>
+        /// Tags for categorization
+        /// </summary>
+        public List<string>? Tags { get; set; }
+
+        /// <summary>
+        /// When the activity occurred
+        /// </summary>
+        public DateTime CreatedAt { get; set; }
+
+        /// <summary>
+        /// Additional metadata
+        /// </summary>
+        public Dictionary<string, object>? Metadata { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for notification grouping information
+    /// </summary>
+    public class NotificationGroupDto
+    {
+        /// <summary>
+        /// Group identifier
+        /// </summary>
+        [Required]
+        [MaxLength(100)]
+        public string GroupId { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Group title for display
+        /// </summary>
+        [Required]
+        [MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Number of notifications in this group
+        /// </summary>
+        public int Count { get; set; }
+
+        /// <summary>
+        /// Number of unread notifications in this group
+        /// </summary>
+        public int UnreadCount { get; set; }
+
+        /// <summary>
+        /// Latest notification in the group
+        /// </summary>
+        public NotificationResponseDto? LatestNotification { get; set; }
+
+        /// <summary>
+        /// Preview of notifications in the group
+        /// </summary>
+        public List<NotificationResponseDto>? PreviewNotifications { get; set; }
+
+        /// <summary>
+        /// Whether the group is collapsed
+        /// </summary>
+        public bool IsCollapsed { get; set; } = true;
+
+        /// <summary>
+        /// Group creation timestamp
+        /// </summary>
+        public DateTime CreatedAt { get; set; }
+
+        /// <summary>
+        /// Last update timestamp
+        /// </summary>
+        public DateTime UpdatedAt { get; set; }
     }
 }

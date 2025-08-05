@@ -1,0 +1,501 @@
+@page "/activity-feed"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Notifications
+@attribute [Authorize]
+@inject IAuthService AuthService
+@inject INotificationService NotificationService
+@inject SignalRService SignalRService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject IHelpService HelpService
+@implements IDisposable
+
+<PageTitle>@TranslationService.GetTranslation("activityFeed.title", "Feed Attività - EventForge")</PageTitle>
+
+<!-- Main container following existing project pattern -->
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudGrid Spacing="4">
+        
+        <!-- Page Header Card -->
+        <MudItem xs="12">
+            <MudCard Class="pa-4 pa-sm-6 pa-md-8" Elevation="4" id="activity-feed-header">
+                <MudCardContent>
+                    <header class="text-center mb-6">
+                        <div class="d-flex justify-center align-center mb-4">
+                            <MudText Typo="Typo.h3" 
+                                     Component="h1" 
+                                     Align="Align.Center" 
+                                     Class="mr-2"
+                                     aria-label="@TranslationService.GetTranslation("activityFeed.pageTitle", "Feed Attività")">
+                                <MudIcon Icon="@Icons.Material.Filled.Timeline" 
+                                         Class="mr-2" 
+                                         Size="Size.Large"
+                                         aria-hidden="true" />
+                                @TranslationService.GetTranslation("activityFeed.pageTitle", "Feed Attività")
+                            </MudText>
+                            <HelpTooltip TranslationKey="help.tooltips.activityFeed.center"
+                                        FallbackText="View your complete activity timeline across all features"
+                                        ShowHelpIcon="true"
+                                        Placement="Placement.Right" />
+                        </div>
+                        <MudText Typo="Typo.body1" 
+                                 Align="Align.Center" 
+                                 Color="Color.Secondary">
+                            @TranslationService.GetTranslation("activityFeed.subtitle", "La tua cronologia completa di attività e notifiche")
+                        </MudText>
+                        
+                        <!-- Quick Actions -->
+                        <div class="d-flex justify-center ga-2 mt-4">
+                            <MudButton StartIcon="@Icons.Material.Filled.Refresh"
+                                       Variant="Variant.Outlined"
+                                       Color="Color.Primary"
+                                       Size="Size.Small"
+                                       OnClick="@RefreshFeed"
+                                       title="@TranslationService.GetTranslation("activityFeed.refresh", "Aggiorna feed")">
+                                @TranslationService.GetTranslation("activityFeed.refresh", "Aggiorna")
+                            </MudButton>
+                            <MudButton StartIcon="@Icons.Material.Filled.FilterList"
+                                       Variant="Variant.Outlined"
+                                       Color="Color.Default"
+                                       Size="Size.Small"
+                                       OnClick="@ToggleFilters"
+                                       title="@TranslationService.GetTranslation("activityFeed.filters", "Filtri attività")">
+                                @TranslationService.GetTranslation("activityFeed.filters", "Filtri")
+                            </MudButton>
+                        </div>
+                    </header>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Filters Panel (Collapsible) -->
+        <MudItem xs="12">
+            <MudCollapse Expanded="_showFilters">
+                <MudCard Class="pa-4" Elevation="2">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" Class="mb-4">
+                            <MudIcon Icon="@Icons.Material.Filled.FilterList" Class="mr-2" />
+                            @TranslationService.GetTranslation("activityFeed.filtersTitle", "Filtri Attività")
+                        </MudText>
+                        
+                        <MudGrid Spacing="3">
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudSelect T="string" 
+                                           @bind-Value="_activityTypeFilter" 
+                                           Label="@TranslationService.GetTranslation("activityFeed.filterByType", "Tipo Attività")"
+                                           Variant="Variant.Outlined"
+                                           Clearable="true">
+                                    <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("activityFeed.allTypes", "Tutti i tipi")</MudSelectItem>
+                                    <MudSelectItem Value="@("notifications")">@TranslationService.GetTranslation("activityFeed.notifications", "Notifiche")</MudSelectItem>
+                                    <MudSelectItem Value="@("events")">@TranslationService.GetTranslation("activityFeed.events", "Eventi")</MudSelectItem>
+                                    <MudSelectItem Value="@("chat")">@TranslationService.GetTranslation("activityFeed.chat", "Chat")</MudSelectItem>
+                                    <MudSelectItem Value="@("system")">@TranslationService.GetTranslation("activityFeed.system", "Sistema")</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudSelect T="string" 
+                                           @bind-Value="_timeRangeFilter" 
+                                           Label="@TranslationService.GetTranslation("activityFeed.timeRange", "Periodo")"
+                                           Variant="Variant.Outlined">
+                                    <MudSelectItem Value="@("today")">@TranslationService.GetTranslation("activityFeed.today", "Oggi")</MudSelectItem>
+                                    <MudSelectItem Value="@("week")">@TranslationService.GetTranslation("activityFeed.thisWeek", "Questa settimana")</MudSelectItem>
+                                    <MudSelectItem Value="@("month")">@TranslationService.GetTranslation("activityFeed.thisMonth", "Questo mese")</MudSelectItem>
+                                    <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("activityFeed.allTime", "Tutto il tempo")</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="4">
+                                <MudTextField @bind-Value="_searchText"
+                                              Label="@TranslationService.GetTranslation("activityFeed.search", "Cerca nelle attività")"
+                                              Variant="Variant.Outlined"
+                                              StartIcon="@Icons.Material.Filled.Search"
+                                              Clearable="true"
+                                              Immediate="true"
+                                              DebounceInterval="300" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="2" Class="d-flex align-center">
+                                <MudButton StartIcon="@Icons.Material.Filled.Search"
+                                           Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           FullWidth="true"
+                                           OnClick="@ApplyFilters">
+                                    @TranslationService.GetTranslation("activityFeed.apply", "Applica")
+                                </MudButton>
+                            </MudItem>
+                        </MudGrid>
+                    </MudCardContent>
+                </MudCard>
+            </MudCollapse>
+        </MudItem>
+
+        <!-- Activity Feed Timeline -->
+        <MudItem xs="12">
+            <MudCard Class="pa-4" Elevation="2">
+                <MudCardContent>
+                    @if (_isLoading)
+                    {
+                        <div class="d-flex justify-center align-center pa-8">
+                            <MudProgressCircular Size="Size.Large" Indeterminate="true" />
+                            <MudText Class="ml-4">@TranslationService.GetTranslation("activityFeed.loading", "Caricamento attività...")</MudText>
+                        </div>
+                    }
+                    else if (!_activityEntries.Any())
+                    {
+                        <div class="text-center pa-8">
+                            <MudIcon Icon="@Icons.Material.Filled.Timeline" Size="Size.Large" Color="Color.Secondary" />
+                            <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mt-2">
+                                @TranslationService.GetTranslation("activityFeed.noActivities", "Nessuna attività trovata")
+                            </MudText>
+                            <MudText Color="Color.Secondary">
+                                @TranslationService.GetTranslation("activityFeed.noActivitiesDesc", "Inizia ad utilizzare EventForge per vedere la tua cronologia qui")
+                            </MudText>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Activity Timeline -->
+                        <MudTimeline TimelinePosition="TimelinePosition.Alternate" TimelineOrientation="TimelineOrientation.Vertical">
+                            @foreach (var activity in _activityEntries)
+                            {
+                                <MudTimelineItem>
+                                    <ItemOpposite>
+                                        <MudText Color="Color.Secondary" Typo="Typo.caption">
+                                            @FormatActivityTime(activity.CreatedAt)
+                                        </MudText>
+                                    </ItemOpposite>
+                                    <ItemContent>
+                                        <MudCard Class="pa-3 mb-2" Elevation="1">
+                                            <MudCardContent Class="pa-2">
+                                                <div class="d-flex align-start">
+                                                    <!-- Activity Icon -->
+                                                    <MudAvatar Size="Size.Medium" Class="mr-3" Color="@GetActivityColor(activity)">
+                                                        @if (!string.IsNullOrEmpty(activity.UserAvatar?.ImageUrl))
+                                                        {
+                                                            <MudImage Src="@activity.UserAvatar.ImageUrl" Alt="@activity.UserName" />
+                                                        }
+                                                        else if (!string.IsNullOrEmpty(activity.UserAvatar?.Initials))
+                                                        {
+                                                            @activity.UserAvatar.Initials
+                                                        }
+                                                        else
+                                                        {
+                                                            <MudIcon Icon="@GetActivityIcon(activity)" />
+                                                        }
+                                                    </MudAvatar>
+                                                    
+                                                    <!-- Activity Content -->
+                                                    <div class="flex-grow-1">
+                                                        <MudText Typo="Typo.subtitle2" Class="mb-1">
+                                                            @activity.Title
+                                                        </MudText>
+                                                        @if (!string.IsNullOrEmpty(activity.Description))
+                                                        {
+                                                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                                                                @activity.Description
+                                                            </MudText>
+                                                        }
+                                                        
+                                                        <!-- Tags -->
+                                                        @if (activity.Tags?.Any() == true)
+                                                        {
+                                                            <div class="d-flex flex-wrap ga-1 mb-2">
+                                                                @foreach (var tag in activity.Tags)
+                                                                {
+                                                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">
+                                                                        @tag
+                                                                    </MudChip>
+                                                                }
+                                                            </div>
+                                                        }
+                                                        
+                                                        <!-- Action Button -->
+                                                        @if (!string.IsNullOrEmpty(activity.Url))
+                                                        {
+                                                            <MudButton Size="Size.Small" 
+                                                                       Variant="Variant.Outlined" 
+                                                                       Color="Color.Primary"
+                                                                       StartIcon="@Icons.Material.Filled.Launch"
+                                                                       OnClick="@(() => NavigateToActivity(activity.Url))">
+                                                                @TranslationService.GetTranslation("activityFeed.viewDetails", "Visualizza")
+                                                            </MudButton>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </MudCardContent>
+                                        </MudCard>
+                                    </ItemContent>
+                                </MudTimelineItem>
+                            }
+                        </MudTimeline>
+
+                        <!-- Load More Button -->
+                        @if (_hasMoreActivities)
+                        {
+                            <div class="text-center mt-6">
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.ExpandMore"
+                                           OnClick="@LoadMoreActivities"
+                                           Disabled="_isLoadingMore">
+                                    @if (_isLoadingMore)
+                                    {
+                                        <MudProgressCircular Size="Size.Small" Class="mr-2" />
+                                    }
+                                    @TranslationService.GetTranslation("activityFeed.loadMore", "Carica altro")
+                                </MudButton>
+                            </div>
+                        }
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private bool _isLoading = true;
+    private bool _isLoadingMore = false;
+    private bool _showFilters = false;
+    private bool _hasMoreActivities = true;
+    private int _currentPage = 1;
+    private const int _pageSize = 20;
+
+    private string _activityTypeFilter = "all";
+    private string _timeRangeFilter = "week";
+    private string _searchText = string.Empty;
+
+    private List<ActivityFeedEntryDto> _activityEntries = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadActivities();
+            
+            // Subscribe to real-time activity updates
+            SignalRService.NotificationReceived += OnNotificationReceived;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento delle attività: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadActivities()
+    {
+        try
+        {
+            // TODO: Replace with actual service call
+            _activityEntries = await GetMockActivityData();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento delle attività: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadMoreActivities()
+    {
+        _isLoadingMore = true;
+        try
+        {
+            _currentPage++;
+            var moreActivities = await GetMockActivityData(_currentPage);
+            _activityEntries.AddRange(moreActivities);
+            
+            if (moreActivities.Count < _pageSize)
+            {
+                _hasMoreActivities = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento di più attività: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoadingMore = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefreshFeed()
+    {
+        _isLoading = true;
+        _currentPage = 1;
+        _hasMoreActivities = true;
+        await LoadActivities();
+        _isLoading = false;
+        
+        Snackbar.Add(TranslationService.GetTranslation("activityFeed.refreshed", "Feed aggiornato"), Severity.Success);
+    }
+
+    private void ToggleFilters()
+    {
+        _showFilters = !_showFilters;
+    }
+
+    private async Task ApplyFilters()
+    {
+        _isLoading = true;
+        _currentPage = 1;
+        _hasMoreActivities = true;
+        await LoadActivities();
+        _isLoading = false;
+
+        Snackbar.Add(TranslationService.GetTranslation("activityFeed.filtersApplied", "Filtri applicati"), Severity.Info);
+    }
+
+    private void NavigateToActivity(string url)
+    {
+        NavigationManager.NavigateTo(url);
+    }
+
+    private void OnNotificationReceived(NotificationResponseDto notification)
+    {
+        // Convert notification to activity entry and prepend to list
+        var activityEntry = ConvertNotificationToActivity(notification);
+        _activityEntries.Insert(0, activityEntry);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private ActivityFeedEntryDto ConvertNotificationToActivity(NotificationResponseDto notification)
+    {
+        return new ActivityFeedEntryDto
+        {
+            Id = notification.Id,
+            TenantId = notification.TenantId,
+            UserId = notification.SenderId ?? Guid.Empty,
+            UserName = notification.SenderName ?? "Sistema",
+            ActivityType = "notification",
+            Action = "received",
+            Title = notification.Payload.Title,
+            Description = notification.Payload.Message,
+            Url = notification.Payload.ActionUrl,
+            Icon = GetNotificationIcon(notification.Type),
+            Color = GetNotificationColor(notification.Priority),
+            CreatedAt = notification.CreatedAt,
+            Tags = notification.Payload.Tags
+        };
+    }
+
+    private string GetActivityIcon(ActivityFeedEntryDto activity)
+    {
+        return activity.ActivityType switch
+        {
+            "notification" => Icons.Material.Filled.Notifications,
+            "event" => Icons.Material.Filled.Event,
+            "chat" => Icons.Material.Filled.Chat,
+            "system" => Icons.Material.Filled.Settings,
+            "user" => Icons.Material.Filled.Person,
+            _ => Icons.Material.Filled.Circle
+        };
+    }
+
+    private Color GetActivityColor(ActivityFeedEntryDto activity)
+    {
+        return activity.ActivityType switch
+        {
+            "notification" => Color.Primary,
+            "event" => Color.Success,
+            "chat" => Color.Info,
+            "system" => Color.Warning,
+            "user" => Color.Secondary,
+            _ => Color.Default
+        };
+    }
+
+    private string GetNotificationIcon(NotificationTypes type)
+    {
+        return type switch
+        {
+            NotificationTypes.System => Icons.Material.Filled.Settings,
+            NotificationTypes.Event => Icons.Material.Filled.Event,
+            NotificationTypes.User => Icons.Material.Filled.Person,
+            NotificationTypes.Security => Icons.Material.Filled.Security,
+            NotificationTypes.Audit => Icons.Material.Filled.Visibility,
+            NotificationTypes.Marketing => Icons.Material.Filled.Campaign,
+            _ => Icons.Material.Filled.Notifications
+        };
+    }
+
+    private string GetNotificationColor(NotificationPriority priority)
+    {
+        return priority switch
+        {
+            NotificationPriority.Critical => "error",
+            NotificationPriority.High => "warning",
+            NotificationPriority.Normal => "primary",
+            NotificationPriority.Low => "default",
+            _ => "default"
+        };
+    }
+
+    private string FormatActivityTime(DateTime timestamp)
+    {
+        var now = DateTime.UtcNow;
+        var diff = now - timestamp;
+
+        if (diff.TotalMinutes < 1)
+            return TranslationService.GetTranslation("activityFeed.justNow", "Ora");
+        else if (diff.TotalMinutes < 60)
+            return TranslationService.GetTranslation("activityFeed.minutesAgo", "{0}m fa", (int)diff.TotalMinutes);
+        else if (diff.TotalHours < 24)
+            return TranslationService.GetTranslation("activityFeed.hoursAgo", "{0}h fa", (int)diff.TotalHours);
+        else if (diff.TotalDays < 7)
+            return TranslationService.GetTranslation("activityFeed.daysAgo", "{0}g fa", (int)diff.TotalDays);
+        else
+            return timestamp.ToString("dd/MM/yyyy");
+    }
+
+    // TODO: Replace with actual service calls
+    private async Task<List<ActivityFeedEntryDto>> GetMockActivityData(int page = 1)
+    {
+        await Task.Delay(500); // Simulate API call
+
+        var mockData = new List<ActivityFeedEntryDto>();
+        var random = new Random();
+        
+        for (int i = 0; i < _pageSize; i++)
+        {
+            var activityTypes = new[] { "notification", "event", "chat", "system" };
+            var activityType = activityTypes[random.Next(activityTypes.Length)];
+            
+            mockData.Add(new ActivityFeedEntryDto
+            {
+                Id = Guid.NewGuid(),
+                ActivityType = activityType,
+                Action = "created",
+                Title = $"Attività {activityType} #{(page - 1) * _pageSize + i + 1}",
+                Description = $"Descrizione dell'attività di tipo {activityType}",
+                Url = $"/{activityType}",
+                CreatedAt = DateTime.UtcNow.AddMinutes(-random.Next(1, 10080)), // Random time in last week
+                Tags = new List<string> { activityType, "test" },
+                UserAvatar = new NotificationAvatarDto
+                {
+                    Initials = "U",
+                    BackgroundColor = "#1976d2",
+                    TextColor = "#ffffff"
+                }
+            });
+        }
+
+        if (page > 3) // Simulate end of data after 3 pages
+        {
+            return new List<ActivityFeedEntryDto>();
+        }
+
+        return mockData;
+    }
+
+    public void Dispose()
+    {
+        SignalRService.NotificationReceived -= OnNotificationReceived;
+    }
+}
