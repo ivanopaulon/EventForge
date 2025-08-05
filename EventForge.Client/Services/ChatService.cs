@@ -390,6 +390,4 @@ public class ChatService : IChatService
             return false;
         }
     }
-
-    #endregion
 }
