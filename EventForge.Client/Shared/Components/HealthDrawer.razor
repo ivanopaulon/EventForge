@@ -1,0 +1,379 @@
+@using EventForge.DTOs.Health
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+
+<!-- 
+    Health Status Drawer Component
+    
+    This drawer component displays all health information sections:
+    - API Status with details
+    - Database Status with details  
+    - Authentication Status with details
+    - Dependencies Status with details
+    
+    Features:
+    - Right-anchored drawer
+    - Close button
+    - Selectable and copyable content
+    - Color-coded status indicators
+    - Organized sections with icons
+-->
+
+<MudDrawer @bind-Open="@IsOpen" 
+           Anchor="Anchor.Right" 
+           Elevation="16"
+           Width="400px"
+           ClipMode="DrawerClipMode.Always"
+           Variant="DrawerVariant.Temporary"
+           Class="health-drawer">
+    
+    <div class="health-drawer-content">
+        <!-- Header -->
+        <div class="health-drawer-header pa-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.HealthAndSafety" 
+                             Color="Color.Primary" 
+                             Size="Size.Medium" />
+                    <MudText Typo="Typo.h6" Class="font-weight-bold">
+                        @TranslationService.GetTranslation("health.title", "System Health")
+                    </MudText>
+                </MudStack>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                               Size="Size.Medium" 
+                               OnClick="@CloseDrawer"
+                               Color="Color.Inherit"
+                               aria-label="@TranslationService.GetTranslation("common.close", "Close")" />
+            </MudStack>
+            <MudDivider Class="mt-3" />
+        </div>
+
+        <!-- Content -->
+        <div class="health-drawer-body pa-4">
+            @if (HealthData != null)
+            {
+                <MudStack Spacing="4">
+                    
+                    <!-- API Status Section -->
+                    <div class="health-section">
+                        <MudCard Class="health-section-card" Elevation="2">
+                            <MudCardContent>
+                                <MudStack Spacing="2">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                        <MudIcon Icon="@Icons.Material.Filled.Api" 
+                                                 Color="@GetStatusColor(HealthData.ApiStatus)" 
+                                                 Size="Size.Medium" />
+                                        <MudText Typo="Typo.h6" Class="font-weight-medium">
+                                            @TranslationService.GetTranslation("health.api.title", "API Status")
+                                        </MudText>
+                                        <MudChip T="string" Size="Size.Small" 
+                                                 Color="@GetStatusColor(HealthData.ApiStatus)" 
+                                                 Text="@HealthData.ApiStatus" 
+                                                 Variant="Variant.Filled" />
+                                    </MudStack>
+                                    
+                                    <div class="health-details selectable-content">
+                                        <MudText Typo="Typo.body2" Class="mb-1">
+                                            <strong>@TranslationService.GetTranslation("health.status", "Status"):</strong> @HealthData.ApiStatus
+                                        </MudText>
+                                        <MudText Typo="Typo.body2" Class="mb-1">
+                                            <strong>@TranslationService.GetTranslation("health.version", "Version"):</strong> @HealthData.Version
+                                        </MudText>
+                                        <MudText Typo="Typo.body2" Class="mb-1">
+                                            <strong>@TranslationService.GetTranslation("health.environment", "Environment"):</strong> @HealthData.Environment
+                                        </MudText>
+                                        <MudText Typo="Typo.body2">
+                                            <strong>@TranslationService.GetTranslation("health.uptime", "Uptime"):</strong> @FormatUptime(HealthData.Uptime)
+                                        </MudText>
+                                    </div>
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </div>
+
+                    <!-- Database Status Section -->
+                    <div class="health-section">
+                        <MudCard Class="health-section-card" Elevation="2">
+                            <MudCardContent>
+                                <MudStack Spacing="2">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                        <MudIcon Icon="@Icons.Material.Filled.Storage" 
+                                                 Color="@GetStatusColor(HealthData.DatabaseStatus)" 
+                                                 Size="Size.Medium" />
+                                        <MudText Typo="Typo.h6" Class="font-weight-medium">
+                                            @TranslationService.GetTranslation("health.database.title", "Database Status")
+                                        </MudText>
+                                        <MudChip T="string" Size="Size.Small" 
+                                                 Color="@GetStatusColor(HealthData.DatabaseStatus)" 
+                                                 Text="@HealthData.DatabaseStatus" 
+                                                 Variant="Variant.Filled" />
+                                    </MudStack>
+                                    
+                                    <div class="health-details selectable-content">
+                                        <MudText Typo="Typo.body2" Class="mb-1">
+                                            <strong>@TranslationService.GetTranslation("health.status", "Status"):</strong> @HealthData.DatabaseStatus
+                                        </MudText>
+                                        @if (HealthData.DatabaseDetails?.Any() == true)
+                                        {
+                                            @foreach (var detail in HealthData.DatabaseDetails)
+                                            {
+                                                <MudText Typo="Typo.body2" Class="mb-1">
+                                                    <strong>@detail.Key:</strong> @detail.Value
+                                                </MudText>
+                                            }
+                                        }
+                                        @if (HealthData.AppliedMigrations?.Any() == true)
+                                        {
+                                            <MudText Typo="Typo.body2" Class="mb-1">
+                                                <strong>@TranslationService.GetTranslation("health.migrations", "Migrations"):</strong> @HealthData.AppliedMigrations.Count()
+                                            </MudText>
+                                        }
+                                    </div>
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </div>
+
+                    <!-- Authentication Status Section -->
+                    @if (!string.IsNullOrEmpty(HealthData.AuthenticationStatus))
+                    {
+                        <div class="health-section">
+                            <MudCard Class="health-section-card" Elevation="2">
+                                <MudCardContent>
+                                    <MudStack Spacing="2">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Security" 
+                                                     Color="@GetStatusColor(HealthData.AuthenticationStatus)" 
+                                                     Size="Size.Medium" />
+                                            <MudText Typo="Typo.h6" Class="font-weight-medium">
+                                                @TranslationService.GetTranslation("health.auth.title", "Authentication Status")
+                                            </MudText>
+                                            <MudChip T="string" Size="Size.Small" 
+                                                     Color="@GetStatusColor(HealthData.AuthenticationStatus)" 
+                                                     Text="@HealthData.AuthenticationStatus" 
+                                                     Variant="Variant.Filled" />
+                                        </MudStack>
+                                        
+                                        <div class="health-details selectable-content">
+                                            <MudText Typo="Typo.body2" Class="mb-1">
+                                                <strong>@TranslationService.GetTranslation("health.status", "Status"):</strong> @HealthData.AuthenticationStatus
+                                            </MudText>
+                                            @if (HealthData.AuthenticationDetails?.Any() == true)
+                                            {
+                                                @foreach (var detail in HealthData.AuthenticationDetails)
+                                                {
+                                                    <MudText Typo="Typo.body2" Class="mb-1">
+                                                        <strong>@detail.Key:</strong> @detail.Value
+                                                    </MudText>
+                                                }
+                                            }
+                                        </div>
+                                    </MudStack>
+                                </MudCardContent>
+                            </MudCard>
+                        </div>
+                    }
+
+                    <!-- Dependencies Status Section -->
+                    @if (HealthData.Dependencies?.Any() == true)
+                    {
+                        <div class="health-section">
+                            <MudCard Class="health-section-card" Elevation="2">
+                                <MudCardContent>
+                                    <MudStack Spacing="2">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Hub" 
+                                                     Color="@GetDependenciesStatusColor()" 
+                                                     Size="Size.Medium" />
+                                            <MudText Typo="Typo.h6" Class="font-weight-medium">
+                                                @TranslationService.GetTranslation("health.dependencies.title", "External Dependencies")
+                                            </MudText>
+                                            <MudChip T="string" Size="Size.Small" 
+                                                     Color="@GetDependenciesStatusColor()" 
+                                                     Text="@GetDependenciesStatusText()" 
+                                                     Variant="Variant.Filled" />
+                                        </MudStack>
+                                        
+                                        <div class="health-details selectable-content">
+                                            @foreach (var dep in HealthData.Dependencies)
+                                            {
+                                                <MudText Typo="Typo.body2" Class="mb-1">
+                                                    <strong>@dep.Key:</strong> @dep.Value
+                                                </MudText>
+                                            }
+                                        </div>
+                                    </MudStack>
+                                </MudCardContent>
+                            </MudCard>
+                        </div>
+                    }
+
+                    <!-- Last Updated Info -->
+                    @if (LastUpdated.HasValue)
+                    {
+                        <div class="health-section">
+                            <MudAlert Severity="Severity.Info" NoIcon="true" Class="ma-0">
+                                <MudText Typo="Typo.body2" Class="text-center">
+                                    <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" Class="mr-1" />
+                                    @TranslationService.GetTranslation("health.lastUpdated", "Last Updated"): @LastUpdated.Value.ToString("HH:mm:ss")
+                                </MudText>
+                            </MudAlert>
+                        </div>
+                    }
+
+                </MudStack>
+            }
+            else
+            {
+                <!-- Loading State -->
+                <div class="health-loading pa-8 text-center">
+                    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-4" />
+                    <MudText Typo="Typo.body1" Align="Align.Center">
+                        @TranslationService.GetTranslation("health.loading", "Loading health information...")
+                    </MudText>
+                </div>
+            }
+        </div>
+    </div>
+</MudDrawer>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    [Parameter] public DetailedHealthStatusDto? HealthData { get; set; }
+    [Parameter] public DateTime? LastUpdated { get; set; }
+
+    private async Task CloseDrawer()
+    {
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(IsOpen);
+    }
+
+    #region Status Helpers
+
+    private Color GetStatusColor(string? status)
+    {
+        if (string.IsNullOrEmpty(status)) return Color.Default;
+        
+        return status.ToLower() switch
+        {
+            "healthy" => Color.Success,
+            "degraded" => Color.Warning,
+            "unhealthy" or "error" => Color.Error,
+            "disabled" => Color.Info,
+            _ => Color.Default
+        };
+    }
+
+    private Color GetDependenciesStatusColor()
+    {
+        if (HealthData?.Dependencies?.Any() != true) return Color.Default;
+        
+        var statuses = HealthData.Dependencies.Values;
+        
+        if (statuses.Any(s => s?.ToLower().Contains("error") == true || s?.ToLower().Contains("unhealthy") == true))
+            return Color.Error;
+            
+        if (statuses.Any(s => s?.ToLower().Contains("degraded") == true || s?.ToLower().Contains("warning") == true))
+            return Color.Warning;
+            
+        return Color.Success;
+    }
+
+    private string GetDependenciesStatusText()
+    {
+        if (HealthData?.Dependencies?.Any() != true) return "Unknown";
+        
+        var statuses = HealthData.Dependencies.Values;
+        
+        if (statuses.Any(s => s?.ToLower().Contains("error") == true || s?.ToLower().Contains("unhealthy") == true))
+            return "Error";
+            
+        if (statuses.Any(s => s?.ToLower().Contains("degraded") == true || s?.ToLower().Contains("warning") == true))
+            return "Warning";
+            
+        return "Healthy";
+    }
+
+    #endregion
+
+    #region Helper Methods
+
+    private string FormatUptime(TimeSpan uptime)
+    {
+        if (uptime.TotalDays >= 1)
+            return $"{uptime.Days}d {uptime.Hours}h {uptime.Minutes}m";
+        else if (uptime.TotalHours >= 1)
+            return $"{uptime.Hours}h {uptime.Minutes}m";
+        else
+            return $"{uptime.Minutes}m {uptime.Seconds}s";
+    }
+
+    #endregion
+}
+
+<style>
+    .health-drawer {
+        border-left: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .health-drawer-content {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .health-drawer-header {
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+        background: var(--mud-palette-surface);
+    }
+
+    .health-drawer-body {
+        flex: 1;
+        overflow-y: auto;
+        background: var(--mud-palette-background-grey);
+    }
+
+    .health-section {
+        margin-bottom: 16px;
+    }
+
+    .health-section-card {
+        border: 1px solid var(--mud-palette-lines-default);
+        transition: all 0.2s ease;
+    }
+
+    .health-section-card:hover {
+        border-color: var(--mud-palette-primary);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .health-details {
+        background: var(--mud-palette-background);
+        border-radius: 8px;
+        padding: 12px;
+        border: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .selectable-content {
+        user-select: text;
+        -webkit-user-select: text;
+        -moz-user-select: text;
+        -ms-user-select: text;
+    }
+
+    .health-loading {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: 200px;
+    }
+
+    /* Ensure proper scrolling on mobile */
+    @@media (max-width: 768px) {
+        .health-drawer {
+            width: 100vw !important;
+        }
+    }
+</style>
