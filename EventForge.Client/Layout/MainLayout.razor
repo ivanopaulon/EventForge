@@ -47,7 +47,7 @@
         {
             <!-- User Account Menu - no longer includes theme/language controls -->
             <nav class="d-flex align-center ga-2" role="navigation" aria-label="User controls">
-                <UserAccountMenu IncludeMobileControls="false" OnLogout="@HandleLogout" />
+                <UserAccountMenu OnLogout="@HandleLogout" />
             </nav>
         }
         else
@@ -92,8 +92,8 @@
     </MudMainContent>
 </MudLayout>
 
-<!-- Universal Footer - centralized for all layouts -->
-<UniversalFooter />
+<!-- Health Status Footer - centralized for all layouts -->
+<HealthStatusFooter />
 
 @code {
     private bool _drawerOpen = true;
