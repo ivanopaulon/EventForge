@@ -9,24 +9,24 @@
 <PageTitle>@TranslationService.GetTranslation("home.title", "EventForge - Home")</PageTitle>
 
 <!-- Vertical stack layout with full-width cards (MudItem xs=12) as per issue #92 -->
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
     <MudGrid Spacing="4">
         
         @if (!_isAuthenticated)
         {
             <!-- Login/Welcome Card - Only shown when not authenticated -->
             <MudItem xs="12">
-                <MudCard Class="pa-4 pa-sm-6 pa-md-8" Elevation="4" role="main">
+                <MudCard Class="pa-2 pa-sm-3 pa-md-4" Elevation="4" role="main">
                     <MudCardContent>
-                        <header class="text-center mb-6">
-                            <MudText Typo="Typo.h3" 
+                        <header class="text-center mb-4">
+                            <MudText Typo="Typo.h4" 
                                      Component="h1" 
                                      Align="Align.Center" 
                                      Class="mb-4"
                                      aria-label="EventForge Home Page">
                                 <MudIcon Icon="@Icons.Material.Filled.Event" 
                                          Class="mr-2" 
-                                         Size="Size.Large"
+                                         Size="Size.Medium"
                                          aria-hidden="true" />
                                 EventForge
                             </MudText>
@@ -41,7 +41,7 @@
                         <div class="d-flex justify-center">
                             <MudButton Variant="Variant.Filled"
                                        Color="Color.Primary"
-                                       Size="Size.Large"
+                                       Size="Size.Medium"
                                        StartIcon="@Icons.Material.Filled.Login"
                                        OnClick="@(() => NavigationManager.NavigateTo("/login"))"
                                        aria-label="@TranslationService.GetTranslation("auth.login", "Login")">
@@ -56,16 +56,16 @@
         {
             <!-- Dashboard Card - Shown when authenticated -->
             <MudItem xs="12">
-                <MudCard Class="pa-4 pa-sm-6 pa-md-8" Elevation="4" role="main">
+                <MudCard Class="pa-2 pa-sm-3 pa-md-4" Elevation="4" role="main">
                     <MudCardContent>
-                        <header class="text-center mb-6">
-                            <MudText Typo="Typo.h3" 
+                        <header class="text-center mb-4">
+                            <MudText Typo="Typo.h4" 
                                      Component="h1" 
                                      Align="Align.Center" 
                                      Class="mb-4">
                                 <MudIcon Icon="@Icons.Material.Filled.Dashboard" 
                                          Class="mr-2" 
-                                         Size="Size.Large"
+                                         Size="Size.Medium"
                                          aria-hidden="true" />
                                 @TranslationService.GetTranslation("home.welcomeBack", "Welcome Back")
                             </MudText>
@@ -101,9 +101,9 @@
 
         <!-- System Status Card - Always shown, uniform height -->
         <MudItem xs="12">
-            <MudCard Elevation="2" Class="pa-4">
+            <MudCard Elevation="2" Class="pa-2">
                 <MudCardContent>
-                    <MudText Typo="Typo.h6" Class="mb-4 d-flex align-center">
+                    <MudText Typo="Typo.h6" Class="mb-3 d-flex align-center">
                         <MudIcon Icon="Icons.Material.Filled.HealthAndSafety" 
                                  Class="mr-2" 
                                  Color="Color.Primary"
@@ -113,7 +113,7 @@
 
                     <MudGrid Spacing="2">
                         <MudItem xs="12" sm="6">
-                            <MudPaper Class="pa-3 text-center" Elevation="1">
+                            <MudPaper Class="pa-2 text-center" Elevation="1">
                                 <MudIcon Icon="@Icons.Material.Filled.CheckCircle" 
                                          Color="Color.Success" 
                                          Class="mb-2" />
@@ -128,7 +128,7 @@
                             </MudPaper>
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudPaper Class="pa-3 text-center" Elevation="1">
+                            <MudPaper Class="pa-2 text-center" Elevation="1">
                                 <MudIcon Icon="@Icons.Material.Filled.Storage" 
                                          Color="Color.Success" 
                                          Class="mb-2" />

@@ -15,23 +15,23 @@
 <PageTitle>@TranslationService.GetTranslation("activityFeed.title", "Feed Attività - EventForge")</PageTitle>
 
 <!-- Main container following existing project pattern -->
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
     <MudGrid Spacing="4">
         
         <!-- Page Header Card -->
         <MudItem xs="12">
-            <MudCard Class="pa-4 pa-sm-6 pa-md-8" Elevation="4" id="activity-feed-header">
+            <MudCard Class="pa-2 pa-sm-3 pa-md-4" Elevation="4" id="activity-feed-header">
                 <MudCardContent>
-                    <header class="text-center mb-6">
+                    <header class="text-center mb-4">
                         <div class="d-flex justify-center align-center mb-4">
-                            <MudText Typo="Typo.h3" 
+                            <MudText Typo="Typo.h4" 
                                      Component="h1" 
                                      Align="Align.Center" 
                                      Class="mr-2"
                                      aria-label="@TranslationService.GetTranslation("activityFeed.pageTitle", "Feed Attività")">
                                 <MudIcon Icon="@Icons.Material.Filled.Timeline" 
                                          Class="mr-2" 
-                                         Size="Size.Large"
+                                         Size="Size.Medium"
                                          aria-hidden="true" />
                                 @TranslationService.GetTranslation("activityFeed.pageTitle", "Feed Attività")
                             </MudText>
@@ -73,7 +73,7 @@
         <!-- Filters Panel (Collapsible) -->
         <MudItem xs="12">
             <MudCollapse Expanded="_showFilters">
-                <MudCard Class="pa-4" Elevation="2">
+                <MudCard Class="pa-2" Elevation="2">
                     <MudCardContent>
                         <MudText Typo="Typo.h6" Class="mb-4">
                             <MudIcon Icon="@Icons.Material.Filled.FilterList" Class="mr-2" />
@@ -131,19 +131,19 @@
 
         <!-- Activity Feed Timeline -->
         <MudItem xs="12">
-            <MudCard Class="pa-4" Elevation="2">
+            <MudCard Class="pa-2" Elevation="2">
                 <MudCardContent>
                     @if (_isLoading)
                     {
-                        <div class="d-flex justify-center align-center pa-8">
-                            <MudProgressCircular Size="Size.Large" Indeterminate="true" />
+                        <div class="d-flex justify-center align-center pa-4">
+                            <MudProgressCircular Size="Size.Medium" Indeterminate="true" />
                             <MudText Class="ml-4">@TranslationService.GetTranslation("activityFeed.loading", "Caricamento attività...")</MudText>
                         </div>
                     }
                     else if (!_activityEntries.Any())
                     {
-                        <div class="text-center pa-8">
-                            <MudIcon Icon="@Icons.Material.Filled.Timeline" Size="Size.Large" Color="Color.Secondary" />
+                        <div class="text-center pa-4">
+                            <MudIcon Icon="@Icons.Material.Filled.Timeline" Size="Size.Medium" Color="Color.Secondary" />
                             <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mt-2">
                                 @TranslationService.GetTranslation("activityFeed.noActivities", "Nessuna attività trovata")
                             </MudText>

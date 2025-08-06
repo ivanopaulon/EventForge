@@ -10,13 +10,13 @@
 else if (!IsAuthorized)
 {
     <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
-        <MudPaper Class="pa-8 border-rounded" Elevation="4">
+        <MudPaper Class="pa-4 border-rounded" Elevation="4">
             <MudGrid Justify="Justify.Center">
                 <MudItem xs="12">
                     <div class="d-flex flex-column align-center">
-                        <MudIcon Icon="@Icons.Material.Outlined.Block" Color="Color.Error" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
-                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">@TranslationService.GetTranslation("error.accessDenied", "Accesso Negato")</MudText>
-                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
+                        <MudIcon Icon="@Icons.Material.Outlined.Block" Color="Color.Error" Size="Size.Medium" Class="mb-4" Style="font-size: 48px;" />
+                        <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-4">@TranslationService.GetTranslation("error.accessDenied", "Accesso Negato")</MudText>
+                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
                             @TranslationService.GetTranslation("superAdmin.superAdminRoleRequired", "Non hai i permessi per accedere a questa pagina. È richiesto il ruolo Super Amministratore.")
                         </MudText>
                         <MudButton Variant="Variant.Filled" 
@@ -34,9 +34,9 @@ else if (!IsAuthorized)
 }
 else
 {
-    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
         <!-- Page Header with Icon and Title -->
-        <MudText Typo="Typo.h3" Class="mb-4">
+        <MudText Typo="Typo.h4" Class="mb-3">
             <MudIcon Icon="@PageIcon" Class="mr-3" />
             @PageTitle
         </MudText>

@@ -24,13 +24,13 @@
                 <NotAuthorized>
                     @* Authentication required message - redirect logic moved to code-behind *@
                     <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
-                        <MudPaper Class="pa-8" Elevation="4">
+                        <MudPaper Class="pa-4" Elevation="4">
                             <MudGrid Justify="Justify.Center">
                                 <MudItem xs="12">
                                     <div class="d-flex flex-column align-center">
-                                        <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Warning" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
-                                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">Authentication Required</MudText>
-                                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
+                                        <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Warning" Size="Size.Medium" Class="mb-4" Style="font-size: 48px;" />
+                                        <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-4">Authentication Required</MudText>
+                                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
                                             Please log in to access this page.
                                         </MudText>
                                         <MudButton Variant="Variant.Filled" 
@@ -54,13 +54,13 @@
             <PageTitle>Not found</PageTitle>
             <LayoutView Layout="@typeof(MainLayout)">
                 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
-                    <MudPaper Class="pa-8" Elevation="4">
+                    <MudPaper Class="pa-4" Elevation="4">
                         <MudGrid Justify="Justify.Center">
                             <MudItem xs="12">
                                 <div class="d-flex flex-column align-center">
-                                    <MudIcon Icon="Icons.Material.Filled.QuestionMark" Color="Color.Warning" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
-                                    <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">Page Not Found</MudText>
-                                    <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
+                                    <MudIcon Icon="Icons.Material.Filled.QuestionMark" Color="Color.Warning" Size="Size.Medium" Class="mb-4" Style="font-size: 48px;" />
+                                    <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-4">Page Not Found</MudText>
+                                    <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
                                         Sorry, there's nothing at this address.
                                     </MudText>
                                     <MudButton Variant="Variant.Filled" 

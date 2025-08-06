@@ -38,8 +38,8 @@ else if (!_isAuthorized)
 }
 else
 {
-    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-        <MudText Typo="Typo.h3" Class="mb-8">
+    <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+        <MudText Typo="Typo.h4" Class="mb-6">
             <MudIcon Icon="Icons.Material.Filled.AdminPanelSettings" Class="mr-3" />
             @TranslationService.GetTranslation("navigation.dashboard", "Admin Dashboard")
         </MudText>
@@ -56,7 +56,7 @@ else
                         <MudGrid Spacing="2">
                             <MudItem xs="12" sm="6" md="3">
                                 <MudPaper Class="pa-4 text-center" Elevation="1">
-                                    <MudIcon Icon="Icons.Material.Filled.People" Color="Color.Primary" Size="Size.Large" Class="mb-2" />
+                                    <MudIcon Icon="Icons.Material.Filled.People" Color="Color.Primary" Size="Size.Medium" Class="mb-2" />
                                     <MudText Typo="Typo.h6">0</MudText>
                                     <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                         @TranslationService.GetTranslation("admin.totalUsers", "Total Users")
@@ -65,7 +65,7 @@ else
                             </MudItem>
                             <MudItem xs="12" sm="6" md="3">
                                 <MudPaper Class="pa-4 text-center" Elevation="1">
-                                    <MudIcon Icon="Icons.Material.Filled.Business" Color="Color.Secondary" Size="Size.Large" Class="mb-2" />
+                                    <MudIcon Icon="Icons.Material.Filled.Business" Color="Color.Secondary" Size="Size.Medium" Class="mb-2" />
                                     <MudText Typo="Typo.h6">0</MudText>
                                     <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                         @TranslationService.GetTranslation("admin.activeTenants", "Active Tenants")
@@ -74,7 +74,7 @@ else
                             </MudItem>
                             <MudItem xs="12" sm="6" md="3">
                                 <MudPaper Class="pa-4 text-center" Elevation="1">
-                                    <MudIcon Icon="Icons.Material.Filled.Event" Color="Color.Success" Size="Size.Large" Class="mb-2" />
+                                    <MudIcon Icon="Icons.Material.Filled.Event" Color="Color.Success" Size="Size.Medium" Class="mb-2" />
                                     <MudText Typo="Typo.h6">0</MudText>
                                     <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                         @TranslationService.GetTranslation("admin.totalEvents", "Total Events")
@@ -83,7 +83,7 @@ else
                             </MudItem>
                             <MudItem xs="12" sm="6" md="3">
                                 <MudPaper Class="pa-4 text-center" Elevation="1">
-                                    <MudIcon Icon="Icons.Material.Filled.Assessment" Color="Color.Info" Size="Size.Large" Class="mb-2" />
+                                    <MudIcon Icon="Icons.Material.Filled.Assessment" Color="Color.Info" Size="Size.Medium" Class="mb-2" />
                                     <MudText Typo="Typo.h6">0</MudText>
                                     <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                         @TranslationService.GetTranslation("admin.activeReports", "Active Reports")
@@ -109,7 +109,7 @@ else
                                            Color="Color.Primary"
                                            FullWidth="true"
                                            StartIcon="Icons.Material.Filled.People"
-                                           Class="pa-4">
+                                           Class="pa-2">
                                     @TranslationService.GetTranslation("admin.manageUsers", "Manage Users")
                                 </MudButton>
                             </MudItem>
@@ -118,7 +118,7 @@ else
                                            Color="Color.Secondary"
                                            FullWidth="true"
                                            StartIcon="Icons.Material.Filled.Business"
-                                           Class="pa-4">
+                                           Class="pa-2">
                                     @TranslationService.GetTranslation("admin.manageTenants", "Manage Tenants")
                                 </MudButton>
                             </MudItem>
@@ -127,7 +127,7 @@ else
                                            Color="Color.Success"
                                            FullWidth="true"
                                            StartIcon="Icons.Material.Filled.Assessment"
-                                           Class="pa-4">
+                                           Class="pa-2">
                                     @TranslationService.GetTranslation("admin.viewReports", "View Reports")
                                 </MudButton>
                             </MudItem>
@@ -136,7 +136,7 @@ else
                                            Color="Color.Info"
                                            FullWidth="true"
                                            StartIcon="@Icons.Material.Outlined.Settings"
-                                           Class="pa-4">
+                                           Class="pa-2">
                                     @TranslationService.GetTranslation("admin.systemSettings", "System Settings")
                                 </MudButton>
                             </MudItem>

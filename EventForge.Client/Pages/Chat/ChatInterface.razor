@@ -103,7 +103,7 @@
             <!-- Chat list -->
             @if (_isLoadingChats)
             {
-                <div class="pa-4 text-center">
+                <div class="pa-2 text-center">
                     <MudProgressCircular Indeterminate="true" Size="Size.Small" />
                     <MudText Typo="Typo.body2" Class="mt-2">
                         @TranslationService.GetTranslation("common.loading", "Caricamento...")
@@ -161,9 +161,9 @@
             else
             {
                 <!-- Empty state -->
-                <div class="pa-4 text-center">
+                <div class="pa-2 text-center">
                     <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" 
-                             Size="Size.Large" 
+                             Size="Size.Medium" 
                              Color="Color.Tertiary" 
                              Class="mb-2" />
                     <MudText Typo="Typo.body2" Color="Color.Tertiary">
@@ -233,7 +233,7 @@
                 }
                 else if (_messages?.Any() == true)
                 {
-                    <div class="pa-4">
+                    <div class="pa-2">
                         @foreach (var message in _messages)
                         {
                             <EnhancedMessage Message="@message"
@@ -258,7 +258,7 @@
                     <div class="d-flex justify-center align-center" Style="height: 200px;">
                         <div class="text-center">
                             <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" 
-                                     Size="Size.Large" 
+                                     Size="Size.Medium" 
                                      Color="Color.Tertiary" 
                                      Class="mb-2" />
                             <MudText Typo="Typo.body2" Color="Color.Tertiary">
@@ -289,7 +289,7 @@
             <div class="d-flex justify-center align-center" Style="height: 100vh;">
                 <div class="text-center">
                     <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" 
-                             Size="Size.Large" 
+                             Size="Size.Medium" 
                              Color="Color.Tertiary" 
                              Class="mb-4" />
                     <MudText Typo="Typo.h5" Color="Color.Tertiary" Class="mb-2">

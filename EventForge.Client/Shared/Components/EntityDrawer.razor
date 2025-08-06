@@ -19,7 +19,7 @@
            aria-labelledby="drawer-title"
            role="dialog">
     
-    <div class="entity-drawer-header d-flex justify-space-between align-center pa-4 border-b">
+    <div class="entity-drawer-header d-flex justify-space-between align-center pa-2 border-b">
         <MudText id="drawer-title" Typo="Typo.h6" Class="ma-0">@GetTitle()</MudText>
         <MudIconButton Icon="@Icons.Material.Filled.Close" 
                        Color="Color.Default" 
@@ -29,7 +29,7 @@
                        aria-label="@TranslationService.GetTranslation("drawer.aria.chiudiDrawer")" />
     </div>
     
-    <div class="entity-drawer-content flex-grow-1 pa-4" style="overflow-y: auto;">
+    <div class="entity-drawer-content flex-grow-1 pa-2" style="overflow-y: auto;">
         @if (Mode == EntityDrawerMode.View)
         {
             <div class="view-mode">
@@ -46,13 +46,13 @@
         @if (_isLoading)
         {
             <div class="d-flex justify-center mt-4" aria-live="polite" aria-label="@TranslationService.GetTranslation("drawer.aria.caricamentoInCorso")">
-                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
                 <MudText Class="ml-3">@_loadingMessage</MudText>
             </div>
         }
     </div>
     
-    <div class="entity-drawer-actions d-flex justify-end gap-2 pa-4 border-t">
+    <div class="entity-drawer-actions d-flex justify-end gap-2 pa-2 border-t">
         @if (Mode == EntityDrawerMode.View)
         {
             @if (ShowEditButton && AllowEdit)
