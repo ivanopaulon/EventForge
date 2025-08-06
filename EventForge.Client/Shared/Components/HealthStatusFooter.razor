@@ -21,107 +21,218 @@
 <footer class="universal-footer @(_isExpanded ? "expanded" : "collapsed")" 
         role="contentinfo" 
         aria-label="@TranslationService.GetTranslation("footer.ariaLabel", "Site footer with system status and preferences")">
-    <div class="footer-content pa-2">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="2">
+    <div class="footer-content pa-1">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="1">
             
-            <!-- Health Status Chip -->
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="health-section">
+            <!-- Health Status Chips -->
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="health-section">
                 @if (_healthData != null)
                 {
-                    <MudTooltip>
-                        <ChildContent>
+                    <!-- API Status Chip -->
+                    <div class="health-chip-container">
+                        <MudChip T="string"
+                                 Size="Size.Small" 
+                                 Color="@GetStatusColor(_healthData.ApiStatus)" 
+                                 Variant="Variant.Filled"
+                                 Class="health-chip-small clickable"
+                                 OnClick="@(() => _isApiPopoverOpen = !_isApiPopoverOpen)"
+                                 aria-label="@($"API {TranslationService.GetTranslation("health.status", "Status")} - {_healthData.ApiStatus}")">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="0">
+                                <MudIcon Icon="@Icons.Material.Filled.Api" Size="Size.Small" />
+                                <span class="d-none d-sm-inline chip-text">API</span>
+                            </MudStack>
+                        </MudChip>
+                        
+                        @if (_isApiPopoverOpen)
+                        {
+                            <MudOverlay @onclick="@(() => _isApiPopoverOpen = false)" />
+                            <MudPaper Class="health-popover-content pa-3" Elevation="8">
+                                <MudStack Spacing="2">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                        <MudText Typo="Typo.h6" Class="font-weight-bold">
+                                            @TranslationService.GetTranslation("health.api.title", "API Status")
+                                        </MudText>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                                                       Size="Size.Small" 
+                                                       OnClick="@(() => _isApiPopoverOpen = false)"
+                                                       Class="close-button" />
+                                    </MudStack>
+                                    <MudDivider />
+                                    <div class="selectable-content">
+                                        <MudText Typo="Typo.body2" Class="mb-1">
+                                            <strong>@TranslationService.GetTranslation("health.status", "Status"):</strong> @_healthData.ApiStatus
+                                        </MudText>
+                                        <MudText Typo="Typo.body2" Class="mb-1">
+                                            <strong>@TranslationService.GetTranslation("health.version", "Version"):</strong> @_healthData.Version
+                                        </MudText>
+                                        <MudText Typo="Typo.body2" Class="mb-1">
+                                            <strong>@TranslationService.GetTranslation("health.environment", "Environment"):</strong> @_healthData.Environment
+                                        </MudText>
+                                        <MudText Typo="Typo.body2">
+                                            <strong>@TranslationService.GetTranslation("health.uptime", "Uptime"):</strong> @FormatUptime(_healthData.Uptime)
+                                        </MudText>
+                                    </div>
+                                </MudStack>
+                            </MudPaper>
+                        }
+                    </div>
+
+                    <!-- Database Status Chip -->
+                    <div class="health-chip-container">
+                        <MudChip T="string"
+                                 Size="Size.Small" 
+                                 Color="@GetStatusColor(_healthData.DatabaseStatus)" 
+                                 Variant="Variant.Filled"
+                                 Class="health-chip-small clickable"
+                                 OnClick="@(() => _isDatabasePopoverOpen = !_isDatabasePopoverOpen)"
+                                 aria-label="@($"Database {TranslationService.GetTranslation("health.status", "Status")} - {_healthData.DatabaseStatus}")">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="0">
+                                <MudIcon Icon="@Icons.Material.Filled.Storage" Size="Size.Small" />
+                                <span class="d-none d-sm-inline chip-text">DB</span>
+                            </MudStack>
+                        </MudChip>
+                        
+                        @if (_isDatabasePopoverOpen)
+                        {
+                            <MudOverlay @onclick="@(() => _isDatabasePopoverOpen = false)" />
+                            <MudPaper Class="health-popover-content pa-3" Elevation="8">
+                                <MudStack Spacing="2">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                        <MudText Typo="Typo.h6" Class="font-weight-bold">
+                                            @TranslationService.GetTranslation("health.database.title", "Database Status")
+                                        </MudText>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                                                       Size="Size.Small" 
+                                                       OnClick="@(() => _isDatabasePopoverOpen = false)"
+                                                       Class="close-button" />
+                                    </MudStack>
+                                    <MudDivider />
+                                    <div class="selectable-content">
+                                        <MudText Typo="Typo.body2" Class="mb-1">
+                                            <strong>@TranslationService.GetTranslation("health.status", "Status"):</strong> @_healthData.DatabaseStatus
+                                        </MudText>
+                                        @if (_healthData.DatabaseDetails?.Any() == true)
+                                        {
+                                            @foreach (var detail in _healthData.DatabaseDetails)
+                                            {
+                                                <MudText Typo="Typo.body2" Class="mb-1">
+                                                    <strong>@detail.Key:</strong> @detail.Value
+                                                </MudText>
+                                            }
+                                        }
+                                        @if (_healthData.AppliedMigrations?.Any() == true)
+                                        {
+                                            <MudText Typo="Typo.body2" Class="mb-1">
+                                                <strong>@TranslationService.GetTranslation("health.migrations", "Migrations"):</strong> @_healthData.AppliedMigrations.Count()
+                                            </MudText>
+                                        }
+                                    </div>
+                                </MudStack>
+                            </MudPaper>
+                        }
+                    </div>
+
+                    <!-- Authentication Status Chip -->
+                    @if (!string.IsNullOrEmpty(_healthData.AuthenticationStatus))
+                    {
+                        <div class="health-chip-container">
                             <MudChip T="string"
-                                     Size="Size.Medium" 
-                                     Color="@GetOverallStatusColor()" 
+                                     Size="Size.Small" 
+                                     Color="@GetStatusColor(_healthData.AuthenticationStatus)" 
                                      Variant="Variant.Filled"
-                                     Class="health-chip clickable"
-                                     OnClick="@(() => _isHealthExpanded = !_isHealthExpanded)"
-                                     aria-label="@($"{TranslationService.GetTranslation("health.systemStatus", "System status")} - {GetOverallStatusText()}")">
-                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                                    <MudIcon Icon="@Icons.Material.Filled.MonitorHeart" Size="Size.Small" />
-                                    <span class="d-none d-sm-inline">@GetOverallStatusText()</span>
+                                     Class="health-chip-small clickable"
+                                     OnClick="@(() => _isAuthPopoverOpen = !_isAuthPopoverOpen)"
+                                     aria-label="@($"Auth {TranslationService.GetTranslation("health.status", "Status")} - {_healthData.AuthenticationStatus}")">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="0">
+                                    <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" />
+                                    <span class="d-none d-sm-inline chip-text">Auth</span>
                                 </MudStack>
                             </MudChip>
-                        </ChildContent>
-                        <TooltipContent>
-                            <div class="pa-2">
-                                <MudText Typo="Typo.body2" Class="font-weight-bold mb-2">
-                                    @TranslationService.GetTranslation("health.systemOverview", "System Overview")
-                                </MudText>
-                                <MudGrid>
-                                    <MudItem xs="6">
-                                        <MudText Typo="Typo.caption">API:</MudText>
-                                    </MudItem>
-                                    <MudItem xs="6">
-                                        <MudText Typo="Typo.caption" Color="@GetStatusColor(_healthData.ApiStatus)">
-                                            @_healthData.ApiStatus
-                                        </MudText>
-                                    </MudItem>
-                                    <MudItem xs="6">
-                                        <MudText Typo="Typo.caption">Database:</MudText>
-                                    </MudItem>
-                                    <MudItem xs="6">
-                                        <MudText Typo="Typo.caption" Color="@GetStatusColor(_healthData.DatabaseStatus)">
-                                            @_healthData.DatabaseStatus
-                                        </MudText>
-                                    </MudItem>
-                                    <MudItem xs="6">
-                                        <MudText Typo="Typo.caption">Auth:</MudText>
-                                    </MudItem>
-                                    <MudItem xs="6">
-                                        <MudText Typo="Typo.caption" Color="@GetStatusColor(_healthData.AuthenticationStatus)">
-                                            @_healthData.AuthenticationStatus
-                                        </MudText>
-                                    </MudItem>
-                                    <MudItem xs="6">
-                                        <MudText Typo="Typo.caption">Version:</MudText>
-                                    </MudItem>
-                                    <MudItem xs="6">
-                                        <MudText Typo="Typo.caption">
-                                            @_healthData.Version
-                                        </MudText>
-                                    </MudItem>
-                                    <MudItem xs="6">
-                                        <MudText Typo="Typo.caption">Environment:</MudText>
-                                    </MudItem>
-                                    <MudItem xs="6">
-                                        <MudText Typo="Typo.caption">
-                                            @_healthData.Environment
-                                        </MudText>
-                                    </MudItem>
-                                    <MudItem xs="6">
-                                        <MudText Typo="Typo.caption">Uptime:</MudText>
-                                    </MudItem>
-                                    <MudItem xs="6">
-                                        <MudText Typo="Typo.caption">
-                                            @FormatUptime(_healthData.Uptime)
-                                        </MudText>
-                                    </MudItem>
-                                    @if (_healthData.Dependencies?.Any() == true)
-                                    {
-                                        <MudItem xs="12" Class="mt-2">
-                                            <MudText Typo="Typo.caption" Class="font-weight-bold">Dependencies:</MudText>
-                                        </MudItem>
-                                        @foreach (var dep in _healthData.Dependencies)
-                                        {
-                                            <MudItem xs="6">
-                                                <MudText Typo="Typo.caption">@dep.Key:</MudText>
-                                            </MudItem>
-                                            <MudItem xs="6">
-                                                <MudText Typo="Typo.caption" Color="@GetStatusColor(dep.Value)">
-                                                    @dep.Value
+                            
+                            @if (_isAuthPopoverOpen)
+                            {
+                                <MudOverlay @onclick="@(() => _isAuthPopoverOpen = false)" />
+                                <MudPaper Class="health-popover-content pa-3" Elevation="8">
+                                    <MudStack Spacing="2">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                            <MudText Typo="Typo.h6" Class="font-weight-bold">
+                                                @TranslationService.GetTranslation("health.auth.title", "Authentication Status")
+                                            </MudText>
+                                            <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                                                           Size="Size.Small" 
+                                                           OnClick="@(() => _isAuthPopoverOpen = false)"
+                                                           Class="close-button" />
+                                        </MudStack>
+                                        <MudDivider />
+                                        <div class="selectable-content">
+                                            <MudText Typo="Typo.body2" Class="mb-1">
+                                                <strong>@TranslationService.GetTranslation("health.status", "Status"):</strong> @_healthData.AuthenticationStatus
+                                            </MudText>
+                                            @if (_healthData.AuthenticationDetails?.Any() == true)
+                                            {
+                                                @foreach (var detail in _healthData.AuthenticationDetails)
+                                                {
+                                                    <MudText Typo="Typo.body2" Class="mb-1">
+                                                        <strong>@detail.Key:</strong> @detail.Value
+                                                    </MudText>
+                                                }
+                                            }
+                                        </div>
+                                    </MudStack>
+                                </MudPaper>
+                            }
+                        </div>
+                    }
+
+                    <!-- Dependencies Status Chip -->
+                    @if (_healthData.Dependencies?.Any() == true)
+                    {
+                        <div class="health-chip-container">
+                            <MudChip T="string"
+                                     Size="Size.Small" 
+                                     Color="@GetDependenciesStatusColor()" 
+                                     Variant="Variant.Filled"
+                                     Class="health-chip-small clickable"
+                                     OnClick="@(() => _isDependenciesPopoverOpen = !_isDependenciesPopoverOpen)"
+                                     aria-label="@($"Dependencies {TranslationService.GetTranslation("health.status", "Status")}")">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="0">
+                                    <MudIcon Icon="@Icons.Material.Filled.Hub" Size="Size.Small" />
+                                    <span class="d-none d-sm-inline chip-text">Deps</span>
+                                </MudStack>
+                            </MudChip>
+                            
+                            @if (_isDependenciesPopoverOpen)
+                            {
+                                <MudOverlay @onclick="@(() => _isDependenciesPopoverOpen = false)" />
+                                <MudPaper Class="health-popover-content pa-3" Elevation="8">
+                                    <MudStack Spacing="2">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                            <MudText Typo="Typo.h6" Class="font-weight-bold">
+                                                @TranslationService.GetTranslation("health.dependencies.title", "External Dependencies")
+                                            </MudText>
+                                            <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                                                           Size="Size.Small" 
+                                                           OnClick="@(() => _isDependenciesPopoverOpen = false)"
+                                                           Class="close-button" />
+                                        </MudStack>
+                                        <MudDivider />
+                                        <div class="selectable-content">
+                                            @foreach (var dep in _healthData.Dependencies)
+                                            {
+                                                <MudText Typo="Typo.body2" Class="mb-1">
+                                                    <strong>@dep.Key:</strong> @dep.Value
                                                 </MudText>
-                                            </MudItem>
-                                        }
-                                    }
-                                </MudGrid>
-                            </div>
-                        </TooltipContent>
-                    </MudTooltip>
+                                            }
+                                        </div>
+                                    </MudStack>
+                                </MudPaper>
+                            }
+                        </div>
+                    }
                 }
                 else
                 {
-                    <MudProgressLinear Color="Color.Info" Indeterminate="true" Class="ma-2" Style="width: 80px;" />
+                    <MudProgressLinear Color="Color.Info" Indeterminate="true" Class="ma-1" Style="width: 60px;" />
                 }
             </MudStack>
 
@@ -129,16 +240,16 @@
             <div class="d-none d-md-flex selectors-section" 
                  role="group" 
                  aria-label="@TranslationService.GetTranslation("footer.preferencesGroup", "User preferences")">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                     <LanguageSelector Dense="true" ShowFlags="true" />
                     <ThemeSelector TextLabels="true" />
                 </MudStack>
             </div>
 
             <!-- Mobile: Expandable menu button -->
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="d-flex d-md-none mobile-section">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="d-flex d-md-none mobile-section">
                 <MudIconButton Icon="@(_isExpanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
-                               Size="Size.Medium"
+                               Size="Size.Small"
                                Color="Color.Inherit"
                                OnClick="@(() => _isExpanded = !_isExpanded)"
                                aria-label="@TranslationService.GetTranslation("footer.expandMenu", "Expand preferences menu")"
@@ -150,10 +261,10 @@
         <!-- Mobile Expanded Menu -->
         <MudCollapse Expanded="@_isExpanded" Class="d-flex d-md-none">
             <div id="mobile-preferences-menu" 
-                 class="mobile-preferences-menu pa-4 mt-2"
+                 class="mobile-preferences-menu pa-3 mt-1"
                  role="region"
                  aria-label="@TranslationService.GetTranslation("footer.preferencesMenu", "Preferences menu")">
-                <MudStack Spacing="3">
+                <MudStack Spacing="2">
                     <!-- Language Selector -->
                     <div class="mobile-selector-group">
                         <MudText Typo="Typo.body2" Class="font-weight-medium mb-2">
@@ -182,7 +293,10 @@
     private DateTime? _lastUpdated;
     private Timer? _refreshTimer;
     private bool _isExpanded = false;
-    private bool _isHealthExpanded = false;
+    private bool _isApiPopoverOpen = false;
+    private bool _isDatabasePopoverOpen = false;
+    private bool _isAuthPopoverOpen = false;
+    private bool _isDependenciesPopoverOpen = false;
 
     /// <summary>
     /// Refresh interval for health data in milliseconds. Default is 60 seconds.
@@ -243,25 +357,6 @@
 
     #region Status Helpers
 
-    private Color GetOverallStatusColor()
-    {
-        if (_healthData == null) return Color.Default;
-        
-        var statuses = new[] { 
-            _healthData.ApiStatus, 
-            _healthData.DatabaseStatus, 
-            _healthData.AuthenticationStatus 
-        };
-        
-        if (statuses.Any(s => s?.ToLower().Contains("error") == true || s?.ToLower().Contains("unhealthy") == true))
-            return Color.Error;
-            
-        if (statuses.Any(s => s?.ToLower().Contains("degraded") == true || s?.ToLower().Contains("warning") == true))
-            return Color.Warning;
-            
-        return Color.Success;
-    }
-
     private Color GetStatusColor(string? status)
     {
         if (string.IsNullOrEmpty(status)) return Color.Default;
@@ -276,18 +371,19 @@
         };
     }
 
-    private string GetOverallStatusText()
+    private Color GetDependenciesStatusColor()
     {
-        if (_healthData == null) return TranslationService.GetTranslation("health.loading", "Loading...");
+        if (_healthData?.Dependencies?.Any() != true) return Color.Default;
         
-        var color = GetOverallStatusColor();
-        return color switch
-        {
-            Color.Success => TranslationService.GetTranslation("health.status.healthy", "Healthy"),
-            Color.Warning => TranslationService.GetTranslation("health.status.degraded", "Degraded"),
-            Color.Error => TranslationService.GetTranslation("health.status.unhealthy", "Unhealthy"),
-            _ => TranslationService.GetTranslation("health.status.unknown", "Unknown")
-        };
+        var statuses = _healthData.Dependencies.Values;
+        
+        if (statuses.Any(s => s?.ToLower().Contains("error") == true || s?.ToLower().Contains("unhealthy") == true))
+            return Color.Error;
+            
+        if (statuses.Any(s => s?.ToLower().Contains("degraded") == true || s?.ToLower().Contains("warning") == true))
+            return Color.Warning;
+            
+        return Color.Success;
     }
 
     #endregion
@@ -340,6 +436,11 @@
         /* Additional height when mobile menu is expanded */
     }
 
+    .health-chip-container {
+        position: relative;
+        display: inline-block;
+    }
+
     .health-chip {
         min-width: 80px;
         height: 36px;
@@ -349,24 +450,72 @@
         border-radius: 18px;
     }
 
-    .health-chip:hover {
+    .health-chip-small {
+        min-width: 50px;
+        height: 28px;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-radius: 14px;
+    }
+
+    .health-chip:hover,
+    .health-chip-small:hover {
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
-    .health-chip.clickable:hover {
+    .health-chip.clickable:hover,
+    .health-chip-small.clickable:hover {
         opacity: 0.9;
+    }
+
+    .chip-text {
+        font-size: 0.7rem;
+        font-weight: 500;
+        margin-left: 2px;
+    }
+
+    .health-popover-content {
+        position: fixed;
+        bottom: 70px;
+        left: 50%;
+        transform: translateX(-50%);
+        min-width: 280px;
+        max-width: 400px;
+        background: var(--mud-palette-surface);
+        border-radius: 8px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        border: 1px solid var(--mud-palette-lines-default);
+        z-index: 1400;
+        animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .selectable-content {
+        user-select: text;
+        -webkit-user-select: text;
+        -moz-user-select: text;
+        -ms-user-select: text;
+    }
+
+    .close-button {
+        opacity: 0.7;
+        transition: opacity 0.2s ease;
+    }
+
+    .close-button:hover {
+        opacity: 1;
     }
 
     .selectors-section {
         flex-grow: 1;
         justify-content: center;
-        gap: 16px;
+        gap: 12px;
     }
 
     .selectors-section > * {
-        min-width: 140px;
-        height: 40px;
+        min-width: 120px;
+        height: 32px;
     }
 
     .mobile-preferences-menu {
@@ -374,6 +523,7 @@
         border-radius: 8px;
         border: 1px solid var(--mud-palette-lines-default);
         animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        padding: 12px;
     }
 
     .mobile-selector-group {
@@ -442,6 +592,17 @@
         to {
             opacity: 1;
             transform: translateY(0);
+        }
+    }
+
+    @@keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translate(-50%, 10px);
+        }
+        to {
+            opacity: 1;
+            transform: translate(-50%, 0);
         }
     }
 
