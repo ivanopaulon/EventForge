@@ -21,7 +21,7 @@
 <footer class="universal-footer @(_isExpanded ? "expanded" : "collapsed")" 
         role="contentinfo" 
         aria-label="@TranslationService.GetTranslation("footer.ariaLabel", "Site footer with system status and preferences")">
-    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-2">
+    <div class="footer-content pa-2">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="2">
             
             <!-- Health Status Chip -->
@@ -73,6 +73,47 @@
                                             @_healthData.AuthenticationStatus
                                         </MudText>
                                     </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption">Version:</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption">
+                                            @_healthData.Version
+                                        </MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption">Environment:</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption">
+                                            @_healthData.Environment
+                                        </MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption">Uptime:</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption">
+                                            @FormatUptime(_healthData.Uptime)
+                                        </MudText>
+                                    </MudItem>
+                                    @if (_healthData.Dependencies?.Any() == true)
+                                    {
+                                        <MudItem xs="12" Class="mt-2">
+                                            <MudText Typo="Typo.caption" Class="font-weight-bold">Dependencies:</MudText>
+                                        </MudItem>
+                                        @foreach (var dep in _healthData.Dependencies)
+                                        {
+                                            <MudItem xs="6">
+                                                <MudText Typo="Typo.caption">@dep.Key:</MudText>
+                                            </MudItem>
+                                            <MudItem xs="6">
+                                                <MudText Typo="Typo.caption" Color="@GetStatusColor(dep.Value)">
+                                                    @dep.Value
+                                                </MudText>
+                                            </MudItem>
+                                        }
+                                    }
                                 </MudGrid>
                             </div>
                         </TooltipContent>
@@ -133,7 +174,7 @@
                 </MudStack>
             </div>
         </MudCollapse>
-    </MudContainer>
+    </div>
 </footer>
 
 @code {
@@ -251,6 +292,20 @@
 
     #endregion
 
+    #region Helper Methods
+
+    private string FormatUptime(TimeSpan uptime)
+    {
+        if (uptime.TotalDays >= 1)
+            return $"{uptime.Days}d {uptime.Hours}h {uptime.Minutes}m";
+        else if (uptime.TotalHours >= 1)
+            return $"{uptime.Hours}h {uptime.Minutes}m";
+        else
+            return $"{uptime.Minutes}m {uptime.Seconds}s";
+    }
+
+    #endregion
+
     public void Dispose()
     {
         _refreshTimer?.Dispose();
@@ -265,6 +320,7 @@
         bottom: 0;
         left: 0;
         right: 0;
+        width: 100%;
         background: var(--mud-palette-surface);
         border-top: 1px solid var(--mud-palette-lines-default);
         backdrop-filter: blur(10px);
@@ -272,6 +328,12 @@
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
         min-height: 56px;
+    }
+
+    .footer-content {
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
     }
 
     .universal-footer.expanded {
@@ -299,6 +361,12 @@
     .selectors-section {
         flex-grow: 1;
         justify-content: center;
+        gap: 16px;
+    }
+
+    .selectors-section > * {
+        min-width: 140px;
+        height: 40px;
     }
 
     .mobile-preferences-menu {
