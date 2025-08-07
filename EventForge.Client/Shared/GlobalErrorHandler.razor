@@ -3,6 +3,8 @@
 @implements IDisposable
 @inject IClientLogService ClientLogService
 @inject IJSRuntime JSRuntime
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
 
 @code {
     protected override async Task OnInitializedAsync()
@@ -20,6 +22,23 @@
         {
             var exception = e.ExceptionObject as Exception;
             var message = $"Unhandled .NET exception: {exception?.Message ?? "Unknown error"}";
+            
+            // Show user-friendly notification via Snackbar
+            InvokeAsync(() =>
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation(
+                        "error.unexpectedError", 
+                        "Si è verificato un errore imprevisto. L'operazione potrebbe non essere stata completata."
+                    ), 
+                    Severity.Error, 
+                    config =>
+                    {
+                        config.VisibleStateDuration = 5000; // Show for 5 seconds
+                        config.ShowCloseIcon = true;
+                    }
+                );
+            });
             
             // Log asynchronously without blocking
             _ = Task.Run(async () =>

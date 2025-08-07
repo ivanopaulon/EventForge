@@ -1,7 +1,6 @@
 @page "/"
 @using Microsoft.AspNetCore.Authorization
 @attribute [AllowAnonymous]
-@inject IHealthService HealthService
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject ITranslationService TranslationService
@@ -98,61 +97,10 @@
                 </MudPaper>
             </MudItem>
         }
-
-        <!-- System Status Card - Always shown, uniform height -->
-        <MudItem xs="12">
-            <MudPaper Class="ef-tile">
-                <MudCardContent>
-                    <MudText Typo="Typo.h6" Class="mb-3 d-flex align-center">
-                        <MudIcon Icon="Icons.Material.Filled.HealthAndSafety" 
-                                 Class="mr-2" 
-                                 Color="Color.Primary"
-                                 aria-hidden="true" />
-                        @TranslationService.GetTranslation("home.systemStatus", "System Status")
-                    </MudText>
-
-                    <MudGrid Spacing="2">
-                        <MudItem xs="12" sm="6">
-                            <MudPaper Class="pa-2 text-center" Elevation="1">
-                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" 
-                                         Color="Color.Success" 
-                                         Class="mb-2" />
-                                <MudText Typo="Typo.body2">
-                                    @TranslationService.GetTranslation("home.servicesOperational", "Services")
-                                </MudText>
-                                <MudChip T="string"
-                                         Color="Color.Success" 
-                                         Size="Size.Small">
-                                    @TranslationService.GetTranslation("home.operational", "Operational")
-                                </MudChip>
-                            </MudPaper>
-                        </MudItem>
-                        <MudItem xs="12" sm="6">
-                            <MudPaper Class="pa-2 text-center" Elevation="1">
-                                <MudIcon Icon="@Icons.Material.Filled.Storage" 
-                                         Color="Color.Success" 
-                                         Class="mb-2" />
-                                <MudText Typo="Typo.body2">
-                                    @TranslationService.GetTranslation("home.database", "Database")
-                                </MudText>
-                                <MudChip T="string"
-                                         Color="Color.Success" 
-                                         Size="Size.Small">
-                                    @TranslationService.GetTranslation("home.connected", "Connected")
-                                </MudChip>
-                            </MudPaper>
-                        </MudItem>
-                    </MudGrid>
-                </MudCardContent>
-            </MudPaper>
-        </MudItem>
     </MudGrid>
 </MudContainer>
 
 @code {
-    private HealthStatusDto? _healthStatus;
-    private string? _errorMessage;
-    private string _healthJson = string.Empty;
     private bool _isAuthenticated = false;
     private bool _isSuperAdmin = false;
 
@@ -165,55 +113,5 @@
         {
             _isSuperAdmin = await AuthService.IsSuperAdminAsync();
         }
-        
-        // Load health status in background
-        // _ = Task.Run(async () => await LoadHealthStatus());
     }
-
-    private async Task LoadHealthStatus()
-    {
-        try
-        {
-            // Set a shorter timeout for the health check to avoid hanging
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            _healthStatus = await HealthService.GetHealthAsync();
-            
-            if (_healthStatus != null)
-            {
-                // Pretty print JSON
-                _healthJson = System.Text.Json.JsonSerializer.Serialize(_healthStatus, new System.Text.Json.JsonSerializerOptions 
-                { 
-                    WriteIndented = true 
-                });
-                Console.WriteLine("[Home] Health status loaded successfully");
-            }
-            else
-            {
-                _errorMessage = "Unable to connect to server or retrieve health status.";
-                Console.WriteLine("[Home] Health status is null");
-            }
-        }
-        catch (TaskCanceledException)
-        {
-            _errorMessage = "Health check request timed out (5 seconds). Server may be unavailable.";
-            Console.WriteLine("[Home] Health check timed out");
-        }
-        catch (HttpRequestException ex)
-        {
-            _errorMessage = $"Network error: {ex.Message}";
-            Console.WriteLine($"[Home] Network error: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            _errorMessage = $"Error: {ex.Message}";
-        }
-    }
-
-    private Color GetStatusColor(string? status) => status?.ToLower() switch
-    {
-        "healthy" => Color.Success,
-        "degraded" => Color.Warning,
-        "unhealthy" or "error" => Color.Error,
-        _ => Color.Default
-    };
 }
