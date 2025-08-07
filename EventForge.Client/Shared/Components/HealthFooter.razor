@@ -565,8 +565,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.3);
-        backdrop-filter: blur(2px);
+        background: rgba(0, 0, 0, 0.5);
         z-index: 1199;
         pointer-events: auto;
         cursor: pointer;
@@ -634,11 +633,10 @@
         background: var(--mud-palette-surface);
         border-top: 1px solid var(--mud-palette-lines-default);
         padding: 16px;
-        min-height: 120px;
-        max-height: 400px;
+        min-height: 200px;
+        max-height: calc(100vh - 60px); /* Full screen height minus tab */
         overflow-y: auto;
-        backdrop-filter: blur(10px);
-        box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15);
         animation: slideUpIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
 

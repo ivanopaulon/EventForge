@@ -86,8 +86,6 @@
         
         <div id="main-content" tabindex="-1">
             @Body
-            <CustomErrorBoundary OnError="HandleError">
-            </CustomErrorBoundary>
         </div>
     </MudMainContent>
 </MudLayout>
@@ -319,16 +317,6 @@
         // This method is called from UserAccountMenu component
         // Default behavior is handled by the component itself
         await Task.CompletedTask;
-    }
-
-    private Task HandleError(Exception exception)
-    {
-        // Log the error and show a user-friendly message
-        Snackbar.Add(TranslationService.GetTranslation("error.operationMayNotCompleted", "Si è verificato un errore. L'operazione potrebbe non essere stata completata correttamente."), Severity.Error);
-        
-        // You could also send error reports to a logging service here
-        return Task.CompletedTask;
-        // await ErrorReportingService.ReportErrorAsync(exception);
     }
 
     public void Dispose()
