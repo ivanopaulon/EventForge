@@ -15,11 +15,11 @@
 else if (!_isAuthenticated)
 {
     <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
-        <MudPaper Class="pa-8" Elevation="4">
+        <MudPaper Class="pa-2 pa-sm-3 pa-md-4" Elevation="4">
             <MudGrid Justify="Justify.Center">
                 <MudItem xs="12">
                     <div class="d-flex flex-column align-center">
-                        <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
+                        <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Medium" Class="mb-4" Style="font-size: 48px;" />
                         <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">@TranslationService.GetTranslation("error.accessDenied", "Access Denied")</MudText>
                         <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
                             @TranslationService.GetTranslation("auth.authenticationRequired", "You must be logged in to view your profile.")
@@ -38,16 +38,16 @@ else if (!_isAuthenticated)
 }
 else
 {
-    <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-        <MudText Typo="Typo.h3" Class="mb-8">
-            <MudIcon Icon="Icons.Material.Filled.Person" Class="mr-3" />
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+        <MudText Typo="Typo.h4" Class="mb-4">
+            <MudIcon Icon="Icons.Material.Filled.Person" Class="mr-2" Size="Size.Medium" />
             @TranslationService.GetTranslation("profile.title", "My Profile")
         </MudText>
 
         <MudGrid Spacing="4">
             <!-- Basic Information Card -->
             <MudItem xs="12" md="8">
-                <MudCard Elevation="2" Class="pa-4">
+                <MudCard Elevation="2" Class="pa-2 pa-sm-3 pa-md-4">
                     <MudCardContent>
                         <MudText Typo="Typo.h6" Class="mb-4">
                             <MudIcon Icon="Icons.Material.Filled.AccountCircle" Class="mr-2" />
@@ -82,7 +82,7 @@ else
 
             <!-- Account Status Card -->
             <MudItem xs="12" md="4">
-                <MudCard Elevation="2" Class="pa-4">
+                <MudCard Elevation="2" Class="pa-2 pa-sm-3 pa-md-4">
                     <MudCardContent>
                         <MudText Typo="Typo.h6" Class="mb-4">
                             <MudIcon Icon="Icons.Material.Filled.Security" Class="mr-2" />

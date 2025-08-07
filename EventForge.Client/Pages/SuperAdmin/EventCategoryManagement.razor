@@ -19,11 +19,11 @@
 else if (!_isAuthorized)
 {
     <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
-        <MudPaper Class="pa-8" Elevation="4">
+        <MudPaper Class="pa-2 pa-sm-3 pa-md-4" Elevation="4">
             <MudGrid Justify="Justify.Center">
                 <MudItem xs="12">
                     <div class="d-flex flex-column align-center">
-                        <MudIcon Icon="@Icons.Material.Outlined.Block" Color="Color.Error" Size="Size.Large" Class="mb-4" Style="font-size: 72px;" />
+                        <MudIcon Icon="@Icons.Material.Outlined.Block" Color="Color.Error" Size="Size.Medium" Style="font-size: 48px;" />
                         <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">@TranslationService.GetTranslation("error.accessDenied", "Accesso Negato")</MudText>
                         <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
                             @TranslationService.GetTranslation("superAdmin.superAdminRoleRequired", "Non hai i permessi per accedere a questa pagina. È richiesto il ruolo Super Amministratore.")
@@ -42,9 +42,9 @@ else if (!_isAuthorized)
 }
 else
 {
-    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-2">
-        <MudText Typo="Typo.h3" Class="mb-4">
-            <MudIcon Icon="@Icons.Material.Outlined.BookmarkBorder" Class="mr-3" />
+    <MudContainer MaxWidth="MaxWidth.Large" Class="mt-2">
+        <MudText Typo="Typo.h4" Class="mb-4">
+            <MudIcon Icon="@Icons.Material.Outlined.BookmarkBorder" Class="mr-2" Size="Size.Medium" />
             @TranslationService.GetTranslation("superAdmin.eventCategoryManagement", "Gestione Categorie Evento")
         </MudText>
 
@@ -168,7 +168,7 @@ else
                                 <RowTemplate>
                                     <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
                                         <div class="d-flex align-center">
-                                            <MudAvatar Style="@($"background-color: {context.Color};")" Size="Size.Small" Class="mr-3">
+                                            <MudAvatar Style="@($"background-color: {context.Color};")" Size="Size.Small" Class="mr-2">
                                                 <MudIcon Icon="@Icons.Material.Outlined.BookmarkBorder" Size="Size.Small" />
                                             </MudAvatar>
                                             <div>
@@ -228,7 +228,7 @@ else
                                     </MudTd>
                                 </RowTemplate>
                                 <NoRecordsContent>
-                                    <div class="text-center pa-8">
+                                    <div class="text-center pa-2 pa-sm-3 pa-md-4">
                                         <MudIcon Icon="@Icons.Material.Outlined.BookmarkBorder" Size="Size.Large" Class="mb-4 mud-text-secondary" />
                                         <MudText Typo="Typo.h6" Class="mb-2">
                                             @(_pagedEventCategories.TotalItems > 0 ? 

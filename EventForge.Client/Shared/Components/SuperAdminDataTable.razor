@@ -62,8 +62,8 @@
                 </RowTemplate>
                 
                 <NoRecordsContent>
-                    <div class="text-center pa-8">
-                        <MudIcon Icon="@NoDataIcon" Size="Size.Large" Class="mb-4 mud-text-secondary" />
+                    <div class="text-center pa-2">
+                        <MudIcon Icon="@NoDataIcon" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
                         <MudText Typo="Typo.h6" Class="mb-2">
                             @NoDataMessage
                         </MudText>
@@ -75,7 +75,7 @@
                 </NoRecordsContent>
 
                 <LoadingContent>
-                    <div class="text-center pa-8">
+                    <div class="text-center pa-2">
                         <MudProgressCircular Size="Size.Medium" Indeterminate="true" />
                         <MudText Typo="Typo.body1" Class="mt-4">
                             @TranslationService.GetTranslation("common.loading", "Caricamento in corso...")
