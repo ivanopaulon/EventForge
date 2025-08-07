@@ -12,7 +12,7 @@
            ClipMode="@DrawerClipMode.Always"
            DisableOverlay="false"
            Width="@GetResponsiveWidth()"
-           Class="entity-drawer"
+           Class="@GetCssClasses()"
            @onkeydown="@HandleKeyDown"
            tabindex="-1"
            aria-modal="true"
@@ -191,6 +191,11 @@
     /// Custom width for the drawer. If not provided, responsive width will be used.
     /// </summary>
     [Parameter] public string? Width { get; set; }
+    
+    /// <summary>
+    /// Additional CSS classes to apply to the drawer.
+    /// </summary>
+    [Parameter] public string? Class { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -222,6 +227,16 @@
         {
             await HandleClose();
         }
+    }
+
+    private string GetCssClasses()
+    {
+        var classes = "entity-drawer";
+        if (!string.IsNullOrEmpty(Class))
+        {
+            classes += $" {Class}";
+        }
+        return classes;
     }
 
     private string GetResponsiveWidth()
