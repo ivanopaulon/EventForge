@@ -732,24 +732,48 @@
     /* Responsive adjustments */
     @@media (max-width: 768px) {
         .health-drawer-content {
-            padding: 16px;
-            max-height: 250px;
+            padding: 12px;
+            max-height: 280px;
         }
         
         .health-tab {
             padding: 6px 12px;
             min-width: 50px;
         }
+
+        .health-section-card .mud-card-content {
+            padding: 12px !important;
+        }
     }
 
     @@media (max-width: 480px) {
         .health-drawer-content {
-            padding: 12px;
-            max-height: 200px;
+            padding: 8px;
+            max-height: 250px;
         }
         
         .health-indicator-icon {
-            font-size: 1.5rem !important;
+            font-size: 1.25rem !important;
+        }
+
+        .health-section-card .mud-card-content {
+            padding: 8px !important;
+        }
+
+        .health-section {
+            margin-bottom: 6px;
+        }
+    }
+
+    @@media (max-width: 320px) {
+        .health-drawer-content {
+            padding: 6px;
+            max-height: 220px;
+        }
+
+        .health-tab {
+            padding: 4px 8px;
+            min-width: 40px;
         }
     }
 
