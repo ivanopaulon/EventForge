@@ -3,7 +3,6 @@
 @using Microsoft.AspNetCore.Authorization
 @attribute [AllowAnonymous]
 @inject IAuthService AuthService
-@inject IHealthService HealthService
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
 @inject ITranslationService TranslationService
@@ -11,10 +10,11 @@
 <PageTitle>@TranslationService.GetTranslation("auth.login", "Login") - EventForge</PageTitle>
 
 <!-- Compact and modern responsive login page with accessibility -->
-<MudContainer MaxWidth="MaxWidth.Small" Class="compact-login-container mt-2 mt-sm-4">
-    <MudGrid Justify="Justify.Center">
-        <MudItem xs="12">
-            <MudPaper Class="pa-3 pa-sm-4" Elevation="1" role="main">
+<div class="login-container-centered">
+    <MudContainer MaxWidth="MaxWidth.Small" Class="compact-login-container">
+        <MudGrid Justify="Justify.Center">
+            <MudItem xs="12">
+                <MudPaper Class="pa-3 pa-sm-4" Elevation="1" role="main">
                 <!-- Compact login header with semantic structure -->
                 <header class="text-center mb-4">
                     <MudText Typo="Typo.h5" 
@@ -123,68 +123,17 @@
                         </MudItem>
                     </MudGrid>
                 </MudForm>
-                
-                <MudDivider Class="my-4" />
-
-                <!-- Compact Health Status Section -->
-                <MudExpansionPanels Elevation="0">
-                    <MudExpansionPanel Text="@TranslationService.GetTranslation("health.serverStatus", "Server Health Status")" Icon="@Icons.Material.Filled.HealthAndSafety">
-                @if (_healthStatus != null)
-                {
-                    <!-- Compact overview - only essential status -->
-                    <div class="d-flex flex-column ga-2">
-                        <div class="d-flex align-center ga-2">
-                            <MudIcon Icon="@GetStatusIcon(_healthStatus.ApiStatus)" Color="@GetStatusColor(_healthStatus.ApiStatus)" Size="Size.Small" />
-                            <MudText Typo="Typo.body2"><strong>API:</strong> @_healthStatus.ApiStatus</MudText>
-                        </div>
-                        <div class="d-flex align-center ga-2">
-                            <MudIcon Icon="@GetStatusIcon(_healthStatus.DatabaseStatus)" Color="@GetStatusColor(_healthStatus.DatabaseStatus)" Size="Size.Small" />
-                            <MudText Typo="Typo.body2"><strong>DB:</strong> @_healthStatus.DatabaseStatus</MudText>
-                        </div>
-                        <div class="d-flex align-center ga-2">
-                            <MudIcon Icon="@GetStatusIcon(_healthStatus.AuthenticationStatus)" Color="@GetStatusColor(_healthStatus.AuthenticationStatus)" Size="Size.Small" />
-                            <MudText Typo="Typo.body2"><strong>Auth:</strong> @_healthStatus.AuthenticationStatus</MudText>
-                        </div>
-                        <div class="d-flex align-center ga-2">
-                            <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
-                            <MudText Typo="Typo.body2"><strong>Last Check:</strong> @_healthStatus.Timestamp.ToString("HH:mm:ss")</MudText>
-                        </div>
-                    </div>
-
-                    @* Show detailed information only if there are errors or warnings *@
-                    @if (HasHealthIssues())
-                    {
-                        <MudDivider Class="my-3" />
-                        <MudAlert Severity="Severity.Warning" Dense="true">
-                            <MudText Typo="Typo.body2">System issues detected. Please contact support if problems persist.</MudText>
-                        </MudAlert>
-                    }
-                }
-                else if (_healthError != null)
-                {
-                    <MudAlert Severity="Severity.Error" Icon="@Icons.Material.Filled.Error" Dense="true">
-                        <MudText Typo="Typo.body2"><strong>Health Check Failed:</strong> @_healthError</MudText>
-                    </MudAlert>
-                }
-                else
-                {
-                    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-                    <MudText Align="Align.Center" Class="mt-2" Typo="Typo.body2">Loading...</MudText>
-                }
-                    </MudExpansionPanel>
-                </MudExpansionPanels>
             </MudPaper>
         </MudItem>
     </MudGrid>
 </MudContainer>
+</div>
 
 @code {
     private MudForm form = null!;
     private bool _isFormValid;
     private bool _isLoading = false;
     private readonly LoginRequestDto _loginRequest = new();
-    private DetailedHealthStatusDto? _healthStatus;
-    private string? _healthError;
 
     protected override async Task OnInitializedAsync()
     {
@@ -206,33 +155,6 @@
             // Log error silently, don't show to user on login page
             Console.Error.WriteLine($"Error checking authentication: {ex.Message}");
         }
-        
-        await LoadHealthStatus();
-    }
-
-    private async Task LoadHealthStatus()
-    {
-        Console.WriteLine("🏥 LoadHealthStatus method called");
-        try
-        {
-            _healthStatus = await HealthService.GetDetailedHealthAsync();
-            if (_healthStatus == null)
-            {
-                _healthError = "Unable to connect to server or retrieve health status.";
-                Console.WriteLine("❌ Health status is null");
-            }
-            else
-            {
-                Console.WriteLine($"✅ Health status loaded: {_healthStatus.ApiStatus}");
-            }
-        }
-        catch (Exception ex)
-        {
-            _healthError = $"Error loading health status: {ex.Message}";
-            Console.Error.WriteLine($"❗ Error loading health status: {ex.Message}");
-        }
-        StateHasChanged();
-        Console.WriteLine("🔄 StateHasChanged called after health status load");
     }
 
     private async Task HandleLogin()
@@ -265,70 +187,34 @@
             _isLoading = false;
         }
     }
-
-    private string GetStatusIcon(string? status) => status?.ToLower() switch
-    {
-        "healthy" => Icons.Material.Filled.CheckCircle,
-        "degraded" => Icons.Material.Filled.Warning,
-        "unhealthy" or "error" => Icons.Material.Filled.Error,
-        "enabled" => Icons.Material.Filled.CheckCircle,
-        "disabled" => Icons.Material.Filled.DoNotDisturb,
-        _ => Icons.Material.Filled.Help
-    };
-
-    private Color GetStatusColor(string? status) => status?.ToLower() switch
-    {
-        "healthy" => Color.Success,
-        "degraded" => Color.Warning,
-        "unhealthy" or "error" => Color.Error,
-        "enabled" => Color.Success,
-        "disabled" => Color.Default,
-        _ => Color.Default
-    };
-
-    private bool HasHealthIssues()
-    {
-        if (_healthStatus == null) return false;
-        
-        var statuses = new[] { _healthStatus.ApiStatus, _healthStatus.DatabaseStatus, _healthStatus.AuthenticationStatus };
-        return statuses.Any(s => s?.ToLower() == "unhealthy" || s?.ToLower() == "error" || s?.ToLower() == "degraded");
-    }
-
-    private string FormatBytes(long bytes)
-    {
-        const int scale = 1024;
-        string[] orders = { "B", "KB", "MB", "GB", "TB" };
-        
-        long max = (long)Math.Pow(scale, orders.Length - 1);
-        foreach (string order in orders)
-        {
-            if (bytes > max)
-                return string.Format("{0:##.##} {1}", decimal.Divide(bytes, max), order);
-            max /= scale;
-        }
-        return "0 B";
-    }
-
-    private string FormatUptime(TimeSpan uptime)
-    {
-        if (uptime.TotalDays >= 1)
-            return $"{(int)uptime.TotalDays} days, {uptime.Hours:D2}:{uptime.Minutes:D2}:{uptime.Seconds:D2}";
-        else
-            return $"{uptime.Hours:D2}:{uptime.Minutes:D2}:{uptime.Seconds:D2}";
-    }
 }
 
 <style>
+    /* Login container that centers content vertically and horizontally */
+    .login-container-centered {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        padding-bottom: 80px; /* Account for fixed footer */
+    }
+
     /* Compact login container with 340px max-width */
     .compact-login-container {
         max-width: 340px !important;
+        width: 100%;
     }
 
     /* Ensure mobile-first responsive behavior */
     @@media (max-width: 339px) {
         .compact-login-container {
             max-width: 100% !important;
-            padding: 0 8px;
+        }
+        
+        .login-container-centered {
+            padding: 8px;
+            padding-bottom: 80px;
         }
     }
 
@@ -336,15 +222,5 @@
     .compact-login-container .mud-input-helper-text {
         margin-top: 2px;
         margin-bottom: 4px;
-    }
-
-    /* Compact expansion panel */
-    .compact-login-container .mud-expand-panel .mud-expand-panel-header {
-        min-height: 36px !important;
-        padding: 8px 12px !important;
-    }
-
-    .compact-login-container .mud-expand-panel-content {
-        padding: 8px 12px !important;
     }
 </style>
