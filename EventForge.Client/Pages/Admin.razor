@@ -21,7 +21,7 @@ else if (!_isAuthorized)
                     <div class="d-flex flex-column align-center">
                         <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Medium" Class="mb-4" Style="font-size: 48px;" />
                         <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">@TranslationService.GetTranslation("error.accessDenied", "Access Denied")</MudText>
-                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
+                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
                             @TranslationService.GetTranslation("error.adminRoleRequired", "You don't have permission to access this page. Administrator role is required.")
                         </MudText>
                         <MudButton Variant="Variant.Filled" 
@@ -39,7 +39,7 @@ else if (!_isAuthorized)
 else
 {
     <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-        <MudText Typo="Typo.h4" Class="mb-6">
+        <MudText Typo="Typo.h4" Class="mb-4">
             <MudIcon Icon="Icons.Material.Filled.AdminPanelSettings" Class="mr-3" />
             @TranslationService.GetTranslation("navigation.dashboard", "Admin Dashboard")
         </MudText>
