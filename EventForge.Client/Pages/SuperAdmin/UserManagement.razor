@@ -29,7 +29,7 @@ else if (!_isAuthorized)
                     <div class="d-flex flex-column align-center">
                         <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Medium" Style="font-size: 48px;" />
                         <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">@TranslationService.GetTranslation("error.accessDenied", "Accesso Negato")</MudText>
-                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6">
+                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
                             @TranslationService.GetTranslation("superAdmin.superAdminRoleRequired", "Non hai i permessi per accedere a questa pagina. È richiesto il ruolo Super Amministratore.")
                         </MudText>
                         <MudButton Variant="Variant.Filled" 
@@ -358,7 +358,7 @@ else
                                 </RowTemplate>
                                 <NoRecordsContent>
                                     <div class="text-center pa-2 pa-sm-3 pa-md-4">
-                                        <MudIcon Icon="@Icons.Material.Outlined.PersonOff" Size="Size.Large" Class="mb-4 mud-text-secondary" />
+                                        <MudIcon Icon="@Icons.Material.Outlined.PersonOff" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
                                         <MudText Typo="Typo.h6" Class="mb-2">
                                             @(_users.Any() ? 
                                                 TranslationService.GetTranslation("superAdmin.noUsersMatchFilters", "Nessun utente corrisponde ai filtri applicati") : 
