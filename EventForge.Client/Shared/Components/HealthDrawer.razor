@@ -335,12 +335,22 @@
     }
 
     .health-section {
-        margin-bottom: 16px;
+        /* Section container - margin handled by .health-section-card */
     }
 
     .health-section-card {
+        width: 100%;
+        min-height: 140px;
         border: 1px solid var(--mud-palette-lines-default);
         transition: all 0.2s ease;
+        margin-bottom: 16px;
+    }
+
+    .health-section-card .mud-card-content {
+        padding: 16px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
     }
 
     .health-section-card:hover {
@@ -374,6 +384,14 @@
     @@media (max-width: 768px) {
         .health-drawer {
             width: 100vw !important;
+        }
+        
+        .health-section-card {
+            min-height: 120px; /* Slightly smaller on mobile */
+        }
+        
+        .health-section-card .mud-card-content {
+            padding: 12px; /* Reduce padding on mobile */
         }
     }
 </style>
