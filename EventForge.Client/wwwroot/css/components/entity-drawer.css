@@ -108,3 +108,95 @@
 .mud-theme-dark .entity-drawer-content {
     background-color: var(--mud-palette-background-grey);
 }
+
+/* Specialized drawer styles consolidated from components */
+
+/* Health Drawer Styles */
+.health-drawer {
+    border-left: 1px solid var(--mud-palette-lines-default);
+}
+
+.health-drawer-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.health-drawer-header {
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+    background: var(--mud-palette-surface);
+}
+
+.health-drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--mud-palette-background-grey);
+}
+
+.health-section-card {
+    width: 100%;
+    min-height: 140px;
+    border: 1px solid var(--mud-palette-lines-default);
+    transition: all 0.2s ease;
+    margin-bottom: 16px;
+}
+
+.health-section-card .mud-card-content {
+    padding: 16px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.health-section-card:hover {
+    border-color: var(--mud-palette-primary);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.health-details {
+    background: var(--mud-palette-background);
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid var(--mud-palette-lines-default);
+}
+
+.selectable-content {
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+}
+
+.health-loading {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+}
+
+/* Audit Drawer Styles */
+.audit-log-drawer .mud-drawer-content,
+.audit-history-drawer .mud-drawer-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.hover\:bg-gray-100:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* Mobile adjustments for specialized drawers */
+@media (max-width: 768px) {
+    .health-drawer {
+        width: 100vw !important;
+    }
+    
+    .health-section-card {
+        min-height: 120px;
+    }
+    
+    .health-section-card .mud-card-content {
+        padding: 12px;
+    }
+}

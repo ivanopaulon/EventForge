@@ -1,33 +1,19 @@
 @using MudBlazor
 @using EventForge.DTOs.Audit
+@using EventForge.Client.Shared.Components
 @inject ITranslationService TranslationService
 @inject ISnackbar Snackbar
 
-<MudDrawer @bind-Open="IsOpen"
-           Anchor="Anchor.Right"
-           Width="700px"
-           Variant="DrawerVariant.Temporary"
-           ClipMode="DrawerClipMode.Never">
-    <div class="d-flex flex-column" style="height: 100vh;">
-        <!-- Header -->
-        <MudPaper Elevation="1" Class="pa-4 mb-2 border-rounded">
-            <div class="d-flex align-center justify-space-between">
-                <div>
-                    <MudText Typo="Typo.h6">
-                        <MudIcon Icon="@Icons.Material.Outlined.History" Class="mr-2" />
-                        @TranslationService.GetTranslation("audit.historyTitle", "Cronologia Modifiche")
-                    </MudText>
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                        @EntityType: @EntityName
-                    </MudText>
-                </div>
-                <MudIconButton Icon="@Icons.Material.Filled.Close"
-                               Color="Color.Primary"
-                               OnClick="@(() => CloseDrawer())"
-                               aria-label="@TranslationService.GetTranslation("common.close", "Chiudi")" />
-            </div>
-        </MudPaper>
-
+<EntityDrawer @bind-IsOpen="@IsOpen"
+              Mode="@EntityDrawerMode.View"
+              EntityName="@TranslationService.GetTranslation("audit.historyTitle", "Cronologia Modifiche")"
+              CustomTitle="@GetAuditHistoryTitle()"
+              OnClose="@CloseDrawer"
+              ShowEditButton="false"
+              Width="700px"
+              Class="audit-history-drawer">
+    
+    <ViewContent>
         <!-- Advanced Filters Section -->
         <MudPaper Elevation="1" Class="ma-2 border-rounded">
             <div style="cursor: pointer;" @onclick="@(() => _filtersExpanded = !_filtersExpanded)" 
@@ -247,44 +233,26 @@
                 </div>
             }
         </div>
-
-        <!-- Footer -->
-        <MudPaper Elevation="1" Class="pa-4 border-rounded">
-            <div class="d-flex justify-space-between align-center">
-                <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                    @if (_filteredAuditLogs.Any())
-                    {
-                        @TranslationService.GetTranslation("audit.showingRecords", "Mostrando {0}-{1} di {2} record", 
-                            (_currentPage - 1) * _pageSize + 1, 
-                            Math.Min(_currentPage * _pageSize, _filteredAuditLogs.Count()), 
-                            _filteredAuditLogs.Count())
-                    }
-                    else
-                    {
-                        @($"{TranslationService.GetTranslation("audit.totalRecords", "Totale record")}: {_auditLogs.Count}")
-                    }
-                </MudText>
-                <div class="d-flex gap-2">
-                    <MudButton Variant="Variant.Text" 
-                               Color="Color.Secondary" 
-                               StartIcon="@Icons.Material.Outlined.Download"
-                               OnClick="@ExportAuditHistory"
-                               Size="Size.Small"
-                               Disabled="@(!_auditLogs.Any())">
-                        @TranslationService.GetTranslation("audit.export", "Esporta")
-                    </MudButton>
-                    <MudButton Variant="Variant.Text" 
-                               Color="Color.Primary" 
-                               StartIcon="@Icons.Material.Outlined.Refresh"
-                               OnClick="@LoadAuditHistory"
-                               Size="Size.Small">
-                        @TranslationService.GetTranslation("common.refresh", "Aggiorna")
-                    </MudButton>
-                </div>
-            </div>
-        </MudPaper>
-    </div>
-</MudDrawer>
+    </ViewContent>
+    
+    <ActionButtons>
+        <MudButton Variant="Variant.Text" 
+                   Color="Color.Secondary" 
+                   StartIcon="@Icons.Material.Outlined.Download"
+                   OnClick="@ExportAuditHistory"
+                   Size="Size.Small"
+                   Disabled="@(!_auditLogs.Any())">
+            @TranslationService.GetTranslation("audit.export", "Esporta")
+        </MudButton>
+        <MudButton Variant="Variant.Text" 
+                   Color="Color.Primary" 
+                   StartIcon="@Icons.Material.Outlined.Refresh"
+                   OnClick="@LoadAuditHistory"
+                   Size="Size.Small">
+            @TranslationService.GetTranslation("common.refresh", "Aggiorna")
+        </MudButton>
+    </ActionButtons>
+</EntityDrawer>
 
 @code {
     private bool _isLoading = false;
@@ -355,6 +323,11 @@
         {
             await LoadAuditHistory();
         }
+    }
+
+    private string GetAuditHistoryTitle()
+    {
+        return $"{TranslationService.GetTranslation("audit.historyTitle", "Cronologia Modifiche")} - {EntityType}: {EntityName}";
     }
 
     /// <summary>
