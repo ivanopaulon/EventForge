@@ -1,0 +1,53 @@
+@*
+    EfTile - Reusable compact tile component for EventForge
+    
+    Provides a consistent, compact tile layout based on the login page styling.
+    Can be used as a wrapper for content that needs the compact tile appearance.
+    
+    Usage:
+    <EfTile>
+        <EfTileContent>
+            <!-- Your content here -->
+        </EfTileContent>
+    </EfTile>
+    
+    Or with additional CSS classes:
+    <EfTile Class="mb-4" Role="main">
+        <!-- Your content -->
+    </EfTile>
+*@
+
+<MudPaper Class="@($"ef-tile {Class}".Trim())" 
+          Elevation="1" 
+          role="@Role"
+          style="@Style"
+          id="@Id">
+    @ChildContent
+</MudPaper>
+
+@code {
+    /// <summary>
+    /// Additional CSS classes to apply to the tile
+    /// </summary>
+    [Parameter] public string? Class { get; set; }
+    
+    /// <summary>
+    /// Inline styles to apply to the tile
+    /// </summary>
+    [Parameter] public string? Style { get; set; }
+    
+    /// <summary>
+    /// HTML id attribute for the tile
+    /// </summary>
+    [Parameter] public string? Id { get; set; }
+    
+    /// <summary>
+    /// ARIA role attribute for accessibility
+    /// </summary>
+    [Parameter] public string? Role { get; set; }
+    
+    /// <summary>
+    /// Child content to display within the tile
+    /// </summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}
