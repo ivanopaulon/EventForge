@@ -16,7 +16,7 @@
         {
             <!-- Login/Welcome Card - Only shown when not authenticated -->
             <MudItem xs="12">
-                <MudCard Class="pa-2 pa-sm-3 pa-md-4" Elevation="4" role="main">
+                <MudPaper Class="ef-tile" role="main">
                     <MudCardContent>
                         <header class="text-center mb-4">
                             <MudText Typo="Typo.h4" 
@@ -49,14 +49,14 @@
                             </MudButton>
                         </div>
                     </MudCardContent>
-                </MudCard>
+                </MudPaper>
             </MudItem>
         }
         else
         {
             <!-- Dashboard Card - Shown when authenticated -->
             <MudItem xs="12">
-                <MudCard Class="pa-2 pa-sm-3 pa-md-4" Elevation="4" role="main">
+                <MudPaper Class="ef-tile" role="main">
                     <MudCardContent>
                         <header class="text-center mb-4">
                             <MudText Typo="Typo.h4" 
@@ -95,13 +95,13 @@
                             }
                         </div>
                     </MudCardContent>
-                </MudCard>
+                </MudPaper>
             </MudItem>
         }
 
         <!-- System Status Card - Always shown, uniform height -->
         <MudItem xs="12">
-            <MudCard Elevation="2" Class="pa-2">
+            <MudPaper Class="ef-tile">
                 <MudCardContent>
                     <MudText Typo="Typo.h6" Class="mb-3 d-flex align-center">
                         <MudIcon Icon="Icons.Material.Filled.HealthAndSafety" 
@@ -144,7 +144,7 @@
                         </MudItem>
                     </MudGrid>
                 </MudCardContent>
-            </MudCard>
+            </MudPaper>
         </MudItem>
     </MudGrid>
 </MudContainer>

@@ -238,3 +238,45 @@ code {
     padding: 0.2rem 0.4rem;
     border-radius: var(--radius-sm);
 }
+
+/* ===== EVENTFORGE COMPACT TILE STYLES ===== */
+/* 
+   Extracted from Login page for consistent compact tile styling
+   across all main pages. Provides clean, minimal appearance with
+   optimal spacing and subtle elevation.
+*/
+
+.ef-tile {
+    padding: 1rem 1.5rem 1rem 1.5rem !important; /* pa-3 pa-sm-4 equivalent */
+    box-shadow: var(--shadow-sm) !important; /* Elevation="1" equivalent */
+    background-color: var(--card-background) !important;
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--card-border) !important;
+}
+
+/* Responsive padding for ef-tile */
+@media (min-width: 600px) {
+    .ef-tile {
+        padding: 1.5rem 2rem 1.5rem 2rem !important; /* pa-sm-4 equivalent */
+    }
+}
+
+/* Ensure ef-tile works well with MudPaper and MudCard */
+.mud-paper.ef-tile,
+.mud-card.ef-tile {
+    /* Override any conflicting MudBlazor styles */
+    box-shadow: var(--shadow-sm) !important;
+}
+
+/* Accessibility improvements for ef-tile */
+.ef-tile:focus-within {
+    outline: 2px solid var(--form-focus-border);
+    outline-offset: 2px;
+}
+
+/* High contrast support for ef-tile */
+@media (prefers-contrast: high) {
+    .ef-tile {
+        border: 2px solid var(--border-primary) !important;
+    }
+}
