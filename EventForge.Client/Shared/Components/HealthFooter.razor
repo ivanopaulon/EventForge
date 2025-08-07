@@ -555,7 +555,7 @@
         left: 0;
         right: 0;
         width: 100%;
-        z-index: 1200;
+        z-index: 1300;
         pointer-events: none;
     }
 
@@ -564,9 +564,9 @@
         top: 0;
         left: 0;
         right: 0;
-        bottom: 0;
+        bottom: 300px; /* Leave space for drawer content */
         background: rgba(0, 0, 0, 0.5);
-        z-index: 1199;
+        z-index: 1250;
         pointer-events: auto;
         cursor: pointer;
         animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -744,6 +744,11 @@
         .health-section-card .mud-card-content {
             padding: 12px !important;
         }
+
+        .health-overlay {
+            /* Adjust bottom spacing for smaller drawer on mobile */
+            bottom: 280px;
+        }
     }
 
     @@media (max-width: 480px) {
@@ -763,6 +768,11 @@
         .health-section {
             margin-bottom: 6px;
         }
+
+        .health-overlay {
+            /* Adjust bottom spacing for smaller drawer on smaller mobile */
+            bottom: 250px;
+        }
     }
 
     @@media (max-width: 320px) {
@@ -774,6 +784,11 @@
         .health-tab {
             padding: 4px 8px;
             min-width: 40px;
+        }
+
+        .health-overlay {
+            /* Adjust bottom spacing for smallest screens */
+            bottom: 220px;
         }
     }
 
