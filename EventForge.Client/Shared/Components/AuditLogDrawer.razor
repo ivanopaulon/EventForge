@@ -83,7 +83,7 @@
         <div class="pa-2 flex-grow-1" style="height: calc(100vh - 200px); overflow-y: auto;">
             @if (_isLoading)
             {
-                <div class="d-flex justify-center align-center pa-8">
+                <div class="d-flex justify-center align-center pa-2">
                     <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
                 </div>
             }
@@ -149,8 +149,8 @@
             }
             else if (!_isLoading)
             {
-                <div class="d-flex flex-column align-center justify-center pa-8 text-center">
-                    <MudIcon Icon="@Icons.Material.Outlined.SearchOff" Size="Size.Large" Class="mb-4 text-muted" />
+                <div class="d-flex flex-column align-center justify-center pa-2 text-center">
+                    <MudIcon Icon="@Icons.Material.Outlined.SearchOff" Size="Size.Medium" Class="mb-4 text-muted" />
                     <MudText Typo="Typo.h6" Class="mb-2">
                         @TranslationService.GetTranslation("auditLog.noData", "Nessuna cronologia trovata")
                     </MudText>
