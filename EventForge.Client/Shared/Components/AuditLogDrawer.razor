@@ -1,4 +1,5 @@
 @using EventForge.DTOs.Audit
+@using EventForge.Client.Shared.Components
 @inject ISuperAdminService SuperAdminService
 @inject ITranslationService TranslationService
 @inject ISnackbar Snackbar
@@ -6,25 +7,16 @@
 <!-- Audit Log Drawer component following issue #106 requirements -->
 <!-- Provides detailed audit history with filters, pagination, and localized interface -->
 
-<MudDrawer @bind-Open="IsOpen" 
-           Anchor="Anchor.Right" 
-           Elevation="4" 
-           Variant="DrawerVariant.Temporary"
-           Width="600px"
-           Class="audit-log-drawer">
-    <MudDrawerHeader Class="pa-4">
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Outlined.History" Class="mr-2" />
-            @TranslationService.GetTranslationFormatted("auditLog.entityHistory", "Cronologia: {0}", EntityDisplayName ?? EntityName ?? "N/A")
-        </MudText>
-        <MudSpacer />
-        <MudIconButton Icon="@Icons.Material.Outlined.Close" 
-                       Color="Color.Inherit" 
-                       OnClick="Close"
-                       aria-label="@TranslationService.GetTranslation("common.close", "Chiudi")" />
-    </MudDrawerHeader>
-
-    <MudDrawerContainer Class="pa-0">
+<EntityDrawer @bind-IsOpen="@IsOpen"
+              Mode="@EntityDrawerMode.View"
+              EntityName="@TranslationService.GetTranslation("auditLog.title", "Cronologia Audit")"
+              CustomTitle="@GetAuditLogTitle()"
+              OnClose="@Close"
+              ShowEditButton="false"
+              Width="600px"
+              Class="audit-log-drawer">
+    
+    <ViewContent>
         <!-- Advanced Filters Section: MudCollapse closed by default as per issue #106 -->
         <div class="border-bottom pa-2">
             <div style="cursor: pointer;" @onclick="@(() => _filtersExpanded = !_filtersExpanded)" 
@@ -168,8 +160,8 @@
                 </div>
             }
         </div>
-    </MudDrawerContainer>
-</MudDrawer>
+    </ViewContent>
+</EntityDrawer>
 
 @code {
     [Parameter] public bool IsOpen { get; set; }
@@ -199,6 +191,11 @@
         {
             await LoadAuditLogsAsync();
         }
+    }
+
+    private string GetAuditLogTitle()
+    {
+        return TranslationService.GetTranslationFormatted("auditLog.entityHistory", "Cronologia: {0}", EntityDisplayName ?? EntityName ?? "N/A");
     }
 
     private async Task LoadAuditLogsAsync()
@@ -281,14 +278,3 @@
         };
     }
 }
-
-<style>
-    .audit-log-drawer .mud-drawer-content {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .hover\:bg-gray-100:hover {
-        background-color: rgba(0, 0, 0, 0.04);
-    }
-</style>

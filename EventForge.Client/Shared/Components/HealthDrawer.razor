@@ -1,55 +1,35 @@
 @using EventForge.DTOs.Health
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components
 @inject ITranslationService TranslationService
 
 <!-- 
     Health Status Drawer Component
     
-    This drawer component displays all health information sections:
+    This drawer component displays all health information sections using EntityDrawer base:
     - API Status with details
     - Database Status with details  
     - Authentication Status with details
     - Dependencies Status with details
     
     Features:
-    - Right-anchored drawer
-    - Close button
+    - EntityDrawer base component for consistency
     - Selectable and copyable content
     - Color-coded status indicators
     - Organized sections with icons
 -->
 
-<MudDrawer @bind-Open="@IsOpen" 
-           Anchor="Anchor.Right" 
-           Elevation="16"
-           Width="400px"
-           ClipMode="DrawerClipMode.Always"
-           Variant="DrawerVariant.Temporary"
-           Class="health-drawer">
+<EntityDrawer @bind-IsOpen="@IsOpen"
+              Mode="@EntityDrawerMode.View"
+              EntityName="@TranslationService.GetTranslation("health.title", "System Health")"
+              CustomTitle="@GetHealthTitle()"
+              OnClose="@CloseDrawer"
+              ShowEditButton="false"
+              Width="450px"
+              Class="health-drawer">
     
-    <div class="health-drawer-content">
-        <!-- Header -->
-        <div class="health-drawer-header pa-4">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                    <MudIcon Icon="@Icons.Material.Filled.HealthAndSafety" 
-                             Color="Color.Primary" 
-                             Size="Size.Medium" />
-                    <MudText Typo="Typo.h6" Class="font-weight-bold">
-                        @TranslationService.GetTranslation("health.title", "System Health")
-                    </MudText>
-                </MudStack>
-                <MudIconButton Icon="@Icons.Material.Filled.Close" 
-                               Size="Size.Medium" 
-                               OnClick="@CloseDrawer"
-                               Color="Color.Inherit"
-                               aria-label="@TranslationService.GetTranslation("common.close", "Close")" />
-            </MudStack>
-            <MudDivider Class="mt-3" />
-        </div>
-
-        <!-- Content -->
-        <div class="health-drawer-body pa-4">
+    <ViewContent>
+        <div class="health-drawer-body pa-2">
             @if (HealthData != null)
             {
                 <MudStack Spacing="4">
@@ -234,8 +214,8 @@
                 </div>
             }
         </div>
-    </div>
-</MudDrawer>
+    </ViewContent>
+</EntityDrawer>
 
 @code {
     [Parameter] public bool IsOpen { get; set; }
@@ -247,6 +227,13 @@
     {
         IsOpen = false;
         await IsOpenChanged.InvokeAsync(IsOpen);
+    }
+
+    private string GetHealthTitle()
+    {
+        var icon = Icons.Material.Filled.HealthAndSafety;
+        var title = TranslationService.GetTranslation("health.title", "System Health");
+        return $"{title}";
     }
 
     #region Status Helpers
@@ -311,87 +298,3 @@
 
     #endregion
 }
-
-<style>
-    .health-drawer {
-        border-left: 1px solid var(--mud-palette-lines-default);
-    }
-
-    .health-drawer-content {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .health-drawer-header {
-        border-bottom: 1px solid var(--mud-palette-lines-default);
-        background: var(--mud-palette-surface);
-    }
-
-    .health-drawer-body {
-        flex: 1;
-        overflow-y: auto;
-        background: var(--mud-palette-background-grey);
-    }
-
-    .health-section {
-        /* Section container - margin handled by .health-section-card */
-    }
-
-    .health-section-card {
-        width: 100%;
-        min-height: 140px;
-        border: 1px solid var(--mud-palette-lines-default);
-        transition: all 0.2s ease;
-        margin-bottom: 16px;
-    }
-
-    .health-section-card .mud-card-content {
-        padding: 16px;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .health-section-card:hover {
-        border-color: var(--mud-palette-primary);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    .health-details {
-        background: var(--mud-palette-background);
-        border-radius: 8px;
-        padding: 12px;
-        border: 1px solid var(--mud-palette-lines-default);
-    }
-
-    .selectable-content {
-        user-select: text;
-        -webkit-user-select: text;
-        -moz-user-select: text;
-        -ms-user-select: text;
-    }
-
-    .health-loading {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        min-height: 200px;
-    }
-
-    /* Ensure proper scrolling on mobile */
-    @@media (max-width: 768px) {
-        .health-drawer {
-            width: 100vw !important;
-        }
-        
-        .health-section-card {
-            min-height: 120px; /* Slightly smaller on mobile */
-        }
-        
-        .health-section-card .mud-card-content {
-            padding: 12px; /* Reduce padding on mobile */
-        }
-    }
-</style>
