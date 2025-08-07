@@ -1,0 +1,541 @@
+@using EventForge.DTOs.Health
+@using EventForge.Client.Services
+@inject IHealthService HealthService
+@inject ITranslationService TranslationService
+@implements IDisposable
+
+<!-- 
+    Health Footer Component
+    
+    A full-width drawer at the bottom of the screen that shows health status indicators.
+    Features:
+    - Shows only colored status icons in a centered horizontal row
+    - Central tab to open/close the drawer
+    - Slide up/down animations
+    - Scrollable content if needed
+    - Full screen width
+    - Uses MudBlazor components (MudGrid, MudIcon, MudTooltip, MudSlidePanel)
+-->
+
+<!-- Health Status Drawer -->
+<div class="health-footer-container">
+    <!-- Tab for opening/closing the drawer -->
+    <div class="health-tab @(_isOpen ? "open" : "closed")" 
+         @onclick="ToggleDrawer"
+         role="button"
+         tabindex="0"
+         @onkeypress="@(async (e) => { if (e.Key == "Enter" || e.Key == " ") await ToggleDrawer(); })"
+         aria-label="@GetTabAriaLabel()"
+         title="@GetTabTooltip()">
+        <MudIcon Icon="@GetTabIcon()" 
+                 Color="Color.Inherit" 
+                 Size="Size.Medium" />
+    </div>
+
+    <!-- The drawer content -->
+    <MudCollapse Expanded="@_isOpen" 
+                 Class="health-drawer">
+        <div class="health-drawer-content">
+            <!-- Health Status Indicators Row -->
+            <div class="health-indicators-container">
+                <MudGrid Justify="Justify.Center" AlignItems="Center" Spacing="2">
+                    @if (_healthIndicators?.Any() == true)
+                    {
+                        @foreach (var indicator in _healthIndicators)
+                        {
+                            <MudItem>
+                                <MudTooltip Text="@indicator.Tooltip" 
+                                           Placement="Placement.Top"
+                                           Arrow="true"
+                                           Delay="300">
+                                    <MudIcon Icon="@indicator.Icon" 
+                                             Color="@indicator.Color" 
+                                             Size="Size.Large"
+                                             Class="health-indicator-icon" />
+                                </MudTooltip>
+                            </MudItem>
+                        }
+                    }
+                    else
+                    {
+                        <!-- Loading state -->
+                        <MudItem>
+                            <MudIcon Icon="@Icons.Material.Filled.Refresh" 
+                                     Color="Color.Info" 
+                                     Size="Size.Large"
+                                     Class="health-indicator-icon loading" />
+                        </MudItem>
+                    }
+                </MudGrid>
+            </div>
+
+            <!-- Optional: Last updated time -->
+            @if (_lastUpdated.HasValue)
+            {
+                <div class="health-timestamp">
+                    <MudText Typo="Typo.caption" 
+                             Align="Align.Center"
+                             Class="text-muted">
+                        @TranslationService.GetTranslation("health.lastUpdated", "Last Updated"): @_lastUpdated.Value.ToString("HH:mm:ss")
+                    </MudText>
+                </div>
+            }
+        </div>
+    </MudCollapse>
+</div>
+
+@code {
+    private bool _isOpen = false;
+    private DetailedHealthStatusDto? _healthData;
+    private DateTime? _lastUpdated;
+    private Timer? _refreshTimer;
+    private List<HealthIndicator> _healthIndicators = new();
+
+    /// <summary>
+    /// Refresh interval for health data in milliseconds. Default is 30 seconds.
+    /// </summary>
+    [Parameter] public int RefreshInterval { get; set; } = 30000;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Initial health data load
+        await RefreshHealthData();
+        
+        // Set up periodic refresh
+        _refreshTimer = new Timer(async _ => 
+        {
+            await InvokeAsync(async () =>
+            {
+                await RefreshHealthData();
+                StateHasChanged();
+            });
+        }, null, RefreshInterval, RefreshInterval);
+    }
+
+    private async Task RefreshHealthData()
+    {
+        try
+        {
+            _healthData = await HealthService.GetDetailedHealthAsync();
+            _lastUpdated = DateTime.Now;
+            UpdateHealthIndicators();
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't break the UI
+            Console.Error.WriteLine($"Health status refresh failed: {ex.Message}");
+            SetErrorIndicators();
+        }
+    }
+
+    private void UpdateHealthIndicators()
+    {
+        _healthIndicators.Clear();
+
+        if (_healthData == null)
+        {
+            SetLoadingIndicators();
+            return;
+        }
+
+        // API Status Indicator
+        _healthIndicators.Add(new HealthIndicator
+        {
+            Icon = Icons.Material.Filled.Api,
+            Color = GetStatusColor(_healthData.ApiStatus),
+            Tooltip = $"{TranslationService.GetTranslation("health.api.title", "API Status")}: {_healthData.ApiStatus}"
+        });
+
+        // Database Status Indicator
+        _healthIndicators.Add(new HealthIndicator
+        {
+            Icon = Icons.Material.Filled.Storage,
+            Color = GetStatusColor(_healthData.DatabaseStatus),
+            Tooltip = $"{TranslationService.GetTranslation("health.database.title", "Database Status")}: {_healthData.DatabaseStatus}"
+        });
+
+        // Authentication Status Indicator (if available)
+        if (!string.IsNullOrEmpty(_healthData.AuthenticationStatus))
+        {
+            _healthIndicators.Add(new HealthIndicator
+            {
+                Icon = Icons.Material.Filled.Security,
+                Color = GetStatusColor(_healthData.AuthenticationStatus),
+                Tooltip = $"{TranslationService.GetTranslation("health.auth.title", "Authentication Status")}: {_healthData.AuthenticationStatus}"
+            });
+        }
+
+        // Dependencies Status Indicator (if available)
+        if (_healthData.Dependencies?.Any() == true)
+        {
+            var dependenciesStatus = GetDependenciesStatus();
+            _healthIndicators.Add(new HealthIndicator
+            {
+                Icon = Icons.Material.Filled.Hub,
+                Color = GetDependenciesStatusColor(),
+                Tooltip = $"{TranslationService.GetTranslation("health.dependencies.title", "External Dependencies")}: {dependenciesStatus}"
+            });
+        }
+
+        // Overall System Health Indicator
+        _healthIndicators.Add(new HealthIndicator
+        {
+            Icon = Icons.Material.Filled.HealthAndSafety,
+            Color = GetOverallHealthColor(),
+            Tooltip = $"{TranslationService.GetTranslation("health.overall", "Overall System Health")}: {GetOverallHealthStatus()}"
+        });
+    }
+
+    private void SetLoadingIndicators()
+    {
+        _healthIndicators.Clear();
+        _healthIndicators.Add(new HealthIndicator
+        {
+            Icon = Icons.Material.Filled.Refresh,
+            Color = Color.Info,
+            Tooltip = TranslationService.GetTranslation("health.loading", "Loading health information...")
+        });
+    }
+
+    private void SetErrorIndicators()
+    {
+        _healthIndicators.Clear();
+        _healthIndicators.Add(new HealthIndicator
+        {
+            Icon = Icons.Material.Filled.Error,
+            Color = Color.Error,
+            Tooltip = TranslationService.GetTranslation("health.error", "Error loading health information")
+        });
+    }
+
+    private async Task ToggleDrawer()
+    {
+        _isOpen = !_isOpen;
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    private string GetTabIcon()
+    {
+        return _isOpen ? Icons.Material.Filled.ExpandMore : Icons.Material.Filled.ExpandLess;
+    }
+
+    private string GetTabAriaLabel()
+    {
+        return _isOpen 
+            ? TranslationService.GetTranslation("health.closeDrawer", "Close health status")
+            : TranslationService.GetTranslation("health.openDrawer", "Open health status");
+    }
+
+    private string GetTabTooltip()
+    {
+        return _isOpen
+            ? TranslationService.GetTranslation("health.closeDrawer", "Close health status")
+            : TranslationService.GetTranslation("health.openDrawer", "Open health status");
+    }
+
+    #region Health Status Helpers
+
+    private Color GetStatusColor(string? status)
+    {
+        if (string.IsNullOrEmpty(status)) return Color.Default;
+        
+        return status.ToLower() switch
+        {
+            "healthy" => Color.Success,
+            "degraded" => Color.Warning,
+            "unhealthy" or "error" => Color.Error,
+            "disabled" => Color.Info,
+            _ => Color.Default
+        };
+    }
+
+    private Color GetOverallHealthColor()
+    {
+        if (_healthData == null) return Color.Default;
+
+        var statuses = new List<string?>
+        {
+            _healthData.ApiStatus,
+            _healthData.DatabaseStatus,
+            _healthData.AuthenticationStatus,
+            GetDependenciesStatus()
+        };
+
+        if (statuses.Any(s => s?.ToLower() == "unhealthy" || s?.ToLower() == "error"))
+            return Color.Error;
+        else if (statuses.Any(s => s?.ToLower() == "degraded" || s?.ToLower() == "warning"))
+            return Color.Warning;
+        else if (statuses.Any(s => s?.ToLower() == "healthy"))
+            return Color.Success;
+        else
+            return Color.Info;
+    }
+
+    private string GetOverallHealthStatus()
+    {
+        if (_healthData == null) return "Unknown";
+
+        var statuses = new List<string?>
+        {
+            _healthData.ApiStatus,
+            _healthData.DatabaseStatus,
+            _healthData.AuthenticationStatus,
+            GetDependenciesStatus()
+        };
+
+        if (statuses.Any(s => s?.ToLower() == "unhealthy" || s?.ToLower() == "error"))
+            return "Unhealthy";
+        else if (statuses.Any(s => s?.ToLower() == "degraded" || s?.ToLower() == "warning"))
+            return "Degraded";
+        else if (statuses.Any(s => s?.ToLower() == "healthy"))
+            return "Healthy";
+        else
+            return "Unknown";
+    }
+
+    private Color GetDependenciesStatusColor()
+    {
+        if (_healthData?.Dependencies?.Any() != true) return Color.Default;
+        
+        var statuses = _healthData.Dependencies.Values;
+        
+        if (statuses.Any(s => s?.ToLower().Contains("error") == true || s?.ToLower().Contains("unhealthy") == true))
+            return Color.Error;
+            
+        if (statuses.Any(s => s?.ToLower().Contains("degraded") == true || s?.ToLower().Contains("warning") == true))
+            return Color.Warning;
+            
+        return Color.Success;
+    }
+
+    private string GetDependenciesStatus()
+    {
+        if (_healthData?.Dependencies?.Any() != true) return "Unknown";
+        
+        var statuses = _healthData.Dependencies.Values;
+        
+        if (statuses.Any(s => s?.ToLower().Contains("error") == true || s?.ToLower().Contains("unhealthy") == true))
+            return "Error";
+            
+        if (statuses.Any(s => s?.ToLower().Contains("degraded") == true || s?.ToLower().Contains("warning") == true))
+            return "Warning";
+            
+        return "Healthy";
+    }
+
+    #endregion
+
+    public void Dispose()
+    {
+        _refreshTimer?.Dispose();
+    }
+
+    #region Data Models
+
+    public class HealthIndicator
+    {
+        public string Icon { get; set; } = string.Empty;
+        public Color Color { get; set; } = Color.Default;
+        public string Tooltip { get; set; } = string.Empty;
+    }
+
+    #endregion
+}
+
+<style>
+    .health-footer-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1200;
+        pointer-events: none;
+    }
+
+    .health-tab {
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-lines-default);
+        border-bottom: none;
+        border-radius: 8px 8px 0 0;
+        padding: 8px 16px;
+        cursor: pointer;
+        pointer-events: auto;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+        min-width: 60px;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+    }
+
+    .health-tab:hover {
+        background: var(--mud-palette-action-hover);
+        transform: translateX(-50%) translateY(-2px);
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .health-tab:focus {
+        outline: 2px solid var(--mud-palette-primary);
+        outline-offset: 2px;
+    }
+
+    .health-tab.open {
+        border-radius: 8px 8px 0 0;
+    }
+
+    .health-tab.closed {
+        border-radius: 8px 8px 0 0;
+    }
+
+    .health-drawer {
+        width: 100%;
+        pointer-events: auto;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        transform-origin: bottom;
+    }
+
+    .health-drawer .mud-collapse-container {
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .health-drawer-content {
+        background: var(--mud-palette-surface);
+        border-top: 1px solid var(--mud-palette-lines-default);
+        padding: 20px;
+        min-height: 80px;
+        max-height: 300px;
+        overflow-y: auto;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+        animation: slideUpIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .health-indicators-container {
+        margin-bottom: 16px;
+    }
+
+    .health-indicator-icon {
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .health-indicator-icon:hover {
+        transform: scale(1.1);
+    }
+
+    .health-indicator-icon.loading {
+        animation: rotate 2s linear infinite;
+    }
+
+    .health-timestamp {
+        border-top: 1px solid var(--mud-palette-lines-default);
+        padding-top: 12px;
+        margin-top: 12px;
+    }
+
+    /* Animations */
+    @@keyframes rotate {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @@keyframes slideUpIn {
+        from {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    /* Responsive adjustments */
+    @@media (max-width: 768px) {
+        .health-drawer-content {
+            padding: 16px;
+            max-height: 250px;
+        }
+        
+        .health-tab {
+            padding: 6px 12px;
+            min-width: 50px;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .health-drawer-content {
+            padding: 12px;
+            max-height: 200px;
+        }
+        
+        .health-indicator-icon {
+            font-size: 1.5rem !important;
+        }
+    }
+
+    /* Ensure body has padding to account for the tab */
+    body {
+        padding-bottom: 40px;
+    }
+
+    /* Dark theme adjustments */
+    @@media (prefers-color-scheme: dark) {
+        .health-tab {
+            background: var(--mud-palette-dark-surface);
+            border-color: var(--mud-palette-dark-lines-default);
+        }
+        
+        .health-drawer-content {
+            background: var(--mud-palette-dark-surface);
+            border-color: var(--mud-palette-dark-lines-default);
+        }
+    }
+
+    /* High contrast mode support */
+    @@media (prefers-contrast: high) {
+        .health-tab {
+            border-width: 2px;
+        }
+        
+        .health-drawer-content {
+            border-top-width: 2px;
+        }
+    }
+
+    /* Accessibility improvements */
+    .health-tab:focus-visible {
+        outline: 2px solid var(--mud-palette-primary);
+        outline-offset: 2px;
+    }
+
+    /* Smooth scrolling for the drawer content */
+    .health-drawer-content {
+        scroll-behavior: smooth;
+    }
+
+    /* Status color indicators for better accessibility */
+    .health-indicator-icon[data-color="success"] {
+        filter: brightness(1.1);
+    }
+
+    .health-indicator-icon[data-color="warning"] {
+        filter: brightness(1.2);
+    }
+
+    .health-indicator-icon[data-color="error"] {
+        filter: brightness(1.1) saturate(1.2);
+    }
+</style>

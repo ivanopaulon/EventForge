@@ -15,9 +15,9 @@ main {
     flex: 1;
 }
 
-/* Main content area with footer spacing */
+/* Main content area with footer spacing for HealthFooter tab */
 .main-content-with-footer {
-    padding-bottom: 60px !important;
+    padding-bottom: 50px !important;
 }
 
 .sidebar {
@@ -57,9 +57,9 @@ main {
         margin-left: 0;
     }
     
-    /* Adjust footer spacing for mobile */
+    /* Adjust footer spacing for mobile to account for HealthFooter */
     .main-content-with-footer {
-        padding-bottom: 50px !important;
+        padding-bottom: 45px !important;
     }
 }
 
