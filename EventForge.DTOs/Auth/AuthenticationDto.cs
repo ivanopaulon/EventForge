@@ -145,6 +145,12 @@ namespace EventForge.DTOs.Auth
         public string FullName { get; set; } = string.Empty;
 
         /// <summary>
+        /// Tenant ID this user belongs to. Null for SuperAdmin users.
+        /// </summary>
+        [Display(Name = "field.tenantId", Description = "Tenant ID this user belongs to.")]
+        public Guid? TenantId { get; set; }
+
+        /// <summary>
         /// Indicates if the user is active.
         /// </summary>
         [Display(Name = "field.active", Description = "Indicates if the user is active.")]

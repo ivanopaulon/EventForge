@@ -33,6 +33,15 @@ public class RequireLicenseFeatureAttribute : Attribute, IAsyncAuthorizationFilt
             return;
         }
 
+        // Skip license checks for SuperAdmins - they have full access to all features
+        var isSuperAdmin = context.HttpContext.User.IsInRole("SuperAdmin") ||
+                          context.HttpContext.User.HasClaim("permission", "System.Admin.FullAccess");
+        
+        if (isSuperAdmin)
+        {
+            return; // SuperAdmins bypass all license restrictions
+        }
+
         // Get tenant ID from claims
         var tenantIdClaim = context.HttpContext.User.FindFirst("tenant_id")?.Value;
         if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var tenantId))

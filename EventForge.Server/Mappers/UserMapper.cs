@@ -18,6 +18,7 @@ public static class UserMapper
             FirstName = user.FirstName,
             LastName = user.LastName,
             FullName = $"{user.FirstName} {user.LastName}".Trim(),
+            TenantId = user.TenantId,
             IsActive = user.IsActive,
             Roles = roles,
             Permissions = permissions,

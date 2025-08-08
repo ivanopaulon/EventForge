@@ -542,7 +542,7 @@ public class TenantService : ITenantService
             {
                 var auditTrail = new AuditTrail
                 {
-                    TenantId = user.TenantId,
+                    TenantId = user.TenantId ?? Guid.Empty, // Use Empty for SuperAdmin users without tenant
                     OperationType = AuthAuditOperationType.ForcePasswordChange,
                     PerformedByUserId = currentUserId.Value,
                     TargetUserId = userId,

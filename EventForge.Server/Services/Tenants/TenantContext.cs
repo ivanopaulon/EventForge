@@ -266,12 +266,25 @@ public class TenantContext : ITenantContext
                 return Enumerable.Empty<Guid>();
             }
 
+            // First, check if SuperAdmin has specific AdminTenant entries
             var adminTenants = await _context.AdminTenants
                 .Where(at => at.UserId == currentUserId.Value && at.ManagedTenant.IsActive && !at.ManagedTenant.IsDeleted)
                 .Select(at => at.ManagedTenantId)
                 .ToListAsync();
 
-            return adminTenants;
+            // If SuperAdmin has specific tenant assignments, return those
+            if (adminTenants.Any())
+            {
+                return adminTenants;
+            }
+
+            // If SuperAdmin has no specific assignments, they can access all active tenants
+            var allTenants = await _context.Tenants
+                .Where(t => t.IsActive && !t.IsDeleted)
+                .Select(t => t.Id)
+                .ToListAsync();
+
+            return allTenants;
         }
         catch (Exception ex)
         {
@@ -296,13 +309,32 @@ public class TenantContext : ITenantContext
                 return false;
             }
 
-            var hasAccess = await _context.AdminTenants
+            // Check if SuperAdmin has specific tenant access defined
+            var hasSpecificAccess = await _context.AdminTenants
                 .AnyAsync(at => at.UserId == currentUserId.Value &&
                                at.ManagedTenantId == tenantId &&
                                at.ManagedTenant.IsActive &&
                                !at.ManagedTenant.IsDeleted);
 
-            return hasAccess;
+            if (hasSpecificAccess)
+            {
+                return true;
+            }
+
+            // Check if SuperAdmin has any specific tenant assignments
+            var hasAnySpecificAssignments = await _context.AdminTenants
+                .AnyAsync(at => at.UserId == currentUserId.Value);
+
+            // If SuperAdmin has no specific assignments, they can access all active tenants
+            if (!hasAnySpecificAssignments)
+            {
+                var tenantExists = await _context.Tenants
+                    .AnyAsync(t => t.Id == tenantId && t.IsActive && !t.IsDeleted);
+                return tenantExists;
+            }
+
+            // SuperAdmin has specific assignments but not for this tenant
+            return false;
         }
         catch (Exception ex)
         {
