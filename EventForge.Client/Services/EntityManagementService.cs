@@ -33,18 +33,39 @@ namespace EventForge.Client.Services
     {
         private readonly IHttpClientService _httpClientService;
         private readonly ILogger<EntityManagementService> _logger;
+        private readonly ILoadingDialogService _loadingDialogService;
 
-        public EntityManagementService(IHttpClientService httpClientService, ILogger<EntityManagementService> logger)
+        public EntityManagementService(IHttpClientService httpClientService, ILogger<EntityManagementService> logger, ILoadingDialogService loadingDialogService)
         {
             _httpClientService = httpClientService;
             _logger = logger;
+            _loadingDialogService = loadingDialogService;
         }
 
         #region Address Management
 
         public async Task<IEnumerable<AddressDto>> GetAddressesAsync()
         {
-            return await _httpClientService.GetAsync<IEnumerable<AddressDto>>("api/v1/entities/addresses") ?? new List<AddressDto>();
+            try
+            {
+                await _loadingDialogService.ShowAsync("Caricamento Indirizzi", "Recupero elenco indirizzi...", true);
+                await _loadingDialogService.UpdateProgressAsync(50);
+                
+                var result = await _httpClientService.GetAsync<IEnumerable<AddressDto>>("api/v1/entities/addresses") ?? new List<AddressDto>();
+                
+                await _loadingDialogService.UpdateOperationAsync("Indirizzi caricati");
+                await _loadingDialogService.UpdateProgressAsync(100);
+                
+                await Task.Delay(500);
+                await _loadingDialogService.HideAsync();
+                
+                return result;
+            }
+            catch (Exception)
+            {
+                await _loadingDialogService.HideAsync();
+                throw;
+            }
         }
 
         public async Task<IEnumerable<AddressDto>> GetAddressesByOwnerAsync(Guid ownerId)

@@ -26,6 +26,7 @@ namespace EventForge.Client.Services
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IJSRuntime _jsRuntime;
         private readonly ILogger<AuthService> _logger;
+        private readonly ILoadingDialogService _loadingDialogService;
         private string? _accessToken;
         private UserDto? _currentUser;
         private readonly string _tokenKey = "auth_token";
@@ -33,11 +34,12 @@ namespace EventForge.Client.Services
 
         public event Action? OnAuthenticationStateChanged;
 
-        public AuthService(IHttpClientFactory httpClientFactory, IJSRuntime jsRuntime, ILogger<AuthService> logger)
+        public AuthService(IHttpClientFactory httpClientFactory, IJSRuntime jsRuntime, ILogger<AuthService> logger, ILoadingDialogService loadingDialogService)
         {
             _httpClientFactory = httpClientFactory;
             _jsRuntime = jsRuntime;
             _logger = logger;
+            _loadingDialogService = loadingDialogService;
         }
 
         public async Task<bool> IsAuthenticatedAsync()
@@ -116,18 +118,23 @@ namespace EventForge.Client.Services
         {
             try
             {
+                await _loadingDialogService.ShowAsync("Accesso in corso...", "Verifica delle credenziali...");
+                
                 var httpClient = _httpClientFactory.CreateClient("ApiClient");
 
+                await _loadingDialogService.UpdateOperationAsync("Invio richiesta di autenticazione...");
                 var response = await httpClient.PostAsJsonAsync("api/v1/auth/login", loginRequest);
 
                 if (response.IsSuccessStatusCode)
                 {
+                    await _loadingDialogService.UpdateOperationAsync("Elaborazione risposta...");
                     var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponseDto>();
                     if (loginResponse != null)
                     {
                         _accessToken = loginResponse.AccessToken;
                         _currentUser = loginResponse.User;
 
+                        await _loadingDialogService.UpdateOperationAsync("Salvataggio sessione...");
                         // Store in localStorage
                         await _jsRuntime.InvokeVoidAsync("localStorage.setItem", _tokenKey, _accessToken);
                         await _jsRuntime.InvokeVoidAsync("localStorage.setItem", _userKey, System.Text.Json.JsonSerializer.Serialize(_currentUser));
@@ -137,29 +144,46 @@ namespace EventForge.Client.Services
 
                         OnAuthenticationStateChanged?.Invoke();
                     }
+                    
+                    await _loadingDialogService.HideAsync();
                     return loginResponse;
                 }
 
+                await _loadingDialogService.HideAsync();
                 return null;
             }
             catch (Exception)
             {
+                await _loadingDialogService.HideAsync();
                 return null;
             }
         }
 
         public async Task LogoutAsync()
         {
-            _accessToken = null;
-            _currentUser = null;
-            // Note: No need to clear HttpClient headers since we use IHttpClientFactory
-            // Authentication is handled in HttpClientService.GetConfiguredHttpClientAsync()
+            try
+            {
+                await _loadingDialogService.ShowAsync("Disconnessione...", "Pulizia sessione...");
+                
+                _accessToken = null;
+                _currentUser = null;
+                // Note: No need to clear HttpClient headers since we use IHttpClientFactory
+                // Authentication is handled in HttpClientService.GetConfiguredHttpClientAsync()
 
-            // Clear localStorage
-            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", _tokenKey);
-            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", _userKey);
+                await _loadingDialogService.UpdateOperationAsync("Rimozione dati locali...");
+                // Clear localStorage
+                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", _tokenKey);
+                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", _userKey);
 
-            OnAuthenticationStateChanged?.Invoke();
+                OnAuthenticationStateChanged?.Invoke();
+                
+                await _loadingDialogService.HideAsync();
+            }
+            catch (Exception)
+            {
+                await _loadingDialogService.HideAsync();
+                throw;
+            }
         }
 
         private async Task LoadTokenFromStorageAsync()

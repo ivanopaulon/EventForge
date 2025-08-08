@@ -19,22 +19,38 @@ public class BackupService : IBackupService
 {
     private readonly IHttpClientService _httpClientService;
     private readonly ILogger<BackupService> _logger;
+    private readonly ILoadingDialogService _loadingDialogService;
 
-    public BackupService(IHttpClientService httpClientService, ILogger<BackupService> logger)
+    public BackupService(IHttpClientService httpClientService, ILogger<BackupService> logger, ILoadingDialogService loadingDialogService)
     {
         _httpClientService = httpClientService;
         _logger = logger;
+        _loadingDialogService = loadingDialogService;
     }
 
     public async Task<BackupStatusDto> StartBackupAsync(BackupRequestDto request)
     {
         try
         {
+            await _loadingDialogService.ShowAsync("Avvio Backup", "Inizializzazione backup...", true);
+            await _loadingDialogService.UpdateProgressAsync(20);
+            
+            await _loadingDialogService.UpdateOperationAsync("Invio richiesta di backup al server...");
+            await _loadingDialogService.UpdateProgressAsync(50);
+            
             var result = await _httpClientService.PostAsync<BackupRequestDto, BackupStatusDto>("api/SuperAdmin/backup", request);
+            
+            await _loadingDialogService.UpdateOperationAsync("Backup avviato con successo");
+            await _loadingDialogService.UpdateProgressAsync(100);
+            
+            await Task.Delay(1000);
+            await _loadingDialogService.HideAsync();
+            
             return result ?? throw new InvalidOperationException("Failed to deserialize response");
         }
         catch (Exception ex)
         {
+            await _loadingDialogService.HideAsync();
             _logger.LogError(ex, "Error starting backup");
             throw;
         }

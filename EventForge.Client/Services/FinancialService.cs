@@ -32,11 +32,13 @@ namespace EventForge.Client.Services
     {
         private readonly IHttpClientService _httpClientService;
         private readonly ILogger<FinancialService> _logger;
+        private readonly ILoadingDialogService _loadingDialogService;
 
-        public FinancialService(IHttpClientService httpClientService, ILogger<FinancialService> logger)
+        public FinancialService(IHttpClientService httpClientService, ILogger<FinancialService> logger, ILoadingDialogService loadingDialogService)
         {
             _httpClientService = httpClientService;
             _logger = logger;
+            _loadingDialogService = loadingDialogService;
         }
 
         #region Bank Management
@@ -53,8 +55,30 @@ namespace EventForge.Client.Services
 
         public async Task<BankDto> CreateBankAsync(CreateBankDto createDto)
         {
-            return await _httpClientService.PostAsync<CreateBankDto, BankDto>("api/v1/financial/banks", createDto) ??
-                   throw new InvalidOperationException("Failed to create bank");
+            try
+            {
+                await _loadingDialogService.ShowAsync("Creazione Banca", "Configurazione nuovo istituto bancario...", true);
+                await _loadingDialogService.UpdateProgressAsync(30);
+                
+                await _loadingDialogService.UpdateOperationAsync("Validazione dati bancari...");
+                await _loadingDialogService.UpdateProgressAsync(60);
+                
+                var result = await _httpClientService.PostAsync<CreateBankDto, BankDto>("api/v1/financial/banks", createDto) ??
+                       throw new InvalidOperationException("Failed to create bank");
+                
+                await _loadingDialogService.UpdateOperationAsync("Banca creata con successo");
+                await _loadingDialogService.UpdateProgressAsync(100);
+                
+                await Task.Delay(1000);
+                await _loadingDialogService.HideAsync();
+                
+                return result;
+            }
+            catch (Exception)
+            {
+                await _loadingDialogService.HideAsync();
+                throw;
+            }
         }
 
         public async Task<BankDto> UpdateBankAsync(Guid id, UpdateBankDto updateDto)
