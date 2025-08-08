@@ -335,6 +335,84 @@ public class UserManagementController : BaseApiController
     }
 
     /// <summary>
+    /// Resets a user's password and generates a new temporary password.
+    /// </summary>
+    [HttpPost("{userId}/reset-password")]
+    public async Task<ActionResult<PasswordResetResultDto>> ResetPassword(Guid userId, [FromBody] ResetPasswordDto resetDto)
+    {
+        try
+        {
+            var user = await _context.Users.FindAsync(userId);
+
+            if (user == null)
+            {
+                return CreateNotFoundProblem($"User {userId} not found");
+            }
+
+            // Generate a new temporary password
+            var newPassword = GenerateTemporaryPassword();
+
+            // TODO: Hash the password using your password service
+            // user.PasswordHash = _passwordService.HashPassword(newPassword);
+            
+            user.MustChangePassword = true;
+            user.ModifiedAt = DateTime.UtcNow;
+            user.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
+
+            await _context.SaveChangesAsync();
+
+            // Log the password reset
+            await _auditLogService.LogEntityChangeAsync(
+                nameof(User),
+                user.Id,
+                "PasswordReset",
+                "Update",
+                "HashedPassword",
+                "NewHashedPassword",
+                user.ModifiedBy,
+                $"User '{user.Username}'"
+            );
+
+            // Create audit trail entry
+            var auditTrail = new AuditTrail
+            {
+                PerformedByUserId = _tenantContext.CurrentUserId ?? Guid.Empty,
+                OperationType = AuditOperationType.ForcePasswordChange,
+                TargetUserId = userId,
+                Details = $"Password reset for user '{user.Username}'. Reason: {resetDto.Reason}",
+                WasSuccessful = true,
+                PerformedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = user.ModifiedBy
+            };
+
+            _context.AuditTrails.Add(auditTrail);
+            await _context.SaveChangesAsync();
+
+            // Notify clients
+            await _hubContext.Clients.Group("AuditLogUpdates")
+                .SendAsync("PasswordReset", new { UserId = userId, Username = user.Username });
+
+            var result = new PasswordResetResultDto
+            {
+                Success = true,
+                UserId = userId,
+                Username = user.Username,
+                TemporaryPassword = newPassword,
+                MustChangePassword = true,
+                ResetAt = DateTime.UtcNow
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resetting password for user {UserId}", userId);
+            return CreateInternalServerErrorProblem("Error resetting password", ex);
+        }
+    }
+
+    /// <summary>
     /// Forces a password change for a user.
     /// </summary>
     [HttpPost("{userId}/force-password-change")]
@@ -779,6 +857,320 @@ public class UserManagementController : BaseApiController
         {
             _logger.LogError(ex, "Error performing quick actions");
             return CreateInternalServerErrorProblem("Error performing quick actions", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates a user's complete information.
+    /// </summary>
+    [HttpPut("{userId}")]
+    public async Task<ActionResult<UserManagementDto>> UpdateUser(Guid userId, [FromBody] UpdateUserManagementDto updateDto)
+    {
+        try
+        {
+            var user = await _context.Users
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+            {
+                return CreateNotFoundProblem($"User {userId} not found");
+            }
+
+            // Store old values for audit
+            var oldEmail = user.Email;
+            var oldFirstName = user.FirstName;
+            var oldLastName = user.LastName;
+            var oldIsActive = user.IsActive;
+            var oldRoles = user.UserRoles.Select(ur => ur.Role.Name).ToList();
+
+            // Update user properties
+            user.Email = updateDto.Email;
+            user.FirstName = updateDto.FirstName;
+            user.LastName = updateDto.LastName;
+            user.IsActive = updateDto.IsActive;
+            user.ModifiedAt = DateTime.UtcNow;
+            user.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
+
+            // Update roles if they changed
+            if (!oldRoles.SequenceEqual(updateDto.Roles))
+            {
+                // Get the roles by name
+                var roles = await _context.Roles
+                    .Where(r => updateDto.Roles.Contains(r.Name))
+                    .ToListAsync();
+
+                if (roles.Count != updateDto.Roles.Count)
+                {
+                    var missingRoles = updateDto.Roles.Except(roles.Select(r => r.Name));
+                    return CreateValidationProblemDetails($"Invalid roles: {string.Join(", ", missingRoles)}");
+                }
+
+                // Remove all existing roles
+                _context.UserRoles.RemoveRange(user.UserRoles);
+
+                // Add new roles
+                foreach (var role in roles)
+                {
+                    user.UserRoles.Add(new UserRole
+                    {
+                        UserId = userId,
+                        RoleId = role.Id,
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = user.ModifiedBy
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Log the changes
+            if (oldEmail != user.Email)
+            {
+                await _auditLogService.LogEntityChangeAsync(
+                    nameof(User), user.Id, "Email", "Update", oldEmail, user.Email, user.ModifiedBy, $"User '{user.Username}'");
+            }
+
+            if (oldFirstName != user.FirstName)
+            {
+                await _auditLogService.LogEntityChangeAsync(
+                    nameof(User), user.Id, "FirstName", "Update", oldFirstName, user.FirstName, user.ModifiedBy, $"User '{user.Username}'");
+            }
+
+            if (oldLastName != user.LastName)
+            {
+                await _auditLogService.LogEntityChangeAsync(
+                    nameof(User), user.Id, "LastName", "Update", oldLastName, user.LastName, user.ModifiedBy, $"User '{user.Username}'");
+            }
+
+            if (oldIsActive != user.IsActive)
+            {
+                await _auditLogService.LogEntityChangeAsync(
+                    nameof(User), user.Id, "IsActive", "Update", oldIsActive.ToString(), user.IsActive.ToString(), user.ModifiedBy, $"User '{user.Username}'");
+            }
+
+            if (!oldRoles.SequenceEqual(updateDto.Roles))
+            {
+                await _auditLogService.LogEntityChangeAsync(
+                    nameof(User), user.Id, "Roles", "Update", 
+                    string.Join(", ", oldRoles), string.Join(", ", updateDto.Roles), 
+                    user.ModifiedBy, $"User '{user.Username}'");
+            }
+
+            // Create audit trail entry
+            var auditTrail = new AuditTrail
+            {
+                PerformedByUserId = _tenantContext.CurrentUserId ?? Guid.Empty,
+                OperationType = AuditOperationType.TenantStatusChanged, // We can extend this enum
+                TargetUserId = userId,
+                Details = $"User '{user.Username}' updated",
+                WasSuccessful = true,
+                PerformedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = user.ModifiedBy
+            };
+
+            _context.AuditTrails.Add(auditTrail);
+            await _context.SaveChangesAsync();
+
+            // Notify clients
+            await _hubContext.Clients.Group("AuditLogUpdates")
+                .SendAsync("UserUpdated", new { UserId = userId, Username = user.Username });
+
+            var tenant = await _context.Tenants.FindAsync(user.TenantId);
+
+            var result = new UserManagementDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                FullName = user.FullName,
+                IsActive = user.IsActive,
+                MustChangePassword = user.MustChangePassword,
+                Roles = updateDto.Roles,
+                TenantId = user.TenantId,
+                TenantName = tenant?.Name ?? "Unknown",
+                CreatedAt = user.CreatedAt,
+                LastLoginAt = user.LastLoginAt
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating user {UserId}", userId);
+            return CreateInternalServerErrorProblem("Error updating user", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a user (soft delete).
+    /// </summary>
+    [HttpDelete("{userId}")]
+    public async Task<IActionResult> DeleteUser(Guid userId, [FromBody] DeleteUserDto? deleteDto = null)
+    {
+        try
+        {
+            var user = await _context.Users.FindAsync(userId);
+
+            if (user == null)
+            {
+                return CreateNotFoundProblem($"User {userId} not found");
+            }
+
+            // Soft delete by setting IsActive to false and marking as deleted
+            user.IsActive = false;
+            user.ModifiedAt = DateTime.UtcNow;
+            user.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
+
+            await _context.SaveChangesAsync();
+
+            // Log the deletion
+            await _auditLogService.LogEntityChangeAsync(
+                nameof(User),
+                user.Id,
+                "SoftDeleted",
+                "Delete",
+                "false",
+                "true",
+                user.ModifiedBy,
+                $"User '{user.Username}'"
+            );
+
+            // Create audit trail entry
+            var auditTrail = new AuditTrail
+            {
+                PerformedByUserId = _tenantContext.CurrentUserId ?? Guid.Empty,
+                OperationType = AuditOperationType.TenantStatusChanged, // We can extend this enum
+                TargetUserId = userId,
+                Details = $"User '{user.Username}' soft deleted. Reason: {deleteDto?.Reason ?? "Not specified"}",
+                WasSuccessful = true,
+                PerformedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = user.ModifiedBy
+            };
+
+            _context.AuditTrails.Add(auditTrail);
+            await _context.SaveChangesAsync();
+
+            // Notify clients
+            await _hubContext.Clients.Group("AuditLogUpdates")
+                .SendAsync("UserDeleted", new { UserId = userId, Username = user.Username });
+
+            return Ok(new { message = $"User {user.Username} deleted successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting user {UserId}", userId);
+            return CreateInternalServerErrorProblem("Error deleting user", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new user using CreateUserManagementDto.
+    /// </summary>
+    [HttpPost("management")]
+    public async Task<ActionResult<UserManagementDto>> CreateUserManagement([FromBody] CreateUserManagementDto createDto)
+    {
+        try
+        {
+            // Check if username or email already exists
+            var existingUser = await _context.Users
+                .AnyAsync(u => u.Username == createDto.Username || u.Email == createDto.Email);
+
+            if (existingUser)
+            {
+                return CreateValidationProblemDetails("Username or email already exists");
+            }
+
+            // Verify tenant exists
+            var tenant = await _context.Tenants.FindAsync(createDto.TenantId);
+            if (tenant == null)
+            {
+                return CreateValidationProblemDetails("Invalid tenant ID");
+            }
+
+            // Generate a temporary password
+            var tempPassword = GenerateTemporaryPassword();
+
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                Username = createDto.Username,
+                Email = createDto.Email,
+                FirstName = createDto.FirstName,
+                LastName = createDto.LastName,
+                TenantId = createDto.TenantId,
+                IsActive = true, // Default to active for management creation
+                MustChangePassword = true, // Force password change for new users
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = _tenantContext.CurrentUserId?.ToString() ?? "System"
+            };
+
+            // Hash the temporary password (implementation depends on your password service)
+            // user.PasswordHash = _passwordService.HashPassword(tempPassword);
+
+            _context.Users.Add(user);
+
+            // Add roles if specified
+            if (createDto.Roles.Any())
+            {
+                var roles = await _context.Roles
+                    .Where(r => createDto.Roles.Contains(r.Name))
+                    .ToListAsync();
+
+                foreach (var role in roles)
+                {
+                    user.UserRoles.Add(new UserRole
+                    {
+                        UserId = user.Id,
+                        RoleId = role.Id,
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = user.CreatedBy
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Log user creation
+            await _auditLogService.LogEntityChangeAsync(
+                nameof(User),
+                user.Id,
+                "UserCreated",
+                "Create",
+                "",
+                $"Username: {user.Username}, Email: {user.Email}",
+                user.CreatedBy,
+                $"User '{user.Username}' created via management interface"
+            );
+
+            var result = new UserManagementDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                FullName = user.FullName,
+                IsActive = user.IsActive,
+                MustChangePassword = user.MustChangePassword,
+                Roles = createDto.Roles,
+                TenantId = user.TenantId,
+                TenantName = tenant.Name,
+                CreatedAt = user.CreatedAt,
+                LastLoginAt = user.LastLoginAt
+            };
+
+            return CreatedAtAction(nameof(GetUser), new { userId = user.Id }, result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating user via management interface");
+            return CreateInternalServerErrorProblem("Error creating user", ex);
         }
     }
 

@@ -24,6 +24,7 @@ namespace EventForge.Client.Services
         Task<UserManagementDto> CreateUserAsync(CreateUserManagementDto createDto);
         Task<UserManagementDto> UpdateUserAsync(Guid id, UpdateUserManagementDto updateDto);
         Task DeleteUserAsync(Guid id);
+        Task<PasswordResetResultDto> ResetUserPasswordAsync(Guid id, ResetPasswordDto resetDto);
         Task<UserStatisticsDto> GetUserStatisticsAsync(Guid? tenantId = null);
 
         // Tenant Switching & Impersonation
@@ -193,7 +194,7 @@ namespace EventForge.Client.Services
 
         public async Task<UserManagementDto> CreateUserAsync(CreateUserManagementDto createDto)
         {
-            return await _httpClientService.PostAsync<CreateUserManagementDto, UserManagementDto>("api/v1/user-management", createDto) ??
+            return await _httpClientService.PostAsync<CreateUserManagementDto, UserManagementDto>("api/v1/user-management/management", createDto) ??
                    throw new InvalidOperationException("Failed to create user");
         }
 
@@ -206,6 +207,12 @@ namespace EventForge.Client.Services
         public async Task DeleteUserAsync(Guid id)
         {
             await _httpClientService.DeleteAsync($"api/v1/user-management/{id}");
+        }
+
+        public async Task<PasswordResetResultDto> ResetUserPasswordAsync(Guid id, ResetPasswordDto resetDto)
+        {
+            return await _httpClientService.PostAsync<ResetPasswordDto, PasswordResetResultDto>($"api/v1/user-management/{id}/reset-password", resetDto) ??
+                   throw new InvalidOperationException("Failed to reset user password");
         }
 
         public async Task<UserStatisticsDto> GetUserStatisticsAsync(Guid? tenantId = null)
