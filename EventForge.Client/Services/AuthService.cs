@@ -119,7 +119,7 @@ namespace EventForge.Client.Services
             try
             {
                 await _loadingDialogService.ShowAsync("Accesso in corso...", "Verifica delle credenziali...");
-                
+
                 var httpClient = _httpClientFactory.CreateClient("ApiClient");
 
                 await _loadingDialogService.UpdateOperationAsync("Invio richiesta di autenticazione...");
@@ -144,7 +144,7 @@ namespace EventForge.Client.Services
 
                         OnAuthenticationStateChanged?.Invoke();
                     }
-                    
+
                     await _loadingDialogService.HideAsync();
                     return loginResponse;
                 }
@@ -164,7 +164,7 @@ namespace EventForge.Client.Services
             try
             {
                 await _loadingDialogService.ShowAsync("Disconnessione...", "Pulizia sessione...");
-                
+
                 _accessToken = null;
                 _currentUser = null;
                 // Note: No need to clear HttpClient headers since we use IHttpClientFactory
@@ -176,7 +176,7 @@ namespace EventForge.Client.Services
                 await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", _userKey);
 
                 OnAuthenticationStateChanged?.Invoke();
-                
+
                 await _loadingDialogService.HideAsync();
             }
             catch (Exception)

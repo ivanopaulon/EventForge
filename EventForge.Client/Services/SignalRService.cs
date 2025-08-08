@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.SignalR.Client;
-using EventForge.DTOs.Notifications;
 using EventForge.DTOs.Chat;
+using EventForge.DTOs.Notifications;
+using Microsoft.AspNetCore.SignalR.Client;
 
 namespace EventForge.Client.Services;
 
@@ -427,7 +427,7 @@ public class SignalRService : IAsyncDisposable
             try
             {
                 await _notificationHubConnection.InvokeAsync("BulkNotificationAction", action);
-                _logger.LogInformation("Performed bulk notification action {Action} on {Count} notifications", 
+                _logger.LogInformation("Performed bulk notification action {Action} on {Count} notifications",
                     action.Action, action.NotificationIds?.Count ?? 0);
             }
             catch (Exception ex)
@@ -601,7 +601,7 @@ public class SignalRService : IAsyncDisposable
             try
             {
                 await _chatHubConnection.InvokeAsync("CreateChat", createChatDto);
-                _logger.LogInformation("Created {ChatType} chat with {ParticipantCount} participants", 
+                _logger.LogInformation("Created {ChatType} chat with {ParticipantCount} participants",
                     createChatDto.Type, createChatDto.ParticipantIds.Count);
             }
             catch (Exception ex)

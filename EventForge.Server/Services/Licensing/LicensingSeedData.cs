@@ -1,6 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Auth;
 
 namespace EventForge.Server.Services.Licensing;
 
@@ -221,7 +219,7 @@ public static class LicensingSeedData
         foreach (var feature in features)
         {
             var featurePermissions = GetPermissionsForFeature(feature.Name, permissions);
-            
+
             foreach (var permission in featurePermissions)
             {
                 context.LicenseFeaturePermissions.Add(new LicenseFeaturePermission

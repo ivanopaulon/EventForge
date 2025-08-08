@@ -153,13 +153,13 @@ class Program
         // {id:guid} -> {id}
         // {id:int} -> {id}
         var normalized = Regex.Replace(route, @"\{([^:}]+):[^}]+\}", "{$1}");
-        
+
         // Assicura che il percorso inizi sempre con /
         if (!normalized.StartsWith('/'))
         {
             normalized = "/" + normalized;
         }
-        
+
         return normalized.ToLowerInvariant();
     }
 

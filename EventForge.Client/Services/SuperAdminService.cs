@@ -106,22 +106,22 @@ namespace EventForge.Client.Services
             {
                 await _loadingDialogService.ShowAsync("Creazione Tenant", "Preparazione nuovo tenant...", true);
                 await _loadingDialogService.UpdateProgressAsync(20);
-                
+
                 await _loadingDialogService.UpdateOperationAsync("Validazione dati tenant...");
                 await _loadingDialogService.UpdateProgressAsync(40);
-                
+
                 await _loadingDialogService.UpdateOperationAsync("Creazione tenant nel database...");
                 await _loadingDialogService.UpdateProgressAsync(70);
-                
+
                 var result = await _httpClientService.PostAsync<CreateTenantDto, TenantResponseDto>("api/v1/tenants", createDto) ??
                        throw new InvalidOperationException("Failed to create tenant");
-                
+
                 await _loadingDialogService.UpdateOperationAsync("Tenant creato con successo");
                 await _loadingDialogService.UpdateProgressAsync(100);
-                
+
                 await Task.Delay(1000);
                 await _loadingDialogService.HideAsync();
-                
+
                 return result;
             }
             catch (Exception)
@@ -314,20 +314,20 @@ namespace EventForge.Client.Services
             {
                 await _loadingDialogService.ShowAsync("Creazione Backup", "Inizializzazione processo di backup...", true);
                 await _loadingDialogService.UpdateProgressAsync(10);
-                
+
                 await _loadingDialogService.UpdateOperationAsync("Invio richiesta al server...");
                 await _loadingDialogService.UpdateProgressAsync(30);
-                
+
                 var result = await _httpClientService.PostAsync<CreateBackupDto, BackupOperationDto>("api/v1/super-admin/backup", createDto) ??
                        throw new InvalidOperationException("Failed to create backup");
-                
+
                 await _loadingDialogService.UpdateOperationAsync("Backup avviato con successo");
                 await _loadingDialogService.UpdateProgressAsync(100);
-                
+
                 // Hide after a short delay to show completion
                 await Task.Delay(1000);
                 await _loadingDialogService.HideAsync();
-                
+
                 return result;
             }
             catch (Exception)
@@ -358,21 +358,21 @@ namespace EventForge.Client.Services
             {
                 await _loadingDialogService.ShowAsync("Download Backup", "Preparazione download...", true);
                 await _loadingDialogService.UpdateProgressAsync(20);
-                
+
                 await _loadingDialogService.UpdateOperationAsync("Richiesta file dal server...");
                 await _loadingDialogService.UpdateProgressAsync(50);
-                
+
                 var stream = await _httpClientService.GetStreamAsync($"api/v1/super-admin/backup/{backupId}/download");
-                
+
                 await _loadingDialogService.UpdateOperationAsync("Download in corso...");
                 await _loadingDialogService.UpdateProgressAsync(90);
-                
+
                 await _loadingDialogService.UpdateOperationAsync("Download completato");
                 await _loadingDialogService.UpdateProgressAsync(100);
-                
+
                 await Task.Delay(500);
                 await _loadingDialogService.HideAsync();
-                
+
                 return stream;
             }
             catch (Exception)

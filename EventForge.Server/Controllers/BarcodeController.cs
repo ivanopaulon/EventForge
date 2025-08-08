@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.Server.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -62,7 +61,7 @@ public class BarcodeController : BaseApiController
     [ProducesResponseType(typeof(BarcodeResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<BarcodeResponseDto>> GenerateQRCode([FromBody] [Required] string data)
+    public async Task<ActionResult<BarcodeResponseDto>> GenerateQRCode([FromBody][Required] string data)
     {
         try
         {
@@ -95,7 +94,7 @@ public class BarcodeController : BaseApiController
     [HttpPost("validate")]
     [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public ActionResult<bool> ValidateData([FromQuery] [Required] string data, [FromQuery] BarcodeType barcodeType)
+    public ActionResult<bool> ValidateData([FromQuery][Required] string data, [FromQuery] BarcodeType barcodeType)
     {
         try
         {

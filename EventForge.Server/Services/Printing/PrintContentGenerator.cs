@@ -1,5 +1,3 @@
-using EventForge.DTOs.Printing;
-
 namespace EventForge.Server.Services.Printing;
 
 /// <summary>
@@ -151,11 +149,11 @@ public static class StringExtensions
     public static string PadCenter(this string text, int width)
     {
         if (text.Length >= width) return text;
-        
+
         var totalPadding = width - text.Length;
         var leftPadding = totalPadding / 2;
         var rightPadding = totalPadding - leftPadding;
-        
+
         return new string(' ', leftPadding) + text + new string(' ', rightPadding);
     }
 }

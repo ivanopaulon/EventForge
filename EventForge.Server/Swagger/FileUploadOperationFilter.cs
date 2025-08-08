@@ -1,6 +1,6 @@
+using EventForge.Server.Controllers;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
-using EventForge.Server.Controllers;
 
 public class FileUploadOperationFilter : IOperationFilter
 {
@@ -9,7 +9,7 @@ public class FileUploadOperationFilter : IOperationFilter
         // Check if the method has a ChatFileUploadRequestDto parameter
         var hasFileUploadDto = context.MethodInfo.GetParameters()
             .Any(p => p.ParameterType == typeof(ChatFileUploadRequestDto));
-        
+
         // Also check for direct IFormFile parameters for other endpoints
         var hasDirectFileParams = context.MethodInfo.GetParameters()
             .Any(p => p.ParameterType == typeof(IFormFile));

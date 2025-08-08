@@ -34,18 +34,18 @@ public class BackupService : IBackupService
         {
             await _loadingDialogService.ShowAsync("Avvio Backup", "Inizializzazione backup...", true);
             await _loadingDialogService.UpdateProgressAsync(20);
-            
+
             await _loadingDialogService.UpdateOperationAsync("Invio richiesta di backup al server...");
             await _loadingDialogService.UpdateProgressAsync(50);
-            
+
             var result = await _httpClientService.PostAsync<BackupRequestDto, BackupStatusDto>("api/SuperAdmin/backup", request);
-            
+
             await _loadingDialogService.UpdateOperationAsync("Backup avviato con successo");
             await _loadingDialogService.UpdateProgressAsync(100);
-            
+
             await Task.Delay(1000);
             await _loadingDialogService.HideAsync();
-            
+
             return result ?? throw new InvalidOperationException("Failed to deserialize response");
         }
         catch (Exception ex)

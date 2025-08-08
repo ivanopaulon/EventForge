@@ -1,9 +1,8 @@
-using EventForge.DTOs.Common;
 using EventForge.Server.Services.Interfaces;
-using Spire.Barcode;
-using System.Text.RegularExpressions;
 using SkiaSharp;
+using Spire.Barcode;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 namespace EventForge.Server.Services.Common;
 
@@ -20,7 +19,7 @@ public class BarcodeService : IBarcodeService
     {
         try
         {
-            _logger.LogInformation("Generating barcode of type {BarcodeType} for data length {DataLength}", 
+            _logger.LogInformation("Generating barcode of type {BarcodeType} for data length {DataLength}",
                 request.BarcodeType, request.Data.Length);
 
             // Validate data for barcode type
@@ -40,7 +39,7 @@ public class BarcodeService : IBarcodeService
 
             // Generate barcode
             var generator = new BarCodeGenerator(settings);
-            
+
             // Convert to base64 using cross-platform method
             var base64Image = await ConvertBarcodeToBase64Async(generator, request.ImageFormat, request.Width, request.Height, request.Data);
             var mimeType = GetMimeType(request.ImageFormat);
@@ -158,16 +157,14 @@ public class BarcodeService : IBarcodeService
     {
         try
         {
-#pragma warning disable CA1416 // Validate platform compatibility - This method is Windows-only by design
             var image = generator.GenerateImage();
             using var memoryStream = new MemoryStream();
             var imageFormat = GetSystemDrawingImageFormat(format);
-            
+
             await Task.Run(() => image.Save(memoryStream, imageFormat));
-            
+
             var imageBytes = memoryStream.ToArray();
             return Convert.ToBase64String(imageBytes);
-#pragma warning restore CA1416 // Validate platform compatibility
         }
         catch (Exception)
         {
@@ -183,14 +180,14 @@ public class BarcodeService : IBarcodeService
         try
         {
             await Task.Delay(1); // Make it async
-            
+
             // Create SkiaSharp bitmap
             using var surface = SKSurface.Create(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul));
             var canvas = surface.Canvas;
-            
+
             // Fill background with white
             canvas.Clear(SKColors.White);
-            
+
             // Draw placeholder text
             using var paint = new SKPaint
             {
@@ -203,12 +200,12 @@ public class BarcodeService : IBarcodeService
             var text = $"BARCODE: {data}";
             var textBounds = new SKRect();
             paint.MeasureText(text, ref textBounds);
-            
+
             var x = (width - textBounds.Width) / 2;
             var y = (height - textBounds.Height) / 2 + textBounds.Height;
-            
+
             canvas.DrawText(text, x, y, paint);
-            
+
             // Draw border
             using var borderPaint = new SKPaint
             {
@@ -218,11 +215,11 @@ public class BarcodeService : IBarcodeService
                 StrokeWidth = 2
             };
             canvas.DrawRect(1, 1, width - 2, height - 2, borderPaint);
-            
+
             // Convert to image
             using var image = surface.Snapshot();
             using var imageData = image.Encode(GetSkiaSharpEncodedImageFormat(format), 100);
-            
+
             return Convert.ToBase64String(imageData.ToArray());
         }
         catch (Exception ex)
@@ -234,7 +231,6 @@ public class BarcodeService : IBarcodeService
 
     private static System.Drawing.Imaging.ImageFormat GetSystemDrawingImageFormat(ImageFormat format)
     {
-#pragma warning disable CA1416 // Validate platform compatibility - This method is Windows-only by design
         return format switch
         {
             ImageFormat.PNG => System.Drawing.Imaging.ImageFormat.Png,
@@ -243,7 +239,6 @@ public class BarcodeService : IBarcodeService
             ImageFormat.GIF => System.Drawing.Imaging.ImageFormat.Gif,
             _ => System.Drawing.Imaging.ImageFormat.Png
         };
-#pragma warning restore CA1416 // Validate platform compatibility
     }
 
     private static SKEncodedImageFormat GetSkiaSharpEncodedImageFormat(ImageFormat format)

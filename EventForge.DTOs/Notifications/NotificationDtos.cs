@@ -480,7 +480,7 @@ namespace EventForge.DTOs.Notifications
         public Guid UserId { get; set; }
         public string? UserName { get; set; }
         public NotificationAvatarDto? UserAvatar { get; set; }
-        
+
         /// <summary>
         /// Type of activity (notification, event, chat, etc.)
         /// </summary>

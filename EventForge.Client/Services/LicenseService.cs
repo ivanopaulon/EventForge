@@ -1,6 +1,5 @@
 using EventForge.DTOs.Licensing;
 using System.Net.Http.Json;
-using System.Text.Json;
 
 namespace EventForge.Client.Services
 {

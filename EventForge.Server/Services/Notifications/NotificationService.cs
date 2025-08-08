@@ -1,11 +1,6 @@
 using EventForge.DTOs.Notifications;
-using EventForge.DTOs.Common;
-using EventForge.Server.Data;
-using EventForge.Server.Services.Audit;
-using EventForge.Server.Hubs;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 
 namespace EventForge.Server.Services.Notifications;
@@ -56,11 +51,11 @@ public class NotificationService : INotificationService
     /// Implements complete database persistence and real-time delivery.
     /// </summary>
     public async Task<NotificationResponseDto> SendNotificationAsync(
-        CreateNotificationDto createDto, 
+        CreateNotificationDto createDto,
         CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        
+
         try
         {
             // Validate tenant access and rate limits
@@ -85,12 +80,12 @@ public class NotificationService : INotificationService
                 ActionUrl = createDto.Payload.ActionUrl,
                 IconUrl = createDto.Payload.IconUrl,
                 PayloadLocale = createDto.Payload.Locale,
-                LocalizationParamsJson = createDto.Payload.LocalizationParams != null 
-                    ? System.Text.Json.JsonSerializer.Serialize(createDto.Payload.LocalizationParams) 
+                LocalizationParamsJson = createDto.Payload.LocalizationParams != null
+                    ? System.Text.Json.JsonSerializer.Serialize(createDto.Payload.LocalizationParams)
                     : null,
                 ExpiresAt = createDto.ExpiresAt,
-                MetadataJson = createDto.Metadata != null 
-                    ? System.Text.Json.JsonSerializer.Serialize(createDto.Metadata) 
+                MetadataJson = createDto.Metadata != null
+                    ? System.Text.Json.JsonSerializer.Serialize(createDto.Metadata)
                     : null,
                 CreatedAt = now,
                 ModifiedAt = now // Use ModifiedAt instead of UpdatedAt
@@ -226,14 +221,14 @@ public class NotificationService : INotificationService
                     Success = false,
                     ErrorMessage = ex.Message,
                     ErrorCode = "SEND_FAILED",
-                    Metadata = new Dictionary<string, object> 
-                    { 
+                    Metadata = new Dictionary<string, object>
+                    {
                         ["ProcessedAt"] = DateTime.UtcNow,
                         ["ExceptionType"] = ex.GetType().Name
                     }
                 });
                 failureCount++;
-                
+
                 _logger.LogWarning(ex, "Failed to process bulk notification");
             }
         }
@@ -309,7 +304,7 @@ public class NotificationService : INotificationService
             if (!string.IsNullOrWhiteSpace(searchDto.SearchTerm))
             {
                 var searchTerm = searchDto.SearchTerm.ToLower();
-                query = query.Where(nr => 
+                query = query.Where(nr =>
                     nr.Notification.Title.ToLower().Contains(searchTerm) ||
                     nr.Notification.Message.ToLower().Contains(searchTerm));
             }
@@ -324,16 +319,16 @@ public class NotificationService : INotificationService
             // Apply sorting
             query = searchDto.SortBy?.ToLower() switch
             {
-                "priority" => searchDto.SortOrder?.ToLower() == "desc" 
+                "priority" => searchDto.SortOrder?.ToLower() == "desc"
                     ? query.OrderByDescending(nr => nr.Notification.Priority).ThenByDescending(nr => nr.Notification.CreatedAt)
                     : query.OrderBy(nr => nr.Notification.Priority).ThenBy(nr => nr.Notification.CreatedAt),
-                "status" => searchDto.SortOrder?.ToLower() == "desc" 
+                "status" => searchDto.SortOrder?.ToLower() == "desc"
                     ? query.OrderByDescending(nr => nr.Status).ThenByDescending(nr => nr.Notification.CreatedAt)
                     : query.OrderBy(nr => nr.Status).ThenBy(nr => nr.Notification.CreatedAt),
-                "type" => searchDto.SortOrder?.ToLower() == "desc" 
+                "type" => searchDto.SortOrder?.ToLower() == "desc"
                     ? query.OrderByDescending(nr => nr.Notification.Type).ThenByDescending(nr => nr.Notification.CreatedAt)
                     : query.OrderBy(nr => nr.Notification.Type).ThenBy(nr => nr.Notification.CreatedAt),
-                _ => searchDto.SortOrder?.ToLower() == "desc" 
+                _ => searchDto.SortOrder?.ToLower() == "desc"
                     ? query.OrderByDescending(nr => nr.Notification.CreatedAt)
                     : query.OrderBy(nr => nr.Notification.CreatedAt)
             };
@@ -345,7 +340,7 @@ public class NotificationService : INotificationService
             var items = await query
                 .Skip((searchDto.PageNumber - 1) * searchDto.PageSize)
                 .Take(searchDto.PageSize)
-                .Select(nr => new 
+                .Select(nr => new
                 {
                     Notification = nr.Notification,
                     Recipient = nr
@@ -405,8 +400,8 @@ public class NotificationService : INotificationService
     /// Implements database query with tenant and user access validation.
     /// </summary>
     public async Task<NotificationResponseDto?> GetNotificationByIdAsync(
-        Guid notificationId, 
-        Guid userId, 
+        Guid notificationId,
+        Guid userId,
         Guid? tenantId,
         CancellationToken cancellationToken = default)
     {
@@ -489,8 +484,8 @@ public class NotificationService : INotificationService
     /// Implements database update with status change and audit trail.
     /// </summary>
     public async Task<NotificationResponseDto> AcknowledgeNotificationAsync(
-        Guid notificationId, 
-        Guid userId, 
+        Guid notificationId,
+        Guid userId,
         string? reason = null,
         CancellationToken cancellationToken = default)
     {
@@ -581,8 +576,8 @@ public class NotificationService : INotificationService
     /// Implements database update with status change and audit trail.
     /// </summary>
     public async Task<NotificationResponseDto> SilenceNotificationAsync(
-        Guid notificationId, 
-        Guid userId, 
+        Guid notificationId,
+        Guid userId,
         string? reason = null,
         DateTime? expiresAt = null,
         CancellationToken cancellationToken = default)
@@ -658,8 +653,8 @@ public class NotificationService : INotificationService
     /// Implements database update with status change and audit trail.
     /// </summary>
     public async Task<NotificationResponseDto> ArchiveNotificationAsync(
-        Guid notificationId, 
-        Guid userId, 
+        Guid notificationId,
+        Guid userId,
         string? reason = null,
         CancellationToken cancellationToken = default)
     {
@@ -784,7 +779,7 @@ public class NotificationService : INotificationService
                     ErrorCode = "BULK_ACTION_FAILED"
                 });
                 failureCount++;
-                
+
                 _logger.LogWarning(ex, "Failed to process bulk action for notification {NotificationId}", notificationId);
             }
         }
@@ -808,7 +803,7 @@ public class NotificationService : INotificationService
     /// STUB IMPLEMENTATION - Returns default preferences.
     /// </summary>
     public async Task<NotificationPreferencesDto> GetUserPreferencesAsync(
-        Guid userId, 
+        Guid userId,
         Guid? tenantId,
         CancellationToken cancellationToken = default)
     {
@@ -945,8 +940,8 @@ public class NotificationService : INotificationService
     /// Implements basic in-memory rate limiting with tenant and user-specific policies.
     /// </summary>
     public async Task<RateLimitStatusDto> CheckRateLimitAsync(
-        Guid? tenantId, 
-        Guid? userId, 
+        Guid? tenantId,
+        Guid? userId,
         NotificationTypes notificationType,
         CancellationToken cancellationToken = default)
     {
@@ -958,7 +953,7 @@ public class NotificationService : INotificationService
         {
             // Simple rate limiting implementation
             // In a production environment, this should use Redis or distributed cache
-            
+
             // Define rate limits by type and priority
             var rateLimits = new Dictionary<NotificationTypes, int>
             {
@@ -997,7 +992,7 @@ public class NotificationService : INotificationService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to check rate limit for tenant {TenantId}, user {UserId}", tenantId, userId);
-            
+
             // On error, allow but log the issue
             return new RateLimitStatusDto
             {
@@ -1052,7 +1047,7 @@ public class NotificationService : INotificationService
     {
         _logger.LogInformation(
             "Retrieving notification statistics for tenant {TenantId} from {StartDate} to {EndDate}",
-            tenantId?.ToString() ?? "ALL", 
+            tenantId?.ToString() ?? "ALL",
             dateRange?.StartDate.ToString("yyyy-MM-dd") ?? "N/A",
             dateRange?.EndDate.ToString("yyyy-MM-dd") ?? "N/A");
 
@@ -1185,13 +1180,13 @@ public class NotificationService : INotificationService
     /// TODO: Implement actual rate limiting validation.
     /// </summary>
     private async Task ValidateRateLimitAsync(
-        Guid? tenantId, 
-        Guid? userId, 
-        NotificationTypes type, 
+        Guid? tenantId,
+        Guid? userId,
+        NotificationTypes type,
         CancellationToken cancellationToken)
     {
         var rateLimitStatus = await CheckRateLimitAsync(tenantId, userId, type, cancellationToken);
-        
+
         if (!rateLimitStatus.IsAllowed)
         {
             throw new InvalidOperationException(

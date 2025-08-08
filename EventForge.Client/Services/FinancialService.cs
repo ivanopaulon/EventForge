@@ -59,19 +59,19 @@ namespace EventForge.Client.Services
             {
                 await _loadingDialogService.ShowAsync("Creazione Banca", "Configurazione nuovo istituto bancario...", true);
                 await _loadingDialogService.UpdateProgressAsync(30);
-                
+
                 await _loadingDialogService.UpdateOperationAsync("Validazione dati bancari...");
                 await _loadingDialogService.UpdateProgressAsync(60);
-                
+
                 var result = await _httpClientService.PostAsync<CreateBankDto, BankDto>("api/v1/financial/banks", createDto) ??
                        throw new InvalidOperationException("Failed to create bank");
-                
+
                 await _loadingDialogService.UpdateOperationAsync("Banca creata con successo");
                 await _loadingDialogService.UpdateProgressAsync(100);
-                
+
                 await Task.Delay(1000);
                 await _loadingDialogService.HideAsync();
-                
+
                 return result;
             }
             catch (Exception)

@@ -1,6 +1,4 @@
 using EventForge.DTOs.Notifications;
-using EventForge.DTOs.Common;
-using EventForge.Server.Data;
 
 namespace EventForge.Server.Services.Notifications;
 
@@ -32,7 +30,7 @@ public interface INotificationService
     /// <param name="cancellationToken">Cancellation token for async operations</param>
     /// <returns>Created notification response with delivery status</returns>
     Task<NotificationResponseDto> SendNotificationAsync(
-        CreateNotificationDto createDto, 
+        CreateNotificationDto createDto,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -75,8 +73,8 @@ public interface INotificationService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Notification details or null if not found/accessible</returns>
     Task<NotificationResponseDto?> GetNotificationByIdAsync(
-        Guid notificationId, 
-        Guid userId, 
+        Guid notificationId,
+        Guid userId,
         Guid? tenantId,
         CancellationToken cancellationToken = default);
 
@@ -97,8 +95,8 @@ public interface INotificationService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Updated notification status</returns>
     Task<NotificationResponseDto> AcknowledgeNotificationAsync(
-        Guid notificationId, 
-        Guid userId, 
+        Guid notificationId,
+        Guid userId,
         string? reason = null,
         CancellationToken cancellationToken = default);
 
@@ -116,8 +114,8 @@ public interface INotificationService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Updated notification status</returns>
     Task<NotificationResponseDto> SilenceNotificationAsync(
-        Guid notificationId, 
-        Guid userId, 
+        Guid notificationId,
+        Guid userId,
         string? reason = null,
         DateTime? expiresAt = null,
         CancellationToken cancellationToken = default);
@@ -135,8 +133,8 @@ public interface INotificationService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Updated notification status</returns>
     Task<NotificationResponseDto> ArchiveNotificationAsync(
-        Guid notificationId, 
-        Guid userId, 
+        Guid notificationId,
+        Guid userId,
         string? reason = null,
         CancellationToken cancellationToken = default);
 
@@ -170,7 +168,7 @@ public interface INotificationService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>User notification preferences</returns>
     Task<NotificationPreferencesDto> GetUserPreferencesAsync(
-        Guid userId, 
+        Guid userId,
         Guid? tenantId,
         CancellationToken cancellationToken = default);
 
@@ -257,8 +255,8 @@ public interface INotificationService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Rate limit status and remaining quota</returns>
     Task<RateLimitStatusDto> CheckRateLimitAsync(
-        Guid? tenantId, 
-        Guid? userId, 
+        Guid? tenantId,
+        Guid? userId,
         NotificationTypes notificationType,
         CancellationToken cancellationToken = default);
 

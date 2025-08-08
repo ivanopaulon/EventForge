@@ -1,5 +1,4 @@
 using EventForge.DTOs.Notifications;
-using EventForge.DTOs.Common;
 using EventForge.Server.Services.Notifications;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -62,7 +61,7 @@ public class NotificationsController : ControllerBase
                 createDto.Type, createDto.Priority, createDto.RecipientIds.Count);
 
             var result = await _notificationService.SendNotificationAsync(createDto, cancellationToken);
-            
+
             return CreatedAtAction(
                 nameof(GetNotificationByIdAsync),
                 new { id = result.Id },
@@ -70,9 +69,9 @@ public class NotificationsController : ControllerBase
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("Rate limit"))
         {
-            return StatusCode(StatusCodes.Status429TooManyRequests, 
-                new ProblemDetails 
-                { 
+            return StatusCode(StatusCodes.Status429TooManyRequests,
+                new ProblemDetails
+                {
                     Title = "Rate Limit Exceeded",
                     Detail = ex.Message,
                     Status = StatusCodes.Status429TooManyRequests
@@ -104,7 +103,7 @@ public class NotificationsController : ControllerBase
     [ProducesResponseType(typeof(BulkNotificationResultDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<BulkNotificationResultDto>> SendBulkNotificationsAsync(
         [FromBody] List<CreateNotificationDto> notifications,
-        [FromQuery] [Range(1, 500)] int batchSize = 100,
+        [FromQuery][Range(1, 500)] int batchSize = 100,
         CancellationToken cancellationToken = default)
     {
         if (notifications == null || !notifications.Any())
@@ -128,7 +127,7 @@ public class NotificationsController : ControllerBase
         try
         {
             _logger.LogInformation("Processing bulk notification batch with {Count} notifications", notifications.Count);
-            
+
             var result = await _notificationService.SendBulkNotificationsAsync(notifications, batchSize, cancellationToken);
             return Ok(result);
         }
@@ -202,7 +201,7 @@ public class NotificationsController : ControllerBase
             var tenantId = default(Guid?); // GetCurrentTenantId();
 
             var notification = await _notificationService.GetNotificationByIdAsync(id, userId, tenantId, cancellationToken);
-            
+
             if (notification == null)
             {
                 return NotFound(new ProblemDetails

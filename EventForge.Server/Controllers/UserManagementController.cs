@@ -354,7 +354,7 @@ public class UserManagementController : BaseApiController
 
             // TODO: Hash the password using your password service
             // user.PasswordHash = _passwordService.HashPassword(newPassword);
-            
+
             user.MustChangePassword = true;
             user.ModifiedAt = DateTime.UtcNow;
             user.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
@@ -953,8 +953,8 @@ public class UserManagementController : BaseApiController
             if (!oldRoles.SequenceEqual(updateDto.Roles))
             {
                 await _auditLogService.LogEntityChangeAsync(
-                    nameof(User), user.Id, "Roles", "Update", 
-                    string.Join(", ", oldRoles), string.Join(", ", updateDto.Roles), 
+                    nameof(User), user.Id, "Roles", "Update",
+                    string.Join(", ", oldRoles), string.Join(", ", updateDto.Roles),
                     user.ModifiedBy, $"User '{user.Username}'");
             }
 

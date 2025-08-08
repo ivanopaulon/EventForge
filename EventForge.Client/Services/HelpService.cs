@@ -102,7 +102,7 @@ public class HelpService : IHelpService
         try
         {
             var progressJson = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", ONBOARDING_STORAGE_KEY);
-            
+
             if (string.IsNullOrEmpty(progressJson))
             {
                 return new Dictionary<string, bool>();
@@ -191,9 +191,9 @@ public class HelpService : IHelpService
         {
             var baseKey = $"help.{componentId}";
             var key = string.IsNullOrEmpty(section) ? $"{baseKey}.overview" : $"{baseKey}.{section}";
-            
+
             var content = _translationService.GetTranslation(key, $"Help content for {componentId}");
-            
+
             // If no specific content found, return general help
             if (content.StartsWith("[") && content.EndsWith("]"))
             {

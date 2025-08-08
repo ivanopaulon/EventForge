@@ -22,7 +22,7 @@ public interface IChatService
     Task<bool> RemoveMemberFromChatAsync(Guid chatId, Guid userId, CancellationToken cancellationToken = default);
     Task<bool> UpdateTypingStatusAsync(Guid chatId, bool isTyping, CancellationToken cancellationToken = default);
     Task<ChatStatsDto> GetChatStatsAsync(CancellationToken cancellationToken = default);
-    
+
     // Events for real-time updates
     event Action<ChatResponseDto>? ChatCreated;
     event Action<ChatMessageDto>? MessageReceived;
@@ -82,7 +82,7 @@ public class ChatService : IChatService
         {
             // Use caching for improved performance
             var cacheKey = $"{CacheKeys.CHAT_LIST}_{page}_{pageSize}_{filter}";
-            
+
             return await _performanceService.GetCachedDataAsync(cacheKey, async () =>
             {
                 var queryParams = new List<string>
@@ -141,7 +141,7 @@ public class ChatService : IChatService
         {
             // Use caching for chat messages with shorter expiration for real-time updates
             var cacheKey = $"{CacheKeys.ChatMessages(chatId)}_{page}_{pageSize}";
-            
+
             return await _performanceService.GetCachedDataAsync(cacheKey, async () =>
             {
                 var query = $"page={page}&pageSize={pageSize}";
@@ -161,10 +161,10 @@ public class ChatService : IChatService
         try
         {
             var result = await _httpClientService.PostAsync<SendMessageDto, ChatMessageDto>($"api/v1/chat/{messageDto.ChatId}/messages", messageDto, cancellationToken);
-            
+
             // Invalidate cache for this chat's messages
             _performanceService.InvalidateCachePattern(CacheKeys.ChatMessages(messageDto.ChatId));
-            
+
             return result ?? throw new InvalidOperationException("Failed to send message");
         }
         catch (Exception ex)
@@ -324,7 +324,7 @@ public class ChatService : IChatService
         // Extract chat ID and message ID from the read message object
         if (readMessage is Dictionary<string, object> dict)
         {
-            if (dict.TryGetValue("chatId", out var chatIdObj) && 
+            if (dict.TryGetValue("chatId", out var chatIdObj) &&
                 dict.TryGetValue("messageId", out var messageIdObj))
             {
                 if (Guid.TryParse(chatIdObj?.ToString(), out var chatId) &&
@@ -346,7 +346,7 @@ public class ChatService : IChatService
         // Extract chat ID and user ID from the event object
         if (userJoinedEvent is Dictionary<string, object> dict)
         {
-            if (dict.TryGetValue("chatId", out var chatIdObj) && 
+            if (dict.TryGetValue("chatId", out var chatIdObj) &&
                 dict.TryGetValue("userId", out var userIdObj))
             {
                 if (Guid.TryParse(chatIdObj?.ToString(), out var chatId) &&
@@ -363,7 +363,7 @@ public class ChatService : IChatService
         // Extract chat ID and user ID from the event object
         if (userLeftEvent is Dictionary<string, object> dict)
         {
-            if (dict.TryGetValue("chatId", out var chatIdObj) && 
+            if (dict.TryGetValue("chatId", out var chatIdObj) &&
                 dict.TryGetValue("userId", out var userIdObj))
             {
                 if (Guid.TryParse(chatIdObj?.ToString(), out var chatId) &&

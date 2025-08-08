@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
-using EventForge.Server.Data;
 using System.Security.Claims;
 
 namespace EventForge.Server.Filters;
@@ -36,7 +35,7 @@ public class RequireLicenseFeatureAttribute : Attribute, IAsyncAuthorizationFilt
         // Skip license checks for SuperAdmins - they have full access to all features
         var isSuperAdmin = context.HttpContext.User.IsInRole("SuperAdmin") ||
                           context.HttpContext.User.HasClaim("permission", "System.Admin.FullAccess");
-        
+
         if (isSuperAdmin)
         {
             return; // SuperAdmins bypass all license restrictions
@@ -64,7 +63,7 @@ public class RequireLicenseFeatureAttribute : Attribute, IAsyncAuthorizationFilt
                     .ThenInclude(l => l.LicenseFeatures)
                         .ThenInclude(lf => lf.LicenseFeaturePermissions)
                             .ThenInclude(lfp => lfp.Permission)
-                .FirstOrDefaultAsync(tl => tl.TargetTenantId == tenantId && 
+                .FirstOrDefaultAsync(tl => tl.TargetTenantId == tenantId &&
                                           tl.IsLicenseActive && !tl.IsDeleted);
 
             if (tenantLicense == null)
@@ -88,7 +87,7 @@ public class RequireLicenseFeatureAttribute : Attribute, IAsyncAuthorizationFilt
 
             // Check if the required feature is available in the license
             var requiredFeature = tenantLicense.License.LicenseFeatures
-                .FirstOrDefault(lf => lf.Name.Equals(_featureName, StringComparison.OrdinalIgnoreCase) && 
+                .FirstOrDefault(lf => lf.Name.Equals(_featureName, StringComparison.OrdinalIgnoreCase) &&
                                      lf.IsEnabled);
 
             if (requiredFeature == null)
@@ -104,7 +103,7 @@ public class RequireLicenseFeatureAttribute : Attribute, IAsyncAuthorizationFilt
             if (_checkApiLimits)
             {
                 // Reset monthly API calls if needed
-                if (tenantLicense.ApiCallsResetAt.Month != DateTime.UtcNow.Month || 
+                if (tenantLicense.ApiCallsResetAt.Month != DateTime.UtcNow.Month ||
                     tenantLicense.ApiCallsResetAt.Year != DateTime.UtcNow.Year)
                 {
                     tenantLicense.ApiCallsThisMonth = 0;
@@ -132,7 +131,7 @@ public class RequireLicenseFeatureAttribute : Attribute, IAsyncAuthorizationFilt
                 .Select(lfp => lfp.Permission.Name)
                 .ToList();
 
-            var hasRequiredPermissions = requiredPermissions.All(rp => 
+            var hasRequiredPermissions = requiredPermissions.All(rp =>
                 userPermissions.Contains(rp, StringComparer.OrdinalIgnoreCase));
 
             if (!hasRequiredPermissions)
@@ -148,9 +147,9 @@ public class RequireLicenseFeatureAttribute : Attribute, IAsyncAuthorizationFilt
         catch (Exception ex)
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<RequireLicenseFeatureAttribute>>();
-            logger.LogError(ex, "Error checking license feature authorization for feature '{FeatureName}' and tenant '{TenantId}'", 
+            logger.LogError(ex, "Error checking license feature authorization for feature '{FeatureName}' and tenant '{TenantId}'",
                 _featureName, tenantId);
-            
+
             context.Result = new ObjectResult("Error validating license")
             {
                 StatusCode = 500

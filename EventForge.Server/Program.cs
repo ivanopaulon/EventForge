@@ -2,7 +2,6 @@ using EventForge.Server.Middleware;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
-using EventForge.Server.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -148,10 +147,10 @@ try
 {
     // Add timeout to prevent indefinite hanging during database operations
     using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-    
+
     // Use Task.Run to make the database migration call cancellable
     await Task.Run(() => app.Services.EnsureDatabaseMigrated(), cts.Token);
-    
+
     // Bootstrap admin user and permissions
     using (var scope = app.Services.CreateScope())
     {

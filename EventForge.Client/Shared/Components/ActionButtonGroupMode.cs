@@ -9,12 +9,12 @@ public enum ActionButtonGroupMode
     /// Display buttons in a horizontal row (default)
     /// </summary>
     Row,
-    
+
     /// <summary>
     /// Display buttons in a toolbar layout
     /// </summary>
     Toolbar,
-    
+
     /// <summary>
     /// Display buttons in a vertical column
     /// </summary>

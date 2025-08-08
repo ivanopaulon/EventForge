@@ -1,8 +1,7 @@
+using EventForge.DTOs.Chat;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
-using EventForge.Server.Data.Entities.Audit;
-using EventForge.DTOs.Chat;
 
 namespace EventForge.Server.Data.Entities.Chat;
 

@@ -1,5 +1,3 @@
-using EventForge.DTOs.Common;
-
 namespace EventForge.Server.Services.Interfaces;
 
 public interface IBarcodeService

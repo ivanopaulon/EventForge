@@ -1,6 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using EventForge.Server.Data.Entities.Chat;
 using EventForge.Server.Data.Entities.Notifications;
-using EventForge.Server.Data.Entities.Chat;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Data;
 
@@ -309,7 +309,7 @@ public class EventForgeDbContext : DbContext
 
         // Authentication & Authorization Relationships
         // Configured to prevent cascade delete cycles that are prohibited in SQL Server
-        
+
         // UserRole relationships - using Cascade for UserRole deletion is safe
         // because UserRole is a junction table and doesn't create cycles
         modelBuilder.Entity<UserRole>()

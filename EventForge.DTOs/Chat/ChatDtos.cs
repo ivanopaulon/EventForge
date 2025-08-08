@@ -244,7 +244,7 @@ namespace EventForge.DTOs.Chat
         public string? ThumbnailUrl { get; set; }
         public DateTime UploadedAt { get; set; }
         public Guid UploadedBy { get; set; }
-        
+
         /// <summary>
         /// Additional metadata for media files (duration, dimensions, etc.)
         /// </summary>
@@ -275,7 +275,7 @@ namespace EventForge.DTOs.Chat
         public bool IsDeleted { get; set; }
         public string? Locale { get; set; }
         public Dictionary<string, object>? Metadata { get; set; }
-        
+
         /// <summary>
         /// List of mentioned user IDs in this message.
         /// </summary>
@@ -300,7 +300,7 @@ namespace EventForge.DTOs.Chat
         /// Message formatting type.
         /// </summary>
         public MessageFormat Format { get; set; } = MessageFormat.Plain;
-        
+
         /// <summary>
         /// List of users who have read this message (for group chats).
         /// </summary>
@@ -346,13 +346,13 @@ namespace EventForge.DTOs.Chat
     {
         [Required]
         public Guid MessageId { get; set; }
-        
+
         [Required]
         public Guid UserId { get; set; }
-        
+
         [Required]
         public string Emoji { get; set; } = string.Empty;
-        
+
         public bool IsAdding { get; set; } = true; // true = add, false = remove
     }
 

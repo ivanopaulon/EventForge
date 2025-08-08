@@ -1,5 +1,5 @@
-using EventForge.DTOs.Notifications;
 using EventForge.DTOs.Common;
+using EventForge.DTOs.Notifications;
 
 namespace EventForge.Client.Services;
 
@@ -20,7 +20,7 @@ public interface INotificationService
     Task<NotificationStatsDto> GetNotificationStatsAsync(CancellationToken cancellationToken = default);
     Task<List<NotificationTypes>> GetSubscriptionsAsync(CancellationToken cancellationToken = default);
     Task<bool> UpdateSubscriptionsAsync(List<NotificationTypes> subscriptions, CancellationToken cancellationToken = default);
-    
+
     // Events for real-time updates
     event Action<NotificationResponseDto>? NotificationReceived;
     event Action<Guid>? NotificationRead;

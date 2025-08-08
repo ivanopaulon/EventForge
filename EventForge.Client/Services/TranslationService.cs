@@ -411,7 +411,7 @@ public class TranslationService : ITranslationService
             if (response.IsSuccessStatusCode)
             {
                 var json = await response.Content.ReadAsStringAsync();
-                
+
                 // Use JsonDocument to properly handle nested objects
                 using var document = JsonDocument.Parse(json);
                 var apiTranslations = ConvertJsonElementToDictionary(document.RootElement);
@@ -500,7 +500,7 @@ public class TranslationService : ITranslationService
             if (response.IsSuccessStatusCode)
             {
                 var json = await response.Content.ReadAsStringAsync();
-                
+
                 // Use JsonDocument to properly handle nested objects
                 using var document = JsonDocument.Parse(json);
                 var translations = ConvertJsonElementToDictionary(document.RootElement);
@@ -559,7 +559,7 @@ public class TranslationService : ITranslationService
     private Dictionary<string, object> ConvertJsonElementToDictionary(JsonElement element)
     {
         var result = new Dictionary<string, object>();
-        
+
         if (element.ValueKind != JsonValueKind.Object)
         {
             return result;

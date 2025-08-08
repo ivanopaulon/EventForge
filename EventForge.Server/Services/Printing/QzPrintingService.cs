@@ -1,8 +1,8 @@
+using EventForge.DTOs.Printing;
+using EventForge.Server.Services.Interfaces;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using EventForge.DTOs.Printing;
-using EventForge.Server.Services.Interfaces;
 
 namespace EventForge.Server.Services.Printing;
 
@@ -31,7 +31,7 @@ public class QzPrintingService : IQzPrintingService
 
             var qzUrl = request.QzUrl ?? "ws://localhost:8182";
             using var client = new ClientWebSocket();
-            
+
             var uri = new Uri(qzUrl);
             await client.ConnectAsync(uri, cancellationToken);
 
@@ -123,7 +123,7 @@ public class QzPrintingService : IQzPrintingService
     {
         try
         {
-            _logger.LogInformation("Submitting print job: {JobTitle} to printer: {PrinterId}", 
+            _logger.LogInformation("Submitting print job: {JobTitle} to printer: {PrinterId}",
                 request.PrintJob.Title, request.PrintJob.PrinterId);
 
             // Store print job
@@ -147,7 +147,7 @@ public class QzPrintingService : IQzPrintingService
             var printCommand = CreatePrintCommand(request.PrintJob);
             var commandJson = JsonSerializer.Serialize(printCommand);
             var commandBytes = Encoding.UTF8.GetBytes(commandJson);
-            
+
             await client.SendAsync(new ArraySegment<byte>(commandBytes), WebSocketMessageType.Text, true, cancellationToken);
 
             var response = await ReceiveWebSocketMessage(client, cancellationToken);
@@ -180,7 +180,7 @@ public class QzPrintingService : IQzPrintingService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error submitting print job");
-            
+
             // Update job status to failed
             await _semaphore.WaitAsync(cancellationToken);
             try
@@ -339,7 +339,7 @@ public class QzPrintingService : IQzPrintingService
         try
         {
             using var document = JsonDocument.Parse(response);
-            
+
             if (document.RootElement.TryGetProperty("result", out var result))
             {
                 // QZ Tray returns printer status information
@@ -361,7 +361,7 @@ public class QzPrintingService : IQzPrintingService
         try
         {
             using var document = JsonDocument.Parse(response);
-            
+
             if (document.RootElement.TryGetProperty("jobId", out var jobId))
             {
                 return jobId.GetString();
@@ -381,7 +381,7 @@ public class QzPrintingService : IQzPrintingService
         try
         {
             using var document = JsonDocument.Parse(response);
-            
+
             if (document.RootElement.TryGetProperty("result", out var result))
             {
                 return result.GetString();

@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.SignalR;
 using EventForge.DTOs.Notifications;
 using EventForge.Server.Services.Notifications;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 
 namespace EventForge.Server.Hubs;
@@ -35,12 +35,12 @@ public class NotificationHub : Hub
     {
         var userId = GetCurrentUserId();
         var tenantId = GetCurrentTenantId();
-        
+
         if (userId.HasValue)
         {
             // Join user-specific group for direct notifications
             await Groups.AddToGroupAsync(Context.ConnectionId, $"user_{userId.Value}");
-            
+
             if (tenantId.HasValue)
             {
                 // Join tenant-wide notification group
@@ -68,11 +68,11 @@ public class NotificationHub : Hub
     {
         var userId = GetCurrentUserId();
         var tenantId = GetCurrentTenantId();
-        
+
         if (userId.HasValue)
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"user_{userId.Value}");
-            
+
             if (tenantId.HasValue)
             {
                 await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"tenant_{tenantId.Value}");
@@ -81,7 +81,7 @@ public class NotificationHub : Hub
             {
                 await Groups.RemoveFromGroupAsync(Context.ConnectionId, "system_notifications");
             }
-            
+
             _logger.LogInformation("User {UserId} disconnected from notification hub", userId.Value);
         }
 
@@ -113,9 +113,9 @@ public class NotificationHub : Hub
                 await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
             }
 
-            _logger.LogInformation("User {UserId} subscribed to notification types: {Types}", 
+            _logger.LogInformation("User {UserId} subscribed to notification types: {Types}",
                 userId.Value, string.Join(", ", notificationTypes));
-            
+
             await Clients.Caller.SendAsync("SubscriptionConfirmed", notificationTypes);
         }
         catch (Exception ex)
@@ -145,9 +145,9 @@ public class NotificationHub : Hub
                 await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
             }
 
-            _logger.LogInformation("User {UserId} unsubscribed from notification types: {Types}", 
+            _logger.LogInformation("User {UserId} unsubscribed from notification types: {Types}",
                 userId.Value, string.Join(", ", notificationTypes));
-                
+
             await Clients.Caller.SendAsync("UnsubscriptionConfirmed", notificationTypes);
         }
         catch (Exception ex)
@@ -173,12 +173,12 @@ public class NotificationHub : Hub
         {
             // Call the notification service to acknowledge the notification
             var result = await _notificationService.AcknowledgeNotificationAsync(notificationId, userId.Value);
-            
+
             _logger.LogInformation("User {UserId} acknowledged notification {NotificationId}", userId.Value, notificationId);
-            
+
             // Notify the user that the acknowledgment was successful
             await Clients.Caller.SendAsync("NotificationAcknowledged", notificationId);
-            
+
             // Create update DTO for other user sessions
             var updateDto = new UpdateNotificationStatusDto
             {
@@ -186,7 +186,7 @@ public class NotificationHub : Hub
                 Status = NotificationStatus.Acknowledged,
                 UserId = userId.Value
             };
-            
+
             // Notify other connected devices/sessions of the same user
             await Clients.Group($"user_{userId.Value}").SendAsync("NotificationStatusUpdated", updateDto);
         }
@@ -214,7 +214,7 @@ public class NotificationHub : Hub
         {
             // Call the notification service to silence the notification
             var result = await _notificationService.SilenceNotificationAsync(notificationId, userId.Value, reason);
-            
+
             // Create update DTO for other user sessions
             var updateDto = new UpdateNotificationStatusDto
             {
@@ -224,9 +224,9 @@ public class NotificationHub : Hub
                 Reason = reason
             };
 
-            _logger.LogInformation("User {UserId} silenced notification {NotificationId} with reason: {Reason}", 
+            _logger.LogInformation("User {UserId} silenced notification {NotificationId} with reason: {Reason}",
                 userId.Value, notificationId, reason ?? "No reason provided");
-            
+
             await Clients.Caller.SendAsync("NotificationSilenced", notificationId);
             await Clients.Group($"user_{userId.Value}").SendAsync("NotificationStatusUpdated", updateDto);
         }
@@ -253,7 +253,7 @@ public class NotificationHub : Hub
         {
             // Call the notification service to archive the notification
             var result = await _notificationService.ArchiveNotificationAsync(notificationId, userId.Value);
-            
+
             // Create update DTO for other user sessions
             var updateDto = new UpdateNotificationStatusDto
             {
@@ -263,7 +263,7 @@ public class NotificationHub : Hub
             };
 
             _logger.LogInformation("User {UserId} archived notification {NotificationId}", userId.Value, notificationId);
-            
+
             await Clients.Caller.SendAsync("NotificationArchived", notificationId);
             await Clients.Group($"user_{userId.Value}").SendAsync("NotificationStatusUpdated", updateDto);
         }
@@ -296,9 +296,9 @@ public class NotificationHub : Hub
             // TODO: Implement notification service call
             action.UserId = userId.Value;
 
-            _logger.LogInformation("User {UserId} performed bulk action {Action} on {Count} notifications", 
+            _logger.LogInformation("User {UserId} performed bulk action {Action} on {Count} notifications",
                 userId.Value, action.Action, action.NotificationIds?.Count ?? 0);
-            
+
             await Clients.Caller.SendAsync("BulkActionCompleted", action);
             await Clients.Group($"user_{userId.Value}").SendAsync("NotificationsBulkUpdated", action);
         }
@@ -329,7 +329,7 @@ public class NotificationHub : Hub
         {
             // TODO: Implement user preferences service call
             _logger.LogInformation("User {UserId} updated notification locale to {Locale}", userId.Value, locale);
-            
+
             await Clients.Caller.SendAsync("LocaleUpdated", locale);
         }
         catch (Exception ex)
@@ -361,7 +361,7 @@ public class NotificationHub : Hub
             notification.SenderId = GetCurrentUserId();
 
             _logger.LogInformation("SuperAdmin {UserId} sent system notification", GetCurrentUserId());
-            
+
             // Send to all connected users
             await Clients.Group("system_notifications").SendAsync("SystemNotificationReceived", notification);
         }
@@ -380,7 +380,7 @@ public class NotificationHub : Hub
     {
         var userId = GetCurrentUserId();
         var currentTenantId = GetCurrentTenantId();
-        
+
         // Check permissions
         if (!IsInRole("SuperAdmin") && !IsInRole("Admin"))
         {

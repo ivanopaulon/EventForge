@@ -1,5 +1,4 @@
 using System;
-using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.DTOs.Licensing
 {
@@ -26,8 +25,8 @@ namespace EventForge.DTOs.Licensing
         /// <summary>
         /// Percentage of API limit used.
         /// </summary>
-        public decimal UsagePercentage => MaxApiCallsPerMonth > 0 
-            ? Math.Round((decimal)ApiCallsThisMonth / MaxApiCallsPerMonth * 100, 2) 
+        public decimal UsagePercentage => MaxApiCallsPerMonth > 0
+            ? Math.Round((decimal)ApiCallsThisMonth / MaxApiCallsPerMonth * 100, 2)
             : 0;
 
         /// <summary>
@@ -44,8 +43,8 @@ namespace EventForge.DTOs.Licensing
         /// Date when API call count will next reset.
         /// </summary>
         public DateTime NextResetDate => new DateTime(
-            ApiCallsResetAt.Year, 
-            ApiCallsResetAt.Month, 
+            ApiCallsResetAt.Year,
+            ApiCallsResetAt.Month,
             1).AddMonths(1);
 
         /// <summary>

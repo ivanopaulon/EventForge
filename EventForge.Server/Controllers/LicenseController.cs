@@ -1,9 +1,7 @@
+using EventForge.DTOs.Licensing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Auth;
-using EventForge.DTOs.Licensing;
 
 namespace EventForge.Server.Controllers;
 
@@ -353,7 +351,7 @@ public class LicenseController : BaseApiController
             foreach (var tl in tenantLicenses)
             {
                 var currentUserCount = await _context.Users.CountAsync(u => u.TenantId == tl.TargetTenantId && !u.IsDeleted);
-                
+
                 tenantLicenseDtos.Add(new TenantLicenseDto
                 {
                     Id = tl.Id,
@@ -443,7 +441,7 @@ public class LicenseController : BaseApiController
 
             // Check if tenant already has an active license
             var existingActiveLicense = await _context.TenantLicenses
-                .FirstOrDefaultAsync(tl => tl.TargetTenantId == assignLicenseDto.TenantId && 
+                .FirstOrDefaultAsync(tl => tl.TargetTenantId == assignLicenseDto.TenantId &&
                                           tl.IsLicenseActive && !tl.IsDeleted);
 
             if (existingActiveLicense != null)
@@ -532,7 +530,7 @@ public class LicenseController : BaseApiController
                     .ThenInclude(l => l.LicenseFeatures)
                         .ThenInclude(lf => lf.LicenseFeaturePermissions)
                             .ThenInclude(lfp => lfp.Permission)
-                .FirstOrDefaultAsync(tl => tl.TargetTenantId == tenantId && 
+                .FirstOrDefaultAsync(tl => tl.TargetTenantId == tenantId &&
                                           tl.IsLicenseActive && !tl.IsDeleted);
 
             if (tenantLicense == null)

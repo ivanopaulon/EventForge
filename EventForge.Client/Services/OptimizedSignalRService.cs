@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.SignalR.Client;
-using EventForge.DTOs.Notifications;
 using EventForge.DTOs.Chat;
+using EventForge.DTOs.Notifications;
+using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.Concurrent;
 
 namespace EventForge.Client.Services;
@@ -15,20 +15,20 @@ public class OptimizedSignalRService : IAsyncDisposable
     private readonly IAuthService _authService;
     private readonly ILogger<OptimizedSignalRService> _logger;
     private readonly IPerformanceOptimizationService _performanceService;
-    
+
     // Connection management
     private readonly ConcurrentDictionary<string, HubConnection> _connections;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _connectionLocks;
     private readonly Timer _connectionHealthTimer;
     private readonly Timer _eventBatchTimer;
-    
+
     // Event batching for performance
     private readonly ConcurrentQueue<BatchedEvent> _eventQueue;
     private readonly ConcurrentDictionary<string, DateTime> _lastEventTime;
-    
+
     // Connection retry configuration
     private readonly RetryConfiguration _retryConfig;
-    
+
     private class RetryConfiguration
     {
         public TimeSpan InitialDelay { get; set; } = TimeSpan.FromSeconds(2);
@@ -36,7 +36,7 @@ public class OptimizedSignalRService : IAsyncDisposable
         public int MaxRetries { get; set; } = 5;
         public double BackoffMultiplier { get; set; } = 2.0;
     }
-    
+
     #region Events (optimized with batching)
     public event Action<List<object>>? BatchedAuditLogUpdates;
     public event Action<List<NotificationResponseDto>>? BatchedNotifications;
@@ -61,18 +61,18 @@ public class OptimizedSignalRService : IAsyncDisposable
         _authService = authService;
         _logger = logger;
         _performanceService = performanceService;
-        
+
         _connections = new ConcurrentDictionary<string, HubConnection>();
         _connectionLocks = new ConcurrentDictionary<string, SemaphoreSlim>();
         _eventQueue = new ConcurrentQueue<BatchedEvent>();
         _lastEventTime = new ConcurrentDictionary<string, DateTime>();
-        
+
         _retryConfig = new RetryConfiguration();
-        
+
         // Health check timer - every 30 seconds
-        _connectionHealthTimer = new Timer(CheckConnectionHealthAsync, null, 
+        _connectionHealthTimer = new Timer(CheckConnectionHealthAsync, null,
             TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
-            
+
         // Event batch processing timer - every 100ms for responsiveness
         _eventBatchTimer = new Timer(ProcessEventBatchAsync, null,
             TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100));
@@ -104,11 +104,11 @@ public class OptimizedSignalRService : IAsyncDisposable
     private async Task StartConnectionAsync(string connectionKey, string hubPath)
     {
         var lockSemaphore = _connectionLocks.GetOrAdd(connectionKey, _ => new SemaphoreSlim(1, 1));
-        
+
         await lockSemaphore.WaitAsync();
         try
         {
-            if (_connections.TryGetValue(connectionKey, out var existingConnection) && 
+            if (_connections.TryGetValue(connectionKey, out var existingConnection) &&
                 existingConnection.State == HubConnectionState.Connected)
             {
                 return; // Already connected
@@ -123,7 +123,7 @@ public class OptimizedSignalRService : IAsyncDisposable
             // Setup connection event handlers
             connection.Reconnected += async (connectionId) =>
             {
-                _logger.LogInformation("SignalR {ConnectionKey} reconnected: {ConnectionId}", 
+                _logger.LogInformation("SignalR {ConnectionKey} reconnected: {ConnectionId}",
                     connectionKey, connectionId);
                 await OnConnectionReconnectedAsync(connectionKey);
             };
@@ -139,7 +139,7 @@ public class OptimizedSignalRService : IAsyncDisposable
 
             // Post-connection setup
             await OnConnectionEstablishedAsync(connectionKey);
-            
+
             _logger.LogInformation("SignalR {ConnectionKey} connection established", connectionKey);
         }
         catch (Exception ex)
@@ -302,17 +302,17 @@ public class OptimizedSignalRService : IAsyncDisposable
                             chatMessages.Add(message);
                         break;
                 }
-                
+
                 processedCount++;
             }
 
             // Dispatch batched events
             if (auditEvents.Count > 0)
                 BatchedAuditLogUpdates?.Invoke(auditEvents);
-            
+
             if (notifications.Count > 0)
                 BatchedNotifications?.Invoke(notifications);
-            
+
             if (chatMessages.Count > 0)
                 BatchedChatMessages?.Invoke(chatMessages);
 
@@ -359,7 +359,7 @@ public class OptimizedSignalRService : IAsyncDisposable
     private async Task HandleConnectionClosedAsync(string connectionKey, Exception? error)
     {
         _connections.TryRemove(connectionKey, out _);
-        
+
         // Clear relevant cache on disconnection
         switch (connectionKey)
         {
@@ -386,7 +386,7 @@ public class OptimizedSignalRService : IAsyncDisposable
         while (retryCount < _retryConfig.MaxRetries)
         {
             await Task.Delay(delay);
-            
+
             try
             {
                 await StartConnectionAsync(connectionKey, hubPath);
@@ -398,13 +398,13 @@ public class OptimizedSignalRService : IAsyncDisposable
                 delay = TimeSpan.FromMilliseconds(Math.Min(
                     delay.TotalMilliseconds * _retryConfig.BackoffMultiplier,
                     _retryConfig.MaxDelay.TotalMilliseconds));
-                
-                _logger.LogWarning(ex, "Retry {Count}/{Max} failed for {ConnectionKey}", 
+
+                _logger.LogWarning(ex, "Retry {Count}/{Max} failed for {ConnectionKey}",
                     retryCount, _retryConfig.MaxRetries, connectionKey);
             }
         }
 
-        _logger.LogError("Failed to reconnect {ConnectionKey} after {MaxRetries} attempts", 
+        _logger.LogError("Failed to reconnect {ConnectionKey} after {MaxRetries} attempts",
             connectionKey, _retryConfig.MaxRetries);
     }
 
@@ -421,7 +421,7 @@ public class OptimizedSignalRService : IAsyncDisposable
                 break;
             case "notification":
                 // Preload notification preferences
-                _performanceService.PreloadData(CacheKeys.NOTIFICATION_LIST, 
+                _performanceService.PreloadData(CacheKeys.NOTIFICATION_LIST,
                     async () => await GetNotificationPreferencesAsync());
                 break;
             case "chat":
@@ -440,7 +440,7 @@ public class OptimizedSignalRService : IAsyncDisposable
 
     private async Task JoinAuditGroupAsync()
     {
-        if (_connections.TryGetValue("audit", out var connection) && 
+        if (_connections.TryGetValue("audit", out var connection) &&
             connection.State == HubConnectionState.Connected)
         {
             try
@@ -478,13 +478,13 @@ public class OptimizedSignalRService : IAsyncDisposable
     /// </summary>
     public async Task SendChatMessageAsync(SendMessageDto messageDto)
     {
-        if (_connections.TryGetValue("chat", out var connection) && 
+        if (_connections.TryGetValue("chat", out var connection) &&
             connection.State == HubConnectionState.Connected)
         {
             try
             {
                 await connection.InvokeAsync("SendMessage", messageDto);
-                
+
                 // Optimistically update local cache
                 var cacheKey = CacheKeys.ChatMessages(messageDto.ChatId);
                 _performanceService.InvalidateCache(cacheKey);
@@ -539,8 +539,8 @@ public class OptimizedSignalRService : IAsyncDisposable
 
     private HubConnectionState GetConnectionState(string connectionKey)
     {
-        return _connections.TryGetValue(connectionKey, out var connection) 
-            ? connection.State 
+        return _connections.TryGetValue(connectionKey, out var connection)
+            ? connection.State
             : HubConnectionState.Disconnected;
     }
 
@@ -581,7 +581,7 @@ public class OptimizedRetryPolicy : IRetryPolicy
             return null;
 
         var delay = TimeSpan.FromMilliseconds(
-            _config.InitialDelay.TotalMilliseconds * 
+            _config.InitialDelay.TotalMilliseconds *
             Math.Pow(_config.BackoffMultiplier, retryContext.PreviousRetryCount));
 
         return TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds, _config.MaxDelay.TotalMilliseconds));

@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
 using EventForge.DTOs.Printing;
 using EventForge.Server.Services.Interfaces;
+using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Controllers;
@@ -57,7 +57,7 @@ public class PrintingController : BaseApiController
             _logger.LogInformation("Printer discovery requested by user: {User}", GetCurrentUser());
 
             var response = await _qzPrintingService.DiscoverPrintersAsync(request, cancellationToken);
-            
+
             if (!response.Success)
             {
                 _logger.LogWarning("Printer discovery failed: {Error}", response.ErrorMessage);
@@ -103,14 +103,14 @@ public class PrintingController : BaseApiController
                 return CreateValidationProblemDetails("Printer ID is required");
             }
 
-            _logger.LogInformation("Printer status check requested for: {PrinterId} by user: {User}", 
+            _logger.LogInformation("Printer status check requested for: {PrinterId} by user: {User}",
                 request.PrinterId, GetCurrentUser());
 
             var response = await _qzPrintingService.CheckPrinterStatusAsync(request, cancellationToken);
-            
+
             if (!response.Success)
             {
-                _logger.LogWarning("Printer status check failed for {PrinterId}: {Error}", 
+                _logger.LogWarning("Printer status check failed for {PrinterId}: {Error}",
                     request.PrinterId, response.ErrorMessage);
             }
 
@@ -169,10 +169,10 @@ public class PrintingController : BaseApiController
                 request.PrintJob.Title, request.PrintJob.PrinterId, GetCurrentUser());
 
             var response = await _qzPrintingService.SubmitPrintJobAsync(request, cancellationToken);
-            
+
             if (!response.Success)
             {
-                _logger.LogWarning("Print job submission failed for {JobTitle}: {Error}", 
+                _logger.LogWarning("Print job submission failed for {JobTitle}: {Error}",
                     request.PrintJob.Title, response.ErrorMessage);
             }
 
@@ -204,11 +204,11 @@ public class PrintingController : BaseApiController
     {
         try
         {
-            _logger.LogInformation("Print job status requested for: {JobId} by user: {User}", 
+            _logger.LogInformation("Print job status requested for: {JobId} by user: {User}",
                 jobId, GetCurrentUser());
 
             var printJob = await _qzPrintingService.GetPrintJobStatusAsync(jobId, cancellationToken);
-            
+
             if (printJob == null)
             {
                 return CreateNotFoundProblem($"Print job with ID {jobId} not found");
@@ -242,11 +242,11 @@ public class PrintingController : BaseApiController
     {
         try
         {
-            _logger.LogInformation("Print job cancellation requested for: {JobId} by user: {User}", 
+            _logger.LogInformation("Print job cancellation requested for: {JobId} by user: {User}",
                 jobId, GetCurrentUser());
 
             var result = await _qzPrintingService.CancelPrintJobAsync(jobId, cancellationToken);
-            
+
             if (!result)
             {
                 return CreateNotFoundProblem($"Print job with ID {jobId} not found or cannot be cancelled");
@@ -290,11 +290,11 @@ public class PrintingController : BaseApiController
                 return CreateValidationProblemDetails("Invalid QZ URL format");
             }
 
-            _logger.LogInformation("QZ connection test requested for: {QzUrl} by user: {User}", 
+            _logger.LogInformation("QZ connection test requested for: {QzUrl} by user: {User}",
                 qzUrl, GetCurrentUser());
 
             var result = await _qzPrintingService.TestQzConnectionAsync(qzUrl, cancellationToken);
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -335,11 +335,11 @@ public class PrintingController : BaseApiController
                 return CreateValidationProblemDetails("Invalid QZ URL format");
             }
 
-            _logger.LogInformation("QZ version request for: {QzUrl} by user: {User}", 
+            _logger.LogInformation("QZ version request for: {QzUrl} by user: {User}",
                 qzUrl, GetCurrentUser());
 
             var version = await _qzPrintingService.GetQzVersionAsync(qzUrl, cancellationToken);
-            
+
             if (version == null)
             {
                 return CreateNotFoundProblem("Could not retrieve QZ version information");

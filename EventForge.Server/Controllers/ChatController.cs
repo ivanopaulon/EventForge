@@ -1,5 +1,4 @@
 using EventForge.DTOs.Chat;
-using EventForge.DTOs.Common;
 using EventForge.Server.Services.Chat;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -62,7 +61,7 @@ public class ChatController : ControllerBase
                 createChatDto.Type, createChatDto.ParticipantIds.Count, createChatDto.TenantId);
 
             var result = await _chatService.CreateChatAsync(createChatDto, cancellationToken);
-            
+
             return CreatedAtAction(
                 nameof(GetChatByIdAsync),
                 new { id = result.Id },
@@ -70,9 +69,9 @@ public class ChatController : ControllerBase
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("Rate limit"))
         {
-            return StatusCode(StatusCodes.Status429TooManyRequests, 
-                new ProblemDetails 
-                { 
+            return StatusCode(StatusCodes.Status429TooManyRequests,
+                new ProblemDetails
+                {
                     Title = "Rate Limit Exceeded",
                     Detail = ex.Message,
                     Status = StatusCodes.Status429TooManyRequests
@@ -113,7 +112,7 @@ public class ChatController : ControllerBase
             var tenantId = default(Guid?); // GetCurrentTenantId();
 
             var chat = await _chatService.GetChatByIdAsync(id, userId, tenantId, cancellationToken);
-            
+
             if (chat == null)
             {
                 return NotFound(new ProblemDetails
@@ -305,7 +304,7 @@ public class ChatController : ControllerBase
                 messageDto.ChatId, messageDto.SenderId, messageDto.Attachments?.Count ?? 0);
 
             var result = await _chatService.SendMessageAsync(messageDto, cancellationToken);
-            
+
             return CreatedAtAction(
                 nameof(GetMessageByIdAsync),
                 new { messageId = result.Id },
@@ -313,9 +312,9 @@ public class ChatController : ControllerBase
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("Rate limit"))
         {
-            return StatusCode(StatusCodes.Status429TooManyRequests, 
-                new ProblemDetails 
-                { 
+            return StatusCode(StatusCodes.Status429TooManyRequests,
+                new ProblemDetails
+                {
                     Title = "Rate Limit Exceeded",
                     Detail = ex.Message,
                     Status = StatusCodes.Status429TooManyRequests
@@ -391,7 +390,7 @@ public class ChatController : ControllerBase
             var tenantId = default(Guid?); // GetCurrentTenantId();
 
             var message = await _chatService.GetMessageByIdAsync(messageId, userId, tenantId, cancellationToken);
-            
+
             if (message == null)
             {
                 return NotFound(new ProblemDetails
@@ -684,7 +683,7 @@ public class ChatController : ControllerBase
             };
 
             var result = await _chatService.UploadFileAsync(uploadDto, cancellationToken);
-            
+
             if (result.Success)
             {
                 return CreatedAtAction(
@@ -703,9 +702,9 @@ public class ChatController : ControllerBase
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("Rate limit"))
         {
-            return StatusCode(StatusCodes.Status429TooManyRequests, 
-                new ProblemDetails 
-                { 
+            return StatusCode(StatusCodes.Status429TooManyRequests,
+                new ProblemDetails
+                {
                     Title = "Rate Limit Exceeded",
                     Detail = ex.Message,
                     Status = StatusCodes.Status429TooManyRequests
@@ -746,7 +745,7 @@ public class ChatController : ControllerBase
             var tenantId = default(Guid?); // GetCurrentTenantId();
 
             var downloadInfo = await _chatService.GetFileDownloadInfoAsync(attachmentId, userId, tenantId, cancellationToken);
-            
+
             if (downloadInfo == null)
             {
                 return NotFound(new ProblemDetails
@@ -799,7 +798,7 @@ public class ChatController : ControllerBase
             // Mock response - return sample file content
             var sampleContent = $"Sample file content for attachment {attachmentId}\nGenerated at: {DateTime.UtcNow}";
             var bytes = System.Text.Encoding.UTF8.GetBytes(sampleContent);
-            
+
             return File(bytes, "text/plain", $"attachment-{attachmentId}.txt");
         }
         catch (Exception ex)

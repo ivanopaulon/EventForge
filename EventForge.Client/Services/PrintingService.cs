@@ -66,7 +66,7 @@ namespace EventForge.Client.Services
             {
                 var httpClient = _httpClientFactory.CreateClient("ApiClient");
                 var response = await httpClient.PostAsJsonAsync("api/printing/discover", request);
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -93,7 +93,7 @@ namespace EventForge.Client.Services
             {
                 var httpClient = _httpClientFactory.CreateClient("ApiClient");
                 var response = await httpClient.PostAsJsonAsync("api/printing/status", request);
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -120,7 +120,7 @@ namespace EventForge.Client.Services
             {
                 var httpClient = _httpClientFactory.CreateClient("ApiClient");
                 var response = await httpClient.PostAsJsonAsync("api/printing/print", request);
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -147,7 +147,7 @@ namespace EventForge.Client.Services
             {
                 var httpClient = _httpClientFactory.CreateClient("ApiClient");
                 var response = await httpClient.GetAsync($"api/printing/jobs/{jobId}");
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -179,7 +179,7 @@ namespace EventForge.Client.Services
             {
                 var httpClient = _httpClientFactory.CreateClient("ApiClient");
                 var response = await httpClient.PostAsync($"api/printing/jobs/{jobId}/cancel", null);
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -206,7 +206,7 @@ namespace EventForge.Client.Services
             {
                 var httpClient = _httpClientFactory.CreateClient("ApiClient");
                 var response = await httpClient.PostAsJsonAsync("api/printing/test-connection", qzUrl);
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -233,7 +233,7 @@ namespace EventForge.Client.Services
             {
                 var httpClient = _httpClientFactory.CreateClient("ApiClient");
                 var response = await httpClient.PostAsJsonAsync("api/printing/version", qzUrl);
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();

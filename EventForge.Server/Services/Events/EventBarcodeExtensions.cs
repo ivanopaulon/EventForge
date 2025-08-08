@@ -1,5 +1,3 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Events;
 using EventForge.Server.Services.Interfaces;
 
 namespace EventForge.Server.Services.Events;
@@ -33,14 +31,14 @@ public class EventBarcodeExtensions
         {
             // Create event data for QR code
             var eventData = $"EVENT:{eventDto.Id}|{eventDto.Name}";
-            
+
             if (includeTicketUrl)
             {
                 eventData += $"|URL:https://eventforge.com/events/{eventDto.Id}";
             }
 
             eventData += $"|DATE:{eventDto.StartDate:yyyy-MM-dd}";
-            
+
             if (!string.IsNullOrEmpty(eventDto.Location))
             {
                 eventData += $"|LOC:{eventDto.Location}";

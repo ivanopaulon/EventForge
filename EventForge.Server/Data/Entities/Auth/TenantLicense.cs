@@ -56,8 +56,8 @@ public class TenantLicense : AuditableEntity
     /// <summary>
     /// Indicates if the license is currently valid and active.
     /// </summary>
-    public bool IsValid => IsLicenseActive && 
-                          DateTime.UtcNow >= StartsAt && 
+    public bool IsValid => IsLicenseActive &&
+                          DateTime.UtcNow >= StartsAt &&
                           (!ExpiresAt.HasValue || DateTime.UtcNow <= ExpiresAt.Value);
 
     /// <summary>

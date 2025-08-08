@@ -52,7 +52,7 @@ public class PerformanceOptimizationService : IPerformanceOptimizationService, I
         };
 
         // Setup cache cleanup timer to run every 5 minutes
-        _cacheCleanupTimer = new Timer(async _ => await CleanupExpiredCacheAsync(), 
+        _cacheCleanupTimer = new Timer(async _ => await CleanupExpiredCacheAsync(),
             null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
 
         _logger.LogInformation("Performance optimization service initialized with mobile-optimized caching");
@@ -86,10 +86,10 @@ public class PerformanceOptimizationService : IPerformanceOptimizationService, I
             }
 
             _logger.LogDebug("Cache miss for key: {Key}, executing factory", key);
-            
+
             // Execute factory and cache result
             var result = await factory();
-            
+
             var cacheOptions = _defaultCacheOptions;
             if (expiration.HasValue)
             {
@@ -104,7 +104,7 @@ public class PerformanceOptimizationService : IPerformanceOptimizationService, I
 
             _cache.Set(key, result, cacheOptions);
             _logger.LogDebug("Cached result for key: {Key}", key);
-            
+
             return result;
         }
         catch (Exception ex)
@@ -139,13 +139,13 @@ public class PerformanceOptimizationService : IPerformanceOptimizationService, I
         // For MemoryCache, we need to track keys ourselves for pattern invalidation
         // This is a limitation of IMemoryCache interface
         var keysToRemove = GetCacheKeys().Where(key => key.StartsWith(pattern)).ToList();
-        
+
         foreach (var key in keysToRemove)
         {
             _cache.Remove(key);
         }
 
-        _logger.LogDebug("Cache invalidated for pattern: {Pattern}, removed {Count} entries", 
+        _logger.LogDebug("Cache invalidated for pattern: {Pattern}, removed {Count} entries",
             pattern, keysToRemove.Count);
     }
 
@@ -171,7 +171,7 @@ public class PerformanceOptimizationService : IPerformanceOptimizationService, I
         {
             // Wait for debounce delay
             await Task.Delay(delay, newCts.Token);
-            
+
             // Execute operation if not cancelled
             _logger.LogDebug("Executing debounced operation for key: {Key}", key);
             return await operation();
@@ -273,7 +273,7 @@ public class PerformanceOptimizationService : IPerformanceOptimizationService, I
     public void Dispose()
     {
         _cacheCleanupTimer?.Dispose();
-        
+
         // Cancel all pending debounce operations
         foreach (var cts in _debounceCancellations.Values)
         {
@@ -304,7 +304,7 @@ public static class CacheKeys
     public const string USER_PROFILE = "user_profile";
     public const string TENANT_INFO = "tenant_info";
     public const string CONFIG_SETTINGS = "config_settings";
-    
+
     public static string ChatMessages(Guid chatId) => $"{CHAT_MESSAGES_PREFIX}{chatId}";
     public static string UserData(Guid userId) => $"user_data_{userId}";
     public static string TenantData(Guid tenantId) => $"tenant_data_{tenantId}";

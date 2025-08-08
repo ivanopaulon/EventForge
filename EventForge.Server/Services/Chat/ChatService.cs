@@ -1,11 +1,6 @@
 using EventForge.DTOs.Chat;
-using EventForge.DTOs.Common;
-using EventForge.Server.Data;
-using EventForge.Server.Services.Audit;
-using EventForge.Server.Hubs;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 
 namespace EventForge.Server.Services.Chat;
@@ -64,7 +59,7 @@ public class ChatService : IChatService
         CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        
+
         try
         {
             // Validate tenant access and rate limits
@@ -101,7 +96,7 @@ public class ChatService : IChatService
 
             // Create chat members
             var members = new List<Data.Entities.Chat.ChatMember>();
-            
+
             // Add creator as owner
             members.Add(new Data.Entities.Chat.ChatMember
             {
@@ -159,7 +154,7 @@ public class ChatService : IChatService
             {
                 UserId = member.UserId,
                 Username = $"User_{member.UserId:N}", // TODO: Resolve from user service
-                DisplayName = $"User {member.UserId:N}", 
+                DisplayName = $"User {member.UserId:N}",
                 Role = member.Role,
                 JoinedAt = member.JoinedAt,
                 IsOnline = true, // TODO: Get actual online status
@@ -335,7 +330,7 @@ public class ChatService : IChatService
         CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        
+
         try
         {
             // Validate rate limits
@@ -730,7 +725,7 @@ public class ChatService : IChatService
         CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        
+
         try
         {
             // Validate rate limits for file uploads
@@ -781,7 +776,7 @@ public class ChatService : IChatService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to upload file {FileName} for user {UserId}", uploadDto.FileName, uploadDto.UploadedBy);
-            
+
             return new FileUploadResultDto
             {
                 FileName = uploadDto.FileName,
@@ -970,7 +965,7 @@ public class ChatService : IChatService
                     Success = false,
                     ErrorMessage = ex.Message
                 });
-                
+
                 _logger.LogWarning(ex, "Failed to add user {UserId} to chat {ChatId}", userId, chatId);
             }
         }
@@ -1035,7 +1030,7 @@ public class ChatService : IChatService
                     Success = false,
                     ErrorMessage = ex.Message
                 });
-                
+
                 _logger.LogWarning(ex, "Failed to remove user {UserId} from chat {ChatId}", userId, chatId);
             }
         }
@@ -1100,7 +1095,7 @@ public class ChatService : IChatService
                     Success = false,
                     ErrorMessage = ex.Message
                 });
-                
+
                 _logger.LogWarning(ex, "Failed to update role for user {UserId} in chat {ChatId}", userId, chatId);
             }
         }
@@ -1156,7 +1151,7 @@ public class ChatService : IChatService
         {
             // Simple rate limiting implementation
             // In a production environment, this should use Redis or distributed cache
-            
+
             // Define rate limits by operation type
             var rateLimits = new Dictionary<ChatOperationType, int>
             {
@@ -1194,7 +1189,7 @@ public class ChatService : IChatService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to check chat rate limit for tenant {TenantId}, user {UserId}", tenantId, userId);
-            
+
             // On error, allow but log the issue
             return new ChatRateLimitStatusDto
             {
@@ -1450,7 +1445,7 @@ public class ChatService : IChatService
         CancellationToken cancellationToken)
     {
         var rateLimitStatus = await CheckChatRateLimitAsync(tenantId, userId, operationType, cancellationToken);
-        
+
         if (!rateLimitStatus.IsAllowed)
         {
             throw new InvalidOperationException(

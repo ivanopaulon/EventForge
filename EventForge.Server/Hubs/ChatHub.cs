@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.SignalR;
 using EventForge.DTOs.Chat;
 using EventForge.Server.Services.Chat;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 
 namespace EventForge.Server.Hubs;
@@ -35,22 +35,22 @@ public class ChatHub : Hub
     {
         var userId = GetCurrentUserId();
         var tenantId = GetCurrentTenantId();
-        
+
         if (userId.HasValue && tenantId.HasValue)
         {
             // Join user-specific group for direct notifications
             await Groups.AddToGroupAsync(Context.ConnectionId, $"user_{userId.Value}");
-            
+
             // Join tenant-wide group for tenant isolation
             await Groups.AddToGroupAsync(Context.ConnectionId, $"tenant_{tenantId.Value}");
-            
+
             // TODO: Load user's active chats and join those groups
             // var activeChats = await _chatService.GetUserActiveChatIdsAsync(userId.Value, tenantId.Value);
             // foreach (var chatId in activeChats)
             // {
             //     await Groups.AddToGroupAsync(Context.ConnectionId, $"chat_{chatId}");
             // }
-            
+
             _logger.LogInformation("User {UserId} connected to chat hub for tenant {TenantId}", userId.Value, tenantId.Value);
         }
         else if (IsInRole("SuperAdmin"))
@@ -70,12 +70,12 @@ public class ChatHub : Hub
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         var userId = GetCurrentUserId();
-        
+
         if (userId.HasValue)
         {
             // TODO: Update user's last seen timestamp in active chats
             // await _chatService.UpdateUserLastSeenAsync(userId.Value);
-            
+
             _logger.LogInformation("User {UserId} disconnected from chat hub", userId.Value);
         }
 
@@ -94,7 +94,7 @@ public class ChatHub : Hub
     {
         var userId = GetCurrentUserId();
         var tenantId = GetCurrentTenantId();
-        
+
         if (!userId.HasValue || !tenantId.HasValue)
         {
             throw new HubException("User not authenticated or tenant not specified");
@@ -112,7 +112,7 @@ public class ChatHub : Hub
         {
             // TODO: Implement chat service call
             // var chat = await _chatService.CreateChatAsync(createChatDto);
-            
+
             // Stub implementation
             var chatId = Guid.NewGuid();
             var chatResponse = new ChatResponseDto
@@ -131,14 +131,14 @@ public class ChatHub : Hub
             foreach (var participantId in createChatDto.ParticipantIds)
             {
                 await Groups.AddToGroupAsync(Context.ConnectionId, $"chat_{chatId}");
-                
+
                 // Notify participant about new chat
                 await Clients.Group($"user_{participantId}").SendAsync("ChatCreated", chatResponse);
             }
 
-            _logger.LogInformation("User {UserId} created {ChatType} chat {ChatId} with {ParticipantCount} participants", 
+            _logger.LogInformation("User {UserId} created {ChatType} chat {ChatId} with {ParticipantCount} participants",
                 userId.Value, createChatDto.Type, chatId, createChatDto.ParticipantIds.Count);
-            
+
             await Clients.Caller.SendAsync("ChatCreated", chatResponse);
         }
         catch (Exception ex)
@@ -156,7 +156,7 @@ public class ChatHub : Hub
     {
         var userId = GetCurrentUserId();
         var tenantId = GetCurrentTenantId();
-        
+
         if (!userId.HasValue || !tenantId.HasValue)
         {
             throw new HubException("User not authenticated");
@@ -167,12 +167,12 @@ public class ChatHub : Hub
             // TODO: Verify user has access to this chat
             // var hasAccess = await _chatService.UserHasAccessToChatAsync(userId.Value, chatId, tenantId.Value);
             // if (!hasAccess) throw new HubException("Access denied to chat");
-            
+
             await Groups.AddToGroupAsync(Context.ConnectionId, $"chat_{chatId}");
-            
+
             // Notify other chat members that user joined
             await Clients.Group($"chat_{chatId}").SendAsync("UserJoinedChat", new { ChatId = chatId, UserId = userId.Value });
-            
+
             _logger.LogInformation("User {UserId} joined chat {ChatId}", userId.Value, chatId);
         }
         catch (Exception ex)
@@ -189,7 +189,7 @@ public class ChatHub : Hub
     public async Task LeaveChat(Guid chatId)
     {
         var userId = GetCurrentUserId();
-        
+
         if (!userId.HasValue)
         {
             throw new HubException("User not authenticated");
@@ -198,10 +198,10 @@ public class ChatHub : Hub
         try
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"chat_{chatId}");
-            
+
             // Notify other chat members that user left
             await Clients.Group($"chat_{chatId}").SendAsync("UserLeftChat", new { ChatId = chatId, UserId = userId.Value });
-            
+
             _logger.LogInformation("User {UserId} left chat {ChatId}", userId.Value, chatId);
         }
         catch (Exception ex)
@@ -223,7 +223,7 @@ public class ChatHub : Hub
     {
         var userId = GetCurrentUserId();
         var tenantId = GetCurrentTenantId();
-        
+
         if (!userId.HasValue || !tenantId.HasValue)
         {
             throw new HubException("User not authenticated");
@@ -238,11 +238,11 @@ public class ChatHub : Hub
 
             // Send message to all chat participants
             await Clients.Group($"chat_{messageDto.ChatId}").SendAsync("MessageReceived", savedMessage);
-            
+
             // Update chat's last activity
             await Clients.Group($"chat_{messageDto.ChatId}").SendAsync("ChatUpdated", new { ChatId = messageDto.ChatId, LastActivity = DateTime.UtcNow });
-            
-            _logger.LogInformation("User {UserId} sent message {MessageId} in chat {ChatId}", 
+
+            _logger.LogInformation("User {UserId} sent message {MessageId} in chat {ChatId}",
                 userId.Value, savedMessage.Id, messageDto.ChatId);
         }
         catch (Exception ex)
@@ -259,7 +259,7 @@ public class ChatHub : Hub
     public async Task EditMessage(EditMessageDto editDto)
     {
         var userId = GetCurrentUserId();
-        
+
         if (!userId.HasValue)
         {
             throw new HubException("User not authenticated");
@@ -271,10 +271,10 @@ public class ChatHub : Hub
         {
             // TODO: Implement chat service call
             // var editedMessage = await _chatService.EditMessageAsync(editDto);
-            
+
             // Stub implementation - notify chat participants of message edit
             await Clients.Group($"chat_{Guid.Empty}").SendAsync("MessageEdited", editDto); // TODO: Get actual chat ID
-            
+
             _logger.LogInformation("User {UserId} edited message {MessageId}", userId.Value, editDto.MessageId);
         }
         catch (Exception ex)
@@ -292,7 +292,7 @@ public class ChatHub : Hub
     public async Task DeleteMessage(Guid messageId, string? reason = null)
     {
         var userId = GetCurrentUserId();
-        
+
         if (!userId.HasValue)
         {
             throw new HubException("User not authenticated");
@@ -302,11 +302,11 @@ public class ChatHub : Hub
         {
             // TODO: Implement chat service call
             // await _chatService.DeleteMessageAsync(messageId, userId.Value, reason);
-            
+
             // Stub implementation - notify chat participants of message deletion
             await Clients.Group($"chat_{Guid.Empty}").SendAsync("MessageDeleted", new { MessageId = messageId, DeletedBy = userId.Value, Reason = reason });
-            
-            _logger.LogInformation("User {UserId} deleted message {MessageId} with reason: {Reason}", 
+
+            _logger.LogInformation("User {UserId} deleted message {MessageId} with reason: {Reason}",
                 userId.Value, messageId, reason ?? "No reason provided");
         }
         catch (Exception ex)
@@ -323,7 +323,7 @@ public class ChatHub : Hub
     public async Task MarkMessageAsRead(Guid messageId)
     {
         var userId = GetCurrentUserId();
-        
+
         if (!userId.HasValue)
         {
             throw new HubException("User not authenticated");
@@ -340,7 +340,7 @@ public class ChatHub : Hub
 
             // Notify chat participants of read status (excluding the reader)
             await Clients.GroupExcept($"chat_{Guid.Empty}", Context.ConnectionId).SendAsync("MessageRead", new { MessageId = messageId, ReadReceipt = readReceipt });
-            
+
             _logger.LogInformation("User {UserId} marked message {MessageId} as read", userId.Value, messageId);
         }
         catch (Exception ex)
@@ -362,7 +362,7 @@ public class ChatHub : Hub
     public async Task SendTypingIndicator(Guid chatId, bool isTyping)
     {
         var userId = GetCurrentUserId();
-        
+
         if (!userId.HasValue)
         {
             throw new HubException("User not authenticated");
@@ -399,7 +399,7 @@ public class ChatHub : Hub
     public async Task UpdateChatMembers(UpdateChatMembersDto updateMembersDto)
     {
         var userId = GetCurrentUserId();
-        
+
         if (!userId.HasValue)
         {
             throw new HubException("User not authenticated");
@@ -411,7 +411,7 @@ public class ChatHub : Hub
         {
             // TODO: Verify user has admin permissions for this chat
             // TODO: Implement chat service call
-            
+
             // Add new members to the chat group
             if (updateMembersDto.UsersToAdd?.Any() == true)
             {
@@ -434,7 +434,7 @@ public class ChatHub : Hub
 
             // Notify all chat participants about member changes
             await Clients.Group($"chat_{updateMembersDto.ChatId}").SendAsync("ChatMembersUpdated", updateMembersDto);
-            
+
             _logger.LogInformation("User {UserId} updated members for chat {ChatId}", userId.Value, updateMembersDto.ChatId);
         }
         catch (Exception ex)
@@ -464,7 +464,7 @@ public class ChatHub : Hub
         try
         {
             // TODO: Implement chat service call
-            
+
             // Notify affected users based on action type
             switch (moderationAction.Action.ToLower())
             {
@@ -481,7 +481,7 @@ public class ChatHub : Hub
                     break;
             }
 
-            _logger.LogInformation("SuperAdmin {UserId} performed moderation action '{Action}' on chat {ChatId} with reason: {Reason}", 
+            _logger.LogInformation("SuperAdmin {UserId} performed moderation action '{Action}' on chat {ChatId} with reason: {Reason}",
                 moderationAction.ModeratorId, moderationAction.Action, moderationAction.ChatId, moderationAction.Reason);
         }
         catch (Exception ex)
@@ -532,7 +532,7 @@ public class ChatHub : Hub
     public async Task UpdateChatLocale(string locale)
     {
         var userId = GetCurrentUserId();
-        
+
         if (!userId.HasValue)
         {
             throw new HubException("User not authenticated");
@@ -542,7 +542,7 @@ public class ChatHub : Hub
         {
             // TODO: Implement user preferences service call
             _logger.LogInformation("User {UserId} updated chat locale to {Locale}", userId.Value, locale);
-            
+
             await Clients.Caller.SendAsync("ChatLocaleUpdated", locale);
         }
         catch (Exception ex)

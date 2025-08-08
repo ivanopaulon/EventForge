@@ -50,15 +50,15 @@ namespace EventForge.Client.Services
             {
                 await _loadingDialogService.ShowAsync("Caricamento Indirizzi", "Recupero elenco indirizzi...", true);
                 await _loadingDialogService.UpdateProgressAsync(50);
-                
+
                 var result = await _httpClientService.GetAsync<IEnumerable<AddressDto>>("api/v1/entities/addresses") ?? new List<AddressDto>();
-                
+
                 await _loadingDialogService.UpdateOperationAsync("Indirizzi caricati");
                 await _loadingDialogService.UpdateProgressAsync(100);
-                
+
                 await Task.Delay(500);
                 await _loadingDialogService.HideAsync();
-                
+
                 return result;
             }
             catch (Exception)

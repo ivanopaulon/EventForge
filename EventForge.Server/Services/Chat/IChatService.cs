@@ -1,6 +1,4 @@
 using EventForge.DTOs.Chat;
-using EventForge.DTOs.Common;
-using EventForge.Server.Data;
 
 namespace EventForge.Server.Services.Chat;
 

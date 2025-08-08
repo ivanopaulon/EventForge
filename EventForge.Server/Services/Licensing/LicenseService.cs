@@ -1,6 +1,5 @@
-using Microsoft.EntityFrameworkCore;
-using EventForge.Server.Data;
 using EventForge.DTOs.Licensing;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Licensing;
 
@@ -27,14 +26,14 @@ public class LicenseService : ILicenseService
                 return false;
 
             var feature = tenantLicense.License.LicenseFeatures
-                .FirstOrDefault(lf => lf.Name.Equals(featureName, StringComparison.OrdinalIgnoreCase) && 
+                .FirstOrDefault(lf => lf.Name.Equals(featureName, StringComparison.OrdinalIgnoreCase) &&
                                      lf.IsEnabled);
 
             return feature != null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking feature access for tenant {TenantId} and feature {FeatureName}", 
+            _logger.LogError(ex, "Error checking feature access for tenant {TenantId} and feature {FeatureName}",
                 tenantId, featureName);
             return false;
         }
@@ -220,7 +219,7 @@ public class LicenseService : ILicenseService
                 .ThenInclude(l => l.LicenseFeatures)
                     .ThenInclude(lf => lf.LicenseFeaturePermissions)
                         .ThenInclude(lfp => lfp.Permission)
-            .FirstOrDefaultAsync(tl => tl.TargetTenantId == tenantId && 
+            .FirstOrDefaultAsync(tl => tl.TargetTenantId == tenantId &&
                                       tl.IsLicenseActive && !tl.IsDeleted);
     }
 
