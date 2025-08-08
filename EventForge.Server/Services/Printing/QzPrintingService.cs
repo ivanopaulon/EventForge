@@ -7,17 +7,19 @@ using System.Text.Json;
 namespace EventForge.Server.Services.Printing;
 
 /// <summary>
-/// Implementation of QZ Tray printing service using WebSocket communication
+/// Implementation of QZ Tray printing service using WebSocket communication with digital signature support
 /// </summary>
 public class QzPrintingService : IQzPrintingService
 {
     private readonly ILogger<QzPrintingService> _logger;
+    private readonly QzDigitalSignatureService _signatureService;
     private readonly Dictionary<Guid, PrintJobDto> _printJobs;
     private readonly SemaphoreSlim _semaphore;
 
-    public QzPrintingService(ILogger<QzPrintingService> logger)
+    public QzPrintingService(ILogger<QzPrintingService> logger, QzDigitalSignatureService signatureService)
     {
         _logger = logger;
+        _signatureService = signatureService;
         _printJobs = new Dictionary<Guid, PrintJobDto>();
         _semaphore = new SemaphoreSlim(1, 1);
     }
@@ -143,10 +145,16 @@ public class QzPrintingService : IQzPrintingService
             var uri = new Uri("ws://localhost:8182");
             await client.ConnectAsync(uri, cancellationToken);
 
-            // Send print command based on content type
+            // Create print command based on content type
             var printCommand = CreatePrintCommand(request.PrintJob);
-            var commandJson = JsonSerializer.Serialize(printCommand);
+            
+            // Sign the payload with digital signature
+            var signedCommand = await _signatureService.SignPayloadAsync(printCommand);
+            
+            var commandJson = JsonSerializer.Serialize(signedCommand);
             var commandBytes = Encoding.UTF8.GetBytes(commandJson);
+
+            _logger.LogDebug("Sending signed payload to QZ Tray: {PayloadLength} bytes", commandBytes.Length);
 
             await client.SendAsync(new ArraySegment<byte>(commandBytes), WebSocketMessageType.Text, true, cancellationToken);
 
@@ -286,6 +294,23 @@ public class QzPrintingService : IQzPrintingService
         {
             _logger.LogError(ex, "Error getting QZ version");
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Validates that the QZ Tray digital signature configuration is properly set up
+    /// </summary>
+    /// <returns>True if signature configuration is valid</returns>
+    public async Task<bool> ValidateSignatureConfigurationAsync()
+    {
+        try
+        {
+            return await _signatureService.ValidateSigningConfigurationAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating QZ Tray signature configuration");
+            return false;
         }
     }
 

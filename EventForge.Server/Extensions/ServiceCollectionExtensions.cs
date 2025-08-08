@@ -212,6 +212,7 @@ public static class ServiceCollectionExtensions
 
         // Register printing services
         services.AddScoped<EventForge.Server.Services.Interfaces.IQzPrintingService, QzPrintingService>();
+        services.AddScoped<QzDigitalSignatureService>();
 
         // Register barcode services
         services.AddScoped<EventForge.Server.Services.Interfaces.IBarcodeService, BarcodeService>();
