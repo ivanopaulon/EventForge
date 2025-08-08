@@ -1,0 +1,248 @@
+@using MudBlazor
+@using EventForge.DTOs.Licensing
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Constants
+@inject ILicenseService LicenseService
+@inject ISnackbar Snackbar
+@inject ILogger<LicenseDrawer> Logger
+@inject ITranslationService TranslationService
+
+<EntityDrawer @bind-IsOpen="@IsOpen"
+              @bind-Mode="@Mode"
+              EntityName="@TranslationService.GetTranslation("field.license", "Licenza")"
+              Model="@_model"
+              OnSave="@HandleSave"
+              OnCancel="@HandleCancel"
+              OnClose="@HandleClose"
+              CustomTitle="@_customTitle"
+              AllowEdit="@AllowEdit"
+              Width="800px">
+    
+    <FormContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.Name"
+                              Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                              MaxLength="100"
+                              ReadOnly="@(Mode == EntityDrawerMode.Edit)"
+                              aria-describedby="name-help" />
+                <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @(Mode == EntityDrawerMode.Edit ? 
+                        TranslationService.GetTranslation("license.field.nameEdit", "Il nome della licenza non può essere modificato") : 
+                        TranslationService.GetTranslation("license.field.nameCreate", "Nome univoco per la licenza"))
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.DisplayName"
+                              Label="@($"{TranslationService.GetTranslation("field.displayName", "Nome visualizzato")} *")"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                              MaxLength="200"
+                              aria-describedby="displayName-help" />
+                <MudText id="displayName-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("license.field.displayName", "Nome visualizzato della licenza")
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.Description"
+                              Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                              MaxLength="500"
+                              aria-describedby="description-help" />
+                <MudText id="description-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("license.field.description", "Descrizione della licenza e delle sue funzionalità")
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudNumericField @bind-Value="_model.MaxUsers"
+                                 Label="@($"{TranslationService.GetTranslation("license.field.maxUsers", "Utenti massimi")} *")"
+                                 Variant="Variant.Outlined"
+                                 Required="true"
+                                 RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                                 Min="1"
+                                 Max="10000"
+                                 aria-describedby="maxUsers-help" />
+                <MudText id="maxUsers-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("license.field.maxUsersHelp", "Numero massimo di utenti consentiti")
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudNumericField @bind-Value="_model.MaxApiCallsPerMonth"
+                                 Label="@($"{TranslationService.GetTranslation("license.field.maxApiCalls", "API calls/mese")} *")"
+                                 Variant="Variant.Outlined"
+                                 Required="true"
+                                 RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                                 Min="100"
+                                 Max="1000000"
+                                 aria-describedby="maxApiCalls-help" />
+                <MudText id="maxApiCalls-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("license.field.maxApiCallsHelp", "Numero massimo di chiamate API per mese")
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudNumericField @bind-Value="_model.TierLevel"
+                                 Label="@($"{TranslationService.GetTranslation("license.field.tierLevel", "Livello tier")} *")"
+                                 Variant="Variant.Outlined"
+                                 Required="true"
+                                 RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                                 Min="1"
+                                 Max="10"
+                                 aria-describedby="tierLevel-help" />
+                <MudText id="tierLevel-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("license.field.tierLevelHelp", "Livello di priorità della licenza (1=base, 10=premium)")
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudSwitch @bind-Value="_model.IsActive"
+                           Label="@TranslationService.GetTranslation("field.isActive", "Attiva")"
+                           Color="Color.Primary"
+                           aria-describedby="isActive-help" />
+                <MudText id="isActive-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("license.field.isActiveHelp", "Indica se la licenza è disponibile per l'assegnazione")
+                </MudText>
+            </MudItem>
+
+            @if (Mode == EntityDrawerMode.View && _model.Features?.Any() == true)
+            {
+                <MudItem xs="12">
+                    <MudText Typo="Typo.h6" Class="mb-3">
+                        @TranslationService.GetTranslation("license.features", "Funzionalità incluse")
+                    </MudText>
+                    <MudStack Spacing="2">
+                        @foreach (var feature in _model.Features)
+                        {
+                            <MudPaper Class="pa-3" Elevation="1">
+                                <MudText Typo="Typo.subtitle1" Color="Color.Primary">@feature.Name</MudText>
+                                <MudText Typo="Typo.body2" Class="mb-2">@feature.Description</MudText>
+                                @if (feature.RequiredPermissions?.Any() == true)
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("license.permissions", "Permessi"): 
+                                        @string.Join(", ", feature.RequiredPermissions)
+                                    </MudText>
+                                }
+                            </MudPaper>
+                        }
+                    </MudStack>
+                </MudItem>
+            }
+        </MudGrid>
+    </FormContent>
+</EntityDrawer>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    [Parameter] public EntityDrawerMode Mode { get; set; } = EntityDrawerMode.Create;
+    [Parameter] public EventCallback<EntityDrawerMode> ModeChanged { get; set; }
+    [Parameter] public LicenseDto? License { get; set; }
+    [Parameter] public EventCallback<LicenseDto?> LicenseChanged { get; set; }
+    [Parameter] public EventCallback OnEntitySaved { get; set; }
+    [Parameter] public bool AllowEdit { get; set; } = true;
+
+    private LicenseDto _model = new();
+    private string? _customTitle;
+
+    protected override void OnParametersSet()
+    {
+        if (License != null)
+        {
+            _model = new LicenseDto
+            {
+                Id = License.Id,
+                Name = License.Name,
+                DisplayName = License.DisplayName,
+                Description = License.Description,
+                MaxUsers = License.MaxUsers,
+                MaxApiCallsPerMonth = License.MaxApiCallsPerMonth,
+                TierLevel = License.TierLevel,
+                IsActive = License.IsActive,
+                Features = License.Features,
+                TenantCount = License.TenantCount,
+                CreatedAt = License.CreatedAt,
+                ModifiedAt = License.ModifiedAt
+            };
+        }
+        else
+        {
+            _model = new LicenseDto
+            {
+                IsActive = true,
+                TierLevel = 1,
+                MaxUsers = 10,
+                MaxApiCallsPerMonth = 1000
+            };
+        }
+
+        _customTitle = Mode switch
+        {
+            EntityDrawerMode.Create => TranslationService.GetTranslation("license.create", "Crea nuova licenza"),
+            EntityDrawerMode.Edit => TranslationService.GetTranslation("license.edit", "Modifica licenza"),
+            EntityDrawerMode.View => TranslationService.GetTranslation("license.view", "Visualizza licenza"),
+            _ => null
+        };
+    }
+
+    private async Task HandleSave()
+    {
+        try
+        {
+            if (Mode == EntityDrawerMode.Create)
+            {
+                var createDto = new CreateLicenseDto
+                {
+                    Name = _model.Name,
+                    DisplayName = _model.DisplayName,
+                    Description = _model.Description,
+                    MaxUsers = _model.MaxUsers,
+                    MaxApiCallsPerMonth = _model.MaxApiCallsPerMonth,
+                    TierLevel = _model.TierLevel,
+                    IsActive = _model.IsActive
+                };
+
+                await LicenseService.CreateLicenseAsync(createDto);
+                Snackbar.Add(TranslationService.GetTranslation("license.created", "Licenza creata con successo"), Severity.Success);
+            }
+            else if (Mode == EntityDrawerMode.Edit)
+            {
+                await LicenseService.UpdateLicenseAsync(_model.Id, _model);
+                Snackbar.Add(TranslationService.GetTranslation("license.updated", "Licenza aggiornata con successo"), Severity.Success);
+            }
+
+            await OnEntitySaved.InvokeAsync();
+            await HandleClose();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving license");
+            Snackbar.Add(TranslationService.GetTranslation("error.saveFailed", "Errore durante il salvataggio"), Severity.Error);
+        }
+    }
+
+    private async Task HandleCancel()
+    {
+        await HandleClose();
+    }
+
+    private async Task HandleClose()
+    {
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(IsOpen);
+        
+        Mode = EntityDrawerMode.Create;
+        await ModeChanged.InvokeAsync(Mode);
+        
+        await LicenseChanged.InvokeAsync(null);
+    }
+}

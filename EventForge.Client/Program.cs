@@ -77,6 +77,7 @@ builder.Services.AddScoped<ISuperAdminService, SuperAdminService>();
 builder.Services.AddScoped<ILogsService, LogsService>();
 builder.Services.AddScoped<IEntityManagementService, EntityManagementService>();
 builder.Services.AddScoped<IFinancialService, FinancialService>();
+builder.Services.AddScoped<ILicenseService, LicenseService>();
 
 // Add authentication services
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
