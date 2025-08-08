@@ -35,20 +35,28 @@ public class QzPrintingService : IQzPrintingService
             var uri = new Uri(qzUrl);
             await client.ConnectAsync(uri, cancellationToken);
 
-            // Send discovery command to QZ Tray
+            // Generate unique message ID for request/response matching
+            var messageUid = Guid.NewGuid().ToString();
+
+            // Send discovery command to QZ Tray with proper structure
             var discoveryCommand = new
             {
                 call = "qz.printers.find",
-                @params = new object[] { }
+                @params = new object[] { },
+                uid = messageUid
             };
 
             var commandJson = JsonSerializer.Serialize(discoveryCommand);
             var commandBytes = Encoding.UTF8.GetBytes(commandJson);
+            
+            _logger.LogDebug("Sending QZ command: {Command}", commandJson);
             await client.SendAsync(new ArraySegment<byte>(commandBytes), WebSocketMessageType.Text, true, cancellationToken);
 
-            // Read response
-            var response = await ReceiveWebSocketMessage(client, cancellationToken);
-            var printers = ParsePrintersFromResponse(response);
+            // Wait for response with timeout
+            var response = await ReceiveWebSocketMessageWithTimeout(client, request.TimeoutMs, cancellationToken);
+            _logger.LogDebug("Received QZ response: {Response}", response);
+
+            var (printers, qzVersion) = ParsePrintersFromResponse(response, messageUid);
 
             await client.CloseAsync(WebSocketCloseStatus.NormalClosure, "Discovery complete", cancellationToken);
 
@@ -57,7 +65,8 @@ public class QzPrintingService : IQzPrintingService
                 Success = true,
                 Printers = printers,
                 DiscoveredAt = DateTime.UtcNow,
-                ConnectionStatus = QzConnectionStatus.Connected
+                ConnectionStatus = QzConnectionStatus.Connected,
+                QzVersion = qzVersion
             };
         }
         catch (Exception ex)
@@ -83,19 +92,24 @@ public class QzPrintingService : IQzPrintingService
             var uri = new Uri("ws://localhost:8182");
             await client.ConnectAsync(uri, cancellationToken);
 
-            // Send status check command
+            var messageUid = Guid.NewGuid().ToString();
+            
+            // Send status check command with proper UID
             var statusCommand = new
             {
                 call = "qz.printers.getStatus",
-                @params = new object[] { request.PrinterId }
+                @params = new object[] { request.PrinterId },
+                uid = messageUid
             };
 
             var commandJson = JsonSerializer.Serialize(statusCommand);
             var commandBytes = Encoding.UTF8.GetBytes(commandJson);
+            
+            _logger.LogDebug("Sending QZ status command: {Command}", commandJson);
             await client.SendAsync(new ArraySegment<byte>(commandBytes), WebSocketMessageType.Text, true, cancellationToken);
 
-            var response = await ReceiveWebSocketMessage(client, cancellationToken);
-            var status = ParseStatusFromResponse(response);
+            var response = await ReceiveWebSocketMessageWithTimeout(client, request.TimeoutMs, cancellationToken);
+            var status = ParseStatusFromResponse(response, messageUid);
 
             await client.CloseAsync(WebSocketCloseStatus.NormalClosure, "Status check complete", cancellationToken);
 
@@ -108,7 +122,7 @@ public class QzPrintingService : IQzPrintingService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking printer status");
+            _logger.LogError(ex, "Error checking printer status for {PrinterId}", request.PrinterId);
             return new PrinterStatusResponseDto
             {
                 Success = false,
@@ -143,15 +157,18 @@ public class QzPrintingService : IQzPrintingService
             var uri = new Uri("ws://localhost:8182");
             await client.ConnectAsync(uri, cancellationToken);
 
-            // Send print command based on content type
-            var printCommand = CreatePrintCommand(request.PrintJob);
+            var messageUid = Guid.NewGuid().ToString();
+            
+            // Send print command based on content type with proper UID
+            var printCommand = CreatePrintCommand(request.PrintJob, messageUid);
             var commandJson = JsonSerializer.Serialize(printCommand);
             var commandBytes = Encoding.UTF8.GetBytes(commandJson);
 
+            _logger.LogDebug("Sending QZ print command: {Command}", commandJson);
             await client.SendAsync(new ArraySegment<byte>(commandBytes), WebSocketMessageType.Text, true, cancellationToken);
 
-            var response = await ReceiveWebSocketMessage(client, cancellationToken);
-            var qzJobId = ParseJobIdFromResponse(response);
+            var response = await ReceiveWebSocketMessageWithTimeout(client, request.CompletionTimeoutMs, cancellationToken);
+            var qzJobId = ParseJobIdFromResponse(response, messageUid);
 
             await client.CloseAsync(WebSocketCloseStatus.NormalClosure, "Print job submitted", cancellationToken);
 
@@ -267,20 +284,24 @@ public class QzPrintingService : IQzPrintingService
             var uri = new Uri(qzUrl);
             await client.ConnectAsync(uri, cancellationToken);
 
+            var messageUid = Guid.NewGuid().ToString();
             var versionCommand = new
             {
                 call = "qz.websocket.getVersion",
-                @params = new object[] { }
+                @params = new object[] { },
+                uid = messageUid
             };
 
             var commandJson = JsonSerializer.Serialize(versionCommand);
             var commandBytes = Encoding.UTF8.GetBytes(commandJson);
+            
+            _logger.LogDebug("Sending QZ version command: {Command}", commandJson);
             await client.SendAsync(new ArraySegment<byte>(commandBytes), WebSocketMessageType.Text, true, cancellationToken);
 
-            var response = await ReceiveWebSocketMessage(client, cancellationToken);
+            var response = await ReceiveWebSocketMessageWithTimeout(client, 10000, cancellationToken);
             await client.CloseAsync(WebSocketCloseStatus.NormalClosure, "Version check complete", cancellationToken);
 
-            return ParseVersionFromResponse(response);
+            return ParseVersionFromResponse(response, messageUid);
         }
         catch (Exception ex)
         {
@@ -296,55 +317,197 @@ public class QzPrintingService : IQzPrintingService
         return Encoding.UTF8.GetString(buffer, 0, result.Count);
     }
 
-    private List<PrinterDto> ParsePrintersFromResponse(string response)
+    private async Task<string> ReceiveWebSocketMessageWithTimeout(ClientWebSocket client, int timeoutMs, CancellationToken cancellationToken)
+    {
+        using var timeoutCancellation = new CancellationTokenSource(timeoutMs);
+        using var combinedCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCancellation.Token);
+
+        var buffer = new List<byte>();
+        var tempBuffer = new byte[4096];
+        
+        try
+        {
+            WebSocketReceiveResult result;
+            do
+            {
+                result = await client.ReceiveAsync(new ArraySegment<byte>(tempBuffer), combinedCancellation.Token);
+                
+                if (result.MessageType == WebSocketMessageType.Text)
+                {
+                    buffer.AddRange(tempBuffer.Take(result.Count));
+                }
+                else if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    throw new InvalidOperationException("WebSocket connection closed by QZ Tray");
+                }
+            }
+            while (!result.EndOfMessage);
+
+            return Encoding.UTF8.GetString(buffer.ToArray());
+        }
+        catch (OperationCanceledException) when (timeoutCancellation.Token.IsCancellationRequested)
+        {
+            throw new TimeoutException($"QZ Tray response timeout after {timeoutMs}ms");
+        }
+    }
+
+    private (List<PrinterDto> printers, string? qzVersion) ParsePrintersFromResponse(string response, string expectedUid)
     {
         try
         {
             using var document = JsonDocument.Parse(response);
             var printers = new List<PrinterDto>();
+            string? qzVersion = null;
 
-            if (document.RootElement.TryGetProperty("result", out var result) && result.ValueKind == JsonValueKind.Array)
+            _logger.LogDebug("Parsing QZ response: {Response}", response);
+
+            // Check if this is an error response
+            if (document.RootElement.TryGetProperty("error", out var errorElement))
             {
-                foreach (var printerElement in result.EnumerateArray())
+                var errorMessage = errorElement.GetString() ?? "Unknown QZ Tray error";
+                _logger.LogError("QZ Tray returned error: {Error}", errorMessage);
+                throw new InvalidOperationException($"QZ Tray error: {errorMessage}");
+            }
+
+            // Verify the UID matches our request
+            if (document.RootElement.TryGetProperty("uid", out var uidElement))
+            {
+                var responseUid = uidElement.GetString();
+                if (responseUid != expectedUid)
                 {
-                    if (printerElement.ValueKind == JsonValueKind.String)
+                    _logger.LogWarning("QZ response UID mismatch. Expected: {Expected}, Got: {Received}", expectedUid, responseUid);
+                }
+            }
+
+            // Extract QZ version if available
+            if (document.RootElement.TryGetProperty("qzVersion", out var versionElement))
+            {
+                qzVersion = versionElement.GetString();
+            }
+
+            // Parse printer list from result
+            if (document.RootElement.TryGetProperty("result", out var result))
+            {
+                if (result.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var printerElement in result.EnumerateArray())
                     {
-                        var printerName = printerElement.GetString();
-                        if (!string.IsNullOrEmpty(printerName))
+                        if (printerElement.ValueKind == JsonValueKind.String)
                         {
-                            printers.Add(new PrinterDto
+                            var printerName = printerElement.GetString();
+                            if (!string.IsNullOrEmpty(printerName))
                             {
-                                Id = printerName,
-                                Name = printerName,
-                                Status = EventForge.DTOs.Printing.PrinterStatus.Online,
-                                IsAvailable = true,
-                                LastStatusUpdate = DateTime.UtcNow
-                            });
+                                printers.Add(new PrinterDto
+                                {
+                                    Id = printerName,
+                                    Name = printerName,
+                                    Status = EventForge.DTOs.Printing.PrinterStatus.Online,
+                                    IsAvailable = true,
+                                    LastStatusUpdate = DateTime.UtcNow,
+                                    Description = $"Printer discovered via QZ Tray"
+                                });
+                            }
                         }
+                        else if (printerElement.ValueKind == JsonValueKind.Object)
+                        {
+                            // Handle printer objects with more details
+                            var printerName = printerElement.TryGetProperty("name", out var nameElement) ? nameElement.GetString() : null;
+                            var printerDescription = printerElement.TryGetProperty("description", out var descElement) ? descElement.GetString() : null;
+                            
+                            if (!string.IsNullOrEmpty(printerName))
+                            {
+                                printers.Add(new PrinterDto
+                                {
+                                    Id = printerName,
+                                    Name = printerName,
+                                    Status = EventForge.DTOs.Printing.PrinterStatus.Online,
+                                    IsAvailable = true,
+                                    LastStatusUpdate = DateTime.UtcNow,
+                                    Description = printerDescription ?? $"Printer discovered via QZ Tray"
+                                });
+                            }
+                        }
+                    }
+                }
+                else if (result.ValueKind == JsonValueKind.String)
+                {
+                    // Single printer result
+                    var printerName = result.GetString();
+                    if (!string.IsNullOrEmpty(printerName))
+                    {
+                        printers.Add(new PrinterDto
+                        {
+                            Id = printerName,
+                            Name = printerName,
+                            Status = EventForge.DTOs.Printing.PrinterStatus.Online,
+                            IsAvailable = true,
+                            LastStatusUpdate = DateTime.UtcNow,
+                            Description = $"Printer discovered via QZ Tray"
+                        });
                     }
                 }
             }
 
-            return printers;
+            _logger.LogInformation("Successfully parsed {Count} printers from QZ Tray response", printers.Count);
+            return (printers, qzVersion);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Invalid JSON response from QZ Tray: {Response}", response);
+            throw new InvalidOperationException($"Invalid JSON response from QZ Tray: {ex.Message}");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error parsing printers from QZ response: {Response}", response);
-            return new List<PrinterDto>();
+            throw;
         }
     }
 
-    private EventForge.DTOs.Printing.PrinterStatus ParseStatusFromResponse(string response)
+    private EventForge.DTOs.Printing.PrinterStatus ParseStatusFromResponse(string response, string expectedUid)
     {
         try
         {
             using var document = JsonDocument.Parse(response);
 
+            // Check for errors
+            if (document.RootElement.TryGetProperty("error", out var errorElement))
+            {
+                var errorMessage = errorElement.GetString() ?? "Unknown QZ Tray error";
+                _logger.LogError("QZ Tray status check returned error: {Error}", errorMessage);
+                return EventForge.DTOs.Printing.PrinterStatus.Error;
+            }
+
+            // Verify UID matches
+            if (document.RootElement.TryGetProperty("uid", out var uidElement))
+            {
+                var responseUid = uidElement.GetString();
+                if (responseUid != expectedUid)
+                {
+                    _logger.LogWarning("QZ status response UID mismatch. Expected: {Expected}, Got: {Received}", expectedUid, responseUid);
+                }
+            }
+
             if (document.RootElement.TryGetProperty("result", out var result))
             {
                 // QZ Tray returns printer status information
-                // This is a simplified implementation - real QZ status checking would be more complex
-                return EventForge.DTOs.Printing.PrinterStatus.Online;
+                // This could be a boolean (true/false for available) or an object with status details
+                if (result.ValueKind == JsonValueKind.True)
+                {
+                    return EventForge.DTOs.Printing.PrinterStatus.Online;
+                }
+                else if (result.ValueKind == JsonValueKind.False)
+                {
+                    return EventForge.DTOs.Printing.PrinterStatus.Offline;
+                }
+                else if (result.ValueKind == JsonValueKind.Object)
+                {
+                    // Handle detailed status object
+                    if (result.TryGetProperty("available", out var availableElement) && availableElement.ValueKind == JsonValueKind.True)
+                    {
+                        return EventForge.DTOs.Printing.PrinterStatus.Online;
+                    }
+                    return EventForge.DTOs.Printing.PrinterStatus.Offline;
+                }
             }
 
             return EventForge.DTOs.Printing.PrinterStatus.Unknown;
@@ -356,15 +519,43 @@ public class QzPrintingService : IQzPrintingService
         }
     }
 
-    private string? ParseJobIdFromResponse(string response)
+    private string? ParseJobIdFromResponse(string response, string expectedUid)
     {
         try
         {
             using var document = JsonDocument.Parse(response);
 
-            if (document.RootElement.TryGetProperty("jobId", out var jobId))
+            // Check for errors
+            if (document.RootElement.TryGetProperty("error", out var errorElement))
             {
-                return jobId.GetString();
+                var errorMessage = errorElement.GetString() ?? "Unknown QZ Tray error";
+                _logger.LogError("QZ Tray print job returned error: {Error}", errorMessage);
+                throw new InvalidOperationException($"QZ Tray error: {errorMessage}");
+            }
+
+            // Verify UID matches
+            if (document.RootElement.TryGetProperty("uid", out var uidElement))
+            {
+                var responseUid = uidElement.GetString();
+                if (responseUid != expectedUid)
+                {
+                    _logger.LogWarning("QZ print response UID mismatch. Expected: {Expected}, Got: {Received}", expectedUid, responseUid);
+                }
+            }
+
+            if (document.RootElement.TryGetProperty("result", out var result))
+            {
+                // QZ Tray might return a job ID or just success confirmation
+                if (result.ValueKind == JsonValueKind.String)
+                {
+                    return result.GetString();
+                }
+                else if (result.ValueKind == JsonValueKind.Object && result.TryGetProperty("jobId", out var jobIdElement))
+                {
+                    return jobIdElement.GetString();
+                }
+                // If no specific job ID, return a generated one based on the UID
+                return expectedUid;
             }
 
             return null;
@@ -372,15 +563,33 @@ public class QzPrintingService : IQzPrintingService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error parsing job ID from QZ response: {Response}", response);
-            return null;
+            throw;
         }
     }
 
-    private string? ParseVersionFromResponse(string response)
+    private string? ParseVersionFromResponse(string response, string expectedUid)
     {
         try
         {
             using var document = JsonDocument.Parse(response);
+
+            // Check for errors
+            if (document.RootElement.TryGetProperty("error", out var errorElement))
+            {
+                var errorMessage = errorElement.GetString() ?? "Unknown QZ Tray error";
+                _logger.LogError("QZ Tray version check returned error: {Error}", errorMessage);
+                return null;
+            }
+
+            // Verify UID matches
+            if (document.RootElement.TryGetProperty("uid", out var uidElement))
+            {
+                var responseUid = uidElement.GetString();
+                if (responseUid != expectedUid)
+                {
+                    _logger.LogWarning("QZ version response UID mismatch. Expected: {Expected}, Got: {Received}", expectedUid, responseUid);
+                }
+            }
 
             if (document.RootElement.TryGetProperty("result", out var result))
             {
@@ -396,7 +605,7 @@ public class QzPrintingService : IQzPrintingService
         }
     }
 
-    private object CreatePrintCommand(PrintJobDto printJob)
+    private object CreatePrintCommand(PrintJobDto printJob, string messageUid)
     {
         return printJob.ContentType switch
         {
@@ -417,7 +626,8 @@ public class QzPrintingService : IQzPrintingService
                             }
                         }
                     }
-                }
+                },
+                uid = messageUid
             },
             PrintContentType.Html => new
             {
@@ -436,7 +646,8 @@ public class QzPrintingService : IQzPrintingService
                             }
                         }
                     }
-                }
+                },
+                uid = messageUid
             },
             _ => new
             {
@@ -455,7 +666,8 @@ public class QzPrintingService : IQzPrintingService
                             }
                         }
                     }
-                }
+                },
+                uid = messageUid
             }
         };
     }
