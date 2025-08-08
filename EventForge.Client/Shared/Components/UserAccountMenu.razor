@@ -3,6 +3,7 @@
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
+@inject IThemeService ThemeService
 @implements IDisposable
 
 <!--
@@ -106,6 +107,104 @@
             
             <MudDivider Class="my-1" />
             
+            <!-- Theme Selection -->
+            <MudMenuItem Icon="@GetCurrentThemeIcon()" 
+                         aria-label="@TranslationService.GetTranslation("theme.selectTheme", "Select theme")">
+                <div class="d-flex align-center" style="width: 100%;">
+                    <MudIcon Icon="@GetCurrentThemeIcon()" Style="margin-right: 12px;" />
+                    <div class="flex-grow-1">
+                        <MudText Typo="Typo.body2">
+                            @TranslationService.GetTranslation("theme.selector", "Theme")
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @TranslationService.GetTranslation($"theme.{ThemeService.CurrentTheme}.name", GetThemeName(ThemeService.CurrentTheme))
+                        </MudText>
+                    </div>
+                    <MudMenu Icon="@Icons.Material.Filled.KeyboardArrowRight"
+                             Color="Color.Inherit"
+                             Direction="Origin.CenterLeft"
+                             Dense="true"
+                             Class="theme-submenu">
+                        <ActivatorContent>
+                            <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowRight" 
+                                           Size="Size.Small" 
+                                           Color="Color.Inherit" />
+                        </ActivatorContent>
+                        <ChildContent>
+                            @foreach (var theme in ThemeService.AvailableThemes)
+                            {
+                                <MudMenuItem OnClick="@(() => HandleThemeSelection(theme.Key))"
+                                             Class="@(theme.Key == ThemeService.CurrentTheme ? "mud-selected" : "")">
+                                    <div class="d-flex align-center ga-2">
+                                        <MudIcon Icon="@GetThemeIcon(theme.Key)" 
+                                                 Color="@(theme.Key == ThemeService.CurrentTheme ? Color.Primary : Color.Default)"
+                                                 Size="Size.Small" />
+                                        <span>@TranslationService.GetTranslation($"theme.{theme.Key}.name", theme.Name)</span>
+                                        @if (theme.Key == ThemeService.CurrentTheme)
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.Check" 
+                                                     Color="Color.Primary" 
+                                                     Size="Size.Small" 
+                                                     Style="margin-left: auto;" />
+                                        }
+                                    </div>
+                                </MudMenuItem>
+                            }
+                        </ChildContent>
+                    </MudMenu>
+                </div>
+            </MudMenuItem>
+            
+            <!-- Language Selection -->
+            <MudMenuItem Icon="@Icons.Material.Filled.Language" 
+                         aria-label="@TranslationService.GetTranslation("accessibility.selectLanguage", "Select language")">
+                <div class="d-flex align-center" style="width: 100%;">
+                    <MudIcon Icon="@Icons.Material.Filled.Language" Style="margin-right: 12px;" />
+                    <div class="flex-grow-1">
+                        <MudText Typo="Typo.body2">
+                            @TranslationService.GetTranslation("common.language", "Language")
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @GetCurrentLanguageName()
+                        </MudText>
+                    </div>
+                    <MudMenu Icon="@Icons.Material.Filled.KeyboardArrowRight"
+                             Color="Color.Inherit"
+                             Direction="Origin.CenterLeft"
+                             Dense="true"
+                             Class="language-submenu">
+                        <ActivatorContent>
+                            <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowRight" 
+                                           Size="Size.Small" 
+                                           Color="Color.Inherit" />
+                        </ActivatorContent>
+                        <ChildContent>
+                            @foreach (var language in TranslationService.GetAvailableLanguages())
+                            {
+                                <MudMenuItem OnClick="@(() => HandleLanguageSelection(language.Key))"
+                                             Class="@(language.Key == TranslationService.CurrentLanguage ? "mud-selected" : "")">
+                                    <div class="d-flex align-center ga-2">
+                                        <div class="flag-icon @GetFlagClass(language.Key)" 
+                                             aria-hidden="true" 
+                                             title="@language.Value"></div>
+                                        <span>@language.Value</span>
+                                        @if (language.Key == TranslationService.CurrentLanguage)
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.Check" 
+                                                     Color="Color.Primary" 
+                                                     Size="Size.Small" 
+                                                     Style="margin-left: auto;" />
+                                        }
+                                    </div>
+                                </MudMenuItem>
+                            }
+                        </ChildContent>
+                    </MudMenu>
+                </div>
+            </MudMenuItem>
+            
+            <MudDivider Class="my-1" />
+            
             <!-- Logout Action -->
             <MudMenuItem Icon="@Icons.Material.Filled.Logout" 
                          OnClick="@HandleLogout"
@@ -128,6 +227,8 @@
     protected override async Task OnInitializedAsync()
     {
         AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
+        ThemeService.OnThemeChanged += OnThemeChanged;
+        TranslationService.LanguageChanged += OnLanguageChanged;
         await CheckAuthenticationState();
     }
 
@@ -230,9 +331,125 @@
         return Color.Success;
     }
 
+    /// <summary>
+    /// Handles theme change events from the theme service.
+    /// </summary>
+    private void OnThemeChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Handles language change events from the translation service.
+    /// </summary>
+    private void OnLanguageChanged(object? sender, string newLanguage)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Handles theme selection from the submenu.
+    /// </summary>
+    private async Task HandleThemeSelection(string themeKey)
+    {
+        try
+        {
+            await ThemeService.SetThemeAsync(themeKey);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("theme.changeError", "Error changing theme: {0}", ex.Message), Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Handles language selection from the submenu.
+    /// </summary>
+    private async Task HandleLanguageSelection(string languageKey)
+    {
+        try
+        {
+            await TranslationService.SetLanguageAsync(languageKey);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("language.changeError", "Error changing language: {0}", ex.Message), Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Gets the current theme icon.
+    /// </summary>
+    private string GetCurrentThemeIcon()
+    {
+        return GetThemeIcon(ThemeService.CurrentTheme);
+    }
+
+    /// <summary>
+    /// Gets the icon for a specific theme.
+    /// </summary>
+    private string GetThemeIcon(string themeKey)
+    {
+        return themeKey switch
+        {
+            "light" => Icons.Material.Filled.LightMode,
+            "dark" => Icons.Material.Filled.DarkMode,
+            "warm" => Icons.Material.Filled.LocalFireDepartment,
+            "cool" => Icons.Material.Filled.AcUnit,
+            "high-contrast" => Icons.Material.Filled.Contrast,
+            "fun" => Icons.Material.Filled.Palette,
+            _ => Icons.Material.Filled.ColorLens
+        };
+    }
+
+    /// <summary>
+    /// Gets the display name for a theme.
+    /// </summary>
+    private string GetThemeName(string themeKey)
+    {
+        return themeKey switch
+        {
+            "light" => "Light",
+            "dark" => "Dark",
+            "warm" => "Warm",
+            "cool" => "Cool",
+            "high-contrast" => "High Contrast",
+            "fun" => "Fun",
+            _ => "Default"
+        };
+    }
+
+    /// <summary>
+    /// Gets the current language display name.
+    /// </summary>
+    private string GetCurrentLanguageName()
+    {
+        var languages = TranslationService.GetAvailableLanguages();
+        return languages.ContainsKey(TranslationService.CurrentLanguage) 
+            ? languages[TranslationService.CurrentLanguage] 
+            : TranslationService.CurrentLanguage;
+    }
+
+    /// <summary>
+    /// Gets the CSS class for language flags.
+    /// </summary>
+    private string GetFlagClass(string languageCode)
+    {
+        return languageCode switch
+        {
+            "it" => "flag-it",
+            "en" => "flag-en", 
+            "es" => "flag-es",
+            "fr" => "flag-fr",
+            _ => "flag-default"
+        };
+    }
+
     public void Dispose()
     {
         AuthService.OnAuthenticationStateChanged -= OnAuthenticationStateChanged;
+        ThemeService.OnThemeChanged -= OnThemeChanged;
+        TranslationService.LanguageChanged -= OnLanguageChanged;
     }
 }
 
@@ -375,5 +592,59 @@
     .user-menu-activator:focus-within {
         outline: 2px solid var(--mud-palette-primary);
         outline-offset: 2px;
+    }
+
+    /* Theme and Language submenu styling */
+    .theme-submenu .mud-menu,
+    .language-submenu .mud-menu {
+        min-width: 200px;
+    }
+
+    /* Flag icons using CSS - matching LanguageSelector design */
+    .flag-icon {
+        width: 20px;
+        height: 14px;
+        border-radius: 2px;
+        display: inline-block;
+        margin-right: 8px;
+        background-size: cover;
+        background-position: center;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        flex-shrink: 0;
+    }
+
+    .flag-it {
+        background: linear-gradient(to right, #009246 33.33%, #ffffff 33.33%, #ffffff 66.66%, #ce2b37 66.66%);
+    }
+
+    .flag-en {
+        background: linear-gradient(to bottom, #012169 25%, #ffffff 25%, #ffffff 75%, #c8102e 75%),
+                    linear-gradient(to right, #012169 25%, #ffffff 25%, #ffffff 75%, #c8102e 75%);
+        background-size: 100% 33.33%, 33.33% 100%;
+        background-position: 0 0, 0 0;
+        background-repeat: no-repeat;
+    }
+
+    .flag-es {
+        background: linear-gradient(to bottom, #aa151b 25%, #f1bf00 25%, #f1bf00 75%, #aa151b 75%);
+    }
+
+    .flag-fr {
+        background: linear-gradient(to right, #0055a4 33.33%, #ffffff 33.33%, #ffffff 66.66%, #ef4135 66.66%);
+    }
+
+    .flag-default {
+        background: #cccccc;
+    }
+
+    /* Selected submenu item styling */
+    .mud-selected {
+        background-color: rgba(var(--mud-palette-primary-rgb), 0.08);
+    }
+
+    /* Improved submenu item alignment */
+    .mud-menu-item .d-flex.align-center.ga-2 {
+        width: 100%;
+        min-width: 180px;
     }
 </style>
