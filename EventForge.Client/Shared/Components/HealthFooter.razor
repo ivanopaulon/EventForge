@@ -5,272 +5,44 @@
 @implements IDisposable
 
 <!-- 
-    Health Footer Component
+    Health Footer Component (Minimal & Compact)
     
-    A full-width drawer at the bottom of the screen that shows detailed health status information.
+    A minimal health status indicator with fullscreen dialog view.
     Features:
-    - Central tab to open/close the drawer with dynamic icon (ExpandLess/ExpandMore)
-    - Transparent overlay for closing when clicking outside
-    - Detailed health information sections (API, Database, Auth, Dependencies)
-    - Compact view when closed (only tab visible)
-    - Responsive design with mobile breakpoints
-    - Full accessibility support with ARIA labels and keyboard navigation
-    - Smooth slide animations and hover effects
+    - Compact tab showing overall health status
+    - Fullscreen dialog for detailed health information
+    - Essential health information only (API, Database)
     - Auto-refresh health data every 30 seconds
 -->
 
-<!-- Health Status Drawer -->
-<div class="health-footer-container">
-    <!-- Overlay for closing drawer when clicked outside -->
-    @if (_isOpen)
-    {
-        <div class="health-overlay" 
-             @onclick="CloseDrawer"
-             aria-label="@TranslationService.GetTranslation("health.closeOverlay", "Close health status drawer")"
-             role="button"
-             tabindex="0"
-             @onkeypress="@(async (e) => { if (e.Key == "Enter" || e.Key == " ") await CloseDrawer(); })">
-        </div>
-    }
-
-    <!-- Tab for opening/closing the drawer -->
-    <div class="health-tab @(_isOpen ? "open" : "closed")" 
-         @onclick="ToggleDrawer"
+<!-- Compact Health Status Tab -->
+<div class="health-footer-minimal">
+    <div class="health-tab-compact" 
+         @onclick="OpenHealthDialog"
          role="button"
          tabindex="0"
-         @onkeypress="@(async (e) => { if (e.Key == "Enter" || e.Key == " ") await ToggleDrawer(); })"
-         aria-label="@GetTabAriaLabel()"
-         title="@GetTabTooltip()">
-        <MudIcon Icon="@GetTabIcon()" 
-                 Color="Color.Inherit" 
-                 Size="Size.Medium" />
+         @onkeypress="@(async (e) => { if (e.Key == "Enter" || e.Key == " ") await OpenHealthDialog(); })"
+         aria-label="@TranslationService.GetTranslation("health.openDialog", "View health status")"
+         title="@GetHealthStatusTitle()">
+        <MudIcon Icon="@GetOverallHealthIcon()" 
+                 Color="@GetOverallHealthColor()" 
+                 Size="Size.Small" />
+        <MudText Typo="Typo.caption" Class="health-status-text">
+            @GetOverallHealthStatus()
+        </MudText>
     </div>
-
-    <!-- The drawer content -->
-    <MudCollapse Expanded="@_isOpen" 
-                 Class="health-drawer">
-        <div class="health-drawer-content">
-            @if (_healthData != null)
-            {
-                <MudStack Spacing="3">
-                    
-                    <!-- API Status Section -->
-                    <div class="health-section">
-                        <MudCard Class="health-section-card" Elevation="1">
-                            <MudCardContent Class="pa-3">
-                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
-                                    <MudIcon Icon="@Icons.Material.Filled.Api" 
-                                             Color="@GetStatusColor(_healthData.ApiStatus)" 
-                                             Size="Size.Medium" />
-                                    <MudText Typo="Typo.subtitle1" Class="font-weight-medium">
-                                        @TranslationService.GetTranslation("health.api.title", "API Status")
-                                    </MudText>
-                                    <MudChip T="string" Size="Size.Small" 
-                                             Color="@GetStatusColor(_healthData.ApiStatus)" 
-                                             Text="@_healthData.ApiStatus" 
-                                             Variant="Variant.Filled" />
-                                </MudStack>
-                                
-                                <div class="health-details selectable-content">
-                                    <MudText Typo="Typo.body2" Class="mb-1">
-                                        <strong>@TranslationService.GetTranslation("health.version", "Version"):</strong> @_healthData.Version
-                                    </MudText>
-                                    <MudText Typo="Typo.body2" Class="mb-1">
-                                        <strong>@TranslationService.GetTranslation("health.environment", "Environment"):</strong> @_healthData.Environment
-                                    </MudText>
-                                    <MudText Typo="Typo.body2">
-                                        <strong>@TranslationService.GetTranslation("health.uptime", "Uptime"):</strong> @FormatUptime(_healthData.Uptime)
-                                    </MudText>
-                                </div>
-                            </MudCardContent>
-                        </MudCard>
-                    </div>
-
-                    <!-- Database Status Section -->
-                    <div class="health-section">
-                        <MudCard Class="health-section-card" Elevation="1">
-                            <MudCardContent Class="pa-3">
-                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
-                                    <MudIcon Icon="@Icons.Material.Filled.Storage" 
-                                             Color="@GetStatusColor(_healthData.DatabaseStatus)" 
-                                             Size="Size.Medium" />
-                                    <MudText Typo="Typo.subtitle1" Class="font-weight-medium">
-                                        @TranslationService.GetTranslation("health.database.title", "Database Status")
-                                    </MudText>
-                                    <MudChip T="string" Size="Size.Small" 
-                                             Color="@GetStatusColor(_healthData.DatabaseStatus)" 
-                                             Text="@_healthData.DatabaseStatus" 
-                                             Variant="Variant.Filled" />
-                                </MudStack>
-                                
-                                <div class="health-details selectable-content">
-                                    <MudText Typo="Typo.body2" Class="mb-1">
-                                        <strong>@TranslationService.GetTranslation("health.status", "Status"):</strong> @_healthData.DatabaseStatus
-                                    </MudText>
-                                    @if (_healthData.DatabaseDetails?.Any() == true)
-                                    {
-                                        @foreach (var detail in _healthData.DatabaseDetails)
-                                        {
-                                            <MudText Typo="Typo.body2" Class="mb-1">
-                                                <strong>@detail.Key:</strong> @detail.Value
-                                            </MudText>
-                                        }
-                                    }
-                                    @if (_healthData.AppliedMigrations?.Any() == true)
-                                    {
-                                        <MudText Typo="Typo.body2">
-                                            <strong>@TranslationService.GetTranslation("health.migrations", "Migrations"):</strong> @_healthData.AppliedMigrations.Count()
-                                        </MudText>
-                                    }
-                                </div>
-                            </MudCardContent>
-                        </MudCard>
-                    </div>
-
-                    <!-- Authentication Status Section -->
-                    @if (!string.IsNullOrEmpty(_healthData.AuthenticationStatus))
-                    {
-                        <div class="health-section">
-                            <MudCard Class="health-section-card" Elevation="1">
-                                <MudCardContent Class="pa-3">
-                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
-                                        <MudIcon Icon="@Icons.Material.Filled.Security" 
-                                                 Color="@GetStatusColor(_healthData.AuthenticationStatus)" 
-                                                 Size="Size.Medium" />
-                                        <MudText Typo="Typo.subtitle1" Class="font-weight-medium">
-                                            @TranslationService.GetTranslation("health.auth.title", "Authentication Status")
-                                        </MudText>
-                                        <MudChip T="string" Size="Size.Small" 
-                                                 Color="@GetStatusColor(_healthData.AuthenticationStatus)" 
-                                                 Text="@_healthData.AuthenticationStatus" 
-                                                 Variant="Variant.Filled" />
-                                    </MudStack>
-                                    
-                                    <div class="health-details selectable-content">
-                                        <MudText Typo="Typo.body2" Class="mb-1">
-                                            <strong>@TranslationService.GetTranslation("health.status", "Status"):</strong> @_healthData.AuthenticationStatus
-                                        </MudText>
-                                        @if (_healthData.AuthenticationDetails?.Any() == true)
-                                        {
-                                            @foreach (var detail in _healthData.AuthenticationDetails)
-                                            {
-                                                <MudText Typo="Typo.body2" Class="mb-1">
-                                                    <strong>@detail.Key:</strong> @detail.Value
-                                                </MudText>
-                                            }
-                                        }
-                                    </div>
-                                </MudCardContent>
-                            </MudCard>
-                        </div>
-                    }
-
-                    <!-- Dependencies Status Section -->
-                    @if (_healthData.Dependencies?.Any() == true)
-                    {
-                        <div class="health-section">
-                            <MudCard Class="health-section-card" Elevation="1">
-                                <MudCardContent Class="pa-3">
-                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
-                                        <MudIcon Icon="@Icons.Material.Filled.Hub" 
-                                                 Color="@GetDependenciesStatusColor()" 
-                                                 Size="Size.Medium" />
-                                        <MudText Typo="Typo.subtitle1" Class="font-weight-medium">
-                                            @TranslationService.GetTranslation("health.dependencies.title", "External Dependencies")
-                                        </MudText>
-                                        <MudChip T="string" Size="Size.Small" 
-                                                 Color="@GetDependenciesStatusColor()" 
-                                                 Text="@GetDependenciesStatus()" 
-                                                 Variant="Variant.Filled" />
-                                    </MudStack>
-                                    
-                                    <div class="health-details selectable-content">
-                                        @foreach (var dep in _healthData.Dependencies)
-                                        {
-                                            <MudText Typo="Typo.body2" Class="mb-1">
-                                                <strong>@dep.Key:</strong> @dep.Value
-                                            </MudText>
-                                        }
-                                    </div>
-                                </MudCardContent>
-                            </MudCard>
-                        </div>
-                    }
-
-                    <!-- Compact Health Indicators Summary -->
-                    <div class="health-section">
-                        <MudCard Class="health-section-card" Elevation="1">
-                            <MudCardContent Class="pa-3">
-                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
-                                    <MudIcon Icon="@Icons.Material.Filled.HealthAndSafety" 
-                                             Color="@GetOverallHealthColor()" 
-                                             Size="Size.Medium" />
-                                    <MudText Typo="Typo.subtitle1" Class="font-weight-medium">
-                                        @TranslationService.GetTranslation("health.overview", "System Overview")
-                                    </MudText>
-                                </MudStack>
-                                
-                                <!-- Compact icon row for quick view -->
-                                <div class="health-indicators-container">
-                                    <MudGrid Justify="Justify.Center" Spacing="2">
-                                        @if (_healthIndicators?.Any() == true)
-                                        {
-                                            @foreach (var indicator in _healthIndicators)
-                                            {
-                                                <MudItem>
-                                                    <MudTooltip Text="@indicator.Tooltip" 
-                                                               Placement="Placement.Top"
-                                                               Arrow="true"
-                                                               Delay="300">
-                                                        <MudIcon Icon="@indicator.Icon" 
-                                                                 Color="@indicator.Color" 
-                                                                 Size="Size.Medium"
-                                                                 Class="health-indicator-icon" />
-                                                    </MudTooltip>
-                                                </MudItem>
-                                            }
-                                        }
-                                    </MudGrid>
-                                </div>
-                            </MudCardContent>
-                        </MudCard>
-                    </div>
-
-                    <!-- Last Updated Info -->
-                    @if (_lastUpdated.HasValue)
-                    {
-                        <div class="health-timestamp">
-                            <MudAlert Severity="Severity.Info" NoIcon="true" Class="ma-0">
-                                <MudText Typo="Typo.body2" Class="text-center">
-                                    <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" Class="mr-1" />
-                                    @TranslationService.GetTranslation("health.lastUpdated", "Last Updated"): @_lastUpdated.Value.ToString("HH:mm:ss")
-                                </MudText>
-                            </MudAlert>
-                        </div>
-                    }
-
-                </MudStack>
-            }
-            else
-            {
-                <!-- Loading State -->
-                <div class="health-loading pa-4 text-center">
-                    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-4" />
-                    <MudText Typo="Typo.body1" Align="Align.Center">
-                        @TranslationService.GetTranslation("health.loading", "Loading health information...")
-                    </MudText>
-                </div>
-            }
-        </div>
-    </MudCollapse>
 </div>
 
+<!-- Health Status Dialog -->
+<HealthStatusDialog @bind-IsVisible="_dialogOpen" 
+                    HealthData="_healthData" 
+                    LastUpdated="_lastUpdated" />
+
 @code {
-    private bool _isOpen = false;
     private DetailedHealthStatusDto? _healthData;
     private DateTime? _lastUpdated;
     private Timer? _refreshTimer;
-    private List<HealthIndicator> _healthIndicators = new();
+    private bool _dialogOpen = false;
 
     /// <summary>
     /// Refresh interval for health data in milliseconds. Default is 30 seconds.
@@ -299,130 +71,39 @@
         {
             _healthData = await HealthService.GetDetailedHealthAsync();
             _lastUpdated = DateTime.Now;
-            UpdateHealthIndicators();
         }
         catch (Exception ex)
         {
             // Log error but don't break the UI
             Console.Error.WriteLine($"Health status refresh failed: {ex.Message}");
-            SetErrorIndicators();
         }
     }
 
-    private void UpdateHealthIndicators()
+    private async Task OpenHealthDialog()
     {
-        _healthIndicators.Clear();
-
         if (_healthData == null)
         {
-            SetLoadingIndicators();
-            return;
+            await RefreshHealthData();
         }
-
-        // API Status Indicator
-        _healthIndicators.Add(new HealthIndicator
-        {
-            Icon = Icons.Material.Filled.Api,
-            Color = GetStatusColor(_healthData.ApiStatus),
-            Tooltip = $"{TranslationService.GetTranslation("health.api.title", "API Status")}: {_healthData.ApiStatus}"
-        });
-
-        // Database Status Indicator
-        _healthIndicators.Add(new HealthIndicator
-        {
-            Icon = Icons.Material.Filled.Storage,
-            Color = GetStatusColor(_healthData.DatabaseStatus),
-            Tooltip = $"{TranslationService.GetTranslation("health.database.title", "Database Status")}: {_healthData.DatabaseStatus}"
-        });
-
-        // Authentication Status Indicator (if available)
-        if (!string.IsNullOrEmpty(_healthData.AuthenticationStatus))
-        {
-            _healthIndicators.Add(new HealthIndicator
-            {
-                Icon = Icons.Material.Filled.Security,
-                Color = GetStatusColor(_healthData.AuthenticationStatus),
-                Tooltip = $"{TranslationService.GetTranslation("health.auth.title", "Authentication Status")}: {_healthData.AuthenticationStatus}"
-            });
-        }
-
-        // Dependencies Status Indicator (if available)
-        if (_healthData.Dependencies?.Any() == true)
-        {
-            var dependenciesStatus = GetDependenciesStatus();
-            _healthIndicators.Add(new HealthIndicator
-            {
-                Icon = Icons.Material.Filled.Hub,
-                Color = GetDependenciesStatusColor(),
-                Tooltip = $"{TranslationService.GetTranslation("health.dependencies.title", "External Dependencies")}: {dependenciesStatus}"
-            });
-        }
-
-        // Overall System Health Indicator
-        _healthIndicators.Add(new HealthIndicator
-        {
-            Icon = Icons.Material.Filled.HealthAndSafety,
-            Color = GetOverallHealthColor(),
-            Tooltip = $"{TranslationService.GetTranslation("health.overall", "Overall System Health")}: {GetOverallHealthStatus()}"
-        });
+        _dialogOpen = true;
     }
 
-    private void SetLoadingIndicators()
+    private string GetHealthStatusTitle()
     {
-        _healthIndicators.Clear();
-        _healthIndicators.Add(new HealthIndicator
+        return $"{TranslationService.GetTranslation("health.status", "Status")}: {GetOverallHealthStatus()}";
+    }
+
+    private string GetOverallHealthIcon()
+    {
+        if (_healthData == null) return Icons.Material.Filled.Help;
+
+        return GetOverallHealthStatus().ToLower() switch
         {
-            Icon = Icons.Material.Filled.Refresh,
-            Color = Color.Info,
-            Tooltip = TranslationService.GetTranslation("health.loading", "Loading health information...")
-        });
-    }
-
-    private void SetErrorIndicators()
-    {
-        _healthIndicators.Clear();
-        _healthIndicators.Add(new HealthIndicator
-        {
-            Icon = Icons.Material.Filled.Error,
-            Color = Color.Error,
-            Tooltip = TranslationService.GetTranslation("health.error", "Error loading health information")
-        });
-    }
-
-    private async Task ToggleDrawer()
-    {
-        _isOpen = !_isOpen;
-        StateHasChanged();
-        await Task.CompletedTask;
-    }
-
-    private async Task CloseDrawer()
-    {
-        if (_isOpen)
-        {
-            _isOpen = false;
-            StateHasChanged();
-            await Task.CompletedTask;
-        }
-    }
-
-    private string GetTabIcon()
-    {
-        return _isOpen ? Icons.Material.Filled.ExpandMore : Icons.Material.Filled.ExpandLess;
-    }
-
-    private string GetTabAriaLabel()
-    {
-        return _isOpen 
-            ? TranslationService.GetTranslation("health.closeDrawer", "Close health status")
-            : TranslationService.GetTranslation("health.openDrawer", "Open health status");
-    }
-
-    private string GetTabTooltip()
-    {
-        return _isOpen
-            ? TranslationService.GetTranslation("health.closeDrawer", "Close health status")
-            : TranslationService.GetTranslation("health.openDrawer", "Open health status");
+            "healthy" => Icons.Material.Filled.CheckCircle,
+            "degraded" => Icons.Material.Filled.Warning,
+            "unhealthy" => Icons.Material.Filled.Error,
+            _ => Icons.Material.Filled.Help
+        };
     }
 
     #region Health Status Helpers
@@ -448,9 +129,7 @@
         var statuses = new List<string?>
         {
             _healthData.ApiStatus,
-            _healthData.DatabaseStatus,
-            _healthData.AuthenticationStatus,
-            GetDependenciesStatus()
+            _healthData.DatabaseStatus
         };
 
         if (statuses.Any(s => s?.ToLower() == "unhealthy" || s?.ToLower() == "error"))
@@ -470,9 +149,7 @@
         var statuses = new List<string?>
         {
             _healthData.ApiStatus,
-            _healthData.DatabaseStatus,
-            _healthData.AuthenticationStatus,
-            GetDependenciesStatus()
+            _healthData.DatabaseStatus
         };
 
         if (statuses.Any(s => s?.ToLower() == "unhealthy" || s?.ToLower() == "error"))
@@ -483,36 +160,6 @@
             return "Healthy";
         else
             return "Unknown";
-    }
-
-    private Color GetDependenciesStatusColor()
-    {
-        if (_healthData?.Dependencies?.Any() != true) return Color.Default;
-        
-        var statuses = _healthData.Dependencies.Values;
-        
-        if (statuses.Any(s => s?.ToLower().Contains("error") == true || s?.ToLower().Contains("unhealthy") == true))
-            return Color.Error;
-            
-        if (statuses.Any(s => s?.ToLower().Contains("degraded") == true || s?.ToLower().Contains("warning") == true))
-            return Color.Warning;
-            
-        return Color.Success;
-    }
-
-    private string GetDependenciesStatus()
-    {
-        if (_healthData?.Dependencies?.Any() != true) return "Unknown";
-        
-        var statuses = _healthData.Dependencies.Values;
-        
-        if (statuses.Any(s => s?.ToLower().Contains("error") == true || s?.ToLower().Contains("unhealthy") == true))
-            return "Error";
-            
-        if (statuses.Any(s => s?.ToLower().Contains("degraded") == true || s?.ToLower().Contains("warning") == true))
-            return "Warning";
-            
-        return "Healthy";
     }
 
     #endregion
@@ -535,313 +182,71 @@
     {
         _refreshTimer?.Dispose();
     }
-
-    #region Data Models
-
-    public class HealthIndicator
-    {
-        public string Icon { get; set; } = string.Empty;
-        public Color Color { get; set; } = Color.Default;
-        public string Tooltip { get; set; } = string.Empty;
-    }
-
-    #endregion
 }
 
 <style>
-    .health-footer-container {
+    .health-footer-minimal {
         position: fixed;
         bottom: 0;
-        left: 0;
-        right: 0;
-        width: 100%;
+        right: 16px;
         z-index: 1300;
         pointer-events: none;
     }
 
-    .health-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 300px; /* Leave space for drawer content */
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 1250;
-        pointer-events: auto;
-        cursor: pointer;
-        animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .health-overlay:focus {
-        outline: 2px solid var(--mud-palette-primary);
-        outline-offset: -2px;
-    }
-
-    .health-tab {
-        position: absolute;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
+    .health-tab-compact {
         background: var(--mud-palette-surface);
         border: 1px solid var(--mud-palette-lines-default);
         border-bottom: none;
         border-radius: 8px 8px 0 0;
-        padding: 8px 16px;
+        padding: 4px 8px;
         cursor: pointer;
         pointer-events: auto;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-        min-width: 60px;
-        text-align: center;
+        transition: all 0.2s ease;
+        box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
         display: flex;
         align-items: center;
-        justify-content: center;
+        gap: 4px;
         user-select: none;
+        min-width: 80px;
     }
 
-    .health-tab:hover {
+    .health-tab-compact:hover {
         background: var(--mud-palette-action-hover);
-        transform: translateX(-50%) translateY(-2px);
-        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+        transform: translateY(-1px);
+        box-shadow: 0 -3px 6px rgba(0, 0, 0, 0.15);
     }
 
-    .health-tab:focus {
+    .health-tab-compact:focus {
         outline: 2px solid var(--mud-palette-primary);
         outline-offset: 2px;
     }
 
-    .health-tab.open {
-        border-radius: 8px 8px 0 0;
-    }
-
-    .health-tab.closed {
-        border-radius: 8px 8px 0 0;
-    }
-
-    .health-drawer {
-        width: 100%;
-        pointer-events: auto;
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        transform-origin: bottom;
-    }
-
-    .health-drawer .mud-collapse-container {
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .health-drawer-content {
-        background: var(--mud-palette-surface);
-        border-top: 1px solid var(--mud-palette-lines-default);
-        padding: 16px;
-        min-height: 200px;
-        max-height: calc(100vh - 60px); /* Full screen height minus tab */
-        overflow-y: auto;
-        box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15);
-        animation: slideUpIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .health-section {
-        margin-bottom: 8px;
-    }
-
-    .health-section-card {
-        border: 1px solid var(--mud-palette-lines-default);
-        transition: all 0.2s ease;
-    }
-
-    .health-section-card:hover {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        border-color: var(--mud-palette-primary);
-    }
-
-    .health-details {
-        padding-left: 8px;
-        border-left: 2px solid var(--mud-palette-lines-default);
-    }
-
-    .selectable-content {
-        user-select: text;
-        -webkit-user-select: text;
-        -moz-user-select: text;
-        -ms-user-select: text;
-    }
-
-    .selectable-content::-moz-selection {
-        background: var(--mud-palette-primary);
-        color: var(--mud-palette-primary-text);
-    }
-
-    .selectable-content::selection {
-        background: var(--mud-palette-primary);
-        color: var(--mud-palette-primary-text);
-    }
-
-    .health-indicators-container {
-        margin-bottom: 16px;
-    }
-
-    .health-indicator-icon {
-        transition: all 0.2s ease;
-        cursor: pointer;
-    }
-
-    .health-indicator-icon:hover {
-        transform: scale(1.1);
-    }
-
-    .health-indicator-icon.loading {
-        animation: rotate 2s linear infinite;
-    }
-
-    .health-timestamp {
-        border-top: 1px solid var(--mud-palette-lines-default);
-        padding-top: 12px;
-        margin-top: 12px;
-    }
-
-    /* Animations */
-    @@keyframes rotate {
-        from {
-            transform: rotate(0deg);
-        }
-        to {
-            transform: rotate(360deg);
-        }
-    }
-
-    @@keyframes slideUpIn {
-        from {
-            transform: translateY(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
-
-    @@keyframes fadeIn {
-        from {
-            opacity: 0;
-        }
-        to {
-            opacity: 1;
-        }
-    }
-
-    /* Responsive adjustments */
-    @@media (max-width: 768px) {
-        .health-drawer-content {
-            padding: 12px;
-            max-height: 280px;
-        }
-        
-        .health-tab {
-            padding: 6px 12px;
-            min-width: 50px;
-        }
-
-        .health-section-card .mud-card-content {
-            padding: 12px !important;
-        }
-
-        .health-overlay {
-            /* Adjust bottom spacing for smaller drawer on mobile */
-            bottom: 280px;
-        }
-    }
-
-    @@media (max-width: 480px) {
-        .health-drawer-content {
-            padding: 8px;
-            max-height: 250px;
-        }
-        
-        .health-indicator-icon {
-            font-size: 1.25rem !important;
-        }
-
-        .health-section-card .mud-card-content {
-            padding: 8px !important;
-        }
-
-        .health-section {
-            margin-bottom: 6px;
-        }
-
-        .health-overlay {
-            /* Adjust bottom spacing for smaller drawer on smaller mobile */
-            bottom: 250px;
-        }
-    }
-
-    @@media (max-width: 320px) {
-        .health-drawer-content {
-            padding: 6px;
-            max-height: 220px;
-        }
-
-        .health-tab {
-            padding: 4px 8px;
-            min-width: 40px;
-        }
-
-        .health-overlay {
-            /* Adjust bottom spacing for smallest screens */
-            bottom: 220px;
-        }
-    }
-
-    /* Ensure body has padding to account for the tab */
-    body {
-        padding-bottom: 40px;
+    .health-status-text {
+        font-size: 0.75rem;
+        white-space: nowrap;
     }
 
     /* Dark theme adjustments */
     @@media (prefers-color-scheme: dark) {
-        .health-tab {
-            background: var(--mud-palette-dark-surface);
-            border-color: var(--mud-palette-dark-lines-default);
-        }
-        
-        .health-drawer-content {
+        .health-tab-compact {
             background: var(--mud-palette-dark-surface);
             border-color: var(--mud-palette-dark-lines-default);
         }
     }
 
-    /* High contrast mode support */
-    @@media (prefers-contrast: high) {
-        .health-tab {
-            border-width: 2px;
+    /* Mobile adjustments */
+    @@media (max-width: 768px) {
+        .health-footer-minimal {
+            right: 8px;
         }
         
-        .health-drawer-content {
-            border-top-width: 2px;
+        .health-tab-compact {
+            padding: 3px 6px;
+            min-width: 70px;
         }
-    }
-
-    /* Accessibility improvements */
-    .health-tab:focus-visible {
-        outline: 2px solid var(--mud-palette-primary);
-        outline-offset: 2px;
-    }
-
-    /* Smooth scrolling for the drawer content */
-    .health-drawer-content {
-        scroll-behavior: smooth;
-    }
-
-    /* Status color indicators for better accessibility */
-    .health-indicator-icon[data-color="success"] {
-        filter: brightness(1.1);
-    }
-
-    .health-indicator-icon[data-color="warning"] {
-        filter: brightness(1.2);
-    }
-
-    .health-indicator-icon[data-color="error"] {
-        filter: brightness(1.1) saturate(1.2);
+        
+        .health-status-text {
+            font-size: 0.7rem;
+        }
     }
 </style>
