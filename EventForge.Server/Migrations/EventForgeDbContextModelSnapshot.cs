@@ -17,7 +17,7 @@ namespace EventForge.Server.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.12")
+                .HasAnnotation("ProductVersion", "10.0.0-preview.6.25358.103")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -961,7 +961,7 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<Guid>("TenantId")
+                    b.Property<Guid?>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Username")
@@ -971,11 +971,15 @@ namespace EventForge.Server.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("TenantId");
+
                     b.HasIndex("Email", "TenantId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[TenantId] IS NOT NULL");
 
                     b.HasIndex("Username", "TenantId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[TenantId] IS NOT NULL");
 
                     b.ToTable("Users");
                 });
@@ -3786,7 +3790,7 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("CategoryIds")
+                    b.PrimitiveCollection<string>("CategoryIds")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
@@ -3796,7 +3800,7 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("CustomerGroupIds")
+                    b.PrimitiveCollection<string>("CustomerGroupIds")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("DeletedAt")
@@ -3858,7 +3862,7 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("RuleType")
                         .HasColumnType("int");
 
-                    b.Property<string>("SalesChannels")
+                    b.PrimitiveCollection<string>("SalesChannels")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<TimeSpan?>("StartTime")
@@ -3867,7 +3871,7 @@ namespace EventForge.Server.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("ValidDays")
+                    b.PrimitiveCollection<string>("ValidDays")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
@@ -4852,6 +4856,15 @@ namespace EventForge.Server.Migrations
                         .IsRequired();
 
                     b.Navigation("License");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Auth.User", b =>
+                {
+                    b.HasOne("EventForge.Server.Data.Entities.Auth.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId");
 
                     b.Navigation("Tenant");
                 });
