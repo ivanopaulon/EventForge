@@ -101,7 +101,7 @@ public class TenantsController : BaseApiController
     }
 
     /// <summary>
-    /// Updates tenant information (DisplayName, Description, Domain, ContactEmail, MaxUsers, IsEnabled, SubscriptionExpiresAt).
+    /// Updates tenant information (DisplayName, Description, Domain, ContactEmail, MaxUsers, SubscriptionExpiresAt).
     /// </summary>
     /// <param name="id">Tenant ID</param>
     /// <param name="updateDto">Updated tenant data</param>

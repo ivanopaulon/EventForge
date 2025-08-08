@@ -85,7 +85,7 @@ namespace EventForge.DTOs.Tenants
         [Range(1, int.MaxValue, ErrorMessage = "Max users must be at least 1.")]
         public int MaxUsers { get; set; }
 
-        public bool IsEnabled { get; set; } = true;
+
 
         public DateTime? SubscriptionExpiresAt { get; set; }
     }
@@ -103,7 +103,6 @@ namespace EventForge.DTOs.Tenants
         public string ContactEmail { get; set; } = string.Empty;
         public int MaxUsers { get; set; }
         public bool IsActive { get; set; }
-        public bool IsEnabled { get; set; }
         public DateTime? SubscriptionExpiresAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
@@ -200,7 +199,6 @@ namespace EventForge.DTOs.Tenants
         public int MaxUsers { get; set; }
         public int CurrentUsers { get; set; }
         public bool IsActive { get; set; }
-        public bool IsEnabled { get; set; }
         public DateTime? SubscriptionExpiresAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
