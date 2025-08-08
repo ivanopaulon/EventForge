@@ -13,8 +13,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 // Note: WebAssembly uses BrowserHttpHandler which doesn't support HttpClientHandler configuration
 builder.Services.AddHttpClient("ApiClient", client =>
 {
-    // Use HTTP instead of HTTPS for development to avoid certificate issues
-    client.BaseAddress = new Uri("http://localhost:5137/");
+    client.BaseAddress = new Uri("https://localhost:7241/");
     client.Timeout = TimeSpan.FromSeconds(30);
     // Add default headers for API requests
     client.DefaultRequestHeaders.Add("Accept", "application/json");

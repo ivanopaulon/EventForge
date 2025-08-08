@@ -132,7 +132,7 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         policy
-            .WithOrigins("https://localhost:7241", "https://localhost:5000", "https://localhost:7009", "http://localhost:5048") // Added HTTP client origin
+            .WithOrigins("https://localhost:7241", "https://localhost:5000", "https://localhost:7009") // aggiungi qui le porte del client Blazor se diverse
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
