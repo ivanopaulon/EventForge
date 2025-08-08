@@ -91,6 +91,12 @@ public class User : AuditableEntity
     public DateTime? LastFailedLoginAt { get; set; }
 
     /// <summary>
+    /// Tenant ID this user belongs to. Null for SuperAdmin users who can access all tenants.
+    /// </summary>
+    [Display(Name = "Tenant ID", Description = "Tenant ID this user belongs to. Null for SuperAdmin users.")]
+    public new Guid? TenantId { get; set; }
+
+    /// <summary>
     /// Indicates if the user is locked out.
     /// </summary>
     public bool IsLockedOut => LockedUntil.HasValue && LockedUntil.Value > DateTime.UtcNow;
@@ -114,6 +120,11 @@ public class User : AuditableEntity
     /// Navigation property: Admin tenant mappings for this user (if super admin).
     /// </summary>
     public virtual ICollection<AdminTenant> AdminTenants { get; set; } = new List<AdminTenant>();
+
+    /// <summary>
+    /// Navigation property: The tenant this user belongs to (null for SuperAdmins).
+    /// </summary>
+    public virtual Tenant? Tenant { get; set; }
 
     /// <summary>
     /// Navigation property: Audit trail entries performed by this user.

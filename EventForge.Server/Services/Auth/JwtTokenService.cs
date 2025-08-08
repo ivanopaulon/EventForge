@@ -121,6 +121,12 @@ public class JwtTokenService : IJwtTokenService
             new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
         };
 
+        // Add tenant_id claim if user has a tenant (not SuperAdmin)
+        if (user.TenantId.HasValue)
+        {
+            claims.Add(new Claim("tenant_id", user.TenantId.Value.ToString()));
+        }
+
         // Add roles
         foreach (var role in roles)
         {
