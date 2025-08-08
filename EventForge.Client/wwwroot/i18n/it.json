@@ -288,7 +288,13 @@
     "optional": "Opzionale",
     "auditHistoryPlaceholder": "Visualizzazione cronologia audit per {0} - Funzionalità in fase di implementazione",
     "inactiveTenants": "Tenant Inattivi",
-    "eventManagement": "Gestione Eventi"
+    "eventManagement": "Gestione Eventi",
+    "confirmTenantDelete": "Sei sicuro di voler eliminare il tenant '{0}'? Questa azione non può essere annullata e eliminerà tutti i dati associati.",
+    "tenantDeleted": "Tenant eliminato con successo!",
+    "deleteTenantError": "Errore nell'eliminazione del tenant: {0}",
+    "confirmUserDelete": "Sei sicuro di voler eliminare l'utente '{0}'? Questa azione non può essere annullata.",
+    "userDeleted": "Utente eliminato con successo!",
+    "deleteUserError": "Errore nell'eliminazione dell'utente: {0}"
   },
   "tooltip": {
     "view": "Visualizza dettagli",

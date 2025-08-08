@@ -507,7 +507,13 @@
     "editTranslationTodo": "Edit translation: {0}",
     "deleteTranslationTodo": "Delete translation: {0}",
     "exportFunctionality": "Export functionality under development",
-    "importFunctionality": "Import functionality under development"
+    "importFunctionality": "Import functionality under development",
+    "confirmTenantDelete": "Are you sure you want to delete tenant '{0}'? This action cannot be undone and will delete all associated data.",
+    "tenantDeleted": "Tenant deleted successfully!",
+    "deleteTenantError": "Error deleting tenant: {0}",
+    "confirmUserDelete": "Are you sure you want to delete user '{0}'? This action cannot be undone.",
+    "userDeleted": "User deleted successfully!",
+    "deleteUserError": "Error deleting user: {0}"
   },
   "pagination": {
     "showing": "Showing {0}-{1} of {2}",
