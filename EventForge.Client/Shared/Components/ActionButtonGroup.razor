@@ -1,0 +1,302 @@
+@inject ITranslationService TranslationService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<!-- 
+    Consolidated ActionButtonGroup Component
+    Replaces ActionToolbar, SuperAdminRowActions, and SuperAdminToolbar
+    Provides a flexible, reusable component for all action button scenarios
+    Features standardized color scheme and accessibility support
+-->
+
+<div class="action-button-group @GetContainerClass()">
+    @if (ShowRefresh && CanRefresh)
+    {
+        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")">
+            <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
+                           Color="Color.Primary"
+                           Size="@ButtonSize"
+                           OnClick="@OnRefreshAsync"
+                           Disabled="@IsDisabled"
+                           Class="@ButtonClass"
+                           aria-label="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")" />
+        </MudTooltip>
+    }
+
+    @if (ShowView && CanView)
+    {
+        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewDetails", "Visualizza dettagli")">
+            <MudIconButton Icon="@Icons.Material.Outlined.Visibility"
+                           Color="Color.Info"
+                           Size="@ButtonSize"
+                           OnClick="@OnViewAsync"
+                           Disabled="@IsDisabled"
+                           Class="@ButtonClass"
+                           aria-label="@TranslationService.GetTranslationFormatted("tooltip.viewItem", "Visualizza {0}", ItemDisplayName ?? "elemento")" />
+        </MudTooltip>
+    }
+
+    @if (ShowCreate && CanCreate)
+    {
+        <MudTooltip Text="@(CreateTooltip ?? TranslationService.GetTranslation("tooltip.createNew", "Crea nuovo"))">
+            <MudIconButton Icon="@(CreateIcon ?? Icons.Material.Outlined.Add)"
+                           Color="Color.Success"
+                           Size="@ButtonSize"
+                           OnClick="@OnCreateAsync"
+                           Disabled="@IsDisabled"
+                           Class="@ButtonClass"
+                           aria-label="@(CreateTooltip ?? TranslationService.GetTranslationFormatted("tooltip.createNew", "Crea nuovo {0}", EntityName ?? "elemento"))" />
+        </MudTooltip>
+    }
+
+    @if (ShowEdit && CanEdit)
+    {
+        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.edit", "Modifica")">
+            <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                           Color="Color.Warning"
+                           Size="@ButtonSize"
+                           OnClick="@OnEditAsync"
+                           Disabled="@IsDisabled"
+                           Class="@ButtonClass"
+                           aria-label="@TranslationService.GetTranslationFormatted("tooltip.editItem", "Modifica {0}", ItemDisplayName ?? "elemento")" />
+        </MudTooltip>
+    }
+
+    @if (ShowDelete && CanDelete)
+    {
+        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.delete", "Elimina")">
+            <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                           Color="Color.Error"
+                           Size="@ButtonSize"
+                           OnClick="@OnDeleteAsync"
+                           Disabled="@IsDisabled"
+                           Class="@ButtonClass"
+                           aria-label="@TranslationService.GetTranslationFormatted("tooltip.deleteItem", "Elimina {0}", ItemDisplayName ?? "elemento")" />
+        </MudTooltip>
+    }
+
+    @if (ShowToggleStatus && CanToggleStatus)
+    {
+        <MudTooltip Text="@(IsActive ? TranslationService.GetTranslation("tooltip.deactivate", "Disattiva") : TranslationService.GetTranslation("tooltip.activate", "Attiva"))">
+            <MudIconButton Icon="@(IsActive ? Icons.Material.Outlined.Block : Icons.Material.Outlined.CheckCircle)"
+                           Color="@(IsActive ? Color.Warning : Color.Success)"
+                           Size="@ButtonSize"
+                           OnClick="@OnToggleStatusAsync"
+                           Disabled="@IsDisabled"
+                           Class="@ButtonClass"
+                           aria-label="@(IsActive ? TranslationService.GetTranslationFormatted("tooltip.deactivateItem", "Disattiva {0}", ItemDisplayName ?? "elemento") : TranslationService.GetTranslationFormatted("tooltip.activateItem", "Attiva {0}", ItemDisplayName ?? "elemento"))" />
+        </MudTooltip>
+    }
+
+    @if (ShowAuditLog && CanViewAuditLog)
+    {
+        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.auditLog", "Cronologia modifiche")">
+            <MudIconButton Icon="@Icons.Material.Outlined.History"
+                           Color="Color.Secondary"
+                           Size="@ButtonSize"
+                           OnClick="@OnAuditLogAsync"
+                           Disabled="@IsDisabled"
+                           Class="@ButtonClass"
+                           aria-label="@TranslationService.GetTranslationFormatted("tooltip.viewAuditLog", "Visualizza cronologia {0}", ItemDisplayName ?? "elemento")" />
+        </MudTooltip>
+    }
+
+    @if (ShowExport && CanExport)
+    {
+        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.export", "Esporta")">
+            <MudIconButton Icon="@Icons.Material.Outlined.Download"
+                           Color="Color.Tertiary"
+                           Size="@ButtonSize"
+                           OnClick="@OnExportAsync"
+                           Disabled="@IsDisabled"
+                           Class="@ButtonClass"
+                           aria-label="@TranslationService.GetTranslationFormatted("tooltip.exportItem", "Esporta {0}", ItemDisplayName ?? "elemento")" />
+        </MudTooltip>
+    }
+
+    <!-- Custom additional actions -->
+    @AdditionalActions
+</div>
+
+@code {
+    // Display Configuration
+    [Parameter] public ActionButtonGroupMode Mode { get; set; } = ActionButtonGroupMode.Row;
+    [Parameter] public Size ButtonSize { get; set; } = Size.Small;
+    [Parameter] public string? ButtonClass { get; set; }
+    [Parameter] public bool IsDisabled { get; set; } = false;
+
+    // Entity Information
+    [Parameter] public string? EntityName { get; set; }
+    [Parameter] public string? ItemId { get; set; }
+    [Parameter] public string? ItemDisplayName { get; set; }
+    [Parameter] public bool IsActive { get; set; } = true;
+
+    // Action Visibility
+    [Parameter] public bool ShowRefresh { get; set; } = false;
+    [Parameter] public bool ShowView { get; set; } = false;
+    [Parameter] public bool ShowCreate { get; set; } = false;
+    [Parameter] public bool ShowEdit { get; set; } = true;
+    [Parameter] public bool ShowDelete { get; set; } = true;
+    [Parameter] public bool ShowToggleStatus { get; set; } = false;
+    [Parameter] public bool ShowAuditLog { get; set; } = false;
+    [Parameter] public bool ShowExport { get; set; } = false;
+
+    // Permissions
+    [Parameter] public bool CanRefresh { get; set; } = true;
+    [Parameter] public bool CanView { get; set; } = true;
+    [Parameter] public bool CanCreate { get; set; } = true;
+    [Parameter] public bool CanEdit { get; set; } = true;
+    [Parameter] public bool CanDelete { get; set; } = true;
+    [Parameter] public bool CanToggleStatus { get; set; } = true;
+    [Parameter] public bool CanViewAuditLog { get; set; } = true;
+    [Parameter] public bool CanExport { get; set; } = true;
+
+    // Customization
+    [Parameter] public string? CreateIcon { get; set; }
+    [Parameter] public string? CreateTooltip { get; set; }
+
+    // Events
+    [Parameter] public EventCallback OnRefresh { get; set; }
+    [Parameter] public EventCallback OnView { get; set; }
+    [Parameter] public EventCallback OnCreate { get; set; }
+    [Parameter] public EventCallback OnEdit { get; set; }
+    [Parameter] public EventCallback OnDelete { get; set; }
+    [Parameter] public EventCallback OnToggleStatus { get; set; }
+    [Parameter] public EventCallback OnAuditLog { get; set; }
+    [Parameter] public EventCallback OnExport { get; set; }
+
+    // Delete Confirmation
+    [Parameter] public bool RequireDeleteConfirmation { get; set; } = true;
+    [Parameter] public string? DeleteConfirmationTitle { get; set; }
+    [Parameter] public string? DeleteConfirmationMessage { get; set; }
+
+    // Additional Content
+    [Parameter] public RenderFragment? AdditionalActions { get; set; }
+
+    private string GetContainerClass()
+    {
+        var classes = new List<string> { "action-button-group" };
+        
+        switch (Mode)
+        {
+            case ActionButtonGroupMode.Row:
+                classes.Add("d-flex gap-1 align-center");
+                break;
+            case ActionButtonGroupMode.Toolbar:
+                classes.Add("mud-toolbar-content");
+                break;
+            case ActionButtonGroupMode.Column:
+                classes.Add("d-flex flex-column gap-1");
+                break;
+        }
+        
+        return string.Join(" ", classes);
+    }
+
+    private async Task OnRefreshAsync()
+    {
+        await ExecuteActionAsync(OnRefresh, "error.refreshFailed", "Errore durante l'aggiornamento");
+    }
+
+    private async Task OnViewAsync()
+    {
+        await ExecuteActionAsync(OnView, "error.viewFailed", "Errore durante la visualizzazione");
+    }
+
+    private async Task OnCreateAsync()
+    {
+        await ExecuteActionAsync(OnCreate, "error.createFailed", "Errore durante la creazione");
+    }
+
+    private async Task OnEditAsync()
+    {
+        await ExecuteActionAsync(OnEdit, "error.editFailed", "Errore durante la modifica");
+    }
+
+    private async Task OnDeleteAsync()
+    {
+        try
+        {
+            if (RequireDeleteConfirmation)
+            {
+                var confirmed = await ShowDeleteConfirmationAsync();
+                if (!confirmed)
+                    return;
+            }
+
+            await OnDelete.InvokeAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("error.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
+        }
+    }
+
+    private async Task OnToggleStatusAsync()
+    {
+        await ExecuteActionAsync(OnToggleStatus, "error.toggleStatusFailed", "Errore durante il cambio di stato");
+    }
+
+    private async Task OnAuditLogAsync()
+    {
+        await ExecuteActionAsync(OnAuditLog, "error.auditLogFailed", "Errore nel caricamento della cronologia");
+    }
+
+    private async Task OnExportAsync()
+    {
+        await ExecuteActionAsync(OnExport, "error.exportFailed", "Errore durante l'esportazione");
+    }
+
+    private async Task ExecuteActionAsync(EventCallback action, string errorKey, string fallbackError)
+    {
+        try
+        {
+            await action.InvokeAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(TranslationService.GetTranslation(errorKey, fallbackError), Severity.Error);
+        }
+    }
+
+    private async Task<bool> ShowDeleteConfirmationAsync()
+    {
+        var title = DeleteConfirmationTitle ?? 
+                   TranslationService.GetTranslation("dialog.confirmDelete", "Conferma Eliminazione");
+        
+        var message = DeleteConfirmationMessage ?? 
+                     TranslationService.GetTranslationFormatted(
+                         "dialog.confirmDeleteMessage", 
+                         "Sei sicuro di voler eliminare {0}? Questa azione non può essere annullata.", 
+                         ItemDisplayName ?? TranslationService.GetTranslation("common.thisItem", "questo elemento"));
+
+        var result = await DialogService.ShowMessageBox(
+            title,
+            message,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        return result == true;
+    }
+}
+
+<style>
+    .action-button-group {
+        min-width: fit-content;
+    }
+    
+    .action-button-group .mud-icon-button {
+        transition: all 0.2s ease-in-out;
+    }
+    
+    .action-button-group .mud-icon-button:hover {
+        transform: scale(1.1);
+    }
+
+    .action-button-group.mud-toolbar-content {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        flex-wrap: wrap;
+    }
+</style>
