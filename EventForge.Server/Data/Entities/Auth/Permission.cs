@@ -63,4 +63,9 @@ public class Permission : AuditableEntity
     /// Navigation property: Roles that have this permission.
     /// </summary>
     public virtual ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
+
+    /// <summary>
+    /// Navigation property: License features that require this permission.
+    /// </summary>
+    public virtual ICollection<LicenseFeaturePermission> LicenseFeaturePermissions { get; set; } = new List<LicenseFeaturePermission>();
 }

@@ -69,4 +69,9 @@ public class Tenant : AuditableEntity
     /// Navigation property: Admin tenants mapping super admins to this tenant.
     /// </summary>
     public virtual ICollection<AdminTenant> AdminTenants { get; set; } = new List<AdminTenant>();
+
+    /// <summary>
+    /// Navigation property: Licenses assigned to this tenant.
+    /// </summary>
+    public virtual ICollection<TenantLicense> TenantLicenses { get; set; } = new List<TenantLicense>();
 }

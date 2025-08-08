@@ -88,6 +88,12 @@ public class EventForgeDbContext : DbContext
     public DbSet<AdminTenant> AdminTenants { get; set; }
     public DbSet<AuditTrail> AuditTrails { get; set; }
 
+    // Licensing System
+    public DbSet<License> Licenses { get; set; }
+    public DbSet<LicenseFeature> LicenseFeatures { get; set; }
+    public DbSet<LicenseFeaturePermission> LicenseFeaturePermissions { get; set; }
+    public DbSet<TenantLicense> TenantLicenses { get; set; }
+
     // Configuration & System Management
     public DbSet<SystemConfiguration> SystemConfigurations { get; set; }
     public DbSet<BackupOperation> BackupOperations { get; set; }
@@ -478,6 +484,62 @@ public class EventForgeDbContext : DbContext
         modelBuilder.Entity<MessageReadReceipt>()
             .HasIndex(mrr => new { mrr.MessageId, mrr.UserId })
             .IsUnique();
+
+        // Licensing System relationships
+
+        // License constraints
+        modelBuilder.Entity<License>()
+            .HasIndex(l => l.Name)
+            .IsUnique();
+
+        // LicenseFeature relationships
+        modelBuilder.Entity<LicenseFeature>()
+            .HasOne(lf => lf.License)
+            .WithMany(l => l.LicenseFeatures)
+            .HasForeignKey(lf => lf.LicenseId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // LicenseFeature constraints
+        modelBuilder.Entity<LicenseFeature>()
+            .HasIndex(lf => new { lf.LicenseId, lf.Name })
+            .IsUnique();
+
+        // LicenseFeaturePermission relationships
+        modelBuilder.Entity<LicenseFeaturePermission>()
+            .HasOne(lfp => lfp.LicenseFeature)
+            .WithMany(lf => lf.LicenseFeaturePermissions)
+            .HasForeignKey(lfp => lfp.LicenseFeatureId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<LicenseFeaturePermission>()
+            .HasOne(lfp => lfp.Permission)
+            .WithMany(p => p.LicenseFeaturePermissions)
+            .HasForeignKey(lfp => lfp.PermissionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // LicenseFeaturePermission constraints
+        modelBuilder.Entity<LicenseFeaturePermission>()
+            .HasIndex(lfp => new { lfp.LicenseFeatureId, lfp.PermissionId })
+            .IsUnique();
+
+        // TenantLicense relationships
+        modelBuilder.Entity<TenantLicense>()
+            .HasOne(tl => tl.Tenant)
+            .WithMany(t => t.TenantLicenses)
+            .HasForeignKey(tl => tl.TargetTenantId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<TenantLicense>()
+            .HasOne(tl => tl.License)
+            .WithMany(l => l.TenantLicenses)
+            .HasForeignKey(tl => tl.LicenseId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // TenantLicense constraints - only one active license per tenant
+        modelBuilder.Entity<TenantLicense>()
+            .HasIndex(tl => new { tl.TargetTenantId, tl.IsLicenseActive })
+            .IsUnique()
+            .HasFilter("[IsLicenseActive] = 1");
     }
 
     /// <summary>
