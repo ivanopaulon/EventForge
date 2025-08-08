@@ -1,7 +1,7 @@
 @* EventForge Client App.razor - Main application routing configuration
-   Routing: Standard Blazor routing without forced authentication redirects
-   Landing page: "/" -> Home.razor (accessible without authentication)
-   Authentication: Handled per-page with [Authorize] attributes as needed
+   Routing: Standard Blazor routing with mandatory authentication redirects
+   Landing page: "/" -> Home.razor (requires authentication)
+   Authentication: All pages except /login require authentication with automatic redirects
    
    NOTE: I18N REMOVED - TranslationService removed to support minimal home without i18n *@
 
@@ -94,14 +94,13 @@
     private async void OnAuthenticationStateChanged()
     {
         // Authentication state management for protected routes
-        // Note: Home page ("/") is accessible without authentication due to [AllowAnonymous]
+        // All pages except login require authentication
         var isAuthenticated = await AuthService.IsAuthenticatedAsync();
         var currentUri = NavigationManager.Uri;
         
-        // Only redirect to login if on a protected route and not authenticated
-        // Home page and other [AllowAnonymous] pages should remain accessible
-        // Moved redirect logic here to prevent rendering cycle issues
-        if (!isAuthenticated && !currentUri.Contains("/login") && !currentUri.EndsWith("/"))
+        // Redirect to login if not authenticated and not already on login page
+        // This ensures all pages except login require authentication
+        if (!isAuthenticated && !currentUri.Contains("/login"))
         {
             await InvokeAsync(() => NavigationManager.NavigateTo("/login"));
         }
