@@ -89,9 +89,9 @@ class Program
             baseRoute = baseRoute.Replace("[controller]", controllerRouteValue);
         }
 
-        // Trova tutti i metodi HTTP
-        var httpMethodPattern = @"\[Http(Get|Post|Put|Delete|Patch)(?:\s*\(\s*""([^""]*)""\s*\))?\]\s*[^\n]*\n[^\n]*public\s+[^{]*\s+(\w+)\s*\(";
-        var matches = Regex.Matches(content, httpMethodPattern, RegexOptions.IgnoreCase | RegexOptions.Multiline);
+        // Trova tutti i metodi HTTP con pattern migliorato ma sicuro
+        var httpMethodPattern = @"\[Http(Get|Post|Put|Delete|Patch)(?:\s*\(\s*""([^""]*)""\s*\))?\][\s\S]*?public\s+[^{]*?\s+(\w+)\s*\(";
+        var matches = Regex.Matches(content, httpMethodPattern, RegexOptions.IgnoreCase);
 
         foreach (Match match in matches)
         {
@@ -118,10 +118,14 @@ class Program
             return "/";
 
         if (string.IsNullOrEmpty(suffix))
-            return baseRoute;
+        {
+            return baseRoute.StartsWith('/') ? baseRoute : "/" + baseRoute;
+        }
 
         if (string.IsNullOrEmpty(baseRoute))
-            return suffix;
+        {
+            return suffix.StartsWith('/') ? suffix : "/" + suffix;
+        }
 
         var combined = baseRoute.TrimEnd('/') + "/" + suffix.TrimStart('/');
         return combined.StartsWith('/') ? combined : "/" + combined;
@@ -148,7 +152,15 @@ class Program
         // Normalizza i parametri di route per confronto
         // {id:guid} -> {id}
         // {id:int} -> {id}
-        return Regex.Replace(route, @"\{([^:}]+):[^}]+\}", "{$1}");
+        var normalized = Regex.Replace(route, @"\{([^:}]+):[^}]+\}", "{$1}");
+        
+        // Assicura che il percorso inizi sempre con /
+        if (!normalized.StartsWith('/'))
+        {
+            normalized = "/" + normalized;
+        }
+        
+        return normalized.ToLowerInvariant();
     }
 
     private static async Task GenerateReportAsync(string outputPath)

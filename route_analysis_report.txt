@@ -1,8 +1,8 @@
 EVENTFORGE - ROUTE CONFLICT ANALYSIS REPORT
 ==========================================
-Data Generazione: 2025-07-30 18:40:52
-Controller Analizzati: 10
-Route Totali: 68
+Data Generazione: 2025-08-08 19:12:30
+Controller Analizzati: 14
+Route Totali: 93
 Conflitti Rilevati: 0
 
 📋 MAPPING COMPLETO DELLE ROUTE
@@ -26,9 +26,42 @@ Controller: AuditLogController
   POST    /api/v1/AuditLog/audit-trail/search      -> SearchAuditTrail()
   POST    /api/v1/AuditLog/export-advanced         -> ExportAdvanced()
 
+Controller: BarcodeController
+--------------------------------------------------
+  GET     /api/Barcode/formats                     -> GetSupportedImageFormats()
+  GET     /api/Barcode/types                       -> GetSupportedBarcodeTypes()
+
+Controller: ChatController
+--------------------------------------------------
+  GET     /api/v1/Chat/messages                    -> GetMessagesAsync()
+  GET     /api/v1/Chat/statistics                  -> GetChatStatisticsAsync()
+  GET     api/v1/Chat                              -> SearchChatsAsync()
+  POST    /api/v1/Chat/export                      -> ExportChatHistoryAsync()
+  POST    /api/v1/Chat/messages/bulk-read          -> BulkMarkAsReadAsync()
+  POST    /api/v1/Chat/upload                      -> UploadFileAsync()
+
 Controller: HealthController
 --------------------------------------------------
   GET     /api/v1/Health/detailed                  -> GetDetailedHealth()
+
+Controller: LicenseController
+--------------------------------------------------
+  DELETE  /api/License/{id}                        -> DeleteLicense()
+  GET     /api/License/{id}                        -> GetLicense()
+  GET     /api/License/tenant-licenses             -> GetTenantLicenses()
+  GET     /api/License/tenant/{tenantId}           -> GetTenantLicense()
+  GET     api/License                              -> GetLicenses()
+  POST    /api/License/assign                      -> AssignLicense()
+  POST    api/License                              -> CreateLicense()
+  PUT     /api/License/{id}                        -> UpdateLicense()
+
+Controller: NotificationsController
+--------------------------------------------------
+  GET     /api/v1/Notifications/statistics         -> GetNotificationStatisticsAsync()
+  GET     api/v1/Notifications                     -> GetNotificationsAsync()
+  POST    /api/v1/Notifications/bulk               -> SendBulkNotificationsAsync()
+  POST    /api/v1/Notifications/bulk-action        -> ProcessBulkActionAsync()
+  POST    /api/v1/Notifications/export             -> ExportNotificationHistoryAsync()
 
 Controller: StoreUsersController
 --------------------------------------------------
@@ -95,14 +128,18 @@ Controller: TenantSwitchController
 
 Controller: UserManagementController
 --------------------------------------------------
+  DELETE  /api/v1/UserManagement/{userId}          -> DeleteUser()
   GET     /api/v1/UserManagement/{userId}          -> GetUser()
   GET     /api/v1/UserManagement/roles             -> GetRoles()
   GET     /api/v1/UserManagement/statistics        -> GetUserStatistics()
   GET     api/v1/UserManagement                    -> GetAllUsers()
   POST    /api/v1/UserManagement/{userId}/force-password-change -> ForcePasswordChange()
+  POST    /api/v1/UserManagement/{userId}/reset-password -> ResetPassword()
+  POST    /api/v1/UserManagement/management        -> CreateUserManagement()
   POST    /api/v1/UserManagement/quick-actions     -> PerformQuickActions()
   POST    /api/v1/UserManagement/search            -> SearchUsers()
   POST    api/v1/UserManagement                    -> CreateUser()
+  PUT     /api/v1/UserManagement/{userId}          -> UpdateUser()
   PUT     /api/v1/UserManagement/{userId}/roles    -> UpdateUserRoles()
   PUT     /api/v1/UserManagement/{userId}/status   -> UpdateUserStatus()
 
@@ -114,19 +151,19 @@ Tutte le route sono uniche e non presentano conflitti.
 ===============
 
 Distribuzione per HTTP Method:
-  GET: 34 route
-  POST: 24 route
-  PUT: 6 route
-  DELETE: 4 route
+  GET: 45 route
+  POST: 34 route
+  PUT: 8 route
+  DELETE: 6 route
 
 Route per Controller:
   TenantsController: 16 route
+  UserManagementController: 14 route
   SuperAdminController: 14 route
-  UserManagementController: 10 route
+  LicenseController: 8 route
   TenantSwitchController: 7 route
+  ChatController: 6 route
   ApplicationLogController: 6 route
   AuditLogController: 6 route
+  NotificationsController: 5 route
   TenantContextController: 4 route
-  TeamsController: 2 route
-  StoreUsersController: 2 route
-  HealthController: 1 route
