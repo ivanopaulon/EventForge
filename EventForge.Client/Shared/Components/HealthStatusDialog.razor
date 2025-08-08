@@ -1,7 +1,7 @@
 @using EventForge.DTOs.Health
 @inject ITranslationService TranslationService
 
-<MudDialog @bind-IsVisible="@IsVisible"
+<MudDialog @bind-Visible="@Visible"
            MaxWidth="MaxWidth.Medium" 
            FullWidth="true"
            CloseOnEscapeKey="true">
@@ -130,15 +130,15 @@
 </MudDialog>
 
 @code {
-    [Parameter] public bool IsVisible { get; set; }
-    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
     [Parameter] public DetailedHealthStatusDto? HealthData { get; set; }
     [Parameter] public DateTime? LastUpdated { get; set; }
 
     private async Task Close()
     {
-        IsVisible = false;
-        await IsVisibleChanged.InvokeAsync(IsVisible);
+        Visible = false;
+        await VisibleChanged.InvokeAsync(Visible);
     }
 
     private Color GetStatusColor(string? status)
