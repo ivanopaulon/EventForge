@@ -411,9 +411,12 @@ public class TranslationService : ITranslationService
             if (response.IsSuccessStatusCode)
             {
                 var json = await response.Content.ReadAsStringAsync();
-                var apiTranslations = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+                
+                // Use JsonDocument to properly handle nested objects
+                using var document = JsonDocument.Parse(json);
+                var apiTranslations = ConvertJsonElementToDictionary(document.RootElement);
 
-                if (apiTranslations != null)
+                if (apiTranslations != null && apiTranslations.Count > 0)
                 {
                     _translations = apiTranslations;
                     LanguageChanged?.Invoke(this, _currentLanguage);
@@ -477,6 +480,7 @@ public class TranslationService : ITranslationService
     /// - Uses relative URLs for translation files
     /// - Provides graceful fallback to default language
     /// - Logs warnings for missing translation files without breaking the app
+    /// - Properly deserializes nested JSON objects as dictionaries
     /// </summary>
     /// <param name="language">Language code (it, en, es, fr)</param>
     /// <param name="targetDictionary">Dictionary to load translations into</param>
@@ -496,9 +500,12 @@ public class TranslationService : ITranslationService
             if (response.IsSuccessStatusCode)
             {
                 var json = await response.Content.ReadAsStringAsync();
-                var translations = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+                
+                // Use JsonDocument to properly handle nested objects
+                using var document = JsonDocument.Parse(json);
+                var translations = ConvertJsonElementToDictionary(document.RootElement);
 
-                if (translations != null)
+                if (translations != null && translations.Count > 0)
                 {
                     // Clear and update the target dictionary
                     targetDictionary.Clear();
@@ -544,6 +551,50 @@ public class TranslationService : ITranslationService
     }
 
     /// <summary>
+    /// Converts a JsonElement to a proper Dictionary structure for translation lookups.
+    /// This ensures nested JSON objects are converted to nested dictionaries instead of JsonElements.
+    /// </summary>
+    /// <param name="element">The JsonElement to convert</param>
+    /// <returns>A dictionary representation of the JSON element</returns>
+    private Dictionary<string, object> ConvertJsonElementToDictionary(JsonElement element)
+    {
+        var result = new Dictionary<string, object>();
+        
+        if (element.ValueKind != JsonValueKind.Object)
+        {
+            return result;
+        }
+
+        foreach (var property in element.EnumerateObject())
+        {
+            var value = ConvertJsonElementToObject(property.Value);
+            result[property.Name] = value;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Converts a JsonElement to the appropriate object type.
+    /// </summary>
+    /// <param name="element">The JsonElement to convert</param>
+    /// <returns>The converted object</returns>
+    private object ConvertJsonElementToObject(JsonElement element)
+    {
+        return element.ValueKind switch
+        {
+            JsonValueKind.Object => ConvertJsonElementToDictionary(element),
+            JsonValueKind.Array => element.EnumerateArray().Select(ConvertJsonElementToObject).ToArray(),
+            JsonValueKind.String => element.GetString() ?? string.Empty,
+            JsonValueKind.Number => element.TryGetInt32(out var intVal) ? intVal : element.GetDouble(),
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.Null => null!,
+            _ => element.ToString()
+        };
+    }
+
+    /// <summary>
     /// Handles translation loading errors with graceful fallback to default language.
     /// This method ensures the app continues to work even when translation files are missing.
     /// </summary>
@@ -574,6 +625,7 @@ public class TranslationService : ITranslationService
 
     /// <summary>
     /// Gets a nested value from a dictionary using dot notation.
+    /// Now simplified since we ensure proper dictionary structure during deserialization.
     /// </summary>
     private object? GetNestedValue(Dictionary<string, object> dictionary, string key)
     {
@@ -585,17 +637,6 @@ public class TranslationService : ITranslationService
             if (current is Dictionary<string, object> dict && dict.ContainsKey(k))
             {
                 current = dict[k];
-            }
-            else if (current is JsonElement element && element.ValueKind == JsonValueKind.Object)
-            {
-                if (element.TryGetProperty(k, out var property))
-                {
-                    current = property;
-                }
-                else
-                {
-                    return null;
-                }
             }
             else
             {
