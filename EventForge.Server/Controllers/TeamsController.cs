@@ -1,4 +1,5 @@
 using EventForge.DTOs.Teams;
+using EventForge.Server.Filters;
 using EventForge.Server.Services.Teams;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +13,7 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
+[RequireLicenseFeature("BasicTeamManagement")]
 public class TeamsController : BaseApiController
 {
     private readonly ITeamService _teamService;

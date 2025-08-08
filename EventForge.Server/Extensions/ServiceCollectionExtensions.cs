@@ -4,6 +4,7 @@ using EventForge.Server.Services.Chat;
 using EventForge.Server.Services.Common;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Events;
+using EventForge.Server.Services.Licensing;
 using EventForge.Server.Services.Logs;
 using EventForge.Server.Services.Notifications;
 using EventForge.Server.Services.PriceLists;
@@ -204,6 +205,9 @@ public static class ServiceCollectionExtensions
         // Register SuperAdmin services
         services.AddScoped<IConfigurationService, ConfigurationService>();
         services.AddScoped<IBackupService, BackupService>();
+
+        // Register licensing services
+        services.AddScoped<ILicenseService, LicenseService>();
 
         // Configure session for tenant context (required for tenant switching and impersonation)
         services.AddDistributedMemoryCache();

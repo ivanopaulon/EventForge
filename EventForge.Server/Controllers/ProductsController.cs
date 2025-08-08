@@ -1,4 +1,5 @@
 using EventForge.DTOs.Products;
+using EventForge.Server.Filters;
 using EventForge.Server.Services.Products;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +13,7 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
+[RequireLicenseFeature("ProductManagement")]
 public class ProductsController : BaseApiController
 {
     private readonly IProductService _productService;
