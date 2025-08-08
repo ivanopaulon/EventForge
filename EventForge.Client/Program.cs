@@ -71,6 +71,7 @@ builder.Services.AddScoped<ITranslationService, TranslationService>();
 builder.Services.AddScoped<IClientLogService, ClientLogService>();
 builder.Services.AddScoped<IHelpService, HelpService>();
 builder.Services.AddScoped<ILoadingDialogService, LoadingDialogService>();
+builder.Services.AddScoped<IPrintingService, PrintingService>();
 
 // Add SuperAdmin services
 builder.Services.AddScoped<ISuperAdminService, SuperAdminService>();
