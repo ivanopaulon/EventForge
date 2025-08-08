@@ -14,7 +14,7 @@
    ================================================== */
 
 /* Force all MudBlazor icons to white color for better contrast */
-.mud-icon-root {
+.mud-icon-root:not(.action-button-group .mud-icon-root) {
     color: white !important;
 }
 
@@ -62,14 +62,19 @@
     color: inherit !important;
 }
 
-/* Make sure button icons are white unless they're in health components */
-.mud-button .mud-icon-root:not(.health-indicator-icon):not(.health-footer-container .mud-icon-root) {
+/* Make sure button icons are white unless they're in health components or ActionButtonGroup */
+.mud-button .mud-icon-root:not(.health-indicator-icon):not(.health-footer-container .mud-icon-root):not(.action-button-group .mud-icon-root) {
     color: white !important;
 }
 
 /* Override for icon buttons specifically */
-.mud-icon-button .mud-icon-root:not(.health-indicator-icon):not(.health-footer-container .mud-icon-root) {
+.mud-icon-button .mud-icon-root:not(.health-indicator-icon):not(.health-footer-container .mud-icon-root):not(.action-button-group .mud-icon-root) {
     color: white !important;
+}
+
+/* ActionButtonGroup icons should maintain their semantic colors */
+.action-button-group .mud-icon-button .mud-icon-root {
+    color: inherit !important;
 }
 
 /* Table and data grid icons should be white */
