@@ -513,7 +513,8 @@
     "deleteTenantError": "Error deleting tenant: {0}",
     "confirmUserDelete": "Are you sure you want to delete user '{0}'? This action cannot be undone.",
     "userDeleted": "User deleted successfully!",
-    "deleteUserError": "Error deleting user: {0}"
+    "deleteUserError": "Error deleting user: {0}",
+    "confirmUserDeletion": "Are you sure you want to delete user '{0}'? This action cannot be undone and will be logged in the audit trail."
   },
   "pagination": {
     "showing": "Showing {0}-{1} of {2}",

@@ -186,7 +186,8 @@
     "deleteTenantError": "Error al eliminar el inquilino: {0}",
     "confirmUserDelete": "¿Está seguro de que quiere eliminar el usuario '{0}'? Esta acción no se puede deshacer.",
     "userDeleted": "¡Usuario eliminado con éxito!",
-    "deleteUserError": "Error al eliminar el usuario: {0}"
+    "deleteUserError": "Error al eliminar el usuario: {0}",
+    "confirmUserDeletion": "¿Está seguro de que quiere eliminar el usuario '{0}'? Esta acción no se puede deshacer y se registrará en los registros de auditoría."
   },
   "tooltip": {
     "view": "Ver detalles",

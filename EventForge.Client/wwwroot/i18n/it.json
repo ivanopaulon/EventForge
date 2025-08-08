@@ -294,7 +294,8 @@
     "deleteTenantError": "Errore nell'eliminazione del tenant: {0}",
     "confirmUserDelete": "Sei sicuro di voler eliminare l'utente '{0}'? Questa azione non può essere annullata.",
     "userDeleted": "Utente eliminato con successo!",
-    "deleteUserError": "Errore nell'eliminazione dell'utente: {0}"
+    "deleteUserError": "Errore nell'eliminazione dell'utente: {0}",
+    "confirmUserDeletion": "Sei sicuro di voler eliminare l'utente '{0}'? Questa azione non può essere annullata e verrà registrata nei log di audit."
   },
   "tooltip": {
     "view": "Visualizza dettagli",
