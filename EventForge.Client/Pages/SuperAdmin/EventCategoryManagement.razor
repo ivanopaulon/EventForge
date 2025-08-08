@@ -201,21 +201,21 @@ else
                                     </MudTd>
                                     <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
                                         <!-- Standardized Action Toolbar following issue #106 requirements -->
-                                        <ActionToolbar ItemId="@context.Id.ToString()"
-                                                       ItemDisplayName="@context.Name"
-                                                       EntityName="EventCategory"
-                                                       ShowEdit="true"
-                                                       ShowDelete="true"
-                                                       ShowAuditLog="true"
-                                                       ShowExport="false"
-                                                       CanEdit="true"
-                                                       CanDelete="@(context.EventCount == 0)"
-                                                       CanViewAuditLog="true"
-                                                       OnEdit="@(() => EditEventCategory(context))"
-                                                       OnDelete="@(() => DeleteEventCategory(context))"
-                                                       OnAuditLog="@(() => ShowAuditHistory(context))"
-                                                       DeleteConfirmationTitle="@TranslationService.GetTranslation("dialog.confirmDeleteEventCategory", "Conferma Eliminazione Categoria")"
-                                                       DeleteConfirmationMessage="@TranslationService.GetTranslationFormatted("dialog.confirmDeleteEventCategoryMessage", "Sei sicuro di voler eliminare la categoria evento '{0}'? Questa azione non può essere annullata.", context.Name)" />
+                                        <ActionButtonGroup ItemId="@context.Id.ToString()"
+                                                           ItemDisplayName="@context.Name"
+                                                           EntityName="EventCategory"
+                                                           ShowEdit="true"
+                                                           ShowDelete="true"
+                                                           ShowAuditLog="true"
+                                                           ShowExport="false"
+                                                           CanEdit="true"
+                                                           CanDelete="@(context.EventCount == 0)"
+                                                           CanViewAuditLog="true"
+                                                           OnEdit="@(() => EditEventCategory(context))"
+                                                           OnDelete="@(() => DeleteEventCategory(context))"
+                                                           OnAuditLog="@(() => ShowAuditHistory(context))"
+                                                           DeleteConfirmationTitle="@TranslationService.GetTranslation("dialog.confirmDeleteEventCategory", "Conferma Eliminazione Categoria")"
+                                                           DeleteConfirmationMessage="@TranslationService.GetTranslationFormatted("dialog.confirmDeleteEventCategoryMessage", "Sei sicuro di voler eliminare la categoria evento '{0}'? Questa azione non può essere annullata.", context.Name)" />
                                         
                                         <!-- Status Toggle Button - separate as it's not a standard CRUD action -->
                                         <MudTooltip Text="@(context.IsActive ? TranslationService.GetTranslation("tooltip.disableEventCategory", "Disabilita categoria evento") : TranslationService.GetTranslation("tooltip.enableEventCategory", "Abilita categoria evento"))">
