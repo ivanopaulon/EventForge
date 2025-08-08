@@ -395,7 +395,7 @@
                 };
                 
                 var newTenant = await SuperAdminService.CreateTenantAsync(createDto);
-                Snackbar.Add(Messages.CreateSuccessful, Severity.Success);
+                Snackbar.Add(TranslationService.GetTranslation("messages.createSuccessful", "Creazione completata con successo"), Severity.Success);
                 
                 if (OnTenantCreated.HasDelegate)
                 {
@@ -416,7 +416,7 @@
                 };
                 
                 var updatedTenant = await SuperAdminService.UpdateTenantAsync(OriginalTenant.Id, updateDto);
-                Snackbar.Add(Messages.UpdateSuccessful, Severity.Success);
+                Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornamento completato con successo"), Severity.Success);
                 
                 if (OnTenantUpdated.HasDelegate)
                 {
@@ -429,7 +429,9 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to save tenant");
-            var message = Mode == EntityDrawerMode.Create ? Messages.CreateFailed : Messages.UpdateFailed;
+            var message = Mode == EntityDrawerMode.Create ? 
+                TranslationService.GetTranslation("messages.createFailed", "Errore durante la creazione") : 
+                TranslationService.GetTranslation("messages.updateFailed", "Errore durante l'aggiornamento");
             Snackbar.Add($"{message}: {ex.Message}", Severity.Error);
         }
     }
