@@ -180,7 +180,14 @@
     "sortByName": "Ordenar por nombre",
     "sortByCreatedDate": "Ordenar por fecha de creación",
     "sortByLastLogin": "Ordenar por último acceso",
-    "sortByEmail": "Ordenar por email"
+    "sortByEmail": "Ordenar por email",
+    "confirmTenantDelete": "¿Está seguro de que quiere eliminar el inquilino '{0}'? Esta acción no se puede deshacer y eliminará todos los datos asociados.",
+    "tenantDeleted": "¡Inquilino eliminado con éxito!",
+    "deleteTenantError": "Error al eliminar el inquilino: {0}",
+    "confirmUserDelete": "¿Está seguro de que quiere eliminar el usuario '{0}'? Esta acción no se puede deshacer.",
+    "userDeleted": "¡Usuario eliminado con éxito!",
+    "deleteUserError": "Error al eliminar el usuario: {0}",
+    "confirmUserDeletion": "¿Está seguro de que quiere eliminar el usuario '{0}'? Esta acción no se puede deshacer y se registrará en los registros de auditoría."
   },
   "tooltip": {
     "view": "Ver detalles",

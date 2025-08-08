@@ -99,20 +99,6 @@
                 </MudText>
             </MudItem>
             
-            @if (Mode == EntityDrawerMode.Edit)
-            {
-                <MudItem xs="12" md="6">
-                    <MudSwitch T="bool" 
-                               @bind-Checked="_model.IsActive"
-                               Label="@TranslationService.GetTranslation("drawer.field.tenantAttivo")"
-                               Color="Color.Primary"
-                               aria-describedby="active-help" />
-                    <MudText id="active-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                        @TranslationService.GetTranslation("drawer.helperText.tenantAttivo")
-                    </MudText>
-                </MudItem>
-            }
-            
             @if (Mode == EntityDrawerMode.Edit && OriginalTenant != null)
             {
                 <MudItem xs="12" md="6">

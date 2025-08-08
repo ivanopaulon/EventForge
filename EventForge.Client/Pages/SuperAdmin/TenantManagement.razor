@@ -18,24 +18,6 @@
                       IsAuthorized="_isAuthorized"
                       OnNavigateHome="@(() => NavigationManager.NavigateTo("/"))">
 
-    <!-- Tenant Selection Filter -->
-    <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.tenantSelection", "Selezione Tenant")"
-                                  SectionIcon="@Icons.Material.Outlined.Business"
-                                  @bind-IsExpanded="_tenantSelectorExpanded">
-        <MudSelect T="string" @bind-Value="_selectedTenantFilter" @bind-Value:after="OnTenantFilterChanged" 
-                   Label="@TranslationService.GetTranslation("field.tenant", "Tenant")" 
-                   Placeholder="@TranslationService.GetTranslation("superAdmin.selectTenantFilter", "Seleziona tenant per filtrare...")"
-                   Variant="Variant.Outlined"
-                   FullWidth="true"
-                   Clearable="true">
-            <MudSelectItem Value="@("")">@TranslationService.GetTranslation("superAdmin.allTenants", "Tutti i Tenant")</MudSelectItem>
-            @foreach (var tenant in _tenants)
-            {
-                <MudSelectItem Value="@tenant.Id.ToString()">@tenant.DisplayName</MudSelectItem>
-            }
-        </MudSelect>
-    </SuperAdminCollapsibleSection>
-
     <!-- Statistics Section -->
     <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.showStatistics", "Mostra Statistiche")"
                                   SectionIcon="@Icons.Material.Outlined.Analytics"
@@ -240,8 +222,7 @@
     
     // MudCollapse state management (all closed by default as per issue #98)
     private bool _statisticsExpanded = false;      // Closed by default
-    private bool _filtersExpanded = false;         // Closed by default  
-    private bool _tenantSelectorExpanded = false;  // Closed by default
+    private bool _filtersExpanded = false;         // Closed by default
     
     // Drawer and modal management
     private EntityDrawerMode _tenantDrawerMode = EntityDrawerMode.Create;
@@ -252,7 +233,6 @@
     // Filter and search state
     private string _searchTerm = string.Empty;
     private string _statusFilter = "all";
-    private string _selectedTenantFilter = string.Empty;
     
     // Data collections
     private List<TenantResponseDto> _tenants = new();
@@ -284,7 +264,6 @@
             // Set all collapse sections to closed by default as per issue #98 requirements
             _statisticsExpanded = false;
             _filtersExpanded = false;
-            _tenantSelectorExpanded = false;
             
             // Enhanced authentication and authorization flow
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
@@ -367,13 +346,6 @@
     {
         _searchTerm = string.Empty;
         _statusFilter = "all";
-        _selectedTenantFilter = string.Empty;
-        await Task.CompletedTask;
-        StateHasChanged();
-    }
-
-    private async Task OnTenantFilterChanged()
-    {
         await Task.CompletedTask;
         StateHasChanged();
     }

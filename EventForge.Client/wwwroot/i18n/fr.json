@@ -180,7 +180,14 @@
     "sortByName": "Trier par nom",
     "sortByCreatedDate": "Trier par date de création",
     "sortByLastLogin": "Trier par dernière connexion",
-    "sortByEmail": "Trier par email"
+    "sortByEmail": "Trier par email",
+    "confirmTenantDelete": "Êtes-vous sûr de vouloir supprimer le locataire '{0}'? Cette action ne peut pas être annulée et supprimera toutes les données associées.",
+    "tenantDeleted": "Locataire supprimé avec succès!",
+    "deleteTenantError": "Erreur lors de la suppression du locataire: {0}",
+    "confirmUserDelete": "Êtes-vous sûr de vouloir supprimer l'utilisateur '{0}'? Cette action ne peut pas être annulée.",
+    "userDeleted": "Utilisateur supprimé avec succès!",
+    "deleteUserError": "Erreur lors de la suppression de l'utilisateur: {0}",
+    "confirmUserDeletion": "Êtes-vous sûr de vouloir supprimer l'utilisateur '{0}'? Cette action ne peut pas être annulée et sera enregistrée dans les journaux d'audit."
   },
   "tooltip": {
     "view": "Voir les détails",

@@ -2,13 +2,14 @@
 @inject ITranslationService TranslationService
 
 <!-- Standardized row actions for CRUD operations - ORDERED: Create, Edit, Delete, AuditLog, Export -->
-<MudButtonGroup Color="Color.Primary" Variant="Variant.Text" Size="Size.Small">
+<div class="d-flex gap-1">
     @if (ShowCreate && CanCreate)
     {
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.createNew", "Crea nuovo")">
             <MudIconButton Icon="@Icons.Material.Outlined.Add" 
                            Color="Color.Success"
                            Size="Size.Small"
+                           Class="rounded"
                            OnClick="@OnCreate"
                            aria-label="@TranslationService.GetTranslation("tooltip.createNew", "Crea nuovo {0}", EntityName)" />
         </MudTooltip>
@@ -20,6 +21,7 @@
             <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
                            Color="Color.Primary"
                            Size="Size.Small"
+                           Class="rounded"
                            OnClick="@OnEdit"
                            aria-label="@TranslationService.GetTranslation("tooltip.editItem", "Modifica {0}", EntityName)" />
         </MudTooltip>
@@ -31,6 +33,7 @@
             <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
                            Color="Color.Error"
                            Size="Size.Small"
+                           Class="rounded"
                            OnClick="@OnDelete"
                            aria-label="@TranslationService.GetTranslation("tooltip.deleteItem", "Elimina {0}", EntityName)" />
         </MudTooltip>
@@ -40,8 +43,9 @@
     {
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewAuditHistory", "Visualizza cronologia modifiche")">
             <MudIconButton Icon="@Icons.Material.Outlined.History" 
-                           Color="Color.Info"
+                           Color="Color.Dark"
                            Size="Size.Small"
+                           Class="rounded"
                            OnClick="@OnAuditLog"
                            aria-label="@TranslationService.GetTranslation("tooltip.viewAuditHistory", "Visualizza cronologia {0}", EntityName)" />
         </MudTooltip>
@@ -51,8 +55,9 @@
     {
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.exportData", "Esporta dati")">
             <MudIconButton Icon="@Icons.Material.Outlined.Download" 
-                           Color="Color.Secondary"
+                           Color="Color.Tertiary"
                            Size="Size.Small"
+                           Class="rounded"
                            OnClick="@OnExport"
                            aria-label="@TranslationService.GetTranslation("tooltip.exportData", "Esporta {0}", EntityName)" />
         </MudTooltip>
@@ -62,8 +67,9 @@
     {
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewDetails", "Visualizza dettagli")">
             <MudIconButton Icon="@Icons.Material.Outlined.Visibility" 
-                           Color="Color.Info"
+                           Color="@Color.Info"
                            Size="Size.Small"
+                           Class="rounded"
                            OnClick="@OnView"
                            aria-label="@TranslationService.GetTranslation("tooltip.viewItem", "Visualizza {0}", EntityName)" />
         </MudTooltip>
@@ -75,6 +81,7 @@
             <MudIconButton Icon="@(IsActive ? Icons.Material.Outlined.Block : Icons.Material.Outlined.CheckCircle)" 
                            Color="@(IsActive ? Color.Warning : Color.Success)"
                            Size="Size.Small"
+                           Class="rounded"
                            OnClick="@OnToggleStatus"
                            aria-label="@(IsActive ? TranslationService.GetTranslation("tooltip.deactivateItem", "Disattiva {0}", EntityName) : TranslationService.GetTranslation("tooltip.activateItem", "Attiva {0}", EntityName))" />
         </MudTooltip>
@@ -82,7 +89,7 @@
 
     <!-- Custom additional actions -->
     @AdditionalActions
-</MudButtonGroup>
+</div>
 
 @code {
     /// <summary>
