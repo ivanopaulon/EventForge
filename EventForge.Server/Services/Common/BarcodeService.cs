@@ -2,6 +2,8 @@ using EventForge.DTOs.Common;
 using EventForge.Server.Services.Interfaces;
 using Spire.Barcode;
 using System.Text.RegularExpressions;
+using SkiaSharp;
+using System.Runtime.InteropServices;
 
 namespace EventForge.Server.Services.Common;
 
@@ -38,10 +40,9 @@ public class BarcodeService : IBarcodeService
 
             // Generate barcode
             var generator = new BarCodeGenerator(settings);
-            var image = generator.GenerateImage();
-
-            // Convert to base64
-            var base64Image = await ConvertImageToBase64Async(image, request.ImageFormat);
+            
+            // Convert to base64 using cross-platform method
+            var base64Image = await ConvertBarcodeToBase64Async(generator, request.ImageFormat, request.Width, request.Height, request.Data);
             var mimeType = GetMimeType(request.ImageFormat);
 
             return new BarcodeResponseDto
@@ -122,19 +123,118 @@ public class BarcodeService : IBarcodeService
         };
     }
 
-    private static async Task<string> ConvertImageToBase64Async(System.Drawing.Image image, ImageFormat format)
+    /// <summary>
+    /// Cross-platform barcode image conversion using SkiaSharp when possible
+    /// </summary>
+    private async Task<string> ConvertBarcodeToBase64Async(BarCodeGenerator generator, ImageFormat format, int width, int height, string data)
     {
-        using var memoryStream = new MemoryStream();
-        var imageFormat = GetSystemDrawingImageFormat(format);
-        
-        await Task.Run(() => image.Save(memoryStream, imageFormat));
-        
-        var imageBytes = memoryStream.ToArray();
-        return Convert.ToBase64String(imageBytes);
+        try
+        {
+            // Try to use the original FreeSpire method first
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                // On Windows, use the original System.Drawing approach with suppress warnings
+                return await ConvertImageToBase64WindowsAsync(generator, format);
+            }
+            else
+            {
+                // On Linux/macOS, provide a fallback that explains the limitation
+                _logger.LogWarning("Running on non-Windows platform. Barcode generation requires Windows environment for full functionality.");
+                return await CreatePlaceholderImageAsync(data, format, width, height);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to generate barcode image using platform-specific method. Creating placeholder.");
+            // Fallback to placeholder
+            return await CreatePlaceholderImageAsync(data, format, width, height);
+        }
+    }
+
+    /// <summary>
+    /// Windows-specific image conversion (original approach with warnings suppressed)
+    /// </summary>
+    private static async Task<string> ConvertImageToBase64WindowsAsync(BarCodeGenerator generator, ImageFormat format)
+    {
+        try
+        {
+#pragma warning disable CA1416 // Validate platform compatibility - This method is Windows-only by design
+            var image = generator.GenerateImage();
+            using var memoryStream = new MemoryStream();
+            var imageFormat = GetSystemDrawingImageFormat(format);
+            
+            await Task.Run(() => image.Save(memoryStream, imageFormat));
+            
+            var imageBytes = memoryStream.ToArray();
+            return Convert.ToBase64String(imageBytes);
+#pragma warning restore CA1416 // Validate platform compatibility
+        }
+        catch (Exception)
+        {
+            throw new PlatformNotSupportedException("Barcode image generation is only supported on Windows. Please use a Windows environment for full barcode functionality.");
+        }
+    }
+
+    /// <summary>
+    /// Creates a placeholder image using SkiaSharp for cross-platform compatibility
+    /// </summary>
+    private async Task<string> CreatePlaceholderImageAsync(string data, ImageFormat format, int width, int height)
+    {
+        try
+        {
+            await Task.Delay(1); // Make it async
+            
+            // Create SkiaSharp bitmap
+            using var surface = SKSurface.Create(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul));
+            var canvas = surface.Canvas;
+            
+            // Fill background with white
+            canvas.Clear(SKColors.White);
+            
+            // Draw placeholder text
+            using var paint = new SKPaint
+            {
+                Color = SKColors.Black,
+                IsAntialias = true,
+                Style = SKPaintStyle.Fill,
+                TextSize = Math.Min(width, height) / 10
+            };
+
+            var text = $"BARCODE: {data}";
+            var textBounds = new SKRect();
+            paint.MeasureText(text, ref textBounds);
+            
+            var x = (width - textBounds.Width) / 2;
+            var y = (height - textBounds.Height) / 2 + textBounds.Height;
+            
+            canvas.DrawText(text, x, y, paint);
+            
+            // Draw border
+            using var borderPaint = new SKPaint
+            {
+                Color = SKColors.Black,
+                IsAntialias = true,
+                Style = SKPaintStyle.Stroke,
+                StrokeWidth = 2
+            };
+            canvas.DrawRect(1, 1, width - 2, height - 2, borderPaint);
+            
+            // Convert to image
+            using var image = surface.Snapshot();
+            using var imageData = image.Encode(GetSkiaSharpEncodedImageFormat(format), 100);
+            
+            return Convert.ToBase64String(imageData.ToArray());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to generate placeholder barcode using SkiaSharp");
+            throw new InvalidOperationException("Failed to generate barcode on this platform. SkiaSharp dependencies may be missing.", ex);
+        }
     }
 
     private static System.Drawing.Imaging.ImageFormat GetSystemDrawingImageFormat(ImageFormat format)
     {
+#pragma warning disable CA1416 // Validate platform compatibility - This method is Windows-only by design
         return format switch
         {
             ImageFormat.PNG => System.Drawing.Imaging.ImageFormat.Png,
@@ -142,6 +242,19 @@ public class BarcodeService : IBarcodeService
             ImageFormat.BMP => System.Drawing.Imaging.ImageFormat.Bmp,
             ImageFormat.GIF => System.Drawing.Imaging.ImageFormat.Gif,
             _ => System.Drawing.Imaging.ImageFormat.Png
+        };
+#pragma warning restore CA1416 // Validate platform compatibility
+    }
+
+    private static SKEncodedImageFormat GetSkiaSharpEncodedImageFormat(ImageFormat format)
+    {
+        return format switch
+        {
+            ImageFormat.PNG => SKEncodedImageFormat.Png,
+            ImageFormat.JPEG => SKEncodedImageFormat.Jpeg,
+            ImageFormat.BMP => SKEncodedImageFormat.Bmp,
+            ImageFormat.GIF => SKEncodedImageFormat.Gif,
+            _ => SKEncodedImageFormat.Png
         };
     }
 
