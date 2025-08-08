@@ -50,6 +50,9 @@ builder.Services.AddSwaggerGen(c =>
         c.IncludeXmlComments(xmlPath);
     }
 
+    // Configure custom schema IDs to avoid conflicts between classes with the same name
+    c.CustomSchemaIds(type => type.FullName);
+
     // Add ProblemDetails schema examples
     c.MapType<ProblemDetails>(() => new Microsoft.OpenApi.Models.OpenApiSchema
     {
