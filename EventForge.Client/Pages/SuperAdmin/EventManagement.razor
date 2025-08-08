@@ -403,10 +403,10 @@ else
     private bool _eventDrawerOpen = false;
     private bool _auditDrawerOpen = false;
     
-    // MudCollapse state management (all closed by default as per issue #98)
+    // MudCollapse state management (tenant selector now expanded by default to prevent errors)
     private bool _statisticsExpanded = false;      // Closed by default
     private bool _filtersExpanded = false;         // Closed by default  
-    private bool _tenantSelectorExpanded = false;  // Closed by default
+    private bool _tenantSelectorExpanded = true;   // Expanded by default to prevent tenant selection errors
     
     // Drawer and modal management
     private EntityDrawerMode _eventDrawerMode = EntityDrawerMode.Create;
@@ -469,10 +469,10 @@ else
     {
         try
         {
-            // Set all collapse sections to closed by default as per issue #98 requirements
+            // Set tenant selector expanded by default, others closed by default to prevent tenant selection errors
             _statisticsExpanded = false;
             _filtersExpanded = false;
-            _tenantSelectorExpanded = false;
+            _tenantSelectorExpanded = true;  // Expanded by default to prevent tenant selection errors
             
             // Enhanced authentication and authorization flow
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
@@ -496,9 +496,9 @@ else
             _currentUser = await AuthService.GetCurrentUserAsync();
             _isAuthorized = true;
             
-            // Parallel data loading for better performance
+            // Load tenants first, then events and statistics (sequential loading to allow tenant auto-selection)
+            await LoadTenantsAsync();
             await Task.WhenAll(
-                LoadTenantsAsync(),
                 LoadEventsAsync(),
                 LoadStatisticsAsync()
             );
@@ -516,12 +516,21 @@ else
 
     /// <summary>
     /// Loads tenant data with proper error handling and loading state management.
+    /// Auto-selects the first tenant if available to prevent errors.
     /// </summary>
     private async Task LoadTenantsAsync()
     {
         try
         {
             _tenants = (await SuperAdminService.GetTenantsAsync()).ToList();
+            
+            // Auto-select the first tenant if available and no tenant is currently selected
+            if (_tenants.Any() && string.IsNullOrEmpty(_selectedTenantFilter))
+            {
+                _selectedTenantFilter = _tenants.First().Id.ToString();
+                // Trigger data reload with the selected tenant
+                await OnTenantFilterChanged();
+            }
         }
         catch (Exception ex)
         {
