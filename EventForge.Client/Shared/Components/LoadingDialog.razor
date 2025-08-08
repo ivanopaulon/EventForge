@@ -1,0 +1,510 @@
+@using System.Timers
+@implements IDisposable
+
+<!-- 
+    LoadingDialog Component
+    
+    A modal dialog that shows loading progress with customizable options:
+    - Configurable title and operation description
+    - Progress tracking with total and task-specific execution times
+    - Custom logo support
+    - Animated pulsing SVG graphics
+    - Auto-closeable when operations complete
+-->
+
+@if (IsVisible)
+{
+    <div class="loading-overlay" @onclick:preventDefault="true">
+        <div class="loading-dialog ef-tile">
+            
+            <!-- Header with Logo and Title -->
+            <div class="loading-header d-flex align-center justify-center flex-column pa-6">
+                @if (!string.IsNullOrEmpty(LogoUrl))
+                {
+                    <div class="loading-logo mb-4">
+                        <img src="@LogoUrl" alt="@LogoAltText" class="logo-image" />
+                    </div>
+                }
+                
+                <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-2">
+                    @Title
+                </MudText>
+                
+                @if (!string.IsNullOrEmpty(CurrentOperation))
+                {
+                    <MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Secondary" Class="mb-4">
+                        @CurrentOperation
+                    </MudText>
+                }
+            </div>
+
+            <!-- Animated Pulsing SVG -->
+            <div class="loading-animation-container d-flex justify-center mb-6">
+                <div class="pulsing-animation">
+                    <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Outer pulsing circle -->
+                        <circle cx="60" cy="60" r="50" 
+                                fill="none" 
+                                stroke="var(--secondary)" 
+                                stroke-width="2" 
+                                opacity="0.3"
+                                class="pulse-outer">
+                            <animate attributeName="r" 
+                                     values="30;50;30" 
+                                     dur="2s" 
+                                     repeatCount="indefinite"/>
+                            <animate attributeName="opacity" 
+                                     values="0.8;0.1;0.8" 
+                                     dur="2s" 
+                                     repeatCount="indefinite"/>
+                        </circle>
+                        
+                        <!-- Middle pulsing circle -->
+                        <circle cx="60" cy="60" r="35" 
+                                fill="none" 
+                                stroke="var(--secondary)" 
+                                stroke-width="3" 
+                                opacity="0.5"
+                                class="pulse-middle">
+                            <animate attributeName="r" 
+                                     values="20;35;20" 
+                                     dur="1.5s" 
+                                     repeatCount="indefinite"/>
+                            <animate attributeName="opacity" 
+                                     values="0.9;0.2;0.9" 
+                                     dur="1.5s" 
+                                     repeatCount="indefinite"/>
+                        </circle>
+                        
+                        <!-- Inner core circle -->
+                        <circle cx="60" cy="60" r="15" 
+                                fill="var(--secondary)" 
+                                opacity="0.8"
+                                class="pulse-core">
+                            <animate attributeName="r" 
+                                     values="10;15;10" 
+                                     dur="1s" 
+                                     repeatCount="indefinite"/>
+                            <animate attributeName="opacity" 
+                                     values="1;0.6;1" 
+                                     dur="1s" 
+                                     repeatCount="indefinite"/>
+                        </circle>
+
+                        <!-- Central icon or content -->
+                        <g transform="translate(60,60)" class="central-icon">
+                            <circle cx="0" cy="0" r="6" fill="white" opacity="0.9"/>
+                            <circle cx="0" cy="0" r="3" fill="var(--primary)" opacity="1">
+                                <animate attributeName="r" 
+                                         values="2;4;2" 
+                                         dur="0.8s" 
+                                         repeatCount="indefinite"/>
+                            </circle>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Progress Information -->
+            <div class="loading-progress-info pa-4">
+                @if (ShowTotalTime)
+                {
+                    <div class="d-flex justify-space-between align-center mb-2">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Tempo totale:
+                        </MudText>
+                        <MudText Typo="Typo.body2" Class="font-weight-medium">
+                            @GetFormattedTime(TotalElapsedSeconds)
+                        </MudText>
+                    </div>
+                }
+
+                @if (ShowTaskTime)
+                {
+                    <div class="d-flex justify-space-between align-center mb-2">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Tempo task corrente:
+                        </MudText>
+                        <MudText Typo="Typo.body2" Class="font-weight-medium">
+                            @GetFormattedTime(TaskElapsedSeconds)
+                        </MudText>
+                    </div>
+                }
+
+                @if (ShowProgress && Progress.HasValue)
+                {
+                    <div class="mt-4">
+                        <MudProgressLinear Color="Color.Secondary" 
+                                           Value="@Progress.Value" 
+                                           Size="Size.Medium" 
+                                           Class="loading-progress-bar" />
+                        <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-1">
+                            @($"{Progress.Value:F0}%")
+                        </MudText>
+                    </div>
+                }
+            </div>
+
+        </div>
+    </div>
+}
+
+@code {
+    private Timer? _totalTimer;
+    private Timer? _taskTimer;
+    private DateTime _totalStartTime;
+    private DateTime _taskStartTime;
+
+    /// <summary>
+    /// Controls whether the dialog is visible
+    /// </summary>
+    [Parameter] public bool IsVisible { get; set; } = false;
+
+    /// <summary>
+    /// Callback when visibility changes
+    /// </summary>
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+
+    /// <summary>
+    /// Dialog title
+    /// </summary>
+    [Parameter] public string Title { get; set; } = "Caricamento...";
+
+    /// <summary>
+    /// Current operation description (updateable)
+    /// </summary>
+    [Parameter] public string CurrentOperation { get; set; } = string.Empty;
+
+    /// <summary>
+    /// URL to custom logo image
+    /// </summary>
+    [Parameter] public string LogoUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Alt text for logo
+    /// </summary>
+    [Parameter] public string LogoAltText { get; set; } = "Logo";
+
+    /// <summary>
+    /// Show total execution time
+    /// </summary>
+    [Parameter] public bool ShowTotalTime { get; set; } = true;
+
+    /// <summary>
+    /// Show current task execution time
+    /// </summary>
+    [Parameter] public bool ShowTaskTime { get; set; } = true;
+
+    /// <summary>
+    /// Show progress bar
+    /// </summary>
+    [Parameter] public bool ShowProgress { get; set; } = false;
+
+    /// <summary>
+    /// Progress percentage (0-100)
+    /// </summary>
+    [Parameter] public double? Progress { get; set; }
+
+    /// <summary>
+    /// Total elapsed seconds (readonly)
+    /// </summary>
+    public int TotalElapsedSeconds { get; private set; } = 0;
+
+    /// <summary>
+    /// Current task elapsed seconds (readonly)
+    /// </summary>
+    public int TaskElapsedSeconds { get; private set; } = 0;
+
+    /// <summary>
+    /// Updates the current operation text
+    /// </summary>
+    public async Task UpdateOperationAsync(string operation)
+    {
+        CurrentOperation = operation;
+        ResetTaskTimer();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Updates the progress percentage
+    /// </summary>
+    public async Task UpdateProgressAsync(double progress)
+    {
+        Progress = Math.Max(0, Math.Min(100, progress));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Shows the loading dialog and starts timers
+    /// </summary>
+    public async Task ShowAsync()
+    {
+        IsVisible = true;
+        StartTimers();
+        await IsVisibleChanged.InvokeAsync(IsVisible);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Hides the loading dialog and stops timers
+    /// </summary>
+    public async Task HideAsync()
+    {
+        IsVisible = false;
+        StopTimers();
+        await IsVisibleChanged.InvokeAsync(IsVisible);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected override void OnInitialized()
+    {
+        if (IsVisible)
+        {
+            StartTimers();
+        }
+    }
+
+    private void StartTimers()
+    {
+        _totalStartTime = DateTime.Now;
+        _taskStartTime = DateTime.Now;
+
+        // Update timers every second
+        _totalTimer = new Timer(1000);
+        _totalTimer.Elapsed += (_, _) =>
+        {
+            TotalElapsedSeconds = (int)(DateTime.Now - _totalStartTime).TotalSeconds;
+            InvokeAsync(StateHasChanged);
+        };
+        _totalTimer.Start();
+
+        _taskTimer = new Timer(1000);
+        _taskTimer.Elapsed += (_, _) =>
+        {
+            TaskElapsedSeconds = (int)(DateTime.Now - _taskStartTime).TotalSeconds;
+            InvokeAsync(StateHasChanged);
+        };
+        _taskTimer.Start();
+    }
+
+    private void StopTimers()
+    {
+        _totalTimer?.Stop();
+        _taskTimer?.Stop();
+        _totalTimer?.Dispose();
+        _taskTimer?.Dispose();
+        _totalTimer = null;
+        _taskTimer = null;
+    }
+
+    private void ResetTaskTimer()
+    {
+        _taskStartTime = DateTime.Now;
+        TaskElapsedSeconds = 0;
+    }
+
+    private string GetFormattedTime(int seconds)
+    {
+        var timeSpan = TimeSpan.FromSeconds(seconds);
+        if (timeSpan.TotalMinutes >= 1)
+        {
+            return $"{(int)timeSpan.TotalMinutes}:{timeSpan.Seconds:D2}";
+        }
+        return $"{seconds}s";
+    }
+
+    public void Dispose()
+    {
+        StopTimers();
+    }
+}
+
+<style>
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        backdrop-filter: blur(2px);
+    }
+
+    .loading-dialog {
+        background: var(--background-secondary);
+        min-width: 350px;
+        max-width: 500px;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        animation: loadingDialogAppear 0.3s ease-out;
+    }
+
+    .loading-header {
+        background: linear-gradient(135deg, var(--background-secondary) 0%, var(--neutral-light) 100%);
+        border-bottom: 1px solid var(--border-primary);
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+
+    .loading-logo {
+        width: 80px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .logo-image {
+        max-width: 60px;
+        max-height: 60px;
+        object-fit: contain;
+    }
+
+    .loading-animation-container {
+        padding: 2rem 0;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    }
+
+    .pulsing-animation {
+        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+    }
+
+    .pulse-outer,
+    .pulse-middle,
+    .pulse-core {
+        transform-origin: center;
+    }
+
+    .central-icon {
+        animation: float 3s ease-in-out infinite;
+    }
+
+    .loading-progress-info {
+        background: var(--neutral-light);
+        border-top: 1px solid var(--border-primary);
+        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        min-height: 100px;
+    }
+
+    .loading-progress-bar {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .loading-progress-bar .mud-progress-linear-bar {
+        background: linear-gradient(90deg, var(--secondary) 0%, var(--accent) 100%);
+    }
+
+    /* Animations */
+    @@keyframes loadingDialogAppear {
+        from {
+            opacity: 0;
+            transform: scale(0.9) translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    }
+
+    @@keyframes float {
+        0%, 100% {
+            transform: translateY(0px);
+        }
+        50% {
+            transform: translateY(-3px);
+        }
+    }
+
+    /* Responsive adjustments */
+    @@media (max-width: 600px) {
+        .loading-dialog {
+            min-width: 300px;
+            max-width: 90vw;
+            margin: 20px;
+        }
+
+        .loading-header {
+            padding: 1.5rem !important;
+        }
+
+        .loading-logo {
+            width: 60px;
+            height: 60px;
+        }
+
+        .logo-image {
+            max-width: 45px;
+            max-height: 45px;
+        }
+
+        .pulsing-animation svg {
+            width: 100px;
+            height: 100px;
+        }
+    }
+
+    /* Dark theme support */
+    @@media (prefers-color-scheme: dark) {
+        .loading-dialog {
+            background: var(--neutral-dark);
+        }
+
+        .loading-header {
+            background: linear-gradient(135deg, var(--neutral-dark) 0%, var(--primary-dark) 100%);
+        }
+
+        .loading-progress-info {
+            background: var(--neutral-dark-light);
+        }
+
+        .loading-logo {
+            background: rgba(0, 0, 0, 0.8);
+        }
+    }
+
+    /* High contrast mode */
+    @@media (prefers-contrast: high) {
+        .loading-dialog {
+            border: 2px solid var(--border-primary);
+        }
+
+        .loading-header,
+        .loading-progress-info {
+            border-width: 2px;
+        }
+    }
+
+    /* Reduced motion support */
+    @@media (prefers-reduced-motion: reduce) {
+        .central-icon {
+            animation: none;
+        }
+
+        .pulsing-animation circle {
+            animation: none;
+        }
+
+        .pulsing-animation .pulse-outer {
+            opacity: 0.3 !important;
+        }
+
+        .pulsing-animation .pulse-middle {
+            opacity: 0.5 !important;
+        }
+
+        .pulsing-animation .pulse-core {
+            opacity: 0.8 !important;
+        }
+
+        .loading-dialog {
+            animation: none;
+        }
+    }
+</style>

@@ -1,0 +1,132 @@
+/* ===================================================
+   EventForge Icon Color Standardization
+   =================================================== 
+   
+   This file standardizes icon colors throughout the application
+   for better contrast and consistency. All icons are forced to
+   white color except health-related icons which have their own
+   color management system based on status.
+   
+   Exclusions:
+   - Health footer component icons (.health-indicator-icon, etc.)
+   - Health status icons in the health drawer
+   - Any icon with explicit Color property set to Success, Warning, Error
+   ================================================== */
+
+/* Force all MudBlazor icons to white color for better contrast */
+.mud-icon-root {
+    color: white !important;
+}
+
+/* Exclude health-related icons that need status-based coloring */
+.health-footer-container .mud-icon-root,
+.health-indicator-icon,
+.health-section .mud-icon-root,
+.health-drawer-content .mud-icon-root,
+.health-tab .mud-icon-root {
+    color: inherit !important;
+}
+
+/* Exclude icons with explicit semantic colors */
+.mud-icon-root.mud-success-text,
+.mud-icon-root.mud-warning-text,
+.mud-icon-root.mud-error-text,
+.mud-icon-root.mud-info-text {
+    color: inherit !important;
+}
+
+/* Exclude icons in components where color is functionally important */
+.mud-icon-root[data-semantic="true"],
+.mud-chip .mud-icon-root,
+.mud-alert .mud-icon-root,
+.mud-badge .mud-icon-root {
+    color: inherit !important;
+}
+
+/* Ensure AppBar icons remain white for good contrast */
+.mud-appbar .mud-icon-root {
+    color: white !important;
+}
+
+/* Ensure navigation drawer icons are white for better contrast */
+.mud-drawer .mud-icon-root,
+.mud-nav-link .mud-icon-root {
+    color: white !important;
+}
+
+/* Exclude health status icons specifically */
+.mud-icon-root[title*="Health"],
+.mud-icon-root[title*="health"],
+.mud-icon-root[aria-label*="Health"],
+.mud-icon-root[aria-label*="health"] {
+    color: inherit !important;
+}
+
+/* Make sure button icons are white unless they're in health components */
+.mud-button .mud-icon-root:not(.health-indicator-icon):not(.health-footer-container .mud-icon-root) {
+    color: white !important;
+}
+
+/* Override for icon buttons specifically */
+.mud-icon-button .mud-icon-root:not(.health-indicator-icon):not(.health-footer-container .mud-icon-root) {
+    color: white !important;
+}
+
+/* Table and data grid icons should be white */
+.mud-table .mud-icon-root,
+.mud-data-grid .mud-icon-root {
+    color: white !important;
+}
+
+/* Menu and dropdown icons should be white */
+.mud-menu .mud-icon-root,
+.mud-popover .mud-icon-root,
+.mud-select .mud-icon-root {
+    color: white !important;
+}
+
+/* Form field icons should be white */
+.mud-input .mud-icon-root,
+.mud-field .mud-icon-root {
+    color: white !important;
+}
+
+/* Pagination and navigation icons should be white */
+.mud-pagination .mud-icon-root,
+.mud-breadcrumbs .mud-icon-root {
+    color: white !important;
+}
+
+/* Dialog and modal icons should be white */
+.mud-dialog .mud-icon-root:not(.health-indicator-icon) {
+    color: white !important;
+}
+
+/* Snackbar icons should be white */
+.mud-snackbar .mud-icon-root {
+    color: white !important;
+}
+
+/* High contrast mode adjustments */
+@media (prefers-contrast: high) {
+    .mud-icon-root {
+        filter: contrast(1.2);
+    }
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+    .mud-icon-root {
+        color: white !important;
+    }
+    
+    /* In dark mode, some icons might need to be lighter */
+    .mud-paper .mud-icon-root:not(.health-indicator-icon) {
+        color: #e0e0e0 !important;
+    }
+}
+
+/* Ensure loading dialog icons are properly styled */
+.loading-dialog-content .mud-icon-root {
+    color: var(--secondary) !important;
+}

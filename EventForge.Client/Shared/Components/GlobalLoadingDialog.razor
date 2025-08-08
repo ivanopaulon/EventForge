@@ -1,0 +1,60 @@
+@using EventForge.Client.Services
+@inject ILoadingDialogService LoadingDialogService
+@implements IDisposable
+
+<!-- Global Loading Dialog - controlled by LoadingDialogService -->
+<LoadingDialog @ref="_loadingDialog"
+               IsVisible="@_state.IsVisible"
+               Title="@_state.Title"
+               CurrentOperation="@_state.CurrentOperation"
+               LogoUrl="@_state.LogoUrl"
+               LogoAltText="@_state.LogoAltText"
+               ShowTotalTime="@_state.ShowTotalTime"
+               ShowTaskTime="@_state.ShowTaskTime"
+               ShowProgress="@_state.ShowProgress"
+               Progress="@_state.Progress" />
+
+@code {
+    private LoadingDialog? _loadingDialog;
+    private LoadingDialogState _state = new();
+
+    protected override void OnInitialized()
+    {
+        LoadingDialogService.StateChanged += OnStateChanged;
+        _state = LoadingDialogService.GetCurrentState();
+    }
+
+    private async void OnStateChanged(LoadingDialogState newState)
+    {
+        _state = newState;
+        
+        if (_loadingDialog != null)
+        {
+            if (newState.IsVisible)
+            {
+                await _loadingDialog.ShowAsync();
+            }
+            else
+            {
+                await _loadingDialog.HideAsync();
+            }
+            
+            // Update operation and progress if dialog is visible
+            if (newState.IsVisible)
+            {
+                await _loadingDialog.UpdateOperationAsync(newState.CurrentOperation);
+                if (newState.Progress.HasValue)
+                {
+                    await _loadingDialog.UpdateProgressAsync(newState.Progress.Value);
+                }
+            }
+        }
+        
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        LoadingDialogService.StateChanged -= OnStateChanged;
+    }
+}
