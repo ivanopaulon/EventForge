@@ -53,11 +53,7 @@ public class Tenant : AuditableEntity
     [Display(Name = "Max Users", Description = "Maximum number of users allowed for this tenant.")]
     public int MaxUsers { get; set; } = 100;
 
-    /// <summary>
-    /// Indicates if the tenant is enabled and can be accessed.
-    /// </summary>
-    [Display(Name = "Is Enabled", Description = "Indicates if the tenant is enabled and can be accessed.")]
-    public bool IsEnabled { get; set; } = true;
+
 
     /// <summary>
     /// Date when the tenant subscription expires (UTC).

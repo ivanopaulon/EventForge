@@ -22,7 +22,7 @@ public static class TenantMapper
             Domain = tenant.Domain,
             ContactEmail = tenant.ContactEmail,
             MaxUsers = tenant.MaxUsers,
-            IsActive = tenant.IsEnabled,
+            IsActive = tenant.IsActive,
             CreatedAt = tenant.CreatedAt,
             UpdatedAt = tenant.ModifiedAt ?? tenant.CreatedAt
         };
@@ -42,7 +42,7 @@ public static class TenantMapper
             Domain = tenant.Domain,
             ContactEmail = tenant.ContactEmail,
             MaxUsers = tenant.MaxUsers,
-            IsEnabled = tenant.IsEnabled,
+            IsActive = tenant.IsActive,
             SubscriptionExpiresAt = tenant.SubscriptionExpiresAt,
             CreatedAt = tenant.CreatedAt,
             CreatedBy = tenant.CreatedBy,

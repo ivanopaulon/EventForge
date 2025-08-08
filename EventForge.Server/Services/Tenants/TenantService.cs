@@ -55,7 +55,7 @@ public class TenantService : ITenantService
                 Domain = createDto.Domain,
                 ContactEmail = createDto.ContactEmail,
                 MaxUsers = createDto.MaxUsers,
-                IsEnabled = true,
+                IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -183,7 +183,7 @@ public class TenantService : ITenantService
                 Domain = tenant.Domain,
                 ContactEmail = tenant.ContactEmail,
                 MaxUsers = tenant.MaxUsers,
-                IsEnabled = tenant.IsEnabled,
+                IsActive = tenant.IsActive,
                 SubscriptionExpiresAt = tenant.SubscriptionExpiresAt,
                 CreatedAt = tenant.CreatedAt,
                 CreatedBy = tenant.CreatedBy,
@@ -196,7 +196,6 @@ public class TenantService : ITenantService
             tenant.Domain = updateDto.Domain;
             tenant.ContactEmail = updateDto.ContactEmail;
             tenant.MaxUsers = updateDto.MaxUsers;
-            tenant.IsEnabled = updateDto.IsEnabled;
             tenant.SubscriptionExpiresAt = updateDto.SubscriptionExpiresAt;
             tenant.ModifiedAt = DateTime.UtcNow;
 
@@ -264,7 +263,7 @@ public class TenantService : ITenantService
                 Domain = tenant.Domain,
                 ContactEmail = tenant.ContactEmail,
                 MaxUsers = tenant.MaxUsers,
-                IsEnabled = tenant.IsEnabled,
+                IsActive = tenant.IsActive,
                 SubscriptionExpiresAt = tenant.SubscriptionExpiresAt,
                 CreatedAt = tenant.CreatedAt,
                 CreatedBy = tenant.CreatedBy,
@@ -272,7 +271,7 @@ public class TenantService : ITenantService
                 ModifiedBy = tenant.ModifiedBy
             };
 
-            tenant.IsEnabled = isEnabled;
+            tenant.IsActive = isEnabled;
             tenant.ModifiedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -643,7 +642,7 @@ public class TenantService : ITenantService
         }
 
         var totalTenants = await _context.Tenants.CountAsync();
-        var activeTenants = await _context.Tenants.CountAsync(t => t.IsEnabled);
+        var activeTenants = await _context.Tenants.CountAsync(t => t.IsActive);
         var inactiveTenants = totalTenants - activeTenants;
 
         var totalUsers = await _context.Users.CountAsync();
@@ -651,7 +650,7 @@ public class TenantService : ITenantService
         var usersLastMonth = await _context.Users.CountAsync(u => u.CreatedAt >= oneMonthAgo);
 
         var tenantsNearLimit = await _context.Tenants
-            .Where(t => t.IsEnabled)
+            .Where(t => t.IsActive)
             .CountAsync(t => _context.Users.Count(u => u.TenantId == t.Id) >= t.MaxUsers * 0.9);
 
         return new TenantStatisticsDto
@@ -687,7 +686,7 @@ public class TenantService : ITenantService
         if (!string.IsNullOrEmpty(searchDto.Status) && searchDto.Status != "all")
         {
             var isActive = searchDto.Status == "active";
-            query = query.Where(t => t.IsEnabled == isActive);
+            query = query.Where(t => t.IsActive == isActive);
         }
 
         if (searchDto.MaxUsers.HasValue)
@@ -743,7 +742,7 @@ public class TenantService : ITenantService
             Domain = t.Domain,
             ContactEmail = t.ContactEmail,
             MaxUsers = t.MaxUsers,
-            IsEnabled = t.IsEnabled,
+            IsActive = t.IsActive,
             SubscriptionExpiresAt = t.SubscriptionExpiresAt,
             CreatedAt = t.CreatedAt,
             CreatedBy = t.CreatedBy,
@@ -787,7 +786,7 @@ public class TenantService : ITenantService
             Domain = tenant.Domain,
             ContactEmail = tenant.ContactEmail,
             MaxUsers = tenant.MaxUsers,
-            IsEnabled = tenant.IsEnabled,
+            IsActive = tenant.IsActive,
             SubscriptionExpiresAt = tenant.SubscriptionExpiresAt,
             CreatedAt = tenant.CreatedAt,
             CreatedBy = tenant.CreatedBy,
@@ -956,7 +955,7 @@ public class TenantService : ITenantService
             throw new InvalidOperationException("Tenant is already deleted.");
 
         tenant.IsDeleted = true;
-        tenant.IsEnabled = false;
+        tenant.IsActive = false;
         tenant.ModifiedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

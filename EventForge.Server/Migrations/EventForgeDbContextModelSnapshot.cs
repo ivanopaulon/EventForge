@@ -775,9 +775,6 @@ namespace EventForge.Server.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsEnabled")
-                        .HasColumnType("bit");
-
                     b.Property<int>("MaxUsers")
                         .HasColumnType("int");
 

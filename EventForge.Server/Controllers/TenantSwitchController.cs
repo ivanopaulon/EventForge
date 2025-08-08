@@ -150,7 +150,7 @@ public class TenantSwitchController : BaseApiController
                             result.IsValid = false;
                             result.ValidationMessage = "Target tenant not found";
                         }
-                        else if (!tenant.IsEnabled)
+                        else if (!tenant.IsActive)
                         {
                             result.Warnings.Add("Target tenant is currently disabled");
                         }
