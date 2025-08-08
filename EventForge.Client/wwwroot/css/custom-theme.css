@@ -111,7 +111,7 @@
     
     /* Sidebar/Drawer */
     --sidebar-background: var(--primary);
-    --sidebar-text: #d7d7d7;
+    --sidebar-text: #ffffff;
     --sidebar-text-active: #ffffff;
     --sidebar-hover-bg: rgba(255, 255, 255, 0.1);
     --sidebar-active-bg: rgba(255, 255, 255, 0.37);

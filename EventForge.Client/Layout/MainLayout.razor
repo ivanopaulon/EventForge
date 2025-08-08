@@ -13,12 +13,13 @@
     <!-- Improved AppBar with accessibility enhancements and dynamic title -->
     <MudAppBar Elevation="1" role="banner">
         <MudIconButton Icon="Icons.Material.Filled.Menu" 
-                       Color="Color.Inherit" 
+                       Color="Color.Surface" 
                        Edge="Edge.Start" 
                        OnClick="@(() => _drawerOpen = !_drawerOpen)"
                        aria-label="@TranslationService.GetTranslation("navigation.openMenu", "Open navigation menu")"
                        aria-expanded="@_drawerOpen"
-                       aria-controls="navigation-drawer" />
+                       aria-controls="navigation-drawer" 
+                       Style="color: white;" />
         
         <!-- Logo and brand with improved accessibility -->
         <div class="d-flex align-center" role="img" aria-label="EventForge Logo">
