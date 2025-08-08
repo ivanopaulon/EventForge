@@ -351,11 +351,24 @@
         
         try
         {
-            var users = await SuperAdminService.GetUsersAsync(OriginalTenant.Id);
-            _userCount = users.Count();
-            _userUsagePercentage = OriginalTenant.MaxUsers > 0 
-                ? (_userCount / (double)OriginalTenant.MaxUsers) * 100 
-                : 0;
+            // Try to get detailed tenant information first, fallback to user count if not available
+            var tenantDetails = await SuperAdminService.GetTenantDetailsAsync(OriginalTenant.Id);
+            if (tenantDetails != null)
+            {
+                _userCount = tenantDetails.CurrentUsers;
+                _userUsagePercentage = tenantDetails.MaxUsers > 0 
+                    ? (tenantDetails.CurrentUsers / (double)tenantDetails.MaxUsers) * 100 
+                    : 0;
+            }
+            else
+            {
+                // Fallback to original method
+                var users = await SuperAdminService.GetUsersAsync(OriginalTenant.Id);
+                _userCount = users.Count();
+                _userUsagePercentage = OriginalTenant.MaxUsers > 0 
+                    ? (_userCount / (double)OriginalTenant.MaxUsers) * 100 
+                    : 0;
+            }
         }
         catch (Exception ex)
         {
@@ -397,7 +410,9 @@
                     Description = _model.Description,
                     Domain = _model.Domain,
                     ContactEmail = _model.ContactEmail,
-                    MaxUsers = _model.MaxUsers
+                    MaxUsers = _model.MaxUsers,
+                    IsEnabled = _model.IsActive, // Map IsActive to IsEnabled for the update
+                    SubscriptionExpiresAt = null // TODO: Add UI field for subscription expiration if needed
                 };
                 
                 var updatedTenant = await SuperAdminService.UpdateTenantAsync(OriginalTenant.Id, updateDto);
