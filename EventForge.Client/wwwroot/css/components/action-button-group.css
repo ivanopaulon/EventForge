@@ -1,0 +1,231 @@
+/* ===================================================
+   ActionButtonGroup Component Styles
+   =================================================== 
+   
+   Dedicated CSS file for the ActionButtonGroup component
+   to ensure proper color display and avoid conflicts with
+   global icon color overrides.
+   
+   This file provides semantic color definitions for all
+   action buttons and proper layout styles for different
+   display modes (Row, Toolbar, Column).
+   ================================================== */
+
+/* Base container styles */
+.action-button-group {
+    min-width: fit-content;
+}
+
+/* Button transition effects */
+.action-button-group .mud-icon-button {
+    transition: all 0.2s ease-in-out;
+}
+
+.action-button-group .mud-icon-button:hover {
+    transform: scale(1.1);
+}
+
+/* Layout styles for different modes */
+.action-button-group.d-flex.gap-1.align-center {
+    /* Row mode - horizontal layout */
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.action-button-group.mud-toolbar-content {
+    /* Toolbar mode */
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.action-button-group.d-flex.flex-column.gap-1 {
+    /* Column mode - vertical layout */
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+/* Semantic color definitions for action buttons */
+/* These styles ensure that ActionButtonGroup icons maintain their semantic colors
+   regardless of global icon color overrides */
+
+/* Refresh button - Primary color */
+.action-button-group .mud-icon-button.mud-primary {
+    color: var(--mud-palette-primary) !important;
+}
+
+.action-button-group .mud-icon-button.mud-primary .mud-icon-root {
+    color: var(--mud-palette-primary) !important;
+}
+
+/* View button - Info color */
+.action-button-group .mud-icon-button.mud-info {
+    color: var(--mud-palette-info) !important;
+}
+
+.action-button-group .mud-icon-button.mud-info .mud-icon-root {
+    color: var(--mud-palette-info) !important;
+}
+
+/* Create button - Success color */
+.action-button-group .mud-icon-button.mud-success {
+    color: var(--mud-palette-success) !important;
+}
+
+.action-button-group .mud-icon-button.mud-success .mud-icon-root {
+    color: var(--mud-palette-success) !important;
+}
+
+/* Edit button - Warning color */
+.action-button-group .mud-icon-button.mud-warning {
+    color: var(--mud-palette-warning) !important;
+}
+
+.action-button-group .mud-icon-button.mud-warning .mud-icon-root {
+    color: var(--mud-palette-warning) !important;
+}
+
+/* Delete button - Error color */
+.action-button-group .mud-icon-button.mud-error {
+    color: var(--mud-palette-error) !important;
+}
+
+.action-button-group .mud-icon-button.mud-error .mud-icon-root {
+    color: var(--mud-palette-error) !important;
+}
+
+/* Audit Log button - Secondary color */
+.action-button-group .mud-icon-button.mud-secondary {
+    color: var(--mud-palette-secondary) !important;
+}
+
+.action-button-group .mud-icon-button.mud-secondary .mud-icon-root {
+    color: var(--mud-palette-secondary) !important;
+}
+
+/* Export button - Tertiary color */
+.action-button-group .mud-icon-button.mud-tertiary {
+    color: var(--mud-palette-tertiary) !important;
+}
+
+.action-button-group .mud-icon-button.mud-tertiary .mud-icon-root {
+    color: var(--mud-palette-tertiary) !important;
+}
+
+/* Fallback color definitions using CSS custom properties */
+:root {
+    --action-button-primary: #1976d2;
+    --action-button-info: #0288d1;
+    --action-button-success: #388e3c;
+    --action-button-warning: #f57c00;
+    --action-button-error: #d32f2f;
+    --action-button-secondary: #512da8;
+    --action-button-tertiary: #7b1fa2;
+}
+
+/* Fallback styles if MudBlazor CSS variables are not available */
+.action-button-group .mud-icon-button[data-action="refresh"] .mud-icon-root,
+.action-button-group .mud-icon-button[data-action="primary"] .mud-icon-root {
+    color: var(--action-button-primary, #1976d2) !important;
+}
+
+.action-button-group .mud-icon-button[data-action="view"] .mud-icon-root,
+.action-button-group .mud-icon-button[data-action="info"] .mud-icon-root {
+    color: var(--action-button-info, #0288d1) !important;
+}
+
+.action-button-group .mud-icon-button[data-action="create"] .mud-icon-root,
+.action-button-group .mud-icon-button[data-action="success"] .mud-icon-root {
+    color: var(--action-button-success, #388e3c) !important;
+}
+
+.action-button-group .mud-icon-button[data-action="edit"] .mud-icon-root,
+.action-button-group .mud-icon-button[data-action="warning"] .mud-icon-root {
+    color: var(--action-button-warning, #f57c00) !important;
+}
+
+.action-button-group .mud-icon-button[data-action="delete"] .mud-icon-root,
+.action-button-group .mud-icon-button[data-action="error"] .mud-icon-root {
+    color: var(--action-button-error, #d32f2f) !important;
+}
+
+.action-button-group .mud-icon-button[data-action="audit"] .mud-icon-root,
+.action-button-group .mud-icon-button[data-action="secondary"] .mud-icon-root {
+    color: var(--action-button-secondary, #512da8) !important;
+}
+
+.action-button-group .mud-icon-button[data-action="export"] .mud-icon-root,
+.action-button-group .mud-icon-button[data-action="tertiary"] .mud-icon-root {
+    color: var(--action-button-tertiary, #7b1fa2) !important;
+}
+
+/* Ensure hover states maintain proper colors */
+.action-button-group .mud-icon-button:hover .mud-icon-root {
+    opacity: 0.8;
+}
+
+.action-button-group .mud-icon-button:active .mud-icon-root {
+    opacity: 0.6;
+}
+
+/* Disabled state */
+.action-button-group .mud-icon-button:disabled .mud-icon-root {
+    color: rgba(0, 0, 0, 0.26) !important;
+    opacity: 1;
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --action-button-primary: #90caf9;
+        --action-button-info: #81d4fa;
+        --action-button-success: #a5d6a7;
+        --action-button-warning: #ffb74d;
+        --action-button-error: #ef5350;
+        --action-button-secondary: #b39ddb;
+        --action-button-tertiary: #ce93d8;
+    }
+    
+    .action-button-group .mud-icon-button:disabled .mud-icon-root {
+        color: rgba(255, 255, 255, 0.3) !important;
+    }
+}
+
+/* High contrast mode adjustments */
+@media (prefers-contrast: high) {
+    .action-button-group .mud-icon-button .mud-icon-root {
+        filter: contrast(1.2);
+        font-weight: bold;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .action-button-group.mud-toolbar-content {
+        gap: 0.125rem;
+    }
+    
+    .action-button-group .mud-icon-button {
+        min-width: 32px;
+        width: 32px;
+        height: 32px;
+    }
+}
+
+/* Tooltip adjustments for better visibility */
+.action-button-group .mud-tooltip {
+    z-index: 1300;
+}
+
+/* Focus styles for accessibility */
+.action-button-group .mud-icon-button:focus {
+    outline: 2px solid var(--mud-palette-primary, #1976d2);
+    outline-offset: 2px;
+}
+
+.action-button-group .mud-icon-button:focus .mud-icon-root {
+    filter: brightness(1.1);
+}

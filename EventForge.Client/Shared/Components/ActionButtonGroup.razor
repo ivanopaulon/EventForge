@@ -19,6 +19,7 @@
                            OnClick="@OnRefreshAsync"
                            Disabled="@IsDisabled"
                            Class="@ButtonClass"
+                           data-action="refresh"
                            aria-label="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")" />
         </MudTooltip>
     }
@@ -32,6 +33,7 @@
                            OnClick="@OnViewAsync"
                            Disabled="@IsDisabled"
                            Class="@ButtonClass"
+                           data-action="view"
                            aria-label="@TranslationService.GetTranslationFormatted("tooltip.viewItem", "Visualizza {0}", ItemDisplayName ?? "elemento")" />
         </MudTooltip>
     }
@@ -45,6 +47,7 @@
                            OnClick="@OnCreateAsync"
                            Disabled="@IsDisabled"
                            Class="@ButtonClass"
+                           data-action="create"
                            aria-label="@(CreateTooltip ?? TranslationService.GetTranslationFormatted("tooltip.createNew", "Crea nuovo {0}", EntityName ?? "elemento"))" />
         </MudTooltip>
     }
@@ -58,6 +61,7 @@
                            OnClick="@OnEditAsync"
                            Disabled="@IsDisabled"
                            Class="@ButtonClass"
+                           data-action="edit"
                            aria-label="@TranslationService.GetTranslationFormatted("tooltip.editItem", "Modifica {0}", ItemDisplayName ?? "elemento")" />
         </MudTooltip>
     }
@@ -71,6 +75,7 @@
                            OnClick="@OnDeleteAsync"
                            Disabled="@IsDisabled"
                            Class="@ButtonClass"
+                           data-action="delete"
                            aria-label="@TranslationService.GetTranslationFormatted("tooltip.deleteItem", "Elimina {0}", ItemDisplayName ?? "elemento")" />
         </MudTooltip>
     }
@@ -84,6 +89,7 @@
                            OnClick="@OnToggleStatusAsync"
                            Disabled="@IsDisabled"
                            Class="@ButtonClass"
+                           data-action="@(IsActive ? "warning" : "success")"
                            aria-label="@(IsActive ? TranslationService.GetTranslationFormatted("tooltip.deactivateItem", "Disattiva {0}", ItemDisplayName ?? "elemento") : TranslationService.GetTranslationFormatted("tooltip.activateItem", "Attiva {0}", ItemDisplayName ?? "elemento"))" />
         </MudTooltip>
     }
@@ -97,6 +103,7 @@
                            OnClick="@OnAuditLogAsync"
                            Disabled="@IsDisabled"
                            Class="@ButtonClass"
+                           data-action="audit"
                            aria-label="@TranslationService.GetTranslationFormatted("tooltip.viewAuditLog", "Visualizza cronologia {0}", ItemDisplayName ?? "elemento")" />
         </MudTooltip>
     }
@@ -110,6 +117,7 @@
                            OnClick="@OnExportAsync"
                            Disabled="@IsDisabled"
                            Class="@ButtonClass"
+                           data-action="export"
                            aria-label="@TranslationService.GetTranslationFormatted("tooltip.exportItem", "Esporta {0}", ItemDisplayName ?? "elemento")" />
         </MudTooltip>
     }
@@ -279,24 +287,3 @@
         return result == true;
     }
 }
-
-<style>
-    .action-button-group {
-        min-width: fit-content;
-    }
-    
-    .action-button-group .mud-icon-button {
-        transition: all 0.2s ease-in-out;
-    }
-    
-    .action-button-group .mud-icon-button:hover {
-        transform: scale(1.1);
-    }
-
-    .action-button-group.mud-toolbar-content {
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-        flex-wrap: wrap;
-    }
-</style>
