@@ -8,6 +8,7 @@ using EventForge.Server.Services.Licensing;
 using EventForge.Server.Services.Logs;
 using EventForge.Server.Services.Notifications;
 using EventForge.Server.Services.PriceLists;
+using EventForge.Server.Services.Printing;
 using EventForge.Server.Services.Products;
 using EventForge.Server.Services.Promotions;
 using EventForge.Server.Services.Station;
@@ -208,6 +209,9 @@ public static class ServiceCollectionExtensions
 
         // Register licensing services
         services.AddScoped<ILicenseService, LicenseService>();
+
+        // Register printing services
+        services.AddScoped<EventForge.Server.Services.Interfaces.IQzPrintingService, QzPrintingService>();
 
         // Configure session for tenant context (required for tenant switching and impersonation)
         services.AddDistributedMemoryCache();

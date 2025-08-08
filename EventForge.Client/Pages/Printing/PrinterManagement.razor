@@ -1,0 +1,433 @@
+@page "/printing/printers"
+@using EventForge.DTOs.Printing
+@using EventForge.Client.Services
+@using PrinterStatus = EventForge.DTOs.Printing.PrinterStatus
+@inject IPrintingService PrintingService
+@inject ITranslationService TranslationService
+@inject ISnackbar Snackbar
+@inject ILogger<PrinterManagement> Logger
+
+<PageTitle>@TranslationService.GetTranslation("printing.printerManagement", "Printer Management")</PageTitle>
+
+<MudGrid Spacing="4">
+    <!-- Statistics Card -->
+    <MudItem xs="12">
+        <MudCard Elevation="2" Class="pa-4 mb-4">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Class="mb-4">
+                    <MudIcon Icon="Icons.Material.Filled.Print" Class="mr-2" />
+                    @TranslationService.GetTranslation("printing.printerStatistics", "Printer Statistics")
+                </MudText>
+                <MudGrid>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudPaper Class="pa-4 text-center">
+                            <MudText Typo="Typo.h4" Color="Color.Primary">@(_discoveredPrinters?.Count ?? 0)</MudText>
+                            <MudText Typo="Typo.body2">@TranslationService.GetTranslation("printing.totalPrinters", "Total Printers")</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudPaper Class="pa-4 text-center">
+                            <MudText Typo="Typo.h4" Color="Color.Success">@(_discoveredPrinters?.Count(p => p.IsAvailable) ?? 0)</MudText>
+                            <MudText Typo="Typo.body2">@TranslationService.GetTranslation("printing.availablePrinters", "Available")</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudPaper Class="pa-4 text-center">
+                            <MudText Typo="Typo.h4" Color="Color.Info">@(_discoveredPrinters?.Count(p => p.Status == PrinterStatus.Online) ?? 0)</MudText>
+                            <MudText Typo="Typo.body2">@TranslationService.GetTranslation("printing.onlinePrinters", "Online")</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudPaper Class="pa-4 text-center">
+                            <MudText Typo="Typo.h4" Color="Color.Warning">@(_activePrintJobs.Count)</MudText>
+                            <MudText Typo="Typo.body2">@TranslationService.GetTranslation("printing.activePrintJobs", "Active Jobs")</MudText>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <!-- Quick Actions Card -->
+    <MudItem xs="12">
+        <MudCard Elevation="2" Class="pa-4 mb-4">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Class="mb-4">
+                    <MudIcon Icon="Icons.Material.Filled.FlashOn" Class="mr-2" />
+                    @TranslationService.GetTranslation("printing.quickActions", "Quick Actions")
+                </MudText>
+                <MudToolBar Dense="true" DisableGutters="true">
+                    <MudTooltip Text="@TranslationService.GetTranslation("printing.discoverPrintersTooltip", "Discover available printers from QZ Tray")">
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Primary" 
+                                   StartIcon="Icons.Material.Filled.Search"
+                                   OnClick="DiscoverPrinters"
+                                   Disabled="_isLoading">
+                            @TranslationService.GetTranslation("printing.discoverPrinters", "Discover Printers")
+                        </MudButton>
+                    </MudTooltip>
+                    <MudSpacer />
+                    <MudTooltip Text="@TranslationService.GetTranslation("printing.testConnectionTooltip", "Test connection to QZ Tray")">
+                        <MudButton Variant="Variant.Outlined" 
+                                   Color="Color.Info" 
+                                   StartIcon="Icons.Material.Filled.NetworkCheck"
+                                   OnClick="TestQzConnection"
+                                   Disabled="_isLoading">
+                            @TranslationService.GetTranslation("printing.testConnection", "Test QZ Connection")
+                        </MudButton>
+                    </MudTooltip>
+                    <MudTooltip Text="@TranslationService.GetTranslation("printing.printTestPageTooltip", "Print a test page to verify printer functionality")">
+                        <MudButton Variant="Variant.Outlined" 
+                                   Color="Color.Secondary" 
+                                   StartIcon="Icons.Material.Filled.Print"
+                                   OnClick="PrintTestPage"
+                                   Disabled="_isLoading || _selectedPrinter == null">
+                            @TranslationService.GetTranslation("printing.printTestPage", "Print Test Page")
+                        </MudButton>
+                    </MudTooltip>
+                </MudToolBar>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <!-- Printer List Card -->
+    <MudItem xs="12">
+        <MudCard Elevation="2" Class="pa-4 mb-4">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Class="mb-4">
+                    <MudIcon Icon="Icons.Material.Filled.Devices" Class="mr-2" />
+                    @TranslationService.GetTranslation("printing.discoveredPrinters", "Discovered Printers")
+                </MudText>
+                
+                @if (_isLoading)
+                {
+                    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+                    <MudText Align="Align.Center">@TranslationService.GetTranslation("printing.discovering", "Discovering printers...")</MudText>
+                }
+                else if (_discoveredPrinters?.Any() == true)
+                {
+                    <MudTable T="PrinterDto" 
+                              Items="@_discoveredPrinters" 
+                              Dense="true" 
+                              Hover="true"
+                              SelectedItem="_selectedPrinter"
+                              SelectedItemChanged="OnPrinterSelected"
+                              RowClassFunc="@((printer, index) => _selectedPrinter == printer ? "selected" : "")">
+                        <HeaderContent>
+                            <MudTh><MudTableSortLabel SortBy="@(new Func<PrinterDto, object>(x => x.Name))">
+                                @TranslationService.GetTranslation("printing.printerName", "Printer Name")
+                            </MudTableSortLabel></MudTh>
+                            <MudTh><MudTableSortLabel SortBy="@(new Func<PrinterDto, object>(x => x.Status))">
+                                @TranslationService.GetTranslation("printing.status", "Status")
+                            </MudTableSortLabel></MudTh>
+                            <MudTh>@TranslationService.GetTranslation("printing.type", "Type")</MudTh>
+                            <MudTh>@TranslationService.GetTranslation("printing.default", "Default")</MudTh>
+                            <MudTh>@TranslationService.GetTranslation("printing.actions", "Actions")</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("printing.printerName", "Printer Name")">
+                                @context.Name
+                                @if (!string.IsNullOrEmpty(context.Description))
+                                {
+                                    <br /><small class="text-muted">@context.Description</small>
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("printing.status", "Status")">
+                                <MudChip T="string" Color="@GetStatusColor(context.Status)" Size="Size.Small">
+                                    @GetStatusText(context.Status)
+                                </MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("printing.type", "Type")">
+                                @context.Type
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("printing.default", "Default")">
+                                @if (context.IsDefault)
+                                {
+                                    <MudIcon Icon="Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("printing.actions", "Actions")">
+                                <MudButtonGroup>
+                                    <MudTooltip Text="@TranslationService.GetTranslation("printing.checkStatusTooltip", "Check printer status")">
+                                        <MudIconButton Icon="Icons.Material.Filled.Refresh" 
+                                                       Size="Size.Small" 
+                                                       Color="Color.Info"
+                                                       OnClick="@(() => CheckPrinterStatus(context))" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="@TranslationService.GetTranslation("printing.printTestTooltip", "Print test page")">
+                                        <MudIconButton Icon="Icons.Material.Filled.Print" 
+                                                       Size="Size.Small" 
+                                                       Color="Color.Primary"
+                                                       Disabled="@(!context.IsAvailable)"
+                                                       OnClick="@(() => PrintTestPageToPrinter(context))" />
+                                    </MudTooltip>
+                                </MudButtonGroup>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info" Class="my-4">
+                        @TranslationService.GetTranslation("printing.noPrintersFound", "No printers found. Click 'Discover Printers' to search for available printers.")
+                    </MudAlert>
+                }
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <!-- QZ Configuration Card -->
+    <MudItem xs="12">
+        <MudCard Elevation="2" Class="pa-4 mb-4">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Class="mb-4">
+                    <MudIcon Icon="Icons.Material.Filled.Settings" Class="mr-2" />
+                    @TranslationService.GetTranslation("printing.qzConfiguration", "QZ Tray Configuration")
+                </MudText>
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_qzUrl"
+                                      Label="@TranslationService.GetTranslation("printing.qzUrl", "QZ Tray URL")"
+                                      Placeholder="ws://localhost:8182"
+                                      HelperText="@TranslationService.GetTranslation("printing.qzUrlHelper", "WebSocket URL of the QZ Tray service")"
+                                      AdornmentIcon="Icons.Material.Filled.Link"
+                                      Adornment="Adornment.Start" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Success" 
+                                   StartIcon="Icons.Material.Filled.CloudDone"
+                                   OnClick="GetQzVersion"
+                                   Disabled="_isLoading"
+                                   FullWidth="true">
+                            @TranslationService.GetTranslation("printing.getQzVersion", "Get QZ Version")
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+                @if (!string.IsNullOrEmpty(_qzVersion))
+                {
+                    <MudAlert Severity="Severity.Success" Class="mt-4">
+                        @TranslationService.GetTranslation("printing.qzVersionInfo", "QZ Tray Version: {0}", _qzVersion)
+                    </MudAlert>
+                }
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private List<PrinterDto>? _discoveredPrinters;
+    private List<PrintJobDto> _activePrintJobs = new();
+    private PrinterDto? _selectedPrinter;
+    private bool _isLoading = false;
+    private string _qzUrl = "ws://localhost:8182";
+    private string? _qzVersion;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await DiscoverPrinters();
+    }
+
+    private async Task DiscoverPrinters()
+    {
+        _isLoading = true;
+        try
+        {
+            var request = new PrinterDiscoveryRequestDto
+            {
+                QzUrl = _qzUrl,
+                IncludeDetails = true,
+                CheckStatus = true
+            };
+
+            var response = await PrintingService.DiscoverPrintersAsync(request);
+            if (response?.Success == true)
+            {
+                _discoveredPrinters = response.Printers;
+                Snackbar.Add(TranslationService.GetTranslation("printing.printersDiscovered", "Found {0} printers", _discoveredPrinters.Count), Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("printing.discoveryFailed", "Failed to discover printers: {0}", response?.ErrorMessage ?? "Unknown error"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error discovering printers");
+            Snackbar.Add(TranslationService.GetTranslation("printing.discoveryError", "Error discovering printers"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task TestQzConnection()
+    {
+        _isLoading = true;
+        try
+        {
+            var isConnected = await PrintingService.TestQzConnectionAsync(_qzUrl);
+            if (isConnected)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("printing.connectionSuccess", "QZ Tray connection successful"), Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("printing.connectionFailed", "Failed to connect to QZ Tray"), Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error testing QZ connection");
+            Snackbar.Add(TranslationService.GetTranslation("printing.connectionError", "Error testing QZ connection"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task GetQzVersion()
+    {
+        _isLoading = true;
+        try
+        {
+            _qzVersion = await PrintingService.GetQzVersionAsync(_qzUrl);
+            if (!string.IsNullOrEmpty(_qzVersion))
+            {
+                Snackbar.Add(TranslationService.GetTranslation("printing.versionRetrieved", "QZ version retrieved successfully"), Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("printing.versionFailed", "Failed to get QZ version"), Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error getting QZ version");
+            Snackbar.Add(TranslationService.GetTranslation("printing.versionError", "Error getting QZ version"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task CheckPrinterStatus(PrinterDto printer)
+    {
+        try
+        {
+            var request = new PrinterStatusRequestDto
+            {
+                PrinterId = printer.Id,
+                IncludeDetails = true
+            };
+
+            var response = await PrintingService.CheckPrinterStatusAsync(request);
+            if (response?.Success == true)
+            {
+                // Update printer status
+                printer.Status = response.Status;
+                Snackbar.Add(TranslationService.GetTranslation("printing.statusUpdated", "Printer status updated"), Severity.Info);
+                StateHasChanged();
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("printing.statusFailed", "Failed to check printer status"), Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error checking printer status");
+            Snackbar.Add(TranslationService.GetTranslation("printing.statusError", "Error checking printer status"), Severity.Error);
+        }
+    }
+
+    private async Task PrintTestPage()
+    {
+        if (_selectedPrinter == null) return;
+        await PrintTestPageToPrinter(_selectedPrinter);
+    }
+
+    private async Task PrintTestPageToPrinter(PrinterDto printer)
+    {
+        try
+        {
+            var testContent = $@"TEST PAGE
+=========
+Printer: {printer.Name}
+Date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}
+Status: {printer.Status}
+Type: {printer.Type}
+
+EventForge Print Test";
+
+            var printJob = new PrintJobDto
+            {
+                PrinterId = printer.Id,
+                PrinterName = printer.Name,
+                Title = "EventForge Test Page",
+                ContentType = PrintContentType.Raw,
+                Content = testContent,
+                Priority = PrintJobPriority.Normal
+            };
+
+            var request = new SubmitPrintJobRequestDto
+            {
+                PrintJob = printJob,
+                ValidatePrinter = true
+            };
+
+            var response = await PrintingService.SubmitPrintJobAsync(request);
+            if (response?.Success == true)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("printing.testPageSent", "Test page sent to printer"), Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("printing.testPageFailed", "Failed to send test page: {0}", response?.ErrorMessage ?? "Unknown error"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error printing test page");
+            Snackbar.Add(TranslationService.GetTranslation("printing.testPageError", "Error printing test page"), Severity.Error);
+        }
+    }
+
+    private void OnPrinterSelected(PrinterDto? printer)
+    {
+        _selectedPrinter = printer;
+    }
+
+    private Color GetStatusColor(PrinterStatus status)
+    {
+        return status switch
+        {
+            PrinterStatus.Online => Color.Success,
+            PrinterStatus.Offline => Color.Error,
+            PrinterStatus.Error => Color.Error,
+            PrinterStatus.Busy => Color.Warning,
+            PrinterStatus.OutOfPaper => Color.Warning,
+            PrinterStatus.PaperJam => Color.Error,
+            PrinterStatus.Idle => Color.Info,
+            _ => Color.Default
+        };
+    }
+
+    private string GetStatusText(PrinterStatus status)
+    {
+        return status switch
+        {
+            PrinterStatus.Online => TranslationService.GetTranslation("printing.statusOnline", "Online"),
+            PrinterStatus.Offline => TranslationService.GetTranslation("printing.statusOffline", "Offline"),
+            PrinterStatus.Error => TranslationService.GetTranslation("printing.statusError", "Error"),
+            PrinterStatus.Busy => TranslationService.GetTranslation("printing.statusBusy", "Busy"),
+            PrinterStatus.OutOfPaper => TranslationService.GetTranslation("printing.statusOutOfPaper", "Out of Paper"),
+            PrinterStatus.PaperJam => TranslationService.GetTranslation("printing.statusPaperJam", "Paper Jam"),
+            PrinterStatus.Idle => TranslationService.GetTranslation("printing.statusIdle", "Idle"),
+            _ => TranslationService.GetTranslation("printing.statusUnknown", "Unknown")
+        };
+    }
+}
