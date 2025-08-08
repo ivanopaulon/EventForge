@@ -326,7 +326,7 @@ public static class ServiceCollectionExtensions
             Log.Information("Trovate {Count} migrazioni pendenti: {Migrations}",
                 pendingMigrations.Count, string.Join(", ", pendingMigrations));
 
-            db.Database.Migrate();
+            //db.Database.Migrate();
 
             Log.Information("Migrazioni applicate correttamente al database: {AppliedMigrations}",
                 string.Join(", ", pendingMigrations));

@@ -365,3 +365,8 @@ route_analysis_report.txt
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/EventForge.Server/Migrations
+/.gitignore
+/.gitignore
+/.gitignore
+/.gitignore
