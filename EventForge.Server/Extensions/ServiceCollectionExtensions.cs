@@ -213,6 +213,9 @@ public static class ServiceCollectionExtensions
         // Register printing services
         services.AddScoped<EventForge.Server.Services.Interfaces.IQzPrintingService, QzPrintingService>();
 
+        // Register barcode services
+        services.AddScoped<EventForge.Server.Services.Interfaces.IBarcodeService, BarcodeService>();
+
         // Configure session for tenant context (required for tenant switching and impersonation)
         services.AddDistributedMemoryCache();
         services.AddSession(options =>
