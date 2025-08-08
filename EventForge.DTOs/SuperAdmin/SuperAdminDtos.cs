@@ -249,6 +249,42 @@ namespace EventForge.DTOs.SuperAdmin
     }
 
     /// <summary>
+    /// DTO for user deletion.
+    /// </summary>
+    public class DeleteUserDto
+    {
+        [MaxLength(500)]
+        public string? Reason { get; set; }
+
+        public bool PermanentDelete { get; set; } = false;
+    }
+
+    /// <summary>
+    /// DTO for password reset request.
+    /// </summary>
+    public class ResetPasswordDto
+    {
+        [MaxLength(500)]
+        public string? Reason { get; set; }
+
+        public bool SendEmailNotification { get; set; } = true;
+    }
+
+    /// <summary>
+    /// DTO for password reset result.
+    /// </summary>
+    public class PasswordResetResultDto
+    {
+        public bool Success { get; set; }
+        public Guid? UserId { get; set; }
+        public string? Username { get; set; }
+        public string? TemporaryPassword { get; set; }
+        public bool MustChangePassword { get; set; }
+        public DateTime ResetAt { get; set; }
+        public string? Message { get; set; }
+    }
+
+    /// <summary>
     /// DTO for user statistics.
     /// </summary>
     public class UserStatisticsDto

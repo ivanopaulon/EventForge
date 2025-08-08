@@ -11,6 +11,8 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
+@inject IJSRuntime _jsRuntime
+@inject ILogger<UserManagement> Logger
 
 <PageTitle>@TranslationService.GetTranslation("superAdmin.pageTitle", "{0} - EventForge Super Admin", TranslationService.GetTranslation("superAdmin.userManagement", "Gestione Utenti Tenant"))</PageTitle>
 
@@ -346,12 +348,26 @@ else
                                                                OnClick="@(() => ViewUser(context))"
                                                                aria-label="@TranslationService.GetTranslation("tooltip.viewUser", "Visualizza utente {0}", context.FullName)" />
                                             </MudTooltip>
-                                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.impersonateUser", "Impersona utente")">
+                                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.resetPassword", "Reimposta password")">
+                                                <MudIconButton Icon="@Icons.Material.Outlined.LockReset" 
+                                                               Color="Color.Secondary"
+                                                               Size="Size.Small"
+                                                               OnClick="@(() => ResetUserPassword(context))"
+                                                               aria-label="@TranslationService.GetTranslation("tooltip.resetPassword", "Reimposta password per {0}", context.FullName)" />
+                                            </MudTooltip>
+                                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.impersonateUser", "Impersona utente")">>
                                                 <MudIconButton Icon="@Icons.Material.Outlined.PersonOutline" 
                                                                Color="Color.Warning"
                                                                Size="Size.Small"
                                                                OnClick="@(() => ImpersonateUser(context))"
                                                                aria-label="@TranslationService.GetTranslation("tooltip.impersonateUser", "Impersona utente {0}", context.FullName)" />
+                                            </MudTooltip>
+                                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.deleteUser", "Elimina utente")">
+                                                <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
+                                                               Color="Color.Error"
+                                                               Size="Size.Small"
+                                                               OnClick="@(() => DeleteUser(context))"
+                                                               aria-label="@TranslationService.GetTranslation("tooltip.deleteUser", "Elimina utente {0}", context.FullName)" />
                                             </MudTooltip>
                                         </MudButtonGroup>
                                     </MudTd>
@@ -590,9 +606,66 @@ else
 
     private async Task ExportUsers()
     {
-        // TODO: Implement export functionality
-        Snackbar.Add(TranslationService.GetTranslation("superAdmin.exportFunctionalityComingSoon", "Export functionality will be implemented soon."), Severity.Info);
-        await Task.CompletedTask;
+        try
+        {
+            // Get filtered users for export
+            var usersToExport = _filteredUsers.ToList();
+            
+            if (!usersToExport.Any())
+            {
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.noDataToExport", "Nessun dato da esportare"), Severity.Warning);
+                return;
+            }
+
+            // Create CSV content
+            var csv = new System.Text.StringBuilder();
+            
+            // Add headers
+            csv.AppendLine($"{TranslationService.GetTranslation("field.fullName", "Nome Completo")}," +
+                          $"{TranslationService.GetTranslation("field.email", "Email")}," +
+                          $"{TranslationService.GetTranslation("field.username", "Username")}," +
+                          $"{TranslationService.GetTranslation("field.tenant", "Tenant")}," +
+                          $"{TranslationService.GetTranslation("field.roles", "Ruoli")}," +
+                          $"{TranslationService.GetTranslation("field.status", "Stato")}," +
+                          $"{TranslationService.GetTranslation("field.lastLogin", "Ultimo Accesso")}," +
+                          $"{TranslationService.GetTranslation("field.createdAt", "Data Creazione")}");
+
+            // Add data rows
+            foreach (var user in usersToExport)
+            {
+                var statusText = user.IsActive ? 
+                    TranslationService.GetTranslation("field.active", "Attivo") : 
+                    TranslationService.GetTranslation("field.inactive", "Inattivo");
+                
+                var lastLogin = user.LastLoginAt?.ToString("dd/MM/yyyy HH:mm") ?? 
+                               TranslationService.GetTranslation("common.never", "Mai");
+                
+                csv.AppendLine($"\"{user.FullName}\"," +
+                              $"\"{user.Email}\"," +
+                              $"\"{user.Username}\"," +
+                              $"\"{user.TenantName ?? "N/A"}\"," +
+                              $"\"{string.Join("; ", user.Roles)}\"," +
+                              $"\"{statusText}\"," +
+                              $"\"{lastLogin}\"," +
+                              $"\"{user.CreatedAt:dd/MM/yyyy HH:mm}\"");
+            }
+
+            // Create file download
+            var fileName = $"users_export_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            var csvContent = csv.ToString();
+            
+            // Use JavaScript to download the file
+            await _jsRuntime.InvokeVoidAsync("downloadFile", fileName, "text/csv", csvContent);
+            
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.exportSuccessful", 
+                "Esportazione completata: {0} utenti esportati", usersToExport.Count), Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error exporting users");
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.exportError", 
+                "Errore durante l'esportazione: {0}", ex.Message), Severity.Error);
+        }
     }
 
     private async Task OpenCreateUserDrawer()
@@ -734,6 +807,97 @@ else
         // Placeholder for future implementation
         Snackbar.Add(TranslationService.GetTranslation("common.featureNotImplemented", "Funzionalità in fase di implementazione"), Severity.Info);
         await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Resets a user's password with confirmation dialog.
+    /// </summary>
+    private async Task ResetUserPassword(UserManagementDto user)
+    {
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslation("superAdmin.confirmPasswordReset", 
+            "Sei sicuro di voler reimpostare la password per l'utente '{0}'? Verrà generata una nuova password temporanea che l'utente dovrà cambiare al prossimo accesso.", 
+            user.FullName);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.reset", "Reimposta"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                var resetDto = new ResetPasswordDto
+                {
+                    Reason = "Password reset by SuperAdmin",
+                    SendEmailNotification = true
+                };
+
+                var result = await SuperAdminService.ResetUserPasswordAsync(user.Id, resetDto);
+                
+                if (result.Success)
+                {
+                    var successMessage = TranslationService.GetTranslation("superAdmin.passwordResetSuccess", 
+                        "Password reimpostata con successo per {0}. Nuova password temporanea: {1}", 
+                        user.FullName, result.TemporaryPassword ?? "****");
+                    
+                    Snackbar.Add(successMessage, Severity.Success);
+                    
+                    // Update user in local collection to reflect password change requirement
+                    user.MustChangePassword = true;
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add(result.Message ?? "Errore sconosciuto durante il reset della password", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.passwordResetError", 
+                    "Errore durante il reset della password: {0}", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Deletes a user with enhanced confirmation dialog and error handling.
+    /// </summary>
+    private async Task DeleteUser(UserManagementDto user)
+    {
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslation("superAdmin.confirmUserDeletion", 
+            "Sei sicuro di voler eliminare l'utente '{0}'? Questa azione non può essere annullata e verrà registrata nei log di audit.", 
+            user.FullName);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                await SuperAdminService.DeleteUserAsync(user.Id);
+                
+                // Remove from local collection
+                _users.Remove(user);
+                await LoadUserStatisticsAsync();
+                
+                var successMessage = TranslationService.GetTranslation("superAdmin.userDeleted", "Utente eliminato con successo!");
+                Snackbar.Add(successMessage, Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.deleteUserError", 
+                    "Errore nell'eliminazione dell'utente: {0}", ex.Message), Severity.Error);
+            }
+        }
     }
 
     /// <summary>
