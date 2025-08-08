@@ -140,14 +140,15 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.Services.EnsureDatabaseMigrated(); // opzionale, per applicare le migrazioni
+// Temporarily commented out for Swagger testing
+// app.Services.EnsureDatabaseMigrated(); // opzionale, per applicare le migrazioni
 
 // Bootstrap admin user and permissions
-using (var scope = app.Services.CreateScope())
-{
-    var bootstrapService = scope.ServiceProvider.GetRequiredService<IBootstrapService>();
-    await bootstrapService.EnsureAdminBootstrappedAsync();
-}
+// using (var scope = app.Services.CreateScope())
+// {
+//     var bootstrapService = scope.ServiceProvider.GetRequiredService<IBootstrapService>();
+//     await bootstrapService.EnsureAdminBootstrappedAsync();
+// }
 
 // Add middleware early in the pipeline
 app.UseCorrelationId();
