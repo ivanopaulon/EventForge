@@ -235,15 +235,51 @@ if (printJob != null)
    - Check firewall settings
    - Ensure QZ Tray is listening on the expected port
 
-3. **Printer Not Found**
+3. **Printer Not Found or Empty Printer List**
+   - **FIXED**: Ensure QZ Tray commands include unique message IDs (UIDs)
+   - **FIXED**: Verify response parsing handles QZ Tray's actual response format
    - Verify printer is installed and accessible
    - Check printer driver installation
    - Try printing from other applications first
+   - Enable debug logging to see actual QZ responses
 
 4. **Print Job Fails**
    - Check printer status (online, paper, etc.)
    - Verify print content format is supported
    - Check for printer-specific requirements
+
+### Recent Fixes (v2.1)
+
+#### Issue: QZ Tray not returning printer list
+**Problem**: The original implementation was missing critical QZ Tray protocol requirements:
+- No unique message IDs (UIDs) for request/response matching
+- Incomplete response parsing for QZ Tray's actual response format
+- Missing error handling for QZ-specific errors
+- Immediate connection closure without waiting for proper responses
+
+**Solution**: Updated the WebSocket protocol implementation to match QZ Tray specifications:
+```csharp
+// Before (incorrect)
+var discoveryCommand = new
+{
+    call = "qz.printers.find",
+    @params = new object[] { }
+};
+
+// After (correct)
+var discoveryCommand = new
+{
+    call = "qz.printers.find",
+    @params = new object[] { },
+    uid = messageUid  // Required for response matching
+};
+```
+
+#### Enhanced Response Handling
+- Added support for timeout management in WebSocket communication
+- Improved response parsing to handle both string arrays and detailed printer objects
+- Added comprehensive error handling for QZ Tray error responses
+- Enhanced logging for better debugging of QZ Tray communication
 
 ### Debugging Tips
 
@@ -262,12 +298,43 @@ if (printJob != null)
 2. **Test QZ Connection**
    - Use the built-in connection test functionality
    - Verify QZ Tray responds to version requests
-   - Test basic printer discovery
+   - Test basic printer discovery with debug logging
 
-3. **Monitor QZ Tray Logs**
-   - Check QZ Tray's own log files
-   - Look for WebSocket connection messages
-   - Monitor for printer-related errors
+3. **Monitor QZ Tray Communication**
+   - Check the debug logs for actual WebSocket messages sent/received
+   - Look for UID mismatches in responses
+   - Monitor for QZ-specific error messages in responses
+
+4. **Verify QZ Tray Setup**
+   - Ensure QZ Tray is running and accessible on the specified port
+   - Test with QZ Tray's built-in demo page: `http://localhost:8182`
+   - Verify printers are visible to the system where QZ Tray is running
+
+### Protocol Reference
+
+#### Correct Message Structure
+```json
+// Request
+{
+    "call": "qz.printers.find",
+    "params": [],
+    "uid": "unique-message-id"
+}
+
+// Response (success)
+{
+    "call": "qz.printers.find",
+    "result": ["Printer1", "Printer2"],
+    "uid": "unique-message-id"
+}
+
+// Response (error)
+{
+    "call": "qz.printers.find",
+    "error": "Error message",
+    "uid": "unique-message-id"
+}
+```
 
 ## Integration with EventForge Features
 
