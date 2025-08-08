@@ -63,4 +63,10 @@ public interface IQzPrintingService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>QZ information or null if connection failed</returns>
     Task<string?> GetQzVersionAsync(string qzUrl, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Validates that the QZ Tray digital signature configuration is properly set up
+    /// </summary>
+    /// <returns>True if signature configuration is valid</returns>
+    Task<bool> ValidateSignatureConfigurationAsync();
 }
