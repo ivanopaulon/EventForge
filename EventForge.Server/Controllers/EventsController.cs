@@ -12,6 +12,7 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
+[RequireLicenseFeature("BasicEventManagement")]
 public class EventsController : BaseApiController
 {
     private readonly IEventService _eventService;
