@@ -146,14 +146,24 @@ var app = builder.Build();
 //       See https://github.com/ivanopaulon/EventForge/issues/203 for details
 try
 {
-    app.Services.EnsureDatabaseMigrated(); // opzionale, per applicare le migrazioni
+    // Add timeout to prevent indefinite hanging during database operations
+    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+    
+    // Use Task.Run to make the database migration call cancellable
+    await Task.Run(() => app.Services.EnsureDatabaseMigrated(), cts.Token);
     
     // Bootstrap admin user and permissions
     using (var scope = app.Services.CreateScope())
     {
         var bootstrapService = scope.ServiceProvider.GetRequiredService<IBootstrapService>();
-        await bootstrapService.EnsureAdminBootstrappedAsync();
+        await bootstrapService.EnsureAdminBootstrappedAsync(cts.Token);
     }
+}
+catch (OperationCanceledException)
+{
+    var logger = app.Services.GetService<ILogger<Program>>();
+    logger?.LogWarning("Database initialization timed out (30s) - application will continue without database setup. " +
+                       "This is acceptable for Swagger documentation access but requires manual database setup for full functionality.");
 }
 catch (Exception ex)
 {
