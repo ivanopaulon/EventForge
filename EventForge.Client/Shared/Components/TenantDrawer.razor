@@ -1,8 +1,10 @@
 @using MudBlazor
 @using EventForge.DTOs.Tenants
+@using EventForge.DTOs.Licensing
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Constants
 @inject ISuperAdminService SuperAdminService
+@inject ILicenseService LicenseService
 @inject ISnackbar Snackbar
 @inject ILogger<TenantDrawer> Logger
 @inject ITranslationService TranslationService
@@ -252,6 +254,51 @@
                                       aria-label="@TranslationService.GetTranslation("drawer.aria.dataOraUltimaModifica")" />
                     </MudItem>
                 }
+
+                <!-- License Information Section -->
+                <MudItem xs="12">
+                    <MudDivider Class="my-4" />
+                    <MudText Typo="Typo.h6" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Outlined.Security" Class="mr-2" />
+                        @TranslationService.GetTranslation("license.info", "Informazioni Licenza")
+                    </MudText>
+                </MudItem>
+
+                @if (_tenantLicense != null)
+                {
+                    <MudItem xs="12" md="6">
+                        <MudTextField Value="@_tenantLicense.LicenseName"
+                                      Label="@TranslationService.GetTranslation("license.current", "Licenza Corrente")"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="true" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField Value="@(_tenantLicense.IsActive ? TranslationService.GetTranslation("status.active", "Attiva") : TranslationService.GetTranslation("status.inactive", "Inattiva"))"
+                                      Label="@TranslationService.GetTranslation("license.status", "Stato Licenza")"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="true" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField Value="@_tenantLicense.StartsAt.ToString("dd/MM/yyyy")"
+                                      Label="@TranslationService.GetTranslation("license.startDate", "Data Inizio")"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="true" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField Value="@(_tenantLicense.ExpiresAt?.ToString("dd/MM/yyyy") ?? TranslationService.GetTranslation("license.noExpiry", "Nessuna scadenza"))"
+                                      Label="@TranslationService.GetTranslation("license.expiryDate", "Data Scadenza")"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="true" />
+                    </MudItem>
+                }
+                else
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Warning" Icon="@Icons.Material.Outlined.Warning">
+                            @TranslationService.GetTranslation("license.noLicense", "Nessuna licenza assegnata a questo tenant")
+                        </MudAlert>
+                    </MudItem>
+                }
             }
         </MudGrid>
     </ViewContent>
@@ -263,6 +310,7 @@
     private string? _customTitle;
     private int _userCount = 0;
     private double _userUsagePercentage = 0;
+    private TenantLicenseDto? _tenantLicense;
 
     /// <summary>
     /// Whether the drawer is open.
@@ -327,6 +375,9 @@
             
             // Load user count for this tenant
             await LoadUserCount();
+            
+            // Load license information for this tenant
+            await LoadTenantLicense();
         }
         else if (Mode == EntityDrawerMode.View && OriginalTenant != null)
         {
@@ -334,6 +385,9 @@
             
             // Load user count for this tenant
             await LoadUserCount();
+            
+            // Load license information for this tenant
+            await LoadTenantLicense();
         }
         else if (Mode == EntityDrawerMode.Create)
         {
@@ -342,6 +396,7 @@
             _customTitle = null;
             _userCount = 0;
             _userUsagePercentage = 0;
+            _tenantLicense = null;
         }
     }
 
@@ -375,6 +430,21 @@
             Logger.LogWarning(ex, "Failed to load user count for tenant {TenantId}", OriginalTenant.Id);
             _userCount = 0;
             _userUsagePercentage = 0;
+        }
+    }
+
+    private async Task LoadTenantLicense()
+    {
+        if (OriginalTenant == null) return;
+
+        try
+        {
+            _tenantLicense = await LicenseService.GetTenantLicenseAsync(OriginalTenant.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to load license for tenant {TenantId}", OriginalTenant.Id);
+            _tenantLicense = null;
         }
     }
 
