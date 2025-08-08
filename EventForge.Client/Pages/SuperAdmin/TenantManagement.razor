@@ -10,6 +10,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
+@inject ILogger<TenantManagement> Logger
 
 <SuperAdminPageLayout PageTitle="@TranslationService.GetTranslation("superAdmin.tenantManagement", "Gestione Tenant")"
                       PageIcon="@Icons.Material.Outlined.Business"
@@ -470,7 +471,20 @@
         {
             try
             {
-                // Note: For now, just toggle locally - implement actual API call when available
+                var reason = tenant.IsActive 
+                    ? $"Tenant disabled by superadmin on {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC"
+                    : $"Tenant enabled by superadmin on {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC";
+
+                if (tenant.IsActive)
+                {
+                    await SuperAdminService.DisableTenantAsync(tenant.Id, reason);
+                }
+                else
+                {
+                    await SuperAdminService.EnableTenantAsync(tenant.Id, reason);
+                }
+
+                // Update the local state
                 tenant.IsActive = !tenant.IsActive;
                 await LoadTenantStatisticsAsync();
                 
@@ -484,9 +498,10 @@
             catch (Exception ex)
             {
                 // Revert the change if API call failed
-                tenant.IsActive = !tenant.IsActive;
-                Snackbar.Add(TranslationService.GetTranslation("superAdmin.toggleTenantStatusError", 
-                    "Errore nel cambio stato del tenant: {0}", ex.Message), Severity.Error);
+                var errorMessage = TranslationService.GetTranslation("superAdmin.toggleTenantStatusError", 
+                    "Errore nel cambio stato del tenant: {0}", ex.Message);
+                Snackbar.Add(errorMessage, Severity.Error);
+                Logger.LogError(ex, "Failed to toggle tenant status for tenant {TenantId}", tenant.Id);
             }
         }
     }

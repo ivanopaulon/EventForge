@@ -11,7 +11,12 @@ namespace EventForge.Client.Services
         Task<TenantResponseDto> CreateTenantAsync(CreateTenantDto createDto);
         Task<TenantResponseDto> UpdateTenantAsync(Guid id, UpdateTenantDto updateDto);
         Task DeleteTenantAsync(Guid id, string reason = "Soft deleted by superadmin");
+        Task EnableTenantAsync(Guid id, string reason = "Enabled by admin");
+        Task DisableTenantAsync(Guid id, string reason = "Disabled by admin");
         Task<TenantStatisticsDto> GetTenantStatisticsAsync();
+        Task<TenantDetailDto?> GetTenantDetailsAsync(Guid id);
+        Task<TenantLimitsDto?> GetTenantLimitsAsync(Guid id);
+        Task<TenantLimitsDto> UpdateTenantLimitsAsync(Guid id, UpdateTenantLimitsDto updateDto);
 
         // User Management
         Task<IEnumerable<UserManagementDto>> GetUsersAsync(Guid? tenantId = null);
@@ -109,10 +114,36 @@ namespace EventForge.Client.Services
             await _httpClientService.DeleteAsync($"api/v1/tenants/{id}/soft");
         }
 
+        public async Task EnableTenantAsync(Guid id, string reason = "Enabled by admin")
+        {
+            await _httpClientService.PostAsync($"api/v1/tenants/{id}/enable", reason);
+        }
+
+        public async Task DisableTenantAsync(Guid id, string reason = "Disabled by admin")
+        {
+            await _httpClientService.PostAsync($"api/v1/tenants/{id}/disable", reason);
+        }
+
         public async Task<TenantStatisticsDto> GetTenantStatisticsAsync()
         {
             return await _httpClientService.GetAsync<TenantStatisticsDto>("api/v1/tenants/statistics") ??
                    new TenantStatisticsDto();
+        }
+
+        public async Task<TenantDetailDto?> GetTenantDetailsAsync(Guid id)
+        {
+            return await _httpClientService.GetAsync<TenantDetailDto>($"api/v1/tenants/{id}/details");
+        }
+
+        public async Task<TenantLimitsDto?> GetTenantLimitsAsync(Guid id)
+        {
+            return await _httpClientService.GetAsync<TenantLimitsDto>($"api/v1/tenants/{id}/limits");
+        }
+
+        public async Task<TenantLimitsDto> UpdateTenantLimitsAsync(Guid id, UpdateTenantLimitsDto updateDto)
+        {
+            return await _httpClientService.PutAsync<UpdateTenantLimitsDto, TenantLimitsDto>($"api/v1/tenants/{id}/limits", updateDto) ??
+                   throw new InvalidOperationException("Failed to update tenant limits");
         }
 
         #endregion
