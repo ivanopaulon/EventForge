@@ -90,13 +90,14 @@
                 </MudText>
             </CardHeaderContent>
             <CardHeaderActions>
-                <SuperAdminToolbar ShowRefresh="true"
+                <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
+                                   ShowRefresh="true"
                                    ShowExport="true" 
                                    ShowCreate="true"
                                    ShowAuditLog="false"
                                    CreateIcon="@Icons.Material.Outlined.Add"
                                    CreateTooltip="@TranslationService.GetTranslation("superAdmin.createNewTenant", "Crea nuovo tenant")"
-                                   IsLoading="_isLoadingTenants"
+                                   IsDisabled="_isLoadingTenants"
                                    OnRefresh="@LoadTenantsAsync"
                                    OnExport="@ExportTenants"
                                    OnCreate="@OpenCreateTenantDrawer" />
@@ -157,18 +158,19 @@
                             <MudText Typo="Typo.body2">@context.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
                         </MudTd>
                         <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
-                            <SuperAdminRowActions EntityName="@context.DisplayName"
-                                                  ShowView="true"
-                                                  ShowEdit="true"
-                                                  ShowAuditLog="true"
-                                                  ShowToggleStatus="true"
-                                                  ShowDelete="true"
-                                                  IsActive="@context.IsActive"
-                                                  OnView="@(() => ViewTenant(context))"
-                                                  OnEdit="@(() => EditTenant(context))"
-                                                  OnAuditLog="@(() => ViewTenantAuditLog(context))"
-                                                  OnToggleStatus="@(() => ToggleTenantStatus(context))"
-                                                  OnDelete="@(() => DeleteTenant(context))" />
+                            <ActionButtonGroup EntityName="@context.DisplayName"
+                                              ItemDisplayName="@context.DisplayName"
+                                              ShowView="true"
+                                              ShowEdit="true"
+                                              ShowAuditLog="true"
+                                              ShowToggleStatus="true"
+                                              ShowDelete="true"
+                                              IsActive="@context.IsActive"
+                                              OnView="@(() => ViewTenant(context))"
+                                              OnEdit="@(() => EditTenant(context))"
+                                              OnAuditLog="@(() => ViewTenantAuditLog(context))"
+                                              OnToggleStatus="@(() => ToggleTenantStatus(context))"
+                                              OnDelete="@(() => DeleteTenant(context))" />
                         </MudTd>
                     </RowTemplate>
 

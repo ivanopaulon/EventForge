@@ -202,13 +202,14 @@ else
                         </MudText>
                     </CardHeaderContent>
                     <CardHeaderActions>
-                        <SuperAdminToolbar ShowRefresh="true"
+                        <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
+                                           ShowRefresh="true"
                                            ShowExport="true" 
                                            ShowCreate="true"
                                            ShowAuditLog="true"
                                            CreateIcon="@Icons.Material.Outlined.PersonAdd"
                                            CreateTooltip="@TranslationService.GetTranslation("superAdmin.createNewUser", "Crea nuovo utente")"
-                                           IsLoading="_isLoadingUsers"
+                                           IsDisabled="_isLoadingUsers"
                                            OnRefresh="@LoadUsersAsync"
                                            OnExport="@ExportUsers"
                                            OnCreate="@OpenCreateUserDrawer"
@@ -297,18 +298,19 @@ else
                                         <MudText Typo="Typo.body2">@(context.LastLoginAt?.ToString("dd/MM/yyyy HH:mm") ?? TranslationService.GetTranslation("common.never", "Mai"))</MudText>
                                     </MudTd>
                                     <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
-                                        <SuperAdminRowActions EntityName="@context.FullName"
-                                                              ShowView="true"
-                                                              ShowEdit="true"
-                                                              ShowAuditLog="true"
-                                                              ShowToggleStatus="true"
-                                                              ShowDelete="true"
-                                                              IsActive="@context.IsActive"
-                                                              OnView="@(() => ViewUser(context))"
-                                                              OnEdit="@(() => EditUser(context))"
-                                                              OnAuditLog="@(() => ViewUserAuditHistory(context))"
-                                                              OnToggleStatus="@(() => ToggleUserStatus(context))"
-                                                              OnDelete="@(() => DeleteUser(context))">
+                                        <ActionButtonGroup EntityName="@context.FullName"
+                                                          ItemDisplayName="@context.FullName"
+                                                          ShowView="true"
+                                                          ShowEdit="true"
+                                                          ShowAuditLog="true"
+                                                          ShowToggleStatus="true"
+                                                          ShowDelete="true"
+                                                          IsActive="@context.IsActive"
+                                                          OnView="@(() => ViewUser(context))"
+                                                          OnEdit="@(() => EditUser(context))"
+                                                          OnAuditLog="@(() => ViewUserAuditHistory(context))"
+                                                          OnToggleStatus="@(() => ToggleUserStatus(context))"
+                                                          OnDelete="@(() => DeleteUser(context))">
                                             <AdditionalActions>
                                                 <MudTooltip Text="@TranslationService.GetTranslation("tooltip.resetPassword", "Reimposta password")">
                                                     <MudIconButton Icon="@Icons.Material.Outlined.LockReset" 
@@ -327,7 +329,7 @@ else
                                                                    aria-label="@TranslationService.GetTranslation("tooltip.impersonateUser", "Impersona utente {0}", context.FullName)" />
                                                 </MudTooltip>
                                             </AdditionalActions>
-                                        </SuperAdminRowActions>
+                                        </ActionButtonGroup>
                                     </MudTd>
                                 </RowTemplate>
                                 <NoRecordsContent>
