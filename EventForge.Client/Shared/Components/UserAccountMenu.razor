@@ -31,32 +31,60 @@
              Direction="Origin.BottomLeft"
              OffsetX="true"
              Dense="true"
+             Class="user-account-menu"
              aria-label="@TranslationService.GetTranslation("userMenu.ariaLabel", "User menu")">
         <ActivatorContent>
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                <MudAvatar Color="Color.Primary" 
-                           Size="Size.Small"
-                           aria-label="@TranslationService.GetTranslation("userMenu.avatarLabel", "User avatar")">
-                    @GetUserInitials()
-                </MudAvatar>
-                <!-- User info - responsive visibility: show only on larger screens -->
-                <div class="d-none d-sm-flex flex-column">
-                    <MudText Typo="Typo.body2" Class="ma-0">@_currentUser.FullName</MudText>
-                    @if (_currentUser.Roles?.Any() == true)
-                    {
-                        <MudChip T="string"
-                                 Size="Size.Small" 
-                                 Color="Color.Secondary" 
-                                 Variant="Variant.Filled"
-                                 Text="@GetRolesDisplayText()" />
-                    }
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="user-menu-activator">
+                <!-- Avatar with status badge -->
+                <MudBadge Content="@GetStatusBadgeContent()" 
+                          Color="@GetStatusBadgeColor()" 
+                          Overlap="true" 
+                          Bordered="true"
+                          Class="status-badge">
+                    <MudAvatar Color="Color.Primary" 
+                               Size="Size.Small"
+                               Class="user-avatar"
+                               aria-label="@TranslationService.GetTranslation("userMenu.avatarLabel", "User avatar")">
+                        @GetUserInitials()
+                    </MudAvatar>
+                </MudBadge>
+                <!-- Compact user info - single line -->
+                <div class="d-none d-sm-flex user-info-compact">
+                    <MudText Typo="Typo.body2" Class="user-name-compact">
+                        @_currentUser.FullName
+                    </MudText>
                 </div>
-                <MudIcon Icon="@Icons.Material.Filled.ArrowDropDown" 
+                <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" 
                          Size="Size.Small" 
+                         Class="dropdown-icon" 
                          aria-hidden="true" />
             </MudStack>
         </ActivatorContent>
         <ChildContent>
+            <!-- User Information Section (non-clickable) -->
+            <div class="user-menu-header">
+                <MudStack Row="false" Spacing="1" Class="pa-3">
+                    <MudText Typo="Typo.subtitle2" Class="user-fullname">
+                        @_currentUser.FullName
+                    </MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="user-email">
+                        @_currentUser.Email
+                    </MudText>
+                    @if (_currentUser.Roles?.Any() == true)
+                    {
+                        <MudChip T="string"
+                                 Size="Size.Small" 
+                                 Color="Color.Info" 
+                                 Variant="Variant.Text"
+                                 Icon="@Icons.Material.Filled.Badge"
+                                 Class="role-display-chip"
+                                 Text="@GetRolesDisplayText()" />
+                    }
+                </MudStack>
+            </div>
+            
+            <MudDivider Class="my-1" />
+            
             <!-- Profile and Settings Actions -->
             <MudMenuItem Icon="@Icons.Material.Filled.Person" 
                          OnClick="@(() => NavigationManager.NavigateTo("/profile"))"
@@ -76,11 +104,12 @@
                 @TranslationService.GetTranslation("navigation.notifications", "Notifications")
             </MudMenuItem>
             
-            <MudDivider />
+            <MudDivider Class="my-1" />
             
             <!-- Logout Action -->
             <MudMenuItem Icon="@Icons.Material.Filled.Logout" 
                          OnClick="@HandleLogout"
+                         Class="logout-item"
                          aria-label="@TranslationService.GetTranslation("auth.logoutDescription", "Logout from system")">
                 @TranslationService.GetTranslation("auth.logout", "Logout")
             </MudMenuItem>
@@ -180,6 +209,27 @@
         return $"{_currentUser.Roles.Count} Roles";
     }
 
+    /// <summary>
+    /// Gets the status badge content for the user avatar.
+    /// Currently shows a simple online indicator, but can be extended for more complex status.
+    /// </summary>
+    private string GetStatusBadgeContent()
+    {
+        // For now, show a simple online indicator
+        // This can be extended to include actual user status from the backend
+        return "●";
+    }
+
+    /// <summary>
+    /// Gets the color for the status badge based on user state.
+    /// </summary>
+    private Color GetStatusBadgeColor()
+    {
+        // For authenticated users, show success (green) to indicate "online"
+        // This can be extended to reflect actual user status
+        return Color.Success;
+    }
+
     public void Dispose()
     {
         AuthService.OnAuthenticationStateChanged -= OnAuthenticationStateChanged;
@@ -187,18 +237,143 @@
 }
 
 <style>
-    /* Ensure proper spacing and alignment for mobile controls */
-    .user-menu-mobile-control {
-        min-width: 250px;
+    /* Modern User Account Menu Styling */
+    .user-account-menu {
+        transition: all 0.2s ease-in-out;
     }
-    
-    .user-menu-mobile-control .mud-select {
-        min-width: 120px;
+
+    /* Activator styling for modern compact look */
+    .user-menu-activator {
+        padding: 4px 8px;
+        border-radius: 24px;
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
     }
-    
-    /* Responsive role chip styling */
-    .user-role-chip {
-        font-size: 0.6rem;
-        height: 18px;
+
+    .user-menu-activator:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    /* User avatar with improved styling */
+    .user-avatar {
+        font-weight: 600;
+        font-size: 0.875rem;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.2s ease-in-out;
+    }
+
+    /* Status badge styling */
+    .status-badge .mud-badge-badge {
+        font-size: 8px;
+        min-width: 12px;
+        height: 12px;
+        border: 2px solid var(--mud-palette-surface);
+    }
+
+    /* Compact user info */
+    .user-info-compact {
+        max-width: 150px;
+        overflow: hidden;
+    }
+
+    .user-name-compact {
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.2;
+        margin: 0;
+    }
+
+    /* Dropdown icon animation */
+    .dropdown-icon {
+        transition: transform 0.2s ease-in-out;
+        opacity: 0.7;
+    }
+
+    .user-menu-activator:hover .dropdown-icon {
+        opacity: 1;
+    }
+
+    /* Menu header styling */
+    .user-menu-header {
+        background: linear-gradient(135deg, var(--mud-palette-primary-lighten) 0%, var(--mud-palette-primary) 100%);
+        color: white;
+        margin: -8px -8px 0 -8px;
+        border-radius: 8px 8px 0 0;
+    }
+
+    .user-fullname {
+        font-weight: 600;
+        margin: 0;
+        color: white;
+    }
+
+    .user-email {
+        font-size: 0.75rem;
+        opacity: 0.9;
+        margin: 0;
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* Role display chip in menu */
+    .role-display-chip {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+        color: white !important;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        font-size: 0.7rem;
+        height: 20px;
+        pointer-events: none;
+    }
+
+    /* Logout item styling */
+    .logout-item {
+        color: var(--mud-palette-error) !important;
+    }
+
+    .logout-item:hover {
+        background-color: rgba(var(--mud-palette-error-rgb), 0.1) !important;
+    }
+
+    /* Responsive adjustments */
+    @@media (max-width: 600px) {
+        .user-info-compact {
+            display: none !important;
+        }
+        
+        .user-menu-activator {
+            padding: 6px;
+        }
+    }
+
+    /* High contrast mode */
+    @@media (prefers-contrast: high) {
+        .user-avatar {
+            border: 3px solid var(--mud-palette-text-primary);
+        }
+        
+        .user-menu-header {
+            border: 2px solid var(--mud-palette-primary);
+        }
+    }
+
+    /* Reduced motion support */
+    @@media (prefers-reduced-motion: reduce) {
+        .user-menu-activator,
+        .user-avatar,
+        .dropdown-icon {
+            transition: none;
+        }
+    }
+
+    /* Dark theme adjustments */
+    .mud-theme-dark .user-menu-activator:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    /* Focus indicators for accessibility */
+    .user-menu-activator:focus-within {
+        outline: 2px solid var(--mud-palette-primary);
+        outline-offset: 2px;
     }
 </style>
