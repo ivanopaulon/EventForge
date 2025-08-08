@@ -84,4 +84,16 @@ builder.Services.AddScoped<ILicenseService, LicenseService>();
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
 builder.Services.AddAuthorizationCore();
 
-await builder.Build().RunAsync();
+var app = builder.Build();
+
+// Initialize Translation Service at startup
+using (var scope = app.Services.CreateScope())
+{
+    var translationService = scope.ServiceProvider.GetRequiredService<ITranslationService>();
+    if (translationService is TranslationService concreteService)
+    {
+        await concreteService.InitializeAsync();
+    }
+}
+
+await app.RunAsync();

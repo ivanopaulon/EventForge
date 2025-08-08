@@ -47,17 +47,6 @@
     protected override async Task OnInitializedAsync()
     {
         TranslationService.LanguageChanged += OnLanguageChangedEvent;
-        
-        // Initialize the translation service if not already done
-        try
-        {
-            await ((TranslationService)TranslationService).InitializeAsync();
-        }
-        catch (Exception ex)
-        {
-            // Service might already be initialized
-            Console.WriteLine($"Translation service initialization: {ex.Message}");
-        }
     }
 
     private async Task OnLanguageChanged(string newLanguage)
@@ -65,7 +54,7 @@
         try
         {
             await TranslationService.SetLanguageAsync(newLanguage);
-            StateHasChanged();
+            // StateHasChanged will be called by the event handler
         }
         catch (Exception ex)
         {
