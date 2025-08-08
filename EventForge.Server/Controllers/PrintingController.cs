@@ -353,4 +353,89 @@ public class PrintingController : BaseApiController
             return CreateInternalServerErrorProblem("An error occurred while retrieving QZ version", ex);
         }
     }
+
+    /// <summary>
+    /// Tests the enhanced QZ Tray digital signature functionality with complete certificate chain.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Test result with signed payload structure</returns>
+    /// <response code="200">Returns the signature test result</response>
+    /// <response code="500">Internal server error</response>
+    [HttpPost("test-signature")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<object>> TestEnhancedSignature(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Enhanced signature test requested by user: {User}", GetCurrentUser());
+
+            // Test configuration validation
+            var isValidConfig = await _qzPrintingService.ValidateSignatureConfigurationAsync();
+            
+            if (!isValidConfig)
+            {
+                var configException = new InvalidOperationException("QZ Tray signature configuration is not valid");
+                return CreateInternalServerErrorProblem("QZ Tray signature configuration is not valid", configException);
+            }
+
+            // Create a sample print payload for testing
+            var samplePrintJob = new PrintJobDto
+            {
+                Id = Guid.NewGuid(),
+                PrinterId = "TEST_PRINTER",
+                PrinterName = "Test Receipt Printer",
+                Title = "Signature Test Receipt",
+                ContentType = PrintContentType.Raw,
+                Content = "SIGNATURE TEST\n=============\nTimestamp: " + DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss") + "\nTest successful!",
+                Copies = 1,
+                Priority = PrintJobPriority.Normal,
+                Status = PrintJobStatus.Queued,
+                SubmittedAt = DateTime.UtcNow
+            };
+
+            var submitRequest = new SubmitPrintJobRequestDto
+            {
+                PrintJob = samplePrintJob,
+                ValidatePrinter = false, // Skip printer validation for test
+                WaitForCompletion = false
+            };
+
+            // This will internally use the enhanced signature service
+            var result = await _qzPrintingService.SubmitPrintJobAsync(submitRequest, cancellationToken);
+
+            var testResult = new
+            {
+                ConfigurationValid = isValidConfig,
+                SignatureTestResult = result.Success,
+                ErrorMessage = result.ErrorMessage,
+                TestPayload = new
+                {
+                    JobId = samplePrintJob.Id,
+                    PrinterId = samplePrintJob.PrinterId,
+                    Content = samplePrintJob.Content,
+                    Timestamp = DateTime.UtcNow
+                },
+                Message = result.Success 
+                    ? "Enhanced QZ Tray signature test completed successfully!" 
+                    : "Signature test failed - check error message for details",
+                Features = new[]
+                {
+                    "Complete certificate chain with intermediate markers",
+                    "UTC timestamp in milliseconds",
+                    "Short base64 UID generation",
+                    "RSA-SHA256 signature on complete payload",
+                    "Position field as per QZ Tray demo",
+                    "Payload structure matches QZ Tray requirements"
+                }
+            };
+
+            return Ok(testResult);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error testing enhanced QZ signature");
+            return CreateInternalServerErrorProblem("An error occurred while testing the enhanced signature", ex);
+        }
+    }
 }
