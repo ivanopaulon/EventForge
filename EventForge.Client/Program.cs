@@ -70,6 +70,7 @@ builder.Services.AddScoped<IThemeService, ThemeService>();
 builder.Services.AddScoped<ITranslationService, TranslationService>();
 builder.Services.AddScoped<IClientLogService, ClientLogService>();
 builder.Services.AddScoped<IHelpService, HelpService>();
+builder.Services.AddScoped<ILoadingDialogService, LoadingDialogService>();
 
 // Add SuperAdmin services
 builder.Services.AddScoped<ISuperAdminService, SuperAdminService>();
