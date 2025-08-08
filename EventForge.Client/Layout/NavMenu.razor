@@ -85,7 +85,7 @@
                 </MudNavLink>
             </MudNavGroup>
         }
-        @if (_isAdmin || _isManager)
+        @if (_isSuperAdmin || _isAdmin || _isManager)
         {
             <MudNavGroup title="@TranslationService.GetTranslation("nav.administration", "Amministrazione")" 
                          Icon="@Icons.Material.Outlined.Dashboard" 
