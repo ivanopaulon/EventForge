@@ -38,11 +38,7 @@ public class LicenseFeature : AuditableEntity
     [Display(Name = "Category", Description = "Category/module this feature belongs to.")]
     public string Category { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Indicates if this feature is enabled.
-    /// </summary>
-    [Display(Name = "Is Enabled", Description = "Indicates if this feature is enabled.")]
-    public bool IsEnabled { get; set; } = true;
+
 
     /// <summary>
     /// Foreign key to the license this feature belongs to.

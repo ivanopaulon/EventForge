@@ -88,7 +88,7 @@ public class RequireLicenseFeatureAttribute : Attribute, IAsyncAuthorizationFilt
             // Check if the required feature is available in the license
             var requiredFeature = tenantLicense.License.LicenseFeatures
                 .FirstOrDefault(lf => lf.Name.Equals(_featureName, StringComparison.OrdinalIgnoreCase) &&
-                                     lf.IsEnabled);
+                                     lf.IsActive);
 
             if (requiredFeature == null)
             {

@@ -42,9 +42,9 @@ namespace EventForge.DTOs.Licensing
         public string Category { get; set; } = string.Empty;
 
         /// <summary>
-        /// Indicates if this feature is enabled.
+        /// Indicates if this feature is active.
         /// </summary>
-        public bool IsEnabled { get; set; } = true;
+        public bool IsActive { get; set; } = true;
 
         /// <summary>
         /// License ID this feature belongs to.
