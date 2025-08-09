@@ -11,6 +11,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
+@inject ITenantContextService TenantContextService
 @inject IJSRuntime _jsRuntime
 @inject ILogger<UserManagement> Logger
 
@@ -484,7 +485,17 @@ else
             // Auto-select the first tenant if available and no tenant is currently selected
             if (_tenants.Any() && string.IsNullOrEmpty(_selectedTenant))
             {
-                _selectedTenant = _tenants.First().Id.ToString();
+                // Check if tenant context service has a saved tenant first
+                var contextTenantId = TenantContextService.CurrentTenantId;
+                if (contextTenantId.HasValue && _tenants.Any(t => t.Id == contextTenantId.Value))
+                {
+                    _selectedTenant = contextTenantId.Value.ToString();
+                }
+                else
+                {
+                    _selectedTenant = _tenants.First().Id.ToString();
+                }
+                
                 // Trigger data reload with the selected tenant
                 await OnTenantChanged();
             }
@@ -550,6 +561,17 @@ else
 
     private async Task OnTenantChanged()
     {
+        // Update tenant context service with new selection
+        if (!string.IsNullOrEmpty(_selectedTenant) && Guid.TryParse(_selectedTenant, out var tenantId))
+        {
+            var selectedTenant = _tenants.FirstOrDefault(t => t.Id == tenantId);
+            await TenantContextService.SetCurrentTenantAsync(tenantId, selectedTenant);
+        }
+        else
+        {
+            await TenantContextService.ClearCurrentTenantAsync();
+        }
+        
         await LoadUsersAsync();
         await LoadUserStatisticsAsync();
         StateHasChanged();

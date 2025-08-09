@@ -30,6 +30,8 @@
                               RequiredError="@TranslationService.GetTranslation("drawer.error.nomeTenantObbligatorio")"
                               MaxLength="100"
                               ReadOnly="@(Mode == EntityDrawerMode.Edit)"
+                              Immediate="true"
+                              OnBlur="@ValidateTenantName"
                               aria-describedby="name-help" />
                 <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
                     @(Mode == EntityDrawerMode.Edit ? 
@@ -45,6 +47,8 @@
                               Required="true"
                               RequiredError="@TranslationService.GetTranslation("drawer.error.nomeVisualizzatoObbligatorio")"
                               MaxLength="200"
+                              Immediate="true"
+                              OnBlur="@ValidateDisplayName"
                               aria-describedby="displayName-help" />
                 <MudText id="displayName-help" Typo="Typo.caption" Class="mud-input-helper-text">
                     @TranslationService.GetTranslation("drawer.helperText.nomeVisualizzato")
@@ -82,6 +86,8 @@
                               Required="true"
                               RequiredError="@TranslationService.GetTranslation("drawer.error.emailContattoObbligatoria")"
                               MaxLength="256"
+                              Immediate="true"
+                              OnBlur="@ValidateContactEmail"
                               aria-describedby="contactEmail-help" />
                 <MudText id="contactEmail-help" Typo="Typo.caption" Class="mud-input-helper-text">
                     @TranslationService.GetTranslation("drawer.helperText.emailContatto")
@@ -516,5 +522,51 @@
             return Color.Warning;
         else
             return Color.Error;
+    }
+
+    // Immediate validation methods for tenant fields
+    private void ValidateTenantName()
+    {
+        if (string.IsNullOrWhiteSpace(_model.Name))
+        {
+            Snackbar.Add(TranslationService.GetTranslation("drawer.error.nomeTenantObbligatorio", "Il nome del tenant è obbligatorio"), Severity.Warning);
+        }
+        else if (_model.Name.Length < 3)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("drawer.error.tenantNameMinLength", "Il nome del tenant deve essere di almeno 3 caratteri"), Severity.Warning);
+        }
+    }
+
+    private void ValidateDisplayName()
+    {
+        if (string.IsNullOrWhiteSpace(_model.DisplayName))
+        {
+            Snackbar.Add(TranslationService.GetTranslation("drawer.error.nomeVisualizzatoObbligatorio", "Il nome visualizzato è obbligatorio"), Severity.Warning);
+        }
+    }
+
+    private void ValidateContactEmail()
+    {
+        if (string.IsNullOrWhiteSpace(_model.ContactEmail))
+        {
+            Snackbar.Add(TranslationService.GetTranslation("drawer.error.emailContattoObbligatoria", "L'email di contatto è obbligatoria"), Severity.Warning);
+        }
+        else if (!IsValidEmail(_model.ContactEmail))
+        {
+            Snackbar.Add(TranslationService.GetTranslation("drawer.error.emailInvalida", "L'email inserita non è valida"), Severity.Warning);
+        }
+    }
+
+    private bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

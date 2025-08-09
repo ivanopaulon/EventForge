@@ -3,6 +3,7 @@
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Constants
 @inject ISuperAdminService SuperAdminService
+@inject ITenantContextService TenantContextService
 @inject ISnackbar Snackbar
 @inject ILogger<EventDrawer> Logger
 @inject ITranslationService TranslationService
@@ -27,6 +28,8 @@
                               Required="true"
                               RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
                               MaxLength="100"
+                              Immediate="true"
+                              OnBlur="@ValidateEventName"
                               aria-describedby="name-help" />
                 <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
                     @TranslationService.GetTranslation("help.eventName", "Nome identificativo dell'evento")
@@ -455,5 +458,20 @@
             "cancelled" => Icons.Material.Outlined.Cancel,
             _ => Icons.Material.Outlined.Help
         };
+    }
+
+    /// <summary>
+    /// Validates event name field immediately on blur.
+    /// </summary>
+    private void ValidateEventName()
+    {
+        if (string.IsNullOrWhiteSpace(_model.Name))
+        {
+            Snackbar.Add(TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio"), Severity.Warning);
+        }
+        else if (_model.Name.Length < 3)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("validation.nameMinLength", "Il nome deve essere di almeno 3 caratteri"), Severity.Warning);
+        }
     }
 }

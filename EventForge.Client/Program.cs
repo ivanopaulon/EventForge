@@ -68,6 +68,7 @@ builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
 builder.Services.AddScoped<IBackupService, BackupService>();
 builder.Services.AddScoped<IThemeService, ThemeService>();
 builder.Services.AddScoped<ITranslationService, TranslationService>();
+builder.Services.AddScoped<ITenantContextService, TenantContextService>();
 builder.Services.AddScoped<IClientLogService, ClientLogService>();
 builder.Services.AddScoped<IHelpService, HelpService>();
 builder.Services.AddScoped<ILoadingDialogService, LoadingDialogService>();
@@ -86,7 +87,7 @@ builder.Services.AddAuthorizationCore();
 
 var app = builder.Build();
 
-// Initialize Translation Service at startup
+// Initialize Translation Service and Tenant Context Service at startup
 using (var scope = app.Services.CreateScope())
 {
     var translationService = scope.ServiceProvider.GetRequiredService<ITranslationService>();
@@ -94,6 +95,9 @@ using (var scope = app.Services.CreateScope())
     {
         await concreteService.InitializeAsync();
     }
+    
+    var tenantContextService = scope.ServiceProvider.GetRequiredService<ITenantContextService>();
+    await tenantContextService.InitializeAsync();
 }
 
 await app.RunAsync();
