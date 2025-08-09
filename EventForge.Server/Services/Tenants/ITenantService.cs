@@ -15,6 +15,13 @@ public interface ITenantService
     Task<TenantResponseDto> CreateTenantAsync(CreateTenantDto createDto);
 
     /// <summary>
+    /// Creates a new tenant with a default admin user (SuperAdmin only).
+    /// </summary>
+    /// <param name="createDto">Tenant creation data including admin user information</param>
+    /// <returns>Created tenant details with admin user information</returns>
+    Task<TenantResponseDto> CreateTenantWithAdminAsync(CreateTenantDto createDto);
+
+    /// <summary>
     /// Gets a tenant by ID.
     /// </summary>
     /// <param name="tenantId">Tenant ID</param>
