@@ -18,7 +18,13 @@ builder.Services.AddAuthorization(builder.Configuration);
 builder.Services.AddControllers();
 
 // Add SignalR for real-time communication
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(options =>
+{
+    // Configure SignalR options for better authentication support
+    options.MaximumReceiveMessageSize = 32 * 1024; // 32KB
+    options.StreamBufferCapacity = 10;
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+});
 
 // Add Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
@@ -136,7 +142,8 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins("https://localhost:7241", "https://localhost:5000", "https://localhost:7009") // aggiungi qui le porte del client Blazor se diverse
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials(); // Required for SignalR WebSocket connections
     });
 });
 
