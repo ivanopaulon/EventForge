@@ -373,5 +373,3 @@ FodyWeavers.xsd
 *.db-wal
 app.db*
 EventForge.Server/app.db*
-/EventForge.Server
-/.gitignore

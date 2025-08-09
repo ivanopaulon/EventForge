@@ -184,15 +184,18 @@ catch (Exception ex)
 // Add middleware early in the pipeline
 app.UseCorrelationId();
 
-// Configure Swagger (in all environments for now, but you might want to restrict to development)
-app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "EventForge API v1.0.0");
-    c.RoutePrefix = string.Empty; // Set Swagger as the homepage
-    c.DocumentTitle = "EventForge API Documentation";
-    c.DisplayRequestDuration();
-});
+// Configure default route to redirect to logs viewer instead of Swagger
+app.MapGet("/", () => Results.Redirect("/logs.html"));
+
+// Configure Swagger (temporarily disabled - replaced with logs viewer)
+// app.UseSwagger();
+// app.UseSwaggerUI(c =>
+// {
+//     c.SwaggerEndpoint("/swagger/v1/swagger.json", "EventForge API v1.0.0");
+//     c.RoutePrefix = string.Empty; // Set Swagger as the homepage
+//     c.DocumentTitle = "EventForge API Documentation";
+//     c.DisplayRequestDuration();
+// });
 
 // Pipeline HTTP
 if (!app.Environment.IsDevelopment())

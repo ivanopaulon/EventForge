@@ -35,6 +35,11 @@ public static class ServiceCollectionExtensions
         try
         {
             Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+                .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", LogEventLevel.Warning)
+                .MinimumLevel.Override("Microsoft.AspNetCore.Mvc", LogEventLevel.Warning)
+                .MinimumLevel.Override("Microsoft.AspNetCore.Routing", LogEventLevel.Warning)
                 .WriteTo.MSSqlServer(
                     connectionString: builder.Configuration.GetConnectionString("LogDb"),
                     sinkOptions: new MSSqlServerSinkOptions
@@ -51,6 +56,8 @@ public static class ServiceCollectionExtensions
             var fileRetention = builder.Configuration.GetValue<int?>("Serilog:FileRetention") ?? 7;
 
             Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
                 .WriteTo.File(
                     path: filePath,
                     rollingInterval: RollingInterval.Day,
@@ -82,12 +89,11 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Configura il DbContext per SQL Server o SQLite in base alla configurazione.
+    /// Configura il DbContext per SQL Server.
     /// </summary>
     public static void AddConfiguredDbContext(this IServiceCollection services, IConfiguration configuration)
     {
-        var provider = configuration["DatabaseProvider"] ?? "SqlServer";
-        Log.Information("Configurazione DbContext: provider selezionato = {Provider}", provider);
+        Log.Information("Configurazione DbContext: utilizzando SQL Server");
 
         // Register HTTP context accessor first for audit tracking
         services.AddHttpContextAccessor();
@@ -98,24 +104,12 @@ public static class ServiceCollectionExtensions
 
         try
         {
-            if (provider == "Sqlite")
+            services.AddDbContext<EventForgeDbContext>((serviceProvider, options) =>
             {
-                services.AddDbContext<EventForgeDbContext>((serviceProvider, options) =>
-                {
-                    options.UseSqlite(configuration.GetConnectionString("Sqlite"))
-                           .AddInterceptors(serviceProvider.GetRequiredService<QueryPerformanceInterceptor>());
-                });
-                Log.Information("DbContext configurato per SQLite.");
-            }
-            else // Default: SQL Server
-            {
-                services.AddDbContext<EventForgeDbContext>((serviceProvider, options) =>
-                {
-                    options.UseSqlServer(configuration.GetConnectionString("SqlServer"))
-                           .AddInterceptors(serviceProvider.GetRequiredService<QueryPerformanceInterceptor>());
-                });
-                Log.Information("DbContext configurato per SQL Server.");
-            }
+                options.UseSqlServer(configuration.GetConnectionString("SqlServer"))
+                       .AddInterceptors(serviceProvider.GetRequiredService<QueryPerformanceInterceptor>());
+            });
+            Log.Information("DbContext configurato per SQL Server.");
         }
         catch (Exception ex)
         {
