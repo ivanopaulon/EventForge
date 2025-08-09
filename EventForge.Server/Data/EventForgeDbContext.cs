@@ -1,5 +1,6 @@
 ﻿using EventForge.Server.Data.Entities.Chat;
 using EventForge.Server.Data.Entities.Notifications;
+using EventForge.Server.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Data;
@@ -108,6 +109,9 @@ public class EventForgeDbContext : DbContext
     public DbSet<ChatMessage> ChatMessages { get; set; }
     public DbSet<MessageAttachment> MessageAttachments { get; set; }
     public DbSet<MessageReadReceipt> MessageReadReceipts { get; set; }
+
+    // Logging
+    public DbSet<LogEntry> LogEntries { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -540,6 +544,19 @@ public class EventForgeDbContext : DbContext
             .HasIndex(tl => new { tl.TargetTenantId, tl.IsLicenseActive })
             .IsUnique()
             .HasFilter("[IsLicenseActive] = 1");
+
+        // LogEntry configuration for Serilog logs table
+        modelBuilder.Entity<LogEntry>(entity =>
+        {
+            entity.ToTable("Logs");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.TimeStamp).IsRequired();
+            entity.Property(e => e.Level).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Message).IsRequired();
+            entity.Property(e => e.Exception);
+            entity.Property(e => e.MachineName).HasMaxLength(100);
+            entity.Property(e => e.UserName).HasMaxLength(100);
+        });
     }
 
     /// <summary>
