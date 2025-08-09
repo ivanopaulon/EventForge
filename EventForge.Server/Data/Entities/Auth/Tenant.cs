@@ -16,6 +16,14 @@ public class Tenant : AuditableEntity
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
+    /// Unique tenant code for URL-friendly identification.
+    /// </summary>
+    [Required]
+    [MaxLength(50, ErrorMessage = "Tenant code cannot exceed 50 characters.")]
+    [Display(Name = "Code", Description = "Unique tenant code for URL-friendly identification.")]
+    public string Code { get; set; } = string.Empty;
+
+    /// <summary>
     /// Display name for the tenant.
     /// </summary>
     [Required]

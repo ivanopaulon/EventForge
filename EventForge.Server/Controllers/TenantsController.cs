@@ -54,6 +54,35 @@ public class TenantsController : BaseApiController
     }
 
     /// <summary>
+    /// Creates a new tenant with a default admin user (SuperAdmin only).
+    /// </summary>
+    /// <param name="createDto">Tenant creation data including admin user information</param>
+    /// <returns>Created tenant details with admin user information</returns>
+    /// <response code="201">Returns the newly created tenant with admin user</response>
+    /// <response code="400">If the tenant data is invalid</response>
+    /// <response code="500">If an error occurred during creation</response>
+    [HttpPost("with-admin")]
+    [ProducesResponseType(typeof(TenantResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<TenantResponseDto>> CreateTenantWithAdmin([FromBody] CreateTenantDto createDto)
+    {
+        try
+        {
+            var result = await _tenantService.CreateTenantWithAdminAsync(createDto);
+            return CreatedAtAction(nameof(GetTenant), new { id = result.Id }, result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+    }
+
+    /// <summary>
     /// Gets a tenant by ID.
     /// </summary>
     /// <param name="id">Tenant ID</param>

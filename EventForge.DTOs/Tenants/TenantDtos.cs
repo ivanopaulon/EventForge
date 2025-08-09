@@ -14,6 +14,12 @@ namespace EventForge.DTOs.Tenants
         [Display(Name = "field.name")]
         public string Name { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "Tenant code is required.")]
+        [MaxLength(50, ErrorMessage = "Tenant code cannot exceed 50 characters.")]
+        [RegularExpression(@"^[a-z0-9-]+$", ErrorMessage = "Tenant code can only contain lowercase letters, numbers, and hyphens.")]
+        [Display(Name = "field.code")]
+        public string Code { get; set; } = string.Empty;
+
         [Required(ErrorMessage = "Display name is required.")]
         [MaxLength(200, ErrorMessage = "Display name cannot exceed 200 characters.")]
         [Display(Name = "field.displayName")]
@@ -97,6 +103,7 @@ namespace EventForge.DTOs.Tenants
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
+        public string Code { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? Domain { get; set; }
@@ -192,6 +199,7 @@ namespace EventForge.DTOs.Tenants
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
+        public string Code { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? Domain { get; set; }
