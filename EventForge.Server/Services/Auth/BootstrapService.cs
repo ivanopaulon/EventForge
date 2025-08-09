@@ -17,12 +17,13 @@ public interface IBootstrapService
     /// <summary>
     /// Creates the default admin user if it doesn't exist.
     /// </summary>
+    /// <param name="tenantId">Tenant ID for the admin user</param>
     /// <param name="username">Admin username</param>
     /// <param name="email">Admin email</param>
     /// <param name="password">Admin password</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if successful</returns>
-    Task<bool> CreateDefaultAdminAsync(string username, string email, string password, CancellationToken cancellationToken = default);
+    Task<bool> CreateDefaultAdminAsync(Guid tenantId, string username, string email, string password, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Seeds default roles and permissions.
@@ -87,6 +88,14 @@ public class BootstrapService : IBootstrapService
             // Ensure database is created
             await _dbContext.Database.EnsureCreatedAsync(cancellationToken);
 
+            // Ensure default tenant exists
+            var defaultTenant = await EnsureDefaultTenantAsync(cancellationToken);
+            if (defaultTenant == null)
+            {
+                _logger.LogError("Failed to create or find default tenant");
+                return false;
+            }
+
             // Seed default roles and permissions
             if (!await SeedDefaultRolesAndPermissionsAsync(cancellationToken))
             {
@@ -98,11 +107,12 @@ public class BootstrapService : IBootstrapService
             if (_options.AutoCreateAdmin)
             {
                 var adminExists = await _dbContext.Users
-                    .AnyAsync(u => u.Username == _options.DefaultAdminUsername, cancellationToken);
+                    .AnyAsync(u => u.Username == _options.DefaultAdminUsername && u.TenantId == defaultTenant.Id, cancellationToken);
 
                 if (!adminExists)
                 {
                     if (!await CreateDefaultAdminAsync(
+                        defaultTenant.Id,
                         _options.DefaultAdminUsername,
                         _options.DefaultAdminEmail,
                         _options.DefaultAdminPassword,
@@ -128,7 +138,51 @@ public class BootstrapService : IBootstrapService
         }
     }
 
-    public async Task<bool> CreateDefaultAdminAsync(string username, string email, string password, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Ensures the default tenant exists.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Default tenant entity</returns>
+    private async Task<Tenant?> EnsureDefaultTenantAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Check if default tenant exists
+            var defaultTenant = await _dbContext.Tenants
+                .FirstOrDefaultAsync(t => t.Code == "default", cancellationToken);
+
+            if (defaultTenant == null)
+            {
+                // Create default tenant
+                defaultTenant = new Tenant
+                {
+                    Name = "Default",
+                    Code = "default",
+                    DisplayName = "Default Tenant",
+                    Description = "Default tenant created during initial setup",
+                    ContactEmail = _options.DefaultAdminEmail,
+                    MaxUsers = 1000,
+                    IsActive = true,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _dbContext.Tenants.Add(defaultTenant);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                _logger.LogInformation("Default tenant created with code 'default'");
+            }
+
+            return defaultTenant;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating default tenant");
+            return null;
+        }
+    }
+
+    public async Task<bool> CreateDefaultAdminAsync(Guid tenantId, string username, string email, string password, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -153,6 +207,7 @@ public class BootstrapService : IBootstrapService
                 LastName = "Administrator",
                 PasswordHash = hash,
                 PasswordSalt = salt,
+                TenantId = tenantId,
                 IsActive = true,
                 CreatedBy = "system",
                 CreatedAt = DateTime.UtcNow,
@@ -183,7 +238,7 @@ public class BootstrapService : IBootstrapService
 
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Default admin user created: {Username} ({Email})", username, email);
+            _logger.LogInformation("Default admin user created: {Username} ({Email}) for tenant {TenantId}", username, email, tenantId);
             _logger.LogWarning("SECURITY: Default admin password is being used. Please change it immediately after first login!");
 
             return true;

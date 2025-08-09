@@ -14,10 +14,11 @@ public interface IJwtTokenService
     /// Generates a JWT token for the specified user.
     /// </summary>
     /// <param name="user">User information</param>
+    /// <param name="tenant">Tenant information</param>
     /// <param name="roles">User roles</param>
     /// <param name="permissions">User permissions</param>
     /// <returns>JWT token</returns>
-    string GenerateToken(User user, IEnumerable<string> roles, IEnumerable<string> permissions);
+    string GenerateToken(User user, Tenant tenant, IEnumerable<string> roles, IEnumerable<string> permissions);
 
     /// <summary>
     /// Validates a JWT token.
@@ -102,10 +103,12 @@ public class JwtTokenService : IJwtTokenService
 
     public int TokenExpirationSeconds => _jwtOptions.ExpirationMinutes * 60;
 
-    public string GenerateToken(User user, IEnumerable<string> roles, IEnumerable<string> permissions)
+    public string GenerateToken(User user, Tenant tenant, IEnumerable<string> roles, IEnumerable<string> permissions)
     {
         if (user == null)
             throw new ArgumentNullException(nameof(user));
+        if (tenant == null)
+            throw new ArgumentNullException(nameof(tenant));
 
         var claims = new List<Claim>
         {
@@ -117,15 +120,12 @@ public class JwtTokenService : IJwtTokenService
             new("full_name", user.FullName),
             new("user_id", user.Id.ToString()),
             new("username", user.Username),
+            new("tenant_id", user.TenantId.ToString()),
+            new("tenant_code", tenant.Code),
+            new("tenant_name", tenant.Name),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
         };
-
-        // Add tenant_id claim if user has a tenant (not SuperAdmin)
-        if (user.TenantId.HasValue)
-        {
-            claims.Add(new Claim("tenant_id", user.TenantId.Value.ToString()));
-        }
 
         // Add roles
         foreach (var role in roles)
@@ -155,7 +155,7 @@ public class JwtTokenService : IJwtTokenService
         var securityToken = tokenHandler.CreateToken(tokenDescriptor);
         var token = tokenHandler.WriteToken(securityToken);
 
-        _logger.LogDebug("JWT token generated for user {Username}", user.Username);
+        _logger.LogDebug("JWT token generated for user {Username} in tenant {TenantCode}", user.Username, tenant.Code);
 
         return token;
     }
