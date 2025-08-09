@@ -4,6 +4,7 @@
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Constants
 @inject ISuperAdminService SuperAdminService
+@inject ITenantContextService TenantContextService
 @inject ISnackbar Snackbar
 @inject ILogger<UserDrawer> Logger
 @inject ITranslationService TranslationService
@@ -28,6 +29,8 @@
                               Required="true"
                               RequiredError="@TranslationService.GetTranslation("drawer.error.nomeObbligatorio")"
                               MaxLength="100"
+                              Immediate="true"
+                              OnBlur="@ValidateFirstName"
                               aria-describedby="firstName-help" />
                 <MudText id="firstName-help" Typo="Typo.caption" Class="mud-input-helper-text">
                     @TranslationService.GetTranslation("drawer.helperText.nome")
@@ -41,6 +44,8 @@
                               Required="true"
                               RequiredError="@TranslationService.GetTranslation("drawer.error.cognomeObbligatorio")"
                               MaxLength="100"
+                              Immediate="true"
+                              OnBlur="@ValidateLastName"
                               aria-describedby="lastName-help" />
                 <MudText id="lastName-help" Typo="Typo.caption" Class="mud-input-helper-text">
                     @TranslationService.GetTranslation("drawer.helperText.cognome")
@@ -55,6 +60,8 @@
                               RequiredError="@TranslationService.GetTranslation("drawer.error.usernameObbligatorio")"
                               MaxLength="100"
                               ReadOnly="@(Mode == EntityDrawerMode.Edit)"
+                              Immediate="true"
+                              OnBlur="@ValidateUsername"
                               aria-describedby="username-help" />
                 <MudText id="username-help" Typo="Typo.caption" Class="mud-input-helper-text">
                     @(Mode == EntityDrawerMode.Edit ? 
@@ -71,6 +78,8 @@
                               Required="true"
                               RequiredError="@TranslationService.GetTranslation("drawer.error.emailObbligatoria")"
                               MaxLength="256"
+                              Immediate="true"
+                              OnBlur="@ValidateEmail"
                               aria-describedby="email-help" />
                 <MudText id="email-help" Typo="Typo.caption" Class="mud-input-helper-text">
                     @TranslationService.GetTranslation("drawer.helperText.email")
@@ -106,6 +115,8 @@
                                   InputType="InputType.Password"
                                   Required="true"
                                   RequiredError="@TranslationService.GetTranslation("drawer.error.passwordObbligatoria")"
+                                  Immediate="true"
+                                  OnBlur="@ValidatePassword"
                                   aria-describedby="password-help" />
                     <MudText id="password-help" Typo="Typo.caption" Class="mud-input-helper-text">
                         @TranslationService.GetTranslation("drawer.helperText.password")
@@ -120,6 +131,8 @@
                                   Required="true"
                                   RequiredError="@TranslationService.GetTranslation("drawer.error.confermaPasswordObbligatoria")"
                                   Validation="@(new Func<string, string?>(ValidatePasswordConfirmation))"
+                                  Immediate="true"
+                                  OnBlur="@ValidateConfirmPassword"
                                   aria-describedby="confirmPassword-help" />
                     <MudText id="confirmPassword-help" Typo="Typo.caption" Class="mud-input-helper-text">
                         @TranslationService.GetTranslation("drawer.helperText.confermaPassword")
@@ -387,12 +400,20 @@
         }
         else if (Mode == EntityDrawerMode.Create)
         {
-            // Reset for create mode
+            // Reset for create mode and pre-select tenant from context
             _model = new UserManagementDto();
             _password = "";
             _confirmPassword = "";
             InitializeRoles();
             _selectedRoles["User"] = true; // Default role
+            
+            // Pre-select tenant from context if available
+            var currentTenantId = TenantContextService.CurrentTenantId;
+            if (currentTenantId.HasValue && _tenants.Any(t => t.Id == currentTenantId))
+            {
+                _model.TenantId = currentTenantId;
+            }
+            
             _customTitle = null;
         }
     }
@@ -512,5 +533,79 @@
             "superadmin" => TranslationService.GetTranslation("drawer.role.superadmin"),
             _ => TranslationService.GetTranslation("drawer.role.default")
         };
+    }
+
+    // Immediate validation methods for fields
+    private void ValidateFirstName()
+    {
+        if (string.IsNullOrWhiteSpace(_model.FirstName))
+        {
+            Snackbar.Add(TranslationService.GetTranslation("drawer.error.nomeObbligatorio", "Il nome è obbligatorio"), Severity.Warning);
+        }
+    }
+
+    private void ValidateLastName()
+    {
+        if (string.IsNullOrWhiteSpace(_model.LastName))
+        {
+            Snackbar.Add(TranslationService.GetTranslation("drawer.error.cognomeObbligatorio", "Il cognome è obbligatorio"), Severity.Warning);
+        }
+    }
+
+    private void ValidateUsername()
+    {
+        if (string.IsNullOrWhiteSpace(_model.Username))
+        {
+            Snackbar.Add(TranslationService.GetTranslation("drawer.error.usernameObbligatorio", "L'username è obbligatorio"), Severity.Warning);
+        }
+        else if (_model.Username.Length < 3)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("drawer.error.usernameMinLength", "L'username deve essere di almeno 3 caratteri"), Severity.Warning);
+        }
+    }
+
+    private void ValidateEmail()
+    {
+        if (string.IsNullOrWhiteSpace(_model.Email))
+        {
+            Snackbar.Add(TranslationService.GetTranslation("drawer.error.emailObbligatoria", "L'email è obbligatoria"), Severity.Warning);
+        }
+        else if (!IsValidEmail(_model.Email))
+        {
+            Snackbar.Add(TranslationService.GetTranslation("drawer.error.emailInvalida", "L'email inserita non è valida"), Severity.Warning);
+        }
+    }
+
+    private void ValidatePassword()
+    {
+        if (Mode == EntityDrawerMode.Create && string.IsNullOrWhiteSpace(_password))
+        {
+            Snackbar.Add(TranslationService.GetTranslation("drawer.error.passwordObbligatoria", "La password è obbligatoria"), Severity.Warning);
+        }
+        else if (Mode == EntityDrawerMode.Create && _password.Length < 6)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("drawer.error.passwordMinLength", "La password deve essere di almeno 6 caratteri"), Severity.Warning);
+        }
+    }
+
+    private void ValidateConfirmPassword()
+    {
+        if (Mode == EntityDrawerMode.Create && _confirmPassword != _password)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("drawer.error.passwordMismatch", "Le password non coincidono"), Severity.Warning);
+        }
+    }
+
+    private bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }
