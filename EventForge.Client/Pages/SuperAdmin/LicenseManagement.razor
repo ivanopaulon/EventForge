@@ -94,127 +94,158 @@
         </div>
     </SuperAdminCollapsibleSection>
 
-    <!-- License Management Actions -->
-    <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("license.management", "Gestione Licenze")"
-                                  SectionIcon="@Icons.Material.Outlined.Security"
-                                  @bind-IsExpanded="_managementExpanded"
-                                  IsExpandedByDefault="true">
-        
-        <div class="d-flex justify-space-between align-center mb-4">
-            <MudText Typo="Typo.h6">
-                @TranslationService.GetTranslation("license.list", "Elenco Licenze")
-            </MudText>
-            <MudButton StartIcon="@Icons.Material.Outlined.Add"
-                       OnClick="OpenCreateLicenseDrawer"
-                       Variant="Variant.Filled"
-                       Color="Color.Primary">
-                @TranslationService.GetTranslation("license.create", "Crea Licenza")
-            </MudButton>
-        </div>
-
-        @if (_filteredLicenses.Any())
-        {
-            <MudTable Items="@_filteredLicenses" 
-                      Dense="true" 
-                      Hover="true" 
-                      Striped="true"
-                      Loading="_isLoading"
-                      LoadingProgressColor="Color.Info">
-                <HeaderContent>
-                    <MudTh>@TranslationService.GetTranslation("field.name", "Nome")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("field.displayName", "Nome Visualizzato")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("license.tierLevel", "Tier")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("license.maxUsers", "Max Utenti")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("license.maxApiCalls", "Max API/Mese")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("license.tenantCount", "Tenant")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
-                    <MudTh Style="text-align: center;">@TranslationService.GetTranslation("table.actions", "Azioni")</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
-                        <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.Name</MudText>
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.displayName", "Nome Visualizzato")">
-                        <MudText Typo="Typo.body2">@context.DisplayName</MudText>
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("license.tierLevel", "Tier")">
-                        <MudChip T="string" Size="Size.Small" Color="@GetTierColor(context.TierLevel)">
-                            Tier @context.TierLevel
-                        </MudChip>
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("license.maxUsers", "Max Utenti")">
-                        <MudText Typo="Typo.body2">@context.MaxUsers.ToString("N0")</MudText>
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("license.maxApiCalls", "Max API/Mese")">
-                        <MudText Typo="Typo.body2">@context.MaxApiCallsPerMonth.ToString("N0")</MudText>
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("license.tenantCount", "Tenant")">
-                        <MudBadge Content="@context.TenantCount" Color="Color.Primary" Overlap="true" Bordered="true">
-                            <MudIcon Icon="@Icons.Material.Outlined.Business" />
-                        </MudBadge>
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
-                        <MudChip T="string" 
-                                 Size="Size.Small" 
-                                 Color="@(context.IsActive ? Color.Success : Color.Error)"
-                                 Icon="@(context.IsActive ? Icons.Material.Outlined.CheckCircle : Icons.Material.Outlined.Cancel)">
-                            @(context.IsActive ? TranslationService.GetTranslation("status.active", "Attiva") : TranslationService.GetTranslation("status.inactive", "Inattiva"))
-                        </MudChip>
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("table.actions", "Azioni")" Style="text-align: center;">
-                        <MudButtonGroup Variant="Variant.Text" Size="Size.Small">
-                            <MudIconButton Icon="@Icons.Material.Outlined.Visibility"
-                                           Color="Color.Info"
-                                           Size="Size.Small"
-                                           Title="@TranslationService.GetTranslation("action.view", "Visualizza")"
-                                           OnClick="@(() => ViewLicense(context))" />
-                            <MudIconButton Icon="@Icons.Material.Outlined.Edit"
-                                           Color="Color.Primary"
-                                           Size="Size.Small"
-                                           Title="@TranslationService.GetTranslation("action.edit", "Modifica")"
-                                           OnClick="@(() => EditLicense(context))" />
-                            <MudIconButton Icon="@Icons.Material.Outlined.Delete"
-                                           Color="Color.Error"
-                                           Size="Size.Small"
-                                           Title="@TranslationService.GetTranslation("action.delete", "Elimina")"
-                                           OnClick="@(() => DeleteLicense(context))" />
-                        </MudButtonGroup>
-                    </MudTd>
-                </RowTemplate>
-            </MudTable>
-        }
-        else
-        {
-            <MudPaper Class="pa-8" Elevation="0">
-                <div class="d-flex flex-column align-center">
-                    <MudIcon Icon="@Icons.Material.Outlined.Security" Size="Size.Large" Color="Color.Secondary" Class="mb-4" />
-                    <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mb-2">
-                        @TranslationService.GetTranslation("license.noLicenses", "Nessuna licenza trovata")
+    <!-- License Data Table -->
+    <MudPaper Elevation="2" Class="border-rounded mb-1">
+            <MudCardHeader Class="pa-2">
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Outlined.Security" Class="mr-2" />
+                        @TranslationService.GetTranslation("license.list", "Elenco Licenze")
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                            (@_filteredLicenses.Count() @TranslationService.GetTranslation("superAdmin.itemsFound", "elementi trovati"))
+                        </MudText>
                     </MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
-                        @if (string.IsNullOrWhiteSpace(_searchTerm) && _statusFilter == null && _tierFilter == null)
-                        {
-                            @TranslationService.GetTranslation("license.noLicensesMessage", "Non sono presenti licenze nel sistema. Crea la prima licenza per iniziare.")
-                        }
-                        else
-                        {
-                            @TranslationService.GetTranslation("license.noFilteredLicenses", "Nessuna licenza corrisponde ai criteri di ricerca. Prova a modificare i filtri.")
-                        }
-                    </MudText>
-                    @if (string.IsNullOrWhiteSpace(_searchTerm) && _statusFilter == null && _tierFilter == null)
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
+                                       ShowRefresh="true"
+                                       ShowExport="true" 
+                                       ShowCreate="true"
+                                       CreateIcon="@Icons.Material.Outlined.Add"
+                                       CreateTooltip="@TranslationService.GetTranslation("license.create", "Crea nuova licenza")"
+                                       IsDisabled="_isLoading"
+                                       OnRefresh="@LoadLicenses"
+                                       OnExport="@ExportLicenses"
+                                       OnCreate="@OpenCreateLicenseDrawer" />
+                </CardHeaderActions>
+            </MudCardHeader>
+            <MudCardContent Class="pa-1">
+                @if (_isLoading)
+                {
+                    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+                }
+                else
+                {
+                    @if (_filteredLicenses.Any())
                     {
-                        <MudButton StartIcon="@Icons.Material.Outlined.Add"
-                                   OnClick="OpenCreateLicenseDrawer"
-                                   Variant="Variant.Filled"
-                                   Color="Color.Primary"
-                                   Class="mt-4">
-                            @TranslationService.GetTranslation("license.createFirst", "Crea Prima Licenza")
-                        </MudButton>
+                        <MudTable Items="@_filteredLicenses" 
+                                  Dense="true" 
+                                  Hover="true" 
+                                  Striped="true"
+                                  Loading="_isLoading"
+                                  LoadingProgressColor="Color.Info"
+                                  SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
+                                  AllowUnsorted="false"
+                                  Breakpoint="Breakpoint.Sm">
+                            <HeaderContent>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<LicenseDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<LicenseDto, object>(x => x.DisplayName))">@TranslationService.GetTranslation("field.displayName", "Nome Visualizzato")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<LicenseDto, object>(x => x.TierLevel))">@TranslationService.GetTranslation("license.tierLevel", "Tier")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<LicenseDto, object>(x => x.MaxUsers))">@TranslationService.GetTranslation("license.maxUsers", "Max Utenti")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<LicenseDto, object>(x => x.MaxApiCallsPerMonth))">@TranslationService.GetTranslation("license.maxApiCalls", "Max API/Mese")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<LicenseDto, object>(x => x.TenantCount))">@TranslationService.GetTranslation("license.tenantCount", "Tenant")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<LicenseDto, object>(x => x.IsActive))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel></MudTh>
+                                <MudTh Class="text-center" Style="min-width: 120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                                    <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.Name</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.displayName", "Nome Visualizzato")">
+                                    <MudText Typo="Typo.body2">@context.DisplayName</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("license.tierLevel", "Tier")">
+                                    <MudChip T="string" Size="Size.Small" Color="@GetTierColor(context.TierLevel)">
+                                        Tier @context.TierLevel
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("license.maxUsers", "Max Utenti")">
+                                    <MudText Typo="Typo.body2">@context.MaxUsers.ToString("N0")</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("license.maxApiCalls", "Max API/Mese")">
+                                    <MudText Typo="Typo.body2">@context.MaxApiCallsPerMonth.ToString("N0")</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("license.tenantCount", "Tenant")">
+                                    <MudBadge Content="@context.TenantCount" Color="Color.Primary" Overlap="true" Bordered="true">
+                                        <MudIcon Icon="@Icons.Material.Outlined.Business" />
+                                    </MudBadge>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                                    <MudChip T="string" 
+                                             Size="Size.Small" 
+                                             Color="@(context.IsActive ? Color.Success : Color.Error)"
+                                             Icon="@(context.IsActive ? Icons.Material.Outlined.CheckCircle : Icons.Material.Outlined.Cancel)">
+                                        @(context.IsActive ? TranslationService.GetTranslation("status.active", "Attiva") : TranslationService.GetTranslation("status.inactive", "Inattiva"))
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                                    <ActionButtonGroup EntityName="@context.DisplayName"
+                                                      ItemDisplayName="@context.DisplayName"
+                                                      ShowView="true"
+                                                      ShowEdit="true"
+                                                      ShowDelete="true"
+                                                      OnView="@(() => ViewLicense(context))"
+                                                      OnEdit="@(() => EditLicense(context))"
+                                                      OnDelete="@(() => DeleteLicense(context))" />
+                                </MudTd>
+                            </RowTemplate>
+
+                            <NoRecordsContent>
+                                <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Security" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                                    <MudText Typo="Typo.h6" Class="mb-2">
+                                        @(_licenses.Any() ? 
+                                            TranslationService.GetTranslation("license.noFilteredLicenses", "Nessuna licenza corrisponde ai filtri applicati") : 
+                                            TranslationService.GetTranslation("license.noLicenses", "Nessuna licenza trovata"))
+                                    </MudText>
+                                    @if (_licenses.Any())
+                                    {
+                                        <MudButton Variant="Variant.Text" 
+                                                   Color="Color.Primary" 
+                                                   StartIcon="@Icons.Material.Outlined.Clear"
+                                                   OnClick="@ClearFilters">
+                                            @TranslationService.GetTranslation("superAdmin.clearFilters", "Cancella filtri")
+                                        </MudButton>
+                                    }
+                                </div>
+                            </NoRecordsContent>
+                        </MudTable>
                     }
-                </div>
-            </MudPaper>
-        }
-    </SuperAdminCollapsibleSection>
+                    else
+                    {
+                        <MudPaper Class="pa-8" Elevation="0">
+                            <div class="d-flex flex-column align-center">
+                                <MudIcon Icon="@Icons.Material.Outlined.Security" Size="Size.Large" Color="Color.Secondary" Class="mb-4" />
+                                <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mb-2">
+                                    @TranslationService.GetTranslation("license.noLicenses", "Nessuna licenza trovata")
+                                </MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
+                                    @if (string.IsNullOrWhiteSpace(_searchTerm) && _statusFilter == null && _tierFilter == null)
+                                    {
+                                        @TranslationService.GetTranslation("license.noLicensesMessage", "Non sono presenti licenze nel sistema. Crea la prima licenza per iniziare.")
+                                    }
+                                    else
+                                    {
+                                        @TranslationService.GetTranslation("license.noFilteredLicenses", "Nessuna licenza corrisponde ai criteri di ricerca. Prova a modificare i filtri.")
+                                    }
+                                </MudText>
+                                @if (string.IsNullOrWhiteSpace(_searchTerm) && _statusFilter == null && _tierFilter == null)
+                                {
+                                    <MudButton StartIcon="@Icons.Material.Outlined.Add"
+                                               OnClick="OpenCreateLicenseDrawer"
+                                               Variant="Variant.Filled"
+                                               Color="Color.Primary"
+                                               Class="mt-4">
+                                        @TranslationService.GetTranslation("license.createFirst", "Crea Prima Licenza")
+                                    </MudButton>
+                                }
+                            </div>
+                        </MudPaper>
+                    }
+                }
+            </MudCardContent>
+        </MudPaper>
+
 </SuperAdminPageLayout>
 
 <!-- License Drawer -->
@@ -228,10 +259,9 @@
     private bool _isLoading = true;
     private bool _isAuthorized = false;
 
-    // Collapsible sections state
-    private bool _statisticsExpanded = true;
-    private bool _filtersExpanded = false;
-    private bool _managementExpanded = true;
+    // Collapsible sections state (all closed by default as per issue #98)
+    private bool _statisticsExpanded = false;     // Closed by default
+    private bool _filtersExpanded = false;        // Closed by default
 
     // Data
     private IEnumerable<LicenseDto> _licenses = new List<LicenseDto>();
@@ -402,5 +432,12 @@
     private async Task RefreshLicenses()
     {
         await LoadLicenses();
+    }
+
+    private async Task ExportLicenses()
+    {
+        // TODO: Implement export functionality
+        Snackbar.Add(TranslationService.GetTranslation("superAdmin.exportFunctionalityComingSoon", "La funzionalità di esportazione sarà implementata presto."), Severity.Info);
+        await Task.CompletedTask;
     }
 }
