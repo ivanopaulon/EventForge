@@ -27,7 +27,7 @@ public class LicenseService : ILicenseService
 
             var feature = tenantLicense.License.LicenseFeatures
                 .FirstOrDefault(lf => lf.Name.Equals(featureName, StringComparison.OrdinalIgnoreCase) &&
-                                     lf.IsEnabled);
+                                     lf.IsActive);
 
             return feature != null;
         }
@@ -59,7 +59,7 @@ public class LicenseService : ILicenseService
                 LicenseDisplayName = tenantLicense.License.DisplayName,
                 StartsAt = tenantLicense.StartsAt,
                 ExpiresAt = tenantLicense.ExpiresAt,
-                IsActive = tenantLicense.IsLicenseActive,
+                IsActive = tenantLicense.IsAssignmentActive,
                 ApiCallsThisMonth = tenantLicense.ApiCallsThisMonth,
                 MaxApiCallsPerMonth = tenantLicense.License.MaxApiCallsPerMonth,
                 ApiCallsResetAt = tenantLicense.ApiCallsResetAt,
@@ -78,7 +78,7 @@ public class LicenseService : ILicenseService
                     DisplayName = lf.DisplayName,
                     Description = lf.Description,
                     Category = lf.Category,
-                    IsEnabled = lf.IsEnabled,
+                    IsActive = lf.IsActive,
                     LicenseId = lf.LicenseId,
                     LicenseName = tenantLicense.License.Name,
                     CreatedAt = lf.CreatedAt,
@@ -196,7 +196,7 @@ public class LicenseService : ILicenseService
                 return new List<string>();
 
             var permissions = tenantLicense.License.LicenseFeatures
-                .Where(lf => lf.IsEnabled)
+                .Where(lf => lf.IsActive)
                 .SelectMany(lf => lf.LicenseFeaturePermissions)
                 .Select(lfp => lfp.Permission.Name)
                 .Distinct()
@@ -220,7 +220,7 @@ public class LicenseService : ILicenseService
                     .ThenInclude(lf => lf.LicenseFeaturePermissions)
                         .ThenInclude(lfp => lfp.Permission)
             .FirstOrDefaultAsync(tl => tl.TargetTenantId == tenantId &&
-                                      tl.IsLicenseActive && !tl.IsDeleted);
+                                      tl.IsAssignmentActive && !tl.IsDeleted);
     }
 
     private async Task ResetApiCallsIfNeeded(Data.Entities.Auth.TenantLicense tenantLicense)

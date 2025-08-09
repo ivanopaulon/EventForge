@@ -64,7 +64,7 @@ public class RequireLicenseFeatureAttribute : Attribute, IAsyncAuthorizationFilt
                         .ThenInclude(lf => lf.LicenseFeaturePermissions)
                             .ThenInclude(lfp => lfp.Permission)
                 .FirstOrDefaultAsync(tl => tl.TargetTenantId == tenantId &&
-                                          tl.IsLicenseActive && !tl.IsDeleted);
+                                          tl.IsAssignmentActive && !tl.IsDeleted);
 
             if (tenantLicense == null)
             {
@@ -88,7 +88,7 @@ public class RequireLicenseFeatureAttribute : Attribute, IAsyncAuthorizationFilt
             // Check if the required feature is available in the license
             var requiredFeature = tenantLicense.License.LicenseFeatures
                 .FirstOrDefault(lf => lf.Name.Equals(_featureName, StringComparison.OrdinalIgnoreCase) &&
-                                     lf.IsEnabled);
+                                     lf.IsActive);
 
             if (requiredFeature == null)
             {

@@ -51,7 +51,7 @@ public class UserRole : AuditableEntity
     public virtual Role Role { get; set; } = null!;
 
     /// <summary>
-    /// Indicates if this role assignment is currently active.
+    /// Indicates if this role assignment is currently valid (not expired).
     /// </summary>
-    public new bool IsActive => !ExpiresAt.HasValue || ExpiresAt.Value > DateTime.UtcNow;
+    public bool IsCurrentlyValid => !ExpiresAt.HasValue || ExpiresAt.Value > DateTime.UtcNow;
 }

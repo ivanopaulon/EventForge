@@ -541,9 +541,9 @@ public class EventForgeDbContext : DbContext
 
         // TenantLicense constraints - only one active license per tenant
         modelBuilder.Entity<TenantLicense>()
-            .HasIndex(tl => new { tl.TargetTenantId, tl.IsLicenseActive })
+            .HasIndex(tl => new { tl.TargetTenantId, tl.IsAssignmentActive })
             .IsUnique()
-            .HasFilter("[IsLicenseActive] = 1");
+            .HasFilter("[IsAssignmentActive] = 1");
 
         // LogEntry configuration for Serilog logs table
         modelBuilder.Entity<LogEntry>(entity =>

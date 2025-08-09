@@ -180,12 +180,12 @@ public class AuthenticationService : IAuthenticationService
 
             // Get roles and permissions
             var roles = user.UserRoles
-                .Where(ur => ur.IsActive)
+                .Where(ur => ur.IsCurrentlyValid)
                 .Select(ur => ur.Role.Name)
                 .ToList();
 
             var permissions = user.UserRoles
-                .Where(ur => ur.IsActive)
+                .Where(ur => ur.IsCurrentlyValid)
                 .SelectMany(ur => ur.Role.RolePermissions)
                 .Select(rp => $"{rp.Permission.Category}.{rp.Permission.Resource}.{rp.Permission.Action}")
                 .Distinct()
@@ -297,12 +297,12 @@ public class AuthenticationService : IAuthenticationService
                 return null;
 
             var roles = user.UserRoles
-                .Where(ur => ur.IsActive)
+                .Where(ur => ur.IsCurrentlyValid)
                 .Select(ur => ur.Role.Name)
                 .ToList();
 
             var permissions = user.UserRoles
-                .Where(ur => ur.IsActive)
+                .Where(ur => ur.IsCurrentlyValid)
                 .SelectMany(ur => ur.Role.RolePermissions)
                 .Select(rp => $"{rp.Permission.Category}.{rp.Permission.Resource}.{rp.Permission.Action}")
                 .Distinct()
