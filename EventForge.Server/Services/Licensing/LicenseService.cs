@@ -59,7 +59,7 @@ public class LicenseService : ILicenseService
                 LicenseDisplayName = tenantLicense.License.DisplayName,
                 StartsAt = tenantLicense.StartsAt,
                 ExpiresAt = tenantLicense.ExpiresAt,
-                IsActive = tenantLicense.IsLicenseActive,
+                IsActive = tenantLicense.IsAssignmentActive,
                 ApiCallsThisMonth = tenantLicense.ApiCallsThisMonth,
                 MaxApiCallsPerMonth = tenantLicense.License.MaxApiCallsPerMonth,
                 ApiCallsResetAt = tenantLicense.ApiCallsResetAt,
@@ -220,7 +220,7 @@ public class LicenseService : ILicenseService
                     .ThenInclude(lf => lf.LicenseFeaturePermissions)
                         .ThenInclude(lfp => lfp.Permission)
             .FirstOrDefaultAsync(tl => tl.TargetTenantId == tenantId &&
-                                      tl.IsLicenseActive && !tl.IsDeleted);
+                                      tl.IsAssignmentActive && !tl.IsDeleted);
     }
 
     private async Task ResetApiCallsIfNeeded(Data.Entities.Auth.TenantLicense tenantLicense)

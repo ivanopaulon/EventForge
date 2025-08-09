@@ -37,8 +37,8 @@ public class TenantLicense : AuditableEntity
     /// <summary>
     /// Indicates if the license assignment is currently active.
     /// </summary>
-    [Display(Name = "License Assignment Active", Description = "Indicates if the license assignment is currently active.")]
-    public bool IsLicenseActive { get; set; } = true;
+    [Display(Name = "Assignment Active", Description = "Indicates if the license assignment is currently active.")]
+    public bool IsAssignmentActive { get; set; } = true;
 
     /// <summary>
     /// Number of API calls made this month.
@@ -56,7 +56,7 @@ public class TenantLicense : AuditableEntity
     /// <summary>
     /// Indicates if the license is currently valid and active.
     /// </summary>
-    public bool IsValid => IsLicenseActive &&
+    public bool IsValid => IsAssignmentActive &&
                           DateTime.UtcNow >= StartsAt &&
                           (!ExpiresAt.HasValue || DateTime.UtcNow <= ExpiresAt.Value);
 

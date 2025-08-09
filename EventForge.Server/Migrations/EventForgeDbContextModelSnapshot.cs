@@ -838,10 +838,10 @@ namespace EventForge.Server.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsDeleted")
+                    b.Property<bool>("IsAssignmentActive")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsLicenseActive")
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
                     b.Property<Guid>("LicenseId")
@@ -872,9 +872,9 @@ namespace EventForge.Server.Migrations
 
                     b.HasIndex("LicenseId");
 
-                    b.HasIndex("TargetTenantId", "IsLicenseActive")
+                    b.HasIndex("TargetTenantId", "IsAssignmentActive")
                         .IsUnique()
-                        .HasFilter("[IsLicenseActive] = 1");
+                        .HasFilter("[IsAssignmentActive] = 1");
 
                     b.ToTable("TenantLicenses");
                 });

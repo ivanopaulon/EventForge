@@ -57,7 +57,7 @@ public class LicenseController : BaseApiController
                 CreatedBy = l.CreatedBy ?? "system",
                 ModifiedAt = l.ModifiedAt,
                 ModifiedBy = l.ModifiedBy,
-                TenantCount = l.TenantLicenses.Count(tl => tl.IsLicenseActive),
+                TenantCount = l.TenantLicenses.Count(tl => tl.IsAssignmentActive),
                 Features = l.LicenseFeatures.Select(lf => new LicenseFeatureDto
                 {
                     Id = lf.Id,
@@ -121,7 +121,7 @@ public class LicenseController : BaseApiController
                 CreatedBy = license.CreatedBy ?? "system",
                 ModifiedAt = license.ModifiedAt,
                 ModifiedBy = license.ModifiedBy,
-                TenantCount = license.TenantLicenses.Count(tl => tl.IsLicenseActive),
+                TenantCount = license.TenantLicenses.Count(tl => tl.IsAssignmentActive),
                 Features = license.LicenseFeatures.Select(lf => new LicenseFeatureDto
                 {
                     Id = lf.Id,
@@ -272,7 +272,7 @@ public class LicenseController : BaseApiController
                 CreatedBy = license.CreatedBy ?? "system",
                 ModifiedAt = license.ModifiedAt,
                 ModifiedBy = license.ModifiedBy,
-                TenantCount = await _context.TenantLicenses.CountAsync(tl => tl.LicenseId == id && tl.IsLicenseActive),
+                TenantCount = await _context.TenantLicenses.CountAsync(tl => tl.LicenseId == id && tl.IsAssignmentActive),
                 Features = new List<LicenseFeatureDto>()
             };
 
@@ -306,7 +306,7 @@ public class LicenseController : BaseApiController
             }
 
             // Check if there are active tenant licenses
-            var activeTenantLicenses = license.TenantLicenses.Count(tl => tl.IsLicenseActive);
+            var activeTenantLicenses = license.TenantLicenses.Count(tl => tl.IsAssignmentActive);
             if (activeTenantLicenses > 0)
             {
                 return BadRequest($"Cannot delete license. It is currently assigned to {activeTenantLicenses} tenant(s)");
@@ -362,7 +362,7 @@ public class LicenseController : BaseApiController
                     LicenseDisplayName = tl.License.DisplayName,
                     StartsAt = tl.StartsAt,
                     ExpiresAt = tl.ExpiresAt,
-                    IsActive = tl.IsLicenseActive,
+                    IsActive = tl.IsAssignmentActive,
                     ApiCallsThisMonth = tl.ApiCallsThisMonth,
                     MaxApiCallsPerMonth = tl.License.MaxApiCallsPerMonth,
                     ApiCallsResetAt = tl.ApiCallsResetAt,
@@ -442,12 +442,12 @@ public class LicenseController : BaseApiController
             // Check if tenant already has an active license
             var existingActiveLicense = await _context.TenantLicenses
                 .FirstOrDefaultAsync(tl => tl.TargetTenantId == assignLicenseDto.TenantId &&
-                                          tl.IsLicenseActive && !tl.IsDeleted);
+                                          tl.IsAssignmentActive && !tl.IsDeleted);
 
             if (existingActiveLicense != null)
             {
                 // Deactivate the existing license
-                existingActiveLicense.IsLicenseActive = false;
+                existingActiveLicense.IsAssignmentActive = false;
             }
 
             var tenantLicense = new TenantLicense
@@ -456,7 +456,7 @@ public class LicenseController : BaseApiController
                 LicenseId = assignLicenseDto.LicenseId,
                 StartsAt = assignLicenseDto.StartsAt,
                 ExpiresAt = assignLicenseDto.ExpiresAt,
-                IsLicenseActive = assignLicenseDto.IsActive,
+                IsAssignmentActive = assignLicenseDto.IsActive,
                 ApiCallsThisMonth = 0,
                 ApiCallsResetAt = DateTime.UtcNow,
                 TenantId = Guid.Empty // System-level entity
@@ -475,7 +475,7 @@ public class LicenseController : BaseApiController
                 LicenseDisplayName = license.DisplayName,
                 StartsAt = tenantLicense.StartsAt,
                 ExpiresAt = tenantLicense.ExpiresAt,
-                IsActive = tenantLicense.IsLicenseActive,
+                IsActive = tenantLicense.IsAssignmentActive,
                 ApiCallsThisMonth = tenantLicense.ApiCallsThisMonth,
                 MaxApiCallsPerMonth = license.MaxApiCallsPerMonth,
                 ApiCallsResetAt = tenantLicense.ApiCallsResetAt,
@@ -531,7 +531,7 @@ public class LicenseController : BaseApiController
                         .ThenInclude(lf => lf.LicenseFeaturePermissions)
                             .ThenInclude(lfp => lfp.Permission)
                 .FirstOrDefaultAsync(tl => tl.TargetTenantId == tenantId &&
-                                          tl.IsLicenseActive && !tl.IsDeleted);
+                                          tl.IsAssignmentActive && !tl.IsDeleted);
 
             if (tenantLicense == null)
             {
@@ -548,7 +548,7 @@ public class LicenseController : BaseApiController
                 LicenseDisplayName = tenantLicense.License.DisplayName,
                 StartsAt = tenantLicense.StartsAt,
                 ExpiresAt = tenantLicense.ExpiresAt,
-                IsActive = tenantLicense.IsLicenseActive,
+                IsActive = tenantLicense.IsAssignmentActive,
                 ApiCallsThisMonth = tenantLicense.ApiCallsThisMonth,
                 MaxApiCallsPerMonth = tenantLicense.License.MaxApiCallsPerMonth,
                 ApiCallsResetAt = tenantLicense.ApiCallsResetAt,

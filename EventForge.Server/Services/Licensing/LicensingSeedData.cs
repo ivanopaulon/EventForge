@@ -258,7 +258,7 @@ public static class LicensingSeedData
     {
         // Check if tenant already has a license
         var existingLicense = await context.TenantLicenses
-            .FirstOrDefaultAsync(tl => tl.TargetTenantId == tenantId && tl.IsLicenseActive);
+            .FirstOrDefaultAsync(tl => tl.TargetTenantId == tenantId && tl.IsAssignmentActive);
 
         if (existingLicense != null)
         {
@@ -290,7 +290,7 @@ public static class LicensingSeedData
             LicenseId = basicLicense.Id,
             StartsAt = DateTime.UtcNow,
             ExpiresAt = DateTime.UtcNow.AddYears(1), // 1 year license
-            IsLicenseActive = true,
+            IsAssignmentActive = true,
             ApiCallsThisMonth = 0,
             ApiCallsResetAt = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1),
             TenantId = Guid.Empty // System-level entity
