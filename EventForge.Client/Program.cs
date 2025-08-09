@@ -95,7 +95,7 @@ using (var scope = app.Services.CreateScope())
     {
         await concreteService.InitializeAsync();
     }
-    
+
     var tenantContextService = scope.ServiceProvider.GetRequiredService<ITenantContextService>();
     await tenantContextService.InitializeAsync();
 }

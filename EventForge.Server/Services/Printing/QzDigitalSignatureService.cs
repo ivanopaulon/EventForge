@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 
@@ -96,7 +95,7 @@ public class QzDigitalSignatureService
             var privateKeyPem = await File.ReadAllTextAsync(privateKeyPath);
             var rsa = RSA.Create();
             rsa.ImportFromPem(privateKeyPem);
-            
+
             _logger.LogDebug("Successfully loaded private key from {PrivateKeyPath}", privateKeyPath);
             return rsa;
         }
@@ -118,7 +117,7 @@ public class QzDigitalSignatureService
             }
 
             var leafCertificate = await File.ReadAllTextAsync(certificatePath);
-            
+
             // Start with the leaf certificate
             var certificateChain = leafCertificate.Trim();
 
@@ -129,10 +128,10 @@ public class QzDigitalSignatureService
                 if (File.Exists(intermediatePath))
                 {
                     var intermediateCertificate = await File.ReadAllTextAsync(intermediatePath);
-                    
+
                     // Concatenate with intermediate certificate marker as per QZ Tray requirements
                     certificateChain += "\n--START INTERMEDIATE CERT--\n" + intermediateCertificate.Trim();
-                    
+
                     _logger.LogDebug("Successfully loaded certificate chain with intermediate certificate from {IntermediatePath}", intermediatePath);
                 }
                 else
@@ -140,7 +139,7 @@ public class QzDigitalSignatureService
                     _logger.LogWarning("Intermediate certificate path configured but file not found: {IntermediatePath}", intermediatePath);
                 }
             }
-            
+
             _logger.LogDebug("Successfully loaded certificate chain from {CertificatePath}", certificatePath);
             return certificateChain;
         }
@@ -157,7 +156,7 @@ public class QzDigitalSignatureService
         {
             var dataBytes = Encoding.UTF8.GetBytes(data);
             var signature = privateKey.SignData(dataBytes, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-            
+
             _logger.LogDebug("Successfully created RSA-SHA256 signature for data length: {DataLength}", dataBytes.Length);
             return signature;
         }
@@ -175,7 +174,7 @@ public class QzDigitalSignatureService
             // Generate a new GUID and convert to a short base64 string (similar to QZ Tray demo)
             var guid = Guid.NewGuid();
             var guidBytes = guid.ToByteArray();
-            
+
             // Take first 6 bytes and convert to base64, then remove padding and make lowercase
             var shortBytes = guidBytes.Take(6).ToArray();
             var base64 = Convert.ToBase64String(shortBytes)
@@ -183,7 +182,7 @@ public class QzDigitalSignatureService
                 .Replace("/", "")
                 .Replace("=", "")
                 .ToLowerInvariant();
-            
+
             _logger.LogDebug("Generated uid: {Uid}", base64);
             return base64;
         }

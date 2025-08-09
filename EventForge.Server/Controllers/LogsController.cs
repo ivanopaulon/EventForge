@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using EventForge.Server.Data.Entities;
 
 namespace EventForge.Server.Controllers
 {
@@ -44,14 +43,14 @@ namespace EventForge.Server.Controllers
                 // Apply sorting
                 query = sortBy?.ToLowerInvariant() switch
                 {
-                    "level" => sortOrder?.ToLowerInvariant() == "desc" 
-                        ? query.OrderByDescending(l => l.Level) 
+                    "level" => sortOrder?.ToLowerInvariant() == "desc"
+                        ? query.OrderByDescending(l => l.Level)
                         : query.OrderBy(l => l.Level),
-                    "message" => sortOrder?.ToLowerInvariant() == "desc" 
-                        ? query.OrderByDescending(l => l.Message) 
+                    "message" => sortOrder?.ToLowerInvariant() == "desc"
+                        ? query.OrderByDescending(l => l.Message)
                         : query.OrderBy(l => l.Message),
-                    _ => sortOrder?.ToLowerInvariant() == "desc" 
-                        ? query.OrderByDescending(l => l.TimeStamp) 
+                    _ => sortOrder?.ToLowerInvariant() == "desc"
+                        ? query.OrderByDescending(l => l.TimeStamp)
                         : query.OrderBy(l => l.TimeStamp)
                 };
 

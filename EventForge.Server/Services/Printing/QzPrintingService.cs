@@ -147,10 +147,10 @@ public class QzPrintingService : IQzPrintingService
 
             // Create print command based on content type
             var printCommand = CreatePrintCommand(request.PrintJob);
-            
+
             // Sign the payload with digital signature
             var signedCommand = await _signatureService.SignPayloadAsync(printCommand);
-            
+
             var commandJson = JsonSerializer.Serialize(signedCommand);
             var commandBytes = Encoding.UTF8.GetBytes(commandJson);
 

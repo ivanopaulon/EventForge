@@ -1,5 +1,5 @@
-using Microsoft.JSInterop;
 using EventForge.DTOs.Tenants;
+using Microsoft.JSInterop;
 
 namespace EventForge.Client.Services;
 
@@ -112,7 +112,7 @@ public class TenantContextService : ITenantContextService
             if (previousTenantId != tenantId)
             {
                 TenantChanged?.Invoke(this, tenantId);
-                _logger.LogDebug("Tenant context changed from {PreviousTenant} to {NewTenant}", 
+                _logger.LogDebug("Tenant context changed from {PreviousTenant} to {NewTenant}",
                     previousTenantId, tenantId);
             }
         }

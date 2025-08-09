@@ -372,7 +372,7 @@ public class PrintingController : BaseApiController
 
             // Test configuration validation
             var isValidConfig = await _qzPrintingService.ValidateSignatureConfigurationAsync();
-            
+
             if (!isValidConfig)
             {
                 var configException = new InvalidOperationException("QZ Tray signature configuration is not valid");
@@ -416,8 +416,8 @@ public class PrintingController : BaseApiController
                     Content = samplePrintJob.Content,
                     Timestamp = DateTime.UtcNow
                 },
-                Message = result.Success 
-                    ? "Enhanced QZ Tray signature test completed successfully!" 
+                Message = result.Success
+                    ? "Enhanced QZ Tray signature test completed successfully!"
                     : "Signature test failed - check error message for details",
                 Features = new[]
                 {

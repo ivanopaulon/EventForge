@@ -262,15 +262,15 @@ public static class ServiceCollectionExtensions
                     // Read token from query parameter for SignalR connections
                     var accessToken = context.Request.Query["access_token"];
                     var path = context.HttpContext.Request.Path;
-                    
-                    if (!string.IsNullOrEmpty(accessToken) && 
+
+                    if (!string.IsNullOrEmpty(accessToken) &&
                         (path.StartsWithSegments("/hubs/notifications") ||
                          path.StartsWithSegments("/hubs/chat") ||
                          path.StartsWithSegments("/hubs/audit-log")))
                     {
                         context.Token = accessToken;
                     }
-                    
+
                     return Task.CompletedTask;
                 },
                 OnAuthenticationFailed = context =>
