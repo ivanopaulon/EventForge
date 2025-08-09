@@ -41,7 +41,8 @@
     "version": "Version",
     "language": "Langue",
     "returnToLogin": "Retour à la Connexion",
-    "notAvailable": "N/A"
+    "notAvailable": "N/A",
+    "never": "Jamais"
   },
   "navigation": {
     "home": "Accueil",
@@ -58,10 +59,21 @@
     "systemLogs": "Journaux Système",
     "auditTrail": "Piste d'Audit",
     "configuration": "Configuration",
-    "translationManagement": "Gestion des Traductions"
+    "translationManagement": "Gestion des Traductions",
+    "settingsDescription": "Aller aux paramètres",
+    "help": "Aide et Support",
+    "helpCenter": "Centre d'Aide",
+    "interactiveTour": "Tour Interactif",
+    "tutorialCenter": "Centre de Tutoriels"
   },
   "home": {
     "title": "EventForge - Accueil",
+    "subtitle": "Système de Gestion et Surveillance d'Événements",
+    "systemStatus": "État du Système",
+    "servicesOperational": "Services",
+    "database": "Base de Données",
+    "operational": "Opérationnel",
+    "connected": "Connecté",
     "healthCheck": "Vérification de Santé du Système",
     "healthStatus": "État de Santé",
     "errorLoadingHealth": "Erreur lors du chargement de l'état de santé",
@@ -83,7 +95,9 @@
     "pleaseLogin": "Veuillez vous connecter pour accéder à cette page.",
     "goToLogin": "Aller à la Connexion",
     "usernameRequired": "Le nom d'utilisateur est requis",
-    "passwordRequired": "Le mot de passe est requis"
+    "passwordRequired": "Le mot de passe est requis",
+    "loginDescription": "Se connecter au système",
+    "logoutDescription": "Se déconnecter du système"
   },
   "field": {
     "id": "ID",
@@ -157,6 +171,139 @@
     "syncTranslations": "Synchroniser les traductions",
     "tenantSelection": "Sélection de Locataire",
     "searchFilters": "Filtres de Recherche",
+    "advancedFilters": "Filtres Avancés",
+    "statistics": "Statistiques",
+    "totalTenants": "Locataires Totaux",
+    "activeTenants": "Locataires Actifs",
+    "totalUsers": "Utilisateurs Totaux",
+    "activeUsers": "Utilisateurs Actifs",
+    "adminUsers": "Utilisateurs Admin",
+    "searchByNameOrDomain": "Rechercher par nom ou domaine",
+    "searchByNameEmailUsername": "Rechercher par nom, email ou nom d'utilisateur",
+    "searchPlaceholder": "Entrez le texte à rechercher...",
+    "selectTenant": "Sélectionner un locataire...",
+    "selectRole": "Sélectionner le rôle...",
+    "selectStatus": "Sélectionner le statut...",
+    "allTenants": "Tous les locataires",
+    "allRoles": "Tous les rôles",
+    "userList": "Liste des Utilisateurs",
+    "tenantList": "Liste des Locataires",
+    "newUser": "Nouvel Utilisateur",
+    "newTenant": "Nouveau Locataire",
+    "createNewUser": "Créer un nouvel utilisateur",
+    "createNewTenant": "Créer un nouveau locataire",
+    "itemsFound": "éléments trouvés",
+    "noUsersFound": "Aucun utilisateur trouvé",
+    "noUsersMatchFilters": "Aucun utilisateur ne correspond aux filtres appliqués",
+    "noTenantsFound": "Aucun locataire trouvé",
+    "noTenantsMatchFilters": "Aucun locataire ne correspond aux filtres appliqués",
+    "clearFilters": "Effacer les filtres",
+    "userEnabled": "Utilisateur activé avec succès !",
+    "userDisabled": "Utilisateur désactivé avec succès !",
+    "tenantEnabled": "Locataire activé avec succès !",
+    "tenantDisabled": "Locataire désactivé avec succès !",
+    "quickStart": "Démarrage Rapide",
+    "takeATour": "Faire une Visite",
+    "onboardingCompleted": "Intégration terminée avec succès !",
+    "walkthroughCompleted": "Visite terminée ! Vous êtes maintenant prêt à utiliser cette fonctionnalité efficacement.",
+    "help": "Aide",
+    "helpCenter": "Centre d'Aide",
+    "interactiveTour": "Visite Interactive",
+    "tutorialCenter": "Centre de Tutoriels",
+    "generalHelpTitle": "Centre d'Aide EventForge",
+    "generalHelpContent": "Bienvenue dans l'Aide EventForge ! Utilisez cette application pour gérer les événements, notifications, chat et plus. Chaque section a son propre système d'aide avec des tutoriels détaillés et des visites guidées.",
+    "selectMessage": "Visitez les sections spécifiques (Notifications, Chat, SuperAdmin) et cliquez sur 'Faire une Visite' pour commencer une visite interactive de cette fonctionnalité.",
+    "centerMessage": "Centre de Tutoriels : Accédez aux guides étape par étape pour chaque fonctionnalité. Vous pouvez réinitialiser votre progression et rejouer les tutoriels à tout moment. Visitez les sections Notifications, Chat ou SuperAdmin et cliquez sur 'Démarrage Rapide' pour commencer.",
+    "confirmUserStatusChange": "Êtes-vous sûr de vouloir {0} l'utilisateur '{1}' ? Cette action sera enregistrée dans la piste d'audit.",
+    "confirmTenantStatusChange": "Êtes-vous sûr de vouloir {0} le locataire '{1}' ? Cette action sera enregistrée dans la piste d'audit et peut affecter tous les utilisateurs du locataire.",
+    "confirmImpersonation": "Êtes-vous sûr de vouloir incarner l'utilisateur '{0}' ? Cette action sera enregistrée dans la piste d'audit et terminera la session actuelle.",
+    "impersonationRequested": "Incarnation de {0} demandée. Fonctionnalité en développement.",
+    "impersonationError": "Erreur lors de l'incarnation de l'utilisateur : {0}",
+    "toggleUserStatusError": "Erreur lors du changement de statut de l'utilisateur : {0}",
+    "toggleTenantStatusError": "Erreur lors du changement de statut du locataire : {0}",
+    "loadingPageError": "Erreur lors du chargement de la page : {0}",
+    "loadingTenantsError": "Erreur lors du chargement des locataires : {0}",
+    "loadingUsersError": "Erreur lors du chargement des utilisateurs : {0}",
+    "loadingStatisticsError": "Erreur lors du chargement des statistiques : {0}",
+    "accessDeniedSuperAdmin": "Accès refusé. Le rôle de Super Administrateur est requis.",
+    "exportFunctionalityComingSoon": "La fonctionnalité d'exportation sera implémentée bientôt.",
+    "disable": "désactiver",
+    "enable": "activer",
+    "confirmEnable": "Êtes-vous sûr de vouloir activer le locataire '{0}' ?",
+    "confirmDisable": "Êtes-vous sûr de vouloir désactiver le locataire '{0}' ?",
+    "sortByName": "Trier par nom",
+    "sortByCreatedDate": "Trier par date de création",
+    "sortByLastLogin": "Trier par dernière connexion",
+    "sortByEmail": "Trier par email",
+    "noLogsFound": "Aucun log trouvé. Intégrer avec le système de logging pour charger les données.",
+    "noAuditDataFound": "Aucun historique disponible. Intégrer avec l'API de piste d'audit.",
+    "noTenantMode": "Aucun locataire (mode SuperAdmin)",
+    "pageTitle": "{0} - EventForge Super Admin",
+    "superAdminRoleRequired": "Vous n'avez pas les permissions pour accéder à cette page. Le rôle de Super Administrateur est requis.",
+    "returnToHome": "Retour à l'Accueil",
+    "showStatistics": "Afficher les Statistiques",
+    "saving": "Enregistrement...",
+    "creating": "Création...",
+    "saveChanges": "Enregistrer les Modifications",
+    "createTenantTitle": "Créer un Nouveau Locataire",
+    "editUserTitle": "Modifier l'Utilisateur",
+    "lastAccess": "Dernier Accès",
+    "creationDate": "Date de Création",
+    "userManagementModule": "Gestion des Utilisateurs",
+    "tenantManagementModule": "Gestion des Locataires",
+    "centralizedTranslationManagement": "Gestion centralisée des traductions pour toutes les langues supportées",
+    "refresh": "Actualiser",
+    "firstName": "Prénom",
+    "lastName": "Nom de famille",
+    "firstNameRequired": "Le prénom est obligatoire",
+    "lastNameRequired": "Le nom de famille est obligatoire",
+    "emailRequired": "L'email est obligatoire",
+    "usernameCannotBeChanged": "Le nom d'utilisateur ne peut pas être modifié",
+    "tenantCannotBeChanged": "Le locataire ne peut pas être modifié",
+    "tenant": "Locataire",
+    "isActive": "Est Actif",
+    "activeUser": "Utilisateur Actif",
+    "inactiveUser": "Utilisateur Inactif",
+    "createUser": "Créer un Utilisateur",
+    "newUserTitle": "Créer un Nouvel Utilisateur",
+    "tenantName": "Nom du Locataire",
+    "tenantNameRequired": "Le nom du locataire est obligatoire",
+    "displayNameRequired": "Le nom affiché est obligatoire",
+    "contactEmailRequired": "L'email de contact est obligatoire",
+    "uniqueTenantNameHelper": "Nom unique du locataire (ex: entreprise-abc)",
+    "displayNameHelper": "Nom à afficher dans l'interface",
+    "optionalDescriptionHelper": "Description optionnelle du locataire",
+    "customDomainHelper": "Domaine personnalisé (optionnel)",
+    "contactEmailHelper": "Email de référence pour le locataire",
+    "maxUsersHelper": "Nombre maximum d'utilisateurs autorisés",
+    "maxUsers": "Maximum d'Utilisateurs",
+    "createTenant": "Créer un Locataire",
+    "optional": "Optionnel",
+    "confirmTenantDelete": "Êtes-vous sûr de vouloir supprimer le locataire '{0}' ? Cette action ne peut pas être annulée et supprimera toutes les données associées.",
+    "tenantDeleted": "Locataire supprimé avec succès !",
+    "deleteTenantError": "Erreur lors de la suppression du locataire : {0}",
+    "confirmUserDelete": "Êtes-vous sûr de vouloir supprimer l'utilisateur '{0}' ? Cette action ne peut pas être annulée.",
+    "userDeleted": "Utilisateur supprimé avec succès !",
+    "deleteUserError": "Erreur lors de la suppression de l'utilisateur : {0}",
+  "superAdmin": {
+    "warning": "Attention : Vous opérez avec des privilèges de Super Administrateur",
+    "tenantManagement": "Gestion des Locataires",
+    "userManagement": "Gestion des Utilisateurs",
+    "createTenant": "Créer un Locataire",
+    "editTenant": "Modifier le Locataire",
+    "createUser": "Créer un Utilisateur",
+    "editUser": "Modifier l'Utilisateur",
+    "translationManagement": "Gestion des Traductions",
+    "translationKey": "Clé de traduction",
+    "translationValue": "Valeur de traduction",
+    "addTranslation": "Ajouter une traduction",
+    "editTranslation": "Modifier la traduction",
+    "deleteTranslation": "Supprimer la traduction",
+    "exportTranslations": "Exporter les traductions",
+    "importTranslations": "Importer les traductions",
+    "syncTranslations": "Synchroniser les traductions",
+    "tenantSelection": "Sélection de Locataire",
+    "searchFilters": "Filtres de Recherche",
     "statistics": "Statistiques",
     "totalTenants": "Locataires Totaux",
     "activeTenants": "Locataires Actifs",
@@ -188,6 +335,496 @@
     "userDeleted": "Utilisateur supprimé avec succès!",
     "deleteUserError": "Erreur lors de la suppression de l'utilisateur: {0}",
     "confirmUserDeletion": "Êtes-vous sûr de vouloir supprimer l'utilisateur '{0}'? Cette action ne peut pas être annulée et sera enregistrée dans les journaux d'audit."
+  },
+  "pagination": {
+    "showing": "Affichage {0}-{1} de {2}",
+    "itemsPerPage": "Éléments par page",
+    "firstPage": "Première page",
+    "lastPage": "Dernière page",
+    "previousPage": "Page précédente",
+    "nextPage": "Page suivante",
+    "page": "Page {0}",
+    "of": "de {0}",
+    "noData": "Aucune donnée à afficher"
+  },
+  "tooltip": {
+    "view": "Voir les détails",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "enable": "Activer",
+    "disable": "Désactiver",
+    "create": "Créer nouveau",
+    "refresh": "Actualiser les données",
+    "export": "Exporter les données",
+    "import": "Importer les données",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "sort": "Trier",
+    "viewTenant": "Voir les détails du locataire",
+    "editTenant": "Modifier le locataire",
+    "enableTenant": "Activer le locataire",
+    "disableTenant": "Désactiver le locataire",
+    "viewUser": "Voir les détails de l'utilisateur",
+    "editUser": "Modifier l'utilisateur",
+    "enableUser": "Activer l'utilisateur",
+    "disableUser": "Désactiver l'utilisateur",
+    "resetPassword": "Réinitialiser le mot de passe",
+    "impersonateUser": "Incarner l'utilisateur",
+    "viewLogs": "Voir les logs",
+    "exportLogs": "Exporter les logs",
+    "clearLogs": "Effacer les logs",
+    "viewAudit": "Voir les détails d'audit",
+    "exportAudit": "Exporter la piste d'audit",
+    "switchTenant": "Changer le contexte de locataire",
+    "restoreContext": "Restaurer le contexte original",
+    "startImpersonation": "Commencer l'incarnation d'utilisateur",
+    "endImpersonation": "Terminer l'incarnation",
+    "autoRefresh": "Basculer l'actualisation automatique",
+    "clearFilters": "Effacer tous les filtres",
+    "setupAlerts": "Configurer les alertes",
+    "toggleTenantSelector": "Afficher/Masquer le sélecteur de locataire",
+    "toggleStatistics": "Afficher/Masquer les statistiques",
+    "toggleFilters": "Afficher/Masquer les filtres avancés",
+    "toggleQuickActions": "Afficher/Masquer les actions rapides",
+    "refreshData": "Actualiser les données",
+    "exportData": "Exporter les données",
+    "viewDetails": "Voir les détails",
+    "editDetails": "Modifier les détails",
+    "exportLogs": "Exporter les logs",
+    "addConfiguration": "Ajouter une nouvelle configuration",
+    "import": "Importer les données"
+  },
+  "health": {
+    "serverStatus": "État du Serveur",
+    "systemOverview": "Aperçu du Système",
+    "systemDetails": "Détails du Système",
+    "apiStatus": "État API",
+    "database": "Base de Données",
+    "authentication": "Authentification",
+    "lastCheck": "Dernière Vérification",
+    "environment": "Environnement",
+    "machine": "Machine",
+    "processId": "ID de Processus",
+    "memoryUsage": "Utilisation Mémoire",
+    "uptime": "Temps de Fonctionnement",
+    "dependencies": "Dépendances",
+    "appliedMigrations": "Migrations Appliquées",
+    "andMore": "et {0} de plus",
+    "checkFailed": "Vérification de Santé Échouée",
+    "loadingStatus": "Chargement de l'état de santé..."
+  },
+  "admin": {
+    "welcomeBack": "Bon retour, {0} !",
+    "loggedInAs": "Vous êtes connecté en tant que : {0}",
+    "adminUser": "Utilisateur Admin",
+    "userInformation": "Informations Utilisateur",
+    "rolesPermissions": "Rôles et Permissions",
+    "permissions": "Permissions",
+    "morePermissions": "+{0} de plus",
+    "adminActions": "Actions Admin",
+    "dashboardDescription": "Ceci est le tableau de bord administrateur. Ici vous pouvez gérer les paramètres système, les utilisateurs et autres tâches administratives.",
+    "underDevelopment": "Les fonctionnalités d'administration sont en développement. Plus de fonctionnalités seront bientôt disponibles.",
+    "loadError": "Erreur de chargement de la page admin : {0}",
+    "accessDeniedWarning": "Accès refusé. Rôle d'administrateur requis.",
+    "statistics": "Statistiques du Système",
+    "totalUsers": "Utilisateurs Totaux",
+    "activeTenants": "Locataires Actifs",
+    "totalEvents": "Événements Totaux",
+    "activeReports": "Rapports Actifs",
+    "quickActions": "Actions Rapides",
+    "manageUsers": "Gérer les Utilisateurs",
+    "manageTenants": "Gérer les Locataires",
+    "viewReports": "Voir les Rapports",
+    "systemSettings": "Paramètres Système"
+  },
+  "error": {
+    "accessDenied": "Accès Refusé",
+    "adminRoleRequired": "Vous n'avez pas la permission d'accéder à cette page. Le rôle d'administrateur est requis.",
+    "pageNotFound": "Page Non Trouvée",
+    "nothingAtAddress": "Désolé, il n'y a rien à cette adresse.",
+    "title": "Une erreur s'est produite",
+    "operationMayNotCompleted": "Une erreur s'est produite. L'opération n'a peut-être pas été terminée correctement.",
+    "retry": "Réessayer",
+    "showDetails": "Afficher les détails",
+    "hideDetails": "Masquer les détails",
+    "technicalDetails": "Détails techniques",
+    "type": "Type",
+    "message": "Message",
+    "stackTrace": "Stack Trace",
+    "connectionError": "Erreur de connexion au serveur. Veuillez vérifier votre connexion réseau.",
+    "requestTimeout": "La demande a pris trop de temps. Veuillez réessayer.",
+    "unauthorizedOperation": "Vous n'avez pas les autorisations nécessaires pour cette opération.",
+    "invalidData": "Données invalides fournies.",
+    "invalidOperation": "Opération invalide en ce moment.",
+    "unexpectedError": "Une erreur inattendue s'est produite. Veuillez réessayer ou contacter le support si le problème persiste."
+  },
+  "accessibility": {
+    "languageSelectorDescription": "Sélectionnez votre langue préférée",
+    "selectLanguage": "Sélectionner la langue"
+  },
+  "profile": {
+    "title": "Mon Profil",
+    "basicInfo": "Informations de Base",
+    "accountStatus": "État du Compte",
+    "viewProfile": "Voir le profil"
+  },
+  "theme": {
+    "darkMode": "Mode Sombre",
+    "lightMode": "Mode Clair",
+    "switchToDark": "Passer au thème sombre",
+    "switchToLight": "Passer au thème clair",
+    "selector": "Sélecteur de thème",
+    "selectTheme": "Sélectionner le thème",
+    "currentTheme": "Thème actuel",
+    "light": {
+      "name": "Clair",
+      "description": "Thème moderne et lumineux avec les couleurs d'EventForge"
+    },
+    "dark": {
+      "name": "Sombre",
+      "description": "Thème sombre classique pour les environnements peu éclairés"
+    },
+    "warm": {
+      "name": "Chaleureux",
+      "description": "Thème accueillant avec des tons oranges et terreux"
+    },
+    "cool": {
+      "name": "Frais",
+      "description": "Thème rafraîchissant avec des couleurs bleues et turquoise"
+    },
+    "high-contrast": {
+      "name": "Contraste Élevé",
+      "description": "Thème à contraste élevé pour l'accessibilité (WCAG AAA)"
+    },
+    "fun": {
+      "name": "Amusant",
+      "description": "Thème ludique avec des couleurs pastel vibrantes"
+    }
+  },
+  "drawer": {
+    "title": {
+      "creaEntita": "Créer {0}",
+      "modificaEntita": "Modifier {0}",
+      "visualizzaEntita": "Voir {0}",
+      "creaUtente": "Créer Utilisateur",
+      "modificaUtente": "Modifier Utilisateur : {0} {1}",
+      "visualizzaUtente": "Voir Utilisateur : {0} {1}",
+      "creaTenant": "Créer Locataire",
+      "modificaTenant": "Modifier Locataire : {0}",
+      "visualizzaTenant": "Voir Locataire : {0}"
+    },
+    "field": {
+      "nome": "Prénom",
+      "cognome": "Nom de famille",
+      "username": "Nom d'utilisateur",
+      "email": "Email",
+      "password": "Mot de passe",
+      "confermaPassword": "Confirmer le Mot de Passe",
+      "tenant": "Locataire",
+      "ruoli": "Rôles",
+      "utenteAttivo": "Utilisateur Actif",
+      "nomeTenant": "Nom Locataire",
+      "nomeVisualizzato": "Nom Affiché",
+      "descrizione": "Description",
+      "dominio": "Domaine",
+      "emailContatto": "Email Contact",
+      "massimoUtenti": "Maximum Utilisateurs",
+      "tenantAttivo": "Locataire Actif",
+      "idUtente": "ID Utilisateur",
+      "dataCreazione": "Date Création",
+      "ultimoAccesso": "Dernier Accès",
+      "idTenant": "ID Locataire",
+      "utentiAttuali": "Utilisateurs Actuels",
+      "ultimaModifica": "Dernière Modification"
+    },
+    "helperText": {
+      "nome": "Entrez le prénom de la personne",
+      "cognome": "Entrez le nom de famille de la personne",
+      "usernameCreate": "Nom d'utilisateur unique pour la connexion",
+      "usernameEdit": "Le nom d'utilisateur ne peut pas être modifié",
+      "email": "Adresse email valide",
+      "tenantCreate": "Sélectionnez le locataire d'appartenance",
+      "tenantEdit": "Le locataire ne peut pas être modifié",
+      "password": "Minimum 8 caractères",
+      "confermaPassword": "Doit correspondre au mot de passe",
+      "utenteAttivo": "Détermine si l'utilisateur peut accéder au système",
+      "nomeTenantCreate": "Nom unique du locataire (ex: entreprise-abc)",
+      "nomeTenantEdit": "Le nom du locataire ne peut pas être modifié",
+      "nomeVisualizzato": "Nom à afficher dans l'interface utilisateur",
+      "descrizione": "Description optionnelle du locataire et de ses activités",
+      "dominio": "Domaine personnalisé pour l'accès (optionnel)",
+      "emailContatto": "Email de référence pour le locataire",
+      "massimoUtenti": "Nombre maximum d'utilisateurs autorisés pour ce locataire",
+      "tenantAttivo": "Détermine si le locataire est actif et peut être utilisé",
+      "utilizzoUtenti": "Utilisation du quota d'utilisateurs"
+    },
+    "error": {
+      "nomeObbligatorio": "Le prénom est obligatoire",
+      "cognomeObbligatorio": "Le nom de famille est obligatoire",
+      "usernameObbligatorio": "Le nom d'utilisateur est obligatoire",
+      "emailObbligatoria": "L'email est obligatoire",
+      "passwordObbligatoria": "Le mot de passe est obligatoire",
+      "confermaPasswordObbligatoria": "La confirmation du mot de passe est obligatoire",
+      "tenantObbligatorio": "Le locataire est obligatoire",
+      "nomeTenantObbligatorio": "Le nom du locataire est obligatoire",
+      "nomeVisualizzatoObbligatorio": "Le nom affiché est obligatoire",
+      "emailContattoObbligatoria": "L'email de contact est obligatoire"
+    },
+    "button": {
+      "salva": "Enregistrer",
+      "annulla": "Annuler",
+      "crea": "Créer",
+      "modifica": "Modifier",
+      "chiudi": "Fermer",
+      "creando": "Création...",
+      "salvando": "Enregistrement..."
+    },
+    "aria": {
+      "chiudiDrawer": "Fermer le tiroir",
+      "chiudiEsc": "Fermer (ESC)",
+      "caricamentoInCorso": "Chargement en cours",
+      "modificaEntita": "Modifier l'entité",
+      "annullaOperazione": "Annuler l'opération",
+      "creaNuovoEntita": "Créer nouveau {0}",
+      "salvaModifiche": "Enregistrer les modifications de {0}",
+      "selezionaRuoli": "Sélectionner les rôles de l'utilisateur",
+      "identificativoUnico": "Identifiant unique",
+      "dataOraCreazione": "Date et heure de création",
+      "dataOraUltimoAccesso": "Date et heure du dernier accès",
+      "dataOraUltimaModifica": "Date et heure de la dernière modification",
+      "numeroAttualeUtenti": "Nombre actuel d'utilisateurs enregistrés",
+      "utilizzoUtenti": "Utilisation des utilisateurs : {0}%",
+      "statoEntita": "État {0} : {1}",
+      "ruoliAssegnati": "Rôles assignés à l'utilisateur",
+      "ruolo": "Rôle : {0}"
+    },
+    "status": {
+      "attivo": "Actif",
+      "inattivo": "Inactif",
+      "nessunRuolo": "Aucun rôle assigné",
+      "nessunaDescrizione": "Aucune description",
+      "nessunDominio": "Aucun domaine personnalisé",
+      "maiEffettuato": "Jamais effectué"
+    },
+    "role": {
+      "user": "Accès de base au système",
+      "manager": "Gestion d'équipe et de ressources",
+      "admin": "Administration complète du locataire",
+      "superadmin": "Accès complet au système",
+      "default": "Rôle personnalisé"
+    }
+  },
+  "help": {
+    "general": {
+      "overview": "Bienvenue dans EventForge ! Cette section fournit des informations utiles sur l'utilisation de cette fonctionnalité.",
+      "gettingStarted": "Commencez par explorer les options et outils disponibles.",
+      "tips": "Conseils utiles pour utiliser cette fonctionnalité efficacement."
+    },
+    "iconAriaLabel": "Obtenir de l'aide pour cette fonctionnalité",
+    "moreInfo": "Plus d'Informations",
+    "tooltips": {
+      "notifications": {
+        "center": "Voir et gérer toutes vos notifications en un seul endroit",
+        "filter": "Filtrer les notifications par type, statut ou date",
+        "markRead": "Marquer les notifications sélectionnées comme lues",
+        "delete": "Supprimer les notifications sélectionnées",
+        "settings": "Configurer vos préférences de notification",
+        "refresh": "Actualiser la liste des notifications manuellement"
+      },
+      "chat": {
+        "channels": "Parcourir et rejoindre différents canaux de chat",
+        "messages": "Envoyer et recevoir des messages en temps réel",
+        "files": "Partager des fichiers avec les membres de votre équipe",
+        "search": "Rechercher dans l'historique du chat"
+      },
+      "superadmin": {
+        "users": "Gérer les comptes utilisateur et les permissions",
+        "tenants": "Administrer les configurations de locataires",
+        "audit": "Voir la piste d'audit du système et les logs",
+        "config": "Configurer les paramètres du système"
+      },
+      "files": {
+        "upload": "Téléverser des fichiers à partager avec votre équipe",
+        "manage": "Organiser et gérer vos fichiers",
+        "share": "Contrôler les permissions de partage de fichiers",
+        "download": "Télécharger des fichiers sur votre appareil"
+      }
+    },
+    "notifications": {
+      "overview": "Le centre de notifications vous aide à rester informé des événements importants et des mises à jour dans EventForge. Ici vous pouvez voir, filtrer et gérer toutes vos notifications efficacement.",
+      "filtering": "Utilisez les options de filtre pour trouver des notifications spécifiques. Vous pouvez filtrer par type (info, avertissement, erreur), statut (lu/non lu) ou plage de dates.",
+      "actions": "Sélectionnez une ou plusieurs notifications pour effectuer des actions en lot comme marquer comme lues ou supprimer. Vous pouvez aussi cliquer sur des notifications individuelles pour voir plus de détails.",
+      "preferences": "Personnalisez quels types de notifications vous voulez recevoir et comment vous voulez être notifié (email, dans l'app, etc.)."
+    },
+    "chat": {
+      "overview": "Le système de chat permet la communication en temps réel avec les membres de votre équipe. Rejoignez des canaux, envoyez des messages et partagez des fichiers en toute transparence.",
+      "channels": "Les canaux sont des conversations organisées autour de sujets spécifiques ou d'équipes. Rejoignez les canaux pertinents pour rester connecté avec vos collègues.",
+      "messaging": "Envoyez des messages texte, utilisez les options de formatage et mentionnez d'autres utilisateurs avec @nomutilisateur. Les messages sont livrés instantanément à tous les membres du canal.",
+      "files": "Partagez des documents, images et autres fichiers directement dans le chat. Les fichiers sont stockés en sécurité et accessibles aux membres du canal."
+    },
+    "superadmin": {
+      "overview": "Les outils SuperAdmin fournissent des capacités complètes d'administration système. Gérez les utilisateurs, configurez les paramètres et surveillez la santé du système.",
+      "users": "Créer, modifier et gérer les comptes utilisateur. Attribuer des rôles, définir des permissions et surveiller l'activité utilisateur dans tout le système.",
+      "configuration": "Configurer les paramètres système incluant les politiques de sécurité, les basculeurs de fonctionnalités et les paramètres d'intégration.",
+      "audit": "Surveiller toutes les activités système à travers des logs d'audit complets. Suivre les actions utilisateur, les changements système et les événements de sécurité."
+    },
+    "files": {
+      "overview": "La gestion de fichiers vous permet de téléverser, organiser et partager des fichiers en sécurité dans EventForge.",
+      "upload": "Glissez-déposez des fichiers ou cliquez pour parcourir. Les formats supportés incluent documents, images et archives jusqu'à 50MB.",
+      "management": "Organisez les fichiers en dossiers, renommez les éléments et gérez les permissions. Utilisez la recherche pour trouver rapidement des fichiers spécifiques.",
+      "sharing": "Contrôlez qui peut accéder à vos fichiers. Définissez des permissions pour voir, télécharger ou modifier le contenu partagé."
+    }
+  },
+  "onboarding": {
+    "progress": "Étape {0} de {1}",
+    "progressAria": "Progression de l'intégration",
+    "skip": "Ignorer",
+    "skipAria": "Ignorer toute l'intégration",
+    "previousAria": "Aller à l'étape précédente",
+    "nextAria": "Aller à l'étape suivante",
+    "complete": "Terminer",
+    "completeAria": "Terminer l'intégration",
+    "tips": "Conseils :",
+    "dontShowAgain": "Ne plus afficher cette intégration",
+    "dontShowAgainHelp": "Vous pouvez toujours accéder à l'aide depuis le menu",
+    "notifications": {
+      "welcome": {
+        "title": "Bienvenue aux Notifications",
+        "content": "Apprenez comment gérer vos notifications efficacement. Ce centre affiche toutes les mises à jour importantes et alertes d'EventForge.",
+        "imageAlt": "Écran de bienvenue du centre de notifications"
+      },
+      "filters": {
+        "title": "Filtrez Vos Notifications",
+        "content": "Utilisez les filtres pour organiser vos notifications par type, statut ou date. Cela vous aide à vous concentrer sur ce qui est le plus important.",
+        "imageAlt": "Options de filtre des notifications"
+      },
+      "actions": {
+        "title": "Passez à l'Action",
+        "content": "Marquez les notifications comme lues, supprimez-les ou répondez directement. Les actions en lot vous permettent de gérer plusieurs notifications à la fois.",
+        "imageAlt": "Boutons d'action des notifications"
+      },
+      "preferences": {
+        "title": "Définissez Vos Préférences",
+        "content": "Personnalisez quelles notifications vous recevez et comment vous êtes alerté. Adaptez l'expérience à vos besoins.",
+        "imageAlt": "Panneau de préférences des notifications"
+      }
+    },
+    "chat": {
+      "welcome": {
+        "title": "Bienvenue au Chat",
+        "content": "Commencez à communiquer avec votre équipe en temps réel. Les canaux de chat aident à organiser les conversations par sujet ou projet.",
+        "imageAlt": "Bienvenue à l'interface de chat"
+      },
+      "channels": {
+        "title": "Rejoignez les Canaux",
+        "content": "Parcourez les canaux disponibles et rejoignez ceux pertinents pour votre travail. Chaque canal a son propre historique de conversation.",
+        "imageAlt": "Liste des canaux de chat"
+      },
+      "messaging": {
+        "title": "Envoyez des Messages",
+        "content": "Tapez votre message et appuyez sur Entrée pour envoyer. Utilisez @mentions pour notifier des utilisateurs spécifiques et le formatage pour l'emphase.",
+        "imageAlt": "Zone de saisie de message de chat"
+      },
+      "files": {
+        "title": "Partagez des Fichiers",
+        "content": "Cliquez sur l'icône de pièce jointe pour partager des fichiers avec votre équipe. Les fichiers sont stockés en sécurité et accessibles aux membres du canal.",
+        "imageAlt": "Partage de fichiers dans le chat"
+      }
+    },
+    "superadmin": {
+      "welcome": {
+        "title": "Aperçu SuperAdmin",
+        "content": "Accédez à de puissants outils administratifs pour gérer tout le système EventForge. Surveillez, configurez et maintenez la santé du système.",
+        "imageAlt": "Tableau de bord SuperAdmin"
+      },
+      "users": {
+        "title": "Gérer les Utilisateurs",
+        "content": "Créer et gérer les comptes utilisateur, attribuer des rôles et surveiller l'activité utilisateur. Assurer un contrôle d'accès approprié dans tout le système.",
+        "imageAlt": "Interface de gestion des utilisateurs"
+      },
+      "config": {
+        "title": "Configuration Système",
+        "content": "Configurer les paramètres système, les politiques de sécurité et les basculeurs de fonctionnalités. Les changements ici affectent tous les utilisateurs.",
+        "imageAlt": "Panneau de configuration système"
+      },
+      "audit": {
+        "title": "Piste d'Audit",
+        "content": "Surveiller toutes les activités et changements système. La piste d'audit fournit une visibilité complète sur les opérations système.",
+        "imageAlt": "Interface de piste d'audit"
+      }
+    }
+  },
+  "walkthrough": {
+    "step": "Étape {0} de {1}",
+    "close": "Fermer la visite",
+    "skip": "Ignorer la Visite",
+    "finish": "Terminer",
+    "notifications": {
+      "notification-header": {
+        "title": "Centre de Notifications",
+        "description": "Ceci est votre centre de notifications où toutes vos notifications sont affichées.",
+        "action": "Regardez l'en-tête et le titre des notifications"
+      },
+      "notification-filters": {
+        "title": "Options de Filtre",
+        "description": "Utilisez ces filtres pour organiser vos notifications par type, statut ou date.",
+        "action": "Essayez de cliquer sur les boutons de filtre pour réduire les résultats"
+      },
+      "notification-list": {
+        "title": "Liste des Notifications",
+        "description": "Vos notifications apparaissent ici. Cliquez sur n'importe quelle notification pour voir les détails.",
+        "action": "Faites défiler vos notifications"
+      },
+      "notification-actions": {
+        "title": "Actions Rapides",
+        "description": "Utilisez ces boutons pour marquer les notifications comme lues, supprimer ou prendre d'autres actions.",
+        "action": "Essayez de cliquer sur le bouton 'Marquer Toutes comme Lues'"
+      }
+    },
+    "chat": {
+      "chat-channels": {
+        "title": "Canaux de Chat",
+        "description": "Voici vos canaux de chat disponibles. Cliquez pour rejoindre une conversation.",
+        "action": "Sélectionnez un canal pour voir ses messages"
+      },
+      "chat-messages": {
+        "title": "Zone de Messages",
+        "description": "Les messages de votre conversation apparaissent ici en temps réel.",
+        "action": "Faites défiler l'historique des messages"
+      },
+      "chat-input": {
+        "title": "Saisie de Message",
+        "description": "Tapez votre message ici et appuyez sur Entrée pour envoyer.",
+        "action": "Essayez de taper un message"
+      },
+      "chat-files": {
+        "title": "Partage de Fichiers",
+        "description": "Cliquez sur l'icône de pièce jointe pour partager des fichiers avec votre équipe.",
+        "action": "Cliquez sur le bouton de pièce jointe"
+      }
+    },
+    "superadmin": {
+      "admin-navigation": {
+        "title": "Navigation Admin",
+        "description": "Utilisez cette navigation pour accéder aux différentes fonctions administratives.",
+        "action": "Explorez le menu de navigation"
+      },
+      "admin-dashboard": {
+        "title": "Aperçu du Tableau de Bord",
+        "description": "Obtenez un aperçu rapide de l'état du système et des métriques clés.",
+        "action": "Examinez les informations du tableau de bord"
+      },
+      "admin-users": {
+        "title": "Gestion des Utilisateurs",
+        "description": "Gérez les comptes utilisateur, les rôles et les permissions ici.",
+        "action": "Cliquez pour voir les outils de gestion des utilisateurs"
+      },
+      "admin-settings": {
+        "title": "Paramètres Système",
+        "description": "Configurez les paramètres système et les préférences.",
+        "action": "Accédez au panneau des paramètres"
+      }
+    }
   },
   "tooltip": {
     "view": "Voir les détails",
