@@ -10,6 +10,14 @@ namespace EventForge.DTOs.Auth
     public class LoginRequestDto
     {
         /// <summary>
+        /// Tenant code for login.
+        /// </summary>
+        [Required(ErrorMessage = "Tenant code is required.")]
+        [MaxLength(50, ErrorMessage = "Tenant code cannot exceed 50 characters.")]
+        [Display(Name = "field.tenantCode", Description = "Tenant code for login.")]
+        public string TenantCode { get; set; } = string.Empty;
+
+        /// <summary>
         /// Username for login.
         /// </summary>
         [Required(ErrorMessage = "Username is required.")]
@@ -62,6 +70,13 @@ namespace EventForge.DTOs.Auth
         [Required]
         [Display(Name = "User", Description = "User information.")]
         public UserDto User { get; set; } = null!;
+
+        /// <summary>
+        /// Tenant information.
+        /// </summary>
+        [Required]
+        [Display(Name = "Tenant", Description = "Tenant information.")]
+        public TenantDto Tenant { get; set; } = null!;
 
         /// <summary>
         /// Indicates if the user must change password.
@@ -145,10 +160,10 @@ namespace EventForge.DTOs.Auth
         public string FullName { get; set; } = string.Empty;
 
         /// <summary>
-        /// Tenant ID this user belongs to. Null for SuperAdmin users.
+        /// Tenant ID this user belongs to.
         /// </summary>
         [Display(Name = "field.tenantId", Description = "Tenant ID this user belongs to.")]
-        public Guid? TenantId { get; set; }
+        public Guid TenantId { get; set; }
 
         /// <summary>
         /// Indicates if the user is active.
@@ -185,5 +200,43 @@ namespace EventForge.DTOs.Auth
         /// </summary>
         [Display(Name = "field.modifiedAt", Description = "Date and time when the user was last modified (UTC).")]
         public DateTime? ModifiedAt { get; set; }
+    }
+
+    /// <summary>
+    /// Tenant information DTO for authentication responses.
+    /// </summary>
+    public class TenantDto
+    {
+        /// <summary>
+        /// Tenant ID.
+        /// </summary>
+        public Guid Id { get; set; }
+
+        /// <summary>
+        /// Tenant name.
+        /// </summary>
+        [Required]
+        [Display(Name = "field.name", Description = "Tenant name.")]
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Tenant code.
+        /// </summary>
+        [Required]
+        [Display(Name = "field.code", Description = "Tenant code.")]
+        public string Code { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Display name.
+        /// </summary>
+        [Required]
+        [Display(Name = "field.displayName", Description = "Display name.")]
+        public string DisplayName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Indicates if the tenant is active.
+        /// </summary>
+        [Display(Name = "field.active", Description = "Indicates if the tenant is active.")]
+        public bool IsActive { get; set; }
     }
 }

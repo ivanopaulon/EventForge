@@ -114,13 +114,29 @@ public class AuthenticationService : IAuthenticationService
 
         try
         {
-            // Find user by username
+            // Find tenant by code first
+            var tenant = await _dbContext.Tenants
+                .FirstOrDefaultAsync(t => t.Code == request.TenantCode && t.IsActive, cancellationToken);
+
+            if (tenant == null)
+            {
+                loginAudit.Success = false;
+                loginAudit.FailureReason = "Invalid tenant code";
+                await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                _logger.LogWarning("Login attempt failed: Invalid tenant code {TenantCode} from {IpAddress}", request.TenantCode, ipAddress);
+                return null;
+            }
+
+            // Find user by username within the tenant
             var user = await _dbContext.Users
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
                         .ThenInclude(r => r.RolePermissions)
                             .ThenInclude(rp => rp.Permission)
-                .FirstOrDefaultAsync(u => u.Username == request.Username && u.IsActive, cancellationToken);
+                .Include(u => u.Tenant)
+                .FirstOrDefaultAsync(u => u.Username == request.Username && u.TenantId == tenant.Id && u.IsActive, cancellationToken);
 
             if (user == null)
             {
@@ -129,7 +145,8 @@ public class AuthenticationService : IAuthenticationService
                 await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
                 await _dbContext.SaveChangesAsync(cancellationToken);
 
-                _logger.LogWarning("Login attempt failed: Invalid username {Username} from {IpAddress}", request.Username, ipAddress);
+                _logger.LogWarning("Login attempt failed: Invalid username {Username} for tenant {TenantCode} from {IpAddress}", 
+                    request.Username, request.TenantCode, ipAddress);
                 return null;
             }
 
@@ -192,7 +209,7 @@ public class AuthenticationService : IAuthenticationService
                 .ToList();
 
             // Generate JWT token
-            var token = _jwtTokenService.GenerateToken(user, roles, permissions);
+            var token = _jwtTokenService.GenerateToken(user, user.Tenant, roles, permissions);
 
             loginAudit.Success = true;
             loginAudit.SessionId = Guid.NewGuid().ToString();
@@ -200,14 +217,17 @@ public class AuthenticationService : IAuthenticationService
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             var userDto = UserMapper.ToDto(user, roles, permissions);
+            var tenantDto = TenantMapper.ToDto(user.Tenant);
 
-            _logger.LogInformation("User {Username} logged in successfully from {IpAddress}", request.Username, ipAddress);
+            _logger.LogInformation("User {Username} logged in successfully for tenant {TenantCode} from {IpAddress}", 
+                request.Username, request.TenantCode, ipAddress);
 
             return new LoginResponseDto
             {
                 AccessToken = token,
                 ExpiresIn = _jwtTokenService.TokenExpirationSeconds,
                 User = userDto,
+                Tenant = tenantDto,
                 MustChangePassword = user.MustChangePassword
             };
         }

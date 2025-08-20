@@ -301,6 +301,13 @@ public class EventForgeDbContext : DbContext
             .HasIndex(u => new { u.Email, u.TenantId })
             .IsUnique();
 
+        // User -> Tenant relationship
+        modelBuilder.Entity<User>()
+            .HasOne(u => u.Tenant)
+            .WithMany()
+            .HasForeignKey(u => u.TenantId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // Role constraints
         modelBuilder.Entity<Role>()
             .HasIndex(r => r.Name)
@@ -355,6 +362,10 @@ public class EventForgeDbContext : DbContext
         // Tenant constraints
         modelBuilder.Entity<Tenant>()
             .HasIndex(t => t.Name)
+            .IsUnique();
+
+        modelBuilder.Entity<Tenant>()
+            .HasIndex(t => t.Code)
             .IsUnique();
 
         // AdminTenant relationships - manages which users can administer which tenants

@@ -1,5 +1,6 @@
 using ServerTenantDtos = EventForge.DTOs.Tenants;
 using SharedTenantDtos = EventForge.DTOs.Tenants;
+using EventForge.DTOs.Auth;
 
 namespace EventForge.Server.Mappers;
 
@@ -9,6 +10,21 @@ namespace EventForge.Server.Mappers;
 public static class TenantMapper
 {
     /// <summary>
+    /// Maps Tenant entity to TenantDto for authentication.
+    /// </summary>
+    public static TenantDto ToDto(Tenant tenant)
+    {
+        return new TenantDto
+        {
+            Id = tenant.Id,
+            Name = tenant.Name,
+            Code = tenant.Code,
+            DisplayName = tenant.DisplayName,
+            IsActive = tenant.IsActive
+        };
+    }
+
+    /// <summary>
     /// Maps Tenant entity to TenantResponseDto.
     /// </summary>
     public static SharedTenantDtos.TenantResponseDto ToResponseDto(Tenant tenant)
@@ -17,6 +33,7 @@ public static class TenantMapper
         {
             Id = tenant.Id,
             Name = tenant.Name,
+            Code = tenant.Code,
             DisplayName = tenant.DisplayName,
             Description = tenant.Description,
             Domain = tenant.Domain,
@@ -37,6 +54,7 @@ public static class TenantMapper
         {
             Id = tenant.Id,
             Name = tenant.Name,
+            Code = tenant.Code,
             DisplayName = tenant.DisplayName,
             Description = tenant.Description,
             Domain = tenant.Domain,
