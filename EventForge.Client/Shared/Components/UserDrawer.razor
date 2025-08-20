@@ -27,13 +27,14 @@
                               Label="@($"{TranslationService.GetTranslation("drawer.field.nome")} *")"
                               Variant="Variant.Outlined"
                               Required="true"
-                              RequiredError="@TranslationService.GetTranslation("drawer.error.nomeObbligatorio")"
+                              RequiredError="@TranslationService.GetTranslation("drawer.error.nomeObbligatorio", "Il nome è obbligatorio")"
                               MaxLength="100"
                               Immediate="true"
                               OnBlur="@ValidateFirstName"
-                              aria-describedby="firstName-help" />
+                              aria-describedby="firstName-help"
+                              For="@(() => _model.FirstName)" />
                 <MudText id="firstName-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                    @TranslationService.GetTranslation("drawer.helperText.nome")
+                    @TranslationService.GetTranslation("drawer.helperText.nome", "Inserisci il nome dell'utente")
                 </MudText>
             </MudItem>
             
@@ -42,13 +43,14 @@
                               Label="@($"{TranslationService.GetTranslation("drawer.field.cognome")} *")"
                               Variant="Variant.Outlined"
                               Required="true"
-                              RequiredError="@TranslationService.GetTranslation("drawer.error.cognomeObbligatorio")"
+                              RequiredError="@TranslationService.GetTranslation("drawer.error.cognomeObbligatorio", "Il cognome è obbligatorio")"
                               MaxLength="100"
                               Immediate="true"
                               OnBlur="@ValidateLastName"
-                              aria-describedby="lastName-help" />
+                              aria-describedby="lastName-help"
+                              For="@(() => _model.LastName)" />
                 <MudText id="lastName-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                    @TranslationService.GetTranslation("drawer.helperText.cognome")
+                    @TranslationService.GetTranslation("drawer.helperText.cognome", "Inserisci il cognome dell'utente")
                 </MudText>
             </MudItem>
             
@@ -57,16 +59,17 @@
                               Label="@($"{TranslationService.GetTranslation("drawer.field.username")} *")"
                               Variant="Variant.Outlined"
                               Required="true"
-                              RequiredError="@TranslationService.GetTranslation("drawer.error.usernameObbligatorio")"
+                              RequiredError="@TranslationService.GetTranslation("drawer.error.usernameObbligatorio", "L'username è obbligatorio")"
                               MaxLength="100"
                               ReadOnly="@(Mode == EntityDrawerMode.Edit)"
                               Immediate="true"
                               OnBlur="@ValidateUsername"
-                              aria-describedby="username-help" />
+                              aria-describedby="username-help"
+                              For="@(() => _model.Username)" />
                 <MudText id="username-help" Typo="Typo.caption" Class="mud-input-helper-text">
                     @(Mode == EntityDrawerMode.Edit ? 
-                        TranslationService.GetTranslation("drawer.helperText.usernameEdit") : 
-                        TranslationService.GetTranslation("drawer.helperText.usernameCreate"))
+                        TranslationService.GetTranslation("drawer.helperText.usernameEdit", "L'username non può essere modificato") : 
+                        TranslationService.GetTranslation("drawer.helperText.usernameCreate", "Inserisci un username unico"))
                 </MudText>
             </MudItem>
             
@@ -76,13 +79,14 @@
                               Variant="Variant.Outlined"
                               InputType="InputType.Email"
                               Required="true"
-                              RequiredError="@TranslationService.GetTranslation("drawer.error.emailObbligatoria")"
+                              RequiredError="@TranslationService.GetTranslation("drawer.error.emailObbligatoria", "L'email è obbligatoria")"
                               MaxLength="256"
                               Immediate="true"
                               OnBlur="@ValidateEmail"
-                              aria-describedby="email-help" />
+                              aria-describedby="email-help"
+                              For="@(() => _model.Email)" />
                 <MudText id="email-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                    @TranslationService.GetTranslation("drawer.helperText.email")
+                    @TranslationService.GetTranslation("drawer.helperText.email", "Inserisci un indirizzo email valido")
                 </MudText>
             </MudItem>
             
@@ -92,8 +96,10 @@
                            Label="@($"{TranslationService.GetTranslation("drawer.field.tenant")} *")" 
                            Variant="Variant.Outlined" 
                            Required="true"
+                           RequiredError="@TranslationService.GetTranslation("drawer.error.tenantObbligatorio", "È necessario selezionare un tenant")"
                            Disabled="@(Mode == EntityDrawerMode.Edit)"
-                           aria-describedby="tenant-help">
+                           aria-describedby="tenant-help"
+                           For="@(() => _model.TenantId)">
                     @foreach (var tenant in _tenants)
                     {
                         <MudSelectItem T="Guid?" Value="@tenant.Id">@tenant.DisplayName</MudSelectItem>
@@ -408,8 +414,8 @@
     {
         try
         {
-            // Validate required fields
-            if (!ValidateForm())
+            // Additional validation for business rules
+            if (!ValidateBusinessRules())
             {
                 return;
             }
@@ -419,20 +425,13 @@
             
             if (Mode == EntityDrawerMode.Create)
             {
-                // Ensure TenantId is set for creation
-                if (!_model.TenantId.HasValue || _model.TenantId == Guid.Empty)
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("drawer.error.tenantObbligatorio", "È necessario selezionare un tenant"), Severity.Error);
-                    return;
-                }
-
                 var createDto = new CreateUserManagementDto
                 {
                     FirstName = _model.FirstName,
                     LastName = _model.LastName,
                     Username = _model.Username,
                     Email = _model.Email,
-                    TenantId = _model.TenantId.Value,
+                    TenantId = _model.TenantId!.Value, // EntityDrawer form validation ensures this is not null
                     Roles = roles
                 };
                 
@@ -494,46 +493,9 @@
         _customTitle = null;
     }
 
-    private bool ValidateForm()
+    private bool ValidateBusinessRules()
     {
         var isValid = true;
-
-        // Validate required fields
-        if (string.IsNullOrWhiteSpace(_model.FirstName))
-        {
-            Snackbar.Add(TranslationService.GetTranslation("drawer.error.nomeObbligatorio", "Il nome è obbligatorio"), Severity.Error);
-            isValid = false;
-        }
-
-        if (string.IsNullOrWhiteSpace(_model.LastName))
-        {
-            Snackbar.Add(TranslationService.GetTranslation("drawer.error.cognomeObbligatorio", "Il cognome è obbligatorio"), Severity.Error);
-            isValid = false;
-        }
-
-        if (string.IsNullOrWhiteSpace(_model.Username))
-        {
-            Snackbar.Add(TranslationService.GetTranslation("drawer.error.usernameObbligatorio", "L'username è obbligatorio"), Severity.Error);
-            isValid = false;
-        }
-
-        if (string.IsNullOrWhiteSpace(_model.Email))
-        {
-            Snackbar.Add(TranslationService.GetTranslation("drawer.error.emailObbligatoria", "L'email è obbligatoria"), Severity.Error);
-            isValid = false;
-        }
-        else if (!IsValidEmail(_model.Email))
-        {
-            Snackbar.Add(TranslationService.GetTranslation("drawer.error.emailInvalida", "L'email inserita non è valida"), Severity.Error);
-            isValid = false;
-        }
-
-        // For create mode, ensure tenant is selected
-        if (Mode == EntityDrawerMode.Create && (!_model.TenantId.HasValue || _model.TenantId == Guid.Empty))
-        {
-            Snackbar.Add(TranslationService.GetTranslation("drawer.error.tenantObbligatorio", "È necessario selezionare un tenant"), Severity.Error);
-            isValid = false;
-        }
 
         // Validate at least one role is selected
         if (!_selectedRoles.Any(kvp => kvp.Value))
