@@ -39,8 +39,22 @@
         <a href="" class="reload">Reload</a>
         <a class="dismiss">🗙</a>
     </div>
+    <!-- Global configuration for QZ Tray base URL (matches ApiClient BaseAddress) -->
+    <script>
+        window.__apiBaseUrl = "https://localhost:7241";
+    </script>
+
+    <!-- Blazor runtime (must load first) -->
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    
+    <!-- QZ Tray library from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.1.0/dist/qz-tray.js"></script>
+    
+    <!-- QZ Tray setup helper -->
+    <script src="js/qz-setup.js"></script>
+    
+    <!-- Application scripts -->
     <script src="js/help-system.js"></script>
     <script>
         // Helper function for downloading files from client-side
@@ -55,6 +69,17 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         };
+
+        // Initialize QZ Tray when DOM is ready (non-blocking)
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                // Initialize QZ Tray with server base URL
+                // This sets up certificate and signature promises to use EventForge server endpoints
+                window.qzSetup.init({ baseUrl: window.__apiBaseUrl });
+            } catch (error) {
+                console.error('Failed to initialize QZ Tray:', error);
+            }
+        });
     </script>
 </body>
 
