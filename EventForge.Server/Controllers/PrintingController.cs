@@ -1,5 +1,7 @@
 using EventForge.DTOs.Printing;
 using EventForge.Server.Services.Interfaces;
+using EventForge.Server.Services.Printing;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
@@ -15,18 +17,22 @@ namespace EventForge.Server.Controllers;
 public class PrintingController : BaseApiController
 {
     private readonly IQzPrintingService _qzPrintingService;
+    private readonly QzDigitalSignatureService _signatureService;
     private readonly ILogger<PrintingController> _logger;
 
     /// <summary>
     /// Initializes a new instance of the PrintingController.
     /// </summary>
     /// <param name="qzPrintingService">QZ printing service</param>
+    /// <param name="signatureService">QZ digital signature service</param>
     /// <param name="logger">Logger instance</param>
     public PrintingController(
         IQzPrintingService qzPrintingService,
+        QzDigitalSignatureService signatureService,
         ILogger<PrintingController> logger)
     {
         _qzPrintingService = qzPrintingService;
+        _signatureService = signatureService;
         _logger = logger;
     }
 
@@ -436,6 +442,91 @@ public class PrintingController : BaseApiController
         {
             _logger.LogError(ex, "Error testing enhanced QZ signature");
             return CreateInternalServerErrorProblem("An error occurred while testing the enhanced signature", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets the QZ Tray certificate chain for qz.api.setCertificatePromise.
+    /// Standard QZ Tray endpoint compatible with text/plain content type.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Complete certificate chain as text/plain</returns>
+    /// <response code="200">Returns the certificate chain</response>
+    /// <response code="500">Internal server error</response>
+    [HttpGet("qz/certificate")]
+    [Authorize]
+    [Produces("text/plain")]
+    [ResponseCache(Duration = 300)] // 5 minute cache
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult> GetQzCertificate(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("QZ certificate requested by user: {User}", GetCurrentUser());
+
+            var certificateChain = await _signatureService.GetCertificateChainAsync();
+            
+            return Content(certificateChain, "text/plain");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting QZ certificate chain");
+            Response.StatusCode = StatusCodes.Status500InternalServerError;
+            return Content("Internal server error occurred while retrieving certificate", "text/plain");
+        }
+    }
+
+    /// <summary>
+    /// Signs a challenge string for qz.api.setSignaturePromise.
+    /// Standard QZ Tray endpoint compatible with text/plain content type.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Base64-encoded signature as text/plain</returns>
+    /// <response code="200">Returns the signature</response>
+    /// <response code="400">Invalid or empty challenge</response>
+    /// <response code="500">Internal server error</response>
+    [HttpPost("qz/sign")]
+    [Authorize]
+    [Consumes("text/plain")]
+    [Produces("text/plain")]
+    [RequestSizeLimit(32 * 1024)] // 32KB limit
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult> SignQzChallenge(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("QZ challenge signing requested by user: {User}", GetCurrentUser());
+
+            // Read challenge from request body
+            using var reader = new StreamReader(Request.Body);
+            var challenge = await reader.ReadToEndAsync(cancellationToken);
+
+            if (string.IsNullOrWhiteSpace(challenge))
+            {
+                _logger.LogWarning("Empty challenge received for QZ signing");
+                Response.StatusCode = StatusCodes.Status400BadRequest;
+                return Content("Challenge cannot be empty", "text/plain");
+            }
+
+            var signature = await _signatureService.SignChallengeAsync(challenge);
+            
+            _logger.LogDebug("QZ challenge signed successfully for user: {User}", GetCurrentUser());
+            return Content(signature, "text/plain");
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid challenge for QZ signing");
+            Response.StatusCode = StatusCodes.Status400BadRequest;
+            return Content($"Invalid challenge: {ex.Message}", "text/plain");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error signing QZ challenge");
+            Response.StatusCode = StatusCodes.Status500InternalServerError;
+            return Content("Internal server error occurred while signing challenge", "text/plain");
         }
     }
 }
