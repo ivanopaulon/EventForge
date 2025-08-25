@@ -215,8 +215,26 @@ public static class ServiceCollectionExtensions
         // Register barcode services
         services.AddScoped<EventForge.Server.Services.Interfaces.IBarcodeService, BarcodeService>();
 
-        // Configure session for tenant context (required for tenant switching and impersonation)
-        services.AddDistributedMemoryCache();
+        // Configure session and distributed cache for tenant context
+        // Use Redis in production environment, memory cache in development
+        var redisConnectionString = configuration.GetConnectionString("Redis");
+        if (!string.IsNullOrEmpty(redisConnectionString) && !Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")?.Equals("Development", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            // Production: Use Redis for distributed caching and sessions
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = redisConnectionString;
+                options.InstanceName = "EventForge";
+            });
+            Log.Information("Redis distributed cache configured for production environment");
+        }
+        else
+        {
+            // Development: Use in-memory distributed cache
+            services.AddDistributedMemoryCache();
+            Log.Information("In-memory distributed cache configured for development environment");
+        }
+
         services.AddSession(options =>
         {
             options.IdleTimeout = TimeSpan.FromHours(8); // Session timeout
@@ -342,6 +360,15 @@ public static class ServiceCollectionExtensions
         {
             services.AddHealthChecks()
                 .AddSqlServer(connectionString, tags: new[] { "ready" });
+        }
+
+        // Add Redis health check if connection string is available (production)
+        var redisConnectionString = configuration.GetConnectionString("Redis");
+        if (!string.IsNullOrEmpty(redisConnectionString) && !Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")?.Equals("Development", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            services.AddHealthChecks()
+                .AddRedis(redisConnectionString, "redis", tags: new[] { "ready" });
+            Log.Information("Redis health check configured for production environment");
         }
 
         Log.Information("Health checks configured successfully");
