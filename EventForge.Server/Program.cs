@@ -1,4 +1,5 @@
 using EventForge.Server.Middleware;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
@@ -13,6 +14,9 @@ builder.AddCustomSerilogLogging();
 // Add Authentication & Authorization services
 builder.Services.AddAuthentication(builder.Configuration);
 builder.Services.AddAuthorization(builder.Configuration);
+
+// Add Health Checks
+builder.Services.AddHealthChecks(builder.Configuration);
 
 // Add API Controllers support
 builder.Services.AddControllers();
@@ -228,9 +232,44 @@ app.UseAuthorizationLogging();
 // Map API Controllers
 app.MapControllers();
 
+// Map Health Checks endpoints
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var response = new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(x => new
+            {
+                name = x.Key,
+                status = x.Value.Status.ToString(),
+                description = x.Value.Description,
+                duration = x.Value.Duration.TotalMilliseconds
+            }),
+            totalDuration = report.TotalDuration.TotalMilliseconds
+        };
+        await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(response));
+    }
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+});
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false
+});
+
 // Map SignalR hubs
 app.MapHub<AuditLogHub>("/hubs/audit-log");
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<ChatHub>("/hubs/chat");
 
 app.Run();
+
+// Make Program accessible for integration tests
+public partial class Program { }

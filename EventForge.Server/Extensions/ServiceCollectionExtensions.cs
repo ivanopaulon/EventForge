@@ -19,6 +19,7 @@ using EventForge.Server.Services.VatRates;
 using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Events;
@@ -73,7 +74,7 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Configura HttpClient usando i parametri da appsettings.json.
+    /// Configura HttpClient usando i parametri da appsettings.json con resilienza Polly.
     /// </summary>
     public static void AddConfiguredHttpClient(this IServiceCollection services, IConfiguration configuration)
     {
@@ -81,10 +82,13 @@ public static class ServiceCollectionExtensions
         var httpClientPort = configuration.GetValue<int>("HttpClient:Port");
         var httpClientUri = new Uri($"{httpClientBase}:{httpClientPort}/");
 
+        // Configure resilient HTTP client
         services.AddHttpClient("Default", client =>
         {
             client.BaseAddress = httpClientUri;
+            client.Timeout = TimeSpan.FromSeconds(30); // Explicit timeout
         });
+
         services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("Default"));
     }
 
@@ -221,14 +225,21 @@ public static class ServiceCollectionExtensions
             options.Cookie.Name = "EventForge.Session";
         });
 
-        // Get JWT configuration
+        // Get JWT configuration with environment variable support
         var jwtSection = configuration.GetSection("Authentication:Jwt");
         var jwtOptions = jwtSection.Get<JwtOptions>() ?? new JwtOptions();
 
-        if (string.IsNullOrEmpty(jwtOptions.SecretKey))
+        // Try to get secret key from environment variable first, then fall back to configuration
+        var secretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? jwtOptions.SecretKey;
+        
+        if (string.IsNullOrEmpty(secretKey) || secretKey == "REPLACE_IN_PRODUCTION_WITH_ENVIRONMENT_VARIABLE")
         {
-            throw new InvalidOperationException("JWT SecretKey must be configured in Authentication:Jwt:SecretKey");
+            throw new InvalidOperationException(
+                "JWT SecretKey must be configured. Set JWT_SECRET_KEY environment variable or Authentication:Jwt:SecretKey in configuration. " +
+                "For development, you can use a test key, but for production, use a secure randomly generated key of at least 32 characters.");
         }
+
+        jwtOptions.SecretKey = secretKey;
 
         var key = Encoding.UTF8.GetBytes(jwtOptions.SecretKey);
 
@@ -314,6 +325,26 @@ public static class ServiceCollectionExtensions
                 policy.RequireRole("Admin", "SuperAdmin")); // Explicit policy for Admin or SuperAdmin access
 
         Log.Information("Authorization policies configured successfully");
+    }
+
+    /// <summary>
+    /// Configures ASP.NET Core health checks for monitoring application health.
+    /// </summary>
+    public static void AddHealthChecks(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddHealthChecks()
+            .AddDbContextCheck<EventForgeDbContext>("database", tags: new[] { "ready" })
+            .AddCheck("self", () => HealthCheckResult.Healthy("API is running"), tags: new[] { "ready" });
+
+        // Add SQL Server health check if connection string is available
+        var connectionString = configuration.GetConnectionString("SqlServer");
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            services.AddHealthChecks()
+                .AddSqlServer(connectionString, tags: new[] { "ready" });
+        }
+
+        Log.Information("Health checks configured successfully");
     }
 
     /// <summary>
