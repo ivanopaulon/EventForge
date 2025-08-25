@@ -33,6 +33,9 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
     <PackageReference Include="AspNetCore.HealthChecks.SqlServer" />
+    <!-- Redis support for distributed caching and sessions -->
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
+    <PackageReference Include="AspNetCore.HealthChecks.Redis" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EventForge.DTOs\EventForge.DTOs.csproj" />

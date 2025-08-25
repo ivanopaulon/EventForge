@@ -188,18 +188,34 @@ catch (Exception ex)
 // Add middleware early in the pipeline
 app.UseCorrelationId();
 
-// Configure default route to redirect to logs viewer instead of Swagger
-app.MapGet("/", () => Results.Redirect("/logs.html"));
-
-// Configure Swagger (temporarily disabled - replaced with logs viewer)
-// app.UseSwagger();
-// app.UseSwaggerUI(c =>
-// {
-//     c.SwaggerEndpoint("/swagger/v1/swagger.json", "EventForge API v1.0.0");
-//     c.RoutePrefix = string.Empty; // Set Swagger as the homepage
-//     c.DocumentTitle = "EventForge API Documentation";
-//     c.DisplayRequestDuration();
-// });
+// Configure environment-aware homepage and Swagger behavior
+if (app.Environment.IsDevelopment())
+{
+    // Development: Enable Swagger and set as homepage
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "EventForge API v1.0.0");
+        c.RoutePrefix = string.Empty; // Set Swagger as the homepage
+        c.DocumentTitle = "EventForge API Documentation";
+        c.DisplayRequestDuration();
+    });
+}
+else
+{
+    // Production: Enable Swagger but redirect homepage to logs viewer
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "EventForge API v1.0.0");
+        c.RoutePrefix = "swagger"; // Swagger available at /swagger
+        c.DocumentTitle = "EventForge API Documentation";
+        c.DisplayRequestDuration();
+    });
+    
+    // Redirect homepage to logs viewer in production
+    app.MapGet("/", () => Results.Redirect("/logs.html"));
+}
 
 // Pipeline HTTP
 if (!app.Environment.IsDevelopment())
