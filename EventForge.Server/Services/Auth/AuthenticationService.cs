@@ -145,7 +145,7 @@ public class AuthenticationService : IAuthenticationService
                 await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
                 await _dbContext.SaveChangesAsync(cancellationToken);
 
-                _logger.LogWarning("Login attempt failed: Invalid username {Username} for tenant {TenantCode} from {IpAddress}", 
+                _logger.LogWarning("Login attempt failed: Invalid username {Username} for tenant {TenantCode} from {IpAddress}",
                     request.Username, request.TenantCode, ipAddress);
                 return null;
             }
@@ -219,7 +219,7 @@ public class AuthenticationService : IAuthenticationService
             var userDto = UserMapper.ToDto(user, roles, permissions);
             var tenantDto = TenantMapper.ToDto(user.Tenant);
 
-            _logger.LogInformation("User {Username} logged in successfully for tenant {TenantCode} from {IpAddress}", 
+            _logger.LogInformation("User {Username} logged in successfully for tenant {TenantCode} from {IpAddress}",
                 request.Username, request.TenantCode, ipAddress);
 
             return new LoginResponseDto

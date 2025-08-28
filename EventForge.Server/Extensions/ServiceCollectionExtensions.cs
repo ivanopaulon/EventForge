@@ -249,7 +249,7 @@ public static class ServiceCollectionExtensions
 
         // Try to get secret key from environment variable first, then fall back to configuration
         var secretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? jwtOptions.SecretKey;
-        
+
         if (string.IsNullOrEmpty(secretKey) || secretKey == "REPLACE_IN_PRODUCTION_WITH_ENVIRONMENT_VARIABLE")
         {
             throw new InvalidOperationException(

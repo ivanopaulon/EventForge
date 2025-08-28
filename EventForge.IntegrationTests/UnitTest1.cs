@@ -1,11 +1,9 @@
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
 using EventForge.Server.Data;
 using EventForge.Server.Services.Auth;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
-using System.Text.Json;
-using Xunit;
 
 namespace EventForge.IntegrationTests;
 
@@ -58,10 +56,10 @@ public class HealthCheckIntegrationTests : IClassFixture<WebApplicationFactory<P
     {
         // This is a very basic test to ensure the application starts
         var client = _factory.CreateClient();
-        
+
         // Act - just test that we can make a request
         var response = await client.GetAsync("/");
-        
+
         // Assert - should not be a server error
         Assert.True(response.StatusCode != HttpStatusCode.InternalServerError);
     }

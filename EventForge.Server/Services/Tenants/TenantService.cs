@@ -176,7 +176,7 @@ public class TenantService : ITenantService
 
             // Check if username already exists in the tenant
             var existingUser = await _context.Users
-                .FirstOrDefaultAsync(u => u.Username.ToLower() == createDto.AdminUser.Username.ToLower() 
+                .FirstOrDefaultAsync(u => u.Username.ToLower() == createDto.AdminUser.Username.ToLower()
                                      && u.TenantId == tenant.Id);
             if (existingUser != null)
             {
@@ -185,7 +185,7 @@ public class TenantService : ITenantService
 
             // Check if email already exists in the tenant
             var existingUserByEmail = await _context.Users
-                .FirstOrDefaultAsync(u => u.Email.ToLower() == createDto.AdminUser.Email.ToLower() 
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == createDto.AdminUser.Email.ToLower()
                                      && u.TenantId == tenant.Id);
             if (existingUserByEmail != null)
             {
@@ -277,7 +277,7 @@ public class TenantService : ITenantService
                 GeneratedPassword = randomPassword // Include generated password in response
             };
 
-            _logger.LogInformation("Tenant '{TenantName}' creato con successo con admin user '{Username}' (Password: {Password})", 
+            _logger.LogInformation("Tenant '{TenantName}' creato con successo con admin user '{Username}' (Password: {Password})",
                 tenant.Name, adminUser.Username, randomPassword);
 
             return response;
@@ -299,15 +299,15 @@ public class TenantService : ITenantService
         const string chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
         const string symbols = "!@#$%&*";
         var random = new Random();
-        
+
         var password = new char[12];
-        
+
         // Ensure at least one uppercase, one lowercase, one digit, and one symbol
         password[0] = chars[random.Next(0, 25)]; // Uppercase
         password[1] = chars[random.Next(25, 50)]; // Lowercase
         password[2] = chars[random.Next(50, chars.Length)]; // Digit
         password[3] = symbols[random.Next(symbols.Length)]; // Symbol
-        
+
         // Fill the rest randomly
         for (int i = 4; i < password.Length; i++)
         {
@@ -321,14 +321,14 @@ public class TenantService : ITenantService
                 password[i] = chars[random.Next(chars.Length)];
             }
         }
-        
+
         // Shuffle the password to randomize the position of required characters
         for (int i = password.Length - 1; i > 0; i--)
         {
             int j = random.Next(i + 1);
             (password[i], password[j]) = (password[j], password[i]);
         }
-        
+
         return new string(password);
     }
 

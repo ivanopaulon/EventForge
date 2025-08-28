@@ -466,7 +466,7 @@ public class PrintingController : BaseApiController
             _logger.LogInformation("QZ certificate requested by user: {User}", GetCurrentUser());
 
             var certificateChain = await _signatureService.GetCertificateChainAsync();
-            
+
             return Content(certificateChain, "text/plain");
         }
         catch (Exception ex)
@@ -512,7 +512,7 @@ public class PrintingController : BaseApiController
             }
 
             var signature = await _signatureService.SignChallengeAsync(challenge);
-            
+
             _logger.LogDebug("QZ challenge signed successfully for user: {User}", GetCurrentUser());
             return Content(signature, "text/plain");
         }

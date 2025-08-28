@@ -1,9 +1,8 @@
+using EventForge.DTOs.Health;
 using EventForge.Server.Controllers;
 using EventForge.Server.Data;
-using EventForge.DTOs.Health;
-using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
-using Xunit;
+using Microsoft.Extensions.Logging;
 
 namespace EventForge.Tests;
 

@@ -212,7 +212,7 @@ else
         c.DocumentTitle = "EventForge API Documentation";
         c.DisplayRequestDuration();
     });
-    
+
     // Redirect homepage to logs viewer in production
     app.MapGet("/", () => Results.Redirect("/logs.html"));
 }

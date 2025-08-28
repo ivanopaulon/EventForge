@@ -14,7 +14,7 @@ public class QzDigitalSignatureService
     private readonly string _privateKeyPath;
     private readonly string _certificatePath;
     private readonly string _intermediateCertificatePath;
-    
+
     // Lightweight certificate chain caching
     private string? _cachedCertificateChain;
     private DateTime _cacheTimestamp = DateTime.MinValue;
@@ -225,7 +225,7 @@ public class QzDigitalSignatureService
         try
         {
             // Check cache first
-            if (_cachedCertificateChain != null && 
+            if (_cachedCertificateChain != null &&
                 DateTime.UtcNow - _cacheTimestamp < _cacheExpiry)
             {
                 _logger.LogDebug("Returning cached certificate chain");
@@ -234,11 +234,11 @@ public class QzDigitalSignatureService
 
             // Load fresh certificate chain
             var certificateChain = await LoadCertificateChainAsync();
-            
+
             // Update cache
             _cachedCertificateChain = certificateChain;
             _cacheTimestamp = DateTime.UtcNow;
-            
+
             _logger.LogDebug("Certificate chain loaded and cached");
             return certificateChain;
         }
@@ -267,11 +267,11 @@ public class QzDigitalSignatureService
 
             // Load private key
             using var privateKey = await LoadPrivateKeyAsync();
-            
+
             // Create signature
             var signature = CreateSignature(challenge, privateKey);
             var base64Signature = Convert.ToBase64String(signature);
-            
+
             _logger.LogDebug("Challenge signed successfully, signature length: {Length}", base64Signature.Length);
             return base64Signature;
         }
