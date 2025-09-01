@@ -2,8 +2,14 @@ using EventForge.DTOs.PriceLists;
 using EventForge.Server.Services.PriceLists;
 using EventForge.Server.Services.UnitOfMeasures;
 using EventForge.Server.Services.Audit;
+using EventForge.Server.Data;
+using EventForge.Server.Data.Entities.Audit;
+using EventForge.DTOs.Common;
+using EventForge.DTOs.Audit;
+using EventForge.DTOs.SuperAdmin;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace EventForge.Tests.Services.PriceLists;
 
@@ -39,6 +45,58 @@ public class EnhancedPriceListServiceTests
         public Task<IEnumerable<EntityChangeLog>> TrackEntityChangesAsync<TEntity>(TEntity entity, string operationType, string changedBy, TEntity? originalValues = null, CancellationToken cancellationToken = default) where TEntity : AuditableEntity
         {
             return Task.FromResult(Enumerable.Empty<EntityChangeLog>());
+        }
+
+        public Task<IEnumerable<EntityChangeLog>> GetLogsInDateRangeAsync(DateTime fromDate, DateTime toDate, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(Enumerable.Empty<EntityChangeLog>());
+        }
+
+        public Task<IEnumerable<EntityChangeLog>> GetUserLogsAsync(string username, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(Enumerable.Empty<EntityChangeLog>());
+        }
+
+        public Task<PagedResult<EntityChangeLog>> GetPagedLogsAsync(AuditLogQueryParameters queryParameters, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new PagedResult<EntityChangeLog>
+            {
+                Items = Enumerable.Empty<EntityChangeLog>(),
+                TotalCount = 0,
+                Page = 1,
+                PageSize = 10
+            });
+        }
+
+        public Task<EntityChangeLog?> GetLogByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<EntityChangeLog?>(null);
+        }
+
+        public Task<PagedResult<AuditTrailResponseDto>> SearchAuditTrailAsync(AuditTrailSearchDto searchDto, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new PagedResult<AuditTrailResponseDto>
+            {
+                Items = Enumerable.Empty<AuditTrailResponseDto>(),
+                TotalCount = 0,
+                Page = 1,
+                PageSize = 10
+            });
+        }
+
+        public Task<AuditTrailStatisticsDto> GetAuditTrailStatisticsAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new AuditTrailStatisticsDto());
+        }
+
+        public Task<ExportResultDto> ExportAdvancedAsync(ExportRequestDto exportRequest, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new ExportResultDto());
+        }
+
+        public Task<ExportResultDto?> GetExportStatusAsync(Guid exportId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<ExportResultDto?>(null);
         }
     }
 

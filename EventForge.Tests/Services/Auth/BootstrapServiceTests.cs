@@ -30,7 +30,8 @@ public class BootstrapServiceTests
             .Build();
 
         var logger = new LoggerFactory().CreateLogger<BootstrapService>();
-        var passwordService = new PasswordService();
+        var passwordLogger = new LoggerFactory().CreateLogger<PasswordService>();
+        var passwordService = new PasswordService(config, passwordLogger);
         var bootstrapService = new BootstrapService(context, passwordService, config, logger);
 
         // Act
@@ -126,7 +127,8 @@ public class BootstrapServiceTests
             .Build();
 
         var logger = new LoggerFactory().CreateLogger<BootstrapService>();
-        var passwordService = new PasswordService();
+        var passwordLogger = new LoggerFactory().CreateLogger<PasswordService>();
+        var passwordService = new PasswordService(config, passwordLogger);
         var bootstrapService = new BootstrapService(context, passwordService, config, logger);
 
         // Act
@@ -166,7 +168,8 @@ public class BootstrapServiceTests
             .Build();
 
         var logger = new LoggerFactory().CreateLogger<BootstrapService>();
-        var passwordService = new PasswordService();
+        var passwordLogger = new LoggerFactory().CreateLogger<PasswordService>();
+        var passwordService = new PasswordService(config, passwordLogger);
         var bootstrapService = new BootstrapService(context, passwordService, config, logger);
 
         try
