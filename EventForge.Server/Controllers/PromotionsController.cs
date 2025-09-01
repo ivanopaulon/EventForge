@@ -291,10 +291,7 @@ public class PromotionsController : BaseApiController
             
             if (!result.Success)
             {
-                return BadRequest(CreateProblemDetails("Promotion Application Failed", 
-                    "One or more validation errors occurred while applying promotions",
-                    StatusCodes.Status400BadRequest, 
-                    result.Messages));
+                return CreateValidationProblemDetails("One or more validation errors occurred while applying promotions: " + string.Join(", ", result.Messages));
             }
 
             return Ok(result);

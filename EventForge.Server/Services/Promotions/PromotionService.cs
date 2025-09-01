@@ -360,7 +360,7 @@ public class PromotionService : IPromotionService
 
                 var applied = ApplyPromotionToCart(promotion, result.CartItems, applyDto, lockedLines, result);
                 
-                if (applied && promotion.Rules.Any(r => r.RuleType == PromotionRuleType.Exclusive))
+                if (applied && promotion.Rules.Any(r => r.RuleType == EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Exclusive))
                 {
                     exclusiveApplied = true;
                     result.Messages.Add($"Exclusive promotion '{promotion.Name}' applied - stopping further applications");
@@ -599,6 +599,26 @@ public class PromotionService : IPromotionService
     }
 
     /// <summary>
+    /// Converts entity PromotionRuleType to DTO PromotionRuleType.
+    /// </summary>
+    private static EventForge.DTOs.Common.PromotionRuleType ConvertRuleType(EventForge.Server.Data.Entities.Promotions.PromotionRuleType entityRuleType)
+    {
+        return entityRuleType switch
+        {
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Discount => EventForge.DTOs.Common.PromotionRuleType.Percentage,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.CategoryDiscount => EventForge.DTOs.Common.PromotionRuleType.Percentage,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.CartAmountDiscount => EventForge.DTOs.Common.PromotionRuleType.Fixed,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.BuyXGetY => EventForge.DTOs.Common.PromotionRuleType.BuyXGetY,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.FixedPrice => EventForge.DTOs.Common.PromotionRuleType.Fixed,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Bundle => EventForge.DTOs.Common.PromotionRuleType.Fixed,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Coupon => EventForge.DTOs.Common.PromotionRuleType.Percentage,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.TimeLimited => EventForge.DTOs.Common.PromotionRuleType.Percentage,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Exclusive => EventForge.DTOs.Common.PromotionRuleType.Percentage,
+            _ => EventForge.DTOs.Common.PromotionRuleType.Percentage
+        };
+    }
+
+    /// <summary>
     /// Invalidates the promotion cache for the current tenant.
     /// </summary>
     private void InvalidatePromotionCache()
@@ -627,15 +647,15 @@ public class PromotionService : IPromotionService
         {
             bool applied = rule.RuleType switch
             {
-                PromotionRuleType.Discount => ApplyDiscountRule(rule, cartItems, promotion, lockedLines, result),
-                PromotionRuleType.CategoryDiscount => ApplyCategoryDiscountRule(rule, cartItems, promotion, lockedLines, result),
-                PromotionRuleType.CartAmountDiscount => ApplyCartAmountDiscountRule(rule, cartItems, promotion, applyDto, result),
-                PromotionRuleType.BuyXGetY => ApplyBuyXGetYRule(rule, cartItems, promotion, lockedLines, result),
-                PromotionRuleType.FixedPrice => ApplyFixedPriceRule(rule, cartItems, promotion, lockedLines, result),
-                PromotionRuleType.Bundle => ApplyBundleRule(rule, cartItems, promotion, lockedLines, result),
-                PromotionRuleType.Coupon => ApplyCouponRule(rule, cartItems, promotion, applyDto, lockedLines, result),
-                PromotionRuleType.TimeLimited => ApplyTimeLimitedRule(rule, cartItems, promotion, applyDto, lockedLines, result),
-                PromotionRuleType.Exclusive => ApplyExclusiveRule(rule, cartItems, promotion, lockedLines, result),
+                EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Discount => ApplyDiscountRule(rule, cartItems, promotion, lockedLines, result),
+                EventForge.Server.Data.Entities.Promotions.PromotionRuleType.CategoryDiscount => ApplyCategoryDiscountRule(rule, cartItems, promotion, lockedLines, result),
+                EventForge.Server.Data.Entities.Promotions.PromotionRuleType.CartAmountDiscount => ApplyCartAmountDiscountRule(rule, cartItems, promotion, applyDto, lockedLines, result),
+                EventForge.Server.Data.Entities.Promotions.PromotionRuleType.BuyXGetY => ApplyBuyXGetYRule(rule, cartItems, promotion, lockedLines, result),
+                EventForge.Server.Data.Entities.Promotions.PromotionRuleType.FixedPrice => ApplyFixedPriceRule(rule, cartItems, promotion, lockedLines, result),
+                EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Bundle => ApplyBundleRule(rule, cartItems, promotion, lockedLines, result),
+                EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Coupon => ApplyCouponRule(rule, cartItems, promotion, applyDto, lockedLines, result),
+                EventForge.Server.Data.Entities.Promotions.PromotionRuleType.TimeLimited => ApplyTimeLimitedRule(rule, cartItems, promotion, applyDto, lockedLines, result),
+                EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Exclusive => ApplyExclusiveRule(rule, cartItems, promotion, lockedLines, result),
                 _ => false
             };
 
@@ -689,7 +709,7 @@ public class PromotionService : IPromotionService
                     PromotionId = promotion.Id,
                     PromotionName = promotion.Name,
                     PromotionRuleId = rule.Id,
-                    RuleType = rule.RuleType,
+                    RuleType = ConvertRuleType(rule.RuleType),
                     DiscountAmount = discountAmount,
                     DiscountPercentage = rule.DiscountPercentage,
                     Description = description,
@@ -745,7 +765,7 @@ public class PromotionService : IPromotionService
                     PromotionId = promotion.Id,
                     PromotionName = promotion.Name,
                     PromotionRuleId = rule.Id,
-                    RuleType = rule.RuleType,
+                    RuleType = ConvertRuleType(rule.RuleType),
                     DiscountAmount = discountAmount,
                     DiscountPercentage = rule.DiscountPercentage,
                     Description = description,
@@ -761,7 +781,7 @@ public class PromotionService : IPromotionService
         return applied;
     }
 
-    private bool ApplyCartAmountDiscountRule(PromotionRule rule, List<CartItemResultDto> cartItems, Promotion promotion, ApplyPromotionRulesDto applyDto, PromotionApplicationResultDto result)
+    private bool ApplyCartAmountDiscountRule(PromotionRule rule, List<CartItemResultDto> cartItems, Promotion promotion, ApplyPromotionRulesDto applyDto, HashSet<Guid> lockedLines, PromotionApplicationResultDto result)
     {
         if (!rule.MinOrderAmount.HasValue)
             return false;
@@ -807,7 +827,7 @@ public class PromotionService : IPromotionService
                     PromotionId = promotion.Id,
                     PromotionName = promotion.Name,
                     PromotionRuleId = rule.Id,
-                    RuleType = rule.RuleType,
+                    RuleType = ConvertRuleType(rule.RuleType),
                     DiscountAmount = itemDiscount,
                     DiscountPercentage = rule.DiscountPercentage,
                     Description = description,
@@ -822,7 +842,7 @@ public class PromotionService : IPromotionService
                 PromotionId = promotion.Id,
                 PromotionName = promotion.Name,
                 PromotionRuleId = rule.Id,
-                RuleType = rule.RuleType,
+                RuleType = ConvertRuleType(rule.RuleType),
                 DiscountAmount = totalDiscount,
                 DiscountPercentage = rule.DiscountPercentage,
                 Description = description,
@@ -862,7 +882,7 @@ public class PromotionService : IPromotionService
                     PromotionId = promotion.Id,
                     PromotionName = promotion.Name,
                     PromotionRuleId = rule.Id,
-                    RuleType = rule.RuleType,
+                    RuleType = ConvertRuleType(rule.RuleType),
                     DiscountAmount = discountAmount,
                     Description = description,
                     AffectedProductIds = { item.ProductId }
@@ -905,7 +925,7 @@ public class PromotionService : IPromotionService
                     PromotionId = promotion.Id,
                     PromotionName = promotion.Name,
                     PromotionRuleId = rule.Id,
-                    RuleType = rule.RuleType,
+                    RuleType = ConvertRuleType(rule.RuleType),
                     DiscountAmount = discountAmount,
                     Description = description,
                     AffectedProductIds = { item.ProductId }
@@ -979,7 +999,7 @@ public class PromotionService : IPromotionService
                 PromotionId = promotion.Id,
                 PromotionName = promotion.Name,
                 PromotionRuleId = rule.Id,
-                RuleType = rule.RuleType,
+                RuleType = ConvertRuleType(rule.RuleType),
                 DiscountAmount = itemDiscount,
                 Description = description,
                 AffectedProductIds = { item.ProductId }
@@ -993,7 +1013,7 @@ public class PromotionService : IPromotionService
             PromotionId = promotion.Id,
             PromotionName = promotion.Name,
             PromotionRuleId = rule.Id,
-            RuleType = rule.RuleType,
+            RuleType = ConvertRuleType(rule.RuleType),
             DiscountAmount = bundleDiscountAmount,
             Description = $"Bundle: {promotion.Name} for ${rule.FixedPrice.Value:F2}",
             AffectedProductIds = bundleItems.Select(i => i.ProductId).ToList()
@@ -1042,7 +1062,6 @@ public class PromotionService : IPromotionService
         }
 
         return targetItems;
-    }
     }
 
     #endregion
