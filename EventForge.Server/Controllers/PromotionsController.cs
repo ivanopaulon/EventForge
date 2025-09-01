@@ -259,4 +259,50 @@ public class PromotionsController : BaseApiController
             return CreateInternalServerErrorProblem("An error occurred while deleting the promotion.", ex);
         }
     }
+
+    /// <summary>
+    /// Applies promotion rules to a cart or order.
+    /// </summary>
+    /// <param name="applyDto">Cart/order data for promotion application</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Result with applied discounts and affected items</returns>
+    /// <response code="200">Returns the promotion application result</response>
+    /// <response code="400">If the request data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("apply")]
+    [ProducesResponseType(typeof(PromotionApplicationResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PromotionApplicationResultDto>> ApplyPromotions(
+        [FromBody] ApplyPromotionRulesDto applyDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var result = await _promotionService.ApplyPromotionRulesAsync(applyDto, cancellationToken);
+            
+            if (!result.Success)
+            {
+                return CreateValidationProblemDetails("One or more validation errors occurred while applying promotions: " + string.Join(", ", result.Messages));
+            }
+
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while applying promotions.", ex);
+        }
+    }
 }

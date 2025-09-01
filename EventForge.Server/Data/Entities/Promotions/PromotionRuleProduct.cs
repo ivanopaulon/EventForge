@@ -31,4 +31,10 @@ public class PromotionRuleProduct : AuditableEntity
     /// Navigation property for the associated product.
     /// </summary>
     public Product? Product { get; set; }
+
+    /// <summary>
+    /// Quantity of the product required for this rule.
+    /// </summary>
+    [Display(Name = "Quantity", Description = "Quantity of the product required for this rule.")]
+    public int? Quantity { get; set; }
 }

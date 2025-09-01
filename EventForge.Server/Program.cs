@@ -21,6 +21,9 @@ builder.Services.AddHealthChecks(builder.Configuration);
 // Add API Controllers support
 builder.Services.AddControllers();
 
+// Add Memory Cache for performance optimizations
+builder.Services.AddMemoryCache();
+
 // Add SignalR for real-time communication
 builder.Services.AddSignalR(options =>
 {
