@@ -1,15 +1,14 @@
+using EventForge.DTOs.Audit;
+using EventForge.DTOs.Common;
 using EventForge.DTOs.PriceLists;
-using EventForge.Server.Services.PriceLists;
-using EventForge.Server.Services.UnitOfMeasures;
-using EventForge.Server.Services.Audit;
+using EventForge.DTOs.SuperAdmin;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Audit;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Audit;
-using EventForge.DTOs.SuperAdmin;
-using Microsoft.Extensions.Logging;
+using EventForge.Server.Services.Audit;
+using EventForge.Server.Services.PriceLists;
+using EventForge.Server.Services.UnitOfMeasures;
 using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
+using Microsoft.Extensions.Logging;
 
 namespace EventForge.Tests.Services.PriceLists;
 
@@ -165,7 +164,7 @@ public class EnhancedPriceListServiceTests
         Assert.Null(result);
     }
 
-    [Fact] 
+    [Fact]
     public async Task GetPriceHistoryAsync_ShouldReturnEmptyList_ForNow()
     {
         // Arrange

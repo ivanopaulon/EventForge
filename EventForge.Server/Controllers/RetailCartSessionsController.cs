@@ -2,9 +2,6 @@ using EventForge.DTOs.RetailCart;
 using EventForge.Server.Services.RetailCart;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace EventForge.Server.Controllers
 {

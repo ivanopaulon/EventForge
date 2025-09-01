@@ -1,8 +1,8 @@
 using EventForge.DTOs.PriceLists;
 using EventForge.Server.Services.UnitOfMeasures;
 using Microsoft.EntityFrameworkCore;
-using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
 using PriceListEntryStatus = EventForge.Server.Data.Entities.PriceList.PriceListEntryStatus;
+using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
 using ProductUnitStatus = EventForge.Server.Data.Entities.Products.ProductUnitStatus;
 
 namespace EventForge.Server.Services.PriceLists;
@@ -559,13 +559,13 @@ public class PriceListService : IPriceListService
         try
         {
             var evalDate = evaluationDate ?? DateTime.UtcNow;
-            
+
             // Get all applicable price lists for the event with precedence ordering
             var applicablePriceLists = await _context.PriceLists
                 .Where(pl => pl.EventId == eventId && !pl.IsDeleted && pl.Status == PriceListStatus.Active)
-                .Where(pl => (pl.ValidFrom == null || pl.ValidFrom <= evalDate) && 
+                .Where(pl => (pl.ValidFrom == null || pl.ValidFrom <= evalDate) &&
                            (pl.ValidTo == null || pl.ValidTo >= evalDate))
-                .Include(pl => pl.ProductPrices.Where(ple => ple.ProductId == productId && !ple.IsDeleted && 
+                .Include(pl => pl.ProductPrices.Where(ple => ple.ProductId == productId && !ple.IsDeleted &&
                                                             ple.Status == PriceListEntryStatus.Attivo &&
                                                             ple.MinQuantity <= quantity &&
                                                             (ple.MaxQuantity == 0 || ple.MaxQuantity >= quantity)))
@@ -581,7 +581,7 @@ public class PriceListService : IPriceListService
 
             if (selectedEntry == null)
             {
-                _logger.LogWarning("No applicable price found for product {ProductId} in event {EventId} at date {EvaluationDate}", 
+                _logger.LogWarning("No applicable price found for product {ProductId} in event {EventId} at date {EvaluationDate}",
                     productId, eventId, evalDate);
                 return null;
             }
@@ -644,10 +644,10 @@ public class PriceListService : IPriceListService
             // Get the target unit information
             var targetProductUnit = await _context.ProductUnits
                 .Include(pu => pu.UnitOfMeasure)
-                .FirstOrDefaultAsync(pu => pu.ProductId == productId && 
-                                         pu.UnitOfMeasureId == targetUnitId && 
-                                         !pu.IsDeleted && 
-                                         pu.Status == ProductUnitStatus.Active, 
+                .FirstOrDefaultAsync(pu => pu.ProductId == productId &&
+                                         pu.UnitOfMeasureId == targetUnitId &&
+                                         !pu.IsDeleted &&
+                                         pu.Status == ProductUnitStatus.Active,
                                          cancellationToken);
 
             if (targetProductUnit == null)
@@ -659,10 +659,10 @@ public class PriceListService : IPriceListService
             // Get the base unit information for conversion
             var baseProductUnit = await _context.ProductUnits
                 .Include(pu => pu.UnitOfMeasure)
-                .FirstOrDefaultAsync(pu => pu.ProductId == productId && 
-                                         pu.UnitOfMeasureId == basePrice.UnitOfMeasureId && 
-                                         !pu.IsDeleted && 
-                                         pu.Status == ProductUnitStatus.Active, 
+                .FirstOrDefaultAsync(pu => pu.ProductId == productId &&
+                                         pu.UnitOfMeasureId == basePrice.UnitOfMeasureId &&
+                                         !pu.IsDeleted &&
+                                         pu.Status == ProductUnitStatus.Active,
                                          cancellationToken);
 
             if (baseProductUnit == null)
@@ -673,9 +673,9 @@ public class PriceListService : IPriceListService
 
             // Perform price conversion using the unit conversion service
             var convertedPrice = _unitConversionService.ConvertPrice(
-                basePrice.Price, 
-                baseProductUnit.ConversionFactor, 
-                targetProductUnit.ConversionFactor, 
+                basePrice.Price,
+                baseProductUnit.ConversionFactor,
+                targetProductUnit.ConversionFactor,
                 2); // 2 decimal places for currency
 
             // Create the result with conversion information
@@ -704,14 +704,14 @@ public class PriceListService : IPriceListService
             };
 
             _logger.LogInformation("Converted price from {OriginalPrice} {Currency}/{OriginalUnit} to {ConvertedPrice} {Currency}/{TargetUnit} for product {ProductId}",
-                basePrice.Price, basePrice.Currency, basePrice.UnitOfMeasureName, 
+                basePrice.Price, basePrice.Currency, basePrice.UnitOfMeasureName,
                 convertedPrice, result.Currency, result.UnitOfMeasureName, productId);
 
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calculating applied price with unit conversion for product {ProductId} in event {EventId} to unit {TargetUnitId}", 
+            _logger.LogError(ex, "Error calculating applied price with unit conversion for product {ProductId} in event {EventId} to unit {TargetUnitId}",
                 productId, eventId, targetUnitId);
             throw;
         }

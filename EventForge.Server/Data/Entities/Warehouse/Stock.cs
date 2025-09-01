@@ -1,6 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using EventForge.Server.Data.Entities.Audit;
-using EventForge.Server.Data.Entities.Products;
 
 namespace EventForge.Server.Data.Entities.Warehouse;
 

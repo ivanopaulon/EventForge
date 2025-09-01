@@ -8,7 +8,7 @@ namespace EventForge.DTOs.Warehouse
     public class AlertCheckSummaryDto
     {
         public DateTime CheckDateTime { get; set; } = DateTime.UtcNow;
-        
+
         public int LowStockAlertsCreated { get; set; }
         public int OverstockAlertsCreated { get; set; }
         public int ExpiryAlertsCreated { get; set; }

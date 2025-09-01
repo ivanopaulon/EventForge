@@ -1,8 +1,5 @@
 using EventForge.DTOs.Documents;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Documents;
 using EventForge.Server.Mappers;
-using EventForge.Server.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Documents;
@@ -70,7 +67,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
                 "Document Analytics",
                 cancellationToken);
 
-            _logger.LogInformation("Analytics updated for document {DocumentHeaderId} by user {User}", 
+            _logger.LogInformation("Analytics updated for document {DocumentHeaderId} by user {User}",
                 documentHeaderId, currentUser);
 
             return DocumentAnalyticsMapper.ToDto(analytics);
@@ -115,7 +112,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
             // Apply date filters
             if (from.HasValue)
                 query = query.Where(a => a.AnalyticsDate >= from.Value.Date);
-            
+
             if (to.HasValue)
                 query = query.Where(a => a.AnalyticsDate <= to.Value.Date);
 
@@ -146,7 +143,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting analytics summary from {From} to {To} grouped by {GroupBy}", 
+            _logger.LogError(ex, "Error getting analytics summary from {From} to {To} grouped by {GroupBy}",
                 from, to, groupBy);
             throw;
         }
@@ -184,14 +181,14 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Analytics updated for workflow event {EventType} on document {DocumentHeaderId}", 
+            _logger.LogInformation("Analytics updated for workflow event {EventType} on document {DocumentHeaderId}",
                 eventType, documentHeaderId);
 
             return DocumentAnalyticsMapper.ToDto(analytics);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error handling workflow event {EventType} for document {DocumentHeaderId}", 
+            _logger.LogError(ex, "Error handling workflow event {EventType} for document {DocumentHeaderId}",
                 eventType, documentHeaderId);
             throw;
         }
@@ -221,9 +218,9 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
                     .Average(a => a.TotalProcessingTimeHours) ?? 0,
                 AverageQualityScore = analytics.Where(a => a.QualityScore.HasValue)
                     .Average(a => a.QualityScore) ?? 0,
-                ErrorRate = totalDocuments > 0 ? 
+                ErrorRate = totalDocuments > 0 ?
                     (decimal)(analytics.Average(a => a.Errors) / Math.Max(totalDocuments, 1) * 100) : 0,
-                EscalationRate = totalDocuments > 0 ? 
+                EscalationRate = totalDocuments > 0 ?
                     (decimal)analytics.Sum(a => a.Escalations) / totalDocuments * 100 : 0,
                 AverageCustomerSatisfaction = analytics.Where(a => a.SatisfactionScore.HasValue)
                     .Average(a => a.SatisfactionScore),
@@ -261,7 +258,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
         {
             analytics.ApprovalStepsRequired = latestWorkflow.WorkflowSteps?.Count ?? 0;
             analytics.ApprovalStepsCompleted = latestWorkflow.WorkflowSteps?.Count(s => s.CompletedAt.HasValue) ?? 0;
-            
+
             // Calculate time metrics
             if (latestWorkflow.StartedAt.HasValue)
             {
@@ -322,7 +319,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
                     TotalValue = g.Where(a => a.DocumentValue.HasValue).Sum(a => a.DocumentValue),
                     AverageQuality = g.Where(a => a.QualityScore.HasValue).Average(a => a.QualityScore)
                 }).ToList(),
-            
+
             "department" => analytics
                 .GroupBy(a => a.Department ?? "Unknown")
                 .Select(g => new AnalyticsGroupDto
@@ -335,7 +332,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
                     TotalValue = g.Where(a => a.DocumentValue.HasValue).Sum(a => a.DocumentValue),
                     AverageQuality = g.Where(a => a.QualityScore.HasValue).Average(a => a.QualityScore)
                 }).ToList(),
-            
+
             "time" => analytics
                 .GroupBy(a => a.AnalyticsDate.ToString("yyyy-MM"))
                 .Select(g => new AnalyticsGroupDto
@@ -348,7 +345,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
                     TotalValue = g.Where(a => a.DocumentValue.HasValue).Sum(a => a.DocumentValue),
                     AverageQuality = g.Where(a => a.QualityScore.HasValue).Average(a => a.QualityScore)
                 }).ToList(),
-            
+
             _ => new List<AnalyticsGroupDto>()
         };
     }
@@ -358,11 +355,11 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
         // Simple quality score calculation
         // Start with 100 and subtract points for issues
         decimal score = 100;
-        
+
         score -= analytics.Errors * 10; // -10 points per error
         score -= analytics.Rejections * 5;   // -5 points per rejection
         score -= analytics.Revisions * 3; // -3 points per revision
-        
+
         // Bonus for fast completion (if under average)
         if (analytics.TimeToClosureHours.HasValue && analytics.TimeToClosureHours.Value < 24)
         {

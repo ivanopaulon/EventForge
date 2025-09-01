@@ -1,10 +1,5 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Warehouse;
 using EventForge.Server.Mappers;
-using EventForge.Server.Services.Audit;
-using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Warehouse;
@@ -97,7 +92,7 @@ public class StockService : IStockService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting stock with filters - ProductId: {ProductId}, LocationId: {LocationId}, LotId: {LotId}", 
+            _logger.LogError(ex, "Error getting stock with filters - ProductId: {ProductId}, LocationId: {LocationId}, LotId: {LotId}",
                 productId, locationId, lotId);
             throw;
         }
@@ -223,8 +218,8 @@ public class StockService : IStockService
             }
 
             var query = _context.Stocks
-                .Where(s => s.ProductId == productId && 
-                           s.StorageLocationId == locationId && 
+                .Where(s => s.ProductId == productId &&
+                           s.StorageLocationId == locationId &&
                            s.TenantId == currentTenantId.Value);
 
             if (lotId.HasValue)
@@ -237,7 +232,7 @@ public class StockService : IStockService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting available quantity at location - Product: {ProductId}, Location: {LocationId}, Lot: {LotId}", 
+            _logger.LogError(ex, "Error getting available quantity at location - Product: {ProductId}, Location: {LocationId}, Lot: {LotId}",
                 productId, locationId, lotId);
             throw;
         }
@@ -274,7 +269,7 @@ public class StockService : IStockService
                 existingStock.ModifiedBy = currentUser;
                 existingStock.ModifiedAt = DateTime.UtcNow;
 
-                await _auditLogService.LogEntityChangeAsync("Stock", existingStock.Id, "Updated", "Update", null, 
+                await _auditLogService.LogEntityChangeAsync("Stock", existingStock.Id, "Updated", "Update", null,
                     $"Updated stock for product {createDto.ProductId} at location {createDto.StorageLocationId}", currentUser);
             }
             else
@@ -321,7 +316,7 @@ public class StockService : IStockService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating/updating stock for product: {ProductId} at location: {LocationId}", 
+            _logger.LogError(ex, "Error creating/updating stock for product: {ProductId} at location: {LocationId}",
                 createDto.ProductId, createDto.StorageLocationId);
             throw;
         }
@@ -415,7 +410,7 @@ public class StockService : IStockService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error reserving stock - Product: {ProductId}, Location: {LocationId}, Quantity: {Quantity}", 
+            _logger.LogError(ex, "Error reserving stock - Product: {ProductId}, Location: {LocationId}, Quantity: {Quantity}",
                 productId, locationId, quantity);
             throw;
         }
@@ -454,7 +449,7 @@ public class StockService : IStockService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error releasing reserved stock - Product: {ProductId}, Location: {LocationId}, Quantity: {Quantity}", 
+            _logger.LogError(ex, "Error releasing reserved stock - Product: {ProductId}, Location: {LocationId}, Quantity: {Quantity}",
                 productId, locationId, quantity);
             throw;
         }

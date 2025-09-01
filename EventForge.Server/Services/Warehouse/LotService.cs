@@ -1,10 +1,5 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Warehouse;
 using EventForge.Server.Mappers;
-using EventForge.Server.Services.Audit;
-using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Warehouse;
@@ -185,10 +180,10 @@ public class LotService : ILotService
             var lots = await _context.Lots
                 .Include(l => l.Product)
                 .Include(l => l.Supplier)
-                .Where(l => l.TenantId == currentTenantId.Value && 
+                .Where(l => l.TenantId == currentTenantId.Value &&
                            !l.IsDeleted &&
                            l.Status == LotStatus.Active &&
-                           l.ExpiryDate.HasValue && 
+                           l.ExpiryDate.HasValue &&
                            l.ExpiryDate.Value <= expiryThreshold)
                 .OrderBy(l => l.ExpiryDate)
                 .ToListAsync(cancellationToken);
@@ -392,7 +387,7 @@ public class LotService : ILotService
             lot.QualityStatus = status;
             lot.ModifiedBy = currentUser;
             lot.ModifiedAt = DateTime.UtcNow;
-            
+
             if (!string.IsNullOrEmpty(notes))
             {
                 lot.Notes = notes;
@@ -410,7 +405,7 @@ public class LotService : ILotService
                 status.ToString(),
                 currentUser);
 
-            _logger.LogInformation("Updated quality status for lot {LotId} from {OriginalStatus} to {NewStatus}", 
+            _logger.LogInformation("Updated quality status for lot {LotId} from {OriginalStatus} to {NewStatus}",
                 lot.Id, originalStatus, status);
 
             return true;

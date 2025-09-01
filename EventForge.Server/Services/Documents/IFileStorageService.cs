@@ -1,5 +1,3 @@
-using EventForge.DTOs.Documents;
-
 namespace EventForge.Server.Services.Documents;
 
 /// <summary>

@@ -47,7 +47,7 @@ public class DocumentAnalyticsController : BaseApiController
         try
         {
             var analytics = await _analyticsService.GetDocumentAnalyticsAsync(documentHeaderId, cancellationToken);
-            
+
             if (analytics == null)
                 return CreateNotFoundProblem($"Analytics for document {documentHeaderId} not found.");
 
@@ -84,7 +84,7 @@ public class DocumentAnalyticsController : BaseApiController
         if (tenantError != null) return tenantError;
 
         // Validate groupBy parameter
-        if (!string.IsNullOrEmpty(groupBy) && 
+        if (!string.IsNullOrEmpty(groupBy) &&
             !new[] { "time", "documentType", "department" }.Contains(groupBy, StringComparer.OrdinalIgnoreCase))
         {
             return CreateValidationProblemDetails("Group by must be one of: time, documentType, department");
@@ -181,7 +181,7 @@ public class DocumentAnalyticsController : BaseApiController
         {
             var currentUser = GetCurrentUser();
             var analytics = await _analyticsService.CreateOrUpdateAnalyticsAsync(documentHeaderId, currentUser, cancellationToken);
-            
+
             return Ok(analytics);
         }
         catch (Exception ex)
@@ -224,7 +224,7 @@ public class DocumentAnalyticsController : BaseApiController
             var currentUser = GetCurrentUser();
             var analytics = await _analyticsService.HandleWorkflowEventAsync(
                 documentHeaderId, eventType, eventData, currentUser, cancellationToken);
-            
+
             return Ok(analytics);
         }
         catch (Exception ex)

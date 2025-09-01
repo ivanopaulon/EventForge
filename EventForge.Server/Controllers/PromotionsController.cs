@@ -288,7 +288,7 @@ public class PromotionsController : BaseApiController
         try
         {
             var result = await _promotionService.ApplyPromotionRulesAsync(applyDto, cancellationToken);
-            
+
             if (!result.Success)
             {
                 return CreateValidationProblemDetails("One or more validation errors occurred while applying promotions: " + string.Join(", ", result.Messages));

@@ -1,11 +1,5 @@
 using EventForge.DTOs.Documents;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Audit;
-using EventForge.Server.Data.Entities.Documents;
-using EventForge.Server.Services.Audit;
-using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace EventForge.Server.Services.Documents;
 
@@ -280,7 +274,7 @@ public class DocumentAttachmentService : IDocumentAttachmentService
                 $"Created version {newVersion.Version} of attachment '{newVersion.FileName}'",
                 currentUser);
 
-            _logger.LogInformation("Created version {Version} of attachment {AttachmentId} for user {User}", 
+            _logger.LogInformation("Created version {Version} of attachment {AttachmentId} for user {User}",
                 newVersion.Version, id, currentUser);
 
             return MapToDto(newVersion);

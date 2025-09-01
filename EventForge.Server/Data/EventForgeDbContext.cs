@@ -1,8 +1,6 @@
 ﻿using EventForge.Server.Data.Entities;
 using EventForge.Server.Data.Entities.Chat;
-using EventForge.Server.Data.Entities.Documents;
 using EventForge.Server.Data.Entities.Notifications;
-using EventForge.Server.Data.Entities.Warehouse;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Data;
@@ -46,6 +44,7 @@ public class EventForgeDbContext : DbContext
     public DbSet<DocumentComment> DocumentComments { get; set; }
     public DbSet<DocumentTemplate> DocumentTemplates { get; set; }
     public DbSet<DocumentWorkflow> DocumentWorkflows { get; set; }
+    public DbSet<DocumentWorkflowExecution> DocumentWorkflowExecutions { get; set; } // <- aggiunto
     public DbSet<DocumentRecurrence> DocumentRecurrences { get; set; }
     public DbSet<DocumentAnalytics> DocumentAnalytics { get; set; }
 
@@ -72,7 +71,7 @@ public class EventForgeDbContext : DbContext
     // Warehouse
     public DbSet<StorageFacility> StorageFacilities { get; set; }
     public DbSet<StorageLocation> StorageLocations { get; set; }
-    
+
     // Traceability and Stock Management
     public DbSet<Lot> Lots { get; set; }
     public DbSet<Serial> Serials { get; set; }
@@ -586,6 +585,29 @@ public class EventForgeDbContext : DbContext
             entity.Property(e => e.MachineName).HasMaxLength(100);
             entity.Property(e => e.UserName).HasMaxLength(100);
         });
+
+        modelBuilder.Entity<DocumentHeader>()
+            .HasOne(dh => dh.CurrentWorkflowExecution)
+            .WithMany() // nessuna inverse navigation
+            .HasForeignKey(dh => dh.CurrentWorkflowExecutionId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Indice sulla FK per performance
+        modelBuilder.Entity<DocumentHeader>()
+            .HasIndex(dh => dh.CurrentWorkflowExecutionId)
+            .HasDatabaseName("IX_DocumentHeaders_CurrentWorkflowExecutionId");
+
+        // DocumentWorkflowExecution → DocumentHeader (storico esecuzioni di un documento)
+        modelBuilder.Entity<DocumentWorkflowExecution>()
+            .HasOne(dwe => dwe.DocumentHeader)
+            .WithMany() // oppure .WithMany(dh => dh.WorkflowExecutions) se esiste la collection
+            .HasForeignKey(dwe => dwe.DocumentHeaderId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Indice utile per join su storico
+        modelBuilder.Entity<DocumentWorkflowExecution>()
+            .HasIndex(dwe => dwe.DocumentHeaderId)
+            .HasDatabaseName("IX_DocumentWorkflowExecutions_DocumentHeaderId");
     }
 
     /// <summary>

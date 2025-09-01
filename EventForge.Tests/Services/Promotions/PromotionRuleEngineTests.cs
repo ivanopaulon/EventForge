@@ -1,18 +1,13 @@
 using EventForge.DTOs.Promotions;
-using EventForge.Server.Data.Entities.Promotions;
-using EventForge.Server.Services.Promotions;
-using EventForge.Server.Services.Audit;
-using EventForge.Server.Services.Tenants;
 using EventForge.Server.Data;
+using EventForge.Server.Data.Entities.Promotions;
+using EventForge.Server.Services.Audit;
+using EventForge.Server.Services.Promotions;
+using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace EventForge.Tests.Services.Promotions
 {
@@ -102,7 +97,7 @@ namespace EventForge.Tests.Services.Promotions
             var productId = Guid.NewGuid();
             var categoryId = Guid.NewGuid();
             var otherCategoryId = Guid.NewGuid();
-            
+
             var promotion = CreatePromotion("Electronics 15% Off", priority: 1);
             var rule = CreatePromotionRule(promotion, PromotionRuleType.CategoryDiscount, discountPercentage: 15m);
             rule.CategoryIds = new List<Guid> { categoryId };
@@ -143,12 +138,12 @@ namespace EventForge.Tests.Services.Promotions
             Assert.Equal(130.00m, result.OriginalTotal);
             Assert.Equal(115.00m, result.FinalTotal); // 100 - 15 + 30
             Assert.Equal(15.00m, result.TotalDiscountAmount);
-            
+
             // Check that only the laptop got the discount
             var laptopItem = result.CartItems.First(i => i.ProductName == "Laptop");
             Assert.Equal(85.00m, laptopItem.FinalLineTotal); // 100 - 15
             Assert.Single(laptopItem.AppliedPromotions);
-            
+
             var bookItem = result.CartItems.First(i => i.ProductName == "Book");
             Assert.Equal(30.00m, bookItem.FinalLineTotal); // No discount
             Assert.Empty(bookItem.AppliedPromotions);
@@ -159,7 +154,7 @@ namespace EventForge.Tests.Services.Promotions
         {
             // Arrange
             var promotion = CreatePromotion("$10 off $50+", priority: 1);
-            var rule = CreatePromotionRule(promotion, PromotionRuleType.CartAmountDiscount, 
+            var rule = CreatePromotionRule(promotion, PromotionRuleType.CartAmountDiscount,
                 discountAmount: 10m, minOrderAmount: 50m);
             promotion.Rules.Add(rule);
 
@@ -320,7 +315,7 @@ namespace EventForge.Tests.Services.Promotions
             // Arrange
             var productAId = Guid.NewGuid();
             var productBId = Guid.NewGuid();
-            
+
             var promotion = CreatePromotion("Bundle A+B for $60", priority: 1);
             var rule = CreatePromotionRule(promotion, PromotionRuleType.Bundle);
             rule.FixedPrice = 60.00m;
@@ -482,7 +477,7 @@ namespace EventForge.Tests.Services.Promotions
         {
             // Arrange
             var productId = Guid.NewGuid();
-            
+
             // Exclusive promotion with higher priority
             var exclusivePromotion = CreatePromotion("Exclusive 30% Off", priority: 10);
             var exclusiveRule = CreatePromotionRule(exclusivePromotion, PromotionRuleType.Exclusive, discountPercentage: 30m);
@@ -528,7 +523,7 @@ namespace EventForge.Tests.Services.Promotions
             // Arrange
             var productAId = Guid.NewGuid();
             var productBId = Guid.NewGuid();
-            
+
             // Non-combinable promotion for Product A (higher priority)
             var nonCombinablePromotion = CreatePromotion("Non-Combinable 25% Off A", priority: 10, isCombinable: false);
             var nonCombinableRule = CreatePromotionRule(nonCombinablePromotion, PromotionRuleType.Discount, discountPercentage: 25m);
@@ -573,13 +568,13 @@ namespace EventForge.Tests.Services.Promotions
 
             // Assert
             Assert.True(result.Success);
-            
+
             // Product A should only have the non-combinable discount (25%)
             var productAItem = result.CartItems.First(i => i.ProductName == "Product A");
             Assert.Equal(75.00m, productAItem.FinalLineTotal); // 100 - 25
             Assert.Single(productAItem.AppliedPromotions);
             Assert.Equal("Non-Combinable 25% Off A", productAItem.AppliedPromotions.First().PromotionName);
-            
+
             // Product B should only have the combinable discount (10%)
             var productBItem = result.CartItems.First(i => i.ProductName == "Product B");
             Assert.Equal(45.00m, productBItem.FinalLineTotal); // 50 - 5
@@ -646,8 +641,8 @@ namespace EventForge.Tests.Services.Promotions
         }
 
         private PromotionRule CreatePromotionRule(
-            Promotion promotion, 
-            PromotionRuleType ruleType, 
+            Promotion promotion,
+            PromotionRuleType ruleType,
             decimal? discountPercentage = null,
             decimal? discountAmount = null,
             decimal? minOrderAmount = null)

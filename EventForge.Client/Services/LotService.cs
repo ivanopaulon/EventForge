@@ -32,10 +32,10 @@ public class LotService : ILotService
 
             if (productId.HasValue)
                 queryParams.Add($"productId={productId.Value}");
-            
+
             if (!string.IsNullOrEmpty(status))
                 queryParams.Add($"status={Uri.EscapeDataString(status)}");
-            
+
             if (expiringSoon.HasValue)
                 queryParams.Add($"expiringSoon={expiringSoon.Value}");
 
@@ -66,7 +66,7 @@ public class LotService : ILotService
         try
         {
             var response = await _httpClient.GetAsync($"{BaseUrl}/{id}");
-            
+
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<LotDto>();
@@ -92,7 +92,7 @@ public class LotService : ILotService
         try
         {
             var response = await _httpClient.GetAsync($"{BaseUrl}/code/{Uri.EscapeDataString(code)}");
-            
+
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<LotDto>();
@@ -118,7 +118,7 @@ public class LotService : ILotService
         try
         {
             var response = await _httpClient.GetAsync($"{BaseUrl}/expiring?daysAhead={daysAhead}");
-            
+
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<IEnumerable<LotDto>>();
@@ -139,7 +139,7 @@ public class LotService : ILotService
         try
         {
             var response = await _httpClient.PostAsJsonAsync(BaseUrl, createDto);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<LotDto>();
@@ -160,7 +160,7 @@ public class LotService : ILotService
         try
         {
             var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", updateDto);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<LotDto>();

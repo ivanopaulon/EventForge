@@ -1,5 +1,4 @@
 using EventForge.DTOs.Documents;
-using EventForge.Server.Data.Entities.Documents;
 
 namespace EventForge.Server.Mappers;
 

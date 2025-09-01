@@ -1,14 +1,13 @@
 using EventForge.DTOs.Promotions;
-using EventForge.Server.Data.Entities.Promotions;
-using EventForge.Server.Services.Promotions;
-using EventForge.Server.Services.Audit;
-using EventForge.Server.Services.Tenants;
 using EventForge.Server.Data;
+using EventForge.Server.Data.Entities.Promotions;
+using EventForge.Server.Services.Audit;
+using EventForge.Server.Services.Promotions;
+using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 
 namespace EventForge.Tests.Services.Promotions
 {
@@ -153,7 +152,7 @@ namespace EventForge.Tests.Services.Promotions
             Assert.Equal(20.00m, result.FinalTotal);
             Assert.Equal(0m, result.TotalDiscountAmount);
             Assert.Single(result.CartItems);
-            
+
             var cartItem = result.CartItems.First();
             Assert.Equal(productId, cartItem.ProductId);
             Assert.Equal(20.00m, cartItem.OriginalLineTotal);
@@ -191,7 +190,7 @@ namespace EventForge.Tests.Services.Promotions
             Assert.Equal(20.00m, result.OriginalTotal);
             Assert.Equal(18.00m, result.FinalTotal); // 20 - 10% = 18
             Assert.Equal(2.00m, result.TotalDiscountAmount);
-            
+
             var cartItem = result.CartItems.First();
             Assert.Equal(20.00m, cartItem.OriginalLineTotal);
             Assert.Equal(18.00m, cartItem.FinalLineTotal);
@@ -258,14 +257,14 @@ namespace EventForge.Tests.Services.Promotions
             Assert.Equal(20.00m, result.OriginalTotal);
             Assert.Equal(18.00m, result.FinalTotal); // 20 - 10% = 18
             Assert.Equal(2.00m, result.TotalDiscountAmount);
-            
+
             var cartItem = result.CartItems.First();
             Assert.Equal(20.00m, cartItem.OriginalLineTotal);
             Assert.Equal(18.00m, cartItem.FinalLineTotal);
             Assert.Equal(2.00m, cartItem.PromotionDiscount);
             Assert.Equal(10m, cartItem.EffectiveDiscountPercentage);
             Assert.Single(cartItem.AppliedPromotions);
-            
+
             var appliedPromotion = cartItem.AppliedPromotions.First();
             Assert.Equal(promotionId, appliedPromotion.PromotionId);
             Assert.Equal("10% Off", appliedPromotion.PromotionName);

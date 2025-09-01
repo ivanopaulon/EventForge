@@ -3,7 +3,6 @@ using EventForge.Server.Services.Auth;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Xunit;
 
 namespace EventForge.Tests.Services.Auth;
 
@@ -18,7 +17,7 @@ public class BootstrapServiceTests
             .Options;
 
         await using var context = new EventForgeDbContext(options);
-        
+
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string>
             {
@@ -102,7 +101,7 @@ public class BootstrapServiceTests
             .Options;
 
         await using var context = new EventForgeDbContext(options);
-        
+
         // Add an existing tenant
         context.Tenants.Add(new EventForge.Server.Data.Entities.Auth.Tenant
         {
@@ -155,7 +154,7 @@ public class BootstrapServiceTests
             .Options;
 
         await using var context = new EventForgeDbContext(options);
-        
+
         // Set environment variable
         Environment.SetEnvironmentVariable("EVENTFORGE_BOOTSTRAP_SUPERADMIN_PASSWORD", "EnvironmentPassword123!");
 

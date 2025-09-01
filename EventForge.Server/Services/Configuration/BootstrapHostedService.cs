@@ -23,10 +23,10 @@ public class BootstrapHostedService : IHostedService
         try
         {
             using var scope = _serviceProvider.CreateScope();
-            
+
             // Apply migrations first
             var dbContext = scope.ServiceProvider.GetRequiredService<EventForgeDbContext>();
-            
+
             if (!dbContext.Database.CanConnect())
             {
                 _logger.LogError("Cannot connect to database. Migration and bootstrap skipped.");
@@ -35,14 +35,14 @@ public class BootstrapHostedService : IHostedService
 
             // Check for pending migrations
             var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync(cancellationToken);
-            
+
             if (pendingMigrations.Any())
             {
                 _logger.LogInformation("Found {Count} pending migrations: {Migrations}",
                     pendingMigrations.Count(), string.Join(", ", pendingMigrations));
 
                 await dbContext.Database.MigrateAsync(cancellationToken);
-                
+
                 _logger.LogInformation("Database migrations applied successfully: {AppliedMigrations}",
                     string.Join(", ", pendingMigrations));
             }
@@ -54,7 +54,7 @@ public class BootstrapHostedService : IHostedService
             // Run bootstrap process
             var bootstrapService = scope.ServiceProvider.GetRequiredService<IBootstrapService>();
             var bootstrapResult = await bootstrapService.EnsureAdminBootstrappedAsync(cancellationToken);
-            
+
             if (bootstrapResult)
             {
                 _logger.LogInformation("Bootstrap process completed successfully");

@@ -1,8 +1,5 @@
 using EventForge.DTOs.Documents;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Documents;
 using EventForge.Server.Mappers;
-using EventForge.Server.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Documents;

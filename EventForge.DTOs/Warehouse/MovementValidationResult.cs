@@ -14,9 +14,9 @@ namespace EventForge.DTOs.Warehouse
 
         public decimal? AvailableQuantity { get; set; }
         public decimal? RequiredQuantity { get; set; }
-        public decimal? ShortfallQuantity 
-        { 
-            get 
+        public decimal? ShortfallQuantity
+        {
+            get
             {
                 if (RequiredQuantity.HasValue && AvailableQuantity.HasValue)
                     return Math.Max(0, RequiredQuantity.Value - AvailableQuantity.Value);

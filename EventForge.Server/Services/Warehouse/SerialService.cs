@@ -1,10 +1,5 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Warehouse;
 using EventForge.Server.Mappers;
-using EventForge.Server.Services.Audit;
-using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Warehouse;
@@ -390,8 +385,8 @@ public class SerialService : ISerialService
             if (!string.IsNullOrEmpty(updateDto.SerialNumber) && updateDto.SerialNumber != serial.SerialNumber)
             {
                 var existingSerial = await _context.Serials
-                    .FirstOrDefaultAsync(s => s.SerialNumber == updateDto.SerialNumber && 
-                                            s.TenantId == currentTenantId.Value && 
+                    .FirstOrDefaultAsync(s => s.SerialNumber == updateDto.SerialNumber &&
+                                            s.TenantId == currentTenantId.Value &&
                                             s.Id != id, cancellationToken);
 
                 if (existingSerial != null)
@@ -630,7 +625,7 @@ public class SerialService : ISerialService
             }
 
             _context.Serials.Remove(serial);
-            await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Deleted", "Delete", null, 
+            await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Deleted", "Delete", null,
                 $"Deleted serial number {serial.SerialNumber}", currentUser);
             await _context.SaveChangesAsync(cancellationToken);
 

@@ -1,9 +1,5 @@
 using EventForge.DTOs.Documents;
-using EventForge.DTOs.Common;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Documents;
 using EventForge.Server.Mappers;
-using EventForge.Server.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Documents;
@@ -118,10 +114,10 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
         {
             var entities = await _context.DocumentRecurrences
                 .Include(dr => dr.Template)
-                .Where(dr => dr.IsEnabled && 
-                           dr.IsActive && 
+                .Where(dr => dr.IsEnabled &&
+                           dr.IsActive &&
                            dr.Status == RecurrenceStatus.Active &&
-                           dr.NextExecutionDate.HasValue && 
+                           dr.NextExecutionDate.HasValue &&
                            dr.NextExecutionDate.Value <= upToDate)
                 .OrderBy(dr => dr.NextExecutionDate)
                 .ToListAsync(cancellationToken);
@@ -329,7 +325,7 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
             {
                 // Calculate next execution date
                 entity.NextExecutionDate = CalculateNextExecutionDate(entity);
-                
+
                 // Check if we've reached max occurrences
                 if (entity.MaxOccurrences.HasValue && entity.ExecutionCount >= entity.MaxOccurrences.Value)
                 {
@@ -390,8 +386,8 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
             RecurrencePattern.Monthly => (DateTime?)baseDate.AddMonths(recurrence.Interval),
             RecurrencePattern.Quarterly => (DateTime?)baseDate.AddMonths(3 * recurrence.Interval),
             RecurrencePattern.Yearly => (DateTime?)baseDate.AddYears(recurrence.Interval),
-            RecurrencePattern.Custom => (DateTime?)null, // Custom patterns need special handling
-            _ => (DateTime?)null
+            RecurrencePattern.Custom => null, // Custom patterns need special handling
+            _ => null
         };
 
         // Apply lead time

@@ -132,7 +132,7 @@ public class PromotionService : IPromotionService
 
             _context.Promotions.Add(promotion);
             await _context.SaveChangesAsync(cancellationToken);
-            
+
             // Invalidate cache after creating promotion
             InvalidatePromotionCache();
 
@@ -190,7 +190,7 @@ public class PromotionService : IPromotionService
             promotion.ModifiedBy = currentUser;
 
             await _context.SaveChangesAsync(cancellationToken);
-            
+
             // Invalidate cache after updating promotion
             InvalidatePromotionCache();
 
@@ -241,7 +241,7 @@ public class PromotionService : IPromotionService
             promotion.ModifiedBy = currentUser;
 
             await _context.SaveChangesAsync(cancellationToken);
-            
+
             // Invalidate cache after deleting promotion
             InvalidatePromotionCache();
 
@@ -359,7 +359,7 @@ public class PromotionService : IPromotionService
                 }
 
                 var applied = ApplyPromotionToCart(promotion, result.CartItems, applyDto, lockedLines, result);
-                
+
                 if (applied && promotion.Rules.Any(r => r.RuleType == EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Exclusive))
                 {
                     exclusiveApplied = true;
@@ -371,7 +371,7 @@ public class PromotionService : IPromotionService
             result.FinalTotal = result.CartItems.Sum(item => item.FinalLineTotal);
             result.TotalDiscountAmount = result.OriginalTotal - result.FinalTotal;
 
-            _logger.LogInformation("Promotion application completed. Original: {Original}, Final: {Final}, Discount: {Discount}", 
+            _logger.LogInformation("Promotion application completed. Original: {Original}, Final: {Final}, Discount: {Discount}",
                 result.OriginalTotal, result.FinalTotal, result.TotalDiscountAmount);
 
             return result;
@@ -453,7 +453,7 @@ public class PromotionService : IPromotionService
         }
 
         var cacheKey = $"ActivePromotions:{currentTenantId.Value}";
-        
+
         if (_cache.TryGetValue(cacheKey, out List<Promotion>? cachedPromotions))
         {
             _logger.LogDebug("Retrieved {Count} promotions from cache", cachedPromotions?.Count ?? 0);
@@ -461,7 +461,7 @@ public class PromotionService : IPromotionService
         }
 
         _logger.LogDebug("Cache miss - fetching promotions from database");
-        
+
         var now = DateTime.UtcNow;
         var promotions = await _context.Promotions
             .WhereActiveTenant(currentTenantId.Value)
@@ -500,7 +500,7 @@ public class PromotionService : IPromotionService
             {
                 if (!appliedCoupons.Contains(promotion.CouponCode))
                 {
-                    _logger.LogDebug("Skipping promotion {PromotionName} - required coupon {Coupon} not provided", 
+                    _logger.LogDebug("Skipping promotion {PromotionName} - required coupon {Coupon} not provided",
                         promotion.Name, promotion.CouponCode);
                     continue;
                 }
@@ -512,7 +512,7 @@ public class PromotionService : IPromotionService
                 var currentTotal = applyDto.CartItems.Sum(item => item.UnitPrice * item.Quantity);
                 if (currentTotal < promotion.MinOrderAmount.Value)
                 {
-                    _logger.LogDebug("Skipping promotion {PromotionName} - minimum order amount {MinAmount} not met (current: {CurrentTotal})", 
+                    _logger.LogDebug("Skipping promotion {PromotionName} - minimum order amount {MinAmount} not met (current: {CurrentTotal})",
                         promotion.Name, promotion.MinOrderAmount.Value, currentTotal);
                     continue;
                 }
@@ -663,7 +663,7 @@ public class PromotionService : IPromotionService
             if (applied)
             {
                 anyApplied = true;
-                
+
                 // If promotion is not combinable, lock affected lines
                 if (!promotion.IsCombinable)
                 {
@@ -734,9 +734,9 @@ public class PromotionService : IPromotionService
             return false;
 
         bool applied = false;
-        var targetItems = cartItems.Where(item => 
+        var targetItems = cartItems.Where(item =>
             !lockedLines.Contains(item.ProductId) &&
-            item.CategoryIds != null && 
+            item.CategoryIds != null &&
             item.CategoryIds.Any(catId => rule.CategoryIds.Contains(catId))).ToList();
 
         foreach (var item in targetItems)
@@ -818,7 +818,7 @@ public class PromotionService : IPromotionService
             {
                 var proportion = item.FinalLineTotal / totalEligibleAmount;
                 var itemDiscount = RoundCurrency(totalDiscount * proportion);
-                
+
                 item.FinalLineTotal = RoundCurrency(Math.Max(0, item.FinalLineTotal - itemDiscount));
                 item.PromotionDiscount += itemDiscount;
                 item.EffectiveDiscountPercentage = RoundCurrency((item.OriginalLineTotal - item.FinalLineTotal) / item.OriginalLineTotal * 100m);
@@ -871,7 +871,7 @@ public class PromotionService : IPromotionService
             {
                 var freeItems = eligibleSets * rule.FreeQuantity.Value;
                 var discountAmount = RoundCurrency(item.UnitPrice * freeItems);
-                
+
                 item.FinalLineTotal = RoundCurrency(Math.Max(0, item.FinalLineTotal - discountAmount));
                 item.PromotionDiscount += discountAmount;
                 item.EffectiveDiscountPercentage = RoundCurrency((item.OriginalLineTotal - item.FinalLineTotal) / item.OriginalLineTotal * 100m);
@@ -914,7 +914,7 @@ public class PromotionService : IPromotionService
             if (newLineTotal < item.FinalLineTotal)
             {
                 var discountAmount = item.FinalLineTotal - newLineTotal;
-                
+
                 item.FinalLineTotal = newLineTotal;
                 item.PromotionDiscount += discountAmount;
                 item.EffectiveDiscountPercentage = RoundCurrency((item.OriginalLineTotal - item.FinalLineTotal) / item.OriginalLineTotal * 100m);
@@ -948,8 +948,8 @@ public class PromotionService : IPromotionService
 
         // Find items that match the bundle requirements
         var bundleProductIds = rule.Products.Select(p => p.ProductId).ToHashSet();
-        var bundleItems = cartItems.Where(item => 
-            bundleProductIds.Contains(item.ProductId) && 
+        var bundleItems = cartItems.Where(item =>
+            bundleProductIds.Contains(item.ProductId) &&
             !lockedLines.Contains(item.ProductId)).ToList();
 
         // Check if we have all required products in sufficient quantities
@@ -1057,8 +1057,8 @@ public class PromotionService : IPromotionService
         // Filter by categories if rule specifies them
         if (rule.CategoryIds != null && rule.CategoryIds.Any())
         {
-            targetItems = targetItems.Where(item => 
-                item.CategoryIds != null && 
+            targetItems = targetItems.Where(item =>
+                item.CategoryIds != null &&
                 item.CategoryIds.Any(catId => rule.CategoryIds.Contains(catId))).ToList();
         }
 

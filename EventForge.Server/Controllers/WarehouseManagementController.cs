@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Warehouse;
@@ -921,7 +920,7 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> UpdateSerialStatus(
-        Guid id, 
+        Guid id,
         [FromQuery] string status,
         [FromQuery] string? notes = null,
         CancellationToken cancellationToken = default)

@@ -1,7 +1,4 @@
 using EventForge.DTOs.RetailCart;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace EventForge.Server.Services.RetailCart
 {

@@ -1,4 +1,3 @@
-using EventForge.DTOs.Documents;
 using System.Security.Cryptography;
 
 namespace EventForge.Server.Services.Documents;
@@ -18,9 +17,9 @@ public class LocalFileStorageService : IFileStorageService
     {
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        
+
         _baseStoragePath = _configuration["FileStorage:BasePath"] ?? "App_Data/Files";
-        
+
         // Ensure base storage directory exists
         Directory.CreateDirectory(_baseStoragePath);
     }
@@ -49,15 +48,15 @@ public class LocalFileStorageService : IFileStorageService
             // Calculate file hash and size
             string fileHash;
             long fileSize;
-            
+
             using (var sha256 = SHA256.Create())
             {
                 var originalPosition = fileStream.Position;
                 fileStream.Position = 0;
-                
+
                 var hashBytes = await sha256.ComputeHashAsync(fileStream, cancellationToken);
                 fileHash = Convert.ToHexString(hashBytes);
-                
+
                 fileSize = fileStream.Length;
                 fileStream.Position = originalPosition;
             }
@@ -70,8 +69,8 @@ public class LocalFileStorageService : IFileStorageService
             }
 
             var storagePath = Path.Combine(tenantId.ToString(), uniqueFileName);
-            
-            _logger.LogInformation("File saved successfully: {FileName} -> {StoragePath} (Size: {FileSize} bytes)", 
+
+            _logger.LogInformation("File saved successfully: {FileName} -> {StoragePath} (Size: {FileSize} bytes)",
                 fileName, storagePath, fileSize);
 
             return new FileStorageResult
@@ -104,13 +103,13 @@ public class LocalFileStorageService : IFileStorageService
             // Validate path is within tenant scope
             if (!storagePath.StartsWith(tenantId.ToString()))
             {
-                _logger.LogWarning("Attempted to access file outside tenant scope: {StoragePath} for tenant {TenantId}", 
+                _logger.LogWarning("Attempted to access file outside tenant scope: {StoragePath} for tenant {TenantId}",
                     storagePath, tenantId);
                 return Task.FromResult<FileRetrievalResult?>(null);
             }
 
             var fullPath = Path.Combine(_baseStoragePath, storagePath);
-            
+
             if (!File.Exists(fullPath))
             {
                 _logger.LogWarning("File not found: {StoragePath}", storagePath);
@@ -119,7 +118,7 @@ public class LocalFileStorageService : IFileStorageService
 
             var fileInfo = new FileInfo(fullPath);
             var fileName = Path.GetFileName(storagePath);
-            
+
             // Determine content type based on file extension
             var contentType = GetContentType(Path.GetExtension(fileName));
 
@@ -155,23 +154,23 @@ public class LocalFileStorageService : IFileStorageService
             // Validate path is within tenant scope
             if (!storagePath.StartsWith(tenantId.ToString()))
             {
-                _logger.LogWarning("Attempted to delete file outside tenant scope: {StoragePath} for tenant {TenantId}", 
+                _logger.LogWarning("Attempted to delete file outside tenant scope: {StoragePath} for tenant {TenantId}",
                     storagePath, tenantId);
                 return Task.FromResult(false);
             }
 
             var fullPath = Path.Combine(_baseStoragePath, storagePath);
-            
+
             if (!File.Exists(fullPath))
             {
                 return Task.FromResult(false);
             }
 
             File.Delete(fullPath);
-            
-            _logger.LogInformation("File deleted successfully: {StoragePath} for tenant {TenantId}", 
+
+            _logger.LogInformation("File deleted successfully: {StoragePath} for tenant {TenantId}",
                 storagePath, tenantId);
-            
+
             return Task.FromResult(true);
         }
         catch (Exception ex)
@@ -194,13 +193,13 @@ public class LocalFileStorageService : IFileStorageService
             // Validate path is within tenant scope
             if (!storagePath.StartsWith(tenantId.ToString()))
             {
-                _logger.LogWarning("Attempted to access file metadata outside tenant scope: {StoragePath} for tenant {TenantId}", 
+                _logger.LogWarning("Attempted to access file metadata outside tenant scope: {StoragePath} for tenant {TenantId}",
                     storagePath, tenantId);
                 return Task.FromResult<FileMetadata?>(null);
             }
 
             var fullPath = Path.Combine(_baseStoragePath, storagePath);
-            
+
             if (!File.Exists(fullPath))
             {
                 return Task.FromResult<FileMetadata?>(null);

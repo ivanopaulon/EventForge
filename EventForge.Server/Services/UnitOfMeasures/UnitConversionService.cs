@@ -1,5 +1,3 @@
-using EventForge.DTOs.Products;
-
 namespace EventForge.Server.Services.UnitOfMeasures;
 
 /// <summary>
@@ -21,7 +19,7 @@ public class UnitConversionService : IUnitConversionService
     {
         if (!IsValidConversionFactor(fromConversionFactor))
             throw new ArgumentException("Source conversion factor must be greater than zero.", nameof(fromConversionFactor));
-        
+
         if (!IsValidConversionFactor(toConversionFactor))
             throw new ArgumentException("Target conversion factor must be greater than zero.", nameof(toConversionFactor));
 
@@ -96,7 +94,7 @@ public class UnitConversionService : IUnitConversionService
     {
         if (!IsValidConversionFactor(fromConversionFactor))
             throw new ArgumentException("Source conversion factor must be greater than zero.", nameof(fromConversionFactor));
-        
+
         if (!IsValidConversionFactor(toConversionFactor))
             throw new ArgumentException("Target conversion factor must be greater than zero.", nameof(toConversionFactor));
 

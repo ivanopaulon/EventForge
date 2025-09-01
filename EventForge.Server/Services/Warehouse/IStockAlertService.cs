@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
 
 namespace EventForge.Server.Services.Warehouse;

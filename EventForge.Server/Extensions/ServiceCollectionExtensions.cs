@@ -2,7 +2,6 @@ using EventForge.Server.Services.Banks;
 using EventForge.Server.Services.Business;
 using EventForge.Server.Services.Chat;
 using EventForge.Server.Services.Common;
-using EventForge.Server.Services.Configuration;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Events;
 using EventForge.Server.Services.Licensing;
@@ -194,7 +193,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDocumentTemplateService, DocumentTemplateService>();
         services.AddScoped<IDocumentWorkflowService, DocumentWorkflowService>();
         services.AddScoped<IDocumentRecurrenceService, DocumentRecurrenceService>();
-        
+
         // Register document analytics and supporting services
         services.AddScoped<IDocumentAnalyticsService, DocumentAnalyticsService>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();

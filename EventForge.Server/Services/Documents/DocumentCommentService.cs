@@ -1,11 +1,5 @@
 using EventForge.DTOs.Documents;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Audit;
-using EventForge.Server.Data.Entities.Documents;
-using EventForge.Server.Services.Audit;
-using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace EventForge.Server.Services.Documents;
 
@@ -304,7 +298,7 @@ public class DocumentCommentService : IDocumentCommentService
 
             if (!string.IsNullOrEmpty(resolveDto.ResolutionNotes))
             {
-                comment.Metadata = string.IsNullOrEmpty(comment.Metadata) 
+                comment.Metadata = string.IsNullOrEmpty(comment.Metadata)
                     ? $"{{\"resolutionNotes\":\"{resolveDto.ResolutionNotes}\"}}"
                     : comment.Metadata;
             }

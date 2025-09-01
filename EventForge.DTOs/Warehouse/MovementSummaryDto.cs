@@ -28,9 +28,9 @@ namespace EventForge.DTOs.Warehouse
 
         public decimal? TotalInboundValue { get; set; }
         public decimal? TotalOutboundValue { get; set; }
-        public decimal? NetValue 
-        { 
-            get 
+        public decimal? NetValue
+        {
+            get
             {
                 var inbound = TotalInboundValue ?? 0;
                 var outbound = TotalOutboundValue ?? 0;
@@ -38,9 +38,9 @@ namespace EventForge.DTOs.Warehouse
             }
         }
 
-        public decimal? AverageInboundCost 
-        { 
-            get 
+        public decimal? AverageInboundCost
+        {
+            get
             {
                 if (InboundTransactionCount > 0 && TotalInboundValue.HasValue)
                     return TotalInboundValue.Value / InboundTransactionCount;
@@ -48,9 +48,9 @@ namespace EventForge.DTOs.Warehouse
             }
         }
 
-        public decimal? AverageOutboundCost 
-        { 
-            get 
+        public decimal? AverageOutboundCost
+        {
+            get
             {
                 if (OutboundTransactionCount > 0 && TotalOutboundValue.HasValue)
                     return TotalOutboundValue.Value / OutboundTransactionCount;

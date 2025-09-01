@@ -71,7 +71,7 @@ public class UnitConversionServiceTests
     public void ConvertQuantity_ShouldThrowArgumentException_WhenFromFactorIsInvalid(decimal invalidFactor)
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => 
+        Assert.Throws<ArgumentException>(() =>
             _conversionService.ConvertQuantity(10m, invalidFactor, 1m));
     }
 
@@ -82,7 +82,7 @@ public class UnitConversionServiceTests
     public void ConvertQuantity_ShouldThrowArgumentException_WhenToFactorIsInvalid(decimal invalidFactor)
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => 
+        Assert.Throws<ArgumentException>(() =>
             _conversionService.ConvertQuantity(10m, 1m, invalidFactor));
     }
 

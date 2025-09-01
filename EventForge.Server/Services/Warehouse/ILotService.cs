@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
 
 namespace EventForge.Server.Services.Warehouse;
@@ -12,9 +11,9 @@ public interface ILotService
     /// Gets all lots with optional pagination and filtering.
     /// </summary>
     Task<PagedResult<LotDto>> GetLotsAsync(
-        int page = 1, 
-        int pageSize = 20, 
-        Guid? productId = null, 
+        int page = 1,
+        int pageSize = 20,
+        Guid? productId = null,
         string? status = null,
         bool? expiringSoon = null,
         CancellationToken cancellationToken = default);

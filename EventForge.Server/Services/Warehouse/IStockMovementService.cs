@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
 
 namespace EventForge.Server.Services.Warehouse;
@@ -67,11 +66,11 @@ public interface IStockMovementService
     /// Processes an inbound movement (receiving stock).
     /// </summary>
     Task<StockMovementDto> ProcessInboundMovementAsync(
-        Guid productId, 
-        Guid toLocationId, 
-        decimal quantity, 
+        Guid productId,
+        Guid toLocationId,
+        decimal quantity,
         decimal? unitCost = null,
-        Guid? lotId = null, 
+        Guid? lotId = null,
         Guid? serialId = null,
         Guid? documentHeaderId = null,
         string? notes = null,
@@ -82,10 +81,10 @@ public interface IStockMovementService
     /// Processes an outbound movement (shipping/selling stock).
     /// </summary>
     Task<StockMovementDto> ProcessOutboundMovementAsync(
-        Guid productId, 
-        Guid fromLocationId, 
+        Guid productId,
+        Guid fromLocationId,
         decimal quantity,
-        Guid? lotId = null, 
+        Guid? lotId = null,
         Guid? serialId = null,
         Guid? documentHeaderId = null,
         string? notes = null,
@@ -96,11 +95,11 @@ public interface IStockMovementService
     /// Processes a transfer movement between locations.
     /// </summary>
     Task<StockMovementDto> ProcessTransferMovementAsync(
-        Guid productId, 
-        Guid fromLocationId, 
-        Guid toLocationId, 
+        Guid productId,
+        Guid fromLocationId,
+        Guid toLocationId,
         decimal quantity,
-        Guid? lotId = null, 
+        Guid? lotId = null,
         Guid? serialId = null,
         string? notes = null,
         string currentUser = null,
@@ -110,8 +109,8 @@ public interface IStockMovementService
     /// Processes an inventory adjustment movement.
     /// </summary>
     Task<StockMovementDto> ProcessAdjustmentMovementAsync(
-        Guid productId, 
-        Guid locationId, 
+        Guid productId,
+        Guid locationId,
         decimal adjustmentQuantity,
         string reason,
         Guid? lotId = null,
@@ -128,8 +127,8 @@ public interface IStockMovementService
     /// Gets movement summary for a specific period.
     /// </summary>
     Task<MovementSummaryDto> GetMovementSummaryAsync(
-        DateTime fromDate, 
-        DateTime toDate, 
+        DateTime fromDate,
+        DateTime toDate,
         Guid? productId = null,
         Guid? locationId = null,
         CancellationToken cancellationToken = default);

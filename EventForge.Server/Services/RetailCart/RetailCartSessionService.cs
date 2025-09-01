@@ -2,13 +2,7 @@ using EventForge.DTOs.Promotions;
 using EventForge.DTOs.RetailCart;
 using EventForge.Server.Services.Promotions;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace EventForge.Server.Services.RetailCart
 {
@@ -42,7 +36,7 @@ namespace EventForge.Server.Services.RetailCart
         {
             var tenantId = GetCurrentTenantId();
             var sessionId = Guid.NewGuid();
-            
+
             var session = new CartSession
             {
                 Id = sessionId,
@@ -60,7 +54,7 @@ namespace EventForge.Server.Services.RetailCart
             _sessions[sessionKey] = session;
 
             _logger.LogInformation("Created cart session {SessionId} for tenant {TenantId}", sessionId, tenantId);
-            
+
             return await MapToDto(session, cancellationToken);
         }
 
@@ -101,8 +95,8 @@ namespace EventForge.Server.Services.RetailCart
             }
 
             session.UpdatedAt = DateTime.UtcNow;
-            
-            _logger.LogDebug("Added item {ProductId} (qty: {Quantity}) to cart session {SessionId}", 
+
+            _logger.LogDebug("Added item {ProductId} (qty: {Quantity}) to cart session {SessionId}",
                 addItemDto.ProductId, addItemDto.Quantity, sessionId);
 
             return await RecalculateAndMapToDto(session, cancellationToken);
@@ -119,7 +113,7 @@ namespace EventForge.Server.Services.RetailCart
             {
                 session.Items.Remove(item);
                 session.UpdatedAt = DateTime.UtcNow;
-                
+
                 _logger.LogDebug("Removed item {ItemId} from cart session {SessionId}", itemId, sessionId);
             }
 
@@ -138,13 +132,13 @@ namespace EventForge.Server.Services.RetailCart
                 if (updateDto.Quantity <= 0)
                 {
                     session.Items.Remove(item);
-                    _logger.LogDebug("Removed item {ItemId} from cart session {SessionId} (quantity set to {Quantity})", 
+                    _logger.LogDebug("Removed item {ItemId} from cart session {SessionId} (quantity set to {Quantity})",
                         itemId, sessionId, updateDto.Quantity);
                 }
                 else
                 {
                     item.Quantity = updateDto.Quantity;
-                    _logger.LogDebug("Updated item {ItemId} quantity to {Quantity} in cart session {SessionId}", 
+                    _logger.LogDebug("Updated item {ItemId} quantity to {Quantity} in cart session {SessionId}",
                         itemId, updateDto.Quantity, sessionId);
                 }
 
@@ -163,7 +157,7 @@ namespace EventForge.Server.Services.RetailCart
             session.CouponCodes = applyCouponsDto.CouponCodes?.Where(c => !string.IsNullOrWhiteSpace(c)).ToList() ?? new List<string>();
             session.UpdatedAt = DateTime.UtcNow;
 
-            _logger.LogDebug("Applied {CouponCount} coupons to cart session {SessionId}", 
+            _logger.LogDebug("Applied {CouponCount} coupons to cart session {SessionId}",
                 session.CouponCodes.Count, sessionId);
 
             return await RecalculateAndMapToDto(session, cancellationToken);
@@ -212,7 +206,7 @@ namespace EventForge.Server.Services.RetailCart
         {
             var tenantId = GetCurrentTenantId();
             var sessionKey = GetSessionKey(tenantId, sessionId);
-            
+
             return _sessions.TryGetValue(sessionKey, out var session) ? session : null;
         }
 

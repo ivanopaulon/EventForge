@@ -114,9 +114,22 @@ public class AuthenticationService : IAuthenticationService
 
         try
         {
-            // Find tenant by code first
-            var tenant = await _dbContext.Tenants
-                .FirstOrDefaultAsync(t => t.Code == request.TenantCode && t.IsActive, cancellationToken);
+            // Find tenant by code or id (GUID)
+            Tenant? tenant = null;
+            var tenantCode = request.TenantCode?.Trim();
+
+            if (!string.IsNullOrEmpty(tenantCode) && Guid.TryParse(tenantCode, out var tenantId))
+            {
+                // TenantCode è un GUID: cerca per Id
+                tenant = await _dbContext.Tenants
+                    .FirstOrDefaultAsync(t => t.Id == tenantId && t.IsActive, cancellationToken);
+            }
+            else
+            {
+                // TenantCode non è un GUID: prova a cercare per Code
+                tenant = await _dbContext.Tenants
+                    .FirstOrDefaultAsync(t => t.Code == tenantCode && t.IsActive, cancellationToken);
+            }
 
             if (tenant == null)
             {

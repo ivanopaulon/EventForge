@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Services.Auth;
 
@@ -68,12 +67,12 @@ public class BootstrapService : IBootstrapService
         _dbContext = dbContext;
         _passwordService = passwordService;
         _logger = logger;
-        
+
         // Get password with environment variable -> config -> fallback precedence
         var envPassword = Environment.GetEnvironmentVariable("EVENTFORGE_BOOTSTRAP_SUPERADMIN_PASSWORD");
         var configPassword = configuration["Bootstrap:SuperAdminPassword"];
         var fallbackPassword = "SuperAdmin#2025!";
-        
+
         _options = configuration.GetSection("Bootstrap").Get<BootstrapOptions>() ?? new BootstrapOptions();
         _options.DefaultAdminPassword = envPassword ?? configPassword ?? fallbackPassword;
     }
@@ -258,7 +257,7 @@ public class BootstrapService : IBootstrapService
 
                 _dbContext.UserRoles.Add(userRole);
                 await _dbContext.SaveChangesAsync(cancellationToken);
-                
+
                 _logger.LogInformation("SuperAdmin role assigned to user: {Username}", superAdminUser.Username);
             }
             else

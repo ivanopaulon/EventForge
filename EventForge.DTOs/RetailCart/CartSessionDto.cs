@@ -1,6 +1,6 @@
+using EventForge.DTOs.Promotions;
 using System;
 using System.Collections.Generic;
-using EventForge.DTOs.Promotions;
 
 namespace EventForge.DTOs.RetailCart
 {
