@@ -44,7 +44,6 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
                 {
                     DocumentHeaderId = documentHeaderId,
                     AnalyticsDate = DateTime.UtcNow.Date,
-                    DataSource = "workflow",
                     CreatedBy = currentUser,
                     CreatedAt = DateTime.UtcNow
                 };
@@ -61,12 +60,15 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogAsync(
+            await _auditLogService.LogEntityChangeAsync(
                 "DocumentAnalytics",
-                analytics.Id.ToString(),
+                analytics.Id,
+                "Analytics",
                 analytics == null ? "Created" : "Updated",
+                null,
+                analytics.Id.ToString(),
                 currentUser,
-                analytics,
+                "Document Analytics",
                 cancellationToken);
 
             _logger.LogInformation("Analytics updated for document {DocumentHeaderId} by user {User}", 
@@ -127,11 +129,11 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
                 PeriodStart = from,
                 PeriodEnd = to,
                 GroupBy = groupBy,
-                TotalDocuments = analytics.Count,
+                TotalDocuments = analytics.Count(),
                 CompletedDocuments = analytics.Count(a => !string.IsNullOrEmpty(a.FinalStatus?.ToString())),
                 PendingDocuments = analytics.Count(a => string.IsNullOrEmpty(a.FinalStatus?.ToString())),
-                AverageCompletionTimeHours = analytics.Where(a => a.TimeToCompletionHours.HasValue)
-                    .Average(a => a.TimeToCompletionHours),
+                AverageCompletionTimeHours = analytics.Where(a => a.TimeToClosureHours.HasValue)
+                    .Average(a => a.TimeToClosureHours),
                 AverageQualityScore = analytics.Where(a => a.QualityScore.HasValue)
                     .Average(a => a.QualityScore),
                 TotalDocumentValue = analytics.Where(a => a.DocumentValue.HasValue)
@@ -169,7 +171,6 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
                 {
                     DocumentHeaderId = documentHeaderId,
                     AnalyticsDate = DateTime.UtcNow.Date,
-                    DataSource = "workflow",
                     CreatedBy = currentUser,
                     CreatedAt = DateTime.UtcNow
                 };
@@ -181,7 +182,6 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
 
             analytics.ModifiedBy = currentUser;
             analytics.ModifiedAt = DateTime.UtcNow;
-            analytics.LastUpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync(cancellationToken);
 
@@ -218,16 +218,16 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
                 PeriodEnd = to,
                 TotalDocuments = totalDocuments,
                 CompletionRate = totalDocuments > 0 ? (decimal)completedDocuments / totalDocuments * 100 : 0,
-                AverageProcessingTime = analytics.Where(a => a.ProcessingTimeHours.HasValue)
-                    .Average(a => a.ProcessingTimeHours) ?? 0,
+                AverageProcessingTime = analytics.Where(a => a.TotalProcessingTimeHours.HasValue)
+                    .Average(a => a.TotalProcessingTimeHours) ?? 0,
                 AverageQualityScore = analytics.Where(a => a.QualityScore.HasValue)
                     .Average(a => a.QualityScore) ?? 0,
                 ErrorRate = totalDocuments > 0 ? 
-                    analytics.Average(a => a.ErrorCount) / Math.Max(totalDocuments, 1) * 100 : 0,
+                    analytics.Average(a => a.Errors) / Math.Max(totalDocuments, 1) * 100 : 0,
                 EscalationRate = totalDocuments > 0 ? 
                     (decimal)analytics.Sum(a => a.Escalations) / totalDocuments * 100 : 0,
-                AverageCustomerSatisfaction = analytics.Where(a => a.SatisfactionRating.HasValue)
-                    .Average(a => a.SatisfactionRating),
+                AverageCustomerSatisfaction = analytics.Where(a => a.SatisfactionScore.HasValue)
+                    .Average(a => a.SatisfactionScore),
                 TotalBusinessValue = analytics.Where(a => a.DocumentValue.HasValue)
                     .Sum(a => a.DocumentValue),
                 CostEfficiencyRatio = CalculateCostEfficiencyRatio(analytics)
@@ -254,7 +254,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
         // Update basic information
         analytics.DocumentTypeId = document.DocumentTypeId;
         analytics.BusinessPartyId = document.BusinessPartyId;
-        analytics.CreatedByUser = document.CreatedBy;
+        analytics.DocumentCreator = document.CreatedBy;
 
         // Calculate workflow metrics
         var latestWorkflow = document.WorkflowExecutions?.OrderByDescending(we => we.CreatedAt).FirstOrDefault();
@@ -267,12 +267,12 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
             if (latestWorkflow.StartedAt.HasValue)
             {
                 var completedAt = latestWorkflow.CompletedAt ?? DateTime.UtcNow;
-                analytics.TimeToCompletionHours = (decimal)(completedAt - latestWorkflow.StartedAt.Value).TotalHours;
+                analytics.TimeToClosureHours = (decimal)(completedAt - latestWorkflow.StartedAt.Value).TotalHours;
             }
 
             if (latestWorkflow.ProcessingTimeHours.HasValue)
             {
-                analytics.ProcessingTimeHours = latestWorkflow.ProcessingTimeHours;
+                analytics.TotalProcessingTimeHours = latestWorkflow.ProcessingTimeHours;
             }
 
             analytics.Escalations = latestWorkflow.EscalationLevel;
@@ -296,13 +296,10 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
                 analytics.Escalations++;
                 break;
             case "error":
-                analytics.ErrorCount++;
+                analytics.Errors++;
                 break;
             case "revision":
-                analytics.RevisionCount++;
-                break;
-            case "rework":
-                analytics.ReworkIterations++;
+                analytics.Revisions++;
                 break;
         }
 
@@ -321,8 +318,8 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
                     GroupKey = g.Key,
                     GroupLabel = g.Key,
                     DocumentCount = g.Count(),
-                    AverageCompletionTime = g.Where(a => a.TimeToCompletionHours.HasValue)
-                        .Average(a => a.TimeToCompletionHours),
+                    AverageCompletionTime = g.Where(a => a.TimeToClosureHours.HasValue)
+                        .Average(a => a.TimeToClosureHours),
                     TotalValue = g.Where(a => a.DocumentValue.HasValue).Sum(a => a.DocumentValue),
                     AverageQuality = g.Where(a => a.QualityScore.HasValue).Average(a => a.QualityScore)
                 }).ToList(),
@@ -334,8 +331,8 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
                     GroupKey = g.Key,
                     GroupLabel = g.Key,
                     DocumentCount = g.Count(),
-                    AverageCompletionTime = g.Where(a => a.TimeToCompletionHours.HasValue)
-                        .Average(a => a.TimeToCompletionHours),
+                    AverageCompletionTime = g.Where(a => a.TimeToClosureHours.HasValue)
+                        .Average(a => a.TimeToClosureHours),
                     TotalValue = g.Where(a => a.DocumentValue.HasValue).Sum(a => a.DocumentValue),
                     AverageQuality = g.Where(a => a.QualityScore.HasValue).Average(a => a.QualityScore)
                 }).ToList(),
@@ -347,8 +344,8 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
                     GroupKey = g.Key,
                     GroupLabel = DateTime.ParseExact(g.Key + "-01", "yyyy-MM-dd", null).ToString("MMM yyyy"),
                     DocumentCount = g.Count(),
-                    AverageCompletionTime = g.Where(a => a.TimeToCompletionHours.HasValue)
-                        .Average(a => a.TimeToCompletionHours),
+                    AverageCompletionTime = g.Where(a => a.TimeToClosureHours.HasValue)
+                        .Average(a => a.TimeToClosureHours),
                     TotalValue = g.Where(a => a.DocumentValue.HasValue).Sum(a => a.DocumentValue),
                     AverageQuality = g.Where(a => a.QualityScore.HasValue).Average(a => a.QualityScore)
                 }).ToList(),
@@ -363,12 +360,12 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
         // Start with 100 and subtract points for issues
         decimal score = 100;
         
-        score -= analytics.ErrorCount * 10; // -10 points per error
+        score -= analytics.Errors * 10; // -10 points per error
         score -= analytics.Rejections * 5;   // -5 points per rejection
-        score -= analytics.ReworkIterations * 3; // -3 points per rework
+        score -= analytics.Revisions * 3; // -3 points per revision
         
         // Bonus for fast completion (if under average)
-        if (analytics.TimeToCompletionHours.HasValue && analytics.TimeToCompletionHours.Value < 24)
+        if (analytics.TimeToClosureHours.HasValue && analytics.TimeToClosureHours.Value < 24)
         {
             score += 5;
         }

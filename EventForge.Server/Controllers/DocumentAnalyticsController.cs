@@ -87,13 +87,13 @@ public class DocumentAnalyticsController : BaseApiController
         if (!string.IsNullOrEmpty(groupBy) && 
             !new[] { "time", "documentType", "department" }.Contains(groupBy, StringComparer.OrdinalIgnoreCase))
         {
-            return CreateValidationProblemDetails("groupBy", "Group by must be one of: time, documentType, department");
+            return CreateValidationProblemDetails("Group by must be one of: time, documentType, department");
         }
 
         // Validate date range
         if (from.HasValue && to.HasValue && from.Value > to.Value)
         {
-            return CreateValidationProblemDetails("from", "Start date cannot be after end date");
+            return CreateValidationProblemDetails("Start date cannot be after end date");
         }
 
         try
@@ -132,18 +132,18 @@ public class DocumentAnalyticsController : BaseApiController
         // Validate date range
         if (from > to)
         {
-            return CreateValidationProblemDetails("from", "Start date cannot be after end date");
+            return CreateValidationProblemDetails("Start date cannot be after end date");
         }
 
         if (from == default || to == default)
         {
-            return CreateValidationProblemDetails("from", "Both start and end dates are required");
+            return CreateValidationProblemDetails("Both start and end dates are required");
         }
 
         // Limit date range to prevent performance issues
         if ((to - from).TotalDays > 365)
         {
-            return CreateValidationProblemDetails("from", "Date range cannot exceed 365 days");
+            return CreateValidationProblemDetails("Date range cannot exceed 365 days");
         }
 
         try
@@ -216,7 +216,7 @@ public class DocumentAnalyticsController : BaseApiController
 
         if (string.IsNullOrWhiteSpace(eventType))
         {
-            return CreateValidationProblemDetails("eventType", "Event type is required");
+            return CreateValidationProblemDetails("Event type is required");
         }
 
         try
