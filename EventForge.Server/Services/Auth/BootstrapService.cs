@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Services.Auth;
 
@@ -13,17 +14,6 @@ public interface IBootstrapService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if bootstrap was successful</returns>
     Task<bool> EnsureAdminBootstrappedAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Creates the default admin user if it doesn't exist.
-    /// </summary>
-    /// <param name="tenantId">Tenant ID for the admin user</param>
-    /// <param name="username">Admin username</param>
-    /// <param name="email">Admin email</param>
-    /// <param name="password">Admin password</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>True if successful</returns>
-    Task<bool> CreateDefaultAdminAsync(Guid tenantId, string username, string email, string password, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Seeds default roles and permissions.
@@ -41,17 +31,17 @@ public class BootstrapOptions
     /// <summary>
     /// Default admin username.
     /// </summary>
-    public string DefaultAdminUsername { get; set; } = "admin";
+    public string DefaultAdminUsername { get; set; } = "superadmin";
 
     /// <summary>
     /// Default admin email.
     /// </summary>
-    public string DefaultAdminEmail { get; set; } = "admin@eventforge.com";
+    public string DefaultAdminEmail { get; set; } = "superadmin@localhost";
 
     /// <summary>
     /// Default admin password.
     /// </summary>
-    public string DefaultAdminPassword { get; set; } = "EventForge@2024!";
+    public string DefaultAdminPassword { get; set; } = "SuperAdmin#2025!";
 
     /// <summary>
     /// Auto-create admin on startup.
@@ -78,101 +68,126 @@ public class BootstrapService : IBootstrapService
         _dbContext = dbContext;
         _passwordService = passwordService;
         _logger = logger;
-        _options = configuration.GetSection("Authentication:Bootstrap").Get<BootstrapOptions>() ?? new BootstrapOptions();
+        
+        // Get password with environment variable -> config -> fallback precedence
+        var envPassword = Environment.GetEnvironmentVariable("EVENTFORGE_BOOTSTRAP_SUPERADMIN_PASSWORD");
+        var configPassword = configuration["Bootstrap:SuperAdminPassword"];
+        var fallbackPassword = "SuperAdmin#2025!";
+        
+        _options = configuration.GetSection("Bootstrap").Get<BootstrapOptions>() ?? new BootstrapOptions();
+        _options.DefaultAdminPassword = envPassword ?? configPassword ?? fallbackPassword;
     }
 
     public async Task<bool> EnsureAdminBootstrappedAsync(CancellationToken cancellationToken = default)
     {
         try
         {
+            _logger.LogInformation("Starting bootstrap process...");
+
+            // Check if any tenants exist; if yes, do nothing
+            var existingTenants = await _dbContext.Tenants.AnyAsync(cancellationToken);
+            if (existingTenants)
+            {
+                _logger.LogInformation("Tenants already exist. Skipping bootstrap process.");
+                return true;
+            }
+
+            _logger.LogInformation("No tenants found. Starting initial bootstrap...");
+
             // Ensure database is created
             await _dbContext.Database.EnsureCreatedAsync(cancellationToken);
 
-            // Ensure default tenant exists
-            var defaultTenant = await EnsureDefaultTenantAsync(cancellationToken);
-            if (defaultTenant == null)
-            {
-                _logger.LogError("Failed to create or find default tenant");
-                return false;
-            }
-
-            // Seed default roles and permissions
+            // Seed default roles and permissions first
             if (!await SeedDefaultRolesAndPermissionsAsync(cancellationToken))
             {
                 _logger.LogError("Failed to seed default roles and permissions");
                 return false;
             }
 
-            // Create default admin if enabled and doesn't exist
-            if (_options.AutoCreateAdmin)
+            // Create default tenant
+            var defaultTenant = await CreateDefaultTenantAsync(cancellationToken);
+            if (defaultTenant == null)
             {
-                var adminExists = await _dbContext.Users
-                    .AnyAsync(u => u.Username == _options.DefaultAdminUsername && u.TenantId == defaultTenant.Id, cancellationToken);
-
-                if (!adminExists)
-                {
-                    if (!await CreateDefaultAdminAsync(
-                        defaultTenant.Id,
-                        _options.DefaultAdminUsername,
-                        _options.DefaultAdminEmail,
-                        _options.DefaultAdminPassword,
-                        cancellationToken))
-                    {
-                        _logger.LogError("Failed to create default admin user");
-                        return false;
-                    }
-                }
-                else
-                {
-                    _logger.LogInformation("Default admin user already exists");
-                }
+                _logger.LogError("Failed to create default tenant");
+                return false;
             }
 
-            _logger.LogInformation("Admin bootstrap completed successfully");
+            // Create basic license
+            var basicLicense = await CreateBasicLicenseAsync(cancellationToken);
+            if (basicLicense == null)
+            {
+                _logger.LogError("Failed to create basic license");
+                return false;
+            }
+
+            // Assign basic license to default tenant
+            if (!await AssignLicenseToTenantAsync(defaultTenant.Id, basicLicense.Id, cancellationToken))
+            {
+                _logger.LogError("Failed to assign basic license to default tenant");
+                return false;
+            }
+
+            // Create SuperAdmin user
+            var superAdminUser = await CreateSuperAdminUserAsync(defaultTenant.Id, cancellationToken);
+            if (superAdminUser == null)
+            {
+                _logger.LogError("Failed to create SuperAdmin user");
+                return false;
+            }
+
+            // Create AdminTenant record
+            if (!await CreateAdminTenantRecordAsync(superAdminUser.Id, defaultTenant.Id, cancellationToken))
+            {
+                _logger.LogError("Failed to create AdminTenant record");
+                return false;
+            }
+
+            _logger.LogInformation("=== BOOTSTRAP COMPLETED SUCCESSFULLY ===");
+            _logger.LogInformation("Default tenant created: {TenantName} (Code: {TenantCode})", defaultTenant.Name, defaultTenant.Code);
+            _logger.LogInformation("SuperAdmin user created: {Username} ({Email})", superAdminUser.Username, superAdminUser.Email);
+            _logger.LogInformation("Password: {Password}", _options.DefaultAdminPassword);
+            _logger.LogWarning("SECURITY: Please change the SuperAdmin password immediately after first login!");
+            _logger.LogInformation("Basic license assigned to tenant with 10 users and 1000 API calls per month");
+            _logger.LogInformation("==========================================");
+
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during admin bootstrap");
+            _logger.LogError(ex, "Error during bootstrap process");
             return false;
         }
     }
 
     /// <summary>
-    /// Ensures the default tenant exists.
+    /// Creates the default tenant.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Default tenant entity</returns>
-    private async Task<Tenant?> EnsureDefaultTenantAsync(CancellationToken cancellationToken = default)
+    private async Task<Tenant?> CreateDefaultTenantAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            // Check if default tenant exists
-            var defaultTenant = await _dbContext.Tenants
-                .FirstOrDefaultAsync(t => t.Code == "default", cancellationToken);
-
-            if (defaultTenant == null)
+            // Create default tenant with specific requirements
+            var defaultTenant = new Tenant
             {
-                // Create default tenant
-                defaultTenant = new Tenant
-                {
-                    Name = "Default",
-                    Code = "default",
-                    DisplayName = "Default Tenant",
-                    Description = "Default tenant created during initial setup",
-                    ContactEmail = _options.DefaultAdminEmail,
-                    MaxUsers = 1000,
-                    IsActive = true,
-                    CreatedBy = "system",
-                    CreatedAt = DateTime.UtcNow
-                };
+                Name = "DefaultTenant",
+                Code = "default",
+                DisplayName = "Default Tenant",
+                Description = "Default tenant created during initial setup",
+                ContactEmail = "superadmin@localhost",
+                Domain = "localhost",
+                MaxUsers = 10,
+                IsActive = true,
+                CreatedBy = "system",
+                CreatedAt = DateTime.UtcNow,
+                TenantId = Guid.Empty // System-level entity
+            };
 
-                _dbContext.Tenants.Add(defaultTenant);
-                await _dbContext.SaveChangesAsync(cancellationToken);
+            _dbContext.Tenants.Add(defaultTenant);
+            await _dbContext.SaveChangesAsync(cancellationToken);
 
-                _logger.LogInformation("Default tenant created with code 'default'");
-            }
-
+            _logger.LogInformation("Default tenant created: {TenantName} (Code: {TenantCode})", defaultTenant.Name, defaultTenant.Code);
             return defaultTenant;
         }
         catch (Exception ex)
@@ -182,42 +197,49 @@ public class BootstrapService : IBootstrapService
         }
     }
 
-    public async Task<bool> CreateDefaultAdminAsync(Guid tenantId, string username, string email, string password, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Creates the SuperAdmin user with specific requirements.
+    /// </summary>
+    /// <param name="tenantId">Tenant ID for the admin user</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created user entity</returns>
+    private async Task<User?> CreateSuperAdminUserAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
         try
         {
             // Validate password
-            var validation = _passwordService.ValidatePassword(password);
+            var validation = _passwordService.ValidatePassword(_options.DefaultAdminPassword);
             if (!validation.IsValid)
             {
-                _logger.LogError("Default admin password does not meet policy requirements: {Errors}",
+                _logger.LogError("SuperAdmin password does not meet policy requirements: {Errors}",
                     string.Join(", ", validation.Errors));
-                return false;
+                return null;
             }
 
             // Hash password
-            var (hash, salt) = _passwordService.HashPassword(password);
+            var (hash, salt) = _passwordService.HashPassword(_options.DefaultAdminPassword);
 
-            // Create admin user
-            var adminUser = new User
+            // Create SuperAdmin user with specific requirements
+            var superAdminUser = new User
             {
-                Username = username,
-                Email = email,
-                FirstName = "System",
-                LastName = "Administrator",
+                Username = "superadmin",
+                Email = "superadmin@localhost",
+                FirstName = "Super",
+                LastName = "Admin",
                 PasswordHash = hash,
                 PasswordSalt = salt,
                 TenantId = tenantId,
                 IsActive = true,
+                MustChangePassword = true,
                 CreatedBy = "system",
                 CreatedAt = DateTime.UtcNow,
                 PasswordChangedAt = DateTime.UtcNow
             };
 
-            _dbContext.Users.Add(adminUser);
+            _dbContext.Users.Add(superAdminUser);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            // Assegna ruolo SuperAdmin (forzato)
+            // Assign SuperAdmin role
             var superAdminRole = await _dbContext.Roles
                 .FirstOrDefaultAsync(r => r.Name == "SuperAdmin", cancellationToken);
 
@@ -225,27 +247,149 @@ public class BootstrapService : IBootstrapService
             {
                 var userRole = new UserRole
                 {
-                    UserId = adminUser.Id,
+                    UserId = superAdminUser.Id,
                     RoleId = superAdminRole.Id,
                     GrantedBy = "system",
                     GrantedAt = DateTime.UtcNow,
                     CreatedBy = "system",
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    TenantId = tenantId
                 };
 
                 _dbContext.UserRoles.Add(userRole);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                
+                _logger.LogInformation("SuperAdmin role assigned to user: {Username}", superAdminUser.Username);
+            }
+            else
+            {
+                _logger.LogWarning("SuperAdmin role not found. User created without role assignment.");
             }
 
+            _logger.LogInformation("SuperAdmin user created: {Username} ({Email})", superAdminUser.Username, superAdminUser.Email);
+            return superAdminUser;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating SuperAdmin user");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Creates the basic license.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created license entity</returns>
+    private async Task<License?> CreateBasicLicenseAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Check if basic license already exists
+            var existingLicense = await _dbContext.Licenses
+                .FirstOrDefaultAsync(l => l.Name == "basic", cancellationToken);
+
+            if (existingLicense != null)
+            {
+                _logger.LogInformation("Basic license already exists");
+                return existingLicense;
+            }
+
+            var basicLicense = new License
+            {
+                Name = "basic",
+                DisplayName = "Basic License",
+                Description = "Basic license for small organizations with essential features",
+                MaxUsers = 10,
+                MaxApiCallsPerMonth = 1000,
+                TierLevel = 1,
+                IsActive = true,
+                CreatedBy = "system",
+                CreatedAt = DateTime.UtcNow,
+                TenantId = Guid.Empty // System-level entity
+            };
+
+            _dbContext.Licenses.Add(basicLicense);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Default admin user created: {Username} ({Email}) for tenant {TenantId}", username, email, tenantId);
-            _logger.LogWarning("SECURITY: Default admin password is being used. Please change it immediately after first login!");
+            _logger.LogInformation("Basic license created: {LicenseName}", basicLicense.Name);
+            return basicLicense;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating basic license");
+            return null;
+        }
+    }
 
+    /// <summary>
+    /// Assigns a license to a tenant.
+    /// </summary>
+    /// <param name="tenantId">Tenant ID</param>
+    /// <param name="licenseId">License ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if successful</returns>
+    private async Task<bool> AssignLicenseToTenantAsync(Guid tenantId, Guid licenseId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var tenantLicense = new TenantLicense
+            {
+                TargetTenantId = tenantId,
+                LicenseId = licenseId,
+                StartsAt = DateTime.UtcNow,
+                IsAssignmentActive = true,
+                ApiCallsThisMonth = 0,
+                ApiCallsResetAt = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1),
+                CreatedBy = "system",
+                CreatedAt = DateTime.UtcNow,
+                TenantId = Guid.Empty // System-level entity
+            };
+
+            _dbContext.TenantLicenses.Add(tenantLicense);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Basic license assigned to tenant: {TenantId}", tenantId);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating default admin user");
+            _logger.LogError(ex, "Error assigning license to tenant");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Creates an AdminTenant record granting SuperAdmin access to manage the default tenant.
+    /// </summary>
+    /// <param name="userId">SuperAdmin user ID</param>
+    /// <param name="tenantId">Tenant ID to manage</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if successful</returns>
+    private async Task<bool> CreateAdminTenantRecordAsync(Guid userId, Guid tenantId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var adminTenant = new AdminTenant
+            {
+                UserId = userId,
+                ManagedTenantId = tenantId,
+                AccessLevel = AdminAccessLevel.FullAccess,
+                GrantedAt = DateTime.UtcNow,
+                CreatedBy = "system",
+                CreatedAt = DateTime.UtcNow,
+                TenantId = Guid.Empty // System-level entity
+            };
+
+            _dbContext.AdminTenants.Add(adminTenant);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("AdminTenant record created for user {UserId} to manage tenant {TenantId}", userId, tenantId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating AdminTenant record");
             return false;
         }
     }
