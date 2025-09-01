@@ -40,5 +40,10 @@ public class CreateStockMovementDto
     
     [StringLength(50)]
     public string? Reference { get; set; }
+    
+    [StringLength(100)]
+    public string? UserId { get; set; }
+    
+    public Guid? MovementPlanId { get; set; }
 }
 }

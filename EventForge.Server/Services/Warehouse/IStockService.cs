@@ -58,12 +58,12 @@ public interface IStockService
     /// <summary>
     /// Reserves stock for a specific quantity.
     /// </summary>
-    Task<bool> ReserveStockAsync(Guid productId, Guid locationId, decimal quantity, Guid? lotId = null, string currentUser = null, CancellationToken cancellationToken = default);
+    Task<bool> ReserveStockAsync(Guid productId, Guid locationId, decimal quantity, Guid? lotId = null, string? currentUser = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Releases reserved stock.
     /// </summary>
-    Task<bool> ReleaseReservedStockAsync(Guid productId, Guid locationId, decimal quantity, Guid? lotId = null, string currentUser = null, CancellationToken cancellationToken = default);
+    Task<bool> ReleaseReservedStockAsync(Guid productId, Guid locationId, decimal quantity, Guid? lotId = null, string? currentUser = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets stock entries that are below minimum levels.
