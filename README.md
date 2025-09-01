@@ -223,10 +223,13 @@ analyze-routes.bat
 ./analyze-routes.sh "percorso/custom/Controllers" "report_personalizzato.txt"
 ```
 
-#### 2. Applicazione Console Diretta
+#### 2. Test-Based Route Analysis
 ```bash
-cd RouteConflictAnalyzer
-dotnet run -- "../EventForge.Server/Controllers" "../report.txt"
+# Esegui analisi route tramite test
+dotnet test EventForge.Tests --filter Category=RouteAnalysis
+
+# Con variabili d'ambiente personalizzate
+CONTROLLERS_PATH="EventForge.Server/Controllers" OUTPUT_FILE="custom_report.txt" dotnet test EventForge.Tests --filter Category=RouteAnalysis
 ```
 
 ### Output dell'Analisi
@@ -247,7 +250,7 @@ Lo script genera un report completo che include:
 ### Integrazione nel Workflow di Sviluppo
 
 - **Pre-commit**: Esegui l'analisi prima di ogni commit che modifica i controller
-- **CI/CD**: Integra lo script nel pipeline per rilevare conflitti automaticamente
+- **CI/CD**: Integra il test Category=RouteAnalysis nel pipeline per rilevare conflitti automaticamente
 - **Code Review**: Utilizza il report per documentare le modifiche alle route
 
 ### Esempio di Conflitto e Risoluzione
@@ -266,6 +269,68 @@ public async Task<ActionResult<UserDto>> GetUser(Guid id) { }
 
 [HttpGet("{id}/details")]
 public async Task<ActionResult<UserDto>> GetUserDetails(Guid id) { }
+```
+
+## 🧪 Testing
+
+EventForge utilizza un sistema di test unificato basato su xUnit con categorizzazione tramite traits per permettere l'esecuzione selettiva dei test.
+
+### Struttura dei Test
+
+Tutti i test sono consolidati nel progetto `EventForge.Tests` e categorizzati usando attributi `[Trait("Category", "...")]`:
+
+- **Unit Tests**: `[Trait("Category", "Unit")]` - Test unitari per la logica di business
+- **Integration Tests**: `[Trait("Category", "Integration")]` - Test di integrazione per endpoint e funzionalità end-to-end
+- **Route Analysis**: `[Trait("Category", "RouteAnalysis")]` - Analisi automatica dei conflitti di route
+
+### Comandi di Test
+
+```bash
+# Esegui tutti i test
+dotnet test
+
+# Esegui solo i test unitari
+dotnet test --filter Category=Unit
+
+# Esegui solo i test di integrazione
+dotnet test --filter Category=Integration
+
+# Esegui solo l'analisi delle route
+dotnet test --filter Category=RouteAnalysis
+
+# Esegui test con output dettagliato
+dotnet test --verbosity normal
+
+# Esegui test in configurazione Release
+dotnet test --configuration Release
+```
+
+### Test di Analisi Route
+
+Il sistema di analisi route è integrato come test e sostituisce la precedente applicazione console:
+
+```bash
+# Analisi route con parametri di default
+dotnet test EventForge.Tests --filter Category=RouteAnalysis
+
+# Analisi route con percorsi personalizzati
+CONTROLLERS_PATH="percorso/custom" OUTPUT_FILE="report.txt" dotnet test EventForge.Tests --filter Category=RouteAnalysis
+```
+
+### Configurazione CI/CD
+
+Per pipeline di integrazione continua, utilizzare:
+
+```yaml
+# Esempio per GitHub Actions
+- name: Run Unit Tests
+  run: dotnet test --filter Category=Unit --logger trx --results-directory test-results
+
+- name: Run Integration Tests  
+  run: dotnet test --filter Category=Integration --logger trx --results-directory test-results
+
+- name: Analyze Routes
+  run: dotnet test --filter Category=RouteAnalysis --logger trx --results-directory test-results
 ```
 
 ## 📋 Quality Assurance
