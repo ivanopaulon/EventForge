@@ -245,6 +245,29 @@ public class DocumentHeader : AuditableEntity
     [Display(Name = "Comments", Description = "Document comments linked to this header.")]
     public ICollection<DocumentComment> Comments { get; set; } = new List<DocumentComment>();
 
+    // --- Template and recurrence tracking ---
+    /// <summary>
+    /// Template used to create this document (if any)
+    /// </summary>
+    [Display(Name = "Source Template", Description = "Template used to create this document.")]
+    public Guid? SourceTemplateId { get; set; }
+
+    /// <summary>
+    /// Navigation property for the source template
+    /// </summary>
+    public DocumentTemplate? SourceTemplate { get; set; }
+
+    /// <summary>
+    /// Recurring schedule that generated this document (if any)
+    /// </summary>
+    [Display(Name = "Source Recurrence", Description = "Recurring schedule that generated this document.")]
+    public Guid? SourceRecurrenceId { get; set; }
+
+    /// <summary>
+    /// Navigation property for the source recurrence
+    /// </summary>
+    public DocumentRecurrence? SourceRecurrence { get; set; }
+
     [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters.")]
     [Display(Name = "Notes", Description = "Additional notes.")]
     public string? Notes { get; set; } = string.Empty;

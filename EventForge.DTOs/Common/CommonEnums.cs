@@ -292,4 +292,41 @@ namespace EventForge.DTOs.Common
         Check,          // Check payment
         Other           // Other payment methods
     }
+
+    /// <summary>
+    /// Template access level enumeration.
+    /// </summary>
+    public enum TemplateAccessLevel
+    {
+        Public,
+        Private,
+        Team,
+        Department,
+        Organization
+    }
+
+    /// <summary>
+    /// Recurrence pattern enumeration.
+    /// </summary>
+    public enum RecurrencePattern
+    {
+        Daily,
+        Weekly,
+        Monthly,
+        Quarterly,
+        Yearly,
+        Custom
+    }
+
+    /// <summary>
+    /// Recurrence status enumeration.
+    /// </summary>
+    public enum RecurrenceStatus
+    {
+        Active,
+        Paused,
+        Completed,
+        Failed,
+        Cancelled
+    }
 }
