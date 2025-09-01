@@ -292,4 +292,207 @@ namespace EventForge.DTOs.Common
         Check,          // Check payment
         Other           // Other payment methods
     }
+
+    /// <summary>
+    /// Template access level enumeration.
+    /// </summary>
+    public enum TemplateAccessLevel
+    {
+        Public,
+        Private,
+        Team,
+        Department,
+        Organization
+    }
+
+    /// <summary>
+    /// Recurrence pattern enumeration.
+    /// </summary>
+    public enum RecurrencePattern
+    {
+        Daily,
+        Weekly,
+        Monthly,
+        Quarterly,
+        Yearly,
+        Custom
+    }
+
+    /// <summary>
+    /// Recurrence status enumeration.
+    /// </summary>
+    public enum RecurrenceStatus
+    {
+        Active,
+        Paused,
+        Completed,
+        Failed,
+        Cancelled
+    }
+
+    /// <summary>
+    /// Workflow state enumeration.
+    /// </summary>
+    public enum WorkflowState
+    {
+        Draft,
+        InProgress,
+        PendingApproval,
+        Approved,
+        Rejected,
+        OnHold,
+        Cancelled,
+        Completed
+    }
+
+    /// <summary>
+    /// Workflow priority enumeration.
+    /// </summary>
+    public enum WorkflowPriority
+    {
+        Low,
+        Normal,
+        High,
+        Critical,
+        Urgent
+    }
+
+    /// <summary>
+    /// Workflow step type enumeration.
+    /// </summary>
+    public enum WorkflowStepType
+    {
+        Approval,
+        Review,
+        Notification,
+        AutoProcess,
+        ConditionalBranch,
+        DataValidation,
+        ExternalIntegration,
+        DigitalSignature
+    }
+
+    /// <summary>
+    /// Workflow execution status enumeration.
+    /// </summary>
+    public enum WorkflowExecutionStatus
+    {
+        Started,
+        InProgress,
+        OnHold,
+        Completed,
+        Failed,
+        Cancelled,
+        Escalated
+    }
+
+    /// <summary>
+    /// Workflow step status enumeration.
+    /// </summary>
+    public enum WorkflowStepStatus
+    {
+        Pending,
+        InProgress,
+        Completed,
+        Approved,
+        Rejected,
+        Skipped,
+        Failed,
+        OnHold,
+        Escalated
+    }
+
+    /// <summary>
+    /// Reminder type enumeration.
+    /// </summary>
+    public enum ReminderType
+    {
+        Deadline,
+        Renewal,
+        Review,
+        Approval,
+        Payment,
+        Expiration,
+        Followup,
+        Custom
+    }
+
+    /// <summary>
+    /// Reminder priority enumeration.
+    /// </summary>
+    public enum ReminderPriority
+    {
+        Low,
+        Normal,
+        High,
+        Critical,
+        Urgent
+    }
+
+    /// <summary>
+    /// Reminder status enumeration.
+    /// </summary>
+    public enum ReminderStatus
+    {
+        Active,
+        Pending,
+        Sent,
+        Snoozed,
+        Completed,
+        Cancelled,
+        Expired
+    }
+
+    /// <summary>
+    /// Schedule type enumeration.
+    /// </summary>
+    public enum ScheduleType
+    {
+        Renewal,
+        Review,
+        Audit,
+        Backup,
+        Cleanup,
+        Notification,
+        Report,
+        Integration,
+        Custom
+    }
+
+    /// <summary>
+    /// Schedule frequency enumeration.
+    /// </summary>
+    public enum ScheduleFrequency
+    {
+        Daily,
+        Weekly,
+        Monthly,
+        Quarterly,
+        Yearly,
+        Custom
+    }
+
+    /// <summary>
+    /// Schedule priority enumeration.
+    /// </summary>
+    public enum SchedulePriority
+    {
+        Low,
+        Normal,
+        High,
+        Critical
+    }
+
+    /// <summary>
+    /// Schedule status enumeration.
+    /// </summary>
+    public enum ScheduleStatus
+    {
+        Active,
+        Inactive,
+        Paused,
+        Completed,
+        Failed,
+        Cancelled
+    }
 }

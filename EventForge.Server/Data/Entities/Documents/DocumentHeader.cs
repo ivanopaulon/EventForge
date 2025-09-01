@@ -245,6 +245,84 @@ public class DocumentHeader : AuditableEntity
     [Display(Name = "Comments", Description = "Document comments linked to this header.")]
     public ICollection<DocumentComment> Comments { get; set; } = new List<DocumentComment>();
 
+    // --- Template and recurrence tracking ---
+    /// <summary>
+    /// Template used to create this document (if any)
+    /// </summary>
+    [Display(Name = "Source Template", Description = "Template used to create this document.")]
+    public Guid? SourceTemplateId { get; set; }
+
+    /// <summary>
+    /// Navigation property for the source template
+    /// </summary>
+    public DocumentTemplate? SourceTemplate { get; set; }
+
+    /// <summary>
+    /// Recurring schedule that generated this document (if any)
+    /// </summary>
+    [Display(Name = "Source Recurrence", Description = "Recurring schedule that generated this document.")]
+    public Guid? SourceRecurrenceId { get; set; }
+
+    /// <summary>
+    /// Navigation property for the source recurrence
+    /// </summary>
+    public DocumentRecurrence? SourceRecurrence { get; set; }
+
+    // --- Versioning and workflow ---
+    /// <summary>
+    /// Current version number of this document
+    /// </summary>
+    [Display(Name = "Current Version", Description = "Current version number of this document.")]
+    public int CurrentVersionNumber { get; set; } = 1;
+
+    /// <summary>
+    /// Indicates if versioning is enabled for this document
+    /// </summary>
+    [Display(Name = "Versioning Enabled", Description = "Indicates if versioning is enabled for this document.")]
+    public bool VersioningEnabled { get; set; } = false;
+
+    /// <summary>
+    /// Current workflow execution for this document
+    /// </summary>
+    [Display(Name = "Current Workflow Execution", Description = "Current workflow execution for this document.")]
+    public Guid? CurrentWorkflowExecutionId { get; set; }
+
+    /// <summary>
+    /// Navigation property for the current workflow execution
+    /// </summary>
+    public DocumentWorkflowExecution? CurrentWorkflowExecution { get; set; }
+
+    /// <summary>
+    /// Document versions
+    /// </summary>
+    [Display(Name = "Document Versions", Description = "Document versions.")]
+    public ICollection<DocumentVersion> Versions { get; set; } = new List<DocumentVersion>();
+
+    /// <summary>
+    /// Workflow executions for this document
+    /// </summary>
+    [Display(Name = "Workflow Executions", Description = "Workflow executions for this document.")]
+    public ICollection<DocumentWorkflowExecution> WorkflowExecutions { get; set; } = new List<DocumentWorkflowExecution>();
+
+    // --- Analytics and scheduling ---
+    /// <summary>
+    /// Analytics data for this document
+    /// </summary>
+    [Display(Name = "Analytics", Description = "Analytics data for this document.")]
+    public DocumentAnalytics? Analytics { get; set; }
+
+    /// <summary>
+    /// Reminders associated with this document
+    /// </summary>
+    [Display(Name = "Reminders", Description = "Reminders associated with this document.")]
+    public ICollection<DocumentReminder> Reminders { get; set; } = new List<DocumentReminder>();
+
+    /// <summary>
+    /// Schedules associated with this document
+    /// </summary>
+    [Display(Name = "Schedules", Description = "Schedules associated with this document.")]
+    public ICollection<DocumentSchedule> Schedules { get; set; } = new List<DocumentSchedule>();
+
     [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters.")]
     [Display(Name = "Notes", Description = "Additional notes.")]
     public string? Notes { get; set; } = string.Empty;
