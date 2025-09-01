@@ -11,6 +11,7 @@ using EventForge.Server.Services.PriceLists;
 using EventForge.Server.Services.Printing;
 using EventForge.Server.Services.Products;
 using EventForge.Server.Services.Promotions;
+using EventForge.Server.Services.RetailCart;
 using EventForge.Server.Services.Station;
 using EventForge.Server.Services.Store;
 using EventForge.Server.Services.Teams;
@@ -180,6 +181,9 @@ public static class ServiceCollectionExtensions
 
         // Register promotion services
         services.AddScoped<IPromotionService, PromotionService>();
+
+        // Register retail cart session services
+        services.AddScoped<IRetailCartSessionService, RetailCartSessionService>();
 
         // Register document services  
         services.AddScoped<IDocumentTypeService, DocumentTypeService>();
