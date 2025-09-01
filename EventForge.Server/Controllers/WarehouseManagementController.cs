@@ -20,17 +20,23 @@ public class WarehouseManagementController : BaseApiController
     private readonly IStorageFacilityService _storageFacilityService;
     private readonly IStorageLocationService _storageLocationService;
     private readonly ILotService _lotService;
+    private readonly IStockService _stockService;
+    private readonly ISerialService _serialService;
     private readonly ITenantContext _tenantContext;
 
     public WarehouseManagementController(
         IStorageFacilityService storageFacilityService,
         IStorageLocationService storageLocationService,
         ILotService lotService,
+        IStockService stockService,
+        ISerialService serialService,
         ITenantContext tenantContext)
     {
         _storageFacilityService = storageFacilityService ?? throw new ArgumentNullException(nameof(storageFacilityService));
         _storageLocationService = storageLocationService ?? throw new ArgumentNullException(nameof(storageLocationService));
         _lotService = lotService ?? throw new ArgumentNullException(nameof(lotService));
+        _stockService = stockService ?? throw new ArgumentNullException(nameof(stockService));
+        _serialService = serialService ?? throw new ArgumentNullException(nameof(serialService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
     }
 
@@ -636,6 +642,310 @@ public class WarehouseManagementController : BaseApiController
         catch (Exception ex)
         {
             return CreateInternalServerErrorProblem("An error occurred while unblocking the lot.", ex);
+        }
+    }
+
+    #endregion
+
+    #region Stock Management
+
+    /// <summary>
+    /// Gets all stock entries with optional pagination and filtering.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="productId">Optional product ID filter</param>
+    /// <param name="locationId">Optional location ID filter</param>
+    /// <param name="lotId">Optional lot ID filter</param>
+    /// <param name="lowStock">Optional low stock filter</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of stock entries</returns>
+    /// <response code="200">Returns the paginated list of stock entries</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("stock")]
+    [ProducesResponseType(typeof(PagedResult<StockDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetStock(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] Guid? productId = null,
+        [FromQuery] Guid? locationId = null,
+        [FromQuery] Guid? lotId = null,
+        [FromQuery] bool? lowStock = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (page < 1 || pageSize < 1 || pageSize > 100)
+        {
+            return CreateValidationProblemDetails("Page must be >= 1 and pageSize must be between 1 and 100.");
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _stockService.GetStockAsync(page, pageSize, productId, locationId, lotId, lowStock, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving stock entries.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a stock entry by ID.
+    /// </summary>
+    /// <param name="id">Stock ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Stock entry details</returns>
+    /// <response code="200">Returns the stock entry</response>
+    /// <response code="404">If the stock entry is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("stock/{id:guid}")]
+    [ProducesResponseType(typeof(StockDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetStockById(Guid id, CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var stock = await _stockService.GetStockByIdAsync(id, cancellationToken);
+            return stock != null ? Ok(stock) : NotFound();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the stock entry.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates or updates a stock entry.
+    /// </summary>
+    /// <param name="createDto">Stock creation/update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created/updated stock entry</returns>
+    /// <response code="200">Returns the created/updated stock entry</response>
+    /// <response code="400">If the request data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("stock")]
+    [ProducesResponseType(typeof(StockDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> CreateOrUpdateStock([FromBody] CreateStockDto createDto, CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _stockService.CreateOrUpdateStockAsync(createDto, GetCurrentUser(), cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while creating/updating the stock entry.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Reserves stock for a specific quantity.
+    /// </summary>
+    /// <param name="productId">Product ID</param>
+    /// <param name="locationId">Location ID</param>
+    /// <param name="quantity">Quantity to reserve</param>
+    /// <param name="lotId">Optional lot ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Success status</returns>
+    [HttpPost("stock/reserve")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ReserveStock(
+        [FromQuery] Guid productId,
+        [FromQuery] Guid locationId,
+        [FromQuery] decimal quantity,
+        [FromQuery] Guid? lotId = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (quantity <= 0)
+        {
+            return CreateValidationProblemDetails("Quantity must be greater than zero.");
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _stockService.ReserveStockAsync(productId, locationId, quantity, lotId, GetCurrentUser(), cancellationToken);
+            return result ? Ok() : BadRequest("Insufficient stock available for reservation.");
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while reserving stock.", ex);
+        }
+    }
+
+    #endregion
+
+    #region Serial Management
+
+    /// <summary>
+    /// Gets all serials with optional pagination and filtering.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="productId">Optional product ID filter</param>
+    /// <param name="lotId">Optional lot ID filter</param>
+    /// <param name="locationId">Optional location ID filter</param>
+    /// <param name="status">Optional status filter</param>
+    /// <param name="searchTerm">Optional search term</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of serials</returns>
+    [HttpGet("serials")]
+    [ProducesResponseType(typeof(PagedResult<SerialDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetSerials(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] Guid? productId = null,
+        [FromQuery] Guid? lotId = null,
+        [FromQuery] Guid? locationId = null,
+        [FromQuery] string? status = null,
+        [FromQuery] string? searchTerm = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (page < 1 || pageSize < 1 || pageSize > 100)
+        {
+            return CreateValidationProblemDetails("Page must be >= 1 and pageSize must be between 1 and 100.");
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _serialService.GetSerialsAsync(page, pageSize, productId, lotId, locationId, status, searchTerm, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving serials.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a serial by ID.
+    /// </summary>
+    /// <param name="id">Serial ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Serial details</returns>
+    [HttpGet("serials/{id:guid}")]
+    [ProducesResponseType(typeof(SerialDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetSerialById(Guid id, CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var serial = await _serialService.GetSerialByIdAsync(id, cancellationToken);
+            return serial != null ? Ok(serial) : NotFound();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the serial.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new serial.
+    /// </summary>
+    /// <param name="createDto">Serial creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created serial</returns>
+    [HttpPost("serials")]
+    [ProducesResponseType(typeof(SerialDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> CreateSerial([FromBody] CreateSerialDto createDto, CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _serialService.CreateSerialAsync(createDto, GetCurrentUser(), cancellationToken);
+            return CreatedAtAction(nameof(GetSerialById), new { id = result.Id }, result);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while creating the serial.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates a serial status.
+    /// </summary>
+    /// <param name="id">Serial ID</param>
+    /// <param name="status">New status</param>
+    /// <param name="notes">Optional notes</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Success status</returns>
+    [HttpPut("serials/{id:guid}/status")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UpdateSerialStatus(
+        Guid id, 
+        [FromQuery] string status,
+        [FromQuery] string? notes = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+        {
+            return CreateValidationProblemDetails("Status is required.");
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _serialService.UpdateSerialStatusAsync(id, status, GetCurrentUser(), notes, cancellationToken);
+            return result ? Ok() : NotFound();
+        }
+        catch (ArgumentException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while updating the serial status.", ex);
         }
     }
 
