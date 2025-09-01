@@ -5,13 +5,6 @@ REM Utilizzo: analyze-routes.bat [percorso-controllers] [file-output]
 echo EventForge Route Conflict Analyzer - Avvio Script
 echo =================================================
 
-REM Controllo se il progetto analyzer esiste
-if not exist "RouteConflictAnalyzer" (
-    echo ❌ Errore: Cartella RouteConflictAnalyzer non trovata!
-    echo Assicurati di eseguire lo script dalla root del progetto EventForge
-    exit /b 1
-)
-
 REM Parametri di default
 set CONTROLLERS_PATH=%1
 if "%CONTROLLERS_PATH%"=="" set CONTROLLERS_PATH=EventForge.Server/Controllers
@@ -23,26 +16,23 @@ echo 📂 Percorso Controllers: %CONTROLLERS_PATH%
 echo 📄 File Report: %OUTPUT_FILE%
 echo.
 
-REM Esegui build del progetto analyzer
-echo 🔨 Build dell'analyzer...
-cd RouteConflictAnalyzer
-dotnet build --configuration Release --verbosity quiet
+REM Esegui build del progetto di test
+echo 🔨 Build del progetto di test...
+dotnet build EventForge.Tests --configuration Release --verbosity quiet
 
 if %ERRORLEVEL% neq 0 (
-    echo ❌ Errore durante il build dell'analyzer
+    echo ❌ Errore durante il build del progetto di test
     exit /b 1
 )
 
 echo ✅ Build completato
 echo.
 
-REM Esegui l'analisi
+REM Esegui l'analisi tramite test
 echo 🔍 Avvio analisi dei conflitti di route...
-dotnet run --configuration Release -- "../%CONTROLLERS_PATH%" "../%OUTPUT_FILE%"
+dotnet test EventForge.Tests --filter Category=RouteAnalysis --configuration Release --nologo
 
 set ANALYZER_EXIT_CODE=%ERRORLEVEL%
-
-cd ..
 
 echo.
 

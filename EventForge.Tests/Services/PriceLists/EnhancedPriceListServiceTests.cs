@@ -17,6 +17,7 @@ namespace EventForge.Tests.Services.PriceLists;
 /// Tests advanced price calculation with precedence logic and unit conversion.
 /// Note: Uses simplified mocks due to project constraints.
 /// </summary>
+[Trait("Category", "Unit")]
 public class EnhancedPriceListServiceTests
 {
     private class MockAuditLogService : IAuditLogService

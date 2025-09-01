@@ -15,7 +15,8 @@ namespace EventForge.Tests.Services.Promotions
     /// Comprehensive unit tests for PromotionService rule types and stacking behavior.
     /// Tests all scenarios specified in the problem statement.
     /// </summary>
-    public class PromotionRuleEngineTests : IDisposable
+    [Trait("Category", "Unit")]
+public class PromotionRuleEngineTests : IDisposable
     {
         private readonly EventForgeDbContext _context;
         private readonly Mock<IAuditLogService> _mockAuditLogService;
