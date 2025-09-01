@@ -2,9 +2,11 @@ using EventForge.DTOs.PriceLists;
 using EventForge.Server.Services.PriceLists;
 using EventForge.Server.Services.UnitOfMeasures;
 using EventForge.Server.Services.Audit;
+using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Audit;
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Audit;
+using EventForge.DTOs.SuperAdmin;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -59,9 +61,9 @@ public class EnhancedPriceListServiceTests
         {
             return Task.FromResult(new PagedResult<EntityChangeLog>
             {
-                Data = Enumerable.Empty<EntityChangeLog>(),
+                Items = Enumerable.Empty<EntityChangeLog>(),
                 TotalCount = 0,
-                PageNumber = 1,
+                Page = 1,
                 PageSize = 10
             });
         }
@@ -75,9 +77,9 @@ public class EnhancedPriceListServiceTests
         {
             return Task.FromResult(new PagedResult<AuditTrailResponseDto>
             {
-                Data = Enumerable.Empty<AuditTrailResponseDto>(),
+                Items = Enumerable.Empty<AuditTrailResponseDto>(),
                 TotalCount = 0,
-                PageNumber = 1,
+                Page = 1,
                 PageSize = 10
             });
         }

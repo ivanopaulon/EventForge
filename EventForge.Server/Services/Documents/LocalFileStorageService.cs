@@ -91,13 +91,13 @@ public class LocalFileStorageService : IFileStorageService
         }
     }
 
-    public async Task<FileRetrievalResult?> GetFileAsync(
+    public Task<FileRetrievalResult?> GetFileAsync(
         Guid tenantId,
         string storagePath,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(storagePath))
-            return null;
+            return Task.FromResult<FileRetrievalResult?>(null);
 
         try
         {
@@ -106,7 +106,7 @@ public class LocalFileStorageService : IFileStorageService
             {
                 _logger.LogWarning("Attempted to access file outside tenant scope: {StoragePath} for tenant {TenantId}", 
                     storagePath, tenantId);
-                return null;
+                return Task.FromResult<FileRetrievalResult?>(null);
             }
 
             var fullPath = Path.Combine(_baseStoragePath, storagePath);
@@ -114,7 +114,7 @@ public class LocalFileStorageService : IFileStorageService
             if (!File.Exists(fullPath))
             {
                 _logger.LogWarning("File not found: {StoragePath}", storagePath);
-                return null;
+                return Task.FromResult<FileRetrievalResult?>(null);
             }
 
             var fileInfo = new FileInfo(fullPath);
@@ -125,7 +125,7 @@ public class LocalFileStorageService : IFileStorageService
 
             var fileStream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
-            return new FileRetrievalResult
+            var result = new FileRetrievalResult
             {
                 FileStream = fileStream,
                 FileName = fileName,
@@ -133,6 +133,7 @@ public class LocalFileStorageService : IFileStorageService
                 FileSize = fileInfo.Length,
                 LastModified = fileInfo.LastWriteTimeUtc
             };
+            return Task.FromResult<FileRetrievalResult?>(result);
         }
         catch (Exception ex)
         {
@@ -141,13 +142,13 @@ public class LocalFileStorageService : IFileStorageService
         }
     }
 
-    public async Task<bool> DeleteFileAsync(
+    public Task<bool> DeleteFileAsync(
         Guid tenantId,
         string storagePath,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(storagePath))
-            return false;
+            return Task.FromResult(false);
 
         try
         {
@@ -156,14 +157,14 @@ public class LocalFileStorageService : IFileStorageService
             {
                 _logger.LogWarning("Attempted to delete file outside tenant scope: {StoragePath} for tenant {TenantId}", 
                     storagePath, tenantId);
-                return false;
+                return Task.FromResult(false);
             }
 
             var fullPath = Path.Combine(_baseStoragePath, storagePath);
             
             if (!File.Exists(fullPath))
             {
-                return false;
+                return Task.FromResult(false);
             }
 
             File.Delete(fullPath);
@@ -171,7 +172,7 @@ public class LocalFileStorageService : IFileStorageService
             _logger.LogInformation("File deleted successfully: {StoragePath} for tenant {TenantId}", 
                 storagePath, tenantId);
             
-            return true;
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
@@ -180,13 +181,13 @@ public class LocalFileStorageService : IFileStorageService
         }
     }
 
-    public async Task<FileMetadata?> GetFileMetadataAsync(
+    public Task<FileMetadata?> GetFileMetadataAsync(
         Guid tenantId,
         string storagePath,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(storagePath))
-            return null;
+            return Task.FromResult<FileMetadata?>(null);
 
         try
         {
@@ -195,21 +196,21 @@ public class LocalFileStorageService : IFileStorageService
             {
                 _logger.LogWarning("Attempted to access file metadata outside tenant scope: {StoragePath} for tenant {TenantId}", 
                     storagePath, tenantId);
-                return null;
+                return Task.FromResult<FileMetadata?>(null);
             }
 
             var fullPath = Path.Combine(_baseStoragePath, storagePath);
             
             if (!File.Exists(fullPath))
             {
-                return null;
+                return Task.FromResult<FileMetadata?>(null);
             }
 
             var fileInfo = new FileInfo(fullPath);
             var fileName = Path.GetFileName(storagePath);
             var contentType = GetContentType(Path.GetExtension(fileName));
 
-            return new FileMetadata
+            var result = new FileMetadata
             {
                 FileName = fileName,
                 ContentType = contentType,
@@ -217,6 +218,7 @@ public class LocalFileStorageService : IFileStorageService
                 CreatedAt = fileInfo.CreationTimeUtc,
                 LastModified = fileInfo.LastWriteTimeUtc
             };
+            return Task.FromResult<FileMetadata?>(result);
         }
         catch (Exception ex)
         {
