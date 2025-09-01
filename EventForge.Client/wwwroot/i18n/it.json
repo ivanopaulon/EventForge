@@ -66,7 +66,14 @@
     "help": "Aiuto e Supporto",
     "helpCenter": "Centro Aiuto",
     "interactiveTour": "Tour Interattivo",
-    "tutorialCenter": "Centro Tutorial"
+    "tutorialCenter": "Centro Tutorial",
+    "openMenu": "Apri menu di navigazione",
+    "mainMenu": "Menu principale",
+    "eventforge": "EventForge",
+    "admin": "Amministrazione",
+    "events": "Eventi",
+    "notifications": "Notifiche",
+    "chat": "Chat"
   },
   "home": {
     "title": "EventForge - Home",
@@ -595,7 +602,9 @@
     "appliedMigrations": "Migrazioni Applicate",
     "andMore": "e altri {0}",
     "checkFailed": "Controllo Integrità Fallito",
-    "loadingStatus": "Caricamento stato integrità..."
+    "loadingStatus": "Caricamento stato integrità...",
+    "openDialog": "Visualizza stato integrità del sistema",
+    "status": "Stato"
   },
   "admin": {
     "welcomeBack": "Bentornato, {0}!",
@@ -644,7 +653,8 @@
   },
   "accessibility": {
     "languageSelectorDescription": "Seleziona la tua lingua preferita",
-    "selectLanguage": "Seleziona lingua"
+    "selectLanguage": "Seleziona lingua",
+    "skipToContent": "Salta al contenuto principale"
   },
   "profile": {
     "title": "Il Mio Profilo",
