@@ -74,6 +74,9 @@ builder.Services.AddScoped<IHelpService, HelpService>();
 builder.Services.AddScoped<ILoadingDialogService, LoadingDialogService>();
 builder.Services.AddScoped<IPrintingService, PrintingService>();
 
+// Add warehouse management services
+builder.Services.AddScoped<ILotService, LotService>();
+
 // Add SuperAdmin services
 builder.Services.AddScoped<ISuperAdminService, SuperAdminService>();
 builder.Services.AddScoped<ILogsService, LogsService>();
