@@ -26,7 +26,7 @@ namespace EventForge.DTOs.Products
         /// <summary>
         /// Conversion factor to the base unit.
         /// </summary>
-        public int ConversionFactor { get; set; }
+        public decimal ConversionFactor { get; set; }
 
         /// <summary>
         /// Unit type (e.g., Base, Pack, Pallet).

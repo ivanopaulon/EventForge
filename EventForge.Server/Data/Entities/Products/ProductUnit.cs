@@ -33,11 +33,11 @@ public class ProductUnit : AuditableEntity
     public UM? UnitOfMeasure { get; set; }
 
     /// <summary>
-    /// Conversion factor to the base unit (e.g., 6 for a pack of 6 pieces).
+    /// Conversion factor to the base unit (e.g., 6.5 for a pack of 6.5 pieces).
     /// </summary>
-    [Range(1, int.MaxValue, ErrorMessage = "The conversion factor must be at least 1.")]
+    [Range(0.001, double.MaxValue, ErrorMessage = "The conversion factor must be greater than zero.")]
     [Display(Name = "Conversion Factor", Description = "Number of base units contained in this unit.")]
-    public int ConversionFactor { get; set; } = 1;
+    public decimal ConversionFactor { get; set; } = 1m;
 
     /// <summary>
     /// Unit type (e.g., Base, Pack, Pallet).

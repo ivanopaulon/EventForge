@@ -1,5 +1,9 @@
 using EventForge.DTOs.PriceLists;
+using EventForge.Server.Services.UnitOfMeasures;
 using Microsoft.EntityFrameworkCore;
+using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
+using PriceListEntryStatus = EventForge.Server.Data.Entities.PriceList.PriceListEntryStatus;
+using ProductUnitStatus = EventForge.Server.Data.Entities.Products.ProductUnitStatus;
 
 namespace EventForge.Server.Services.PriceLists;
 
@@ -8,15 +12,18 @@ public class PriceListService : IPriceListService
     private readonly EventForgeDbContext _context;
     private readonly IAuditLogService _auditLogService;
     private readonly ILogger<PriceListService> _logger;
+    private readonly IUnitConversionService _unitConversionService;
 
     public PriceListService(
         EventForgeDbContext context,
         IAuditLogService auditLogService,
-        ILogger<PriceListService> logger)
+        ILogger<PriceListService> logger,
+        IUnitConversionService unitConversionService)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _unitConversionService = unitConversionService ?? throw new ArgumentNullException(nameof(unitConversionService));
     }
 
     public async Task<PagedResult<PriceListDto>> GetPriceListsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
@@ -543,5 +550,199 @@ public class PriceListService : IPriceListService
             ModifiedAt = entry.ModifiedAt,
             ModifiedBy = entry.ModifiedBy
         };
+    }
+
+    // Enhanced price calculation methods (Issue #245)
+
+    public async Task<AppliedPriceDto?> GetAppliedPriceAsync(Guid productId, Guid eventId, DateTime? evaluationDate = null, int quantity = 1, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var evalDate = evaluationDate ?? DateTime.UtcNow;
+            
+            // Get all applicable price lists for the event with precedence ordering
+            var applicablePriceLists = await _context.PriceLists
+                .Where(pl => pl.EventId == eventId && !pl.IsDeleted && pl.Status == PriceListStatus.Active)
+                .Where(pl => (pl.ValidFrom == null || pl.ValidFrom <= evalDate) && 
+                           (pl.ValidTo == null || pl.ValidTo >= evalDate))
+                .Include(pl => pl.ProductPrices.Where(ple => ple.ProductId == productId && !ple.IsDeleted && 
+                                                            ple.Status == PriceListEntryStatus.Attivo &&
+                                                            ple.MinQuantity <= quantity &&
+                                                            (ple.MaxQuantity == 0 || ple.MaxQuantity >= quantity)))
+                .OrderBy(pl => pl.Priority) // Higher priority (lower number) first
+                .ThenBy(pl => pl.IsDefault ? 0 : 1) // Default price lists first within same priority
+                .ThenByDescending(pl => pl.CreatedAt) // Newer price lists first as tiebreaker
+                .ToListAsync(cancellationToken);
+
+            // Find the first price list with a matching entry (precedence logic)
+            var selectedEntry = applicablePriceLists
+                .SelectMany(pl => pl.ProductPrices)
+                .FirstOrDefault();
+
+            if (selectedEntry == null)
+            {
+                _logger.LogWarning("No applicable price found for product {ProductId} in event {EventId} at date {EvaluationDate}", 
+                    productId, eventId, evalDate);
+                return null;
+            }
+
+            var selectedPriceList = applicablePriceLists.First(pl => pl.ProductPrices.Any(ple => ple.Id == selectedEntry.Id));
+
+            // Get unit information for the product's default unit
+            var productWithUnit = await _context.Products
+                .Include(p => p.Units.Where(pu => pu.UnitType == "Base" && !pu.IsDeleted))
+                .ThenInclude(pu => pu.UnitOfMeasure)
+                .FirstOrDefaultAsync(p => p.Id == productId && !p.IsDeleted, cancellationToken);
+
+            var defaultUnit = productWithUnit?.Units.FirstOrDefault();
+            var unitOfMeasure = defaultUnit?.UnitOfMeasure;
+
+            var result = new AppliedPriceDto
+            {
+                ProductId = productId,
+                EventId = eventId,
+                Price = selectedEntry.Price,
+                Currency = selectedEntry.Currency,
+                UnitOfMeasureId = unitOfMeasure?.Id ?? Guid.Empty,
+                UnitOfMeasureName = unitOfMeasure?.Name ?? "Unknown",
+                UnitSymbol = unitOfMeasure?.Symbol ?? "?",
+                PriceListId = selectedPriceList.Id,
+                PriceListName = selectedPriceList.Name,
+                PriceListPriority = selectedPriceList.Priority,
+                MinQuantity = selectedEntry.MinQuantity,
+                MaxQuantity = selectedEntry.MaxQuantity,
+                CalculatedAt = DateTime.UtcNow,
+                IsEditableInFrontend = selectedEntry.IsEditableInFrontend,
+                IsDiscountable = selectedEntry.IsDiscountable,
+                Score = selectedEntry.Score,
+                CalculationNotes = $"Price from '{selectedPriceList.Name}' (Priority: {selectedPriceList.Priority})"
+            };
+
+            _logger.LogInformation("Applied price {Price} {Currency} for product {ProductId} from price list '{PriceListName}' (Priority: {Priority})",
+                result.Price, result.Currency, productId, selectedPriceList.Name, selectedPriceList.Priority);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calculating applied price for product {ProductId} in event {EventId}", productId, eventId);
+            throw;
+        }
+    }
+
+    public async Task<AppliedPriceDto?> GetAppliedPriceWithUnitConversionAsync(Guid productId, Guid eventId, Guid targetUnitId, DateTime? evaluationDate = null, int quantity = 1, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // First get the base applied price
+            var basePrice = await GetAppliedPriceAsync(productId, eventId, evaluationDate, quantity, cancellationToken);
+            if (basePrice == null)
+            {
+                return null;
+            }
+
+            // Get the target unit information
+            var targetProductUnit = await _context.ProductUnits
+                .Include(pu => pu.UnitOfMeasure)
+                .FirstOrDefaultAsync(pu => pu.ProductId == productId && 
+                                         pu.UnitOfMeasureId == targetUnitId && 
+                                         !pu.IsDeleted && 
+                                         pu.Status == ProductUnitStatus.Active, 
+                                         cancellationToken);
+
+            if (targetProductUnit == null)
+            {
+                _logger.LogWarning("Target unit {TargetUnitId} not found for product {ProductId}", targetUnitId, productId);
+                return basePrice; // Return base price if target unit not found
+            }
+
+            // Get the base unit information for conversion
+            var baseProductUnit = await _context.ProductUnits
+                .Include(pu => pu.UnitOfMeasure)
+                .FirstOrDefaultAsync(pu => pu.ProductId == productId && 
+                                         pu.UnitOfMeasureId == basePrice.UnitOfMeasureId && 
+                                         !pu.IsDeleted && 
+                                         pu.Status == ProductUnitStatus.Active, 
+                                         cancellationToken);
+
+            if (baseProductUnit == null)
+            {
+                _logger.LogWarning("Base unit {BaseUnitId} not found for product {ProductId}", basePrice.UnitOfMeasureId, productId);
+                return basePrice; // Return base price if conversion not possible
+            }
+
+            // Perform price conversion using the unit conversion service
+            var convertedPrice = _unitConversionService.ConvertPrice(
+                basePrice.Price, 
+                baseProductUnit.ConversionFactor, 
+                targetProductUnit.ConversionFactor, 
+                2); // 2 decimal places for currency
+
+            // Create the result with conversion information
+            var result = new AppliedPriceDto
+            {
+                ProductId = basePrice.ProductId,
+                EventId = basePrice.EventId,
+                Price = convertedPrice,
+                Currency = basePrice.Currency,
+                UnitOfMeasureId = targetUnitId,
+                UnitOfMeasureName = targetProductUnit.UnitOfMeasure?.Name ?? "Unknown",
+                UnitSymbol = targetProductUnit.UnitOfMeasure?.Symbol ?? "?",
+                ConversionFactor = targetProductUnit.ConversionFactor,
+                OriginalPrice = basePrice.Price,
+                OriginalUnitOfMeasureId = basePrice.UnitOfMeasureId,
+                PriceListId = basePrice.PriceListId,
+                PriceListName = basePrice.PriceListName,
+                PriceListPriority = basePrice.PriceListPriority,
+                MinQuantity = basePrice.MinQuantity,
+                MaxQuantity = basePrice.MaxQuantity,
+                CalculatedAt = DateTime.UtcNow,
+                IsEditableInFrontend = basePrice.IsEditableInFrontend,
+                IsDiscountable = basePrice.IsDiscountable,
+                Score = basePrice.Score,
+                CalculationNotes = $"Price converted from {basePrice.UnitOfMeasureName} (factor: {baseProductUnit.ConversionFactor}) to {targetProductUnit.UnitOfMeasure?.Name} (factor: {targetProductUnit.ConversionFactor}). Original: {basePrice.Price:F2} {basePrice.Currency}"
+            };
+
+            _logger.LogInformation("Converted price from {OriginalPrice} {Currency}/{OriginalUnit} to {ConvertedPrice} {Currency}/{TargetUnit} for product {ProductId}",
+                basePrice.Price, basePrice.Currency, basePrice.UnitOfMeasureName, 
+                convertedPrice, result.Currency, result.UnitOfMeasureName, productId);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calculating applied price with unit conversion for product {ProductId} in event {EventId} to unit {TargetUnitId}", 
+                productId, eventId, targetUnitId);
+            throw;
+        }
+    }
+
+    // Placeholder implementations for remaining methods (to be implemented)
+    public async Task<IEnumerable<PriceHistoryDto>> GetPriceHistoryAsync(Guid productId, Guid eventId, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
+    {
+        // TODO: Implement price history functionality
+        await Task.CompletedTask;
+        return new List<PriceHistoryDto>();
+    }
+
+    public async Task<BulkImportResultDto> BulkImportPriceListEntriesAsync(Guid priceListId, IEnumerable<CreatePriceListEntryDto> entries, string currentUser, bool replaceExisting = false, CancellationToken cancellationToken = default)
+    {
+        // TODO: Implement bulk import functionality
+        await Task.CompletedTask;
+        return new BulkImportResultDto { PriceListId = priceListId };
+    }
+
+    public async Task<IEnumerable<ExportablePriceListEntryDto>> ExportPriceListEntriesAsync(Guid priceListId, bool includeInactiveEntries = false, CancellationToken cancellationToken = default)
+    {
+        // TODO: Implement export functionality
+        await Task.CompletedTask;
+        return new List<ExportablePriceListEntryDto>();
+    }
+
+    public async Task<PrecedenceValidationResultDto> ValidatePriceListPrecedenceAsync(Guid eventId, CancellationToken cancellationToken = default)
+    {
+        // TODO: Implement precedence validation
+        await Task.CompletedTask;
+        return new PrecedenceValidationResultDto { EventId = eventId };
     }
 }
