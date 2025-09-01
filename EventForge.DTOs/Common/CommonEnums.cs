@@ -329,4 +329,76 @@ namespace EventForge.DTOs.Common
         Failed,
         Cancelled
     }
+
+    /// <summary>
+    /// Workflow state enumeration.
+    /// </summary>
+    public enum WorkflowState
+    {
+        Draft,
+        InProgress,
+        PendingApproval,
+        Approved,
+        Rejected,
+        OnHold,
+        Cancelled,
+        Completed
+    }
+
+    /// <summary>
+    /// Workflow priority enumeration.
+    /// </summary>
+    public enum WorkflowPriority
+    {
+        Low,
+        Normal,
+        High,
+        Critical,
+        Urgent
+    }
+
+    /// <summary>
+    /// Workflow step type enumeration.
+    /// </summary>
+    public enum WorkflowStepType
+    {
+        Approval,
+        Review,
+        Notification,
+        AutoProcess,
+        ConditionalBranch,
+        DataValidation,
+        ExternalIntegration,
+        DigitalSignature
+    }
+
+    /// <summary>
+    /// Workflow execution status enumeration.
+    /// </summary>
+    public enum WorkflowExecutionStatus
+    {
+        Started,
+        InProgress,
+        OnHold,
+        Completed,
+        Failed,
+        Cancelled,
+        Escalated
+    }
+
+    /// <summary>
+    /// Workflow step status enumeration.
+    /// </summary>
+    public enum WorkflowStepStatus
+    {
+        Pending,
+        InProgress,
+        Completed,
+        Approved,
+        Rejected,
+        Skipped,
+        Failed,
+        OnHold,
+        Escalated
+    }
 }

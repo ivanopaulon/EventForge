@@ -268,6 +268,42 @@ public class DocumentHeader : AuditableEntity
     /// </summary>
     public DocumentRecurrence? SourceRecurrence { get; set; }
 
+    // --- Versioning and workflow ---
+    /// <summary>
+    /// Current version number of this document
+    /// </summary>
+    [Display(Name = "Current Version", Description = "Current version number of this document.")]
+    public int CurrentVersionNumber { get; set; } = 1;
+
+    /// <summary>
+    /// Indicates if versioning is enabled for this document
+    /// </summary>
+    [Display(Name = "Versioning Enabled", Description = "Indicates if versioning is enabled for this document.")]
+    public bool VersioningEnabled { get; set; } = false;
+
+    /// <summary>
+    /// Current workflow execution for this document
+    /// </summary>
+    [Display(Name = "Current Workflow Execution", Description = "Current workflow execution for this document.")]
+    public Guid? CurrentWorkflowExecutionId { get; set; }
+
+    /// <summary>
+    /// Navigation property for the current workflow execution
+    /// </summary>
+    public DocumentWorkflowExecution? CurrentWorkflowExecution { get; set; }
+
+    /// <summary>
+    /// Document versions
+    /// </summary>
+    [Display(Name = "Document Versions", Description = "Document versions.")]
+    public ICollection<DocumentVersion> Versions { get; set; } = new List<DocumentVersion>();
+
+    /// <summary>
+    /// Workflow executions for this document
+    /// </summary>
+    [Display(Name = "Workflow Executions", Description = "Workflow executions for this document.")]
+    public ICollection<DocumentWorkflowExecution> WorkflowExecutions { get; set; } = new List<DocumentWorkflowExecution>();
+
     [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters.")]
     [Display(Name = "Notes", Description = "Additional notes.")]
     public string? Notes { get; set; } = string.Empty;
