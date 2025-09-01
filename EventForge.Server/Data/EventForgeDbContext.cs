@@ -47,6 +47,7 @@ public class EventForgeDbContext : DbContext
     public DbSet<DocumentTemplate> DocumentTemplates { get; set; }
     public DbSet<DocumentWorkflow> DocumentWorkflows { get; set; }
     public DbSet<DocumentRecurrence> DocumentRecurrences { get; set; }
+    public DbSet<DocumentAnalytics> DocumentAnalytics { get; set; }
 
     // Events & Teams
     public DbSet<Event> Events { get; set; }

@@ -193,9 +193,15 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDocumentTemplateService, DocumentTemplateService>();
         services.AddScoped<IDocumentWorkflowService, DocumentWorkflowService>();
         services.AddScoped<IDocumentRecurrenceService, DocumentRecurrenceService>();
+        
+        // Register document analytics and supporting services
+        services.AddScoped<IDocumentAnalyticsService, DocumentAnalyticsService>();
+        services.AddScoped<IFileStorageService, LocalFileStorageService>();
+        services.AddScoped<IAntivirusScanService, StubAntivirusScanService>();
 
         // TODO: Complete implementation for:
         // - Document services: DocumentRow, DocumentSummaryLink (create implementations)
+        // - Document export, reminders, privacy, integrations services
         // - PromotionRule, PromotionRuleProduct services (create implementations)
     }
 
