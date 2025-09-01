@@ -4,6 +4,7 @@ namespace EventForge.Server.Services.PriceLists;
 
 /// <summary>
 /// Service interface for managing price lists and price list entries.
+/// Enhanced with Issue #245 optimizations for precedence, unit conversion, and performance.
 /// </summary>
 public interface IPriceListService
 {
@@ -27,4 +28,68 @@ public interface IPriceListService
     Task<bool> PriceListExistsAsync(Guid priceListId, CancellationToken cancellationToken = default);
     Task<bool> EventExistsAsync(Guid eventId, CancellationToken cancellationToken = default);
     Task<bool> ProductExistsAsync(Guid productId, CancellationToken cancellationToken = default);
+
+    // Enhanced price calculation methods (Issue #245)
+    /// <summary>
+    /// Gets the effective price for a product considering all applicable price lists with precedence logic.
+    /// Includes priority, validity dates, and default price list handling.
+    /// </summary>
+    /// <param name="productId">Product identifier</param>
+    /// <param name="eventId">Event identifier</param>
+    /// <param name="evaluationDate">Date to evaluate price validity (default: current UTC)</param>
+    /// <param name="quantity">Quantity for price tier evaluation (default: 1)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Applied price information or null if no price found</returns>
+    Task<AppliedPriceDto?> GetAppliedPriceAsync(Guid productId, Guid eventId, DateTime? evaluationDate = null, int quantity = 1, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the effective price for a product in a specific unit of measure with automatic conversion.
+    /// </summary>
+    /// <param name="productId">Product identifier</param>
+    /// <param name="eventId">Event identifier</param>
+    /// <param name="targetUnitId">Target unit of measure identifier</param>
+    /// <param name="evaluationDate">Date to evaluate price validity (default: current UTC)</param>
+    /// <param name="quantity">Quantity for price tier evaluation (default: 1)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Applied price information with unit conversion or null if no price found</returns>
+    Task<AppliedPriceDto?> GetAppliedPriceWithUnitConversionAsync(Guid productId, Guid eventId, Guid targetUnitId, DateTime? evaluationDate = null, int quantity = 1, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets price history for a product across all applicable price lists.
+    /// </summary>
+    /// <param name="productId">Product identifier</param>
+    /// <param name="eventId">Event identifier</param>
+    /// <param name="fromDate">Start date for history (optional)</param>
+    /// <param name="toDate">End date for history (optional)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Price history entries ordered by date</returns>
+    Task<IEnumerable<PriceHistoryDto>> GetPriceHistoryAsync(Guid productId, Guid eventId, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Bulk imports price list entries from a collection with validation.
+    /// </summary>
+    /// <param name="priceListId">Target price list identifier</param>
+    /// <param name="entries">Collection of price list entries to import</param>
+    /// <param name="currentUser">Current user performing the import</param>
+    /// <param name="replaceExisting">Whether to replace existing entries for the same products</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Bulk import result with success/failure counts and validation errors</returns>
+    Task<BulkImportResultDto> BulkImportPriceListEntriesAsync(Guid priceListId, IEnumerable<CreatePriceListEntryDto> entries, string currentUser, bool replaceExisting = false, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Exports price list entries to a structured format for bulk operations.
+    /// </summary>
+    /// <param name="priceListId">Price list identifier</param>
+    /// <param name="includeInactiveEntries">Whether to include inactive entries</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Exportable price list entries</returns>
+    Task<IEnumerable<ExportablePriceListEntryDto>> ExportPriceListEntriesAsync(Guid priceListId, bool includeInactiveEntries = false, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Validates price list precedence rules and identifies any conflicts.
+    /// </summary>
+    /// <param name="eventId">Event identifier</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Validation result with any identified precedence issues</returns>
+    Task<PrecedenceValidationResultDto> ValidatePriceListPrecedenceAsync(Guid eventId, CancellationToken cancellationToken = default);
 }
