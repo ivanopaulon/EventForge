@@ -43,6 +43,9 @@ public class EventForgeDbContext : DbContext
     public DbSet<DocumentSummaryLink> DocumentSummaryLinks { get; set; }
     public DbSet<DocumentAttachment> DocumentAttachments { get; set; }
     public DbSet<DocumentComment> DocumentComments { get; set; }
+    public DbSet<DocumentTemplate> DocumentTemplates { get; set; }
+    public DbSet<DocumentWorkflow> DocumentWorkflows { get; set; }
+    public DbSet<DocumentRecurrence> DocumentRecurrences { get; set; }
 
     // Events & Teams
     public DbSet<Event> Events { get; set; }
