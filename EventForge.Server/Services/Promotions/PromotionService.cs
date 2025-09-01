@@ -605,16 +605,17 @@ public class PromotionService : IPromotionService
     {
         return entityRuleType switch
         {
-            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Discount => EventForge.DTOs.Common.PromotionRuleType.Percentage,
-            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.CategoryDiscount => EventForge.DTOs.Common.PromotionRuleType.Percentage,
-            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.CartAmountDiscount => EventForge.DTOs.Common.PromotionRuleType.Fixed,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Discount => EventForge.DTOs.Common.PromotionRuleType.Discount,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.CategoryDiscount => EventForge.DTOs.Common.PromotionRuleType.CategoryDiscount,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.CartAmountDiscount => EventForge.DTOs.Common.PromotionRuleType.CartAmountDiscount,
             EventForge.Server.Data.Entities.Promotions.PromotionRuleType.BuyXGetY => EventForge.DTOs.Common.PromotionRuleType.BuyXGetY,
-            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.FixedPrice => EventForge.DTOs.Common.PromotionRuleType.Fixed,
-            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Bundle => EventForge.DTOs.Common.PromotionRuleType.Fixed,
-            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Coupon => EventForge.DTOs.Common.PromotionRuleType.Percentage,
-            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.TimeLimited => EventForge.DTOs.Common.PromotionRuleType.Percentage,
-            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Exclusive => EventForge.DTOs.Common.PromotionRuleType.Percentage,
-            _ => EventForge.DTOs.Common.PromotionRuleType.Percentage
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.FixedPrice => EventForge.DTOs.Common.PromotionRuleType.FixedPrice,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Bundle => EventForge.DTOs.Common.PromotionRuleType.Bundle,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.CustomerSpecific => EventForge.DTOs.Common.PromotionRuleType.CustomerSpecific,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Coupon => EventForge.DTOs.Common.PromotionRuleType.Coupon,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.TimeLimited => EventForge.DTOs.Common.PromotionRuleType.TimeLimited,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Exclusive => EventForge.DTOs.Common.PromotionRuleType.Exclusive,
+            _ => EventForge.DTOs.Common.PromotionRuleType.Discount
         };
     }
 

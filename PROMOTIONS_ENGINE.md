@@ -14,9 +14,10 @@ The EventForge Promotion Engine is a comprehensive solution for applying discoun
 4. **BuyXGetY** - Buy X quantity, get Y quantity free or discounted
 5. **FixedPrice** - Set fixed price for specific products
 6. **Bundle** - Bundle multiple products at a special combined price
-7. **Coupon** - Promotions requiring coupon codes
-8. **TimeLimited** - Promotions active only during specific time periods
-9. **Exclusive** - Non-combinable promotions that stop further applications
+7. **CustomerSpecific** - Discounts for specific customers/groups
+8. **Coupon** - Promotions requiring coupon codes
+9. **TimeLimited** - Promotions active only during specific time periods
+10. **Exclusive** - Non-combinable promotions that stop further applications
 
 ### Precedence and Stacking Model
 
