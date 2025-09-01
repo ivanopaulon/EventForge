@@ -182,6 +182,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDocumentHeaderService, DocumentHeaderService>();
         services.AddScoped<IDocumentAttachmentService, DocumentAttachmentService>();
         services.AddScoped<IDocumentCommentService, DocumentCommentService>();
+        services.AddScoped<IDocumentTemplateService, DocumentTemplateService>();
+        services.AddScoped<IDocumentWorkflowService, DocumentWorkflowService>();
+        services.AddScoped<IDocumentRecurrenceService, DocumentRecurrenceService>();
 
         // TODO: Complete implementation for:
         // - Document services: DocumentRow, DocumentSummaryLink (create implementations)
