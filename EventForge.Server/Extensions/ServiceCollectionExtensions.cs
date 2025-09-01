@@ -2,6 +2,7 @@ using EventForge.Server.Services.Banks;
 using EventForge.Server.Services.Business;
 using EventForge.Server.Services.Chat;
 using EventForge.Server.Services.Common;
+using EventForge.Server.Services.Configuration;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Events;
 using EventForge.Server.Services.Licensing;
@@ -233,6 +234,9 @@ public static class ServiceCollectionExtensions
 
         // Register barcode services
         services.AddScoped<EventForge.Server.Services.Interfaces.IBarcodeService, BarcodeService>();
+
+        // Register hosted service for database migration and bootstrap
+        services.AddHostedService<BootstrapHostedService>();
 
         // Configure session and distributed cache for tenant context
         // Use Redis in production environment, memory cache in development
