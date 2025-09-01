@@ -173,6 +173,7 @@ public static class ServiceCollectionExtensions
         // Register warehouse services
         services.AddScoped<IStorageFacilityService, StorageFacilityService>();
         services.AddScoped<IStorageLocationService, StorageLocationService>();
+        services.AddScoped<ILotService, LotService>();
 
         // Register promotion services
         services.AddScoped<IPromotionService, PromotionService>();

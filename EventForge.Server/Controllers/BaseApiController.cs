@@ -166,6 +166,33 @@ public abstract class BaseApiController : ControllerBase
     }
 
     /// <summary>
+    /// Creates a ProblemDetails response for conflict errors (409).
+    /// </summary>
+    /// <param name="message">The conflict error message</param>
+    /// <returns>Conflict result with ProblemDetails</returns>
+    protected ActionResult CreateConflictProblem(string message)
+    {
+        var problemDetails = new ProblemDetails
+        {
+            Type = "https://tools.ietf.org/html/rfc7231#section-6.5.8",
+            Title = "Conflict",
+            Status = StatusCodes.Status409Conflict,
+            Detail = message,
+            Instance = HttpContext.Request.Path
+        };
+
+        // Add correlation ID if available
+        if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId))
+        {
+            problemDetails.Extensions["correlationId"] = correlationId;
+        }
+
+        problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+        return StatusCode(StatusCodes.Status409Conflict, problemDetails);
+    }
+
+    /// <summary>
     /// Validates pagination parameters and returns standardized error if invalid.
     /// </summary>
     /// <param name="page">Page number (1-based)</param>
