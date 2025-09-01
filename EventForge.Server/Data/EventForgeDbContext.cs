@@ -2,6 +2,7 @@
 using EventForge.Server.Data.Entities.Chat;
 using EventForge.Server.Data.Entities.Documents;
 using EventForge.Server.Data.Entities.Notifications;
+using EventForge.Server.Data.Entities.Warehouse;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Data;
@@ -70,6 +71,16 @@ public class EventForgeDbContext : DbContext
     // Warehouse
     public DbSet<StorageFacility> StorageFacilities { get; set; }
     public DbSet<StorageLocation> StorageLocations { get; set; }
+    
+    // Traceability and Stock Management
+    public DbSet<Lot> Lots { get; set; }
+    public DbSet<Serial> Serials { get; set; }
+    public DbSet<Stock> Stocks { get; set; }
+    public DbSet<StockMovement> StockMovements { get; set; }
+    public DbSet<StockMovementPlan> StockMovementPlans { get; set; }
+    public DbSet<StockAlert> StockAlerts { get; set; }
+    public DbSet<QualityControl> QualityControls { get; set; }
+    public DbSet<MaintenanceRecord> MaintenanceRecords { get; set; }
 
     // Station Monitor
     public DbSet<Station> Stations { get; set; }
