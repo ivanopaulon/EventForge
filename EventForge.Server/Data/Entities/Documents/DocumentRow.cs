@@ -181,6 +181,12 @@ public class DocumentRow : AuditableEntity
     /// </summary>
     [Display(Name = "Attachments", Description = "Document attachments linked to this row.")]
     public ICollection<DocumentAttachment> Attachments { get; set; } = new List<DocumentAttachment>();
+
+    /// <summary>
+    /// Document comments linked to this row
+    /// </summary>
+    [Display(Name = "Comments", Description = "Document comments linked to this row.")]
+    public ICollection<DocumentComment> Comments { get; set; } = new List<DocumentComment>();
 }
 
 /// <summary>

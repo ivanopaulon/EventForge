@@ -239,6 +239,12 @@ public class DocumentHeader : AuditableEntity
     [Display(Name = "Attachments", Description = "Document attachments linked to this header.")]
     public ICollection<DocumentAttachment> Attachments { get; set; } = new List<DocumentAttachment>();
 
+    /// <summary>
+    /// Document comments linked to this header
+    /// </summary>
+    [Display(Name = "Comments", Description = "Document comments linked to this header.")]
+    public ICollection<DocumentComment> Comments { get; set; } = new List<DocumentComment>();
+
     [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters.")]
     [Display(Name = "Notes", Description = "Additional notes.")]
     public string? Notes { get; set; } = string.Empty;
