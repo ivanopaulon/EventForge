@@ -175,6 +175,12 @@ public class DocumentRow : AuditableEntity
     /// </summary>
     [NotMapped]
     public ICollection<DocumentSummaryLink> IncludedInSummaries { get; set; } = new List<DocumentSummaryLink>();
+
+    /// <summary>
+    /// Document attachments linked to this row
+    /// </summary>
+    [Display(Name = "Attachments", Description = "Document attachments linked to this row.")]
+    public ICollection<DocumentAttachment> Attachments { get; set; } = new List<DocumentAttachment>();
 }
 
 /// <summary>
