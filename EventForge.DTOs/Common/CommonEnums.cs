@@ -401,4 +401,98 @@ namespace EventForge.DTOs.Common
         OnHold,
         Escalated
     }
+
+    /// <summary>
+    /// Reminder type enumeration.
+    /// </summary>
+    public enum ReminderType
+    {
+        Deadline,
+        Renewal,
+        Review,
+        Approval,
+        Payment,
+        Expiration,
+        Followup,
+        Custom
+    }
+
+    /// <summary>
+    /// Reminder priority enumeration.
+    /// </summary>
+    public enum ReminderPriority
+    {
+        Low,
+        Normal,
+        High,
+        Critical,
+        Urgent
+    }
+
+    /// <summary>
+    /// Reminder status enumeration.
+    /// </summary>
+    public enum ReminderStatus
+    {
+        Active,
+        Pending,
+        Sent,
+        Snoozed,
+        Completed,
+        Cancelled,
+        Expired
+    }
+
+    /// <summary>
+    /// Schedule type enumeration.
+    /// </summary>
+    public enum ScheduleType
+    {
+        Renewal,
+        Review,
+        Audit,
+        Backup,
+        Cleanup,
+        Notification,
+        Report,
+        Integration,
+        Custom
+    }
+
+    /// <summary>
+    /// Schedule frequency enumeration.
+    /// </summary>
+    public enum ScheduleFrequency
+    {
+        Daily,
+        Weekly,
+        Monthly,
+        Quarterly,
+        Yearly,
+        Custom
+    }
+
+    /// <summary>
+    /// Schedule priority enumeration.
+    /// </summary>
+    public enum SchedulePriority
+    {
+        Low,
+        Normal,
+        High,
+        Critical
+    }
+
+    /// <summary>
+    /// Schedule status enumeration.
+    /// </summary>
+    public enum ScheduleStatus
+    {
+        Active,
+        Inactive,
+        Paused,
+        Completed,
+        Failed,
+        Cancelled
+    }
 }

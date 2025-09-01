@@ -304,6 +304,25 @@ public class DocumentHeader : AuditableEntity
     [Display(Name = "Workflow Executions", Description = "Workflow executions for this document.")]
     public ICollection<DocumentWorkflowExecution> WorkflowExecutions { get; set; } = new List<DocumentWorkflowExecution>();
 
+    // --- Analytics and scheduling ---
+    /// <summary>
+    /// Analytics data for this document
+    /// </summary>
+    [Display(Name = "Analytics", Description = "Analytics data for this document.")]
+    public DocumentAnalytics? Analytics { get; set; }
+
+    /// <summary>
+    /// Reminders associated with this document
+    /// </summary>
+    [Display(Name = "Reminders", Description = "Reminders associated with this document.")]
+    public ICollection<DocumentReminder> Reminders { get; set; } = new List<DocumentReminder>();
+
+    /// <summary>
+    /// Schedules associated with this document
+    /// </summary>
+    [Display(Name = "Schedules", Description = "Schedules associated with this document.")]
+    public ICollection<DocumentSchedule> Schedules { get; set; } = new List<DocumentSchedule>();
+
     [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters.")]
     [Display(Name = "Notes", Description = "Additional notes.")]
     public string? Notes { get; set; } = string.Empty;
