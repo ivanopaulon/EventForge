@@ -142,6 +142,7 @@ public static class ServiceCollectionExtensions
 
         // Register unit of measure services
         services.AddScoped<IUMService, UMService>();
+        services.AddScoped<IUnitConversionService, UnitConversionService>();
 
         // Register VAT rate services
         services.AddScoped<IVatRateService, VatRateService>();
