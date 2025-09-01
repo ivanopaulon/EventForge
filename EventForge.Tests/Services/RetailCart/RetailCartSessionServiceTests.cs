@@ -2,6 +2,8 @@ using EventForge.DTOs.Promotions;
 using EventForge.DTOs.RetailCart;
 using EventForge.Server.Services.Promotions;
 using EventForge.Server.Services.RetailCart;
+using EventForge.Server.Services.Tenants;
+using EventForge.Server.Data;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;

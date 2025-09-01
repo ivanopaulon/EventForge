@@ -1,6 +1,9 @@
 using EventForge.DTOs.Promotions;
 using EventForge.Server.Data.Entities.Promotions;
 using EventForge.Server.Services.Promotions;
+using EventForge.Server.Services.Audit;
+using EventForge.Server.Services.Tenants;
+using EventForge.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;

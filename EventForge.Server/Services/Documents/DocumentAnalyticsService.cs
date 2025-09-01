@@ -56,7 +56,6 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
 
             analytics.ModifiedBy = currentUser;
             analytics.ModifiedAt = DateTime.UtcNow;
-            analytics.LastUpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync(cancellationToken);
 
@@ -223,7 +222,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
                 AverageQualityScore = analytics.Where(a => a.QualityScore.HasValue)
                     .Average(a => a.QualityScore) ?? 0,
                 ErrorRate = totalDocuments > 0 ? 
-                    analytics.Average(a => a.Errors) / Math.Max(totalDocuments, 1) * 100 : 0,
+                    (decimal)(analytics.Average(a => a.Errors) / Math.Max(totalDocuments, 1) * 100) : 0,
                 EscalationRate = totalDocuments > 0 ? 
                     (decimal)analytics.Sum(a => a.Escalations) / totalDocuments * 100 : 0,
                 AverageCustomerSatisfaction = analytics.Where(a => a.SatisfactionScore.HasValue)
