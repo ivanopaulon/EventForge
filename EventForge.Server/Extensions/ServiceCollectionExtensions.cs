@@ -180,6 +180,8 @@ public static class ServiceCollectionExtensions
         // Register document services  
         services.AddScoped<IDocumentTypeService, DocumentTypeService>();
         services.AddScoped<IDocumentHeaderService, DocumentHeaderService>();
+        services.AddScoped<IDocumentAttachmentService, DocumentAttachmentService>();
+        services.AddScoped<IDocumentCommentService, DocumentCommentService>();
 
         // TODO: Complete implementation for:
         // - Document services: DocumentRow, DocumentSummaryLink (create implementations)
