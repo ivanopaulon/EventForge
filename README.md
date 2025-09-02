@@ -430,9 +430,27 @@ The following pages have been updated to follow consistent UI patterns:
 7. **Theme Switcher Enhancement** - Documented 6-theme system with localStorage persistence and accessibility features
 8. **Authentication-Aware UI** - Home page shows different content based on user authentication and role status
 
-## 📖 Additional Documentation
+## 📖 Documentation
 
-- `TRANSLATION_GUIDE.md` - Detailed translation management
-- `CUSTOM_THEME_GUIDE.md` - Theme customization
-- `DRAWER_IMPLEMENTATION_GUIDE.md` - Navigation drawer patterns
-- `EventForge.Server/README.md` - Server-specific documentation
+Tutta la documentazione è stata riorganizzata per categoria nella cartella `/docs/`. 
+
+**🔗 [Accedi alla Documentazione Completa](./docs/README.md)**
+
+### Quick Links
+- **📋 [Getting Started](./docs/core/getting-started.md)** - Guida rapida per iniziare
+- **🏗️ [Backend Development](./docs/backend/)** - Architettura e sviluppo backend
+- **🎨 [Frontend Development](./docs/frontend/)** - UI/UX e sviluppo frontend
+- **🧪 [Testing & QA](./docs/testing/)** - Testing e controllo qualità
+- **🚀 [Deployment](./docs/deployment/)** - Deployment e configurazione
+- **🔧 [Feature Guides](./docs/features/)** - Guide funzionalità specifiche
+- **📊 [Migration Reports](./docs/migration/)** - Report migrazioni e refactoring
+
+### Organizzazione Documentazione
+La documentazione è ora organizzata in categorie logiche:
+- **Core**: Panoramica progetto e setup iniziale
+- **Backend**: Architettura, API, database, servizi
+- **Frontend**: UI/UX, componenti, temi, traduzioni
+- **Testing**: Test, audit, analisi qualità
+- **Deployment**: Configurazione, deployment, infrastruttura
+- **Features**: Guide implementazione funzionalità specifiche
+- **Migration**: Report completamento e guide migrazione
