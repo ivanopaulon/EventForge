@@ -14,7 +14,8 @@ namespace EventForge.Tests.Services.Promotions
     /// <summary>
     /// Unit tests for PromotionService focusing on promotion engine functionality.
     /// </summary>
-    public class PromotionServiceTests : IDisposable
+    [Trait("Category", "Unit")]
+public class PromotionServiceTests : IDisposable
     {
         private readonly EventForgeDbContext _context;
         private readonly Mock<IAuditLogService> _mockAuditLogService;

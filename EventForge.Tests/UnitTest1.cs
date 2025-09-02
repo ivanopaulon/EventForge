@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace EventForge.Tests;
 
+[Trait("Category", "Unit")]
 public class HealthControllerTests
 {
     [Fact]

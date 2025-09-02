@@ -6,13 +6,6 @@
 echo "EventForge Route Conflict Analyzer - Avvio Script"
 echo "================================================="
 
-# Controllo se il progetto analyzer esiste
-if [ ! -d "RouteConflictAnalyzer" ]; then
-    echo "❌ Errore: Cartella RouteConflictAnalyzer non trovata!"
-    echo "Assicurati di eseguire lo script dalla root del progetto EventForge"
-    exit 1
-fi
-
 # Parametri di default
 CONTROLLERS_PATH=${1:-"EventForge.Server/Controllers"}
 OUTPUT_FILE=${2:-"route_analysis_report.txt"}
@@ -21,13 +14,16 @@ echo "📂 Percorso Controllers: $CONTROLLERS_PATH"
 echo "📄 File Report: $OUTPUT_FILE"
 echo ""
 
-# Esegui build del progetto analyzer
-echo "🔨 Build dell'analyzer..."
-cd RouteConflictAnalyzer
-dotnet build --configuration Release --verbosity quiet
+# Esporta le variabili d'ambiente per il test
+export CONTROLLERS_PATH
+export OUTPUT_FILE
+
+# Esegui l'analisi tramite test
+echo "🔨 Build del progetto di test..."
+dotnet build EventForge.Tests --configuration Release --verbosity quiet
 
 if [ $? -ne 0 ]; then
-    echo "❌ Errore durante il build dell'analyzer"
+    echo "❌ Errore durante il build del progetto di test"
     exit 1
 fi
 
@@ -36,11 +32,9 @@ echo ""
 
 # Esegui l'analisi
 echo "🔍 Avvio analisi dei conflitti di route..."
-dotnet run --configuration Release -- "../$CONTROLLERS_PATH" "../$OUTPUT_FILE"
+dotnet test EventForge.Tests --filter Category=RouteAnalysis --configuration Release --nologo
 
 ANALYZER_EXIT_CODE=$?
-
-cd ..
 
 echo ""
 

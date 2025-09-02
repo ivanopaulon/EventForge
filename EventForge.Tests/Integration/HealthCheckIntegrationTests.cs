@@ -5,8 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 
-namespace EventForge.IntegrationTests;
+namespace EventForge.Tests.Integration;
 
+[Trait("Category", "Integration")]
 public class HealthCheckIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly WebApplicationFactory<Program> _factory;

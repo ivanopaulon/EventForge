@@ -1,8 +1,8 @@
 EVENTFORGE - ROUTE CONFLICT ANALYSIS REPORT
 ==========================================
-Data Generazione: 2025-08-08 19:12:30
-Controller Analizzati: 14
-Route Totali: 93
+Data Generazione: 2025-09-01 23:05:29
+Controller Analizzati: 38
+Route Totali: 385
 Conflitti Rilevati: 0
 
 📋 MAPPING COMPLETO DELLE ROUTE
@@ -10,6 +10,10 @@ Conflitti Rilevati: 0
 
 Controller: ApplicationLogController
 --------------------------------------------------
+  GET     /api/v1/ApplicationLog                   -> GetApplicationLogs()
+  GET     /api/v1/ApplicationLog/{id:int}          -> GetApplicationLog()
+  GET     /api/v1/ApplicationLog/daterange         -> GetApplicationLogsInDateRange()
+  GET     /api/v1/ApplicationLog/level/{level}     -> GetApplicationLogsByLevel()
   GET     /api/v1/ApplicationLog/monitoring/config -> GetMonitoringConfig()
   GET     /api/v1/ApplicationLog/monitoring/recent -> GetRecentCriticalLogs()
   GET     /api/v1/ApplicationLog/statistics        -> GetSystemLogStatistics()
@@ -19,54 +23,362 @@ Controller: ApplicationLogController
 
 Controller: AuditLogController
 --------------------------------------------------
+  GET     /api/v1/AuditLog                         -> GetAuditLogs()
+  GET     /api/v1/AuditLog/{id:guid}               -> GetAuditLog()
   GET     /api/v1/AuditLog/audit-trail/statistics  -> GetAuditTrailStatistics()
+  GET     /api/v1/AuditLog/entity-type/{entityName} -> GetEntityTypeAuditLogs()
   GET     /api/v1/AuditLog/entity/{entityId:guid}  -> GetEntityAuditLogs()
   GET     /api/v1/AuditLog/export/{exportId}/download -> DownloadExport()
   GET     /api/v1/AuditLog/export/{exportId}/status -> GetExportStatus()
+  GET     /api/v1/AuditLog/user/{username}         -> GetUserAuditLogs()
   POST    /api/v1/AuditLog/audit-trail/search      -> SearchAuditTrail()
+  POST    /api/v1/AuditLog/export                  -> ExportAuditLogs()
   POST    /api/v1/AuditLog/export-advanced         -> ExportAdvanced()
+
+Controller: AuthController
+--------------------------------------------------
+  GET     /api/v1/Auth/me                          -> GetCurrentUser()
+  POST    /api/v1/Auth/change-password             -> ChangePassword()
+  POST    /api/v1/Auth/login                       -> Login()
+  POST    /api/v1/Auth/logout                      -> Logout()
+  POST    /api/v1/Auth/validate-token              -> ValidateToken()
 
 Controller: BarcodeController
 --------------------------------------------------
   GET     /api/Barcode/formats                     -> GetSupportedImageFormats()
   GET     /api/Barcode/types                       -> GetSupportedBarcodeTypes()
+  POST    /api/Barcode/generate                    -> GenerateBarcode()
+  POST    /api/Barcode/qr                          -> GenerateQRCode()
+  POST    /api/Barcode/validate                    -> ValidateData()
+
+Controller: BusinessPartiesController
+--------------------------------------------------
+  DELETE  /api/v1/BusinessParties/{id:guid}        -> DeleteBusinessParty()
+  DELETE  /api/v1/BusinessParties/accounting/{id:guid} -> DeleteBusinessPartyAccounting()
+  GET     /api/v1/BusinessParties                  -> GetBusinessParties()
+  GET     /api/v1/BusinessParties/{businessPartyId:guid}/accounting -> GetBusinessPartyAccountingByBusinessPartyId()
+  GET     /api/v1/BusinessParties/{id:guid}        -> GetBusinessParty()
+  GET     /api/v1/BusinessParties/accounting       -> GetBusinessPartyAccounting()
+  GET     /api/v1/BusinessParties/accounting/{id:guid} -> GetBusinessPartyAccounting()
+  GET     /api/v1/BusinessParties/by-type/{partyType} -> GetBusinessPartiesByType()
+  POST    /api/v1/BusinessParties                  -> CreateBusinessParty()
+  POST    /api/v1/BusinessParties/accounting       -> CreateBusinessPartyAccounting()
+  PUT     /api/v1/BusinessParties/{id:guid}        -> UpdateBusinessParty()
+  PUT     /api/v1/BusinessParties/accounting/{id:guid} -> UpdateBusinessPartyAccounting()
 
 Controller: ChatController
 --------------------------------------------------
+  DELETE  /api/v1/Chat/{id:guid}                   -> DeleteChatAsync()
+  DELETE  /api/v1/Chat/messages/{messageId:guid}   -> DeleteMessageAsync()
+  GET     /api/v1/Chat                             -> SearchChatsAsync()
+  GET     /api/v1/Chat/{id:guid}                   -> GetChatByIdAsync()
+  GET     /api/v1/Chat/export/{exportId:guid}/download -> DownloadChatExportAsync()
+  GET     /api/v1/Chat/export/{exportId:guid}/status -> GetChatExportStatusAsync()
+  GET     /api/v1/Chat/files/{attachmentId:guid}/download -> DownloadFileAsync()
+  GET     /api/v1/Chat/files/{attachmentId:guid}/info -> GetFileDownloadInfoAsync()
   GET     /api/v1/Chat/messages                    -> GetMessagesAsync()
+  GET     /api/v1/Chat/messages/{messageId:guid}   -> GetMessageByIdAsync()
   GET     /api/v1/Chat/statistics                  -> GetChatStatisticsAsync()
-  GET     api/v1/Chat                              -> SearchChatsAsync()
+  GET     /api/v1/Chat/system/health               -> GetChatSystemHealthAsync()
+  POST    /api/v1/Chat                             -> CreateChatAsync()
   POST    /api/v1/Chat/export                      -> ExportChatHistoryAsync()
+  POST    /api/v1/Chat/messages                    -> SendMessageAsync()
+  POST    /api/v1/Chat/messages/{messageId:guid}/read -> MarkMessageAsReadAsync()
   POST    /api/v1/Chat/messages/bulk-read          -> BulkMarkAsReadAsync()
   POST    /api/v1/Chat/upload                      -> UploadFileAsync()
+  PUT     /api/v1/Chat/{id:guid}                   -> UpdateChatAsync()
+  PUT     /api/v1/Chat/messages/{messageId:guid}   -> EditMessageAsync()
+
+Controller: ClientLogsController
+--------------------------------------------------
+  GET     /api/v1/ClientLogs/health                -> Health()
+  POST    /api/v1/ClientLogs                       -> LogEntry()
+  POST    /api/v1/ClientLogs/batch                 -> LogBatch()
+
+Controller: DocumentAnalyticsController
+--------------------------------------------------
+  GET     /api/v1/DocumentAnalytics/document/{documentHeaderId:guid} -> GetDocumentAnalytics()
+  GET     /api/v1/DocumentAnalytics/kpi            -> GetKpiSummary()
+  GET     /api/v1/DocumentAnalytics/summary        -> GetAnalyticsSummary()
+  POST    /api/v1/DocumentAnalytics/document/{documentHeaderId:guid}/events -> HandleWorkflowEvent()
+  POST    /api/v1/DocumentAnalytics/document/{documentHeaderId:guid}/refresh -> RefreshDocumentAnalytics()
+
+Controller: DocumentAttachmentsController
+--------------------------------------------------
+  DELETE  /api/v1/DocumentAttachments/{id:guid}    -> DeleteAttachment()
+  GET     /api/v1/DocumentAttachments/{id:guid}    -> GetAttachment()
+  GET     /api/v1/DocumentAttachments/{id:guid}/exists -> AttachmentExists()
+  GET     /api/v1/DocumentAttachments/{id:guid}/versions -> GetAttachmentVersions()
+  GET     /api/v1/DocumentAttachments/category/{category} -> GetAttachmentsByCategory()
+  GET     /api/v1/DocumentAttachments/document-header/{documentHeaderId:guid} -> GetDocumentHeaderAttachments()
+  GET     /api/v1/DocumentAttachments/document-row/{documentRowId:guid} -> GetDocumentRowAttachments()
+  POST    /api/v1/DocumentAttachments              -> CreateAttachment()
+  POST    /api/v1/DocumentAttachments/{id:guid}/sign -> SignAttachment()
+  POST    /api/v1/DocumentAttachments/{id:guid}/versions -> CreateAttachmentVersion()
+  PUT     /api/v1/DocumentAttachments/{id:guid}    -> UpdateAttachment()
+
+Controller: DocumentCommentsController
+--------------------------------------------------
+  DELETE  /api/v1/DocumentComments/{id:guid}       -> DeleteComment()
+  GET     /api/v1/DocumentComments/{id:guid}       -> GetComment()
+  GET     /api/v1/DocumentComments/{id:guid}/exists -> CommentExists()
+  GET     /api/v1/DocumentComments/assigned        -> GetAssignedComments()
+  GET     /api/v1/DocumentComments/document-header/{documentHeaderId:guid} -> GetDocumentHeaderComments()
+  GET     /api/v1/DocumentComments/document-header/{documentHeaderId:guid}/stats -> GetDocumentCommentStats()
+  GET     /api/v1/DocumentComments/document-row/{documentRowId:guid} -> GetDocumentRowComments()
+  POST    /api/v1/DocumentComments                 -> CreateComment()
+  POST    /api/v1/DocumentComments/{id:guid}/reopen -> ReopenComment()
+  POST    /api/v1/DocumentComments/{id:guid}/resolve -> ResolveComment()
+  PUT     /api/v1/DocumentComments/{id:guid}       -> UpdateComment()
+
+Controller: DocumentHeadersController
+--------------------------------------------------
+  DELETE  /api/v1/DocumentHeaders/{id:guid}        -> DeleteDocumentHeader()
+  GET     /api/v1/DocumentHeaders                  -> GetDocumentHeaders()
+  GET     /api/v1/DocumentHeaders/{id:guid}        -> GetDocumentHeader()
+  GET     /api/v1/DocumentHeaders/{id:guid}/exists -> DocumentHeaderExists()
+  GET     /api/v1/DocumentHeaders/business-party/{businessPartyId:guid} -> GetDocumentHeadersByBusinessParty()
+  POST    /api/v1/DocumentHeaders                  -> CreateDocumentHeader()
+  POST    /api/v1/DocumentHeaders/{id:guid}/approve -> ApproveDocument()
+  POST    /api/v1/DocumentHeaders/{id:guid}/calculate-totals -> CalculateDocumentTotals()
+  POST    /api/v1/DocumentHeaders/{id:guid}/close  -> CloseDocument()
+  PUT     /api/v1/DocumentHeaders/{id:guid}        -> UpdateDocumentHeader()
+
+Controller: DocumentRecurrencesController
+--------------------------------------------------
+  DELETE  /api/v1/DocumentRecurrences/{id:guid}    -> DeleteDocumentRecurrence()
+  GET     /api/v1/DocumentRecurrences              -> GetDocumentRecurrences()
+  GET     /api/v1/DocumentRecurrences/{id:guid}    -> GetDocumentRecurrence()
+  GET     /api/v1/DocumentRecurrences/active       -> GetActiveDocumentRecurrences()
+  PATCH   /api/v1/DocumentRecurrences/{id:guid}/enabled -> SetRecurrenceEnabledStatus()
+  POST    /api/v1/DocumentRecurrences              -> CreateDocumentRecurrence()
+  PUT     /api/v1/DocumentRecurrences/{id:guid}    -> UpdateDocumentRecurrence()
+
+Controller: DocumentTemplatesController
+--------------------------------------------------
+  DELETE  /api/v1/DocumentTemplates/{id:guid}      -> DeleteDocumentTemplate()
+  GET     /api/v1/DocumentTemplates                -> GetDocumentTemplates()
+  GET     /api/v1/DocumentTemplates/{id:guid}      -> GetDocumentTemplate()
+  GET     /api/v1/DocumentTemplates/by-category/{category} -> GetDocumentTemplatesByCategory()
+  GET     /api/v1/DocumentTemplates/by-document-type/{documentTypeId:guid} -> GetDocumentTemplatesByDocumentType()
+  GET     /api/v1/DocumentTemplates/public         -> GetPublicDocumentTemplates()
+  PATCH   /api/v1/DocumentTemplates/{id:guid}/usage -> UpdateTemplateUsage()
+  POST    /api/v1/DocumentTemplates                -> CreateDocumentTemplate()
+  PUT     /api/v1/DocumentTemplates/{id:guid}      -> UpdateDocumentTemplate()
+
+Controller: DocumentTypesController
+--------------------------------------------------
+  DELETE  /api/v1/DocumentTypes/{id:guid}          -> DeleteDocumentType()
+  GET     /api/v1/DocumentTypes                    -> GetDocumentTypes()
+  GET     /api/v1/DocumentTypes/{id:guid}          -> GetDocumentType()
+  POST    /api/v1/DocumentTypes                    -> CreateDocumentType()
+  PUT     /api/v1/DocumentTypes/{id:guid}          -> UpdateDocumentType()
+
+Controller: DocumentWorkflowsController
+--------------------------------------------------
+  DELETE  /api/v1/DocumentWorkflows/{id:guid}      -> DeleteDocumentWorkflow()
+  GET     /api/v1/DocumentWorkflows                -> GetDocumentWorkflows()
+  GET     /api/v1/DocumentWorkflows/{id:guid}      -> GetDocumentWorkflow()
+  POST    /api/v1/DocumentWorkflows                -> CreateDocumentWorkflow()
+  PUT     /api/v1/DocumentWorkflows/{id:guid}      -> UpdateDocumentWorkflow()
+
+Controller: EntityManagementController
+--------------------------------------------------
+  DELETE  /api/v1/entities/addresses/{id:guid}     -> DeleteAddress()
+  DELETE  /api/v1/entities/classification-nodes/{id:guid} -> DeleteClassificationNode()
+  DELETE  /api/v1/entities/contacts/{id:guid}      -> DeleteContact()
+  GET     /api/v1/entities/addresses               -> GetAddresses()
+  GET     /api/v1/entities/addresses/{id:guid}     -> GetAddress()
+  GET     /api/v1/entities/addresses/owner/{ownerId:guid} -> GetAddressesByOwner()
+  GET     /api/v1/entities/classification-nodes    -> GetClassificationNodes()
+  GET     /api/v1/entities/classification-nodes/{id:guid} -> GetClassificationNode()
+  GET     /api/v1/entities/classification-nodes/root -> GetRootClassificationNodes()
+  GET     /api/v1/entities/contacts                -> GetContacts()
+  GET     /api/v1/entities/contacts/{id:guid}      -> GetContact()
+  GET     /api/v1/entities/contacts/owner/{ownerId:guid} -> GetContactsByOwner()
+  POST    /api/v1/entities/addresses               -> CreateAddress()
+  POST    /api/v1/entities/classification-nodes    -> CreateClassificationNode()
+  POST    /api/v1/entities/contacts                -> CreateContact()
+  PUT     /api/v1/entities/addresses/{id:guid}     -> UpdateAddress()
+  PUT     /api/v1/entities/classification-nodes/{id:guid} -> UpdateClassificationNode()
+  PUT     /api/v1/entities/contacts/{id:guid}      -> UpdateContact()
+
+Controller: EventsController
+--------------------------------------------------
+  DELETE  /api/v1/Events/{id:guid}                 -> DeleteEvent()
+  GET     /api/v1/Events                           -> GetEvents()
+  GET     /api/v1/Events/{id:guid}                 -> GetEvent()
+  GET     /api/v1/Events/{id:guid}/details         -> GetEventDetail()
+  POST    /api/v1/Events                           -> CreateEvent()
+  PUT     /api/v1/Events/{id:guid}                 -> UpdateEvent()
+
+Controller: FinancialManagementController
+--------------------------------------------------
+  DELETE  /api/v1/financial/banks/{id:guid}        -> DeleteBank()
+  DELETE  /api/v1/financial/payment-terms/{id:guid} -> DeletePaymentTerm()
+  DELETE  /api/v1/financial/vat-rates/{id:guid}    -> DeleteVatRate()
+  GET     /api/v1/financial/banks                  -> GetBanks()
+  GET     /api/v1/financial/banks/{id:guid}        -> GetBank()
+  GET     /api/v1/financial/payment-terms          -> GetPaymentTerms()
+  GET     /api/v1/financial/payment-terms/{id:guid} -> GetPaymentTerm()
+  GET     /api/v1/financial/vat-rates              -> GetVatRates()
+  GET     /api/v1/financial/vat-rates/{id:guid}    -> GetVatRate()
+  POST    /api/v1/financial/banks                  -> CreateBank()
+  POST    /api/v1/financial/payment-terms          -> CreatePaymentTerm()
+  POST    /api/v1/financial/vat-rates              -> CreateVatRate()
+  PUT     /api/v1/financial/banks/{id:guid}        -> UpdateBank()
+  PUT     /api/v1/financial/payment-terms/{id:guid} -> UpdatePaymentTerm()
+  PUT     /api/v1/financial/vat-rates/{id:guid}    -> UpdateVatRate()
 
 Controller: HealthController
 --------------------------------------------------
+  GET     /api/v1/Health                           -> GetHealth()
   GET     /api/v1/Health/detailed                  -> GetDetailedHealth()
 
 Controller: LicenseController
 --------------------------------------------------
   DELETE  /api/License/{id}                        -> DeleteLicense()
+  GET     /api/License                             -> GetLicenses()
   GET     /api/License/{id}                        -> GetLicense()
   GET     /api/License/tenant-licenses             -> GetTenantLicenses()
   GET     /api/License/tenant/{tenantId}           -> GetTenantLicense()
-  GET     api/License                              -> GetLicenses()
+  POST    /api/License                             -> CreateLicense()
   POST    /api/License/assign                      -> AssignLicense()
-  POST    api/License                              -> CreateLicense()
   PUT     /api/License/{id}                        -> UpdateLicense()
+
+Controller: LogsController
+--------------------------------------------------
+  GET     /api/Logs                                -> GetLogs()
+  GET     /api/Logs/levels                         -> GetLogLevels()
 
 Controller: NotificationsController
 --------------------------------------------------
+  GET     /api/v1/Notifications                    -> GetNotificationsAsync()
+  GET     /api/v1/Notifications/{id:guid}          -> GetNotificationByIdAsync()
+  GET     /api/v1/Notifications/export/{exportId:guid}/download -> DownloadExportAsync()
+  GET     /api/v1/Notifications/export/{exportId:guid}/status -> GetExportStatusAsync()
   GET     /api/v1/Notifications/statistics         -> GetNotificationStatisticsAsync()
-  GET     api/v1/Notifications                     -> GetNotificationsAsync()
+  GET     /api/v1/Notifications/system/health      -> GetSystemHealthAsync()
+  POST    /api/v1/Notifications                    -> SendNotificationAsync()
+  POST    /api/v1/Notifications/{id:guid}/acknowledge -> AcknowledgeNotificationAsync()
+  POST    /api/v1/Notifications/{id:guid}/archive  -> ArchiveNotificationAsync()
+  POST    /api/v1/Notifications/{id:guid}/silence  -> SilenceNotificationAsync()
   POST    /api/v1/Notifications/bulk               -> SendBulkNotificationsAsync()
   POST    /api/v1/Notifications/bulk-action        -> ProcessBulkActionAsync()
   POST    /api/v1/Notifications/export             -> ExportNotificationHistoryAsync()
 
+Controller: PerformanceController
+--------------------------------------------------
+  GET     /api/v1/Performance/slow-queries         -> GetSlowQueries()
+  GET     /api/v1/Performance/statistics           -> GetStatistics()
+  GET     /api/v1/Performance/summary              -> GetSummary()
+
+Controller: PriceListsController
+--------------------------------------------------
+  DELETE  /api/v1/PriceLists/{id:guid}             -> DeletePriceList()
+  DELETE  /api/v1/PriceLists/entries/{id:guid}     -> DeletePriceListEntry()
+  GET     /api/v1/PriceLists                       -> GetPriceLists()
+  GET     /api/v1/PriceLists/{id:guid}             -> GetPriceList()
+  GET     /api/v1/PriceLists/{id:guid}/details     -> GetPriceListDetail()
+  GET     /api/v1/PriceLists/{priceListId:guid}/entries -> GetPriceListEntries()
+  GET     /api/v1/PriceLists/by-event/{eventId:guid} -> GetPriceListsByEvent()
+  GET     /api/v1/PriceLists/entries/{id:guid}     -> GetPriceListEntry()
+  POST    /api/v1/PriceLists                       -> CreatePriceList()
+  POST    /api/v1/PriceLists/entries               -> AddPriceListEntry()
+  PUT     /api/v1/PriceLists/{id:guid}             -> UpdatePriceList()
+  PUT     /api/v1/PriceLists/entries/{id:guid}     -> UpdatePriceListEntry()
+
+Controller: PrintingController
+--------------------------------------------------
+  GET     /api/Printing/jobs/{jobId:guid}          -> GetPrintJobStatus()
+  GET     /api/Printing/qz/certificate             -> GetQzCertificate()
+  POST    /api/Printing/discover                   -> DiscoverPrinters()
+  POST    /api/Printing/jobs/{jobId:guid}/cancel   -> CancelPrintJob()
+  POST    /api/Printing/print                      -> SubmitPrintJob()
+  POST    /api/Printing/qz/sign                    -> SignQzChallenge()
+  POST    /api/Printing/status                     -> CheckPrinterStatus()
+  POST    /api/Printing/test-connection            -> TestConnection()
+  POST    /api/Printing/test-signature             -> TestEnhancedSignature()
+  POST    /api/Printing/version                    -> GetQzVersion()
+
+Controller: ProductsController
+--------------------------------------------------
+  DELETE  /api/v1/Products/{id:guid}               -> DeleteProduct()
+  DELETE  /api/v1/Products/bundle-items/{id:guid}  -> DeleteProductBundleItem()
+  DELETE  /api/v1/Products/codes/{id:guid}         -> DeleteProductCode()
+  DELETE  /api/v1/Products/units/{id:guid}         -> DeleteProductUnit()
+  GET     /api/v1/Products                         -> GetProducts()
+  GET     /api/v1/Products/{bundleProductId:guid}/bundle-items -> GetProductBundleItems()
+  GET     /api/v1/Products/{id:guid}               -> GetProduct()
+  GET     /api/v1/Products/{id:guid}/details       -> GetProductDetail()
+  GET     /api/v1/Products/{productId:guid}/codes  -> GetProductCodes()
+  GET     /api/v1/Products/{productId:guid}/units  -> GetProductUnits()
+  GET     /api/v1/Products/bundle-items/{id:guid}  -> GetProductBundleItem()
+  GET     /api/v1/Products/codes/{id:guid}         -> GetProductCode()
+  GET     /api/v1/Products/units/{id:guid}         -> GetProductUnit()
+  POST    /api/v1/Products                         -> CreateProduct()
+  POST    /api/v1/Products/{id:guid}/image         -> UploadProductImage()
+  POST    /api/v1/Products/bundle-items            -> AddProductBundleItem()
+  POST    /api/v1/Products/codes                   -> AddProductCode()
+  POST    /api/v1/Products/units                   -> AddProductUnit()
+  PUT     /api/v1/Products/{id:guid}               -> UpdateProduct()
+  PUT     /api/v1/Products/bundle-items/{id:guid}  -> UpdateProductBundleItem()
+  PUT     /api/v1/Products/codes/{id:guid}         -> UpdateProductCode()
+  PUT     /api/v1/Products/units/{id:guid}         -> UpdateProductUnit()
+
+Controller: PromotionsController
+--------------------------------------------------
+  DELETE  /api/v1/Promotions/{id:guid}             -> DeletePromotion()
+  GET     /api/v1/Promotions                       -> GetPromotions()
+  GET     /api/v1/Promotions/{id:guid}             -> GetPromotion()
+  GET     /api/v1/Promotions/active                -> GetActivePromotions()
+  POST    /api/v1/Promotions                       -> CreatePromotion()
+  POST    /api/v1/Promotions/apply                 -> ApplyPromotions()
+  PUT     /api/v1/Promotions/{id:guid}             -> UpdatePromotion()
+
+Controller: RetailCartSessionsController
+--------------------------------------------------
+  DELETE  /api/v1/RetailCartSessions/{id:guid}/items/{itemId:guid} -> RemoveItem()
+  GET     /api/v1/RetailCartSessions/{id:guid}     -> GetSession()
+  PATCH   /api/v1/RetailCartSessions/{id:guid}/items/{itemId:guid} -> UpdateItemQuantity()
+  POST    /api/v1/RetailCartSessions               -> CreateSession()
+  POST    /api/v1/RetailCartSessions/{id:guid}/clear -> ClearSession()
+  POST    /api/v1/RetailCartSessions/{id:guid}/coupons -> ApplyCoupons()
+  POST    /api/v1/RetailCartSessions/{id:guid}/items -> AddItem()
+
+Controller: StationsController
+--------------------------------------------------
+  DELETE  /api/v1/Stations/{id:guid}               -> DeleteStation()
+  DELETE  /api/v1/Stations/printers/{id:guid}      -> DeletePrinter()
+  GET     /api/v1/Stations                         -> GetStations()
+  GET     /api/v1/Stations/{id:guid}               -> GetStation()
+  GET     /api/v1/Stations/{stationId:guid}/printers -> GetPrintersByStation()
+  GET     /api/v1/Stations/printers                -> GetPrinters()
+  GET     /api/v1/Stations/printers/{id:guid}      -> GetPrinter()
+  POST    /api/v1/Stations                         -> CreateStation()
+  POST    /api/v1/Stations/printers                -> CreatePrinter()
+  PUT     /api/v1/Stations/{id:guid}               -> UpdateStation()
+  PUT     /api/v1/Stations/printers/{id:guid}      -> UpdatePrinter()
+
 Controller: StoreUsersController
 --------------------------------------------------
+  DELETE  /api/v1/StoreUsers/{id:guid}             -> DeleteStoreUser()
+  DELETE  /api/v1/StoreUsers/groups/{id:guid}      -> DeleteStoreUserGroup()
+  DELETE  /api/v1/StoreUsers/privileges/{id:guid}  -> DeleteStoreUserPrivilege()
+  GET     /api/v1/StoreUsers                       -> GetStoreUsers()
+  GET     /api/v1/StoreUsers/{id:guid}             -> GetStoreUser()
   GET     /api/v1/StoreUsers/by-group/{groupId:guid} -> GetStoreUsersByGroup()
+  GET     /api/v1/StoreUsers/groups                -> GetStoreUserGroups()
+  GET     /api/v1/StoreUsers/groups/{id:guid}      -> GetStoreUserGroup()
+  GET     /api/v1/StoreUsers/privileges            -> GetStoreUserPrivileges()
+  GET     /api/v1/StoreUsers/privileges/{id:guid}  -> GetStoreUserPrivilege()
   GET     /api/v1/StoreUsers/privileges/by-group/{groupId:guid} -> GetStoreUserPrivilegesByGroup()
+  POST    /api/v1/StoreUsers                       -> CreateStoreUser()
+  POST    /api/v1/StoreUsers/groups                -> CreateStoreUserGroup()
+  POST    /api/v1/StoreUsers/privileges            -> CreateStoreUserPrivilege()
+  PUT     /api/v1/StoreUsers/{id:guid}             -> UpdateStoreUser()
+  PUT     /api/v1/StoreUsers/groups/{id:guid}      -> UpdateStoreUserGroup()
+  PUT     /api/v1/StoreUsers/privileges/{id:guid}  -> UpdateStoreUserPrivilege()
 
 Controller: SuperAdminController
 --------------------------------------------------
@@ -75,6 +387,7 @@ Controller: SuperAdminController
   GET     /api/v1/SuperAdmin/backup                -> GetBackups()
   GET     /api/v1/SuperAdmin/backup/{backupId}     -> GetBackupStatus()
   GET     /api/v1/SuperAdmin/backup/{backupId}/download -> DownloadBackup()
+  GET     /api/v1/SuperAdmin/configuration         -> GetConfigurations()
   GET     /api/v1/SuperAdmin/configuration/{key}   -> GetConfiguration()
   GET     /api/v1/SuperAdmin/configuration/categories -> GetConfigurationCategories()
   GET     /api/v1/SuperAdmin/configuration/category/{category} -> GetConfigurationsByCategory()
@@ -87,37 +400,53 @@ Controller: SuperAdminController
 
 Controller: TeamsController
 --------------------------------------------------
+  DELETE  /api/v1/Teams/{id:guid}                  -> DeleteTeam()
+  DELETE  /api/v1/Teams/members/{memberId:guid}    -> RemoveTeamMember()
+  GET     /api/v1/Teams                            -> GetTeams()
+  GET     /api/v1/Teams/{id:guid}                  -> GetTeam()
+  GET     /api/v1/Teams/{id:guid}/details          -> GetTeamDetail()
   GET     /api/v1/Teams/{teamId:guid}/members      -> GetTeamMembers()
   GET     /api/v1/Teams/by-event/{eventId:guid}    -> GetTeamsByEvent()
+  GET     /api/v1/Teams/members/{memberId:guid}    -> GetTeamMember()
+  POST    /api/v1/Teams                            -> CreateTeam()
+  POST    /api/v1/Teams/members                    -> AddTeamMember()
+  PUT     /api/v1/Teams/{id:guid}                  -> UpdateTeam()
+  PUT     /api/v1/Teams/members/{memberId:guid}    -> UpdateTeamMember()
 
 Controller: TenantContextController
 --------------------------------------------------
   GET     /api/v1/TenantContext/audit-trail        -> GetAuditTrail()
+  GET     /api/v1/TenantContext/current            -> GetCurrentContext()
   GET     /api/v1/TenantContext/validate-access/{tenantId} -> ValidateAccess()
   POST    /api/v1/TenantContext/end-impersonation  -> EndImpersonation()
   POST    /api/v1/TenantContext/start-impersonation -> StartImpersonation()
+  POST    /api/v1/TenantContext/switch-tenant      -> SwitchTenant()
 
 Controller: TenantsController
 --------------------------------------------------
   DELETE  /api/v1/Tenants/{id}/admins/{userId}     -> RemoveTenantAdmin()
   DELETE  /api/v1/Tenants/{id}/soft                -> SoftDeleteTenant()
+  GET     /api/v1/Tenants                          -> GetAllTenants()
+  GET     /api/v1/Tenants/{id}                     -> GetTenant()
   GET     /api/v1/Tenants/{id}/admins              -> GetTenantAdmins()
   GET     /api/v1/Tenants/{id}/details             -> GetTenantDetails()
   GET     /api/v1/Tenants/{id}/limits              -> GetTenantLimits()
   GET     /api/v1/Tenants/activity/live            -> GetLiveActivity()
   GET     /api/v1/Tenants/statistics               -> GetTenantStatistics()
   GET     /api/v1/Tenants/statistics/live          -> GetLiveStatistics()
-  GET     api/v1/Tenants                           -> GetAllTenants()
+  POST    /api/v1/Tenants                          -> CreateTenant()
   POST    /api/v1/Tenants/{id}/admins/{userId}     -> AddTenantAdmin()
   POST    /api/v1/Tenants/{id}/disable             -> DisableTenant()
   POST    /api/v1/Tenants/{id}/enable              -> EnableTenant()
   POST    /api/v1/Tenants/{id}/users/{userId}/force-password-change -> ForcePasswordChange()
   POST    /api/v1/Tenants/search                   -> SearchTenants()
+  POST    /api/v1/Tenants/with-admin               -> CreateTenantWithAdmin()
   PUT     /api/v1/Tenants/{id}                     -> UpdateTenant()
   PUT     /api/v1/Tenants/{id}/limits              -> UpdateTenantLimits()
 
 Controller: TenantSwitchController
 --------------------------------------------------
+  GET     /api/v1/TenantSwitch/context             -> GetCurrentContext()
   GET     /api/v1/TenantSwitch/history/impersonations -> GetImpersonationHistory()
   GET     /api/v1/TenantSwitch/history/tenant-switches -> GetTenantSwitchHistory()
   GET     /api/v1/TenantSwitch/statistics          -> GetOperationSummary()
@@ -126,22 +455,57 @@ Controller: TenantSwitchController
   POST    /api/v1/TenantSwitch/switch              -> SwitchTenant()
   POST    /api/v1/TenantSwitch/validate            -> ValidateSecurity()
 
+Controller: UnitOfMeasuresController
+--------------------------------------------------
+  DELETE  /api/v1/UnitOfMeasures/{id:guid}         -> DeleteUnitOfMeasure()
+  GET     /api/v1/UnitOfMeasures                   -> GetUnitOfMeasures()
+  GET     /api/v1/UnitOfMeasures/{id:guid}         -> GetUnitOfMeasure()
+  POST    /api/v1/UnitOfMeasures                   -> CreateUnitOfMeasure()
+  PUT     /api/v1/UnitOfMeasures/{id:guid}         -> UpdateUnitOfMeasure()
+
 Controller: UserManagementController
 --------------------------------------------------
   DELETE  /api/v1/UserManagement/{userId}          -> DeleteUser()
+  GET     /api/v1/UserManagement                   -> GetAllUsers()
   GET     /api/v1/UserManagement/{userId}          -> GetUser()
   GET     /api/v1/UserManagement/roles             -> GetRoles()
   GET     /api/v1/UserManagement/statistics        -> GetUserStatistics()
-  GET     api/v1/UserManagement                    -> GetAllUsers()
+  POST    /api/v1/UserManagement                   -> CreateUser()
   POST    /api/v1/UserManagement/{userId}/force-password-change -> ForcePasswordChange()
   POST    /api/v1/UserManagement/{userId}/reset-password -> ResetPassword()
   POST    /api/v1/UserManagement/management        -> CreateUserManagement()
   POST    /api/v1/UserManagement/quick-actions     -> PerformQuickActions()
   POST    /api/v1/UserManagement/search            -> SearchUsers()
-  POST    api/v1/UserManagement                    -> CreateUser()
   PUT     /api/v1/UserManagement/{userId}          -> UpdateUser()
   PUT     /api/v1/UserManagement/{userId}/roles    -> UpdateUserRoles()
   PUT     /api/v1/UserManagement/{userId}/status   -> UpdateUserStatus()
+
+Controller: WarehouseManagementController
+--------------------------------------------------
+  DELETE  /api/v1/warehouse/lots/{id:guid}         -> DeleteLot()
+  GET     /api/v1/warehouse/facilities             -> GetStorageFacilities()
+  GET     /api/v1/warehouse/facilities/{id:guid}   -> GetStorageFacility()
+  GET     /api/v1/warehouse/locations              -> GetStorageLocations()
+  GET     /api/v1/warehouse/locations/{id:guid}    -> GetStorageLocation()
+  GET     /api/v1/warehouse/lots                   -> GetLots()
+  GET     /api/v1/warehouse/lots/{id:guid}         -> GetLot()
+  GET     /api/v1/warehouse/lots/code/{code}       -> GetLotByCode()
+  GET     /api/v1/warehouse/lots/expiring          -> GetExpiringLots()
+  GET     /api/v1/warehouse/serials                -> GetSerials()
+  GET     /api/v1/warehouse/serials/{id:guid}      -> GetSerialById()
+  GET     /api/v1/warehouse/stock                  -> GetStock()
+  GET     /api/v1/warehouse/stock/{id:guid}        -> GetStockById()
+  PATCH   /api/v1/warehouse/lots/{id:guid}/quality-status -> UpdateLotQualityStatus()
+  POST    /api/v1/warehouse/facilities             -> CreateStorageFacility()
+  POST    /api/v1/warehouse/locations              -> CreateStorageLocation()
+  POST    /api/v1/warehouse/lots                   -> CreateLot()
+  POST    /api/v1/warehouse/lots/{id:guid}/block   -> BlockLot()
+  POST    /api/v1/warehouse/lots/{id:guid}/unblock -> UnblockLot()
+  POST    /api/v1/warehouse/serials                -> CreateSerial()
+  POST    /api/v1/warehouse/stock                  -> CreateOrUpdateStock()
+  POST    /api/v1/warehouse/stock/reserve          -> ReserveStock()
+  PUT     /api/v1/warehouse/lots/{id:guid}         -> UpdateLot()
+  PUT     /api/v1/warehouse/serials/{id:guid}/status -> UpdateSerialStatus()
 
 ✅ NESSUN CONFLITTO RILEVATO
 ============================
@@ -151,19 +515,20 @@ Tutte le route sono uniche e non presentano conflitti.
 ===============
 
 Distribuzione per HTTP Method:
-  GET: 45 route
-  POST: 34 route
-  PUT: 8 route
-  DELETE: 6 route
+  GET: 181 route
+  POST: 116 route
+  PUT: 43 route
+  DELETE: 41 route
+  PATCH: 4 route
 
 Route per Controller:
-  TenantsController: 16 route
+  WarehouseManagementController: 24 route
+  ProductsController: 22 route
+  ChatController: 20 route
+  TenantsController: 19 route
+  EntityManagementController: 18 route
+  StoreUsersController: 17 route
+  FinancialManagementController: 15 route
+  SuperAdminController: 15 route
   UserManagementController: 14 route
-  SuperAdminController: 14 route
-  LicenseController: 8 route
-  TenantSwitchController: 7 route
-  ChatController: 6 route
-  ApplicationLogController: 6 route
-  AuditLogController: 6 route
-  NotificationsController: 5 route
-  TenantContextController: 4 route
+  NotificationsController: 13 route

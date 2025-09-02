@@ -6,6 +6,8 @@ namespace EventForge.Tests.Services.UnitOfMeasures;
 /// Unit tests for UnitConversionService implementation (Issue #244).
 /// Tests decimal conversion factors and "away from zero" rounding behavior.
 /// </summary>
+[Trait("Category", "Unit")]
+[Trait("Category", "Unit")]
 public class UnitConversionServiceTests
 {
     private readonly IUnitConversionService _conversionService;

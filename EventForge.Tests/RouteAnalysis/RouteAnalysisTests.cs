@@ -1,58 +1,86 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.RegularExpressions;
 
-namespace RouteConflictAnalyzer;
+namespace EventForge.Tests.RouteAnalysis;
 
 /// <summary>
-/// Console application per analizzare i controller di EventForge e rilevare conflitti di route HTTP.
-/// Genera un report dettagliato con mapping delle route e potenziali conflitti.
+/// Route analysis functionality ported from RouteConflictAnalyzer.
+/// Tests for detecting conflicts in HTTP route definitions across controllers.
 /// </summary>
-class Program
+[Trait("Category", "RouteAnalysis")]
+public class RouteAnalysisTests
 {
-    private static readonly List<RouteInfo> Routes = new();
-    private static readonly List<RouteConflict> Conflicts = new();
+    private readonly List<RouteInfo> _routes = new();
+    private readonly List<RouteConflict> _conflicts = new();
 
-    static async Task Main(string[] args)
+    [Fact]
+    public async Task AnalyzeRoutes_ShouldDetectConflictsAndGenerateReport()
     {
-        Console.WriteLine("EventForge Route Conflict Analyzer");
-        Console.WriteLine("===================================");
-        Console.WriteLine();
+        // Arrange
+        var controllersPath = Environment.GetEnvironmentVariable("CONTROLLERS_PATH") ?? "EventForge.Server/Controllers";
+        var outputFile = Environment.GetEnvironmentVariable("OUTPUT_FILE") ?? "route_analysis_report.txt";
 
-        string controllersPath = args.Length > 0 ? args[0] : "../EventForge.Server/Controllers";
-        string outputPath = args.Length > 1 ? args[1] : "route_analysis_report.txt";
-
-        if (!Directory.Exists(controllersPath))
+        // Find the solution root by walking up from current directory
+        var currentDir = Directory.GetCurrentDirectory();
+        var solutionRoot = currentDir;
+        
+        // Walk up until we find EventForge.sln or reach a reasonable limit
+        for (int i = 0; i < 10; i++)
         {
-            Console.WriteLine($"❌ Cartella Controllers non trovata: {Path.GetFullPath(controllersPath)}");
-            Console.WriteLine("Utilizzo: RouteConflictAnalyzer [percorso-controllers] [file-output]");
-            Environment.Exit(1);
+            if (File.Exists(Path.Combine(solutionRoot, "EventForge.sln")))
+                break;
+            var parent = Directory.GetParent(solutionRoot);
+            if (parent == null) break;
+            solutionRoot = parent.FullName;
         }
 
-        Console.WriteLine($"📂 Scansione cartella: {Path.GetFullPath(controllersPath)}");
-        Console.WriteLine($"📄 Report generato in: {Path.GetFullPath(outputPath)}");
-        Console.WriteLine();
-
-        // Analizza tutti i file controller
-        await AnalyzeControllersAsync(controllersPath);
-
-        // Genera il report
-        await GenerateReportAsync(outputPath);
-
-        Console.WriteLine("✅ Analisi completata!");
-        Console.WriteLine($"📊 Controller analizzati: {Routes.GroupBy(r => r.Controller).Count()}");
-        Console.WriteLine($"🔍 Route totali trovate: {Routes.Count}");
-        Console.WriteLine($"⚠️  Conflitti rilevati: {Conflicts.Count}");
-
-        if (Conflicts.Any())
+        // Make paths absolute relative to solution root
+        if (!Path.IsPathRooted(controllersPath))
         {
+            controllersPath = Path.Combine(solutionRoot, controllersPath);
+        }
+        if (!Path.IsPathRooted(outputFile))
+        {
+            outputFile = Path.Combine(solutionRoot, outputFile);
+        }
+
+        // Act - Perform route analysis
+        if (Directory.Exists(controllersPath))
+        {
+            Console.WriteLine("EventForge Route Conflict Analyzer");
+            Console.WriteLine("===================================");
             Console.WriteLine();
-            Console.WriteLine("⚠️  ATTENZIONE: Conflitti di route rilevati!");
-            Console.WriteLine("Consulta il report per i dettagli e le soluzioni suggerite.");
-            Environment.Exit(1);
+            Console.WriteLine($"📂 Scansione cartella: {controllersPath}");
+            Console.WriteLine($"📄 Report generato in: {outputFile}");
+            Console.WriteLine();
+
+            await AnalyzeControllersAsync(controllersPath);
+            await GenerateReportAsync(outputFile);
+
+            Console.WriteLine("✅ Analisi completata!");
+            Console.WriteLine($"📊 Controller analizzati: {_routes.GroupBy(r => r.Controller).Count()}");
+            Console.WriteLine($"🔍 Route totali trovate: {_routes.Count}");
+            Console.WriteLine($"⚠️  Conflitti rilevati: {_conflicts.Count}");
+
+            if (_conflicts.Any())
+            {
+                Console.WriteLine();
+                Console.WriteLine("⚠️  ATTENZIONE: Conflitti di route rilevati!");
+                Console.WriteLine("Consulta il report per i dettagli e le soluzioni suggerite.");
+            }
         }
+        else
+        {
+            Console.WriteLine($"❌ Cartella Controllers non trovata: {controllersPath}");
+            Console.WriteLine("Utilizzare variabili d'ambiente CONTROLLERS_PATH e OUTPUT_FILE per specificare percorsi personalizzati.");
+        }
+
+        // Assert - Fail test if conflicts are found (so dotnet test exits non-zero)
+        Assert.True(!_conflicts.Any(), 
+            $"Conflitti di route rilevati: {_conflicts.Count}. Consulta il file {outputFile} per i dettagli.");
     }
 
-    private static async Task AnalyzeControllersAsync(string controllersPath)
+    private async Task AnalyzeControllersAsync(string controllersPath)
     {
         var controllerFiles = Directory.GetFiles(controllersPath, "*.cs");
 
@@ -67,7 +95,7 @@ class Program
         DetectConflicts();
     }
 
-    private static async Task AnalyzeControllerFileAsync(string filePath)
+    private async Task AnalyzeControllerFileAsync(string filePath)
     {
         var content = await File.ReadAllTextAsync(filePath);
         var fileName = Path.GetFileNameWithoutExtension(filePath);
@@ -101,7 +129,7 @@ class Program
 
             var fullRoute = CombineRoutes(baseRoute, routeSuffix);
 
-            Routes.Add(new RouteInfo
+            _routes.Add(new RouteInfo
             {
                 Controller = controllerName,
                 Method = methodName,
@@ -131,14 +159,14 @@ class Program
         return combined.StartsWith('/') ? combined : "/" + combined;
     }
 
-    private static void DetectConflicts()
+    private void DetectConflicts()
     {
-        var routeGroups = Routes.GroupBy(r => new { r.HttpMethod, Route = NormalizeRoute(r.RouteTemplate) });
+        var routeGroups = _routes.GroupBy(r => new { r.HttpMethod, Route = NormalizeRoute(r.RouteTemplate) });
 
         foreach (var group in routeGroups.Where(g => g.Count() > 1))
         {
             var conflictingRoutes = group.ToList();
-            Conflicts.Add(new RouteConflict
+            _conflicts.Add(new RouteConflict
             {
                 HttpMethod = group.Key.HttpMethod,
                 RoutePattern = group.Key.Route,
@@ -163,7 +191,7 @@ class Program
         return normalized.ToLowerInvariant();
     }
 
-    private static async Task GenerateReportAsync(string outputPath)
+    private async Task GenerateReportAsync(string outputPath)
     {
         var report = new StringBuilder();
 
@@ -171,9 +199,9 @@ class Program
         report.AppendLine("EVENTFORGE - ROUTE CONFLICT ANALYSIS REPORT");
         report.AppendLine("==========================================");
         report.AppendLine($"Data Generazione: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-        report.AppendLine($"Controller Analizzati: {Routes.GroupBy(r => r.Controller).Count()}");
-        report.AppendLine($"Route Totali: {Routes.Count}");
-        report.AppendLine($"Conflitti Rilevati: {Conflicts.Count}");
+        report.AppendLine($"Controller Analizzati: {_routes.GroupBy(r => r.Controller).Count()}");
+        report.AppendLine($"Route Totali: {_routes.Count}");
+        report.AppendLine($"Conflitti Rilevati: {_conflicts.Count}");
         report.AppendLine();
 
         // Sezione mapping completo delle route
@@ -181,7 +209,7 @@ class Program
         report.AppendLine("==============================");
         report.AppendLine();
 
-        var groupedByController = Routes.GroupBy(r => r.Controller).OrderBy(g => g.Key);
+        var groupedByController = _routes.GroupBy(r => r.Controller).OrderBy(g => g.Key);
 
         foreach (var controllerGroup in groupedByController)
         {
@@ -196,13 +224,13 @@ class Program
         }
 
         // Sezione conflitti
-        if (Conflicts.Any())
+        if (_conflicts.Any())
         {
             report.AppendLine("⚠️  CONFLITTI RILEVATI");
             report.AppendLine("=====================");
             report.AppendLine();
 
-            foreach (var conflict in Conflicts.OrderBy(c => c.HttpMethod).ThenBy(c => c.RoutePattern))
+            foreach (var conflict in _conflicts.OrderBy(c => c.HttpMethod).ThenBy(c => c.RoutePattern))
             {
                 report.AppendLine($"🚨 CONFLITTO: {conflict.HttpMethod} {conflict.RoutePattern}");
                 report.AppendLine(new string('-', 60));
@@ -238,7 +266,7 @@ class Program
         report.AppendLine("===============");
         report.AppendLine();
 
-        var methodStats = Routes.GroupBy(r => r.HttpMethod)
+        var methodStats = _routes.GroupBy(r => r.HttpMethod)
             .Select(g => new { Method = g.Key, Count = g.Count() })
             .OrderByDescending(s => s.Count);
 
@@ -249,7 +277,7 @@ class Program
         }
         report.AppendLine();
 
-        var controllerStats = Routes.GroupBy(r => r.Controller)
+        var controllerStats = _routes.GroupBy(r => r.Controller)
             .Select(g => new { Controller = g.Key, Count = g.Count() })
             .OrderByDescending(s => s.Count);
 

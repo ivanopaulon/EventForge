@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace EventForge.Tests.Services.Auth;
 
+[Trait("Category", "Unit")]
 public class BootstrapServiceTests
 {
     [Fact]
