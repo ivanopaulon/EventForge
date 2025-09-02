@@ -432,7 +432,7 @@ The following pages have been updated to follow consistent UI patterns:
 
 ## 📖 Documentation
 
-> **🔔 IMPORTANTE**: [La documentazione è stata riorganizzata!](./DOCUMENTATION_MIGRATION.md) Tutti i file sono ora organizzati per categoria nella cartella `/docs/`.
+> **🔔 IMPORTANTE**: La documentazione è stata riorganizzata! Tutti i file sono ora organizzati per categoria nella cartella `/docs/`.
 
 **🔗 [Accedi alla Documentazione Completa](./docs/README.md)**
 
