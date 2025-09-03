@@ -301,10 +301,8 @@ public class WarehouseManagementController : BaseApiController
         [FromQuery] bool? expiringSoon = null,
         CancellationToken cancellationToken = default)
     {
-        if (page < 1 || pageSize < 1 || pageSize > 100)
-        {
-            return CreateValidationProblemDetails();
-        }
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
@@ -676,10 +674,8 @@ public class WarehouseManagementController : BaseApiController
         [FromQuery] bool? lowStock = null,
         CancellationToken cancellationToken = default)
     {
-        if (page < 1 || pageSize < 1 || pageSize > 100)
-        {
-            return CreateValidationProblemDetails("Page must be >= 1 and pageSize must be between 1 and 100.");
-        }
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
@@ -827,10 +823,8 @@ public class WarehouseManagementController : BaseApiController
         [FromQuery] string? searchTerm = null,
         CancellationToken cancellationToken = default)
     {
-        if (page < 1 || pageSize < 1 || pageSize > 100)
-        {
-            return CreateValidationProblemDetails("Page must be >= 1 and pageSize must be between 1 and 100.");
-        }
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;

@@ -238,15 +238,8 @@ public class StoreUsersController : BaseApiController
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        if (page < 1)
-        {
-            return CreateValidationProblemDetails("Page number must be greater than 0.");
-        }
-
-        if (pageSize < 1 || pageSize > 100)
-        {
-            return CreateValidationProblemDetails("Page size must be between 1 and 100.");
-        }
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
 
         try
         {
@@ -411,15 +404,8 @@ public class StoreUsersController : BaseApiController
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        if (page < 1)
-        {
-            return CreateValidationProblemDetails("Page number must be greater than 0.");
-        }
-
-        if (pageSize < 1 || pageSize > 100)
-        {
-            return CreateValidationProblemDetails("Page size must be between 1 and 100.");
-        }
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
 
         try
         {
@@ -428,7 +414,7 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while retrieving store user privileges.", detail = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving store user privileges.", ex);
         }
     }
 
