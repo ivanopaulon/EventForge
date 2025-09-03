@@ -1,4 +1,5 @@
 using EventForge.Server.Services.Logs;
+using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -16,13 +17,16 @@ namespace EventForge.Server.Controllers;
 public class LogManagementController : BaseApiController
 {
     private readonly ILogManagementService _logManagementService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<LogManagementController> _logger;
 
     public LogManagementController(
         ILogManagementService logManagementService,
-        ILogger<LogManagementController> logger)
+        ILogger<LogManagementController> logger,
+        ITenantContext tenantContext)
     {
         _logManagementService = logManagementService ?? throw new ArgumentNullException(nameof(logManagementService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 

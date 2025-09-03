@@ -11,11 +11,14 @@ namespace EventForge.Server.Controllers;
 public class PerformanceController : BaseApiController
 {
     private readonly IPerformanceMonitoringService _performanceService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<PerformanceController> _logger;
 
-    public PerformanceController(IPerformanceMonitoringService performanceService, ILogger<PerformanceController> logger)
+    public PerformanceController(IPerformanceMonitoringService performanceService, ILogger<PerformanceController> logger,
+        ITenantContext tenantContext)
     {
         _performanceService = performanceService ?? throw new ArgumentNullException(nameof(performanceService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 

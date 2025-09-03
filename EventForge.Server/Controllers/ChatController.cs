@@ -1,5 +1,6 @@
 using EventForge.DTOs.Chat;
 using EventForge.Server.Services.Chat;
+using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
@@ -22,16 +23,19 @@ namespace EventForge.Server.Controllers;
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-public class ChatController : ControllerBase
+public class ChatController : BaseApiController
 {
     private readonly IChatService _chatService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<ChatController> _logger;
 
     public ChatController(
         IChatService chatService,
+        ITenantContext tenantContext,
         ILogger<ChatController> logger)
     {
         _chatService = chatService ?? throw new ArgumentNullException(nameof(chatService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -54,6 +58,10 @@ public class ChatController : ControllerBase
         [FromBody] CreateChatDto createChatDto,
         CancellationToken cancellationToken = default)
     {
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null) return tenantValidation;
+
         try
         {
             _logger.LogInformation(
@@ -69,23 +77,12 @@ public class ChatController : ControllerBase
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("Rate limit"))
         {
-            return StatusCode(StatusCodes.Status429TooManyRequests,
-                new ProblemDetails
-                {
-                    Title = "Rate Limit Exceeded",
-                    Detail = ex.Message,
-                    Status = StatusCodes.Status429TooManyRequests
-                });
+            return CreateConflictProblem("Rate limit exceeded: " + ex.Message);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to create chat");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while creating the chat"
-                });
+            return CreateValidationProblemDetails("An error occurred while creating the chat");
         }
     }
 
@@ -115,11 +112,7 @@ public class ChatController : ControllerBase
 
             if (chat == null)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Not Found",
-                    Detail = $"Chat with ID {id} was not found or is not accessible"
-                });
+                return CreateNotFoundProblem($"Chat with ID {id} was not found or is not accessible");
             }
 
             return Ok(chat);
@@ -127,12 +120,7 @@ public class ChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve chat {ChatId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while retrieving the chat"
-                });
+            return CreateValidationProblemDetails("An error occurred while retrieving the chat");
         }
     }
 
@@ -162,12 +150,7 @@ public class ChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to search chats");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while searching chats"
-                });
+            return CreateValidationProblemDetails("An error occurred while searching chats");
         }
     }
 
@@ -201,11 +184,7 @@ public class ChatController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            return NotFound(new ProblemDetails
-            {
-                Title = "Not Found",
-                Detail = ex.Message
-            });
+            return CreateNotFoundProblem(ex.Message);
         }
         catch (UnauthorizedAccessException)
         {
@@ -214,12 +193,7 @@ public class ChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to update chat {ChatId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while updating the chat"
-                });
+            return CreateValidationProblemDetails("An error occurred while updating the chat");
         }
     }
 
@@ -254,11 +228,7 @@ public class ChatController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            return NotFound(new ProblemDetails
-            {
-                Title = "Not Found",
-                Detail = ex.Message
-            });
+            return CreateNotFoundProblem(ex.Message);
         }
         catch (UnauthorizedAccessException)
         {
@@ -267,12 +237,7 @@ public class ChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to delete chat {ChatId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while deleting the chat"
-                });
+            return CreateValidationProblemDetails("An error occurred while deleting the chat");
         }
     }
 
@@ -312,23 +277,13 @@ public class ChatController : ControllerBase
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("Rate limit"))
         {
-            return StatusCode(StatusCodes.Status429TooManyRequests,
-                new ProblemDetails
-                {
-                    Title = "Rate Limit Exceeded",
-                    Detail = ex.Message,
-                    Status = StatusCodes.Status429TooManyRequests
-                });
+            return CreateConflictProblem(ex.Message);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to send message");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while sending the message"
-                });
+            return CreateValidationProblemDetails("An error occurred while sending the message"
+                );
         }
     }
 
@@ -358,12 +313,8 @@ public class ChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve messages");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while retrieving messages"
-                });
+            return CreateValidationProblemDetails("An error occurred while retrieving messages"
+                );
         }
     }
 
@@ -393,11 +344,7 @@ public class ChatController : ControllerBase
 
             if (message == null)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Not Found",
-                    Detail = $"Message with ID {messageId} was not found or is not accessible"
-                });
+                return CreateNotFoundProblem($"Message with ID {messageId} was not found or is not accessible");
             }
 
             return Ok(message);
@@ -405,12 +352,8 @@ public class ChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve message {MessageId}", messageId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while retrieving the message"
-                });
+            return CreateValidationProblemDetails("An error occurred while retrieving the message"
+                );
         }
     }
 
@@ -452,11 +395,8 @@ public class ChatController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            return NotFound(new ProblemDetails
-            {
-                Title = "Not Found",
-                Detail = ex.Message
-            });
+            return CreateNotFoundProblem(ex.Message
+            );
         }
         catch (UnauthorizedAccessException)
         {
@@ -465,12 +405,8 @@ public class ChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to edit message {MessageId}", messageId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while editing the message"
-                });
+            return CreateValidationProblemDetails("An error occurred while editing the message"
+                );
         }
     }
 
@@ -505,11 +441,8 @@ public class ChatController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            return NotFound(new ProblemDetails
-            {
-                Title = "Not Found",
-                Detail = ex.Message
-            });
+            return CreateNotFoundProblem(ex.Message
+            );
         }
         catch (UnauthorizedAccessException)
         {
@@ -518,12 +451,8 @@ public class ChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to delete message {MessageId}", messageId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while deleting the message"
-                });
+            return CreateValidationProblemDetails("An error occurred while deleting the message"
+                );
         }
     }
 
@@ -553,21 +482,14 @@ public class ChatController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            return NotFound(new ProblemDetails
-            {
-                Title = "Not Found",
-                Detail = ex.Message
-            });
+            return CreateNotFoundProblem(ex.Message
+            );
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to mark message {MessageId} as read", messageId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while marking the message as read"
-                });
+            return CreateValidationProblemDetails("An error occurred while marking the message as read"
+                );
         }
     }
 
@@ -588,20 +510,14 @@ public class ChatController : ControllerBase
     {
         if (messageIds == null || !messageIds.Any())
         {
-            return BadRequest(new ProblemDetails
-            {
-                Title = "Invalid Request",
-                Detail = "Message IDs list cannot be empty"
-            });
+            return CreateValidationProblemDetails("Message IDs list cannot be empty"
+            );
         }
 
         if (messageIds.Count > 100)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Title = "Request Too Large",
-                Detail = "Maximum 100 messages allowed per bulk read operation"
-            });
+            return CreateValidationProblemDetails("Maximum 100 messages allowed per bulk read operation"
+            );
         }
 
         try
@@ -615,12 +531,8 @@ public class ChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to bulk mark messages as read");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while marking messages as read"
-                });
+            return CreateValidationProblemDetails("An error occurred while marking messages as read"
+                );
         }
     }
 
@@ -648,23 +560,15 @@ public class ChatController : ControllerBase
     {
         if (uploadRequest.File == null || uploadRequest.File.Length == 0)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Title = "Invalid File",
-                Detail = "File cannot be empty"
-            });
+            return CreateValidationProblemDetails("File cannot be empty"
+            );
         }
 
         // Check file size limit (example: 50MB)
         const long maxFileSize = 50 * 1024 * 1024; // 50MB
         if (uploadRequest.File.Length > maxFileSize)
         {
-            return StatusCode(StatusCodes.Status413PayloadTooLarge,
-                new ProblemDetails
-                {
-                    Title = "File Too Large",
-                    Detail = $"File size cannot exceed {maxFileSize / (1024 * 1024)} MB"
-                });
+            return CreateValidationProblemDetails($"File size cannot exceed {maxFileSize / (1024 * 1024)} MB");
         }
 
         try
@@ -693,32 +597,19 @@ public class ChatController : ControllerBase
             }
             else
             {
-                return BadRequest(new ProblemDetails
-                {
-                    Title = "Upload Failed",
-                    Detail = result.ErrorMessage ?? "An error occurred during file upload"
-                });
+                return CreateValidationProblemDetails(result.ErrorMessage ?? "An error occurred during file upload"
+                );
             }
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("Rate limit"))
         {
-            return StatusCode(StatusCodes.Status429TooManyRequests,
-                new ProblemDetails
-                {
-                    Title = "Rate Limit Exceeded",
-                    Detail = ex.Message,
-                    Status = StatusCodes.Status429TooManyRequests
-                });
+            return CreateConflictProblem(ex.Message);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to upload file to chat {ChatId}", uploadRequest.ChatId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while uploading the file"
-                });
+            return CreateValidationProblemDetails("An error occurred while uploading the file"
+                );
         }
     }
 
@@ -748,11 +639,7 @@ public class ChatController : ControllerBase
 
             if (downloadInfo == null)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Not Found",
-                    Detail = $"File with ID {attachmentId} was not found or is not accessible"
-                });
+                return CreateNotFoundProblem($"File with ID {attachmentId} was not found or is not accessible");
             }
 
             return Ok(downloadInfo);
@@ -760,12 +647,8 @@ public class ChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to get download info for file {AttachmentId}", attachmentId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while retrieving file information"
-                });
+            return CreateValidationProblemDetails("An error occurred while retrieving file information"
+                );
         }
     }
 
@@ -804,12 +687,8 @@ public class ChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to download file {AttachmentId}", attachmentId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while downloading the file"
-                });
+            return CreateValidationProblemDetails("An error occurred while downloading the file"
+                );
         }
     }
 
@@ -847,12 +726,8 @@ public class ChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve chat statistics");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while retrieving statistics"
-                });
+            return CreateValidationProblemDetails("An error occurred while retrieving statistics"
+                );
         }
     }
 
@@ -903,12 +778,8 @@ public class ChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to start chat export");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while starting the export operation"
-                });
+            return CreateValidationProblemDetails("An error occurred while starting the export operation"
+                );
         }
     }
 
@@ -955,12 +826,8 @@ public class ChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve chat export status for {ExportId}", exportId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while retrieving export status"
-                });
+            return CreateValidationProblemDetails("An error occurred while retrieving export status"
+                );
         }
     }
 
@@ -1029,12 +896,8 @@ public class ChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to download chat export file for {ExportId}", exportId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while downloading the export file"
-                });
+            return CreateValidationProblemDetails("An error occurred while downloading the export file"
+                );
         }
     }
 
@@ -1063,19 +926,13 @@ public class ChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve chat system health");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while retrieving system health"
-                });
+            return CreateValidationProblemDetails("An error occurred while retrieving system health"
+                );
         }
     }
 
     #endregion
 }
-
-#region Supporting DTOs for API
 
 /// <summary>
 /// DTO for file upload request parameters.
@@ -1096,198 +953,3 @@ public class ChatFileUploadRequestDto
     [MaxLength(36)] // GUID string length
     public string ChatId { get; set; } = string.Empty;
 }
-
-/// <summary>
-/// DTO for chat deletion parameters.
-/// </summary>
-public class DeleteChatDto
-{
-    /// <summary>
-    /// Optional reason for deleting the chat.
-    /// </summary>
-    public string? Reason { get; set; }
-
-    /// <summary>
-    /// Whether to perform soft delete (true) or hard delete (false).
-    /// Default is true for data retention.
-    /// </summary>
-    public bool SoftDelete { get; set; } = true;
-}
-
-/// <summary>
-/// DTO for message deletion parameters.
-/// </summary>
-public class DeleteMessageDto
-{
-    /// <summary>
-    /// Optional reason for deleting the message.
-    /// </summary>
-    public string? Reason { get; set; }
-
-    /// <summary>
-    /// Whether to perform soft delete (true) or hard delete (false).
-    /// Default is true for data retention.
-    /// </summary>
-    public bool SoftDelete { get; set; } = true;
-}
-
-/// <summary>
-/// DTO for message edit request parameters.
-/// </summary>
-public class EditMessageRequestDto
-{
-    /// <summary>
-    /// Updated message content.
-    /// </summary>
-    [Required]
-    [MaxLength(4000)]
-    public string Content { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Optional reason for editing the message.
-    /// </summary>
-    public string? EditReason { get; set; }
-}
-
-/// <summary>
-/// DTO for chat export request parameters.
-/// </summary>
-public class ChatExportRequestDto
-{
-    /// <summary>
-    /// Optional tenant filter for export.
-    /// </summary>
-    public Guid? TenantId { get; set; }
-
-    /// <summary>
-    /// Optional chat filter for export.
-    /// </summary>
-    public Guid? ChatId { get; set; }
-
-    /// <summary>
-    /// Optional user filter for export.
-    /// </summary>
-    public Guid? UserId { get; set; }
-
-    /// <summary>
-    /// Start date for export range.
-    /// </summary>
-    [Required]
-    public DateTime FromDate { get; set; }
-
-    /// <summary>
-    /// End date for export range.
-    /// </summary>
-    [Required]
-    public DateTime ToDate { get; set; }
-
-    /// <summary>
-    /// Export format (JSON, CSV, Excel, PDF).
-    /// </summary>
-    [Required]
-    public string Format { get; set; } = "JSON";
-
-    /// <summary>
-    /// Optional chat types to include in export.
-    /// </summary>
-    public List<ChatType>? ChatTypes { get; set; }
-
-    /// <summary>
-    /// Whether to include deleted messages in export.
-    /// </summary>
-    public bool IncludeDeleted { get; set; } = false;
-
-    /// <summary>
-    /// Whether to include file attachments in export.
-    /// </summary>
-    public bool IncludeAttachments { get; set; } = true;
-
-    /// <summary>
-    /// Optional search term to filter messages.
-    /// </summary>
-    public string? SearchTerm { get; set; }
-
-    /// <summary>
-    /// Maximum number of records to export (for performance).
-    /// </summary>
-    [Range(1, 100000)]
-    public int? MaxRecords { get; set; }
-}
-
-/// <summary>
-/// DTO for chat export operation result.
-/// </summary>
-public class ChatExportResultDto
-{
-    /// <summary>
-    /// Unique export operation identifier.
-    /// </summary>
-    public Guid ExportId { get; set; }
-
-    /// <summary>
-    /// Current export status (Preparing, Processing, Completed, Failed).
-    /// </summary>
-    public string Status { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Export format used.
-    /// </summary>
-    public string Format { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Progress percentage (0-100).
-    /// </summary>
-    public int ProgressPercentage { get; set; }
-
-    /// <summary>
-    /// Number of records processed/exported.
-    /// </summary>
-    public int RecordCount { get; set; }
-
-    /// <summary>
-    /// Size of the generated export file in bytes.
-    /// </summary>
-    public long FileSizeBytes { get; set; }
-
-    /// <summary>
-    /// URL to check export status.
-    /// </summary>
-    public string? StatusUrl { get; set; }
-
-    /// <summary>
-    /// URL to download the export file (available when completed).
-    /// </summary>
-    public string? DownloadUrl { get; set; }
-
-    /// <summary>
-    /// Export file expiration timestamp.
-    /// </summary>
-    public DateTime? ExpiresAt { get; set; }
-
-    /// <summary>
-    /// Estimated completion time (for in-progress exports).
-    /// </summary>
-    public DateTime? EstimatedCompletionTime { get; set; }
-
-    /// <summary>
-    /// Export creation timestamp.
-    /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-    /// <summary>
-    /// Export completion timestamp.
-    /// </summary>
-    public DateTime? CompletedAt { get; set; }
-
-    /// <summary>
-    /// Error message if export failed.
-    /// </summary>
-    public string? ErrorMessage { get; set; }
-
-    /// <summary>
-    /// Additional export metadata.
-    /// </summary>
-    public Dictionary<string, object>? Metadata { get; set; }
-}
-
-#endregion

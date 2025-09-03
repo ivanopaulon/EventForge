@@ -90,7 +90,7 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while retrieving the store user.", detail = ex.Message });
+            return CreateValidationProblemDetails("An error occurred while retrieving the store user.");
         }
     }
 
@@ -112,7 +112,7 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while retrieving store users by group.", detail = ex.Message });
+            return CreateValidationProblemDetails("An error occurred while retrieving store users by group.");
         }
     }
 
@@ -131,7 +131,7 @@ public class StoreUsersController : BaseApiController
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
 
         try
@@ -143,7 +143,7 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while creating the store user.", detail = ex.Message });
+            return CreateValidationProblemDetails("An error occurred while creating the store user.");
         }
     }
 
@@ -165,7 +165,7 @@ public class StoreUsersController : BaseApiController
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
 
         try
@@ -182,7 +182,7 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while updating the store user.", detail = ex.Message });
+            return CreateValidationProblemDetails("An error occurred while updating the store user.");
         }
     }
 
@@ -213,7 +213,7 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while deleting the store user.", detail = ex.Message });
+            return CreateValidationProblemDetails("An error occurred while deleting the store user.");
         }
     }
 
@@ -248,7 +248,7 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while retrieving store user groups.", detail = ex.Message });
+            return CreateValidationProblemDetails("An error occurred while retrieving store user groups.");
         }
     }
 
@@ -278,7 +278,7 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while retrieving the store user group.", detail = ex.Message });
+            return CreateValidationProblemDetails("An error occurred while retrieving the store user group.");
         }
     }
 
@@ -297,7 +297,7 @@ public class StoreUsersController : BaseApiController
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
 
         try
@@ -309,7 +309,7 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while creating the store user group.", detail = ex.Message });
+            return CreateValidationProblemDetails("An error occurred while creating the store user group.");
         }
     }
 
@@ -331,7 +331,7 @@ public class StoreUsersController : BaseApiController
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
 
         try
@@ -348,7 +348,7 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while updating the store user group.", detail = ex.Message });
+            return CreateValidationProblemDetails("An error occurred while updating the store user group.");
         }
     }
 
@@ -379,7 +379,7 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while deleting the store user group.", detail = ex.Message });
+            return CreateValidationProblemDetails("An error occurred while deleting the store user group.");
         }
     }
 
@@ -444,7 +444,7 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while retrieving the store user privilege.", detail = ex.Message });
+            return CreateValidationProblemDetails("An error occurred while retrieving the store user privilege.");
         }
     }
 
@@ -466,7 +466,7 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while retrieving store user privileges by group.", detail = ex.Message });
+            return CreateValidationProblemDetails("An error occurred while retrieving store user privileges by group.");
         }
     }
 
@@ -485,7 +485,7 @@ public class StoreUsersController : BaseApiController
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
 
         try
@@ -497,7 +497,7 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while creating the store user privilege.", detail = ex.Message });
+            return CreateValidationProblemDetails("An error occurred while creating the store user privilege.");
         }
     }
 
@@ -519,7 +519,7 @@ public class StoreUsersController : BaseApiController
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
 
         try
@@ -536,7 +536,7 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while updating the store user privilege.", detail = ex.Message });
+            return CreateValidationProblemDetails("An error occurred while updating the store user privilege.");
         }
     }
 
@@ -567,7 +567,7 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "An error occurred while deleting the store user privilege.", detail = ex.Message });
+            return CreateValidationProblemDetails("An error occurred while deleting the store user privilege.");
         }
     }
 

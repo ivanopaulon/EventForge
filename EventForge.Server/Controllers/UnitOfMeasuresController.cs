@@ -110,7 +110,7 @@ public class UnitOfMeasuresController : BaseApiController
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
 
         try
@@ -151,7 +151,7 @@ public class UnitOfMeasuresController : BaseApiController
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
 
         try
