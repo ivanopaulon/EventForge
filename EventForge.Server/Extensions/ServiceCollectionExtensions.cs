@@ -202,6 +202,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
         services.AddScoped<IAntivirusScanService, StubAntivirusScanService>();
 
+        // Register document facade for unified API access
+        services.AddScoped<IDocumentFacade, DocumentFacade>();
+
         // TODO: Complete implementation for:
         // - Document services: DocumentRow, DocumentSummaryLink (create implementations)
         // - Document export, reminders, privacy, integrations services
