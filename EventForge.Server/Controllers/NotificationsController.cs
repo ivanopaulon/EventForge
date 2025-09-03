@@ -1,4 +1,5 @@
 using EventForge.DTOs.Notifications;
+using EventForge.Server.Filters;
 using EventForge.Server.Services.Notifications;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +18,7 @@ namespace EventForge.Server.Controllers;
 [ApiController]
 [Route("api/v1/[controller]")]
 [Authorize]
+[RequireLicenseFeature("NotificationManagement")]
 [Produces("application/json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]

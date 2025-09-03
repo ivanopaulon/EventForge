@@ -14,6 +14,7 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/warehouse")]
 [Authorize]
+[RequireLicenseFeature("ProductManagement")]
 public class WarehouseManagementController : BaseApiController
 {
     private readonly IStorageFacilityService _storageFacilityService;

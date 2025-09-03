@@ -1,4 +1,5 @@
 using EventForge.DTOs.Business;
+using EventForge.Server.Filters;
 using EventForge.Server.Services.Business;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,6 +12,7 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
+[RequireLicenseFeature("BasicReporting")]
 public class BusinessPartiesController : BaseApiController
 {
     private readonly IBusinessPartyService _businessPartyService;
