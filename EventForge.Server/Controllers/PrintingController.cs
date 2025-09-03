@@ -29,7 +29,7 @@ public class QzSigningDemoRequest
 /// Provides endpoints for printer discovery, status checking, and print job management.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [Produces("application/json")]
 public class PrintingController : BaseApiController
 {

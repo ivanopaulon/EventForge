@@ -10,7 +10,7 @@ namespace EventForge.Server.Controllers;
 /// Provides CRUD operations for licenses and tenant license assignments.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [Authorize]
 [Produces("application/json")]
 public class LicenseController : BaseApiController
