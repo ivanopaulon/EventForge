@@ -1,10 +1,17 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Controllers
 {
+    /// <summary>
+    /// Controller for log management - DEPRECATED, use LogManagementController instead.
+    /// This controller is maintained for backward compatibility but access is restricted to SuperAdmin and Admin only.
+    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
+    [Obsolete("This controller is deprecated. Use api/v1/LogManagement instead.")]
     public class LogsController : ControllerBase
     {
         private readonly EventForgeDbContext _context;
@@ -16,7 +23,12 @@ namespace EventForge.Server.Controllers
             _logger = logger;
         }
 
+        /// <summary>
+        /// Gets paginated logs with filtering. DEPRECATED - Use LogManagementController instead.
+        /// Access restricted to SuperAdmin and Admin roles only.
+        /// </summary>
         [HttpGet]
+        [Obsolete("Use api/v1/LogManagement/logs instead.")]
         public async Task<IActionResult> GetLogs(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50,
@@ -86,7 +98,12 @@ namespace EventForge.Server.Controllers
             }
         }
 
+        /// <summary>
+        /// Gets available log levels. DEPRECATED - Use LogManagementController instead.
+        /// Access restricted to SuperAdmin and Admin roles only.
+        /// </summary>
         [HttpGet("levels")]
+        [Obsolete("Use api/v1/LogManagement/levels instead.")]
         public async Task<IActionResult> GetLogLevels()
         {
             try

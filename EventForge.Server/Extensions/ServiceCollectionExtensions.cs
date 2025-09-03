@@ -128,6 +128,9 @@ public static class ServiceCollectionExtensions
         // Register application log services
         services.AddScoped<IApplicationLogService, ApplicationLogService>();
 
+        // Register unified log management service
+        services.AddScoped<ILogManagementService, LogManagementService>();
+
         // Register notification and chat services - Step 3 SignalR Implementation
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IChatService, ChatService>();
