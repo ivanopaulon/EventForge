@@ -1,4 +1,5 @@
 using EventForge.DTOs.Documents;
+using EventForge.Server.Filters;
 using EventForge.Server.Services.Documents;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,6 +12,7 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
+[RequireLicenseFeature("BasicReporting")]
 public class DocumentHeadersController : BaseApiController
 {
     private readonly IDocumentHeaderService _documentHeaderService;
