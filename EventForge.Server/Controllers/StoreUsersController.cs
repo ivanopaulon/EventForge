@@ -15,11 +15,13 @@ public class StoreUsersController : BaseApiController
 {
     private readonly IStoreUserService _storeUserService;
     private readonly ITenantContext _tenantContext;
+    private readonly ILogger<StoreUsersController> _logger;
 
-    public StoreUsersController(IStoreUserService storeUserService, ITenantContext tenantContext)
+    public StoreUsersController(IStoreUserService storeUserService, ITenantContext tenantContext, ILogger<StoreUsersController> logger)
     {
         _storeUserService = storeUserService ?? throw new ArgumentNullException(nameof(storeUserService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     #region StoreUser Endpoints
@@ -90,7 +92,8 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while retrieving the store user.");
+            _logger.LogError(ex, "Error retrieving store user with ID {UserId}", id);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the store user.", ex);
         }
     }
 
@@ -112,7 +115,8 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while retrieving store users by group.");
+            _logger.LogError(ex, "Error retrieving store users by group {GroupId}", groupId);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving store users by group.", ex);
         }
     }
 
@@ -143,7 +147,8 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while creating the store user.");
+            _logger.LogError(ex, "Error creating store user with data {@CreateStoreUserDto}", createStoreUserDto);
+            return CreateInternalServerErrorProblem("An error occurred while creating the store user.", ex);
         }
     }
 
@@ -182,7 +187,8 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while updating the store user.");
+            _logger.LogError(ex, "Error updating store user {UserId} with data {@UpdateStoreUserDto}", id, updateStoreUserDto);
+            return CreateInternalServerErrorProblem("An error occurred while updating the store user.", ex);
         }
     }
 
@@ -213,7 +219,8 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while deleting the store user.");
+            _logger.LogError(ex, "Error deleting store user {UserId}", id);
+            return CreateInternalServerErrorProblem("An error occurred while deleting the store user.", ex);
         }
     }
 
@@ -248,7 +255,8 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while retrieving store user groups.");
+            _logger.LogError(ex, "Error retrieving store user groups with pagination (page: {Page}, pageSize: {PageSize})", page, pageSize);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving store user groups.", ex);
         }
     }
 
@@ -278,7 +286,8 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while retrieving the store user group.");
+            _logger.LogError(ex, "Error retrieving store user group {GroupId}", id);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the store user group.", ex);
         }
     }
 
@@ -309,7 +318,8 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while creating the store user group.");
+            _logger.LogError(ex, "Error creating store user group with data {@CreateStoreUserGroupDto}", createStoreUserGroupDto);
+            return CreateInternalServerErrorProblem("An error occurred while creating the store user group.", ex);
         }
     }
 
@@ -348,7 +358,8 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while updating the store user group.");
+            _logger.LogError(ex, "Error updating store user group {GroupId} with data {@UpdateStoreUserGroupDto}", id, updateStoreUserGroupDto);
+            return CreateInternalServerErrorProblem("An error occurred while updating the store user group.", ex);
         }
     }
 
@@ -379,7 +390,8 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while deleting the store user group.");
+            _logger.LogError(ex, "Error deleting store user group {GroupId}", id);
+            return CreateInternalServerErrorProblem("An error occurred while deleting the store user group.", ex);
         }
     }
 
@@ -444,7 +456,8 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while retrieving the store user privilege.");
+            _logger.LogError(ex, "Error retrieving store user privilege {PrivilegeId}", id);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the store user privilege.", ex);
         }
     }
 
@@ -466,7 +479,8 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while retrieving store user privileges by group.");
+            _logger.LogError(ex, "Error retrieving store user privileges by group {GroupId}", groupId);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving store user privileges by group.", ex);
         }
     }
 
@@ -497,7 +511,8 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while creating the store user privilege.");
+            _logger.LogError(ex, "Error creating store user privilege with data {@CreateStoreUserPrivilegeDto}", createStoreUserPrivilegeDto);
+            return CreateInternalServerErrorProblem("An error occurred while creating the store user privilege.", ex);
         }
     }
 
@@ -536,7 +551,8 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while updating the store user privilege.");
+            _logger.LogError(ex, "Error updating store user privilege {PrivilegeId} with data {@UpdateStoreUserPrivilegeDto}", id, updateStoreUserPrivilegeDto);
+            return CreateInternalServerErrorProblem("An error occurred while updating the store user privilege.", ex);
         }
     }
 
@@ -567,7 +583,8 @@ public class StoreUsersController : BaseApiController
         }
         catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while deleting the store user privilege.");
+            _logger.LogError(ex, "Error deleting store user privilege {PrivilegeId}", id);
+            return CreateInternalServerErrorProblem("An error occurred while deleting the store user privilege.", ex);
         }
     }
 
