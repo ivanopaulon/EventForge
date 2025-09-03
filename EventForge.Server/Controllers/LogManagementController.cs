@@ -406,6 +406,11 @@ public class LogManagementController : BaseApiController
             var result = await _logManagementService.ExportLogsAsync(exportRequest, cancellationToken);
             return Ok(result);
         }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid export request parameters: {@ExportRequest}", exportRequest);
+            return CreateValidationProblemDetails(ex.Message);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error exporting logs: {@ExportRequest}", exportRequest);
