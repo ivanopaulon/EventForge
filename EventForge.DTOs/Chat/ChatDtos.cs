@@ -528,4 +528,197 @@ namespace EventForge.DTOs.Chat
         public ChatOperationType OperationType { get; set; }
         public Dictionary<string, object> LimitDetails { get; set; } = new Dictionary<string, object>();
     }
+
+    /// <summary>
+    /// DTO for chat deletion parameters.
+    /// </summary>
+    public class DeleteChatDto
+    {
+        /// <summary>
+        /// Optional reason for deleting the chat.
+        /// </summary>
+        public string? Reason { get; set; }
+
+        /// <summary>
+        /// Whether to perform soft delete (true) or hard delete (false).
+        /// Default is true for data retention.
+        /// </summary>
+        public bool SoftDelete { get; set; } = true;
+    }
+
+    /// <summary>
+    /// DTO for message deletion parameters.
+    /// </summary>
+    public class DeleteMessageDto
+    {
+        /// <summary>
+        /// Optional reason for deleting the message.
+        /// </summary>
+        public string? Reason { get; set; }
+
+        /// <summary>
+        /// Whether to perform soft delete (true) or hard delete (false).
+        /// Default is true for data retention.
+        /// </summary>
+        public bool SoftDelete { get; set; } = true;
+    }
+
+    /// <summary>
+    /// DTO for message edit request parameters.
+    /// </summary>
+    public class EditMessageRequestDto
+    {
+        /// <summary>
+        /// Updated message content.
+        /// </summary>
+        [Required]
+        [MaxLength(4000)]
+        public string Content { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Optional reason for editing the message.
+        /// </summary>
+        public string? EditReason { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for chat export request parameters.
+    /// </summary>
+    public class ChatExportRequestDto
+    {
+        /// <summary>
+        /// Optional tenant filter for export.
+        /// </summary>
+        public Guid? TenantId { get; set; }
+
+        /// <summary>
+        /// Optional chat filter for export.
+        /// </summary>
+        public Guid? ChatId { get; set; }
+
+        /// <summary>
+        /// Optional user filter for export.
+        /// </summary>
+        public Guid? UserId { get; set; }
+
+        /// <summary>
+        /// Start date for export range.
+        /// </summary>
+        [Required]
+        public DateTime FromDate { get; set; }
+
+        /// <summary>
+        /// End date for export range.
+        /// </summary>
+        [Required]
+        public DateTime ToDate { get; set; }
+
+        /// <summary>
+        /// Export format (JSON, CSV, Excel, PDF).
+        /// </summary>
+        [Required]
+        public string Format { get; set; } = "JSON";
+
+        /// <summary>
+        /// Optional chat types to include in export.
+        /// </summary>
+        public List<ChatType>? ChatTypes { get; set; }
+
+        /// <summary>
+        /// Whether to include deleted messages in export.
+        /// </summary>
+        public bool IncludeDeleted { get; set; } = false;
+
+        /// <summary>
+        /// Whether to include file attachments in export.
+        /// </summary>
+        public bool IncludeAttachments { get; set; } = true;
+
+        /// <summary>
+        /// Optional search term to filter messages.
+        /// </summary>
+        public string? SearchTerm { get; set; }
+
+        /// <summary>
+        /// Maximum number of records to export (for performance).
+        /// </summary>
+        [Range(1, 100000)]
+        public int? MaxRecords { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for chat export operation result.
+    /// </summary>
+    public class ChatExportResultDto
+    {
+        /// <summary>
+        /// Unique export operation identifier.
+        /// </summary>
+        public Guid ExportId { get; set; }
+
+        /// <summary>
+        /// Current export status (Preparing, Processing, Completed, Failed).
+        /// </summary>
+        public string Status { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Export format used.
+        /// </summary>
+        public string Format { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Progress percentage (0-100).
+        /// </summary>
+        public int ProgressPercentage { get; set; }
+
+        /// <summary>
+        /// Number of records processed/exported.
+        /// </summary>
+        public int RecordCount { get; set; }
+
+        /// <summary>
+        /// Size of the generated export file in bytes.
+        /// </summary>
+        public long FileSizeBytes { get; set; }
+
+        /// <summary>
+        /// URL to check export status.
+        /// </summary>
+        public string? StatusUrl { get; set; }
+
+        /// <summary>
+        /// URL to download the export file (available when completed).
+        /// </summary>
+        public string? DownloadUrl { get; set; }
+
+        /// <summary>
+        /// Export file expiration timestamp.
+        /// </summary>
+        public DateTime? ExpiresAt { get; set; }
+
+        /// <summary>
+        /// Estimated completion time (for in-progress exports).
+        /// </summary>
+        public DateTime? EstimatedCompletionTime { get; set; }
+
+        /// <summary>
+        /// Export creation timestamp.
+        /// </summary>
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Export completion timestamp.
+        /// </summary>
+        public DateTime? CompletedAt { get; set; }
+
+        /// <summary>
+        /// Error message if export failed.
+        /// </summary>
+        public string? ErrorMessage { get; set; }
+
+        /// <summary>
+        /// Additional export metadata.
+        /// </summary>
+        public Dictionary<string, object>? Metadata { get; set; }
+    }
 }

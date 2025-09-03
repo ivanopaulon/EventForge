@@ -697,11 +697,12 @@ public class EventForgeDbContext : DbContext
 
     /// <summary>
     /// Saves changes with automatic audit tracking for auditable entities (synchronous).
+    /// WARNING: This is a sync-over-async anti-pattern but required for EF compatibility.
     /// </summary>
     /// <returns>Number of entities written to the database</returns>
     public override int SaveChanges()
     {
-        return SaveChangesAsync().GetAwaiter().GetResult();
+        return SaveChangesAsync().ConfigureAwait(false).GetAwaiter().GetResult();
     }
 
     /// <summary>
