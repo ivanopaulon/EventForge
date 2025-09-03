@@ -34,7 +34,7 @@ public class BarcodeController : BaseApiController
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return CreateValidationProblemDetails();
             }
 
             var result = await _barcodeService.GenerateBarcodeAsync(request);

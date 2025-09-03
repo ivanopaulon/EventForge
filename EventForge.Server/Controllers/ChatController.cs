@@ -220,11 +220,7 @@ public class ChatController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return NotFound(new ProblemDetails
-            {
-                Title = "Not Found",
-                Detail = ex.Message
-            });
+            return CreateNotFoundProblem(ex.Message);
         }
         catch (UnauthorizedAccessException)
         {
@@ -233,12 +229,7 @@ public class ChatController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to delete chat {ChatId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while deleting the chat"
-                });
+            return CreateValidationProblemDetails("An error occurred while deleting the chat");
         }
     }
 
@@ -278,23 +269,13 @@ public class ChatController : BaseApiController
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("Rate limit"))
         {
-            return StatusCode(StatusCodes.Status429TooManyRequests,
-                new ProblemDetails
-                {
-                    Title = "Rate Limit Exceeded",
-                    Detail = ex.Message,
-                    Status = StatusCodes.Status429TooManyRequests
-                });
+            return CreateConflictProblem(ex.Message);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to send message");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while sending the message"
-                });
+            return CreateValidationProblemDetails("An error occurred while sending the message"
+                );
         }
     }
 
@@ -324,12 +305,8 @@ public class ChatController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve messages");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while retrieving messages"
-                });
+            return CreateValidationProblemDetails("An error occurred while retrieving messages"
+                );
         }
     }
 
@@ -359,11 +336,7 @@ public class ChatController : BaseApiController
 
             if (message == null)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Not Found",
-                    Detail = $"Message with ID {messageId} was not found or is not accessible"
-                });
+                return CreateNotFoundProblem($"Message with ID {messageId} was not found or is not accessible");
             }
 
             return Ok(message);
@@ -371,12 +344,8 @@ public class ChatController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve message {MessageId}", messageId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while retrieving the message"
-                });
+            return CreateValidationProblemDetails("An error occurred while retrieving the message"
+                );
         }
     }
 
@@ -418,11 +387,8 @@ public class ChatController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return NotFound(new ProblemDetails
-            {
-                Title = "Not Found",
-                Detail = ex.Message
-            });
+            return CreateNotFoundProblem(ex.Message
+            );
         }
         catch (UnauthorizedAccessException)
         {
@@ -431,12 +397,8 @@ public class ChatController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to edit message {MessageId}", messageId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while editing the message"
-                });
+            return CreateValidationProblemDetails("An error occurred while editing the message"
+                );
         }
     }
 
@@ -471,11 +433,8 @@ public class ChatController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return NotFound(new ProblemDetails
-            {
-                Title = "Not Found",
-                Detail = ex.Message
-            });
+            return CreateNotFoundProblem(ex.Message
+            );
         }
         catch (UnauthorizedAccessException)
         {
@@ -484,12 +443,8 @@ public class ChatController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to delete message {MessageId}", messageId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while deleting the message"
-                });
+            return CreateValidationProblemDetails("An error occurred while deleting the message"
+                );
         }
     }
 
@@ -519,21 +474,14 @@ public class ChatController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return NotFound(new ProblemDetails
-            {
-                Title = "Not Found",
-                Detail = ex.Message
-            });
+            return CreateNotFoundProblem(ex.Message
+            );
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to mark message {MessageId} as read", messageId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while marking the message as read"
-                });
+            return CreateValidationProblemDetails("An error occurred while marking the message as read"
+                );
         }
     }
 
@@ -554,20 +502,14 @@ public class ChatController : BaseApiController
     {
         if (messageIds == null || !messageIds.Any())
         {
-            return BadRequest(new ProblemDetails
-            {
-                Title = "Invalid Request",
-                Detail = "Message IDs list cannot be empty"
-            });
+            return CreateValidationProblemDetails("Message IDs list cannot be empty"
+            );
         }
 
         if (messageIds.Count > 100)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Title = "Request Too Large",
-                Detail = "Maximum 100 messages allowed per bulk read operation"
-            });
+            return CreateValidationProblemDetails("Maximum 100 messages allowed per bulk read operation"
+            );
         }
 
         try
@@ -581,12 +523,8 @@ public class ChatController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to bulk mark messages as read");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while marking messages as read"
-                });
+            return CreateValidationProblemDetails("An error occurred while marking messages as read"
+                );
         }
     }
 
@@ -614,23 +552,15 @@ public class ChatController : BaseApiController
     {
         if (uploadRequest.File == null || uploadRequest.File.Length == 0)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Title = "Invalid File",
-                Detail = "File cannot be empty"
-            });
+            return CreateValidationProblemDetails("File cannot be empty"
+            );
         }
 
         // Check file size limit (example: 50MB)
         const long maxFileSize = 50 * 1024 * 1024; // 50MB
         if (uploadRequest.File.Length > maxFileSize)
         {
-            return StatusCode(StatusCodes.Status413PayloadTooLarge,
-                new ProblemDetails
-                {
-                    Title = "File Too Large",
-                    Detail = $"File size cannot exceed {maxFileSize / (1024 * 1024)} MB"
-                });
+            return CreateValidationProblemDetails($"File size cannot exceed {maxFileSize / (1024 * 1024)} MB");
         }
 
         try
@@ -659,32 +589,19 @@ public class ChatController : BaseApiController
             }
             else
             {
-                return BadRequest(new ProblemDetails
-                {
-                    Title = "Upload Failed",
-                    Detail = result.ErrorMessage ?? "An error occurred during file upload"
-                });
+                return CreateValidationProblemDetails(result.ErrorMessage ?? "An error occurred during file upload"
+                );
             }
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("Rate limit"))
         {
-            return StatusCode(StatusCodes.Status429TooManyRequests,
-                new ProblemDetails
-                {
-                    Title = "Rate Limit Exceeded",
-                    Detail = ex.Message,
-                    Status = StatusCodes.Status429TooManyRequests
-                });
+            return CreateConflictProblem(ex.Message);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to upload file to chat {ChatId}", uploadRequest.ChatId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while uploading the file"
-                });
+            return CreateValidationProblemDetails("An error occurred while uploading the file"
+                );
         }
     }
 
@@ -714,11 +631,7 @@ public class ChatController : BaseApiController
 
             if (downloadInfo == null)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Not Found",
-                    Detail = $"File with ID {attachmentId} was not found or is not accessible"
-                });
+                return CreateNotFoundProblem($"File with ID {attachmentId} was not found or is not accessible");
             }
 
             return Ok(downloadInfo);
@@ -726,12 +639,8 @@ public class ChatController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to get download info for file {AttachmentId}", attachmentId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while retrieving file information"
-                });
+            return CreateValidationProblemDetails("An error occurred while retrieving file information"
+                );
         }
     }
 
@@ -770,12 +679,8 @@ public class ChatController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to download file {AttachmentId}", attachmentId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while downloading the file"
-                });
+            return CreateValidationProblemDetails("An error occurred while downloading the file"
+                );
         }
     }
 
@@ -813,12 +718,8 @@ public class ChatController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve chat statistics");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while retrieving statistics"
-                });
+            return CreateValidationProblemDetails("An error occurred while retrieving statistics"
+                );
         }
     }
 
@@ -869,12 +770,8 @@ public class ChatController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to start chat export");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while starting the export operation"
-                });
+            return CreateValidationProblemDetails("An error occurred while starting the export operation"
+                );
         }
     }
 
@@ -921,12 +818,8 @@ public class ChatController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve chat export status for {ExportId}", exportId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while retrieving export status"
-                });
+            return CreateValidationProblemDetails("An error occurred while retrieving export status"
+                );
         }
     }
 
@@ -995,12 +888,8 @@ public class ChatController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to download chat export file for {ExportId}", exportId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while downloading the export file"
-                });
+            return CreateValidationProblemDetails("An error occurred while downloading the export file"
+                );
         }
     }
 
@@ -1029,12 +918,8 @@ public class ChatController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve chat system health");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while retrieving system health"
-                });
+            return CreateValidationProblemDetails("An error occurred while retrieving system health"
+                );
         }
     }
 

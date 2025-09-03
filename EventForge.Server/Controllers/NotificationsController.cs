@@ -71,23 +71,13 @@ public class NotificationsController : BaseApiController
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("Rate limit"))
         {
-            return StatusCode(StatusCodes.Status429TooManyRequests,
-                new ProblemDetails
-                {
-                    Title = "Rate Limit Exceeded",
-                    Detail = ex.Message,
-                    Status = StatusCodes.Status429TooManyRequests
-                });
+            return CreateConflictProblem(ex.Message);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to send notification");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while sending the notification"
-                });
+            return CreateValidationProblemDetails("An error occurred while sending the notification"
+                );
         }
     }
 
@@ -110,20 +100,14 @@ public class NotificationsController : BaseApiController
     {
         if (notifications == null || !notifications.Any())
         {
-            return BadRequest(new ProblemDetails
-            {
-                Title = "Invalid Request",
-                Detail = "Notifications list cannot be empty"
-            });
+            return CreateValidationProblemDetails("Notifications list cannot be empty"
+            );
         }
 
         if (notifications.Count > 1000)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Title = "Request Too Large",
-                Detail = "Maximum 1000 notifications allowed per bulk operation"
-            });
+            return CreateValidationProblemDetails("Maximum 1000 notifications allowed per bulk operation"
+            );
         }
 
         try
@@ -136,12 +120,8 @@ public class NotificationsController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to process bulk notifications");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while processing bulk notifications"
-                });
+            return CreateValidationProblemDetails("An error occurred while processing bulk notifications"
+                );
         }
     }
 
@@ -171,12 +151,8 @@ public class NotificationsController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve notifications");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while retrieving notifications"
-                });
+            return CreateValidationProblemDetails("An error occurred while retrieving notifications"
+                );
         }
     }
 
@@ -206,11 +182,7 @@ public class NotificationsController : BaseApiController
 
             if (notification == null)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Not Found",
-                    Detail = $"Notification with ID {id} was not found or is not accessible"
-                });
+                return CreateNotFoundProblem($"Notification with ID {id} was not found or is not accessible");
             }
 
             return Ok(notification);
@@ -218,12 +190,8 @@ public class NotificationsController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve notification {NotificationId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while retrieving the notification"
-                });
+            return CreateValidationProblemDetails("An error occurred while retrieving the notification"
+                );
         }
     }
 
@@ -259,21 +227,14 @@ public class NotificationsController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return NotFound(new ProblemDetails
-            {
-                Title = "Not Found",
-                Detail = ex.Message
-            });
+            return CreateNotFoundProblem(ex.Message
+            );
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to acknowledge notification {NotificationId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while acknowledging the notification"
-                });
+            return CreateValidationProblemDetails("An error occurred while acknowledging the notification"
+                );
         }
     }
 
@@ -306,21 +267,14 @@ public class NotificationsController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return NotFound(new ProblemDetails
-            {
-                Title = "Not Found",
-                Detail = ex.Message
-            });
+            return CreateNotFoundProblem(ex.Message
+            );
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to silence notification {NotificationId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while silencing the notification"
-                });
+            return CreateValidationProblemDetails("An error occurred while silencing the notification"
+                );
         }
     }
 
@@ -352,21 +306,14 @@ public class NotificationsController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return NotFound(new ProblemDetails
-            {
-                Title = "Not Found",
-                Detail = ex.Message
-            });
+            return CreateNotFoundProblem(ex.Message
+            );
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to archive notification {NotificationId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while archiving the notification"
-                });
+            return CreateValidationProblemDetails("An error occurred while archiving the notification"
+                );
         }
     }
 
@@ -387,20 +334,14 @@ public class NotificationsController : BaseApiController
     {
         if (bulkAction.NotificationIds == null || !bulkAction.NotificationIds.Any())
         {
-            return BadRequest(new ProblemDetails
-            {
-                Title = "Invalid Request",
-                Detail = "Notification IDs list cannot be empty"
-            });
+            return CreateValidationProblemDetails("Notification IDs list cannot be empty"
+            );
         }
 
         if (bulkAction.NotificationIds.Count > 100)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Title = "Request Too Large",
-                Detail = "Maximum 100 notifications allowed per bulk operation"
-            });
+            return CreateValidationProblemDetails("Maximum 100 notifications allowed per bulk operation"
+            );
         }
 
         try
@@ -414,12 +355,8 @@ public class NotificationsController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to process bulk action");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while processing the bulk action"
-                });
+            return CreateValidationProblemDetails("An error occurred while processing the bulk action"
+                );
         }
     }
 
@@ -457,12 +394,8 @@ public class NotificationsController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve notification statistics");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while retrieving statistics"
-                });
+            return CreateValidationProblemDetails("An error occurred while retrieving statistics"
+                );
         }
     }
 
@@ -519,12 +452,8 @@ public class NotificationsController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to start notification export");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while starting the export operation"
-                });
+            return CreateValidationProblemDetails("An error occurred while starting the export operation"
+                );
         }
     }
 
@@ -571,12 +500,8 @@ public class NotificationsController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve export status for {ExportId}", exportId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while retrieving export status"
-                });
+            return CreateValidationProblemDetails("An error occurred while retrieving export status"
+                );
         }
     }
 
@@ -637,12 +562,8 @@ public class NotificationsController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to download export file for {ExportId}", exportId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while downloading the export file"
-                });
+            return CreateValidationProblemDetails("An error occurred while downloading the export file"
+                );
         }
     }
 
@@ -671,12 +592,8 @@ public class NotificationsController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve notification system health");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new ProblemDetails
-                {
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while retrieving system health"
-                });
+            return CreateValidationProblemDetails("An error occurred while retrieving system health"
+                );
         }
     }
 
