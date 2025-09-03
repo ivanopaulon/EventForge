@@ -1,5 +1,3 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.SuperAdmin;
 using EventForge.Server.Services.Logs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -90,7 +88,7 @@ public class LogManagementController : BaseApiController
         try
         {
             var log = await _logManagementService.GetApplicationLogByIdAsync(id, cancellationToken);
-            
+
             if (log == null)
             {
                 return CreateNotFoundProblem($"Log entry with ID {id} not found");
@@ -241,11 +239,11 @@ public class LogManagementController : BaseApiController
         {
             var userContext = GetUserContext();
             await _logManagementService.ProcessClientLogAsync(clientLog, userContext, cancellationToken);
-            
-            return Ok(new 
-            { 
-                message = "Client log processed successfully", 
-                timestamp = DateTime.UtcNow 
+
+            return Ok(new
+            {
+                message = "Client log processed successfully",
+                timestamp = DateTime.UtcNow
             });
         }
         catch (Exception ex)
@@ -290,7 +288,7 @@ public class LogManagementController : BaseApiController
             var userContext = GetUserContext();
             var result = await _logManagementService.ProcessClientLogBatchAsync(
                 batchRequest.Logs, userContext, cancellationToken);
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -534,11 +532,11 @@ public class LogManagementController : BaseApiController
         try
         {
             await _logManagementService.ClearCacheAsync();
-            
-            return Ok(new 
-            { 
-                message = "Log management cache cleared successfully", 
-                timestamp = DateTime.UtcNow 
+
+            return Ok(new
+            {
+                message = "Log management cache cleared successfully",
+                timestamp = DateTime.UtcNow
             });
         }
         catch (Exception ex)
@@ -560,12 +558,12 @@ public class LogManagementController : BaseApiController
     {
         var userName = User?.FindFirst(ClaimTypes.Name)?.Value ?? User?.Identity?.Name;
         var userId = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        
+
         if (!string.IsNullOrEmpty(userName) && !string.IsNullOrEmpty(userId))
         {
             return $"{userName} ({userId})";
         }
-        
+
         return userName ?? userId ?? "Unknown";
     }
 

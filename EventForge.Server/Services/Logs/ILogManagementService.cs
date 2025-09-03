@@ -1,6 +1,3 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.SuperAdmin;
-
 namespace EventForge.Server.Services.Logs;
 
 /// <summary>
@@ -10,7 +7,7 @@ namespace EventForge.Server.Services.Logs;
 public interface ILogManagementService
 {
     #region Application Logs
-    
+
     /// <summary>
     /// Gets paginated application logs with filtering and sorting.
     /// </summary>
@@ -68,8 +65,8 @@ public interface ILogManagementService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Batch processing result with success/error counts</returns>
     Task<BatchProcessingResult> ProcessClientLogBatchAsync(
-        IEnumerable<ClientLogDto> clientLogs, 
-        string? userContext = null, 
+        IEnumerable<ClientLogDto> clientLogs,
+        string? userContext = null,
         CancellationToken cancellationToken = default);
 
     #endregion

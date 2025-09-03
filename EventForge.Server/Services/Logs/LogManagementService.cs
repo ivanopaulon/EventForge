@@ -1,10 +1,6 @@
 using Dapper;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.SuperAdmin;
-using EventForge.Server.Services.Audit;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Memory;
-using System.Security.Claims;
 
 namespace EventForge.Server.Services.Logs;
 
@@ -37,7 +33,7 @@ public class LogManagementService : ILogManagementService
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
-        
+
         _logDbConnectionString = configuration.GetConnectionString("LogDB")
             ?? throw new InvalidOperationException("LogDB connection string not found.");
     }
@@ -94,7 +90,7 @@ public class LogManagementService : ILogManagementService
         CancellationToken cancellationToken = default)
     {
         var cacheKey = string.Format(CACHE_KEY_LOG_STATS, fromDate.ToString("yyyyMMdd"), toDate.ToString("yyyyMMdd"));
-        
+
         if (_cache.TryGetValue(cacheKey, out Dictionary<string, int>? cachedStats) && cachedStats != null)
         {
             return cachedStats;
@@ -103,10 +99,10 @@ public class LogManagementService : ILogManagementService
         try
         {
             var stats = await _applicationLogService.GetLogStatisticsByLevelAsync(fromDate, toDate, cancellationToken);
-            
+
             // Cache for 5 minutes
             _cache.Set(cacheKey, stats, _cacheExpiration);
-            
+
             return stats;
         }
         catch (Exception ex)
@@ -140,8 +136,8 @@ public class LogManagementService : ILogManagementService
     }
 
     public async Task<BatchProcessingResult> ProcessClientLogBatchAsync(
-        IEnumerable<ClientLogDto> clientLogs, 
-        string? userContext = null, 
+        IEnumerable<ClientLogDto> clientLogs,
+        string? userContext = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(clientLogs);
@@ -171,12 +167,12 @@ public class LogManagementService : ILogManagementService
                     Status = "error",
                     ErrorMessage = ex.Message
                 });
-                
+
                 _logger.LogWarning(ex, "Failed to process client log at index {Index} in batch", index);
             }
         }
 
-        _logger.LogInformation("Processed client log batch: {Total} total, {Success} successful, {Errors} errors", 
+        _logger.LogInformation("Processed client log batch: {Total} total, {Success} successful, {Errors} errors",
             result.TotalCount, result.SuccessCount, result.ErrorCount);
 
         return result;
@@ -230,7 +226,7 @@ public class LogManagementService : ILogManagementService
 
         // Log using structured logging
         using var scope = _logger.BeginScope(logProperties);
-        
+
         if (!string.IsNullOrEmpty(clientLog.Exception))
         {
             _logger.Log(logLevel, new Exception(clientLog.Exception), "{Message}", clientLog.Message);
@@ -287,7 +283,7 @@ public class LogManagementService : ILogManagementService
 
         // Validate Type parameter
         var validTypes = new[] { "audit", "auditlogs", "systemlogs", "applicationlogs" };
-        if (string.IsNullOrWhiteSpace(exportRequest.Type) || 
+        if (string.IsNullOrWhiteSpace(exportRequest.Type) ||
             !validTypes.Contains(exportRequest.Type.ToLowerInvariant()))
         {
             throw new ArgumentException($"Invalid export type '{exportRequest.Type}'. Supported types: {string.Join(", ", validTypes)}");
@@ -295,7 +291,7 @@ public class LogManagementService : ILogManagementService
 
         // Validate Format parameter
         var validFormats = new[] { "json", "csv", "excel", "txt" };
-        if (string.IsNullOrWhiteSpace(exportRequest.Format) || 
+        if (string.IsNullOrWhiteSpace(exportRequest.Format) ||
             !validFormats.Contains(exportRequest.Format.ToLowerInvariant()))
         {
             throw new ArgumentException($"Invalid export format '{exportRequest.Format}'. Supported formats: {string.Join(", ", validFormats)}");
@@ -328,10 +324,10 @@ public class LogManagementService : ILogManagementService
         try
         {
             var config = await _applicationLogService.GetMonitoringConfigAsync(cancellationToken);
-            
+
             // Cache for 5 minutes
             _cache.Set(CACHE_KEY_MONITORING_CONFIG, config, _cacheExpiration);
-            
+
             return config;
         }
         catch (Exception ex)
@@ -350,10 +346,10 @@ public class LogManagementService : ILogManagementService
         try
         {
             var updatedConfig = await _applicationLogService.UpdateMonitoringConfigAsync(config, cancellationToken);
-            
+
             // Clear cache to ensure fresh data
             _cache.Remove(CACHE_KEY_MONITORING_CONFIG);
-            
+
             return updatedConfig;
         }
         catch (Exception ex)
@@ -383,16 +379,16 @@ public class LogManagementService : ILogManagementService
 
             var levels = await connection.QueryAsync<string>(query);
             var levelsList = levels.ToList();
-            
+
             // Cache for 10 minutes since log levels don't change frequently
             _cache.Set(CACHE_KEY_LOG_LEVELS, levelsList, TimeSpan.FromMinutes(10));
-            
+
             return levelsList;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving available log levels");
-            
+
             // Return default levels if database query fails
             return new[] { "Debug", "Information", "Warning", "Error", "Critical" };
         }
@@ -408,19 +404,19 @@ public class LogManagementService : ILogManagementService
         {
             _cache.Remove(CACHE_KEY_LOG_LEVELS);
             _cache.Remove(CACHE_KEY_MONITORING_CONFIG);
-            
+
             // Clear stats cache entries (they have date-based keys)
             // This is a simple approach - in production you might want more sophisticated cache management
             if (_cache is MemoryCache memoryCache)
             {
-                var field = typeof(MemoryCache).GetField("_coherentState", 
+                var field = typeof(MemoryCache).GetField("_coherentState",
                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                
+
                 if (field?.GetValue(memoryCache) is object coherentState)
                 {
                     var entriesCollection = coherentState.GetType()
                         .GetProperty("EntriesCollection", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    
+
                     if (entriesCollection?.GetValue(coherentState) is System.Collections.IDictionary entries)
                     {
                         var keysToRemove = new List<object>();
@@ -431,7 +427,7 @@ public class LogManagementService : ILogManagementService
                                 keysToRemove.Add(entry.Key);
                             }
                         }
-                        
+
                         foreach (var key in keysToRemove)
                         {
                             _cache.Remove(key);
@@ -462,22 +458,22 @@ public class LogManagementService : ILogManagementService
             // Test database connectivity
             using var connection = CreateConnection();
             await connection.OpenAsync(cancellationToken);
-            
+
             var logCount = await connection.QuerySingleAsync<int>(
-                "SELECT COUNT(*) FROM Logs WHERE TimeStamp >= @Since", 
+                "SELECT COUNT(*) FROM Logs WHERE TimeStamp >= @Since",
                 new { Since = DateTime.UtcNow.AddHours(-1) });
-            
+
             health.Details["RecentLogCount"] = logCount;
             health.Details["DatabaseConnectivity"] = "OK";
-            
+
             // Test cache functionality
             var testKey = $"health_test_{Guid.NewGuid()}";
             _cache.Set(testKey, "test", TimeSpan.FromMinutes(1));
             var cacheWorks = _cache.TryGetValue(testKey, out _);
             _cache.Remove(testKey);
-            
+
             health.Details["CacheConnectivity"] = cacheWorks ? "OK" : "FAILED";
-            
+
             if (!cacheWorks)
             {
                 health.IsHealthy = false;
@@ -489,7 +485,7 @@ public class LogManagementService : ILogManagementService
             health.IsHealthy = false;
             health.Status = "unhealthy";
             health.Details["Error"] = ex.Message;
-            
+
             _logger.LogError(ex, "Log system health check failed");
         }
 

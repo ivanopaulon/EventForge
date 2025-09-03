@@ -1,14 +1,13 @@
-using EventForge.DTOs.Products;
-using EventForge.DTOs.UnitOfMeasures;
 using EventForge.DTOs.PriceLists;
+using EventForge.DTOs.Products;
 using EventForge.DTOs.Promotions;
-using EventForge.DTOs.Common;
+using EventForge.DTOs.UnitOfMeasures;
 using EventForge.Server.Filters;
-using EventForge.Server.Services.Products;
-using EventForge.Server.Services.UnitOfMeasures;
-using EventForge.Server.Services.PriceLists;
-using EventForge.Server.Services.Promotions;
 using EventForge.Server.Services.Interfaces;
+using EventForge.Server.Services.PriceLists;
+using EventForge.Server.Services.Products;
+using EventForge.Server.Services.Promotions;
+using EventForge.Server.Services.UnitOfMeasures;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

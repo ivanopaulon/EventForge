@@ -16,7 +16,7 @@ namespace EventForge.Tests.Services.Promotions
     /// Tests all scenarios specified in the problem statement.
     /// </summary>
     [Trait("Category", "Unit")]
-public class PromotionRuleEngineTests : IDisposable
+    public class PromotionRuleEngineTests : IDisposable
     {
         private readonly EventForgeDbContext _context;
         private readonly Mock<IAuditLogService> _mockAuditLogService;

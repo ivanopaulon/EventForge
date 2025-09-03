@@ -6,7 +6,6 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 
 namespace EventForge.Tests.Services.Logs;
 
@@ -27,7 +26,7 @@ public class LogManagementServiceTests
         _mockAuditLogService = new Mock<IAuditLogService>();
         _mockLogger = new Mock<ILogger<LogManagementService>>();
         _mockCache = new Mock<IMemoryCache>();
-        
+
         // Create a simple configuration with the required connection string
         var configBuilder = new ConfigurationBuilder();
         configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
@@ -49,9 +48,9 @@ public class LogManagementServiceTests
     {
         // Arrange
         var queryParameters = new ApplicationLogQueryParameters { Page = 1, PageSize = 10 };
-        var expectedResult = new PagedResult<SystemLogDto> 
-        { 
-            Items = new List<SystemLogDto>(), 
+        var expectedResult = new PagedResult<SystemLogDto>
+        {
+            Items = new List<SystemLogDto>(),
             TotalCount = 0,
             Page = 1,
             PageSize = 10
@@ -82,7 +81,7 @@ public class LogManagementServiceTests
 
         // Act & Assert
         await _service.ProcessClientLogAsync(clientLog, "TestUser");
-        
+
         // Should not throw exception
     }
 
@@ -150,7 +149,7 @@ public class LogManagementServiceTests
     {
         // Act & Assert
         await _service.ClearCacheAsync();
-        
+
         // Should not throw exception
     }
 

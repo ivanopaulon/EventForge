@@ -13,7 +13,7 @@ namespace EventForge.Tests.Services.RetailCart
     /// Unit tests for RetailCartSessionService to ensure cart management functionality.
     /// </summary>
     [Trait("Category", "Unit")]
-public class RetailCartSessionServiceTests : IDisposable
+    public class RetailCartSessionServiceTests : IDisposable
     {
         private readonly Mock<ITenantContext> _mockTenantContext;
         private readonly Mock<IPromotionService> _mockPromotionService;

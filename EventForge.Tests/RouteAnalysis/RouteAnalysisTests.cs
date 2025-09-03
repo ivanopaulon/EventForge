@@ -23,7 +23,7 @@ public class RouteAnalysisTests
         // Find the solution root by walking up from current directory
         var currentDir = Directory.GetCurrentDirectory();
         var solutionRoot = currentDir;
-        
+
         // Walk up until we find EventForge.sln or reach a reasonable limit
         for (int i = 0; i < 10; i++)
         {
@@ -76,7 +76,7 @@ public class RouteAnalysisTests
         }
 
         // Assert - Fail test if conflicts are found (so dotnet test exits non-zero)
-        Assert.True(!_conflicts.Any(), 
+        Assert.True(!_conflicts.Any(),
             $"Conflitti di route rilevati: {_conflicts.Count}. Consulta il file {outputFile} per i dettagli.");
     }
 
