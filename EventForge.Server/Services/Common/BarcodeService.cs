@@ -2,6 +2,7 @@ using EventForge.Server.Services.Interfaces;
 using SkiaSharp;
 using Spire.Barcode;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Text.RegularExpressions;
 
 namespace EventForge.Server.Services.Common;
@@ -153,6 +154,7 @@ public class BarcodeService : IBarcodeService
     /// <summary>
     /// Windows-specific image conversion (original approach with warnings suppressed)
     /// </summary>
+    [SupportedOSPlatform("windows")]
     private static async Task<string> ConvertImageToBase64WindowsAsync(BarCodeGenerator generator, ImageFormat format)
     {
         try
@@ -193,18 +195,23 @@ public class BarcodeService : IBarcodeService
             {
                 Color = SKColors.Black,
                 IsAntialias = true,
-                Style = SKPaintStyle.Fill,
-                TextSize = Math.Min(width, height) / 10
+                Style = SKPaintStyle.Fill
+            };
+
+            using var font = new SKFont
+            {
+                Size = Math.Min(width, height) / 10
             };
 
             var text = $"BARCODE: {data}";
             var textBounds = new SKRect();
-            paint.MeasureText(text, ref textBounds);
+            font.MeasureText(text, out var textBounds2);
+            textBounds = textBounds2;
 
             var x = (width - textBounds.Width) / 2;
             var y = (height - textBounds.Height) / 2 + textBounds.Height;
 
-            canvas.DrawText(text, x, y, paint);
+            canvas.DrawText(text, x, y, SKTextAlign.Left, font, paint);
 
             // Draw border
             using var borderPaint = new SKPaint
@@ -229,6 +236,7 @@ public class BarcodeService : IBarcodeService
         }
     }
 
+    [SupportedOSPlatform("windows")]
     private static System.Drawing.Imaging.ImageFormat GetSystemDrawingImageFormat(ImageFormat format)
     {
         return format switch

@@ -46,7 +46,7 @@ public class StockService : IStockService
             var query = _context.Stocks
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
-                    .ThenInclude(sl => sl.Warehouse)
+                    .ThenInclude(sl => sl!.Warehouse)
                 .Include(s => s.Lot)
                 .Where(s => s.TenantId == currentTenantId.Value);
 
@@ -111,7 +111,7 @@ public class StockService : IStockService
             var stock = await _context.Stocks
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
-                    .ThenInclude(sl => sl.Warehouse)
+                    .ThenInclude(sl => sl!.Warehouse)
                 .Include(s => s.Lot)
                 .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value, cancellationToken);
 
@@ -137,7 +137,7 @@ public class StockService : IStockService
             var stocks = await _context.Stocks
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
-                    .ThenInclude(sl => sl.Warehouse)
+                    .ThenInclude(sl => sl!.Warehouse)
                 .Include(s => s.Lot)
                 .Where(s => s.ProductId == productId && s.TenantId == currentTenantId.Value)
                 .OrderBy(s => s.StorageLocation!.Code)
@@ -165,7 +165,7 @@ public class StockService : IStockService
             var stocks = await _context.Stocks
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
-                    .ThenInclude(sl => sl.Warehouse)
+                    .ThenInclude(sl => sl!.Warehouse)
                 .Include(s => s.Lot)
                 .Where(s => s.StorageLocationId == locationId && s.TenantId == currentTenantId.Value)
                 .OrderBy(s => s.Product!.Name)
@@ -308,7 +308,7 @@ public class StockService : IStockService
             var stockForDto = await _context.Stocks
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
-                    .ThenInclude(sl => sl.Warehouse)
+                    .ThenInclude(sl => sl!.Warehouse)
                 .Include(s => s.Lot)
                 .FirstAsync(s => s.Id == existingStock.Id, cancellationToken);
 
@@ -335,7 +335,7 @@ public class StockService : IStockService
             var stock = await _context.Stocks
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
-                    .ThenInclude(sl => sl.Warehouse)
+                    .ThenInclude(sl => sl!.Warehouse)
                 .Include(s => s.Lot)
                 .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value, cancellationToken);
 
@@ -468,7 +468,7 @@ public class StockService : IStockService
             var stocks = await _context.Stocks
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
-                    .ThenInclude(sl => sl.Warehouse)
+                    .ThenInclude(sl => sl!.Warehouse)
                 .Include(s => s.Lot)
                 .Where(s => s.TenantId == currentTenantId.Value &&
                            s.MinimumLevel.HasValue &&
@@ -498,7 +498,7 @@ public class StockService : IStockService
             var stocks = await _context.Stocks
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
-                    .ThenInclude(sl => sl.Warehouse)
+                    .ThenInclude(sl => sl!.Warehouse)
                 .Include(s => s.Lot)
                 .Where(s => s.TenantId == currentTenantId.Value &&
                            s.MaximumLevel.HasValue &&
