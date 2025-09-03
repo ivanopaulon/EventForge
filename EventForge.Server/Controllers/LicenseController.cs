@@ -29,7 +29,11 @@ public class LicenseController : BaseApiController
     /// Get all available licenses.
     /// </summary>
     /// <returns>List of available licenses</returns>
+    /// <response code="200">Returns the list of licenses</response>
+    /// <response code="500">If an internal error occurs</response>
     [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<LicenseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<LicenseDto>>> GetLicenses()
     {
         try
@@ -91,7 +95,13 @@ public class LicenseController : BaseApiController
     /// </summary>
     /// <param name="id">License ID</param>
     /// <returns>License details</returns>
+    /// <response code="200">Returns the license details</response>
+    /// <response code="404">If the license is not found</response>
+    /// <response code="500">If an internal error occurs</response>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(LicenseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<LicenseDto>> GetLicense(Guid id)
     {
         try
