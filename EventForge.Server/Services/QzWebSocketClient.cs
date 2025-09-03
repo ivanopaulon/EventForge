@@ -1,3 +1,4 @@
+using System.IO;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -21,7 +22,8 @@ public class QzWebSocketClient : IDisposable
         _logger = logger;
         _signer = signer;
         _wsUri = Environment.GetEnvironmentVariable("QZ_WS_URI") ?? "ws://localhost:8181";
-        _certificatePath = "digital-certificate.txt";
+        _certificatePath = Environment.GetEnvironmentVariable("QZ_PUBLIC_CERT_PATH") 
+            ?? Path.Combine(AppContext.BaseDirectory, "digital-certificate.txt");
     }
 
     /// <summary>

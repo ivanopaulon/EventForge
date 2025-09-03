@@ -13,8 +13,22 @@ This implementation provides QZ Tray integration with digital signatures using S
 
 The services support the following environment variables:
 
-- `QZ_PRIVATE_KEY_PATH`: Path to the private key file (defaults to `private-key.pem`)
+- `QZ_PRIVATE_KEY_PATH`: Path to the private key file (defaults to `private-key.pem` in application output directory)
+- `QZ_PUBLIC_CERT_PATH`: Path to the public certificate file (defaults to `digital-certificate.txt` in application output directory)
 - `QZ_WS_URI`: QZ Tray WebSocket URI (defaults to `ws://localhost:8181`)
+
+## File Location Strategy
+
+The QZ Tray integration uses a "copy to output" strategy for certificate and key files:
+
+1. **Build Time**: The `private-key.pem` and `digital-certificate.txt` files are automatically copied from the project root to the application output directory during build.
+2. **Runtime**: Services first check for environment variables (`QZ_PRIVATE_KEY_PATH`, `QZ_PUBLIC_CERT_PATH`). If not set, they fall back to the files in the application output directory (`AppContext.BaseDirectory`).
+3. **Development**: Files remain in the project root for version control and are preserved across builds.
+
+This approach ensures:
+- Files are available in the correct location for both development and deployment
+- Environment variables can still override file paths when needed
+- No manual file copying is required during deployment
 
 ## Usage Examples
 
@@ -61,8 +75,9 @@ wsClient.Dispose();
 ### Environment Variable Configuration
 
 ```bash
-# Set custom paths
+# Set custom paths (optional - will override default output directory files)
 export QZ_PRIVATE_KEY_PATH="/path/to/custom/private-key.pem"
+export QZ_PUBLIC_CERT_PATH="/path/to/custom/digital-certificate.txt"
 export QZ_WS_URI="ws://custom-host:9999"
 ```
 
