@@ -6,7 +6,7 @@ using System.ComponentModel.DataAnnotations;
 namespace EventForge.Server.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [Authorize]
 public class BarcodeController : BaseApiController
 {
