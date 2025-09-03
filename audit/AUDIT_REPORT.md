@@ -1,6 +1,6 @@
 ﻿# EventForge Backend Audit Report
 
-**Generated:** 2025-09-03 13:44:54 UTC
+**Generated:** 2025-09-03 14:18:25 UTC
 
 This automated audit verifies the completion status of three major refactoring PRs:
 - **PR1**: DTO Consolidation
@@ -23,7 +23,7 @@ This automated audit verifies the completion status of three major refactoring P
 ## Detailed Statistics
 
 ### PR1: DTO Consolidation Status
-- ✅ Consolidated DTO Files: 164
+- ✅ Consolidated DTO Files: 166
 - ✅ Domain Folders: 25
 - ❌ Legacy DTO References: 0
 - ❌ Inline DTOs in Controllers: 1
