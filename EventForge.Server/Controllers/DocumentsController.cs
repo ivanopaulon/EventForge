@@ -1,4 +1,5 @@
 using EventForge.DTOs.Documents;
+using EventForge.Server.Filters;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
@@ -13,6 +14,7 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/documents")]
 [Authorize]
+[RequireLicenseFeature("BasicReporting")]
 public class DocumentsController : BaseApiController
 {
     private readonly IDocumentFacade _documentFacade;
@@ -22,6 +24,8 @@ public class DocumentsController : BaseApiController
     private readonly IDocumentWorkflowService _workflowService;
     private readonly IDocumentAnalyticsService _analyticsService;
     private readonly IDocumentAttachmentService _attachmentService;
+    private readonly IDocumentHeaderService _documentHeaderService;
+    private readonly IDocumentTypeService _documentTypeService;
 
     public DocumentsController(
         IDocumentFacade documentFacade, 
@@ -30,7 +34,9 @@ public class DocumentsController : BaseApiController
         IDocumentCommentService commentService,
         IDocumentWorkflowService workflowService,
         IDocumentAnalyticsService analyticsService,
-        IDocumentAttachmentService attachmentService)
+        IDocumentAttachmentService attachmentService,
+        IDocumentHeaderService documentHeaderService,
+        IDocumentTypeService documentTypeService)
     {
         _documentFacade = documentFacade ?? throw new ArgumentNullException(nameof(documentFacade));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
@@ -39,7 +45,374 @@ public class DocumentsController : BaseApiController
         _workflowService = workflowService ?? throw new ArgumentNullException(nameof(workflowService));
         _analyticsService = analyticsService ?? throw new ArgumentNullException(nameof(analyticsService));
         _attachmentService = attachmentService ?? throw new ArgumentNullException(nameof(attachmentService));
+        _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
+        _documentTypeService = documentTypeService ?? throw new ArgumentNullException(nameof(documentTypeService));
     }
+
+    #region Document Headers
+
+    /// <summary>
+    /// Gets paginated document headers with optional filtering.
+    /// </summary>
+    /// <param name="queryParameters">Query parameters for filtering, sorting and pagination</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated document headers</returns>
+    /// <response code="200">Returns the paginated document headers</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResult<DocumentHeaderDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<DocumentHeaderDto>>> GetDocuments(
+        [FromQuery] DocumentHeaderQueryParameters queryParameters,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _documentHeaderService.GetPagedDocumentHeadersAsync(queryParameters, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving document headers.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a document header by ID.
+    /// </summary>
+    /// <param name="id">Document header ID</param>
+    /// <param name="includeRows">Include document rows in the response</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Document header details</returns>
+    /// <response code="200">Returns the document header</response>
+    /// <response code="404">If the document header is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(DocumentHeaderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<DocumentHeaderDto>> GetDocument(
+        Guid id,
+        [FromQuery] bool includeRows = false,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(id, includeRows, cancellationToken);
+
+            if (documentHeader == null)
+                return CreateNotFoundProblem($"Document header with ID {id} not found.");
+
+            return Ok(documentHeader);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the document header.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets document headers by business party ID.
+    /// </summary>
+    /// <param name="businessPartyId">Business party ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Collection of document headers for the business party</returns>
+    /// <response code="200">Returns the document headers</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("business-party/{businessPartyId:guid}")]
+    [ProducesResponseType(typeof(IEnumerable<DocumentHeaderDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<DocumentHeaderDto>>> GetDocumentsByBusinessParty(
+        Guid businessPartyId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var documentHeaders = await _documentHeaderService.GetDocumentHeadersByBusinessPartyAsync(businessPartyId, cancellationToken);
+            return Ok(documentHeaders);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving document headers.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new document header.
+    /// </summary>
+    /// <param name="createDto">Document header creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created document header</returns>
+    /// <response code="201">Returns the created document header</response>
+    /// <response code="400">If the creation data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost]
+    [ProducesResponseType(typeof(DocumentHeaderDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<DocumentHeaderDto>> CreateDocument(
+        [FromBody] CreateDocumentHeaderDto createDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var documentHeader = await _documentHeaderService.CreateDocumentHeaderAsync(createDto, currentUser, cancellationToken);
+
+            return CreatedAtAction(
+                nameof(GetDocument),
+                new { id = documentHeader.Id },
+                documentHeader);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while creating the document header.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing document header.
+    /// </summary>
+    /// <param name="id">Document header ID</param>
+    /// <param name="updateDto">Document header update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated document header</returns>
+    /// <response code="200">Returns the updated document header</response>
+    /// <response code="400">If the update data is invalid</response>
+    /// <response code="404">If the document header is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(typeof(DocumentHeaderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<DocumentHeaderDto>> UpdateDocument(
+        Guid id,
+        [FromBody] UpdateDocumentHeaderDto updateDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var documentHeader = await _documentHeaderService.UpdateDocumentHeaderAsync(id, updateDto, currentUser, cancellationToken);
+
+            if (documentHeader == null)
+                return CreateNotFoundProblem($"Document header with ID {id} not found.");
+
+            return Ok(documentHeader);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while updating the document header.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a document header (soft delete).
+    /// </summary>
+    /// <param name="id">Document header ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content if successful</returns>
+    /// <response code="204">If the document header was deleted successfully</response>
+    /// <response code="404">If the document header is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteDocument(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var deleted = await _documentHeaderService.DeleteDocumentHeaderAsync(id, currentUser, cancellationToken);
+
+            if (!deleted)
+                return CreateNotFoundProblem($"Document header with ID {id} not found.");
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while deleting the document header.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Calculates document totals for a document header.
+    /// </summary>
+    /// <param name="id">Document header ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Document header with updated totals</returns>
+    /// <response code="200">Returns the document header with calculated totals</response>
+    /// <response code="404">If the document header is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("{id:guid}/calculate-totals")]
+    [ProducesResponseType(typeof(DocumentHeaderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<DocumentHeaderDto>> CalculateDocumentTotals(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var documentHeader = await _documentHeaderService.CalculateDocumentTotalsAsync(id, cancellationToken);
+
+            if (documentHeader == null)
+                return CreateNotFoundProblem($"Document header with ID {id} not found.");
+
+            return Ok(documentHeader);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while calculating document totals.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Approves a document header.
+    /// </summary>
+    /// <param name="id">Document header ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Approved document header</returns>
+    /// <response code="200">Returns the approved document header</response>
+    /// <response code="404">If the document header is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("{id:guid}/approve")]
+    [ProducesResponseType(typeof(DocumentHeaderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<DocumentHeaderDto>> ApproveDocument(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var documentHeader = await _documentHeaderService.ApproveDocumentAsync(id, currentUser, cancellationToken);
+
+            if (documentHeader == null)
+                return CreateNotFoundProblem($"Document header with ID {id} not found.");
+
+            return Ok(documentHeader);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while approving the document.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Closes a document header.
+    /// </summary>
+    /// <param name="id">Document header ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Closed document header</returns>
+    /// <response code="200">Returns the closed document header</response>
+    /// <response code="404">If the document header is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("{id:guid}/close")]
+    [ProducesResponseType(typeof(DocumentHeaderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<DocumentHeaderDto>> CloseDocument(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var documentHeader = await _documentHeaderService.CloseDocumentAsync(id, currentUser, cancellationToken);
+
+            if (documentHeader == null)
+                return CreateNotFoundProblem($"Document header with ID {id} not found.");
+
+            return Ok(documentHeader);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while closing the document.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Checks if a document header exists.
+    /// </summary>
+    /// <param name="id">Document header ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if exists, false otherwise</returns>
+    /// <response code="200">Returns existence status</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpHead("{id:guid}")]
+    [HttpGet("{id:guid}/exists")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<bool>> DocumentExists(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var exists = await _documentHeaderService.DocumentHeaderExistsAsync(id, cancellationToken);
+            return Ok(exists);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while checking document header existence.", ex);
+        }
+    }
+
+    #endregion
 
     // Attachment endpoints
     /// <summary>
@@ -1643,4 +2016,178 @@ public class DocumentsController : BaseApiController
             return CreateInternalServerErrorProblem("An error occurred while handling workflow event.", ex);
         }
     }
+
+    #region Document Types
+
+    /// <summary>
+    /// Gets all document types
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of document types</returns>
+    /// <response code="200">Returns the list of document types</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    /// <response code="500">If an internal error occurs</response>
+    [HttpGet("types")]
+    [ProducesResponseType(typeof(IEnumerable<DocumentTypeDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<DocumentTypeDto>>> GetDocumentTypes(CancellationToken cancellationToken = default)
+    {
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var documentTypes = await _documentTypeService.GetAllAsync(cancellationToken);
+            return Ok(documentTypes);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving document types.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a document type by ID
+    /// </summary>
+    /// <param name="id">Document type ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Document type information</returns>
+    /// <response code="200">Returns the document type</response>
+    /// <response code="404">If the document type is not found</response>
+    /// <response code="500">If an internal error occurs</response>
+    [HttpGet("types/{id:guid}")]
+    [ProducesResponseType(typeof(DocumentTypeDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<DocumentTypeDto>> GetDocumentType(Guid id, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var documentType = await _documentTypeService.GetByIdAsync(id, cancellationToken);
+
+            if (documentType == null)
+            {
+                return CreateNotFoundProblem($"Document type with ID {id} not found.");
+            }
+
+            return Ok(documentType);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the document type.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new document type
+    /// </summary>
+    /// <param name="createDto">Document type creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created document type information</returns>
+    /// <response code="201">Returns the created document type</response>
+    /// <response code="400">If the document type data is invalid</response>
+    /// <response code="500">If an internal error occurs</response>
+    [HttpPost("types")]
+    [ProducesResponseType(typeof(DocumentTypeDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<DocumentTypeDto>> CreateDocumentType(
+        [FromBody] CreateDocumentTypeDto createDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        try
+        {
+            var documentType = await _documentTypeService.CreateAsync(createDto, GetCurrentUser(), cancellationToken);
+            return CreatedAtAction(nameof(GetDocumentType), new { id = documentType.Id }, documentType);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while creating the document type.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing document type
+    /// </summary>
+    /// <param name="id">Document type ID</param>
+    /// <param name="updateDto">Document type update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated document type information</returns>
+    /// <response code="200">Returns the updated document type</response>
+    /// <response code="400">If the document type data is invalid</response>
+    /// <response code="404">If the document type is not found</response>
+    /// <response code="500">If an internal error occurs</response>
+    [HttpPut("types/{id:guid}")]
+    [ProducesResponseType(typeof(DocumentTypeDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<DocumentTypeDto>> UpdateDocumentType(
+        Guid id,
+        [FromBody] UpdateDocumentTypeDto updateDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        try
+        {
+            var documentType = await _documentTypeService.UpdateAsync(id, updateDto, GetCurrentUser(), cancellationToken);
+
+            if (documentType == null)
+            {
+                return CreateNotFoundProblem($"Document type with ID {id} not found.");
+            }
+
+            return Ok(documentType);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while updating the document type.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a document type (soft delete)
+    /// </summary>
+    /// <param name="id">Document type ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content</returns>
+    /// <response code="204">Document type deleted successfully</response>
+    /// <response code="404">If the document type is not found</response>
+    /// <response code="500">If an internal error occurs</response>
+    [HttpDelete("types/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult> DeleteDocumentType(Guid id, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var deleted = await _documentTypeService.DeleteAsync(id, GetCurrentUser(), cancellationToken);
+
+            if (!deleted)
+            {
+                return CreateNotFoundProblem($"Document type with ID {id} not found.");
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while deleting the document type.", ex);
+        }
+    }
+
+    #endregion
 }
