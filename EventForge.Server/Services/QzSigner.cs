@@ -1,3 +1,4 @@
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -16,7 +17,7 @@ public class QzSigner
     {
         _logger = logger;
         _privateKeyPath = Environment.GetEnvironmentVariable("QZ_PRIVATE_KEY_PATH") 
-            ?? "private-key.pem";
+            ?? Path.Combine(AppContext.BaseDirectory, "private-key.pem");
     }
 
     /// <summary>
