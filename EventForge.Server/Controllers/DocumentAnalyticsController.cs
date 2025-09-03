@@ -9,8 +9,14 @@ namespace EventForge.Server.Controllers;
 /// REST API controller for document analytics and KPI management with multi-tenant support.
 /// Provides analytics, reporting, and KPI tracking for document workflows.
 /// </summary>
+/// <remarks>
+/// DEPRECATED: This controller is deprecated in favor of the unified DocumentsController.
+/// Use the unified API at /api/v1/documents/analytics/* instead of /api/v1/DocumentAnalytics/*.
+/// This controller will be removed in a future version.
+/// </remarks>
 [Route("api/v1/[controller]")]
 [Authorize]
+[Obsolete("This controller is deprecated. Use the unified DocumentsController at /api/v1/documents/analytics/* instead. This controller will be removed in a future version.")]
 public class DocumentAnalyticsController : BaseApiController
 {
     private readonly IDocumentAnalyticsService _analyticsService;
