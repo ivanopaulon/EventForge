@@ -36,7 +36,13 @@ public class UserManagementController : BaseApiController
     /// <summary>
     /// Gets all users across all tenants.
     /// </summary>
+    /// <param name="tenantId">Optional tenant ID to filter users</param>
+    /// <returns>List of users with management information</returns>
+    /// <response code="200">Returns the list of users</response>
+    /// <response code="500">If an internal error occurs</response>
     [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<UserManagementDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<UserManagementDto>>> GetAllUsers([FromQuery] Guid? tenantId = null)
     {
         try
@@ -95,7 +101,15 @@ public class UserManagementController : BaseApiController
     /// <summary>
     /// Gets a specific user by ID.
     /// </summary>
+    /// <param name="userId">User ID</param>
+    /// <returns>User management information</returns>
+    /// <response code="200">Returns the user information</response>
+    /// <response code="404">If the user is not found</response>
+    /// <response code="500">If an internal error occurs</response>
     [HttpGet("{userId}")]
+    [ProducesResponseType(typeof(UserManagementDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<UserManagementDto>> GetUser(Guid userId)
     {
         try
@@ -141,7 +155,18 @@ public class UserManagementController : BaseApiController
     /// <summary>
     /// Updates user status (active/inactive).
     /// </summary>
+    /// <param name="userId">User ID</param>
+    /// <param name="updateDto">Status update data</param>
+    /// <returns>Updated user information</returns>
+    /// <response code="200">Returns the updated user information</response>
+    /// <response code="400">If the request is invalid</response>
+    /// <response code="404">If the user is not found</response>
+    /// <response code="500">If an internal error occurs</response>
     [HttpPut("{userId}/status")]
+    [ProducesResponseType(typeof(UserManagementDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<UserManagementDto>> UpdateUserStatus(Guid userId, [FromBody] UpdateUserStatusDto updateDto)
     {
         try
