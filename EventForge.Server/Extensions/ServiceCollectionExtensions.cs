@@ -233,6 +233,10 @@ public static class ServiceCollectionExtensions
         // Register printing services
         services.AddScoped<EventForge.Server.Services.Interfaces.IQzPrintingService, QzPrintingService>();
         services.AddScoped<QzDigitalSignatureService>();
+        
+        // Register new QZ Tray services with environment variable support
+        services.AddScoped<EventForge.Server.Services.QzSigner>();
+        services.AddScoped<EventForge.Server.Services.QzWebSocketClient>();
 
         // Register barcode services
         services.AddScoped<EventForge.Server.Services.Interfaces.IBarcodeService, BarcodeService>();

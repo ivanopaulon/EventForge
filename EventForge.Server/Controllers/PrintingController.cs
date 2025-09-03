@@ -1,11 +1,28 @@
 using EventForge.DTOs.Printing;
 using EventForge.Server.Services.Interfaces;
 using EventForge.Server.Services.Printing;
+using EventForge.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Controllers;
+
+/// <summary>
+/// Request model for QZ Tray signing demonstration
+/// </summary>
+public class QzSigningDemoRequest
+{
+    /// <summary>
+    /// QZ Tray function name to call
+    /// </summary>
+    public string CallName { get; set; } = "qz.printers.find";
+
+    /// <summary>
+    /// Parameters for the QZ Tray function
+    /// </summary>
+    public object[] Parameters { get; set; } = Array.Empty<object>();
+}
 
 /// <summary>
 /// Controller for QZ Tray printing operations.
@@ -18,6 +35,8 @@ public class PrintingController : BaseApiController
 {
     private readonly IQzPrintingService _qzPrintingService;
     private readonly QzDigitalSignatureService _signatureService;
+    private readonly QzSigner _qzSigner;
+    private readonly QzWebSocketClient _qzWebSocketClient;
     private readonly ILogger<PrintingController> _logger;
 
     /// <summary>
@@ -25,14 +44,20 @@ public class PrintingController : BaseApiController
     /// </summary>
     /// <param name="qzPrintingService">QZ printing service</param>
     /// <param name="signatureService">QZ digital signature service</param>
+    /// <param name="qzSigner">QZ SHA512 signer service</param>
+    /// <param name="qzWebSocketClient">QZ WebSocket client service</param>
     /// <param name="logger">Logger instance</param>
     public PrintingController(
         IQzPrintingService qzPrintingService,
         QzDigitalSignatureService signatureService,
+        QzSigner qzSigner,
+        QzWebSocketClient qzWebSocketClient,
         ILogger<PrintingController> logger)
     {
         _qzPrintingService = qzPrintingService;
         _signatureService = signatureService;
+        _qzSigner = qzSigner;
+        _qzWebSocketClient = qzWebSocketClient;
         _logger = logger;
     }
 
@@ -527,6 +552,67 @@ public class PrintingController : BaseApiController
             _logger.LogError(ex, "Error signing QZ challenge");
             Response.StatusCode = StatusCodes.Status500InternalServerError;
             return Content("Internal server error occurred while signing challenge", "text/plain");
+        }
+    }
+
+    /// <summary>
+    /// Demonstrates the new QZ Tray SHA512withRSA signing capability
+    /// </summary>
+    /// <param name="request">Test signing request</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Signing demonstration results</returns>
+    /// <response code="200">Returns the signing demonstration results</response>
+    /// <response code="500">Internal server error during signing</response>
+    [HttpPost("qz/demo-sha512-signing")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<object>> DemoSha512Signing([FromBody] QzSigningDemoRequest? request = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("QZ Tray SHA512withRSA signing demonstration requested by user: {User}", GetCurrentUser());
+
+            // Use provided request or create a default one
+            var callName = request?.CallName ?? "qz.printers.find";
+            var parameters = request?.Parameters ?? new object[] { };
+            var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+            // Demonstrate the new QzSigner service
+            var signature = await _qzSigner.Sign(callName, parameters, timestamp);
+
+            var result = new
+            {
+                SignatureMethod = "SHA512withRSA with PKCS#1 v1.5 padding",
+                Request = new
+                {
+                    Call = callName,
+                    Parameters = parameters,
+                    Timestamp = timestamp,
+                    TimestampUtc = DateTimeOffset.FromUnixTimeMilliseconds(timestamp).ToString("yyyy-MM-dd HH:mm:ss.fff UTC")
+                },
+                Signature = signature,
+                SignatureLength = signature.Length,
+                JsonPayload = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    call = callName,
+                    @params = parameters,
+                    timestamp = timestamp
+                }),
+                EnvironmentConfiguration = new
+                {
+                    PrivateKeyPath = Environment.GetEnvironmentVariable("QZ_PRIVATE_KEY_PATH") ?? "private-key.pem (default)",
+                    WebSocketUri = Environment.GetEnvironmentVariable("QZ_WS_URI") ?? "ws://localhost:8181 (default)"
+                },
+                Documentation = "See /docs/QZ_TRAY_INTEGRATION.md for usage examples and configuration"
+            };
+
+            _logger.LogInformation("QZ Tray SHA512withRSA signing demonstration completed successfully");
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during QZ Tray SHA512withRSA signing demonstration");
+            return CreateInternalServerErrorProblem("An error occurred during the signing demonstration", ex);
         }
     }
 }
