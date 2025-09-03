@@ -285,6 +285,22 @@ public class LogManagementService : ILogManagementService
     {
         ArgumentNullException.ThrowIfNull(exportRequest);
 
+        // Validate Type parameter
+        var validTypes = new[] { "audit", "auditlogs", "systemlogs", "applicationlogs" };
+        if (string.IsNullOrWhiteSpace(exportRequest.Type) || 
+            !validTypes.Contains(exportRequest.Type.ToLowerInvariant()))
+        {
+            throw new ArgumentException($"Invalid export type '{exportRequest.Type}'. Supported types: {string.Join(", ", validTypes)}");
+        }
+
+        // Validate Format parameter
+        var validFormats = new[] { "json", "csv", "excel", "txt" };
+        if (string.IsNullOrWhiteSpace(exportRequest.Format) || 
+            !validFormats.Contains(exportRequest.Format.ToLowerInvariant()))
+        {
+            throw new ArgumentException($"Invalid export format '{exportRequest.Format}'. Supported formats: {string.Join(", ", validFormats)}");
+        }
+
         try
         {
             // Delegate to appropriate service based on export type

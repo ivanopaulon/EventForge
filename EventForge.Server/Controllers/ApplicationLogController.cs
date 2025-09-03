@@ -10,6 +10,7 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
+[Obsolete("Use api/v1/LogManagement instead.")]
 public class ApplicationLogController : BaseApiController
 {
     private readonly IApplicationLogService _applicationLogService;

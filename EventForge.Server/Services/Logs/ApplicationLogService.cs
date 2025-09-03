@@ -1,7 +1,23 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
+using System.Text.Json;
 
 namespace EventForge.Server.Services.Logs;
+
+/// <summary>
+/// Internal POCO class representing a log record as stored in the database.
+/// Used for Dapper mapping to avoid casting issues between int and Guid.
+/// </summary>
+internal class DbLogRecord
+{
+    public int Id { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public string? MessageTemplate { get; set; }
+    public string Level { get; set; } = string.Empty;
+    public DateTime Timestamp { get; set; }
+    public string? Exception { get; set; }
+    public string? Properties { get; set; }
+}
 
 /// <summary>
 /// Service implementation for application log operations.
@@ -20,6 +36,43 @@ public class ApplicationLogService : IApplicationLogService
     private SqlConnection CreateConnection() => new SqlConnection(_logDbConnectionString);
 
     /// <summary>
+    /// Maps a database log record to a SystemLogDto with deterministic Guid generation.
+    /// </summary>
+    private static SystemLogDto MapDbRecordToSystemLogDto(DbLogRecord record)
+    {
+        // Generate deterministic Guid from int Id
+        var guidBytes = new byte[16];
+        var idBytes = BitConverter.GetBytes(record.Id);
+        Array.Copy(idBytes, 0, guidBytes, 0, 4);
+        var deterministicGuid = new Guid(guidBytes);
+
+        // Parse Properties JSON if present
+        Dictionary<string, object>? properties = null;
+        if (!string.IsNullOrWhiteSpace(record.Properties))
+        {
+            try
+            {
+                properties = JsonSerializer.Deserialize<Dictionary<string, object>>(record.Properties);
+            }
+            catch (JsonException)
+            {
+                // If JSON parsing fails, leave properties as null
+                properties = null;
+            }
+        }
+
+        return new SystemLogDto
+        {
+            Id = deterministicGuid,
+            Timestamp = record.Timestamp,
+            Level = record.Level,
+            Message = record.Message,
+            Exception = record.Exception,
+            Properties = properties
+        };
+    }
+
+    /// <summary>
     /// Gets a paginated list of application logs with optional filtering and sorting.
     /// </summary>
     public async Task<PagedResult<SystemLogDto>> GetPagedLogsAsync(
@@ -35,7 +88,10 @@ public class ApplicationLogService : IApplicationLogService
         await connection.OpenAsync(cancellationToken);
 
         var totalCount = await connection.QuerySingleAsync<long>(countQuery, queryParameters);
-        var logs = await connection.QueryAsync<SystemLogDto>(query, queryParameters);
+        var dbRecords = await connection.QueryAsync<DbLogRecord>(query, queryParameters);
+
+        // Map database records to DTOs
+        var logs = dbRecords.Select(MapDbRecordToSystemLogDto);
 
         return new PagedResult<SystemLogDto>
         {
@@ -66,8 +122,8 @@ public class ApplicationLogService : IApplicationLogService
         using var connection = CreateConnection();
         await connection.OpenAsync(cancellationToken);
 
-        var log = await connection.QuerySingleOrDefaultAsync<SystemLogDto>(query, new { Id = id });
-        return log;
+        var dbRecord = await connection.QuerySingleOrDefaultAsync<DbLogRecord>(query, new { Id = id });
+        return dbRecord != null ? MapDbRecordToSystemLogDto(dbRecord) : null;
     }
 
     /// <summary>
@@ -95,8 +151,8 @@ public class ApplicationLogService : IApplicationLogService
         using var connection = CreateConnection();
         await connection.OpenAsync(cancellationToken);
 
-        var logs = await connection.QueryAsync<SystemLogDto>(query, new { Level = level });
-        return logs;
+        var dbRecords = await connection.QueryAsync<DbLogRecord>(query, new { Level = level });
+        return dbRecords.Select(MapDbRecordToSystemLogDto);
     }
 
     /// <summary>
@@ -123,8 +179,8 @@ public class ApplicationLogService : IApplicationLogService
         using var connection = CreateConnection();
         await connection.OpenAsync(cancellationToken);
 
-        var logs = await connection.QueryAsync<SystemLogDto>(query, new { FromDate = fromDate, ToDate = toDate });
-        return logs;
+        var dbRecords = await connection.QueryAsync<DbLogRecord>(query, new { FromDate = fromDate, ToDate = toDate });
+        return dbRecords.Select(MapDbRecordToSystemLogDto);
     }
 
     /// <summary>
@@ -175,8 +231,8 @@ public class ApplicationLogService : IApplicationLogService
         using var connection = CreateConnection();
         await connection.OpenAsync(cancellationToken);
 
-        var logs = await connection.QueryAsync<SystemLogDto>(query, new { FromDate = fromDate });
-        return logs;
+        var dbRecords = await connection.QueryAsync<DbLogRecord>(query, new { FromDate = fromDate });
+        return dbRecords.Select(MapDbRecordToSystemLogDto);
     }
 
     /// <summary>
