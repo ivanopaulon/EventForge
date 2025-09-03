@@ -9,8 +9,14 @@ namespace EventForge.Server.Controllers;
 /// REST API controller for document workflow management with multi-tenant support.
 /// Provides CRUD operations for document workflows within the authenticated user's tenant context.
 /// </summary>
+/// <remarks>
+/// DEPRECATED: This controller is deprecated in favor of the unified DocumentsController.
+/// Use the unified API at /api/v1/documents/workflows/* instead of /api/v1/DocumentWorkflows/*.
+/// This controller will be removed in a future version.
+/// </remarks>
 [Route("api/v1/[controller]")]
 [Authorize]
+[Obsolete("This controller is deprecated. Use the unified DocumentsController at /api/v1/documents/workflows/* instead. This controller will be removed in a future version.")]
 public class DocumentWorkflowsController : BaseApiController
 {
     private readonly IDocumentWorkflowService _documentWorkflowService;

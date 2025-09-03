@@ -9,8 +9,14 @@ namespace EventForge.Server.Controllers;
 /// REST API controller for document template management with multi-tenant support.
 /// Provides CRUD operations for document templates within the authenticated user's tenant context.
 /// </summary>
+/// <remarks>
+/// DEPRECATED: This controller is deprecated in favor of the unified DocumentsController.
+/// Use the unified API at /api/v1/documents/templates/* instead of /api/v1/DocumentTemplates/*.
+/// This controller will be removed in a future version.
+/// </remarks>
 [Route("api/v1/[controller]")]
 [Authorize]
+[Obsolete("This controller is deprecated. Use the unified DocumentsController at /api/v1/documents/templates/* instead. This controller will be removed in a future version.")]
 public class DocumentTemplatesController : BaseApiController
 {
     private readonly IDocumentTemplateService _documentTemplateService;
