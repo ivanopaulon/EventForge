@@ -1,5 +1,6 @@
 using EventForge.DTOs.Chat;
 using EventForge.Server.Services.Chat;
+using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
@@ -25,13 +26,16 @@ namespace EventForge.Server.Controllers;
 public class ChatController : BaseApiController
 {
     private readonly IChatService _chatService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<ChatController> _logger;
 
     public ChatController(
         IChatService chatService,
+        ITenantContext tenantContext,
         ILogger<ChatController> logger)
     {
         _chatService = chatService ?? throw new ArgumentNullException(nameof(chatService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -54,6 +58,10 @@ public class ChatController : BaseApiController
         [FromBody] CreateChatDto createChatDto,
         CancellationToken cancellationToken = default)
     {
+        // Validate tenant access
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null) return tenantValidation;
+
         try
         {
             _logger.LogInformation(

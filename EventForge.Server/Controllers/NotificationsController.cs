@@ -1,6 +1,7 @@
 using EventForge.DTOs.Notifications;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Notifications;
+using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
@@ -27,13 +28,16 @@ namespace EventForge.Server.Controllers;
 public class NotificationsController : BaseApiController
 {
     private readonly INotificationService _notificationService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<NotificationsController> _logger;
 
     public NotificationsController(
         INotificationService notificationService,
+        ITenantContext tenantContext,
         ILogger<NotificationsController> logger)
     {
         _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 

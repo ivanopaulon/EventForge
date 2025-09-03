@@ -1,4 +1,5 @@
 using EventForge.Server.Services.Interfaces;
+using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
@@ -11,9 +12,11 @@ namespace EventForge.Server.Controllers;
 public class BarcodeController : BaseApiController
 {
     private readonly IBarcodeService _barcodeService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<BarcodeController> _logger;
 
-    public BarcodeController(IBarcodeService barcodeService, ILogger<BarcodeController> logger)
+    public BarcodeController(IBarcodeService barcodeService, ILogger<BarcodeController> logger,
+        ITenantContext tenantContext)
     {
         _barcodeService = barcodeService;
         _logger = logger;
