@@ -1,0 +1,881 @@
+using EventForge.DTOs.Products;
+using EventForge.DTOs.UnitOfMeasures;
+using EventForge.DTOs.PriceLists;
+using EventForge.DTOs.Promotions;
+using EventForge.DTOs.Common;
+using EventForge.Server.Filters;
+using EventForge.Server.Services.Products;
+using EventForge.Server.Services.UnitOfMeasures;
+using EventForge.Server.Services.PriceLists;
+using EventForge.Server.Services.Promotions;
+using EventForge.Server.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace EventForge.Server.Controllers;
+
+/// <summary>
+/// Consolidated REST API controller for product management with multi-tenant support.
+/// Provides unified CRUD operations for products, units of measure, price lists, promotions, and barcodes
+/// within the authenticated user's tenant context.
+/// This controller consolidates ProductsController, UnitOfMeasuresController, PriceListsController, 
+/// PromotionsController, and BarcodeController to reduce endpoint fragmentation and improve maintainability.
+/// </summary>
+[Route("api/v1/product-management")]
+[Authorize]
+[RequireLicenseFeature("ProductManagement")]
+public class ProductManagementController : BaseApiController
+{
+    private readonly IProductService _productService;
+    private readonly IUMService _umService;
+    private readonly IPriceListService _priceListService;
+    private readonly IPromotionService _promotionService;
+    private readonly IBarcodeService _barcodeService;
+    private readonly ITenantContext _tenantContext;
+
+    public ProductManagementController(
+        IProductService productService,
+        IUMService umService,
+        IPriceListService priceListService,
+        IPromotionService promotionService,
+        IBarcodeService barcodeService,
+        ITenantContext tenantContext)
+    {
+        _productService = productService ?? throw new ArgumentNullException(nameof(productService));
+        _umService = umService ?? throw new ArgumentNullException(nameof(umService));
+        _priceListService = priceListService ?? throw new ArgumentNullException(nameof(priceListService));
+        _promotionService = promotionService ?? throw new ArgumentNullException(nameof(promotionService));
+        _barcodeService = barcodeService ?? throw new ArgumentNullException(nameof(barcodeService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
+    }
+
+    #region Product CRUD Operations
+
+    /// <summary>
+    /// Gets all products with optional pagination.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of products</returns>
+    /// <response code="200">Returns the paginated list of products</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("products")]
+    [ProducesResponseType(typeof(PagedResult<ProductDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<ProductDto>>> GetProducts(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _productService.GetProductsAsync(page, pageSize, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving products.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a product by ID.
+    /// </summary>
+    /// <param name="id">Product ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Product information</returns>
+    /// <response code="200">Returns the product</response>
+    /// <response code="404">If the product is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("products/{id:guid}")]
+    [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ProductDto>> GetProduct(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var product = await _productService.GetProductByIdAsync(id, cancellationToken);
+            if (product == null)
+                return CreateNotFoundProblem($"Product with ID {id} not found.");
+
+            return Ok(product);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the product.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new product.
+    /// </summary>
+    /// <param name="createProductDto">Product creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created product information</returns>
+    /// <response code="201">Product created successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("products")]
+    [ProducesResponseType(typeof(ProductDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ProductDto>> CreateProduct(
+        [FromBody] CreateProductDto createProductDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var product = await _productService.CreateProductAsync(createProductDto, currentUser, cancellationToken);
+            return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
+        }
+        catch (ArgumentException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while creating the product.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing product.
+    /// </summary>
+    /// <param name="id">Product ID</param>
+    /// <param name="updateProductDto">Product update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated product information</returns>
+    /// <response code="200">Product updated successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="404">If the product is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPut("products/{id:guid}")]
+    [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ProductDto>> UpdateProduct(
+        Guid id,
+        [FromBody] UpdateProductDto updateProductDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var product = await _productService.UpdateProductAsync(id, updateProductDto, currentUser, cancellationToken);
+            if (product == null)
+                return CreateNotFoundProblem($"Product with ID {id} not found.");
+
+            return Ok(product);
+        }
+        catch (ArgumentException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while updating the product.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a product.
+    /// </summary>
+    /// <param name="id">Product ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content</returns>
+    /// <response code="204">Product deleted successfully</response>
+    /// <response code="404">If the product is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("products/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteProduct(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var success = await _productService.DeleteProductAsync(id, currentUser, cancellationToken);
+            if (!success)
+                return CreateNotFoundProblem($"Product with ID {id} not found.");
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while deleting the product.", ex);
+        }
+    }
+
+    #endregion
+
+    #region Unit of Measures Management
+
+    /// <summary>
+    /// Gets all units of measure with optional pagination.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of units of measure</returns>
+    /// <response code="200">Returns the paginated list of units of measure</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("units")]
+    [ProducesResponseType(typeof(PagedResult<UMDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<UMDto>>> GetUnitOfMeasures(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _umService.GetUMsAsync(page, pageSize, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving units of measure.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a unit of measure by ID.
+    /// </summary>
+    /// <param name="id">Unit of measure ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Unit of measure information</returns>
+    /// <response code="200">Returns the unit of measure</response>
+    /// <response code="404">If the unit of measure is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("units/{id:guid}")]
+    [ProducesResponseType(typeof(UMDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<UMDto>> GetUnitOfMeasure(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var unit = await _umService.GetUMByIdAsync(id, cancellationToken);
+            if (unit == null)
+                return CreateNotFoundProblem($"Unit of measure with ID {id} not found.");
+
+            return Ok(unit);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the unit of measure.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new unit of measure.
+    /// </summary>
+    /// <param name="createUMDto">Unit of measure creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created unit of measure information</returns>
+    /// <response code="201">Unit of measure created successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("units")]
+    [ProducesResponseType(typeof(UMDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<UMDto>> CreateUnitOfMeasure(
+        [FromBody] CreateUMDto createUMDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var unit = await _umService.CreateUMAsync(createUMDto, currentUser, cancellationToken);
+            return CreatedAtAction(nameof(GetUnitOfMeasure), new { id = unit.Id }, unit);
+        }
+        catch (ArgumentException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while creating the unit of measure.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing unit of measure.
+    /// </summary>
+    /// <param name="id">Unit of measure ID</param>
+    /// <param name="updateUMDto">Unit of measure update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated unit of measure information</returns>
+    /// <response code="200">Unit of measure updated successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="404">If the unit of measure is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPut("units/{id:guid}")]
+    [ProducesResponseType(typeof(UMDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<UMDto>> UpdateUnitOfMeasure(
+        Guid id,
+        [FromBody] UpdateUMDto updateUMDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var unit = await _umService.UpdateUMAsync(id, updateUMDto, currentUser, cancellationToken);
+            if (unit == null)
+                return CreateNotFoundProblem($"Unit of measure with ID {id} not found.");
+
+            return Ok(unit);
+        }
+        catch (ArgumentException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while updating the unit of measure.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a unit of measure.
+    /// </summary>
+    /// <param name="id">Unit of measure ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content</returns>
+    /// <response code="204">Unit of measure deleted successfully</response>
+    /// <response code="404">If the unit of measure is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("units/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteUnitOfMeasure(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var success = await _umService.DeleteUMAsync(id, currentUser, cancellationToken);
+            if (!success)
+                return CreateNotFoundProblem($"Unit of measure with ID {id} not found.");
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while deleting the unit of measure.", ex);
+        }
+    }
+
+    #endregion
+
+    #region Price Lists Management
+
+    /// <summary>
+    /// Gets all price lists with optional pagination.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of price lists</returns>
+    /// <response code="200">Returns the paginated list of price lists</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("price-lists")]
+    [ProducesResponseType(typeof(PagedResult<PriceListDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<PriceListDto>>> GetPriceLists(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var validationResult = ValidatePaginationParameters(page, pageSize);
+        if (validationResult != null)
+            return validationResult;
+
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var result = await _priceListService.GetPriceListsAsync(page, pageSize, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving price lists.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a price list by ID.
+    /// </summary>
+    /// <param name="id">Price list ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Price list information</returns>
+    /// <response code="200">Returns the price list</response>
+    /// <response code="404">If the price list is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("price-lists/{id:guid}")]
+    [ProducesResponseType(typeof(PriceListDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PriceListDto>> GetPriceList(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var priceList = await _priceListService.GetPriceListByIdAsync(id, cancellationToken);
+            if (priceList == null)
+                return CreateNotFoundProblem($"Price list with ID {id} not found.");
+
+            return Ok(priceList);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the price list.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new price list.
+    /// </summary>
+    /// <param name="createPriceListDto">Price list creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created price list information</returns>
+    /// <response code="201">Price list created successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("price-lists")]
+    [ProducesResponseType(typeof(PriceListDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PriceListDto>> CreatePriceList(
+        [FromBody] CreatePriceListDto createPriceListDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var priceList = await _priceListService.CreatePriceListAsync(createPriceListDto, currentUser, cancellationToken);
+            return CreatedAtAction(nameof(GetPriceList), new { id = priceList.Id }, priceList);
+        }
+        catch (ArgumentException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while creating the price list.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing price list.
+    /// </summary>
+    /// <param name="id">Price list ID</param>
+    /// <param name="updatePriceListDto">Price list update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated price list information</returns>
+    /// <response code="200">Price list updated successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="404">If the price list is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPut("price-lists/{id:guid}")]
+    [ProducesResponseType(typeof(PriceListDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PriceListDto>> UpdatePriceList(
+        Guid id,
+        [FromBody] UpdatePriceListDto updatePriceListDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var priceList = await _priceListService.UpdatePriceListAsync(id, updatePriceListDto, currentUser, cancellationToken);
+            if (priceList == null)
+                return CreateNotFoundProblem($"Price list with ID {id} not found.");
+
+            return Ok(priceList);
+        }
+        catch (ArgumentException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while updating the price list.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a price list.
+    /// </summary>
+    /// <param name="id">Price list ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content</returns>
+    /// <response code="204">Price list deleted successfully</response>
+    /// <response code="404">If the price list is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("price-lists/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeletePriceList(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var success = await _priceListService.DeletePriceListAsync(id, currentUser, cancellationToken);
+            if (!success)
+                return CreateNotFoundProblem($"Price list with ID {id} not found.");
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while deleting the price list.", ex);
+        }
+    }
+
+    #endregion
+
+    #region Promotions Management
+
+    /// <summary>
+    /// Gets all promotions with optional pagination.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of promotions</returns>
+    /// <response code="200">Returns the paginated list of promotions</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("promotions")]
+    [ProducesResponseType(typeof(PagedResult<PromotionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<PromotionDto>>> GetPromotions(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var validationResult = ValidatePaginationParameters(page, pageSize);
+        if (validationResult != null)
+            return validationResult;
+
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var result = await _promotionService.GetPromotionsAsync(page, pageSize, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving promotions.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a promotion by ID.
+    /// </summary>
+    /// <param name="id">Promotion ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Promotion information</returns>
+    /// <response code="200">Returns the promotion</response>
+    /// <response code="404">If the promotion is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("promotions/{id:guid}")]
+    [ProducesResponseType(typeof(PromotionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PromotionDto>> GetPromotion(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var promotion = await _promotionService.GetPromotionByIdAsync(id, cancellationToken);
+            if (promotion == null)
+                return CreateNotFoundProblem($"Promotion with ID {id} not found.");
+
+            return Ok(promotion);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the promotion.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new promotion.
+    /// </summary>
+    /// <param name="createPromotionDto">Promotion creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created promotion information</returns>
+    /// <response code="201">Promotion created successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("promotions")]
+    [ProducesResponseType(typeof(PromotionDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PromotionDto>> CreatePromotion(
+        [FromBody] CreatePromotionDto createPromotionDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var promotion = await _promotionService.CreatePromotionAsync(createPromotionDto, currentUser, cancellationToken);
+            return CreatedAtAction(nameof(GetPromotion), new { id = promotion.Id }, promotion);
+        }
+        catch (ArgumentException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while creating the promotion.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing promotion.
+    /// </summary>
+    /// <param name="id">Promotion ID</param>
+    /// <param name="updatePromotionDto">Promotion update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated promotion information</returns>
+    /// <response code="200">Promotion updated successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="404">If the promotion is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPut("promotions/{id:guid}")]
+    [ProducesResponseType(typeof(PromotionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PromotionDto>> UpdatePromotion(
+        Guid id,
+        [FromBody] UpdatePromotionDto updatePromotionDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var promotion = await _promotionService.UpdatePromotionAsync(id, updatePromotionDto, currentUser, cancellationToken);
+            if (promotion == null)
+                return CreateNotFoundProblem($"Promotion with ID {id} not found.");
+
+            return Ok(promotion);
+        }
+        catch (ArgumentException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while updating the promotion.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a promotion.
+    /// </summary>
+    /// <param name="id">Promotion ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content</returns>
+    /// <response code="204">Promotion deleted successfully</response>
+    /// <response code="404">If the promotion is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("promotions/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeletePromotion(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var success = await _promotionService.DeletePromotionAsync(id, currentUser, cancellationToken);
+            if (!success)
+                return CreateNotFoundProblem($"Promotion with ID {id} not found.");
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while deleting the promotion.", ex);
+        }
+    }
+
+    #endregion
+
+    #region Barcode Generation
+
+    /// <summary>
+    /// Generates a barcode or QR code based on the provided parameters.
+    /// </summary>
+    /// <param name="request">The barcode generation request</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The generated barcode as base64 image</returns>
+    /// <response code="200">Returns the generated barcode</response>
+    /// <response code="400">If the request parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("barcodes/generate")]
+    [ProducesResponseType(typeof(BarcodeResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<BarcodeResponseDto>> GenerateBarcode(
+        [FromBody] BarcodeRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _barcodeService.GenerateBarcodeAsync(request);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while generating the barcode.", ex);
+        }
+    }
+
+    #endregion
+}
