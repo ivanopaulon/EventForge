@@ -1,4 +1,3 @@
-using System.IO;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -22,7 +21,7 @@ public class QzWebSocketClient : IDisposable
         _logger = logger;
         _signer = signer;
         _wsUri = Environment.GetEnvironmentVariable("QZ_WS_URI") ?? "ws://localhost:8181";
-        _certificatePath = Environment.GetEnvironmentVariable("QZ_PUBLIC_CERT_PATH") 
+        _certificatePath = Environment.GetEnvironmentVariable("QZ_PUBLIC_CERT_PATH")
             ?? Path.Combine(AppContext.BaseDirectory, "digital-certificate.txt");
     }
 
@@ -37,7 +36,7 @@ public class QzWebSocketClient : IDisposable
         {
             _webSocket = new ClientWebSocket();
             var uri = new Uri(_wsUri);
-            
+
             _logger.LogInformation("Connecting to QZ Tray at {Uri}", _wsUri);
             await _webSocket.ConnectAsync(uri, cancellationToken);
 
@@ -97,9 +96,9 @@ public class QzWebSocketClient : IDisposable
 
             // Send the request
             await _webSocket.SendAsync(
-                new ArraySegment<byte>(requestBytes), 
-                WebSocketMessageType.Text, 
-                true, 
+                new ArraySegment<byte>(requestBytes),
+                WebSocketMessageType.Text,
+                true,
                 cancellationToken);
 
             // Receive response
@@ -129,7 +128,7 @@ public class QzWebSocketClient : IDisposable
         {
             // Load certificate
             var certificateContent = await LoadCertificateAsync();
-            
+
             // Create certificate message
             var certificateMessage = new
             {
@@ -142,9 +141,9 @@ public class QzWebSocketClient : IDisposable
             _logger.LogDebug("Sending certificate to QZ Tray");
 
             await _webSocket!.SendAsync(
-                new ArraySegment<byte>(messageBytes), 
-                WebSocketMessageType.Text, 
-                true, 
+                new ArraySegment<byte>(messageBytes),
+                WebSocketMessageType.Text,
+                true,
                 cancellationToken);
 
             _logger.LogInformation("Certificate sent to QZ Tray successfully");
@@ -160,8 +159,8 @@ public class QzWebSocketClient : IDisposable
     {
         try
         {
-            var resolvedPath = Path.IsPathRooted(_certificatePath) 
-                ? _certificatePath 
+            var resolvedPath = Path.IsPathRooted(_certificatePath)
+                ? _certificatePath
                 : Path.Combine(AppContext.BaseDirectory, _certificatePath);
 
             if (!File.Exists(resolvedPath))

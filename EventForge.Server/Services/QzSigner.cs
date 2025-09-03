@@ -1,4 +1,3 @@
-using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -16,7 +15,7 @@ public class QzSigner
     public QzSigner(ILogger<QzSigner> logger, IConfiguration configuration)
     {
         _logger = logger;
-        _privateKeyPath = Environment.GetEnvironmentVariable("QZ_PRIVATE_KEY_PATH") 
+        _privateKeyPath = Environment.GetEnvironmentVariable("QZ_PRIVATE_KEY_PATH")
             ?? Path.Combine(AppContext.BaseDirectory, "private-key.pem");
     }
 
@@ -31,7 +30,7 @@ public class QzSigner
     {
         if (callName == null)
             throw new ArgumentNullException(nameof(callName));
-        
+
         try
         {
             // Create JSON payload with properties in the specified order: call, params, timestamp
@@ -58,7 +57,7 @@ public class QzSigner
 
             var base64Signature = Convert.ToBase64String(signature);
             _logger.LogDebug("Successfully created SHA512withRSA signature");
-            
+
             return base64Signature;
         }
         catch (Exception ex)
@@ -72,8 +71,8 @@ public class QzSigner
     {
         try
         {
-            var resolvedPath = Path.IsPathRooted(_privateKeyPath) 
-                ? _privateKeyPath 
+            var resolvedPath = Path.IsPathRooted(_privateKeyPath)
+                ? _privateKeyPath
                 : Path.Combine(AppContext.BaseDirectory, _privateKeyPath);
 
             if (!File.Exists(resolvedPath))
@@ -83,7 +82,7 @@ public class QzSigner
 
             var privateKeyPem = await File.ReadAllTextAsync(resolvedPath);
             var rsa = RSA.Create();
-            
+
             try
             {
                 rsa.ImportFromPem(privateKeyPem);
@@ -94,7 +93,7 @@ public class QzSigner
             {
                 rsa.Dispose();
                 throw new InvalidOperationException(
-                    $"Unsupported private key format. Only PKCS#8 and PKCS#1 PEM formats are supported. Path: {resolvedPath}", 
+                    $"Unsupported private key format. Only PKCS#8 and PKCS#1 PEM formats are supported. Path: {resolvedPath}",
                     ex);
             }
         }

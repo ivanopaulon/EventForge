@@ -2,7 +2,6 @@ using EventForge.Server.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 
 namespace EventForge.Tests.Services;
 
@@ -16,10 +15,10 @@ public class QzWebSocketClientTests
     {
         var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
         _logger = loggerFactory.CreateLogger<QzWebSocketClient>();
-        
+
         var configBuilder = new ConfigurationBuilder();
         _configuration = configBuilder.Build();
-        
+
         var signerLogger = loggerFactory.CreateLogger<QzSigner>();
         _mockSigner = new Mock<QzSigner>(signerLogger, _configuration);
     }
@@ -37,12 +36,12 @@ public class QzWebSocketClientTests
     {
         // Arrange
         Environment.SetEnvironmentVariable("QZ_WS_URI", "ws://custom-host:9999");
-        
+
         try
         {
             // Act
             var client = new QzWebSocketClient(_logger, _mockSigner.Object, _configuration);
-            
+
             // Assert
             Assert.NotNull(client);
         }

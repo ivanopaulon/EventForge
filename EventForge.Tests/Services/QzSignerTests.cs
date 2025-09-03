@@ -1,8 +1,6 @@
 using EventForge.Server.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System.Security.Cryptography;
-using Xunit;
 
 namespace EventForge.Tests.Services;
 
@@ -15,7 +13,7 @@ public class QzSignerTests
     {
         var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
         _logger = loggerFactory.CreateLogger<QzSigner>();
-        
+
         var configBuilder = new ConfigurationBuilder();
         _configuration = configBuilder.Build();
     }
@@ -44,8 +42,8 @@ public class QzSignerTests
         // Arrange
         var signer = new QzSigner(_logger, _configuration);
         var callName = "qz.print";
-        var parameters = new object[] 
-        { 
+        var parameters = new object[]
+        {
             new { type = "pixel", options = new { bounds = new { width = 100, height = 100 } } },
             new[] { new { type = "raw", data = "Hello World" } }
         };
@@ -125,7 +123,7 @@ public class QzSignerTests
 // Test helper class to expose internal JSON serialization
 public class TestableQzSigner : QzSigner
 {
-    public TestableQzSigner(ILogger<QzSigner> logger, IConfiguration configuration) 
+    public TestableQzSigner(ILogger<QzSigner> logger, IConfiguration configuration)
         : base(logger, configuration)
     {
     }
