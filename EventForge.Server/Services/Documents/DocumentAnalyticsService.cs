@@ -62,7 +62,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
                 "Analytics",
                 analytics == null ? "Created" : "Updated",
                 null,
-                analytics.Id.ToString(),
+                analytics?.Id.ToString() ?? "N/A",
                 currentUser,
                 "Document Analytics",
                 cancellationToken);
@@ -70,7 +70,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
             _logger.LogInformation("Analytics updated for document {DocumentHeaderId} by user {User}",
                 documentHeaderId, currentUser);
 
-            return DocumentAnalyticsMapper.ToDto(analytics);
+            return DocumentAnalyticsMapper.ToDto(analytics!);
         }
         catch (Exception ex)
         {

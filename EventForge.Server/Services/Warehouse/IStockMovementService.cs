@@ -74,7 +74,7 @@ public interface IStockMovementService
         Guid? serialId = null,
         Guid? documentHeaderId = null,
         string? notes = null,
-        string currentUser = null,
+        string? currentUser = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -88,7 +88,7 @@ public interface IStockMovementService
         Guid? serialId = null,
         Guid? documentHeaderId = null,
         string? notes = null,
-        string currentUser = null,
+        string? currentUser = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -102,7 +102,7 @@ public interface IStockMovementService
         Guid? lotId = null,
         Guid? serialId = null,
         string? notes = null,
-        string currentUser = null,
+        string? currentUser = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -115,7 +115,7 @@ public interface IStockMovementService
         string reason,
         Guid? lotId = null,
         string? notes = null,
-        string currentUser = null,
+        string? currentUser = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>

@@ -482,7 +482,7 @@ public class DocumentAttachmentService : IDocumentAttachmentService
             StorageProvider = attachment.StorageProvider,
             ExternalReference = attachment.ExternalReference,
             CreatedAt = attachment.CreatedAt,
-            CreatedBy = attachment.CreatedBy,
+            CreatedBy = attachment.CreatedBy ?? string.Empty,
             UpdatedAt = attachment.ModifiedAt,
             UpdatedBy = attachment.ModifiedBy
         };

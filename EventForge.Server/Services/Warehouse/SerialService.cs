@@ -48,7 +48,7 @@ public class SerialService : ISerialService
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
-                    .ThenInclude(cl => cl.Warehouse)
+                    .ThenInclude(cl => cl!.Warehouse)
                 .Include(s => s.Owner)
                 .Where(s => s.TenantId == currentTenantId.Value);
 
@@ -121,7 +121,7 @@ public class SerialService : ISerialService
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
-                    .ThenInclude(cl => cl.Warehouse)
+                    .ThenInclude(cl => cl!.Warehouse)
                 .Include(s => s.Owner)
                 .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value, cancellationToken);
 
@@ -148,7 +148,7 @@ public class SerialService : ISerialService
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
-                    .ThenInclude(cl => cl.Warehouse)
+                    .ThenInclude(cl => cl!.Warehouse)
                 .Include(s => s.Owner)
                 .FirstOrDefaultAsync(s => s.SerialNumber == serialNumber && s.TenantId == currentTenantId.Value, cancellationToken);
 
@@ -175,7 +175,7 @@ public class SerialService : ISerialService
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
-                    .ThenInclude(cl => cl.Warehouse)
+                    .ThenInclude(cl => cl!.Warehouse)
                 .Include(s => s.Owner)
                 .Where(s => s.ProductId == productId && s.TenantId == currentTenantId.Value)
                 .OrderBy(s => s.SerialNumber)
@@ -204,7 +204,7 @@ public class SerialService : ISerialService
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
-                    .ThenInclude(cl => cl.Warehouse)
+                    .ThenInclude(cl => cl!.Warehouse)
                 .Include(s => s.Owner)
                 .Where(s => s.LotId == lotId && s.TenantId == currentTenantId.Value)
                 .OrderBy(s => s.SerialNumber)
@@ -233,7 +233,7 @@ public class SerialService : ISerialService
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
-                    .ThenInclude(cl => cl.Warehouse)
+                    .ThenInclude(cl => cl!.Warehouse)
                 .Include(s => s.Owner)
                 .Where(s => s.CurrentLocationId == locationId && s.TenantId == currentTenantId.Value)
                 .OrderBy(s => s.Product!.Name)
@@ -263,7 +263,7 @@ public class SerialService : ISerialService
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
-                    .ThenInclude(cl => cl.Warehouse)
+                    .ThenInclude(cl => cl!.Warehouse)
                 .Include(s => s.Owner)
                 .Where(s => s.OwnerId == ownerId && s.TenantId == currentTenantId.Value)
                 .OrderBy(s => s.Product!.Name)
@@ -295,7 +295,7 @@ public class SerialService : ISerialService
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
-                    .ThenInclude(cl => cl.Warehouse)
+                    .ThenInclude(cl => cl!.Warehouse)
                 .Include(s => s.Owner)
                 .Where(s => s.TenantId == currentTenantId.Value &&
                            s.WarrantyExpiry.HasValue &&
@@ -345,7 +345,7 @@ public class SerialService : ISerialService
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
-                    .ThenInclude(cl => cl.Warehouse)
+                    .ThenInclude(cl => cl!.Warehouse)
                 .Include(s => s.Owner)
                 .FirstAsync(s => s.Id == newSerial.Id, cancellationToken);
 
@@ -372,7 +372,7 @@ public class SerialService : ISerialService
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
-                    .ThenInclude(cl => cl.Warehouse)
+                    .ThenInclude(cl => cl!.Warehouse)
                 .Include(s => s.Owner)
                 .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value, cancellationToken);
 
