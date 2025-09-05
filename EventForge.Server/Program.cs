@@ -183,9 +183,6 @@ else
         c.DocumentTitle = "EventForge API Documentation";
         c.DisplayRequestDuration();
     });
-
-    // Redirect homepage to logs viewer in production
-    app.MapGet("/", () => Results.Redirect("/logs.html"));
 }
 
 // Pipeline HTTP
@@ -202,7 +199,13 @@ else
 
 app.UseHttpsRedirection();
 
-// Serve static files (for uploaded images)
+// Enable routing BEFORE static files
+app.UseRouting();
+
+// Explicitly disable default files middleware to prevent index.html fallback
+// app.UseDefaultFiles(); // NOT USING THIS
+
+// Serve static files (for uploaded images) but don't use default files
 app.UseStaticFiles();
 
 // Enable session support for tenant context
