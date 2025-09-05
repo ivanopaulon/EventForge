@@ -10,161 +10,147 @@
 
 <PageTitle>@TranslationService.GetTranslation("auth.login", "Login") - EventForge</PageTitle>
 
-<!-- Compact and modern responsive login page with accessibility -->
-<div class="login-container-centered">
-    <MudContainer MaxWidth="MaxWidth.Small" Class="compact-login-container">
-        <MudGrid Justify="Justify.Center">
-            <MudItem xs="12">
-                <MudPaper Class="pa-3 pa-sm-4" Elevation="1" role="main">
-                <!-- Compact login header with semantic structure -->
-                <header class="text-center mb-4">
-                    <MudText Typo="Typo.h5" 
-                             Component="h1"
-                             Align="Align.Center" 
-                             Class="mb-3"
-                             aria-label="Pagina di accesso EventForge">
-                        <MudIcon Icon="Icons.Material.Filled.Login" 
-                                 Class="mr-2" 
-                                 Size="Size.Medium"
-                                 aria-hidden="true" />
-                        @TranslationService.GetTranslation("auth.login", "EventForge Login")
+<MudContainer Fixed>
+    <MudPaper Class="login-paper" Elevation="1" role="main">
+        <MudStack Row>
+            <MudImage Src="/eventforge.ico" Width="32" Height="32"></MudImage>
+            <MudText Typo="Typo.h5"
+                     Align="Align.Center"
+                     Class="mb-3">
+                @TranslationService.GetTranslation("auth.login", "EventForge Login")
+            </MudText>
+        </MudStack>
+
+        @if (_isLoading)
+        {
+            <MudProgressLinear Color="Color.Primary"
+                               Indeterminate="true"
+                               Class="mb-3"
+                               aria-label="Accesso in corso" />
+        }
+
+        <!-- Compact login form with improved accessibility -->
+        <MudForm @ref="form"
+                 @bind-IsValid="@_isFormValid"
+                 role="form"
+                 aria-label="Modulo di accesso">
+            <MudGrid Spacing="2">
+                <!-- Tenant selector -->
+                <MudItem xs="12">
+                    @if (_isLoadingTenants)
+                    {
+                        <MudSkeleton Height="40px" />
+                    }
+                    else if (_tenants?.Any() == true)
+                    {
+                        <MudSelect T="string"
+                                   @bind-Value="_selectedTenantId"
+                                   Label="@TranslationService.GetTranslation("auth.selectTenant", "Seleziona Tenant")"
+                                   Variant="Variant.Outlined"
+                                   Required="true"
+                                   RequiredError="@TranslationService.GetTranslation("auth.tenantRequired", "Seleziona un tenant")"
+                                   Disabled="_isLoading"
+                                   Dense="true"
+                                   Placeholder="@TranslationService.GetTranslation("auth.selectTenantPlaceholder", "Scegli tenant...")"
+                                   For="@(() => _selectedTenantId)">
+                            @foreach (var t in _tenants)
+                            {
+                                <MudSelectItem Value="@t.Id.ToString()">@($"{t.DisplayName} ({t.Name})")</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudText id="tenant-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("auth.selectTenantHelp", "Seleziona il tenant su cui vuoi autenticarti.")
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info">
+                            @TranslationService.GetTranslation("auth.noTenants", "Nessun tenant disponibile. Contatta l'amministratore.")
+                        </MudAlert>
+                    }
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_loginRequest.Username"
+                                  For="@(() => _loginRequest.Username)"
+                                  Label="@TranslationService.GetTranslation("auth.username", "Username")"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="@TranslationService.GetTranslation("auth.usernameRequired", "Username is required")"
+                                  Disabled="_isLoading"
+                                  autocomplete="username"
+                                  InputType="InputType.Text"
+                                  aria-describedby="username-help"
+                                  Margin="Margin.Dense"
+                                  Size="Size.Medium" />
+                    <MudText id="username-help"
+                             Typo="Typo.caption"
+                             Class="mud-input-helper-text">
+                        Inserisci il tuo nome utente
                     </MudText>
-                </header>
+                </MudItem>
 
-                @if (_isLoading)
-                {
-                    <MudProgressLinear Color="Color.Primary" 
-                                       Indeterminate="true" 
-                                       Class="mb-3"
-                                       aria-label="Accesso in corso" />
-                }
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_loginRequest.Password"
+                                  For="@(() => _loginRequest.Password)"
+                                  Label="@TranslationService.GetTranslation("auth.password", "Password")"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Password"
+                                  Required="true"
+                                  RequiredError="@TranslationService.GetTranslation("auth.passwordRequired", "Password is required")"
+                                  Disabled="_isLoading"
+                                  autocomplete="current-password"
+                                  aria-describedby="password-help"
+                                  Margin="Margin.Dense"
+                                  Size="Size.Medium" />
+                    <MudText id="password-help"
+                             Typo="Typo.caption"
+                             Class="mud-input-helper-text">
+                        Inserisci la tua password
+                    </MudText>
+                </MudItem>
 
-                <!-- Compact login form with improved accessibility -->
-                <MudForm @ref="form" 
-                         @bind-IsValid="@_isFormValid"
-                         role="form"
-                         aria-label="Modulo di accesso">
-                    <MudGrid Spacing="2">
-                        <!-- Tenant selector -->
-                        <MudItem xs="12">
-                            @if (_isLoadingTenants)
-                            {
-                                <MudSkeleton Height="40px" />
-                            }
-                            else if (_tenants?.Any() == true)
-                            {
-                                <MudSelect T="string"
-                                           @bind-Value="_selectedTenantId"
-                                           Label="@TranslationService.GetTranslation("auth.selectTenant", "Seleziona Tenant")"
-                                           Variant="Variant.Outlined"
-                                           Required="true"
-                                           RequiredError="@TranslationService.GetTranslation("auth.tenantRequired", "Seleziona un tenant")"
-                                           Disabled="_isLoading"
-                                           Dense="true"
-                                           Placeholder="@TranslationService.GetTranslation("auth.selectTenantPlaceholder", "Scegli tenant...")"
-                                           For="@(() => _selectedTenantId)">
-                                    @foreach (var t in _tenants)
-                                    {
-                                        <MudSelectItem Value="@t.Id.ToString()">@($"{t.DisplayName} ({t.Name})")</MudSelectItem>
-                                    }
-                                </MudSelect>
-                                <MudText id="tenant-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    @TranslationService.GetTranslation("auth.selectTenantHelp", "Seleziona il tenant su cui vuoi autenticarti.")
-                                </MudText>
-                            }
-                            else
-                            {
-                                <MudAlert Severity="Severity.Info">
-                                    @TranslationService.GetTranslation("auth.noTenants", "Nessun tenant disponibile. Contatta l'amministratore.")
-                                </MudAlert>
-                            }
-                        </MudItem>
+                <MudItem xs="12">
+                    <MudCheckBox T="bool"
+                                 @bind-Value="_loginRequest.RememberMe"
+                                 Label="@TranslationService.GetTranslation("auth.rememberMe", "Remember me")"
+                                 Disabled="_isLoading"
+                                 aria-describedby="remember-help" />
+                    <MudText id="remember-help"
+                             Typo="Typo.caption"
+                             Class="mud-input-helper-text">
+                        Mantieni l'accesso per 30 giorni
+                    </MudText>
+                </MudItem>
 
-                        <MudItem xs="12">
-                            <MudTextField @bind-Value="_loginRequest.Username"
-                                          For="@(() => _loginRequest.Username)"
-                                          Label="@TranslationService.GetTranslation("auth.username", "Username")"
-                                          Variant="Variant.Outlined"
-                                          Required="true"
-                                          RequiredError="@TranslationService.GetTranslation("auth.usernameRequired", "Username is required")"
-                                          Disabled="_isLoading"
-                                          autocomplete="username"
-                                          InputType="InputType.Text"
-                                          aria-describedby="username-help"
-                                          Margin="Margin.Dense"
-                                          Size="Size.Medium" />
-                            <MudText id="username-help" 
-                                     Typo="Typo.caption" 
-                                     Class="mud-input-helper-text">
-                                Inserisci il tuo nome utente
-                            </MudText>
-                        </MudItem>
-
-                        <MudItem xs="12">
-                            <MudTextField @bind-Value="_loginRequest.Password"
-                                          For="@(() => _loginRequest.Password)"
-                                          Label="@TranslationService.GetTranslation("auth.password", "Password")"
-                                          Variant="Variant.Outlined"
-                                          InputType="InputType.Password"
-                                          Required="true"
-                                          RequiredError="@TranslationService.GetTranslation("auth.passwordRequired", "Password is required")"
-                                          Disabled="_isLoading"
-                                          autocomplete="current-password"
-                                          aria-describedby="password-help"
-                                          Margin="Margin.Dense"
-                                          Size="Size.Medium" />
-                            <MudText id="password-help" 
-                                     Typo="Typo.caption" 
-                                     Class="mud-input-helper-text">
-                                Inserisci la tua password
-                            </MudText>
-                        </MudItem>
-
-                        <MudItem xs="12">
-                            <MudCheckBox T="bool" 
-                                         @bind-Value="_loginRequest.RememberMe"
-                                         Label="@TranslationService.GetTranslation("auth.rememberMe", "Remember me")"
-                                         Disabled="_isLoading"
-                                         aria-describedby="remember-help" />
-                            <MudText id="remember-help" 
-                                     Typo="Typo.caption" 
-                                     Class="mud-input-helper-text">
-                                Mantieni l'accesso per 30 giorni
-                            </MudText>
-                        </MudItem>
-
-                        <MudItem xs="12">
-                            <MudButton ButtonType="ButtonType.Button"
-                                       Variant="Variant.Filled"
-                                       Color="Color.Primary"
-                                       Size="Size.Medium"
-                                       FullWidth="true"
-                                       OnClick="HandleLogin"
-                                       Disabled="@(!_isFormValid || _isLoading)"
-                                       aria-label="Accedi al sistema"
-                                       Margin="Margin.Dense">
-                                @if (_isLoading)
-                                {
-                                    <MudProgressCircular Class="ms-n1" 
-                                                         Size="Size.Small" 
-                                                         Indeterminate="true"
-                                                         aria-hidden="true" />
-                                    <MudText Class="ms-2">@TranslationService.GetTranslation("auth.loginInProgress", "Logging in...")</MudText>
-                                }
-                                else
-                                {
-                                    @TranslationService.GetTranslation("auth.login", "Login")
-                                }
-                            </MudButton>
-                        </MudItem>
-                    </MudGrid>
-                </MudForm>
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
+                <MudItem xs="12">
+                    <MudButton ButtonType="ButtonType.Button"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Size="Size.Medium"
+                               FullWidth="true"
+                               OnClick="HandleLogin"
+                               Disabled="@(!_isFormValid || _isLoading)"
+                               aria-label="Accedi al sistema"
+                               Margin="Margin.Dense">
+                        @if (_isLoading)
+                        {
+                            <MudProgressCircular Class="ms-n1"
+                                                 Size="Size.Small"
+                                                 Indeterminate="true"
+                                                 aria-hidden="true" />
+                            <MudText Class="ms-2">@TranslationService.GetTranslation("auth.loginInProgress", "Logging in...")</MudText>
+                        }
+                        else
+                        {
+                            @TranslationService.GetTranslation("auth.login", "Login")
+                        }
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </MudPaper>
 </MudContainer>
-</div>
-
 @code {
     private MudForm form = null!;
     private bool _isFormValid;
@@ -267,194 +253,46 @@
 }
 
 <style>
-    /* Login container with background image */
-    .login-container-centered {
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 16px;
-        padding-bottom: 80px; /* Account for fixed footer */
-        background-image: url('/login_background.jpg');
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-        position: relative;
-    }
-
-    /* Add overlay for better contrast */
-    .login-container-centered::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.4);
-        z-index: 1;
-    }
-
-    /* Compact login container with enhanced styling */
+    /* Make background occupy full area inside layout (main is already 100vh and overflow hidden) */
     .compact-login-container {
-        max-width: 400px !important;
-        width: 100%;
-        position: relative;
-        z-index: 2;
+        background: url('/login_background.jpg') content-box no-repeat;
+        background-size: cover;
+        max-width: 100vw;
+        max-height: 100vh;
+        position: absolute !important;
+        align-items: center !important;
+        justify-content: center !important;
+        opacity: 95% !important;
+        z-index: 2 !important;
     }
 
-    /* Custom styling for login form - independent of theme */
-    .compact-login-container .mud-paper {
-        background: rgba(255, 255, 255, 0.95) !important;
-        backdrop-filter: blur(10px);
-        border-radius: 16px !important;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+    .login-paper {
+        width: 370px !important;
+        background-color: white !important;
+        border-radius: 5px !important;
+        margin: auto !important;
+        opacity: 95% !important;
+        justify-content: center !important;
+        padding: 10px;
     }
 
-    /* Custom form field styling */
-    .compact-login-container .mud-input-outlined .mud-input-outlined-border {
-        border-color: #1F2F46 !important;
+    /* favicon in header */
+    .login-favicon {
+        width: 36px;
+        height: 36px;
+        object-fit: contain;
+        margin-right: 12px;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
     }
 
-    .compact-login-container .mud-input-outlined:hover .mud-input-outlined-border {
-        border-color: #247BFF !important;
-    }
-
-    .compact-login-container .mud-input-outlined.mud-input-focused .mud-input-outlined-border {
-        border-color: #247BFF !important;
-        border-width: 2px !important;
-    }
-
-    .compact-login-container .mud-input-label {
-        color: #1F2F46 !important;
-    }
-
-    .compact-login-container .mud-input-label-focused {
-        color: #247BFF !important;
-    }
-
-    /* Custom button styling */
-    .compact-login-container .mud-button-filled-primary {
-        background-color: #1F2F46 !important;
-        color: white !important;
-        font-weight: 600 !important;
-        border-radius: 8px !important;
-        height: 48px !important;
-        font-size: 16px !important;
-        text-transform: none !important;
-        box-shadow: 0 4px 12px rgba(31, 47, 70, 0.3) !important;
-        transition: all 0.3s ease !important;
-    }
-
-    .compact-login-container .mud-button-filled-primary:hover {
-        background-color: #247BFF !important;
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(36, 123, 255, 0.4) !important;
-    }
-
-    .compact-login-container .mud-button-filled-primary:disabled {
-        background-color: #ccc !important;
-        color: #666 !important;
-        transform: none !important;
-        box-shadow: none !important;
-    }
-
-    /* Custom select styling */
-    .compact-login-container .mud-select .mud-input-outlined-border {
-        border-color: #1F2F46 !important;
-    }
-
-    .compact-login-container .mud-select:hover .mud-input-outlined-border {
-        border-color: #247BFF !important;
-    }
-
-    .compact-login-container .mud-select.mud-input-focused .mud-input-outlined-border {
-        border-color: #247BFF !important;
-        border-width: 2px !important;
-    }
-
-    /* Custom checkbox styling */
-    .compact-login-container .mud-checkbox .mud-button-root {
-        color: #1F2F46 !important;
-    }
-
-    .compact-login-container .mud-checkbox.mud-checked .mud-button-root {
-        color: #247BFF !important;
-    }
-
-    /* Custom header styling */
-    .compact-login-container .mud-typography-h5 {
-        color: #1F2F46 !important;
-        font-weight: 700 !important;
-        margin-bottom: 24px !important;
-    }
-
-    /* Helper text styling */
-    .compact-login-container .mud-input-helper-text {
-        color: #666 !important;
-        margin-top: 4px;
-        margin-bottom: 8px;
-        font-size: 12px !important;
-    }
-
-    /* Progress indicators */
-    .compact-login-container .mud-progress-linear {
-        background-color: rgba(31, 47, 70, 0.1) !important;
-    }
-
-    .compact-login-container .mud-progress-linear .mud-progress-linear-bar {
-        background-color: #247BFF !important;
-    }
-
-    .compact-login-container .mud-progress-circular {
-        color: #247BFF !important;
-    }
-
-    /* Alert styling */
-    .compact-login-container .mud-alert {
-        border-radius: 8px !important;
-        margin-bottom: 16px !important;
-    }
-
-    /* Ensure mobile-first responsive behavior */
-    @@media (max-width: 480px) {
-        .compact-login-container {
-            max-width: 100% !important;
-            margin: 0 8px;
-        }
-        
+    /* Responsive: allow vertical scrolling on small screens */
+    @@media (max-width: 767px) {
         .login-container-centered {
-            padding: 8px;
-            padding-bottom: 80px;
-            background-attachment: scroll; /* Better mobile performance */
+            min-height: auto;
+            background-attachment: scroll;
+            padding: 12px 8px 72px 8px; /* leave space for fixed footer */
         }
 
-        .compact-login-container .mud-paper {
-            border-radius: 12px !important;
-        }
-    }
-
-    /* High contrast support */
-    @@media (prefers-contrast: high) {
-        .compact-login-container .mud-paper {
-            background: white !important;
-            border: 2px solid #000 !important;
-        }
-        
-        .login-container-centered::before {
-            background: rgba(0, 0, 0, 0.7);
-        }
-    }
-
-    /* Reduced motion support */
-    @@media (prefers-reduced-motion: reduce) {
-        .compact-login-container .mud-button-filled-primary {
-            transition: none !important;
-        }
-        
-        .compact-login-container .mud-button-filled-primary:hover {
-            transform: none !important;
-        }
+        .login-favicon { width: 28px; height: 28px; margin-right: 8px; }
     }
 </style>

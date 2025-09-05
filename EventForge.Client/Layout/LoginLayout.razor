@@ -4,35 +4,12 @@
 @inject ITranslationService TranslationService
 @implements IDisposable
 
-<!-- 
-    LoginLayout - Dedicated layout for login page
-    
-    This layout provides:
-    - No AppBar (as per requirements)
-    - Universal footer (identical to other pages)
-    - Theme provider setup
-    - Clean, minimal design focused on login experience
-    - Proper semantic structure for accessibility
--->
-
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" />
 
-<!-- Skip link for accessibility -->
-<a href="#main-content" 
-   class="sr-only sr-only-focusable position-absolute" 
-   style="top: 1rem; left: 1rem; z-index: 9999;">
-    @TranslationService.GetTranslation("accessibility.skipToContent", "Skip to main content")
-</a>
-
-<!-- Main content area without AppBar -->
-<main id="main-content" 
-      class="login-main-content" 
-      role="main"
-      tabindex="-1">
+<MudLayout Class="align-content-center login-container">
     @Body
-</main>
+</MudLayout>
 
-<!-- Health Footer - identical to other pages -->
 <HealthFooter />
 
 @code {
@@ -217,13 +194,16 @@
 }
 
 <style>
-    .login-main-content {
-        min-height: 100vh;
-        padding-bottom: 80px; /* Account for fixed footer */
-        display: flex;
-        flex-direction: column;
-        /* Remove any background that might interfere with login page background */
-        background: transparent;
+
+    .login-container {
+        background: url(login_background.jpg) content-box no-repeat;
+        background-size: cover;
+        max-width: 100vw;
+        max-height: 100vh;
+        position: absolute !important;
+        align-items: center !important;
+        justify-content: center !important;
+        opacity: 95% !important;
     }
 
     /* Screen reader only classes */
@@ -252,6 +232,6 @@
         color: var(--mud-palette-primary-text);
         text-decoration: none;
         border-radius: 0.25rem;
-        z-index: 1000; /* Ensure skip link appears above background */
+        z-index: 1000;
     }
 </style>
