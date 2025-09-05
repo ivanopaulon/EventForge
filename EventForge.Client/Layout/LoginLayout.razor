@@ -222,6 +222,8 @@
         padding-bottom: 80px; /* Account for fixed footer */
         display: flex;
         flex-direction: column;
+        /* Remove any background that might interfere with login page background */
+        background: transparent;
     }
 
     /* Screen reader only classes */
@@ -250,5 +252,6 @@
         color: var(--mud-palette-primary-text);
         text-decoration: none;
         border-radius: 0.25rem;
+        z-index: 1000; /* Ensure skip link appears above background */
     }
 </style>

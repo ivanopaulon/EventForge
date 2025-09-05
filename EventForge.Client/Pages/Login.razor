@@ -267,7 +267,7 @@
 }
 
 <style>
-    /* Login container that centers content vertically and horizontally */
+    /* Login container with background image */
     .login-container-centered {
         min-height: 100vh;
         display: flex;
@@ -275,29 +275,186 @@
         justify-content: center;
         padding: 16px;
         padding-bottom: 80px; /* Account for fixed footer */
+        background-image: url('/login_background.jpg');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        position: relative;
     }
 
-    /* Compact login container with 340px max-width */
+    /* Add overlay for better contrast */
+    .login-container-centered::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 1;
+    }
+
+    /* Compact login container with enhanced styling */
     .compact-login-container {
-        max-width: 340px !important;
+        max-width: 400px !important;
         width: 100%;
+        position: relative;
+        z-index: 2;
+    }
+
+    /* Custom styling for login form - independent of theme */
+    .compact-login-container .mud-paper {
+        background: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(10px);
+        border-radius: 16px !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* Custom form field styling */
+    .compact-login-container .mud-input-outlined .mud-input-outlined-border {
+        border-color: #1F2F46 !important;
+    }
+
+    .compact-login-container .mud-input-outlined:hover .mud-input-outlined-border {
+        border-color: #247BFF !important;
+    }
+
+    .compact-login-container .mud-input-outlined.mud-input-focused .mud-input-outlined-border {
+        border-color: #247BFF !important;
+        border-width: 2px !important;
+    }
+
+    .compact-login-container .mud-input-label {
+        color: #1F2F46 !important;
+    }
+
+    .compact-login-container .mud-input-label-focused {
+        color: #247BFF !important;
+    }
+
+    /* Custom button styling */
+    .compact-login-container .mud-button-filled-primary {
+        background-color: #1F2F46 !important;
+        color: white !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+        height: 48px !important;
+        font-size: 16px !important;
+        text-transform: none !important;
+        box-shadow: 0 4px 12px rgba(31, 47, 70, 0.3) !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .compact-login-container .mud-button-filled-primary:hover {
+        background-color: #247BFF !important;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(36, 123, 255, 0.4) !important;
+    }
+
+    .compact-login-container .mud-button-filled-primary:disabled {
+        background-color: #ccc !important;
+        color: #666 !important;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Custom select styling */
+    .compact-login-container .mud-select .mud-input-outlined-border {
+        border-color: #1F2F46 !important;
+    }
+
+    .compact-login-container .mud-select:hover .mud-input-outlined-border {
+        border-color: #247BFF !important;
+    }
+
+    .compact-login-container .mud-select.mud-input-focused .mud-input-outlined-border {
+        border-color: #247BFF !important;
+        border-width: 2px !important;
+    }
+
+    /* Custom checkbox styling */
+    .compact-login-container .mud-checkbox .mud-button-root {
+        color: #1F2F46 !important;
+    }
+
+    .compact-login-container .mud-checkbox.mud-checked .mud-button-root {
+        color: #247BFF !important;
+    }
+
+    /* Custom header styling */
+    .compact-login-container .mud-typography-h5 {
+        color: #1F2F46 !important;
+        font-weight: 700 !important;
+        margin-bottom: 24px !important;
+    }
+
+    /* Helper text styling */
+    .compact-login-container .mud-input-helper-text {
+        color: #666 !important;
+        margin-top: 4px;
+        margin-bottom: 8px;
+        font-size: 12px !important;
+    }
+
+    /* Progress indicators */
+    .compact-login-container .mud-progress-linear {
+        background-color: rgba(31, 47, 70, 0.1) !important;
+    }
+
+    .compact-login-container .mud-progress-linear .mud-progress-linear-bar {
+        background-color: #247BFF !important;
+    }
+
+    .compact-login-container .mud-progress-circular {
+        color: #247BFF !important;
+    }
+
+    /* Alert styling */
+    .compact-login-container .mud-alert {
+        border-radius: 8px !important;
+        margin-bottom: 16px !important;
     }
 
     /* Ensure mobile-first responsive behavior */
-    @@media (max-width: 339px) {
+    @@media (max-width: 480px) {
         .compact-login-container {
             max-width: 100% !important;
+            margin: 0 8px;
         }
         
         .login-container-centered {
             padding: 8px;
             padding-bottom: 80px;
+            background-attachment: scroll; /* Better mobile performance */
+        }
+
+        .compact-login-container .mud-paper {
+            border-radius: 12px !important;
         }
     }
 
-    /* Reduce spacing for compact design */
-    .compact-login-container .mud-input-helper-text {
-        margin-top: 2px;
-        margin-bottom: 4px;
+    /* High contrast support */
+    @@media (prefers-contrast: high) {
+        .compact-login-container .mud-paper {
+            background: white !important;
+            border: 2px solid #000 !important;
+        }
+        
+        .login-container-centered::before {
+            background: rgba(0, 0, 0, 0.7);
+        }
+    }
+
+    /* Reduced motion support */
+    @@media (prefers-reduced-motion: reduce) {
+        .compact-login-container .mud-button-filled-primary {
+            transition: none !important;
+        }
+        
+        .compact-login-container .mud-button-filled-primary:hover {
+            transform: none !important;
+        }
     }
 </style>
