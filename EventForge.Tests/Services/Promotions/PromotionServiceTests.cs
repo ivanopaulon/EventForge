@@ -120,7 +120,7 @@ namespace EventForge.Tests.Services.Promotions
 
             // Assert
             Assert.False(result.Success);
-            Assert.Contains("Unit price cannot be negative", result.Messages);
+            Assert.Contains("Unit price cannot be negative for product Test Product", result.Messages);
         }
 
         [Fact]

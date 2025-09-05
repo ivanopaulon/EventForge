@@ -319,7 +319,10 @@ public class PromotionService : IPromotionService
 
             // Step 3: Get applicable promotions with caching
             var applicablePromotions = await GetCachedActivePromotionsAsync(cancellationToken);
-            var filteredPromotions = FilterApplicablePromotions(applicablePromotions, applyDto);
+            var (filteredPromotions, exclusionMessages) = FilterApplicablePromotionsWithMessages(applicablePromotions, applyDto);
+
+            // Add exclusion messages to result
+            result.Messages.AddRange(exclusionMessages);
 
             // Step 4: Order by priority (desc) then by name
             var orderedPromotions = filteredPromotions
@@ -486,11 +489,12 @@ public class PromotionService : IPromotionService
     }
 
     /// <summary>
-    /// Filters promotions based on the apply context.
+    /// Filters promotions based on the apply context and returns exclusion messages.
     /// </summary>
-    private List<Promotion> FilterApplicablePromotions(List<Promotion> promotions, ApplyPromotionRulesDto applyDto)
+    private (List<Promotion>, List<string>) FilterApplicablePromotionsWithMessages(List<Promotion> promotions, ApplyPromotionRulesDto applyDto)
     {
         var filtered = new List<Promotion>();
+        var exclusionMessages = new List<string>();
         var appliedCoupons = applyDto.CouponCodes?.Where(c => !string.IsNullOrWhiteSpace(c)).ToHashSet(StringComparer.OrdinalIgnoreCase) ?? new HashSet<string>();
 
         foreach (var promotion in promotions)
@@ -514,6 +518,7 @@ public class PromotionService : IPromotionService
                 {
                     _logger.LogDebug("Skipping promotion {PromotionName} - minimum order amount {MinAmount} not met (current: {CurrentTotal})",
                         promotion.Name, promotion.MinOrderAmount.Value, currentTotal);
+                    exclusionMessages.Add($"Cart total ${currentTotal:F2} doesn't meet minimum ${promotion.MinOrderAmount.Value:F2} for {promotion.Name}");
                     continue;
                 }
             }
@@ -541,6 +546,15 @@ public class PromotionService : IPromotionService
             }
         }
 
+        return (filtered, exclusionMessages);
+    }
+
+    /// <summary>
+    /// Filters promotions based on the apply context.
+    /// </summary>
+    private List<Promotion> FilterApplicablePromotions(List<Promotion> promotions, ApplyPromotionRulesDto applyDto)
+    {
+        var (filtered, _) = FilterApplicablePromotionsWithMessages(promotions, applyDto);
         return filtered;
     }
 
@@ -784,11 +798,10 @@ public class PromotionService : IPromotionService
 
     private bool ApplyCartAmountDiscountRule(PromotionRule rule, List<CartItemResultDto> cartItems, Promotion promotion, ApplyPromotionRulesDto applyDto, HashSet<Guid> lockedLines, PromotionApplicationResultDto result)
     {
-        if (!rule.MinOrderAmount.HasValue)
-            return false;
-
         var currentTotal = cartItems.Sum(item => item.FinalLineTotal);
-        if (currentTotal < rule.MinOrderAmount.Value)
+        
+        // Check minimum order amount at rule level (if specified)
+        if (rule.MinOrderAmount.HasValue && currentTotal < rule.MinOrderAmount.Value)
         {
             result.Messages.Add($"Cart total ${currentTotal:F2} doesn't meet minimum ${rule.MinOrderAmount.Value:F2} for {promotion.Name}");
             return false;
@@ -796,16 +809,17 @@ public class PromotionService : IPromotionService
 
         decimal totalDiscount = 0;
         string description = "";
+        var minAmountForDescription = rule.MinOrderAmount ?? promotion.MinOrderAmount ?? 0m;
 
         if (rule.DiscountPercentage.HasValue)
         {
             totalDiscount = RoundCurrency(currentTotal * rule.DiscountPercentage.Value / 100m);
-            description = $"{rule.DiscountPercentage.Value}% cart discount (min ${rule.MinOrderAmount.Value:F2})";
+            description = $"{rule.DiscountPercentage.Value}% cart discount" + (minAmountForDescription > 0 ? $" (min ${minAmountForDescription:F2})" : "");
         }
         else if (rule.DiscountAmount.HasValue)
         {
             totalDiscount = Math.Min(rule.DiscountAmount.Value, currentTotal);
-            description = $"${rule.DiscountAmount.Value:F2} cart discount (min ${rule.MinOrderAmount.Value:F2})";
+            description = $"${rule.DiscountAmount.Value:F2} cart discount" + (minAmountForDescription > 0 ? $" (min ${minAmountForDescription:F2})" : "");
         }
 
         if (totalDiscount > 0)

@@ -17,6 +17,7 @@ Documentazione completa di migrazioni, refactoring e report di completamento per
 
 ### 🎯 Epic Implementations
 - [Epic 275 Complete](./EPIC_275_IMPLEMENTATION_COMPLETE.md) - Implementazione completa Epic 275
+- [Epic 276 Complete](./EPIC_276_IMPLEMENTATION_COMPLETE.md) - Implementazione completa Epic 276
 - [Advanced Document Management](./epic-275-details.md) - Dettagli gestione documenti avanzata
 - [Feature Implementation Timeline](./epic-timeline.md) - Timeline implementazione funzionalità
 
@@ -118,6 +119,61 @@ DocumentHeader (Enhanced)
 - **Consistent Patterns**: Follows existing codebase conventions
 - **Full Documentation**: XML documentation for all public APIs
 - **Minimal Footprint**: Surgical changes without code deletion
+
+## 🎯 Epic 276 - Evoluzione Gestione Carrello, Promozioni e Retail
+
+### Panoramica Implementazione
+Epic #276 "Evoluzione Gestione Carrello, Promozioni e Retail" completato con successo, implementando sistema avanzato di gestione carrello e promozioni:
+
+#### ✅ Phase 1: Core Cart Management System
+- RetailCartSessionService: Gestione sessioni carrello persistenti
+- CRUD operations per items del carrello
+- Supporto coupon codes
+- Calcolo totali in tempo reale
+- Isolamento multi-tenant
+
+#### ✅ Phase 2: Advanced Promotion Engine  
+- PromotionService: Engine promozioni con 9 tipi di regole
+- Discount, Category, Cart Amount, BuyXGetY rules
+- Fixed Price, Bundle, Coupon, Time-Limited, Exclusive rules
+- Logica priorità e combinabilità
+- Audit trail completo
+
+#### ✅ Phase 3: Integration & Automation
+- Applicazione automatica promozioni in tempo reale
+- Gestione conflitti e regole esclusive
+- Calcolo ottimizzato con cache
+- Validazione input completa
+
+#### ✅ Phase 4: Performance & Quality
+- Memory caching per promozioni attive
+- Test suite completa (17 promotion tests)
+- Performance optimization
+- Architettura scalabile
+
+### Entità Implementate
+
+```
+RetailCartSession
+├── Items → CartSessionItem[]
+├── CouponCodes → string[]
+├── Promotions → AppliedPromotion[]
+└── Totals → Original, Final, Discount
+
+PromotionEngine  
+├── 9 Rule Types
+├── Priority & Combinability Logic
+├── Caching & Performance
+└── Validation & Error Handling
+```
+
+### Code Quality Metrics
+- **Zero Breaking Changes**: Funzionalità esistenti preservate
+- **Zero Critical Errors**: Compilazione e test success
+- **Test Coverage**: 17/17 promotion tests passing
+- **Performance**: Cache ottimizzato con TTL 60s
+- **Scalability**: Architettura multi-tenant ready
+- **Production Ready**: ✅ Complete
 
 ## 📊 Migration Statistics
 

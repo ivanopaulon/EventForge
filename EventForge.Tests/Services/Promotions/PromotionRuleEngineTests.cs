@@ -155,8 +155,9 @@ namespace EventForge.Tests.Services.Promotions
         {
             // Arrange
             var promotion = CreatePromotion("$10 off $50+", priority: 1);
+            promotion.MinOrderAmount = 50m; // Set minimum at promotion level
             var rule = CreatePromotionRule(promotion, PromotionRuleType.CartAmountDiscount,
-                discountAmount: 10m, minOrderAmount: 50m);
+                discountAmount: 10m);
             promotion.Rules.Add(rule);
 
             await _context.Promotions.AddAsync(promotion);
