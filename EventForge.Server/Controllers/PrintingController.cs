@@ -1,7 +1,6 @@
 using EventForge.DTOs.Printing;
 using EventForge.Server.Services;
 using EventForge.Server.Services.Interfaces;
-using EventForge.Server.Services.Tenants;
 using EventForge.Server.Services.Printing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

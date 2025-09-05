@@ -39,8 +39,8 @@ public class DocumentFacade : IDocumentFacade
     // Attachment operations
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentAttachmentDto>> GetAttachmentsAsync(
-        Guid documentHeaderId, 
-        bool includeHistory = false, 
+        Guid documentHeaderId,
+        bool includeHistory = false,
         CancellationToken cancellationToken = default)
     {
         return await _attachmentService.GetDocumentHeaderAttachmentsAsync(documentHeaderId, includeHistory, cancellationToken);
@@ -49,8 +49,8 @@ public class DocumentFacade : IDocumentFacade
     /// <inheritdoc />
     public async Task<DocumentAttachmentDto> CreateAttachmentAsync(
         Guid documentHeaderId,
-        CreateDocumentAttachmentDto createDto, 
-        string currentUser, 
+        CreateDocumentAttachmentDto createDto,
+        string currentUser,
         CancellationToken cancellationToken = default)
     {
         return await _attachmentService.CreateAttachmentAsync(createDto, currentUser, cancellationToken);
@@ -59,8 +59,8 @@ public class DocumentFacade : IDocumentFacade
     // Comment operations
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentCommentDto>> GetCommentsAsync(
-        Guid documentHeaderId, 
-        bool includeReplies = true, 
+        Guid documentHeaderId,
+        bool includeReplies = true,
         CancellationToken cancellationToken = default)
     {
         return await _commentService.GetDocumentHeaderCommentsAsync(documentHeaderId, includeReplies, cancellationToken);
@@ -69,8 +69,8 @@ public class DocumentFacade : IDocumentFacade
     /// <inheritdoc />
     public async Task<DocumentCommentDto> CreateCommentAsync(
         Guid documentHeaderId,
-        CreateDocumentCommentDto createDto, 
-        string currentUser, 
+        CreateDocumentCommentDto createDto,
+        string currentUser,
         CancellationToken cancellationToken = default)
     {
         return await _commentService.CreateCommentAsync(createDto, currentUser, cancellationToken);
@@ -86,7 +86,7 @@ public class DocumentFacade : IDocumentFacade
 
     /// <inheritdoc />
     public async Task<DocumentTemplateDto?> GetTemplateByIdAsync(
-        Guid templateId, 
+        Guid templateId,
         CancellationToken cancellationToken = default)
     {
         return await _templateService.GetByIdAsync(templateId, cancellationToken);
@@ -95,21 +95,21 @@ public class DocumentFacade : IDocumentFacade
     // Workflow operations
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentWorkflowDto>> GetWorkflowsAsync(
-        Guid? documentTypeId = null, 
+        Guid? documentTypeId = null,
         CancellationToken cancellationToken = default)
     {
         if (documentTypeId.HasValue)
         {
             return await _workflowService.GetByDocumentTypeAsync(documentTypeId.Value, cancellationToken);
         }
-        
+
         return await _workflowService.GetAllAsync(cancellationToken);
     }
 
     // Analytics operations
     /// <inheritdoc />
     public async Task<DocumentAnalyticsDto?> GetAnalyticsAsync(
-        Guid documentHeaderId, 
+        Guid documentHeaderId,
         CancellationToken cancellationToken = default)
     {
         return await _analyticsService.GetDocumentAnalyticsAsync(documentHeaderId, cancellationToken);
@@ -117,8 +117,8 @@ public class DocumentFacade : IDocumentFacade
 
     /// <inheritdoc />
     public async Task<DocumentAnalyticsDto> RefreshAnalyticsAsync(
-        Guid documentHeaderId, 
-        string currentUser, 
+        Guid documentHeaderId,
+        string currentUser,
         CancellationToken cancellationToken = default)
     {
         return await _analyticsService.CreateOrUpdateAnalyticsAsync(documentHeaderId, currentUser, cancellationToken);

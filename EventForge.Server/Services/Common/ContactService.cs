@@ -251,7 +251,7 @@ public class ContactService : IContactService
         try
         {
             var contact = await _context.Contacts
-                .Where(c => c.OwnerId == ownerId && c.OwnerType == ownerType && 
+                .Where(c => c.OwnerId == ownerId && c.OwnerType == ownerType &&
                            c.ContactType == contactType.ToEntity() && c.IsPrimary && !c.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 

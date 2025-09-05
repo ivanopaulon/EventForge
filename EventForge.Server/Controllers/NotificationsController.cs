@@ -1,7 +1,6 @@
 using EventForge.DTOs.Notifications;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Notifications;
-using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;

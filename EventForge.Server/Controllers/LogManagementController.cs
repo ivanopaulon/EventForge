@@ -1,5 +1,4 @@
 using EventForge.Server.Services.Logs;
-using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;

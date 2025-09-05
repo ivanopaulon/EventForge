@@ -799,7 +799,7 @@ public class PromotionService : IPromotionService
     private bool ApplyCartAmountDiscountRule(PromotionRule rule, List<CartItemResultDto> cartItems, Promotion promotion, ApplyPromotionRulesDto applyDto, HashSet<Guid> lockedLines, PromotionApplicationResultDto result)
     {
         var currentTotal = cartItems.Sum(item => item.FinalLineTotal);
-        
+
         // Check minimum order amount at rule level (if specified)
         if (rule.MinOrderAmount.HasValue && currentTotal < rule.MinOrderAmount.Value)
         {

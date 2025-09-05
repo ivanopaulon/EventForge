@@ -1,8 +1,6 @@
 ﻿using EventForge.Server.Data.Entities;
 using EventForge.Server.Data.Entities.Chat;
-using EventForge.Server.Data.Entities.Documents;
 using EventForge.Server.Data.Entities.Notifications;
-using EventForge.Server.Data.Entities.Teams;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Data;
@@ -727,7 +725,7 @@ public class EventForgeDbContext : DbContext
             .OnDelete(DeleteBehavior.SetNull);
 
         // Unique constraints and indexes
-        
+
         // Jersey number uniqueness within team
         modelBuilder.Entity<TeamMember>()
             .HasIndex(m => new { m.TeamId, m.JerseyNumber })

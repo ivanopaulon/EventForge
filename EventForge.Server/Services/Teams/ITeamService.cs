@@ -1,5 +1,4 @@
 using EventForge.DTOs.Teams;
-using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Services.Teams;
 

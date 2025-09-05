@@ -1,7 +1,6 @@
 using EventForge.DTOs.Documents;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Documents;
-using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -28,7 +27,7 @@ public class DocumentsController : BaseApiController
     private readonly IDocumentTypeService _documentTypeService;
 
     public DocumentsController(
-        IDocumentFacade documentFacade, 
+        IDocumentFacade documentFacade,
         ITenantContext tenantContext,
         IDocumentTemplateService templateService,
         IDocumentCommentService commentService,
@@ -1431,7 +1430,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var template = await _documentFacade.GetTemplateByIdAsync(templateId, cancellationToken);
-            
+
             if (template == null)
                 return CreateNotFoundProblem($"Document template with ID {templateId} not found.");
 
@@ -1833,7 +1832,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var analytics = await _documentFacade.GetAnalyticsAsync(documentId, cancellationToken);
-            
+
             if (analytics == null)
                 return CreateNotFoundProblem($"Analytics for document with ID {documentId} not found.");
 

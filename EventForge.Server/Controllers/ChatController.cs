@@ -1,6 +1,5 @@
 using EventForge.DTOs.Chat;
 using EventForge.Server.Services.Chat;
-using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;

@@ -17,8 +17,8 @@ public interface IDocumentFacade
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Collection of document attachments</returns>
     Task<IEnumerable<DocumentAttachmentDto>> GetAttachmentsAsync(
-        Guid documentHeaderId, 
-        bool includeHistory = false, 
+        Guid documentHeaderId,
+        bool includeHistory = false,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -31,8 +31,8 @@ public interface IDocumentFacade
     /// <returns>Created attachment DTO</returns>
     Task<DocumentAttachmentDto> CreateAttachmentAsync(
         Guid documentHeaderId,
-        CreateDocumentAttachmentDto createDto, 
-        string currentUser, 
+        CreateDocumentAttachmentDto createDto,
+        string currentUser,
         CancellationToken cancellationToken = default);
 
     // Comment operations
@@ -44,8 +44,8 @@ public interface IDocumentFacade
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Collection of document comments</returns>
     Task<IEnumerable<DocumentCommentDto>> GetCommentsAsync(
-        Guid documentHeaderId, 
-        bool includeReplies = true, 
+        Guid documentHeaderId,
+        bool includeReplies = true,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -58,8 +58,8 @@ public interface IDocumentFacade
     /// <returns>Created comment DTO</returns>
     Task<DocumentCommentDto> CreateCommentAsync(
         Guid documentHeaderId,
-        CreateDocumentCommentDto createDto, 
-        string currentUser, 
+        CreateDocumentCommentDto createDto,
+        string currentUser,
         CancellationToken cancellationToken = default);
 
     // Template operations
@@ -78,7 +78,7 @@ public interface IDocumentFacade
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Document template DTO or null if not found</returns>
     Task<DocumentTemplateDto?> GetTemplateByIdAsync(
-        Guid templateId, 
+        Guid templateId,
         CancellationToken cancellationToken = default);
 
     // Workflow operations
@@ -89,7 +89,7 @@ public interface IDocumentFacade
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of document workflow DTOs</returns>
     Task<IEnumerable<DocumentWorkflowDto>> GetWorkflowsAsync(
-        Guid? documentTypeId = null, 
+        Guid? documentTypeId = null,
         CancellationToken cancellationToken = default);
 
     // Analytics operations
@@ -100,7 +100,7 @@ public interface IDocumentFacade
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Analytics DTO or null if not found</returns>
     Task<DocumentAnalyticsDto?> GetAnalyticsAsync(
-        Guid documentHeaderId, 
+        Guid documentHeaderId,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -111,7 +111,7 @@ public interface IDocumentFacade
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Updated analytics DTO</returns>
     Task<DocumentAnalyticsDto> RefreshAnalyticsAsync(
-        Guid documentHeaderId, 
-        string currentUser, 
+        Guid documentHeaderId,
+        string currentUser,
         CancellationToken cancellationToken = default);
 }
