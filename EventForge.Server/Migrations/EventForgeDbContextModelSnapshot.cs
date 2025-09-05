@@ -1965,6 +1965,9 @@ namespace EventForge.Server.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
 
@@ -1984,8 +1987,15 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<int>("Purpose")
+                        .HasColumnType("int");
+
                     b.Property<Guid?>("ReferenceId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Relationship")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -2007,6 +2017,9 @@ namespace EventForge.Server.Migrations
                     b.HasIndex("BusinessPartyId");
 
                     b.HasIndex("ReferenceId");
+
+                    b.HasIndex("OwnerId", "OwnerType", "Purpose")
+                        .HasDatabaseName("IX_Contacts_Owner_Purpose");
 
                     b.ToTable("Contacts");
                 });
@@ -5977,10 +5990,287 @@ namespace EventForge.Server.Migrations
                     b.ToTable("StoreUserPrivileges");
                 });
 
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Teams.DocumentReference", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("Expiry")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MimeType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid?>("OwnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OwnerType")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("SubType")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ThumbnailStorageKey")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Url")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId", "OwnerType", "Type")
+                        .HasDatabaseName("IX_DocumentReferences_Owner_Type");
+
+                    b.ToTable("DocumentReferences");
+                });
+
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Teams.InsurancePolicy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("CoverageAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("CoverageType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Currency")
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid?>("DocumentReferenceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("PolicyNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("TeamMemberId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ValidTo")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentReferenceId");
+
+                    b.HasIndex("TeamMemberId");
+
+                    b.ToTable("InsurancePolicies");
+                });
+
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Teams.MembershipCard", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CardNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid?>("DocumentReferenceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Federation")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("TeamMemberId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ValidTo")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentReferenceId");
+
+                    b.HasIndex("TeamMemberId");
+
+                    b.ToTable("MembershipCards");
+                });
+
             modelBuilder.Entity("EventForge.Server.Data.Entities.Teams.Team", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ClubCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid?>("CoachContactId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -6003,6 +6293,10 @@ namespace EventForge.Server.Migrations
 
                     b.Property<Guid>("EventId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FederationCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -6040,12 +6334,19 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("TeamLogoDocumentId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CoachContactId");
+
                     b.HasIndex("EventId");
+
+                    b.HasIndex("TeamLogoDocumentId");
 
                     b.ToTable("Teams");
                 });
@@ -6073,6 +6374,9 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int>("EligibilityStatus")
+                        .HasColumnType("int");
+
                     b.Property<string>("Email")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -6088,6 +6392,9 @@ namespace EventForge.Server.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("JerseyNumber")
+                        .HasColumnType("int");
+
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -6099,6 +6406,19 @@ namespace EventForge.Server.Migrations
                     b.Property<string>("ModifiedBy")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("PhotoConsent")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("PhotoConsentAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("PhotoDocumentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Position")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Role")
                         .HasMaxLength(50)
@@ -6120,7 +6440,12 @@ namespace EventForge.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TeamId");
+                    b.HasIndex("PhotoDocumentId");
+
+                    b.HasIndex("TeamId", "JerseyNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_TeamMembers_TeamId_JerseyNumber_Unique")
+                        .HasFilter("[JerseyNumber] IS NOT NULL");
 
                     b.ToTable("TeamMembers");
                 });
@@ -8035,24 +8360,81 @@ namespace EventForge.Server.Migrations
                     b.Navigation("CashierGroup");
                 });
 
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Teams.InsurancePolicy", b =>
+                {
+                    b.HasOne("EventForge.Server.Data.Entities.Teams.DocumentReference", "DocumentReference")
+                        .WithMany()
+                        .HasForeignKey("DocumentReferenceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("EventForge.Server.Data.Entities.Teams.TeamMember", "TeamMember")
+                        .WithMany("InsurancePolicies")
+                        .HasForeignKey("TeamMemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DocumentReference");
+
+                    b.Navigation("TeamMember");
+                });
+
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Teams.MembershipCard", b =>
+                {
+                    b.HasOne("EventForge.Server.Data.Entities.Teams.DocumentReference", "DocumentReference")
+                        .WithMany()
+                        .HasForeignKey("DocumentReferenceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("EventForge.Server.Data.Entities.Teams.TeamMember", "TeamMember")
+                        .WithMany("MembershipCards")
+                        .HasForeignKey("TeamMemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DocumentReference");
+
+                    b.Navigation("TeamMember");
+                });
+
             modelBuilder.Entity("EventForge.Server.Data.Entities.Teams.Team", b =>
                 {
+                    b.HasOne("EventForge.Server.Data.Entities.Common.Contact", "CoachContact")
+                        .WithMany()
+                        .HasForeignKey("CoachContactId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("EventForge.Server.Data.Entities.Events.Event", "Event")
                         .WithMany("Teams")
                         .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("EventForge.Server.Data.Entities.Teams.DocumentReference", "TeamLogoDocument")
+                        .WithMany()
+                        .HasForeignKey("TeamLogoDocumentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CoachContact");
+
                     b.Navigation("Event");
+
+                    b.Navigation("TeamLogoDocument");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Teams.TeamMember", b =>
                 {
+                    b.HasOne("EventForge.Server.Data.Entities.Teams.DocumentReference", "PhotoDocument")
+                        .WithMany()
+                        .HasForeignKey("PhotoDocumentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("EventForge.Server.Data.Entities.Teams.Team", "Team")
                         .WithMany("Members")
                         .HasForeignKey("TeamId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("PhotoDocument");
 
                     b.Navigation("Team");
                 });
@@ -8528,6 +8910,13 @@ namespace EventForge.Server.Migrations
             modelBuilder.Entity("EventForge.Server.Data.Entities.Teams.Team", b =>
                 {
                     b.Navigation("Members");
+                });
+
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Teams.TeamMember", b =>
+                {
+                    b.Navigation("InsurancePolicies");
+
+                    b.Navigation("MembershipCards");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Warehouse.Lot", b =>

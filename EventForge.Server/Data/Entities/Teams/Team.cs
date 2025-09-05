@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.Server.Data.Entities.Common;
 
 namespace EventForge.Server.Data.Entities.Teams;
 
@@ -58,6 +59,49 @@ public class Team : AuditableEntity
     /// Navigation property for the associated event.
     /// </summary>
     public Event? Event { get; set; }
+
+    /// <summary>
+    /// Club code or identifier (e.g., official club registration code).
+    /// </summary>
+    [MaxLength(50, ErrorMessage = "The club code cannot exceed 50 characters.")]
+    [Display(Name = "Club Code", Description = "Club code or identifier.")]
+    public string? ClubCode { get; set; }
+
+    /// <summary>
+    /// Federation code or identifier (e.g., national sports federation code).
+    /// </summary>
+    [MaxLength(50, ErrorMessage = "The federation code cannot exceed 50 characters.")]
+    [Display(Name = "Federation Code", Description = "Federation code or identifier.")]
+    public string? FederationCode { get; set; }
+
+    /// <summary>
+    /// Team category (e.g., "Youth", "Senior", "Professional", "U18", "U21").
+    /// </summary>
+    [MaxLength(50, ErrorMessage = "The category cannot exceed 50 characters.")]
+    [Display(Name = "Category", Description = "Team category.")]
+    public string? Category { get; set; }
+
+    /// <summary>
+    /// Foreign key to the coach contact information.
+    /// </summary>
+    [Display(Name = "Coach Contact", Description = "Coach contact information.")]
+    public Guid? CoachContactId { get; set; }
+
+    /// <summary>
+    /// Navigation property for the coach contact.
+    /// </summary>
+    public Contact? CoachContact { get; set; }
+
+    /// <summary>
+    /// Foreign key to the team logo document.
+    /// </summary>
+    [Display(Name = "Team Logo Document", Description = "Team logo document.")]
+    public Guid? TeamLogoDocumentId { get; set; }
+
+    /// <summary>
+    /// Navigation property for the team logo document.
+    /// </summary>
+    public DocumentReference? TeamLogoDocument { get; set; }
 
     /// <summary>
     /// Collection of team members.
