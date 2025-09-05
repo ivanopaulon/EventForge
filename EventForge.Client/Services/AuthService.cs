@@ -1,4 +1,5 @@
 using EventForge.DTOs.Auth;
+using EventForge.DTOs.Tenants;
 using Microsoft.JSInterop;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Json;
@@ -19,6 +20,9 @@ namespace EventForge.Client.Services
         Task<bool> IsSuperAdminAsync();
         Task<bool> IsAdminOrSuperAdminAsync();
         event Action? OnAuthenticationStateChanged;
+
+        // Nuovo: recupera i tenant disponibili per il login (leggero, cached lato client)
+        Task<IEnumerable<TenantResponseDto>> GetAvailableTenantsAsync();
     }
 
     public class AuthService : IAuthService
@@ -31,6 +35,9 @@ namespace EventForge.Client.Services
         private UserDto? _currentUser;
         private readonly string _tokenKey = "auth_token";
         private readonly string _userKey = "current_user";
+
+        // Cache locale per evitare chiamate ripetute
+        private List<TenantResponseDto>? _cachedTenants;
 
         public event Action? OnAuthenticationStateChanged;
 
@@ -139,6 +146,9 @@ namespace EventForge.Client.Services
                         await _jsRuntime.InvokeVoidAsync("localStorage.setItem", _tokenKey, _accessToken);
                         await _jsRuntime.InvokeVoidAsync("localStorage.setItem", _userKey, System.Text.Json.JsonSerializer.Serialize(_currentUser));
 
+                        // Invalidate tenants cache on successful login (if multi-tenant visibility changes)
+                        _cachedTenants = null;
+
                         // Note: Authentication headers are now handled by HttpClientService.GetConfiguredHttpClientAsync()
                         // No need to set DefaultRequestHeaders on individual HttpClient instances
 
@@ -152,8 +162,9 @@ namespace EventForge.Client.Services
                 await _loadingDialogService.HideAsync();
                 return null;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Login error");
                 await _loadingDialogService.HideAsync();
                 return null;
             }
@@ -167,6 +178,9 @@ namespace EventForge.Client.Services
 
                 _accessToken = null;
                 _currentUser = null;
+                // Clear cached tenants on logout
+                _cachedTenants = null;
+
                 // Note: No need to clear HttpClient headers since we use IHttpClientFactory
                 // Authentication is handled in HttpClientService.GetConfiguredHttpClientAsync()
 
@@ -183,6 +197,31 @@ namespace EventForge.Client.Services
             {
                 await _loadingDialogService.HideAsync();
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Recupera i tenant disponibili per il login. Metodo leggero, con caching client-side per ridurre round-trip.
+        /// Endpoint server previsto: GET /api/v1/auth/tenants
+        /// </summary>
+        public async Task<IEnumerable<TenantResponseDto>> GetAvailableTenantsAsync()
+        {
+            try
+            {
+                if (_cachedTenants != null && _cachedTenants.Any())
+                    return _cachedTenants;
+
+                var httpClient = _httpClientFactory.CreateClient("ApiClient");
+                // Usa l'endpoint pubblico appena creato
+                var tenants = await httpClient.GetFromJsonAsync<IEnumerable<TenantResponseDto>>("api/v1/tenants/available");
+
+                _cachedTenants = tenants?.ToList() ?? new List<TenantResponseDto>();
+                return _cachedTenants;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load available tenants");
+                return Enumerable.Empty<TenantResponseDto>();
             }
         }
 

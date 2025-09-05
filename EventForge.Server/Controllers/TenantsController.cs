@@ -668,4 +668,44 @@ public class TenantsController : BaseApiController
             return CreateValidationProblemDetails(ex.Message);
         }
     }
+
+    /// <summary>
+    /// Ritorna i tenant disponibili per il login (solo tenant attivi, senza dati sensibili).
+    /// Endpoint pubblico per la schermata di login.
+    /// </summary>
+    [HttpGet("available")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(IEnumerable<TenantResponseDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<TenantResponseDto>>> GetAvailableTenants()
+    {
+        try
+        {
+            var tenants = await _context.Tenants
+                .AsNoTracking()
+                .Where(t => t.IsActive && !t.IsDeleted)
+                .OrderBy(t => t.Name)
+                .Select(t => new TenantResponseDto
+                {
+                    Id = t.Id,
+                    Name = t.Name,
+                    DisplayName = t.DisplayName,
+                    Code = t.Code,
+                    Description = t.Description,
+                    Domain = t.Domain,
+                    ContactEmail = t.ContactEmail,
+                    MaxUsers = t.MaxUsers,
+                    IsActive = t.IsActive,
+                    SubscriptionExpiresAt = t.SubscriptionExpiresAt,
+                    CreatedAt = t.CreatedAt
+                    // Evita di esporre campi sensibili o relazioni
+                })
+                .ToListAsync();
+
+            return Ok(tenants);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, "Unable to load tenants");
+        }
+    }
 }
