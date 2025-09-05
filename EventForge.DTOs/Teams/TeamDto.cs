@@ -49,6 +49,41 @@ namespace EventForge.DTOs.Teams
         public string? EventName { get; set; }
 
         /// <summary>
+        /// Club code or identifier (e.g., official club registration code).
+        /// </summary>
+        public string? ClubCode { get; set; }
+
+        /// <summary>
+        /// Federation code or identifier (e.g., national sports federation code).
+        /// </summary>
+        public string? FederationCode { get; set; }
+
+        /// <summary>
+        /// Team category (e.g., "Youth", "Senior", "Professional", "U18", "U21").
+        /// </summary>
+        public string? Category { get; set; }
+
+        /// <summary>
+        /// Coach contact ID.
+        /// </summary>
+        public Guid? CoachContactId { get; set; }
+
+        /// <summary>
+        /// Coach contact name (for display purposes).
+        /// </summary>
+        public string? CoachContactName { get; set; }
+
+        /// <summary>
+        /// Team logo document ID.
+        /// </summary>
+        public Guid? TeamLogoDocumentId { get; set; }
+
+        /// <summary>
+        /// Team logo URL (for display purposes).
+        /// </summary>
+        public string? TeamLogoUrl { get; set; }
+
+        /// <summary>
         /// Number of team members.
         /// </summary>
         public int MemberCount { get; set; }

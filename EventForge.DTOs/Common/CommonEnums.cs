@@ -23,6 +23,20 @@ namespace EventForge.DTOs.Common
     }
 
     /// <summary>
+    /// Contact purpose enumeration for extended contact functionality.
+    /// </summary>
+    public enum ContactPurpose
+    {
+        Primary,        // Primary contact
+        Emergency,      // Emergency contact
+        Billing,        // Billing contact
+        Coach,          // Team coach contact
+        Medical,        // Medical contact
+        Legal,          // Legal representative
+        Other           // Other purpose
+    }
+
+    /// <summary>
     /// Product classification type enumeration.
     /// </summary>
     public enum ProductClassificationType
@@ -501,5 +515,47 @@ namespace EventForge.DTOs.Common
         Completed,
         Failed,
         Cancelled
+    }
+
+    /// <summary>
+    /// Team member eligibility status enumeration.
+    /// </summary>
+    public enum EligibilityStatus
+    {
+        Eligible,       // Member is eligible to participate
+        NotEligible,    // Member is not eligible (missing documents, etc.)
+        Suspended,      // Member is temporarily suspended
+        UnderReview     // Eligibility is under review
+    }
+
+    /// <summary>
+    /// Document reference type enumeration for team management.
+    /// </summary>
+    public enum DocumentReferenceType
+    {
+        MedicalCertificate,     // Medical certificate
+        MembershipCard,         // Federation membership card
+        InsurancePolicy,        // Insurance policy document
+        ProfilePhoto,           // Member profile photo
+        TeamLogo,               // Team logo image
+        IdentityDocument,       // Identity document (ID, passport)
+        ParentalConsent,        // Parental consent for minors
+        PrivacyConsent,         // Privacy/photo consent
+        Other                   // Other document type
+    }
+
+    /// <summary>
+    /// Document reference sub-type enumeration for more specific categorization.
+    /// </summary>
+    public enum DocumentReferenceSubType
+    {
+        None,                   // No specific sub-type
+        ProfilePhoto,           // Profile photo
+        TeamLogo,               // Team logo
+        Thumbnail,              // Thumbnail image
+        OriginalDocument,       // Original document
+        CertifiedCopy,          // Certified copy
+        Scan,                   // Scanned document
+        DigitalSignature        // Digitally signed document
     }
 }

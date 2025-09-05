@@ -34,6 +34,21 @@ namespace EventForge.DTOs.Common
         public string Value { get; set; } = string.Empty;
 
         /// <summary>
+        /// Purpose of this contact (Primary, Emergency, Billing, Coach, etc.).
+        /// </summary>
+        public ContactPurpose Purpose { get; set; }
+
+        /// <summary>
+        /// Relationship to the owner (for emergency contacts, family relationships, etc.).
+        /// </summary>
+        public string? Relationship { get; set; }
+
+        /// <summary>
+        /// Indicates if this is the primary contact of its type.
+        /// </summary>
+        public bool IsPrimary { get; set; }
+
+        /// <summary>
         /// Additional notes.
         /// </summary>
         public string? Notes { get; set; }

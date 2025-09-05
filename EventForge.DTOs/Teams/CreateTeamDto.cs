@@ -52,5 +52,38 @@ namespace EventForge.DTOs.Teams
         [Required]
         [Display(Name = "Event", Description = "Associated event.")]
         public Guid EventId { get; set; }
+
+        /// <summary>
+        /// Club code or identifier (e.g., official club registration code).
+        /// </summary>
+        [MaxLength(50, ErrorMessage = "The club code cannot exceed 50 characters.")]
+        [Display(Name = "Club Code", Description = "Club code or identifier.")]
+        public string? ClubCode { get; set; }
+
+        /// <summary>
+        /// Federation code or identifier (e.g., national sports federation code).
+        /// </summary>
+        [MaxLength(50, ErrorMessage = "The federation code cannot exceed 50 characters.")]
+        [Display(Name = "Federation Code", Description = "Federation code or identifier.")]
+        public string? FederationCode { get; set; }
+
+        /// <summary>
+        /// Team category (e.g., "Youth", "Senior", "Professional", "U18", "U21").
+        /// </summary>
+        [MaxLength(50, ErrorMessage = "The category cannot exceed 50 characters.")]
+        [Display(Name = "Category", Description = "Team category.")]
+        public string? Category { get; set; }
+
+        /// <summary>
+        /// Coach contact ID.
+        /// </summary>
+        [Display(Name = "Coach Contact", Description = "Coach contact information.")]
+        public Guid? CoachContactId { get; set; }
+
+        /// <summary>
+        /// Team logo document ID.
+        /// </summary>
+        [Display(Name = "Team Logo Document", Description = "Team logo document.")]
+        public Guid? TeamLogoDocumentId { get; set; }
     }
 }

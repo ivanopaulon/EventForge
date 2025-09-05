@@ -1,6 +1,7 @@
 ﻿using EventForge.Server.Data.Entities;
 using EventForge.Server.Data.Entities.Chat;
 using EventForge.Server.Data.Entities.Notifications;
+using EventForge.Server.Data.Entities.Teams;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Data;
@@ -52,6 +53,9 @@ public class EventForgeDbContext : DbContext
     public DbSet<Event> Events { get; set; }
     public DbSet<Team> Teams { get; set; }
     public DbSet<TeamMember> TeamMembers { get; set; }
+    public DbSet<DocumentReference> DocumentReferences { get; set; }
+    public DbSet<MembershipCard> MembershipCards { get; set; }
+    public DbSet<InsurancePolicy> InsurancePolicies { get; set; }
 
     // Products
     public DbSet<Product> Products { get; set; }
@@ -608,6 +612,83 @@ public class EventForgeDbContext : DbContext
         modelBuilder.Entity<DocumentWorkflowExecution>()
             .HasIndex(dwe => dwe.DocumentHeaderId)
             .HasDatabaseName("IX_DocumentWorkflowExecutions_DocumentHeaderId");
+
+        // Team Extensions Relationships
+
+        // Team → Coach Contact
+        modelBuilder.Entity<Team>()
+            .HasOne(t => t.CoachContact)
+            .WithMany()
+            .HasForeignKey(t => t.CoachContactId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Team → Team Logo Document
+        modelBuilder.Entity<Team>()
+            .HasOne(t => t.TeamLogoDocument)
+            .WithMany()
+            .HasForeignKey(t => t.TeamLogoDocumentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // TeamMember → Photo Document
+        modelBuilder.Entity<TeamMember>()
+            .HasOne(m => m.PhotoDocument)
+            .WithMany()
+            .HasForeignKey(m => m.PhotoDocumentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // DocumentReference relationships
+        // DocumentReference uses a polymorphic relationship pattern with OwnerId/OwnerType
+        // We'll handle the relationships through service layer queries rather than navigation properties
+        modelBuilder.Entity<DocumentReference>()
+            .Ignore(d => d.Team)
+            .Ignore(d => d.TeamMember);
+
+        // MembershipCard → TeamMember
+        modelBuilder.Entity<MembershipCard>()
+            .HasOne(mc => mc.TeamMember)
+            .WithMany(m => m.MembershipCards)
+            .HasForeignKey(mc => mc.TeamMemberId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // MembershipCard → DocumentReference
+        modelBuilder.Entity<MembershipCard>()
+            .HasOne(mc => mc.DocumentReference)
+            .WithMany()
+            .HasForeignKey(mc => mc.DocumentReferenceId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // InsurancePolicy → TeamMember
+        modelBuilder.Entity<InsurancePolicy>()
+            .HasOne(ip => ip.TeamMember)
+            .WithMany(m => m.InsurancePolicies)
+            .HasForeignKey(ip => ip.TeamMemberId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // InsurancePolicy → DocumentReference
+        modelBuilder.Entity<InsurancePolicy>()
+            .HasOne(ip => ip.DocumentReference)
+            .WithMany()
+            .HasForeignKey(ip => ip.DocumentReferenceId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Unique constraints and indexes
+        
+        // Jersey number uniqueness within team
+        modelBuilder.Entity<TeamMember>()
+            .HasIndex(m => new { m.TeamId, m.JerseyNumber })
+            .IsUnique()
+            .HasFilter("[JerseyNumber] IS NOT NULL")
+            .HasDatabaseName("IX_TeamMembers_TeamId_JerseyNumber_Unique");
+
+        // Contact purpose index for efficient queries
+        modelBuilder.Entity<Contact>()
+            .HasIndex(c => new { c.OwnerId, c.OwnerType, c.Purpose })
+            .HasDatabaseName("IX_Contacts_Owner_Purpose");
+
+        // DocumentReference type and owner index
+        modelBuilder.Entity<DocumentReference>()
+            .HasIndex(d => new { d.OwnerId, d.OwnerType, d.Type })
+            .HasDatabaseName("IX_DocumentReferences_Owner_Type");
     }
 
     /// <summary>
