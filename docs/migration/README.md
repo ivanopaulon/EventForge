@@ -19,13 +19,18 @@ Documentazione completa di migrazioni, refactoring e report di completamento per
 - [Epic 274 Complete](./EPIC_274_IMPLEMENTATION_COMPLETE.md) - Implementazione completa Epic 274
 - [Epic 275 Complete](./EPIC_275_IMPLEMENTATION_COMPLETE.md) - Implementazione completa Epic 275
 - [Epic 276 Complete](./EPIC_276_IMPLEMENTATION_COMPLETE.md) - Implementazione completa Epic 276
-- [Advanced Document Management](./epic-275-details.md) - Dettagli gestione documenti avanzata
-- [Feature Implementation Timeline](./epic-timeline.md) - Timeline implementazione funzionalità
+- [Epic 274 Closure Recommendation](./EPIC_274_CLOSURE_RECOMMENDATION.md) - Raccomandazione chiusura Epic 274
+- [Epic 276 Closure Recommendation](./EPIC_276_CLOSURE_RECOMMENDATION.md) - Raccomandazione chiusura Epic 276
 
 ### 🗂️ Migration Summaries
 - [API Endpoint Migration](./api-endpoint-migration.md) - Migrazione endpoint API
 - [Database Migration Guide](./database-migration.md) - Guida migrazione database
 - [Data Model Updates](./data-model-updates.md) - Aggiornamenti modello dati
+
+### 🆕 **Analisi Issue Aperte 2025**
+- [**📊 Open Issues Analysis**](./OPEN_ISSUES_ANALYSIS_AND_IMPLEMENTATION_STATUS.md) - **Analisi completa 21 issue aperte per tema**
+- [**🔍 Technical Detailed Analysis**](./OPEN_ISSUES_DETAILED_TECHNICAL_ANALYSIS.md) - **Analisi tecnica dettagliata implementazioni**
+- [**🗺️ Implementation Roadmap 2025**](./IMPLEMENTATION_ROADMAP_2025.md) - **Roadmap implementazione Q1-Q4 2025**
 
 ## 🚀 Panoramica Refactoring Completati
 

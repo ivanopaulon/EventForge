@@ -2,6 +2,15 @@
 
 Benvenuto nella documentazione completa di EventForge. Questa sezione contiene tutte le guide, i tutorial e la documentazione tecnica organizzate per argomento.
 
+## 🚨 **AGGIORNAMENTO IMPORTANTE - Gennaio 2025**
+
+### 📊 **Analisi Issue Aperte e Stato Implementazioni**
+- [**📊 Implementation Status Dashboard**](./IMPLEMENTATION_STATUS_DASHBOARD.md) - **Dashboard generale stato implementazioni**
+- [**📋 Open Issues Analysis**](./OPEN_ISSUES_ANALYSIS_AND_IMPLEMENTATION_STATUS.md) - **Analisi completa 21 issue aperte per tema**  
+- [**🗺️ Implementation Roadmap 2025**](./migration/IMPLEMENTATION_ROADMAP_2025.md) - **Roadmap strategica Q1-Q4 2025**
+
+---
+
 ## 📖 Indice della Documentazione
 
 ### 📋 [Core Documentation](./core/)
