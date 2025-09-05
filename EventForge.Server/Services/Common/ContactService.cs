@@ -227,6 +227,66 @@ public class ContactService : IContactService
         }
     }
 
+    public async Task<IEnumerable<ContactDto>> GetContactsByOwnerAndPurposeAsync(Guid ownerId, string ownerType, ContactPurpose purpose, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var contacts = await _context.Contacts
+                .Where(c => c.OwnerId == ownerId && c.OwnerType == ownerType && c.Purpose == purpose && !c.IsDeleted)
+                .OrderBy(c => c.ContactType)
+                .ThenBy(c => c.Value)
+                .ToListAsync(cancellationToken);
+
+            return contacts.Select(MapToContactDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving contacts for owner {OwnerId} of type {OwnerType} with purpose {Purpose}.", ownerId, ownerType, purpose);
+            throw;
+        }
+    }
+
+    public async Task<ContactDto?> GetPrimaryContactAsync(Guid ownerId, string ownerType, ContactType contactType, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var contact = await _context.Contacts
+                .Where(c => c.OwnerId == ownerId && c.OwnerType == ownerType && 
+                           c.ContactType == contactType.ToEntity() && c.IsPrimary && !c.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return contact != null ? MapToContactDto(contact) : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving primary contact for owner {OwnerId} of type {OwnerType} with contact type {ContactType}.", ownerId, ownerType, contactType);
+            throw;
+        }
+    }
+
+    public async Task<bool> ValidateEmergencyContactRequirementsAsync(Guid ownerId, bool isMinor, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (!isMinor)
+            {
+                // Emergency contact not required for adults
+                return true;
+            }
+
+            // Check if there's at least one emergency contact
+            var hasEmergencyContact = await _context.Contacts
+                .AnyAsync(c => c.OwnerId == ownerId && c.Purpose == ContactPurpose.Emergency && !c.IsDeleted, cancellationToken);
+
+            return hasEmergencyContact;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating emergency contact requirements for owner {OwnerId}.", ownerId);
+            throw;
+        }
+    }
+
     private static ContactDto MapToContactDto(Contact contact)
     {
         return new ContactDto

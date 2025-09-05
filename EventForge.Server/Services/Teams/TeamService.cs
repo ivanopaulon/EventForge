@@ -445,6 +445,641 @@ public class TeamService : ITeamService
             .AnyAsync(e => e.Id == eventId && !e.IsDeleted, cancellationToken);
     }
 
+    // Document Reference operations
+
+    public async Task<IEnumerable<DocumentReferenceDto>> GetDocumentsByOwnerAsync(Guid ownerId, string ownerType, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var documents = await _context.DocumentReferences
+                .Where(d => d.OwnerId == ownerId && d.OwnerType == ownerType && !d.IsDeleted)
+                .OrderBy(d => d.Type)
+                .ThenBy(d => d.CreatedAt)
+                .ToListAsync(cancellationToken);
+
+            return documents.Select(MapToDocumentReferenceDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving documents for owner {OwnerId} of type {OwnerType}", ownerId, ownerType);
+            throw;
+        }
+    }
+
+    public async Task<DocumentReferenceDto?> GetDocumentReferenceByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var document = await _context.DocumentReferences
+                .Where(d => d.Id == id && !d.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return document != null ? MapToDocumentReferenceDto(document) : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving document reference {DocumentId}", id);
+            throw;
+        }
+    }
+
+    public async Task<DocumentReferenceDto> CreateDocumentReferenceAsync(CreateDocumentReferenceDto createDocumentDto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(createDocumentDto);
+            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+            var document = new DocumentReference
+            {
+                OwnerId = createDocumentDto.OwnerId,
+                OwnerType = createDocumentDto.OwnerType,
+                FileName = createDocumentDto.FileName,
+                Type = createDocumentDto.Type,
+                SubType = createDocumentDto.SubType,
+                MimeType = createDocumentDto.MimeType,
+                StorageKey = createDocumentDto.StorageKey,
+                Url = createDocumentDto.Url,
+                ThumbnailStorageKey = createDocumentDto.ThumbnailStorageKey,
+                Expiry = createDocumentDto.Expiry,
+                FileSizeBytes = createDocumentDto.FileSizeBytes,
+                Title = createDocumentDto.Title,
+                Notes = createDocumentDto.Notes,
+                CreatedBy = currentUser,
+                CreatedAt = DateTime.UtcNow,
+                TenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context is required")
+            };
+
+            _context.DocumentReferences.Add(document);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditLogService.TrackEntityChangesAsync(document, "Insert", currentUser, null, cancellationToken);
+
+            return MapToDocumentReferenceDto(document);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating document reference");
+            throw;
+        }
+    }
+
+    public async Task<DocumentReferenceDto?> UpdateDocumentReferenceAsync(Guid id, UpdateDocumentReferenceDto updateDocumentDto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(updateDocumentDto);
+            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+            var document = await _context.DocumentReferences
+                .Where(d => d.Id == id && !d.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (document == null)
+            {
+                _logger.LogWarning("Document reference {DocumentId} not found for update", id);
+                return null;
+            }
+
+            var originalDocument = await _context.DocumentReferences
+                .AsNoTracking()
+                .Where(d => d.Id == id && !d.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            document.FileName = updateDocumentDto.FileName ?? document.FileName;
+            document.Type = updateDocumentDto.Type ?? document.Type;
+            document.SubType = updateDocumentDto.SubType ?? document.SubType;
+            document.Url = updateDocumentDto.Url;
+            document.ThumbnailStorageKey = updateDocumentDto.ThumbnailStorageKey;
+            document.Expiry = updateDocumentDto.Expiry;
+            document.Title = updateDocumentDto.Title;
+            document.Notes = updateDocumentDto.Notes;
+            document.ModifiedBy = currentUser;
+            document.ModifiedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditLogService.TrackEntityChangesAsync(document, "Update", currentUser, originalDocument, cancellationToken);
+
+            return MapToDocumentReferenceDto(document);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating document reference {DocumentId}", id);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteDocumentReferenceAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+            var document = await _context.DocumentReferences
+                .Where(d => d.Id == id && !d.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (document == null)
+            {
+                _logger.LogWarning("Document reference {DocumentId} not found for deletion", id);
+                return false;
+            }
+
+            var originalDocument = await _context.DocumentReferences
+                .AsNoTracking()
+                .Where(d => d.Id == id && !d.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            document.IsDeleted = true;
+            document.DeletedBy = currentUser;
+            document.DeletedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditLogService.TrackEntityChangesAsync(document, "Delete", currentUser, originalDocument, cancellationToken);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting document reference {DocumentId}", id);
+            throw;
+        }
+    }
+
+    // Membership Card operations
+
+    public async Task<IEnumerable<MembershipCardDto>> GetMembershipCardsByMemberAsync(Guid teamMemberId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var cards = await _context.MembershipCards
+                .Where(mc => mc.TeamMemberId == teamMemberId && !mc.IsDeleted)
+                .Include(mc => mc.DocumentReference)
+                .OrderBy(mc => mc.ValidFrom)
+                .ToListAsync(cancellationToken);
+
+            return cards.Select(MapToMembershipCardDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving membership cards for team member {TeamMemberId}", teamMemberId);
+            throw;
+        }
+    }
+
+    public async Task<MembershipCardDto?> GetMembershipCardByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var card = await _context.MembershipCards
+                .Where(mc => mc.Id == id && !mc.IsDeleted)
+                .Include(mc => mc.DocumentReference)
+                .Include(mc => mc.TeamMember)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return card != null ? MapToMembershipCardDto(card) : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving membership card {CardId}", id);
+            throw;
+        }
+    }
+
+    public async Task<MembershipCardDto> CreateMembershipCardAsync(CreateMembershipCardDto createMembershipCardDto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(createMembershipCardDto);
+            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+            var card = new MembershipCard
+            {
+                TeamMemberId = createMembershipCardDto.TeamMemberId,
+                CardNumber = createMembershipCardDto.CardNumber,
+                Federation = createMembershipCardDto.Federation,
+                ValidFrom = createMembershipCardDto.ValidFrom,
+                ValidTo = createMembershipCardDto.ValidTo,
+                DocumentReferenceId = createMembershipCardDto.DocumentReferenceId,
+                Category = createMembershipCardDto.Category,
+                Notes = createMembershipCardDto.Notes,
+                CreatedBy = currentUser,
+                CreatedAt = DateTime.UtcNow,
+                TenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context is required")
+            };
+
+            _context.MembershipCards.Add(card);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditLogService.TrackEntityChangesAsync(card, "Insert", currentUser, null, cancellationToken);
+
+            var createdCard = await _context.MembershipCards
+                .Include(mc => mc.DocumentReference)
+                .Include(mc => mc.TeamMember)
+                .FirstAsync(mc => mc.Id == card.Id, cancellationToken);
+
+            return MapToMembershipCardDto(createdCard);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating membership card");
+            throw;
+        }
+    }
+
+    public async Task<MembershipCardDto?> UpdateMembershipCardAsync(Guid id, UpdateMembershipCardDto updateMembershipCardDto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(updateMembershipCardDto);
+            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+            var card = await _context.MembershipCards
+                .Where(mc => mc.Id == id && !mc.IsDeleted)
+                .Include(mc => mc.DocumentReference)
+                .Include(mc => mc.TeamMember)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (card == null)
+            {
+                _logger.LogWarning("Membership card {CardId} not found for update", id);
+                return null;
+            }
+
+            var originalCard = await _context.MembershipCards
+                .AsNoTracking()
+                .Where(mc => mc.Id == id && !mc.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            card.CardNumber = updateMembershipCardDto.CardNumber ?? card.CardNumber;
+            card.Federation = updateMembershipCardDto.Federation ?? card.Federation;
+            card.ValidFrom = updateMembershipCardDto.ValidFrom ?? card.ValidFrom;
+            card.ValidTo = updateMembershipCardDto.ValidTo ?? card.ValidTo;
+            card.DocumentReferenceId = updateMembershipCardDto.DocumentReferenceId;
+            card.Category = updateMembershipCardDto.Category;
+            card.Notes = updateMembershipCardDto.Notes;
+            card.ModifiedBy = currentUser;
+            card.ModifiedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditLogService.TrackEntityChangesAsync(card, "Update", currentUser, originalCard, cancellationToken);
+
+            return MapToMembershipCardDto(card);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating membership card {CardId}", id);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteMembershipCardAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+            var card = await _context.MembershipCards
+                .Where(mc => mc.Id == id && !mc.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (card == null)
+            {
+                _logger.LogWarning("Membership card {CardId} not found for deletion", id);
+                return false;
+            }
+
+            var originalCard = await _context.MembershipCards
+                .AsNoTracking()
+                .Where(mc => mc.Id == id && !mc.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            card.IsDeleted = true;
+            card.DeletedBy = currentUser;
+            card.DeletedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditLogService.TrackEntityChangesAsync(card, "Delete", currentUser, originalCard, cancellationToken);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting membership card {CardId}", id);
+            throw;
+        }
+    }
+
+    // Insurance Policy operations
+
+    public async Task<IEnumerable<InsurancePolicyDto>> GetInsurancePoliciesByMemberAsync(Guid teamMemberId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var policies = await _context.InsurancePolicies
+                .Where(ip => ip.TeamMemberId == teamMemberId && !ip.IsDeleted)
+                .Include(ip => ip.DocumentReference)
+                .OrderBy(ip => ip.ValidFrom)
+                .ToListAsync(cancellationToken);
+
+            return policies.Select(MapToInsurancePolicyDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving insurance policies for team member {TeamMemberId}", teamMemberId);
+            throw;
+        }
+    }
+
+    public async Task<InsurancePolicyDto?> GetInsurancePolicyByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var policy = await _context.InsurancePolicies
+                .Where(ip => ip.Id == id && !ip.IsDeleted)
+                .Include(ip => ip.DocumentReference)
+                .Include(ip => ip.TeamMember)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return policy != null ? MapToInsurancePolicyDto(policy) : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving insurance policy {PolicyId}", id);
+            throw;
+        }
+    }
+
+    public async Task<InsurancePolicyDto> CreateInsurancePolicyAsync(CreateInsurancePolicyDto createInsurancePolicyDto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(createInsurancePolicyDto);
+            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+            var policy = new InsurancePolicy
+            {
+                TeamMemberId = createInsurancePolicyDto.TeamMemberId,
+                Provider = createInsurancePolicyDto.Provider,
+                PolicyNumber = createInsurancePolicyDto.PolicyNumber,
+                ValidFrom = createInsurancePolicyDto.ValidFrom,
+                ValidTo = createInsurancePolicyDto.ValidTo,
+                CoverageType = createInsurancePolicyDto.CoverageType,
+                CoverageAmount = createInsurancePolicyDto.CoverageAmount,
+                Currency = createInsurancePolicyDto.Currency,
+                DocumentReferenceId = createInsurancePolicyDto.DocumentReferenceId,
+                Notes = createInsurancePolicyDto.Notes,
+                CreatedBy = currentUser,
+                CreatedAt = DateTime.UtcNow,
+                TenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context is required")
+            };
+
+            _context.InsurancePolicies.Add(policy);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditLogService.TrackEntityChangesAsync(policy, "Insert", currentUser, null, cancellationToken);
+
+            var createdPolicy = await _context.InsurancePolicies
+                .Include(ip => ip.DocumentReference)
+                .Include(ip => ip.TeamMember)
+                .FirstAsync(ip => ip.Id == policy.Id, cancellationToken);
+
+            return MapToInsurancePolicyDto(createdPolicy);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating insurance policy");
+            throw;
+        }
+    }
+
+    public async Task<InsurancePolicyDto?> UpdateInsurancePolicyAsync(Guid id, UpdateInsurancePolicyDto updateInsurancePolicyDto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(updateInsurancePolicyDto);
+            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+            var policy = await _context.InsurancePolicies
+                .Where(ip => ip.Id == id && !ip.IsDeleted)
+                .Include(ip => ip.DocumentReference)
+                .Include(ip => ip.TeamMember)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (policy == null)
+            {
+                _logger.LogWarning("Insurance policy {PolicyId} not found for update", id);
+                return null;
+            }
+
+            var originalPolicy = await _context.InsurancePolicies
+                .AsNoTracking()
+                .Where(ip => ip.Id == id && !ip.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            policy.Provider = updateInsurancePolicyDto.Provider ?? policy.Provider;
+            policy.PolicyNumber = updateInsurancePolicyDto.PolicyNumber ?? policy.PolicyNumber;
+            policy.ValidFrom = updateInsurancePolicyDto.ValidFrom ?? policy.ValidFrom;
+            policy.ValidTo = updateInsurancePolicyDto.ValidTo ?? policy.ValidTo;
+            policy.CoverageType = updateInsurancePolicyDto.CoverageType;
+            policy.CoverageAmount = updateInsurancePolicyDto.CoverageAmount;
+            policy.Currency = updateInsurancePolicyDto.Currency;
+            policy.DocumentReferenceId = updateInsurancePolicyDto.DocumentReferenceId;
+            policy.Notes = updateInsurancePolicyDto.Notes;
+            policy.ModifiedBy = currentUser;
+            policy.ModifiedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditLogService.TrackEntityChangesAsync(policy, "Update", currentUser, originalPolicy, cancellationToken);
+
+            return MapToInsurancePolicyDto(policy);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating insurance policy {PolicyId}", id);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteInsurancePolicyAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+            var policy = await _context.InsurancePolicies
+                .Where(ip => ip.Id == id && !ip.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (policy == null)
+            {
+                _logger.LogWarning("Insurance policy {PolicyId} not found for deletion", id);
+                return false;
+            }
+
+            var originalPolicy = await _context.InsurancePolicies
+                .AsNoTracking()
+                .Where(ip => ip.Id == id && !ip.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            policy.IsDeleted = true;
+            policy.DeletedBy = currentUser;
+            policy.DeletedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditLogService.TrackEntityChangesAsync(policy, "Delete", currentUser, originalPolicy, cancellationToken);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting insurance policy {PolicyId}", id);
+            throw;
+        }
+    }
+
+    // Business Logic Methods
+
+    public async Task<bool> ValidateJerseyNumberAsync(Guid teamId, int jerseyNumber, Guid? excludeTeamMemberId = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var query = _context.TeamMembers
+                .Where(tm => tm.TeamId == teamId && tm.JerseyNumber == jerseyNumber && !tm.IsDeleted);
+
+            if (excludeTeamMemberId.HasValue)
+            {
+                query = query.Where(tm => tm.Id != excludeTeamMemberId.Value);
+            }
+
+            var exists = await query.AnyAsync(cancellationToken);
+            return !exists; // Return true if number is available (not taken)
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating jersey number {JerseyNumber} for team {TeamId}", jerseyNumber, teamId);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<TeamMemberDto>> GetMembersWithExpiringDocumentsAsync(int daysBeforeExpiry = 30, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var expiryDate = DateTime.UtcNow.AddDays(daysBeforeExpiry);
+
+            var membersWithExpiringDocs = await _context.TeamMembers
+                .Where(tm => !tm.IsDeleted)
+                .Include(tm => tm.Team)
+                .Include(tm => tm.MembershipCards.Where(mc => !mc.IsDeleted && mc.ValidTo <= expiryDate))
+                .Include(tm => tm.InsurancePolicies.Where(ip => !ip.IsDeleted && ip.ValidTo <= expiryDate))
+                .Where(tm => tm.MembershipCards.Any(mc => !mc.IsDeleted && mc.ValidTo <= expiryDate) ||
+                            tm.InsurancePolicies.Any(ip => !ip.IsDeleted && ip.ValidTo <= expiryDate))
+                .ToListAsync(cancellationToken);
+
+            return membersWithExpiringDocs.Select(MapToTeamMemberDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving members with expiring documents");
+            throw;
+        }
+    }
+
+    public async Task<EligibilityValidationResult> ValidateTeamMemberEligibilityAsync(Guid teamMemberId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = new EligibilityValidationResult
+            {
+                IsEligible = true,
+                ValidatedAt = DateTime.UtcNow
+            };
+
+            var member = await _context.TeamMembers
+                .Where(tm => tm.Id == teamMemberId && !tm.IsDeleted)
+                .Include(tm => tm.MembershipCards.Where(mc => !mc.IsDeleted))
+                .Include(tm => tm.InsurancePolicies.Where(ip => !ip.IsDeleted))
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (member == null)
+            {
+                result.IsEligible = false;
+                result.Issues.Add(new EligibilityIssue
+                {
+                    Type = EligibilityIssueType.InvalidData,
+                    Severity = EligibilityIssueSeverity.Critical,
+                    Description = "Team member not found",
+                    Field = "TeamMemberId"
+                });
+                return result;
+            }
+
+            // Check for valid membership card
+            var validMembershipCard = member.MembershipCards
+                .FirstOrDefault(mc => mc.IsValid);
+
+            if (validMembershipCard == null)
+            {
+                result.IsEligible = false;
+                result.Issues.Add(new EligibilityIssue
+                {
+                    Type = EligibilityIssueType.MissingDocument,
+                    Severity = EligibilityIssueSeverity.Error,
+                    Description = "No valid membership card found",
+                    Field = "MembershipCard",
+                    SuggestedAction = "Add a valid membership card"
+                });
+            }
+
+            // Check for valid insurance policy
+            var validInsurancePolicy = member.InsurancePolicies
+                .FirstOrDefault(ip => ip.IsValid);
+
+            if (validInsurancePolicy == null)
+            {
+                result.Issues.Add(new EligibilityIssue
+                {
+                    Type = EligibilityIssueType.MissingDocument,
+                    Severity = EligibilityIssueSeverity.Warning,
+                    Description = "No valid insurance policy found",
+                    Field = "InsurancePolicy",
+                    SuggestedAction = "Add a valid insurance policy"
+                });
+            }
+
+            // Check for expiring documents
+            var expiringCards = member.MembershipCards
+                .Where(mc => mc.DaysUntilExpiration <= 30 && mc.DaysUntilExpiration > 0);
+
+            foreach (var card in expiringCards)
+            {
+                result.Warnings.Add(new EligibilityIssue
+                {
+                    Type = EligibilityIssueType.ExpiredDocument,
+                    Severity = EligibilityIssueSeverity.Warning,
+                    Description = $"Membership card expires in {card.DaysUntilExpiration} days",
+                    Field = "MembershipCard",
+                    DueDate = card.ValidTo,
+                    SuggestedAction = "Renew membership card before expiry"
+                });
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating team member eligibility for member {TeamMemberId}", teamMemberId);
+            throw;
+        }
+    }
+
     // Private mapping methods
 
     private static TeamDto MapToTeamDto(Team team)
@@ -501,6 +1136,75 @@ public class TeamService : ITeamService
             CreatedBy = member.CreatedBy,
             ModifiedAt = member.ModifiedAt,
             ModifiedBy = member.ModifiedBy
+        };
+    }
+
+    private static DocumentReferenceDto MapToDocumentReferenceDto(DocumentReference document)
+    {
+        return new DocumentReferenceDto
+        {
+            Id = document.Id,
+            OwnerId = document.OwnerId,
+            OwnerType = document.OwnerType,
+            FileName = document.FileName,
+            Type = document.Type,
+            SubType = document.SubType,
+            MimeType = document.MimeType,
+            StorageKey = document.StorageKey,
+            Url = document.Url,
+            ThumbnailStorageKey = document.ThumbnailStorageKey,
+            Expiry = document.Expiry,
+            FileSizeBytes = document.FileSizeBytes,
+            Title = document.Title,
+            Notes = document.Notes,
+            CreatedAt = document.CreatedAt,
+            CreatedBy = document.CreatedBy,
+            ModifiedAt = document.ModifiedAt,
+            ModifiedBy = document.ModifiedBy
+        };
+    }
+
+    private static MembershipCardDto MapToMembershipCardDto(MembershipCard card)
+    {
+        return new MembershipCardDto
+        {
+            Id = card.Id,
+            TeamMemberId = card.TeamMemberId,
+            TeamMemberName = card.TeamMember != null ? $"{card.TeamMember.FirstName} {card.TeamMember.LastName}" : null,
+            CardNumber = card.CardNumber,
+            Federation = card.Federation,
+            ValidFrom = card.ValidFrom,
+            ValidTo = card.ValidTo,
+            DocumentReferenceId = card.DocumentReferenceId,
+            Category = card.Category,
+            Notes = card.Notes,
+            CreatedAt = card.CreatedAt,
+            CreatedBy = card.CreatedBy,
+            ModifiedAt = card.ModifiedAt,
+            ModifiedBy = card.ModifiedBy
+        };
+    }
+
+    private static InsurancePolicyDto MapToInsurancePolicyDto(InsurancePolicy policy)
+    {
+        return new InsurancePolicyDto
+        {
+            Id = policy.Id,
+            TeamMemberId = policy.TeamMemberId,
+            TeamMemberName = policy.TeamMember != null ? $"{policy.TeamMember.FirstName} {policy.TeamMember.LastName}" : null,
+            Provider = policy.Provider,
+            PolicyNumber = policy.PolicyNumber,
+            ValidFrom = policy.ValidFrom,
+            ValidTo = policy.ValidTo,
+            CoverageType = policy.CoverageType,
+            CoverageAmount = policy.CoverageAmount,
+            Currency = policy.Currency,
+            DocumentReferenceId = policy.DocumentReferenceId,
+            Notes = policy.Notes,
+            CreatedAt = policy.CreatedAt,
+            CreatedBy = policy.CreatedBy,
+            ModifiedAt = policy.ModifiedAt,
+            ModifiedBy = policy.ModifiedBy
         };
     }
 }
