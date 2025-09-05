@@ -86,7 +86,7 @@ public class LicenseController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving licenses");
-            return StatusCode(500, "An error occurred while retrieving licenses");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving licenses", ex);
         }
     }
 
@@ -156,7 +156,7 @@ public class LicenseController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving license {LicenseId}", id);
-            return StatusCode(500, "An error occurred while retrieving the license");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the license", ex);
         }
     }
 
@@ -222,7 +222,7 @@ public class LicenseController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating license");
-            return StatusCode(500, "An error occurred while creating the license");
+            return CreateInternalServerErrorProblem("An error occurred while creating the license", ex);
         }
     }
 
@@ -292,7 +292,7 @@ public class LicenseController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating license {LicenseId}", id);
-            return StatusCode(500, "An error occurred while updating the license");
+            return CreateInternalServerErrorProblem("An error occurred while updating the license", ex);
         }
     }
 
@@ -334,7 +334,7 @@ public class LicenseController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting license {LicenseId}", id);
-            return StatusCode(500, "An error occurred while deleting the license");
+            return CreateInternalServerErrorProblem("An error occurred while deleting the license", ex);
         }
     }
 
@@ -409,7 +409,7 @@ public class LicenseController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving tenant licenses");
-            return StatusCode(500, "An error occurred while retrieving tenant licenses");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving tenant licenses", ex);
         }
     }
 
@@ -521,7 +521,7 @@ public class LicenseController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error assigning license to tenant");
-            return StatusCode(500, "An error occurred while assigning the license");
+            return CreateInternalServerErrorProblem("An error occurred while assigning the license", ex);
         }
     }
 
@@ -594,7 +594,7 @@ public class LicenseController : BaseApiController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving license for tenant {TenantId}", tenantId);
-            return StatusCode(500, "An error occurred while retrieving the tenant license");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the tenant license", ex);
         }
     }
 }
