@@ -85,8 +85,7 @@ public class TeamsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving teams for the event.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving teams for the event.", ex);
         }
     }
 
@@ -118,8 +117,7 @@ public class TeamsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving the team.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the team.", ex);
         }
     }
 
@@ -151,8 +149,7 @@ public class TeamsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving the team details.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the team details.", ex);
         }
     }
 
@@ -192,8 +189,7 @@ public class TeamsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while creating the team.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while creating the team.", ex);
         }
     }
 
@@ -235,8 +231,7 @@ public class TeamsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while updating the team.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while updating the team.", ex);
         }
     }
 
@@ -269,8 +264,7 @@ public class TeamsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while deleting the team.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while deleting the team.", ex);
         }
     }
 
@@ -298,8 +292,7 @@ public class TeamsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving team members.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving team members.", ex);
         }
     }
 
@@ -331,8 +324,7 @@ public class TeamsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving the team member.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the team member.", ex);
         }
     }
 
@@ -372,8 +364,7 @@ public class TeamsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while adding the team member.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while adding the team member.", ex);
         }
     }
 
@@ -415,8 +406,7 @@ public class TeamsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while updating the team member.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while updating the team member.", ex);
         }
     }
 
@@ -449,8 +439,7 @@ public class TeamsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while removing the team member.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while removing the team member.", ex);
         }
     }
 

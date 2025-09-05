@@ -1,6 +1,6 @@
 ﻿# EventForge Backend Audit Report
 
-**Generated:** 2025-09-03 13:44:54 UTC
+**Generated:** 2025-09-05 14:28:14 UTC
 
 This automated audit verifies the completion status of three major refactoring PRs:
 - **PR1**: DTO Consolidation
@@ -9,21 +9,21 @@ This automated audit verifies the completion status of three major refactoring P
 
 ## Executive Summary
 
-📊 **Total Issues Found:** 166
+📊 **Total Issues Found:** 175
 
 | Severity | Count | Description |
 |----------|--------|-------------|
 | 🔴 Critical | 0 | Issues that prevent proper functionality |
 | 🟠 High | 3 | Issues that should be addressed immediately |
 | 🟡 Medium | 7 | Issues that impact code quality |
-| 🟢 Low | 156 | Minor improvements and best practices |
+| 🟢 Low | 165 | Minor improvements and best practices |
 
 **Overall Compliance Status:** 🟡 **GOOD WITH IMPROVEMENTS NEEDED** - Several items to address
 
 ## Detailed Statistics
 
 ### PR1: DTO Consolidation Status
-- ✅ Consolidated DTO Files: 164
+- ✅ Consolidated DTO Files: 174
 - ✅ Domain Folders: 25
 - ❌ Legacy DTO References: 0
 - ❌ Inline DTOs in Controllers: 1
@@ -31,9 +31,9 @@ This automated audit verifies the completion status of three major refactoring P
 ### PR2: Services Refactoring Status
 - ❌ Non-async Task Methods: 0
 - ❌ Redundant Status Assignments: 23
-- ❌ Missing Exception Handling: 2
+- ❌ Missing Exception Handling: 3
 - ❌ Sync-over-Async Patterns: 3
-- ⚠️ Missing ConfigureAwait: 62
+- ⚠️ Missing ConfigureAwait: 63
 
 ### PR3: Controllers Refactoring Status
 - ❌ Controllers Not Inheriting BaseApiController: 0
@@ -44,7 +44,7 @@ This automated audit verifies the completion status of three major refactoring P
 - ❌ Non-RFC7807 Error Responses: 0
 
 ### Code Quality Statistics
-- ⚠️ DTOs Without Validation: 92
+- ⚠️ DTOs Without Validation: 99
 
 ## Issues by Category
 
@@ -159,6 +159,10 @@ This automated audit verifies the completion status of three major refactoring P
 **Details:** Consider using ConfigureAwait(false) for better performance in library code
 
 **File:** `EventForge.Server/Services/Business/BusinessPartyService.cs`
+**Issue:** Missing ConfigureAwait(false) in library code
+**Details:** Consider using ConfigureAwait(false) for better performance in library code
+
+**File:** `EventForge.Server/Services/Documents/DocumentFacade.cs`
 **Issue:** Missing ConfigureAwait(false) in library code
 **Details:** Consider using ConfigureAwait(false) for better performance in library code
 
@@ -351,6 +355,10 @@ This automated audit verifies the completion status of three major refactoring P
 **Details:** Should use IsDeleted/IsActive from AuditableEntity instead of custom Status enums
 
 #### 🟢 Low Priority
+
+**File:** `EventForge.Server/Services/Documents/DocumentFacade.cs`
+**Issue:** Service method without try-catch block
+**Details:** Async service methods should have proper exception handling
 
 **File:** `EventForge.Server/Services/Documents/StubAntivirusScanService.cs`
 **Issue:** Service method without try-catch block
@@ -696,11 +704,39 @@ This automated audit verifies the completion status of three major refactoring P
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
+**File:** `EventForge.DTOs/Teams/UpdateMembershipCardDto.cs`
+**Issue:** DTO properties without validation attributes
+**Details:** Consider adding [Required], [MaxLength], or other validation attributes
+
+**File:** `EventForge.DTOs/Teams/DocumentReferenceDto.cs`
+**Issue:** DTO properties without validation attributes
+**Details:** Consider adding [Required], [MaxLength], or other validation attributes
+
 **File:** `EventForge.DTOs/Teams/TeamDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
+**File:** `EventForge.DTOs/Teams/UpdateDocumentReferenceDto.cs`
+**Issue:** DTO properties without validation attributes
+**Details:** Consider adding [Required], [MaxLength], or other validation attributes
+
 **File:** `EventForge.DTOs/Teams/TeamDetailDto.cs`
+**Issue:** DTO properties without validation attributes
+**Details:** Consider adding [Required], [MaxLength], or other validation attributes
+
+**File:** `EventForge.DTOs/Teams/EligibilityValidationResult.cs`
+**Issue:** DTO properties without validation attributes
+**Details:** Consider adding [Required], [MaxLength], or other validation attributes
+
+**File:** `EventForge.DTOs/Teams/InsurancePolicyDto.cs`
+**Issue:** DTO properties without validation attributes
+**Details:** Consider adding [Required], [MaxLength], or other validation attributes
+
+**File:** `EventForge.DTOs/Teams/MembershipCardDto.cs`
+**Issue:** DTO properties without validation attributes
+**Details:** Consider adding [Required], [MaxLength], or other validation attributes
+
+**File:** `EventForge.DTOs/Teams/UpdateInsurancePolicyDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
@@ -786,7 +822,7 @@ This automated audit verifies the completion status of three major refactoring P
 - [ ] Remove 23 redundant status property assignments
 
 ### 🟢 Low Priority Tasks
-- [ ] Add validation attributes to 92 DTOs
-- [ ] Consider adding ConfigureAwait(false) to 62 await statements in library code
-- [ ] Add exception handling to 2 service methods
+- [ ] Add validation attributes to 99 DTOs
+- [ ] Consider adding ConfigureAwait(false) to 63 await statements in library code
+- [ ] Add exception handling to 3 service methods
 

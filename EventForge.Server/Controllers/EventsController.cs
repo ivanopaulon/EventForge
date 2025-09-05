@@ -100,8 +100,7 @@ public class EventsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving the event.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the event.", ex);
         }
     }
 
@@ -133,8 +132,7 @@ public class EventsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while retrieving the event details.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the event details.", ex);
         }
     }
 
@@ -178,8 +176,7 @@ public class EventsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while creating the event.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while creating the event.", ex);
         }
     }
 
@@ -229,8 +226,7 @@ public class EventsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while updating the event.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while updating the event.", ex);
         }
     }
 
@@ -263,8 +259,7 @@ public class EventsController : BaseApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An error occurred while deleting the event.", error = ex.Message });
+            return CreateInternalServerErrorProblem("An error occurred while deleting the event.", ex);
         }
     }
 
