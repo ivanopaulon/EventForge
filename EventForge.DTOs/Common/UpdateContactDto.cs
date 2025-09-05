@@ -22,6 +22,25 @@ namespace EventForge.DTOs.Common
         public string Value { get; set; } = string.Empty;
 
         /// <summary>
+        /// Purpose of this contact (Primary, Emergency, Billing, Coach, etc.).
+        /// </summary>
+        [Display(Name = "Purpose", Description = "Purpose of this contact.")]
+        public ContactPurpose Purpose { get; set; }
+
+        /// <summary>
+        /// Relationship to the owner (for emergency contacts, family relationships, etc.).
+        /// </summary>
+        [MaxLength(50, ErrorMessage = "The relationship cannot exceed 50 characters.")]
+        [Display(Name = "Relationship", Description = "Relationship to the owner.")]
+        public string? Relationship { get; set; }
+
+        /// <summary>
+        /// Indicates if this is the primary contact of its type.
+        /// </summary>
+        [Display(Name = "Is Primary", Description = "Indicates if this is the primary contact of its type.")]
+        public bool IsPrimary { get; set; }
+
+        /// <summary>
         /// Additional notes.
         /// </summary>
         [MaxLength(100, ErrorMessage = "Notes cannot exceed 100 characters.")]

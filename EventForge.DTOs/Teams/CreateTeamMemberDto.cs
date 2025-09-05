@@ -59,5 +59,44 @@ namespace EventForge.DTOs.Teams
         [Required]
         [Display(Name = "Team", Description = "Owning team.")]
         public Guid TeamId { get; set; }
+
+        /// <summary>
+        /// Position or playing position of the team member.
+        /// </summary>
+        [MaxLength(50, ErrorMessage = "The position cannot exceed 50 characters.")]
+        [Display(Name = "Position", Description = "Position or playing position of the team member.")]
+        public string? Position { get; set; }
+
+        /// <summary>
+        /// Jersey number for the team member (must be unique within the team).
+        /// </summary>
+        [Range(1, 999, ErrorMessage = "Jersey number must be between 1 and 999.")]
+        [Display(Name = "Jersey Number", Description = "Jersey number for the team member.")]
+        public int? JerseyNumber { get; set; }
+
+        /// <summary>
+        /// Eligibility status for participation.
+        /// </summary>
+        [Required]
+        [Display(Name = "Eligibility Status", Description = "Eligibility status for participation.")]
+        public EligibilityStatus EligibilityStatus { get; set; } = EligibilityStatus.Eligible;
+
+        /// <summary>
+        /// Profile photo document ID.
+        /// </summary>
+        [Display(Name = "Photo Document", Description = "Profile photo document.")]
+        public Guid? PhotoDocumentId { get; set; }
+
+        /// <summary>
+        /// Indicates if photo consent has been given.
+        /// </summary>
+        [Display(Name = "Photo Consent", Description = "Indicates if photo consent has been given.")]
+        public bool PhotoConsent { get; set; } = false;
+
+        /// <summary>
+        /// Date and time when photo consent was given.
+        /// </summary>
+        [Display(Name = "Photo Consent At", Description = "Date and time when photo consent was given.")]
+        public DateTime? PhotoConsentAt { get; set; }
     }
 }

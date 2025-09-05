@@ -59,6 +59,51 @@ namespace EventForge.DTOs.Teams
         public string? TeamName { get; set; }
 
         /// <summary>
+        /// Position or playing position of the team member.
+        /// </summary>
+        public string? Position { get; set; }
+
+        /// <summary>
+        /// Jersey number for the team member.
+        /// </summary>
+        public int? JerseyNumber { get; set; }
+
+        /// <summary>
+        /// Eligibility status for participation.
+        /// </summary>
+        public EligibilityStatus EligibilityStatus { get; set; }
+
+        /// <summary>
+        /// Profile photo document ID.
+        /// </summary>
+        public Guid? PhotoDocumentId { get; set; }
+
+        /// <summary>
+        /// Profile photo URL (for display purposes).
+        /// </summary>
+        public string? PhotoUrl { get; set; }
+
+        /// <summary>
+        /// Indicates if photo consent has been given.
+        /// </summary>
+        public bool PhotoConsent { get; set; }
+
+        /// <summary>
+        /// Date and time when photo consent was given.
+        /// </summary>
+        public DateTime? PhotoConsentAt { get; set; }
+
+        /// <summary>
+        /// Age of the team member (computed from DateOfBirth).
+        /// </summary>
+        public int? Age { get; set; }
+
+        /// <summary>
+        /// Indicates if the team member is a minor (under 18).
+        /// </summary>
+        public bool IsMinor { get; set; }
+
+        /// <summary>
         /// Date and time when the team member was created (UTC).
         /// </summary>
         public DateTime CreatedAt { get; set; }
