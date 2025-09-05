@@ -1,5 +1,6 @@
 ﻿using EventForge.Server.Data.Entities;
 using EventForge.Server.Data.Entities.Chat;
+using EventForge.Server.Data.Entities.Documents;
 using EventForge.Server.Data.Entities.Notifications;
 using EventForge.Server.Data.Entities.Teams;
 using Microsoft.EntityFrameworkCore;
@@ -45,9 +46,12 @@ public class EventForgeDbContext : DbContext
     public DbSet<DocumentComment> DocumentComments { get; set; }
     public DbSet<DocumentTemplate> DocumentTemplates { get; set; }
     public DbSet<DocumentWorkflow> DocumentWorkflows { get; set; }
-    public DbSet<DocumentWorkflowExecution> DocumentWorkflowExecutions { get; set; } // <- aggiunto
+    public DbSet<DocumentWorkflowExecution> DocumentWorkflowExecutions { get; set; }
     public DbSet<DocumentRecurrence> DocumentRecurrences { get; set; }
     public DbSet<DocumentAnalytics> DocumentAnalytics { get; set; }
+    public DbSet<DocumentVersion> DocumentVersions { get; set; }
+    public DbSet<DocumentReminder> DocumentReminders { get; set; }
+    public DbSet<DocumentSchedule> DocumentSchedules { get; set; }
 
     // Events & Teams
     public DbSet<Event> Events { get; set; }
@@ -612,6 +616,57 @@ public class EventForgeDbContext : DbContext
         modelBuilder.Entity<DocumentWorkflowExecution>()
             .HasIndex(dwe => dwe.DocumentHeaderId)
             .HasDatabaseName("IX_DocumentWorkflowExecutions_DocumentHeaderId");
+
+        // DocumentVersion configurations
+        modelBuilder.Entity<DocumentVersion>()
+            .HasOne(dv => dv.DocumentHeader)
+            .WithMany(dh => dh.Versions)
+            .HasForeignKey(dv => dv.DocumentHeaderId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<DocumentVersion>()
+            .HasIndex(dv => dv.DocumentHeaderId)
+            .HasDatabaseName("IX_DocumentVersions_DocumentHeaderId");
+
+        modelBuilder.Entity<DocumentVersion>()
+            .HasIndex(dv => dv.VersionNumber)
+            .HasDatabaseName("IX_DocumentVersions_VersionNumber");
+
+        // DocumentReminder configurations
+        modelBuilder.Entity<DocumentReminder>()
+            .HasOne(dr => dr.DocumentHeader)
+            .WithMany(dh => dh.Reminders)
+            .HasForeignKey(dr => dr.DocumentHeaderId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<DocumentReminder>()
+            .HasIndex(dr => dr.DocumentHeaderId)
+            .HasDatabaseName("IX_DocumentReminders_DocumentHeaderId");
+
+        modelBuilder.Entity<DocumentReminder>()
+            .HasIndex(dr => dr.TargetDate)
+            .HasDatabaseName("IX_DocumentReminders_TargetDate");
+
+        // DocumentSchedule configurations
+        modelBuilder.Entity<DocumentSchedule>()
+            .HasOne(ds => ds.DocumentHeader)
+            .WithMany(dh => dh.Schedules)
+            .HasForeignKey(ds => ds.DocumentHeaderId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<DocumentSchedule>()
+            .HasOne(ds => ds.DocumentType)
+            .WithMany()
+            .HasForeignKey(ds => ds.DocumentTypeId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<DocumentSchedule>()
+            .HasIndex(ds => ds.DocumentHeaderId)
+            .HasDatabaseName("IX_DocumentSchedules_DocumentHeaderId");
+
+        modelBuilder.Entity<DocumentSchedule>()
+            .HasIndex(ds => ds.NextExecutionDate)
+            .HasDatabaseName("IX_DocumentSchedules_NextExecutionDate");
 
         // Team Extensions Relationships
 
