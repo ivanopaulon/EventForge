@@ -3391,11 +3391,15 @@ namespace EventForge.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DocumentHeaderId");
+                    b.HasIndex("DocumentHeaderId")
+                        .HasDatabaseName("IX_DocumentReminders_DocumentHeaderId");
 
                     b.HasIndex("DocumentScheduleId");
 
-                    b.ToTable("DocumentReminder");
+                    b.HasIndex("TargetDate")
+                        .HasDatabaseName("IX_DocumentReminders_TargetDate");
+
+                    b.ToTable("DocumentReminders");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Documents.DocumentRow", b =>
@@ -3643,11 +3647,15 @@ namespace EventForge.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DocumentHeaderId");
+                    b.HasIndex("DocumentHeaderId")
+                        .HasDatabaseName("IX_DocumentSchedules_DocumentHeaderId");
 
                     b.HasIndex("DocumentTypeId");
 
-                    b.ToTable("DocumentSchedule");
+                    b.HasIndex("NextExecutionDate")
+                        .HasDatabaseName("IX_DocumentSchedules_NextExecutionDate");
+
+                    b.ToTable("DocumentSchedules");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Documents.DocumentSummaryLink", b =>
@@ -3969,9 +3977,13 @@ namespace EventForge.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DocumentHeaderId");
+                    b.HasIndex("DocumentHeaderId")
+                        .HasDatabaseName("IX_DocumentVersions_DocumentHeaderId");
 
-                    b.ToTable("DocumentVersion");
+                    b.HasIndex("VersionNumber")
+                        .HasDatabaseName("IX_DocumentVersions_VersionNumber");
+
+                    b.ToTable("DocumentVersions");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Documents.DocumentVersionSignature", b =>
@@ -8016,11 +8028,13 @@ namespace EventForge.Server.Migrations
                 {
                     b.HasOne("EventForge.Server.Data.Entities.Documents.DocumentHeader", "DocumentHeader")
                         .WithMany("Schedules")
-                        .HasForeignKey("DocumentHeaderId");
+                        .HasForeignKey("DocumentHeaderId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("EventForge.Server.Data.Entities.Documents.DocumentType", "DocumentType")
                         .WithMany()
-                        .HasForeignKey("DocumentTypeId");
+                        .HasForeignKey("DocumentTypeId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("DocumentHeader");
 
