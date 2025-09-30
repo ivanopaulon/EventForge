@@ -157,6 +157,64 @@ public class Product : AuditableEntity
     /// </summary>
     [Display(Name = "Is Bundle", Description = "Indicates if the product is a bundle.")]
     public bool IsBundle { get; set; } = false;
+
+    /// <summary>
+    /// Brand identifier (optional).
+    /// </summary>
+    [Display(Name = "Brand", Description = "Brand identifier.")]
+    public Guid? BrandId { get; set; }
+
+    /// <summary>
+    /// Brand associated with the product.
+    /// </summary>
+    public Brand? Brand { get; set; }
+
+    /// <summary>
+    /// Model identifier (optional).
+    /// </summary>
+    [Display(Name = "Model", Description = "Model identifier.")]
+    public Guid? ModelId { get; set; }
+
+    /// <summary>
+    /// Model associated with the product.
+    /// </summary>
+    public Model? Model { get; set; }
+
+    /// <summary>
+    /// Preferred supplier identifier (optional, references ProductSupplier.SupplierId).
+    /// </summary>
+    [Display(Name = "Preferred Supplier", Description = "Preferred supplier identifier.")]
+    public Guid? PreferredSupplierId { get; set; }
+
+    /// <summary>
+    /// Reorder point - inventory level at which to reorder.
+    /// </summary>
+    [Display(Name = "Reorder Point", Description = "Inventory level at which to reorder.")]
+    public decimal? ReorderPoint { get; set; }
+
+    /// <summary>
+    /// Safety stock level - minimum stock to maintain.
+    /// </summary>
+    [Display(Name = "Safety Stock", Description = "Minimum stock to maintain.")]
+    public decimal? SafetyStock { get; set; }
+
+    /// <summary>
+    /// Target stock level - desired inventory level.
+    /// </summary>
+    [Display(Name = "Target Stock Level", Description = "Desired inventory level.")]
+    public decimal? TargetStockLevel { get; set; }
+
+    /// <summary>
+    /// Average daily demand for inventory planning.
+    /// </summary>
+    [Display(Name = "Average Daily Demand", Description = "Average daily demand for inventory planning.")]
+    public decimal? AverageDailyDemand { get; set; }
+
+    /// <summary>
+    /// Suppliers for this product.
+    /// </summary>
+    [Display(Name = "Suppliers", Description = "Suppliers for this product.")]
+    public ICollection<ProductSupplier> Suppliers { get; set; } = new List<ProductSupplier>();
 }
 
 /// <summary>

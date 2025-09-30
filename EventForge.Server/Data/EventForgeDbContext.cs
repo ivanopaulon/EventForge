@@ -64,6 +64,9 @@ public class EventForgeDbContext : DbContext
     public DbSet<ProductCode> ProductCodes { get; set; }
     public DbSet<ProductUnit> ProductUnits { get; set; }
     public DbSet<ProductBundleItem> ProductBundleItems { get; set; }
+    public DbSet<Brand> Brands { get; set; }
+    public DbSet<Model> Models { get; set; }
+    public DbSet<ProductSupplier> ProductSuppliers { get; set; }
 
     // Price Lists
     public DbSet<PriceList> PriceLists { get; set; }
@@ -742,6 +745,89 @@ public class EventForgeDbContext : DbContext
         modelBuilder.Entity<DocumentReference>()
             .HasIndex(d => new { d.OwnerId, d.OwnerType, d.Type })
             .HasDatabaseName("IX_DocumentReferences_Owner_Type");
+
+        // Brand, Model, ProductSupplier configurations
+
+        // Brand index
+        modelBuilder.Entity<Brand>()
+            .HasIndex(b => b.Name)
+            .HasDatabaseName("IX_Brand_Name");
+
+        // Model → Brand relationship
+        modelBuilder.Entity<Model>()
+            .HasOne(m => m.Brand)
+            .WithMany(b => b.Models)
+            .HasForeignKey(m => m.BrandId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Model index
+        modelBuilder.Entity<Model>()
+            .HasIndex(m => new { m.BrandId, m.Name })
+            .HasDatabaseName("IX_Model_BrandId_Name");
+
+        // Product → Brand relationship
+        modelBuilder.Entity<Product>()
+            .HasOne(p => p.Brand)
+            .WithMany(b => b.Products)
+            .HasForeignKey(p => p.BrandId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Product → Model relationship
+        modelBuilder.Entity<Product>()
+            .HasOne(p => p.Model)
+            .WithMany(m => m.Products)
+            .HasForeignKey(p => p.ModelId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Product indexes for Brand and Model
+        modelBuilder.Entity<Product>()
+            .HasIndex(p => p.BrandId)
+            .HasDatabaseName("IX_Product_BrandId");
+
+        modelBuilder.Entity<Product>()
+            .HasIndex(p => p.ModelId)
+            .HasDatabaseName("IX_Product_ModelId");
+
+        modelBuilder.Entity<Product>()
+            .HasIndex(p => p.PreferredSupplierId)
+            .HasDatabaseName("IX_Product_PreferredSupplierId");
+
+        // ProductSupplier → Product relationship
+        modelBuilder.Entity<ProductSupplier>()
+            .HasOne(ps => ps.Product)
+            .WithMany(p => p.Suppliers)
+            .HasForeignKey(ps => ps.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // ProductSupplier → BusinessParty (Supplier) relationship
+        modelBuilder.Entity<ProductSupplier>()
+            .HasOne(ps => ps.Supplier)
+            .WithMany()
+            .HasForeignKey(ps => ps.SupplierId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // ProductSupplier indexes
+        modelBuilder.Entity<ProductSupplier>()
+            .HasIndex(ps => ps.ProductId)
+            .HasDatabaseName("IX_ProductSupplier_ProductId");
+
+        modelBuilder.Entity<ProductSupplier>()
+            .HasIndex(ps => ps.SupplierId)
+            .HasDatabaseName("IX_ProductSupplier_SupplierId");
+
+        modelBuilder.Entity<ProductSupplier>()
+            .HasIndex(ps => new { ps.ProductId, ps.Preferred })
+            .HasDatabaseName("IX_ProductSupplier_ProductId_Preferred");
+
+        // ProductSupplier decimal precision
+        modelBuilder.Entity<ProductSupplier>().Property(ps => ps.UnitCost).HasPrecision(18, 6);
+        modelBuilder.Entity<ProductSupplier>().Property(ps => ps.LastPurchasePrice).HasPrecision(18, 6);
+
+        // Product reorder parameters decimal precision
+        modelBuilder.Entity<Product>().Property(p => p.ReorderPoint).HasPrecision(18, 6);
+        modelBuilder.Entity<Product>().Property(p => p.SafetyStock).HasPrecision(18, 6);
+        modelBuilder.Entity<Product>().Property(p => p.TargetStockLevel).HasPrecision(18, 6);
+        modelBuilder.Entity<Product>().Property(p => p.AverageDailyDemand).HasPrecision(18, 6);
     }
 
     /// <summary>
