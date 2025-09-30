@@ -155,7 +155,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error creating product");
-            Snackbar.Add(TranslationService.GetTranslation("products.createError", "Errore nella creazione del prodotto"), Severity.Error);
+            Snackbar.Add(TranslationService.GetTranslation("products.createError", "Errore nella creazione del prodotto" + ex.Message), Severity.Error);
         }
         finally
         {
