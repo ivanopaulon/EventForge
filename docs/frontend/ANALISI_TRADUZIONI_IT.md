@@ -1,5 +1,9 @@
 # Analisi Copertura Traduzioni - EventForge
 
+> **⚠️ AGGIORNAMENTO (2024):** Il supporto per le lingue Spagnolo e Francese è stato rimosso dal progetto.
+> Il sistema ora supporta solo Italiano (it) e Inglese (en), che sono stati completamente allineati con 1615 chiavi ciascuno.
+> Questo documento è mantenuto per riferimento storico ma non è più applicabile.
+
 ## Sommario Esecutivo
 
 Data dell'analisi: 30 Settembre 2024

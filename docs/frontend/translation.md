@@ -11,8 +11,6 @@ EventForge uses a custom translation service (`TranslationService`) that loads t
 Currently supported languages:
 - **Italian (it)** - Default language
 - **English (en)**
-- **Spanish (es)**
-- **French (fr)**
 
 ## Translation File Structure
 
@@ -21,8 +19,6 @@ Translation files are located in: `EventForge.Client/wwwroot/i18n/`
 Each language has its own JSON file:
 - `it.json` - Italian (default)
 - `en.json` - English
-- `es.json` - Spanish  
-- `fr.json` - French
 
 ### JSON Structure
 
@@ -60,8 +56,6 @@ Each language has its own JSON file:
    {
        { "it", "Italiano" },
        { "en", "English" },
-       { "es", "Español" },
-       { "fr", "Français" },
        { "de", "Deutsch" } // Add new language here
    };
    ```
