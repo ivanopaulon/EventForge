@@ -416,7 +416,7 @@ else
     private List<TranslationDto> GenerateMockTranslations()
     {
         var mockData = new List<TranslationDto>();
-        var languages = new[] { "it", "en", "es", "fr" };
+        var languages = new[] { "it", "en" };
         var sampleKeys = new[]
         {
             "common.save", "common.cancel", "common.delete", "common.edit",
@@ -429,9 +429,7 @@ else
         var sampleValues = new Dictionary<string, Dictionary<string, string>>
         {
             ["it"] = new Dictionary<string, string> { ["common.save"] = "Salva", ["common.cancel"] = "Annulla", ["auth.login"] = "Accedi" },
-            ["en"] = new Dictionary<string, string> { ["common.save"] = "Save", ["common.cancel"] = "Cancel", ["auth.login"] = "Login" },
-            ["es"] = new Dictionary<string, string> { ["common.save"] = "Guardar", ["common.cancel"] = "Cancelar", ["auth.login"] = "Iniciar sesión" },
-            ["fr"] = new Dictionary<string, string> { ["common.save"] = "Enregistrer", ["common.cancel"] = "Annuler", ["auth.login"] = "Connexion" }
+            ["en"] = new Dictionary<string, string> { ["common.save"] = "Save", ["common.cancel"] = "Cancel", ["auth.login"] = "Login" }
         };
 
         foreach (var lang in languages)

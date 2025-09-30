@@ -104,9 +104,7 @@ public class TranslationService : ITranslationService
     private readonly Dictionary<string, string> _availableLanguages = new()
     {
         { "it", "Italiano" },
-        { "en", "English" },
-        { "es", "Español" },
-        { "fr", "Français" }
+        { "en", "English" }
     };
 
     public event EventHandler<string>? LanguageChanged;
