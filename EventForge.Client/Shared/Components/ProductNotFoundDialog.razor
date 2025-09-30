@@ -1,0 +1,53 @@
+@inject ITranslationService TranslationService
+
+<MudDialog>
+    <DialogContent>
+        <MudAlert Severity="Severity.Warning" Class="mb-4">
+            @TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato con il codice: {0}", Barcode)
+        </MudAlert>
+
+        <MudText Typo="Typo.body1" Class="mb-4">
+            @TranslationService.GetTranslation("warehouse.createOrAssignPrompt", "Cosa vuoi fare?")
+        </MudText>
+
+        <MudStack Spacing="3">
+            <MudButton StartIcon="@Icons.Material.Outlined.Add"
+                      Color="Color.Primary"
+                      Variant="Variant.Filled"
+                      FullWidth="true"
+                      OnClick="@(() => SelectAction("create"))">
+                @TranslationService.GetTranslation("warehouse.createNewProduct", "Crea Nuovo Prodotto")
+            </MudButton>
+            <MudButton StartIcon="@Icons.Material.Outlined.Link"
+                      Color="Color.Secondary"
+                      Variant="Variant.Filled"
+                      FullWidth="true"
+                      OnClick="@(() => SelectAction("assign"))">
+                @TranslationService.GetTranslation("warehouse.assignToExisting", "Assegna a Prodotto Esistente")
+            </MudButton>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Color="Color.Default" Variant="Variant.Outlined">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public string Barcode { get; set; } = string.Empty;
+
+    private void SelectAction(string action)
+    {
+        MudDialog.Close(DialogResult.Ok(action));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}
