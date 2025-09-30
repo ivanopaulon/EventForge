@@ -184,4 +184,45 @@ public class TranslationFileTests
 
         return current.ValueKind == JsonValueKind.String ? current.GetString() : null;
     }
+
+    /// <summary>
+    /// Tests to verify newly added navigation keys are present in translation files.
+    /// These keys were added to fix missing translation warnings at client startup.
+    /// </summary>
+    [Theory]
+    [InlineData("it.json", "nav.chat")]
+    [InlineData("it.json", "nav.superAdmin")]
+    [InlineData("it.json", "nav.administration")]
+    [InlineData("it.json", "nav.help")]
+    [InlineData("it.json", "nav.notifications")]
+    [InlineData("it.json", "nav.profile")]
+    [InlineData("it.json", "tour.chat")]
+    [InlineData("it.json", "tour.notifications")]
+    [InlineData("it.json", "tour.superadmin")]
+    [InlineData("it.json", "help.helpCenter")]
+    [InlineData("it.json", "help.generalHelpTitle")]
+    [InlineData("en.json", "nav.chat")]
+    [InlineData("en.json", "nav.superAdmin")]
+    [InlineData("en.json", "nav.administration")]
+    [InlineData("en.json", "nav.help")]
+    [InlineData("en.json", "nav.notifications")]
+    [InlineData("en.json", "nav.profile")]
+    [InlineData("en.json", "tour.chat")]
+    [InlineData("en.json", "tour.notifications")]
+    [InlineData("en.json", "tour.superadmin")]
+    [InlineData("en.json", "help.helpCenter")]
+    [InlineData("en.json", "help.generalHelpTitle")]
+    public void NewlyAddedKeys_ShouldExistInTranslationFiles(string fileName, string key)
+    {
+        // Arrange
+        var filePath = Path.Combine(_clientWwwRootPath, "i18n", fileName);
+        var jsonContent = File.ReadAllText(filePath);
+        using var document = JsonDocument.Parse(jsonContent);
+
+        // Act
+        var found = FindKeyInJson(document.RootElement, key);
+
+        // Assert
+        Assert.True(found, $"Newly added key '{key}' not found in {fileName}. This key was added to fix missing translation warnings.");
+    }
 }
