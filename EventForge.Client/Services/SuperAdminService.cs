@@ -51,28 +51,6 @@ namespace EventForge.Client.Services
         Task CancelBackupAsync(Guid backupId);
         Task<Stream> DownloadBackupAsync(Guid backupId);
         Task DeleteBackupAsync(Guid backupId);
-
-        // Event Management
-        Task<IEnumerable<EventManagementDto>> GetEventsAsync(Guid? tenantId = null);
-        Task<EventManagementDto?> GetEventAsync(Guid id);
-        Task<EventManagementDto> CreateEventAsync(CreateEventManagementDto createDto);
-        Task<EventManagementDto> UpdateEventAsync(Guid id, UpdateEventManagementDto updateDto);
-        Task DeleteEventAsync(Guid id);
-        Task<EventStatisticsDto> GetEventStatisticsAsync(Guid? tenantId = null);
-
-        // Event Type Management
-        Task<IEnumerable<EventTypeDto>> GetEventTypesAsync();
-        Task<EventTypeDto?> GetEventTypeAsync(Guid id);
-        Task<EventTypeDto> CreateEventTypeAsync(CreateEventTypeDto createDto);
-        Task<EventTypeDto> UpdateEventTypeAsync(Guid id, UpdateEventTypeDto updateDto);
-        Task DeleteEventTypeAsync(Guid id);
-
-        // Event Category Management
-        Task<IEnumerable<EventCategoryDto>> GetEventCategoriesAsync();
-        Task<EventCategoryDto?> GetEventCategoryAsync(Guid id);
-        Task<EventCategoryDto> CreateEventCategoryAsync(CreateEventCategoryDto createDto);
-        Task<EventCategoryDto> UpdateEventCategoryAsync(Guid id, UpdateEventCategoryDto updateDto);
-        Task DeleteEventCategoryAsync(Guid id);
     }
 
     public class SuperAdminService : ISuperAdminService
@@ -385,106 +363,6 @@ namespace EventForge.Client.Services
         public async Task DeleteBackupAsync(Guid backupId)
         {
             await _httpClientService.DeleteAsync($"api/v1/super-admin/backup/{backupId}");
-        }
-
-        #endregion
-
-        #region Event Management
-
-        public async Task<IEnumerable<EventManagementDto>> GetEventsAsync(Guid? tenantId = null)
-        {
-            var url = tenantId.HasValue ? $"api/v1/super-admin/events?tenantId={tenantId}" : "api/v1/super-admin/events";
-            return await _httpClientService.GetAsync<IEnumerable<EventManagementDto>>(url) ?? new List<EventManagementDto>();
-        }
-
-        public async Task<EventManagementDto?> GetEventAsync(Guid id)
-        {
-            return await _httpClientService.GetAsync<EventManagementDto>($"api/v1/super-admin/events/{id}");
-        }
-
-        public async Task<EventManagementDto> CreateEventAsync(CreateEventManagementDto createDto)
-        {
-            return await _httpClientService.PostAsync<CreateEventManagementDto, EventManagementDto>("api/v1/super-admin/events", createDto) ??
-                   throw new InvalidOperationException("Failed to create event");
-        }
-
-        public async Task<EventManagementDto> UpdateEventAsync(Guid id, UpdateEventManagementDto updateDto)
-        {
-            return await _httpClientService.PutAsync<UpdateEventManagementDto, EventManagementDto>($"api/v1/super-admin/events/{id}", updateDto) ??
-                   throw new InvalidOperationException("Failed to update event");
-        }
-
-        public async Task DeleteEventAsync(Guid id)
-        {
-            await _httpClientService.DeleteAsync($"api/v1/super-admin/events/{id}");
-        }
-
-        public async Task<EventStatisticsDto> GetEventStatisticsAsync(Guid? tenantId = null)
-        {
-            var url = tenantId.HasValue ? $"api/v1/super-admin/events/statistics?tenantId={tenantId}" : "api/v1/super-admin/events/statistics";
-            return await _httpClientService.GetAsync<EventStatisticsDto>(url) ?? new EventStatisticsDto();
-        }
-
-        #endregion
-
-        #region Event Type Management
-
-        public async Task<IEnumerable<EventTypeDto>> GetEventTypesAsync()
-        {
-            return await _httpClientService.GetAsync<IEnumerable<EventTypeDto>>("api/v1/super-admin/event-types") ?? new List<EventTypeDto>();
-        }
-
-        public async Task<EventTypeDto?> GetEventTypeAsync(Guid id)
-        {
-            return await _httpClientService.GetAsync<EventTypeDto>($"api/v1/super-admin/event-types/{id}");
-        }
-
-        public async Task<EventTypeDto> CreateEventTypeAsync(CreateEventTypeDto createDto)
-        {
-            return await _httpClientService.PostAsync<CreateEventTypeDto, EventTypeDto>("api/v1/super-admin/event-types", createDto) ??
-                   throw new InvalidOperationException("Failed to create event type");
-        }
-
-        public async Task<EventTypeDto> UpdateEventTypeAsync(Guid id, UpdateEventTypeDto updateDto)
-        {
-            return await _httpClientService.PutAsync<UpdateEventTypeDto, EventTypeDto>($"api/v1/super-admin/event-types/{id}", updateDto) ??
-                   throw new InvalidOperationException("Failed to update event type");
-        }
-
-        public async Task DeleteEventTypeAsync(Guid id)
-        {
-            await _httpClientService.DeleteAsync($"api/v1/super-admin/event-types/{id}");
-        }
-
-        #endregion
-
-        #region Event Category Management
-
-        public async Task<IEnumerable<EventCategoryDto>> GetEventCategoriesAsync()
-        {
-            return await _httpClientService.GetAsync<IEnumerable<EventCategoryDto>>("api/v1/super-admin/event-categories") ?? new List<EventCategoryDto>();
-        }
-
-        public async Task<EventCategoryDto?> GetEventCategoryAsync(Guid id)
-        {
-            return await _httpClientService.GetAsync<EventCategoryDto>($"api/v1/super-admin/event-categories/{id}");
-        }
-
-        public async Task<EventCategoryDto> CreateEventCategoryAsync(CreateEventCategoryDto createDto)
-        {
-            return await _httpClientService.PostAsync<CreateEventCategoryDto, EventCategoryDto>("api/v1/super-admin/event-categories", createDto) ??
-                   throw new InvalidOperationException("Failed to create event category");
-        }
-
-        public async Task<EventCategoryDto> UpdateEventCategoryAsync(Guid id, UpdateEventCategoryDto updateDto)
-        {
-            return await _httpClientService.PutAsync<UpdateEventCategoryDto, EventCategoryDto>($"api/v1/super-admin/event-categories/{id}", updateDto) ??
-                   throw new InvalidOperationException("Failed to update event category");
-        }
-
-        public async Task DeleteEventCategoryAsync(Guid id)
-        {
-            await _httpClientService.DeleteAsync($"api/v1/super-admin/event-categories/{id}");
         }
 
         #endregion
