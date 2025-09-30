@@ -91,6 +91,56 @@ namespace EventForge.DTOs.Products
         public bool IsBundle { get; set; }
 
         /// <summary>
+        /// Brand identifier.
+        /// </summary>
+        public Guid? BrandId { get; set; }
+
+        /// <summary>
+        /// Brand name.
+        /// </summary>
+        public string? BrandName { get; set; }
+
+        /// <summary>
+        /// Model identifier.
+        /// </summary>
+        public Guid? ModelId { get; set; }
+
+        /// <summary>
+        /// Model name.
+        /// </summary>
+        public string? ModelName { get; set; }
+
+        /// <summary>
+        /// Preferred supplier identifier.
+        /// </summary>
+        public Guid? PreferredSupplierId { get; set; }
+
+        /// <summary>
+        /// Preferred supplier name.
+        /// </summary>
+        public string? PreferredSupplierName { get; set; }
+
+        /// <summary>
+        /// Reorder point - inventory level at which to reorder.
+        /// </summary>
+        public decimal? ReorderPoint { get; set; }
+
+        /// <summary>
+        /// Safety stock level - minimum stock to maintain.
+        /// </summary>
+        public decimal? SafetyStock { get; set; }
+
+        /// <summary>
+        /// Target stock level - desired inventory level.
+        /// </summary>
+        public decimal? TargetStockLevel { get; set; }
+
+        /// <summary>
+        /// Average daily demand for inventory planning.
+        /// </summary>
+        public decimal? AverageDailyDemand { get; set; }
+
+        /// <summary>
         /// Product codes associated with the product.
         /// </summary>
         public IEnumerable<ProductCodeDto> Codes { get; set; } = new List<ProductCodeDto>();
@@ -104,6 +154,11 @@ namespace EventForge.DTOs.Products
         /// Bundle items if the product is a bundle.
         /// </summary>
         public IEnumerable<ProductBundleItemDto> BundleItems { get; set; } = new List<ProductBundleItemDto>();
+
+        /// <summary>
+        /// Suppliers for this product.
+        /// </summary>
+        public IEnumerable<ProductSupplierDto> Suppliers { get; set; } = new List<ProductSupplierDto>();
 
         /// <summary>
         /// Date and time when the product was created (UTC).
