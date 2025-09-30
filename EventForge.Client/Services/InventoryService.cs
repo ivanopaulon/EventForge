@@ -10,21 +10,22 @@ namespace EventForge.Client.Services;
 /// </summary>
 public class InventoryService : IInventoryService
 {
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<InventoryService> _logger;
     private const string BaseUrl = "api/v1/warehouse/inventory";
 
-    public InventoryService(HttpClient httpClient, ILogger<InventoryService> logger)
+    public InventoryService(IHttpClientFactory httpClientFactory, ILogger<InventoryService> logger)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<PagedResult<InventoryEntryDto>?> GetInventoryEntriesAsync(int page = 1, int pageSize = 20)
     {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await _httpClient.GetAsync($"{BaseUrl}?page={page}&pageSize={pageSize}");
+            var response = await httpClient.GetAsync($"{BaseUrl}?page={page}&pageSize={pageSize}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -47,9 +48,10 @@ public class InventoryService : IInventoryService
 
     public async Task<InventoryEntryDto?> CreateInventoryEntryAsync(CreateInventoryEntryDto createDto)
     {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await _httpClient.PostAsJsonAsync(BaseUrl, createDto);
+            var response = await httpClient.PostAsJsonAsync(BaseUrl, createDto);
 
             if (response.IsSuccessStatusCode)
             {

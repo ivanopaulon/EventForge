@@ -9,21 +9,22 @@ namespace EventForge.Client.Services;
 /// </summary>
 public class StorageLocationService : IStorageLocationService
 {
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<StorageLocationService> _logger;
     private const string BaseUrl = "api/v1/warehouse/locations";
 
-    public StorageLocationService(HttpClient httpClient, ILogger<StorageLocationService> logger)
+    public StorageLocationService(IHttpClientFactory httpClientFactory, ILogger<StorageLocationService> logger)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<PagedResult<StorageLocationDto>?> GetStorageLocationsAsync(int page = 1, int pageSize = 100)
     {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await _httpClient.GetAsync($"{BaseUrl}?page={page}&pageSize={pageSize}");
+            var response = await httpClient.GetAsync($"{BaseUrl}?page={page}&pageSize={pageSize}");
 
             if (response.IsSuccessStatusCode)
             {

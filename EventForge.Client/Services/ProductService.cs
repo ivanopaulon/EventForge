@@ -10,21 +10,22 @@ namespace EventForge.Client.Services;
 /// </summary>
 public class ProductService : IProductService
 {
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<ProductService> _logger;
     private const string BaseUrl = "api/v1/product-management/products";
 
-    public ProductService(HttpClient httpClient, ILogger<ProductService> logger)
+    public ProductService(IHttpClientFactory httpClientFactory, ILogger<ProductService> logger)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<ProductDto?> GetProductByCodeAsync(string code)
     {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await _httpClient.GetAsync($"{BaseUrl}/by-code/{Uri.EscapeDataString(code)}");
+            var response = await httpClient.GetAsync($"{BaseUrl}/by-code/{Uri.EscapeDataString(code)}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -52,9 +53,10 @@ public class ProductService : IProductService
 
     public async Task<ProductDto?> GetProductByIdAsync(Guid id)
     {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await _httpClient.GetAsync($"{BaseUrl}/{id}");
+            var response = await httpClient.GetAsync($"{BaseUrl}/{id}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -82,9 +84,10 @@ public class ProductService : IProductService
 
     public async Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20)
     {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await _httpClient.GetAsync($"{BaseUrl}?page={page}&pageSize={pageSize}");
+            var response = await httpClient.GetAsync($"{BaseUrl}?page={page}&pageSize={pageSize}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -107,9 +110,10 @@ public class ProductService : IProductService
 
     public async Task<ProductDto?> CreateProductAsync(CreateProductDto createDto)
     {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await _httpClient.PostAsJsonAsync(BaseUrl, createDto);
+            var response = await httpClient.PostAsJsonAsync(BaseUrl, createDto);
 
             if (response.IsSuccessStatusCode)
             {
@@ -132,9 +136,10 @@ public class ProductService : IProductService
 
     public async Task<ProductCodeDto?> CreateProductCodeAsync(CreateProductCodeDto createDto)
     {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await _httpClient.PostAsJsonAsync($"{BaseUrl}/{createDto.ProductId}/codes", createDto);
+            var response = await httpClient.PostAsJsonAsync($"{BaseUrl}/{createDto.ProductId}/codes", createDto);
 
             if (response.IsSuccessStatusCode)
             {
