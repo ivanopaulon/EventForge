@@ -30,6 +30,7 @@
   <ItemGroup>
     <ProjectReference Include="..\EventForge.Server\EventForge.Server.csproj" />
     <ProjectReference Include="..\EventForge.DTOs\EventForge.DTOs.csproj" />
+    <ProjectReference Include="..\EventForge.Client\EventForge.Client.csproj" />
   </ItemGroup>
 
 </Project>
