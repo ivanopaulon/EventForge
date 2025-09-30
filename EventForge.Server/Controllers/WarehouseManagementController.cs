@@ -948,6 +948,68 @@ public class WarehouseManagementController : BaseApiController
     #region Inventory
 
     /// <summary>
+    /// Gets all inventory entries with optional pagination.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of inventory entries</returns>
+    /// <response code="200">Returns the paginated list of inventory entries</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("inventory")]
+    [ProducesResponseType(typeof(PagedResult<InventoryEntryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<InventoryEntryDto>>> GetInventoryEntries(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var stockResult = await _stockService.GetStockAsync(page, pageSize, null, null, null, null, cancellationToken);
+            
+            // Convert StockDto to InventoryEntryDto
+            var inventoryEntries = stockResult.Items.Select(stock => new InventoryEntryDto
+            {
+                Id = stock.Id,
+                ProductId = stock.ProductId,
+                ProductName = stock.ProductName ?? string.Empty,
+                ProductCode = stock.ProductCode ?? string.Empty,
+                LocationId = stock.StorageLocationId,
+                LocationName = stock.StorageLocationCode ?? string.Empty,
+                Quantity = stock.AvailableQuantity,
+                LotId = stock.LotId,
+                LotCode = stock.LotCode,
+                Notes = stock.Notes,
+                CreatedAt = stock.CreatedAt,
+                CreatedBy = stock.CreatedBy
+            }).ToList();
+
+            var result = new PagedResult<InventoryEntryDto>
+            {
+                Items = inventoryEntries,
+                TotalCount = stockResult.TotalCount,
+                Page = stockResult.Page,
+                PageSize = stockResult.PageSize
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving inventory entries.", ex);
+        }
+    }
+
+    /// <summary>
     /// Records an inventory entry for a product at a specific location.
     /// This creates or updates a stock record with the counted quantity.
     /// </summary>

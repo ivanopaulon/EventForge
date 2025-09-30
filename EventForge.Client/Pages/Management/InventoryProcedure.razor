@@ -17,10 +17,24 @@
 <PageTitle>@TranslationService.GetTranslation("warehouse.inventoryProcedure", "Procedura Inventario")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    <MudText Typo="Typo.h4" Class="mb-4">
-        <MudIcon Icon="@Icons.Material.Outlined.Inventory" Class="mr-2" Size="Size.Medium" />
-        @TranslationService.GetTranslation("warehouse.inventoryProcedure", "Procedura Inventario")
-    </MudText>
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" md="8">
+            <MudText Typo="Typo.h4">
+                <MudIcon Icon="@Icons.Material.Outlined.Inventory" Class="mr-2" Size="Size.Medium" />
+                @TranslationService.GetTranslation("warehouse.inventoryProcedure", "Procedura Inventario")
+            </MudText>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudStack Row="true" Justify="Justify.FlexEnd">
+                <MudButton StartIcon="@Icons.Material.Outlined.List" 
+                           Color="Color.Default" 
+                           Variant="Variant.Outlined"
+                           OnClick="@(() => NavigationManager.NavigateTo("/warehouse/inventory-list"))">
+                    @TranslationService.GetTranslation("warehouse.viewInventory", "Visualizza Inventario")
+                </MudButton>
+            </MudStack>
+        </MudItem>
+    </MudGrid>
 
     @if (_isLoading)
     {

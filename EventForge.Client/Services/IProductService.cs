@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
 
 namespace EventForge.Client.Services;
@@ -9,4 +10,7 @@ public interface IProductService
 {
     Task<ProductDto?> GetProductByCodeAsync(string code);
     Task<ProductDto?> GetProductByIdAsync(Guid id);
+    Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20);
+    Task<ProductDto?> CreateProductAsync(CreateProductDto createDto);
+    Task<ProductCodeDto?> CreateProductCodeAsync(CreateProductCodeDto createDto);
 }
