@@ -1,0 +1,429 @@
+@using MudBlazor
+@using EventForge.DTOs.Events
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Constants
+@inject IEventService EventService
+@inject ISnackbar Snackbar
+@inject ILogger<EventDrawer> Logger
+@inject ITranslationService TranslationService
+
+<EntityDrawer @bind-IsOpen="@IsOpen"
+              @bind-Mode="@Mode"
+              EntityName="@TranslationService.GetTranslation("field.event", "Evento")"
+              Model="@_model"
+              OnSave="@HandleSave"
+              OnCancel="@HandleCancel"
+              OnClose="@HandleClose"
+              CustomTitle="@_customTitle"
+              AllowEdit="@AllowEdit"
+              Width="700px">
+    
+    <FormContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.Name"
+                              Label="@($"{TranslationService.GetTranslation("drawer.field.eventName", "Nome Evento")} *")"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              MaxLength="100"
+                              Immediate="true"
+                              aria-describedby="name-help" />
+                <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.eventName", "Nome univoco dell'evento")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.Location"
+                              Label="@TranslationService.GetTranslation("drawer.field.location", "Luogo")"
+                              Variant="Variant.Outlined"
+                              MaxLength="200"
+                              aria-describedby="location-help" />
+                <MudText id="location-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.location", "Luogo dell'evento")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.ShortDescription"
+                              Label="@($"{TranslationService.GetTranslation("drawer.field.shortDescription", "Descrizione Breve")} *")"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              MaxLength="200"
+                              Lines="2"
+                              aria-describedby="shortDescription-help" />
+                <MudText id="shortDescription-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.shortDescription", "Breve descrizione dell'evento")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.LongDescription"
+                              Label="@TranslationService.GetTranslation("drawer.field.longDescription", "Descrizione Dettagliata")"
+                              Variant="Variant.Outlined"
+                              Lines="4"
+                              aria-describedby="longDescription-help" />
+                <MudText id="longDescription-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.longDescription", "Descrizione dettagliata dell'evento")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudDatePicker @bind-Date="_startDate"
+                               Label="@($"{TranslationService.GetTranslation("drawer.field.startDate", "Data Inizio")} *")"
+                               Variant="Variant.Outlined"
+                               Required="true"
+                               DateFormat="dd/MM/yyyy"
+                               aria-describedby="startDate-help" />
+                <MudText id="startDate-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.startDate", "Data di inizio dell'evento")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudDatePicker @bind-Date="_endDate"
+                               Label="@TranslationService.GetTranslation("drawer.field.endDate", "Data Fine")"
+                               Variant="Variant.Outlined"
+                               DateFormat="dd/MM/yyyy"
+                               aria-describedby="endDate-help" />
+                <MudText id="endDate-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.endDate", "Data di fine dell'evento")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudNumericField @bind-Value="_model.Capacity"
+                                 Label="@($"{TranslationService.GetTranslation("drawer.field.capacity", "Capienza")} *")"
+                                 Variant="Variant.Outlined"
+                                 Min="1"
+                                 Required="true"
+                                 aria-describedby="capacity-help" />
+                <MudText id="capacity-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.capacity", "Capienza massima dell'evento")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudSelect T="EventStatus" @bind-Value="_model.Status"
+                           Label="@($"{TranslationService.GetTranslation("drawer.field.status", "Stato")} *")"
+                           Variant="Variant.Outlined"
+                           Required="true"
+                           aria-describedby="status-help">
+                    <MudSelectItem Value="@EventStatus.Planned">@TranslationService.GetTranslation("event.status.planned", "Pianificato")</MudSelectItem>
+                    <MudSelectItem Value="@EventStatus.Ongoing">@TranslationService.GetTranslation("event.status.ongoing", "In Corso")</MudSelectItem>
+                    <MudSelectItem Value="@EventStatus.Completed">@TranslationService.GetTranslation("event.status.completed", "Completato")</MudSelectItem>
+                    <MudSelectItem Value="@EventStatus.Cancelled">@TranslationService.GetTranslation("event.status.cancelled", "Annullato")</MudSelectItem>
+                </MudSelect>
+                <MudText id="status-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.status", "Stato attuale dell'evento")
+                </MudText>
+            </MudItem>
+            
+            @if (Mode == EntityDrawerMode.Edit && OriginalEvent != null)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalEvent.Id.ToString()"
+                                  Label="@TranslationService.GetTranslation("drawer.field.eventId", "ID Evento")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.eventId", "Identificativo unico evento")" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalEvent.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                  Label="@TranslationService.GetTranslation("drawer.field.createdAt", "Data Creazione")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.createdAt", "Data e ora di creazione")" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalEvent.TeamCount.ToString()"
+                                  Label="@TranslationService.GetTranslation("drawer.field.teamCount", "Numero Squadre")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.teamCount", "Numero di squadre associate")" />
+                </MudItem>
+            }
+        </MudGrid>
+    </FormContent>
+    
+    <ViewContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalEvent?.Name ?? "")"
+                              Label="@TranslationService.GetTranslation("drawer.field.eventName", "Nome Evento")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalEvent?.Location ?? "")"
+                              Label="@TranslationService.GetTranslation("drawer.field.location", "Luogo")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudTextField Value="@(OriginalEvent?.ShortDescription ?? "")"
+                              Label="@TranslationService.GetTranslation("drawer.field.shortDescription", "Descrizione Breve")"
+                              Variant="Variant.Outlined"
+                              Lines="2"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudTextField Value="@(OriginalEvent?.LongDescription ?? "")"
+                              Label="@TranslationService.GetTranslation("drawer.field.longDescription", "Descrizione Dettagliata")"
+                              Variant="Variant.Outlined"
+                              Lines="4"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalEvent?.StartDate.ToString("dd/MM/yyyy HH:mm") ?? "")"
+                              Label="@TranslationService.GetTranslation("drawer.field.startDate", "Data Inizio")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalEvent?.EndDate?.ToString("dd/MM/yyyy HH:mm") ?? TranslationService.GetTranslation("common.notSet", "Non impostata"))"
+                              Label="@TranslationService.GetTranslation("drawer.field.endDate", "Data Fine")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalEvent?.Capacity.ToString() ?? "")"
+                              Label="@TranslationService.GetTranslation("drawer.field.capacity", "Capienza")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@GetStatusTranslation(OriginalEvent?.Status ?? EventStatus.Planned)"
+                              Label="@TranslationService.GetTranslation("drawer.field.status", "Stato")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalEvent?.Id.ToString() ?? "")"
+                              Label="@TranslationService.GetTranslation("drawer.field.eventId", "ID Evento")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalEvent?.CreatedAt.ToString("dd/MM/yyyy HH:mm") ?? "")"
+                              Label="@TranslationService.GetTranslation("drawer.field.createdAt", "Data Creazione")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalEvent?.TeamCount.ToString() ?? "0")"
+                              Label="@TranslationService.GetTranslation("drawer.field.teamCount", "Numero Squadre")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+        </MudGrid>
+    </ViewContent>
+</EntityDrawer>
+
+@code {
+    // Model for Create/Edit mode
+    private EventModel _model = new();
+    private string _customTitle = string.Empty;
+    private DateTime? _startDate;
+    private DateTime? _endDate;
+    
+    /// <summary>
+    /// Whether the drawer is open.
+    /// </summary>
+    [Parameter] public bool IsOpen { get; set; }
+    
+    /// <summary>
+    /// Event callback for when IsOpen changes.
+    /// </summary>
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    
+    /// <summary>
+    /// The current mode of the drawer.
+    /// </summary>
+    [Parameter] public EntityDrawerMode Mode { get; set; } = EntityDrawerMode.Create;
+    
+    /// <summary>
+    /// Event callback for when Mode changes.
+    /// </summary>
+    [Parameter] public EventCallback<EntityDrawerMode> ModeChanged { get; set; }
+    
+    /// <summary>
+    /// The event being edited/viewed (for Edit/View modes).
+    /// </summary>
+    [Parameter] public EventDto? OriginalEvent { get; set; }
+    
+    /// <summary>
+    /// Whether editing is allowed.
+    /// </summary>
+    [Parameter] public bool AllowEdit { get; set; } = true;
+    
+    /// <summary>
+    /// Event callback when an event is created.
+    /// </summary>
+    [Parameter] public EventCallback<EventDto> OnEventCreated { get; set; }
+    
+    /// <summary>
+    /// Event callback when an event is updated.
+    /// </summary>
+    [Parameter] public EventCallback<EventDto> OnEventUpdated { get; set; }
+    
+    protected override void OnParametersSet()
+    {
+        if (IsOpen)
+        {
+            InitializeModel();
+        }
+    }
+    
+    private void InitializeModel()
+    {
+        if (Mode == EntityDrawerMode.Create)
+        {
+            _model = new EventModel
+            {
+                Name = string.Empty,
+                ShortDescription = string.Empty,
+                LongDescription = string.Empty,
+                Location = string.Empty,
+                Capacity = 1,
+                Status = EventStatus.Planned
+            };
+            _startDate = DateTime.Today;
+            _endDate = null;
+            _customTitle = string.Empty;
+        }
+        else if (Mode == EntityDrawerMode.Edit && OriginalEvent != null)
+        {
+            _model = new EventModel
+            {
+                Name = OriginalEvent.Name,
+                ShortDescription = OriginalEvent.ShortDescription,
+                LongDescription = OriginalEvent.LongDescription,
+                Location = OriginalEvent.Location,
+                Capacity = OriginalEvent.Capacity,
+                Status = OriginalEvent.Status
+            };
+            _startDate = OriginalEvent.StartDate.Date;
+            _endDate = OriginalEvent.EndDate?.Date;
+            _customTitle = $"{TranslationService.GetTranslation("drawer.title.edit", "Modifica")} {OriginalEvent.Name}";
+        }
+        else if (Mode == EntityDrawerMode.View && OriginalEvent != null)
+        {
+            _customTitle = $"{TranslationService.GetTranslation("drawer.title.view", "Visualizza")} {OriginalEvent.Name}";
+        }
+    }
+    
+    private async Task HandleSave()
+    {
+        try
+        {
+            if (_startDate == null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("drawer.error.startDateRequired", "La data di inizio è obbligatoria"), Severity.Error);
+                return;
+            }
+            
+            _model.StartDate = _startDate.Value;
+            _model.EndDate = _endDate;
+            
+            if (Mode == EntityDrawerMode.Create)
+            {
+                var createDto = new CreateEventDto
+                {
+                    Name = _model.Name,
+                    ShortDescription = _model.ShortDescription,
+                    LongDescription = _model.LongDescription,
+                    Location = _model.Location,
+                    StartDate = _model.StartDate,
+                    EndDate = _model.EndDate,
+                    Capacity = _model.Capacity,
+                    Status = _model.Status
+                };
+                
+                var createdEvent = await EventService.CreateEventAsync(createDto);
+                Snackbar.Add(TranslationService.GetTranslation("drawer.success.eventCreated", "Evento creato con successo"), Severity.Success);
+                await OnEventCreated.InvokeAsync(createdEvent);
+            }
+            else if (Mode == EntityDrawerMode.Edit && OriginalEvent != null)
+            {
+                var updateDto = new UpdateEventDto
+                {
+                    Name = _model.Name,
+                    ShortDescription = _model.ShortDescription,
+                    LongDescription = _model.LongDescription,
+                    Location = _model.Location,
+                    StartDate = _model.StartDate,
+                    EndDate = _model.EndDate,
+                    Capacity = _model.Capacity,
+                    Status = _model.Status,
+                    RowVersion = Array.Empty<byte>() // This should be retrieved from the original event if available
+                };
+                
+                var updatedEvent = await EventService.UpdateEventAsync(OriginalEvent.Id, updateDto);
+                Snackbar.Add(TranslationService.GetTranslation("drawer.success.eventUpdated", "Evento aggiornato con successo"), Severity.Success);
+                await OnEventUpdated.InvokeAsync(updatedEvent);
+            }
+            
+            await CloseDrawer();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving event");
+            Snackbar.Add(TranslationService.GetTranslation("drawer.error.saveFailed", "Errore nel salvataggio: {0}", ex.Message), Severity.Error);
+        }
+    }
+    
+    private async Task HandleCancel()
+    {
+        await CloseDrawer();
+    }
+    
+    private async Task HandleClose()
+    {
+        await CloseDrawer();
+    }
+    
+    private async Task CloseDrawer()
+    {
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(false);
+    }
+    
+    private string GetStatusTranslation(EventStatus status)
+    {
+        return status switch
+        {
+            EventStatus.Planned => TranslationService.GetTranslation("event.status.planned", "Pianificato"),
+            EventStatus.Ongoing => TranslationService.GetTranslation("event.status.ongoing", "In Corso"),
+            EventStatus.Completed => TranslationService.GetTranslation("event.status.completed", "Completato"),
+            EventStatus.Cancelled => TranslationService.GetTranslation("event.status.cancelled", "Annullato"),
+            _ => status.ToString()
+        };
+    }
+    
+    // Internal model for editing
+    private class EventModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string ShortDescription { get; set; } = string.Empty;
+        public string LongDescription { get; set; } = string.Empty;
+        public string Location { get; set; } = string.Empty;
+        public DateTime StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public int Capacity { get; set; }
+        public EventStatus Status { get; set; }
+    }
+}

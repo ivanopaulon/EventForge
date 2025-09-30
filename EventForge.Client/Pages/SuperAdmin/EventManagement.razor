@@ -1,0 +1,450 @@
+@page "/superadmin/event-management"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Events
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@attribute [Authorize(Roles = "SuperAdmin")]
+@inject IAuthService AuthService
+@inject IEventService EventService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<EventManagement> Logger
+
+<SuperAdminPageLayout PageTitle="@TranslationService.GetTranslation("superAdmin.eventManagement", "Gestione Eventi")"
+                      PageIcon="@Icons.Material.Outlined.Event"
+                      IsLoading="_isLoading"
+                      IsAuthorized="_isAuthorized"
+                      OnNavigateHome="@(() => NavigationManager.NavigateTo("/"))">
+
+    <!-- Advanced Filters Section -->
+    <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.advancedFilters", "Filtri Avanzati")"
+                                  SectionIcon="@Icons.Material.Outlined.FilterList"
+                                  @bind-IsExpanded="_filtersExpanded">
+        <div class="d-flex gap-4 align-center flex-wrap">
+            <MudTextField @bind-Value="_searchTerm"
+                          @bind-Value:after="OnSearchChanged"
+                          Label="@TranslationService.GetTranslation("superAdmin.searchByNameOrLocation", "Cerca per nome o luogo")"
+                          Placeholder="@TranslationService.GetTranslation("superAdmin.searchPlaceholder", "Inserisci testo da cercare...")"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.End"
+                          AdornmentIcon="@Icons.Material.Outlined.Search"
+                          Clearable="true"
+                          Style="flex: 2;" />
+            <MudSelect T="string" @bind-Value="_statusFilter" @bind-Value:after="OnStatusFilterChanged" 
+                       Label="@TranslationService.GetTranslation("field.status", "Stato")" 
+                       Placeholder="@TranslationService.GetTranslation("superAdmin.selectStatus", "Seleziona stato...")"
+                       Variant="Variant.Outlined"
+                       Clearable="true"
+                       Style="flex: 1;">
+                <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
+                <MudSelectItem Value="@("planned")">@TranslationService.GetTranslation("event.status.planned", "Pianificato")</MudSelectItem>
+                <MudSelectItem Value="@("ongoing")">@TranslationService.GetTranslation("event.status.ongoing", "In Corso")</MudSelectItem>
+                <MudSelectItem Value="@("completed")">@TranslationService.GetTranslation("event.status.completed", "Completato")</MudSelectItem>
+                <MudSelectItem Value="@("cancelled")">@TranslationService.GetTranslation("event.status.cancelled", "Annullato")</MudSelectItem>
+            </MudSelect>
+        </div>
+    </SuperAdminCollapsibleSection>
+
+    <!-- Events Data Table -->
+    <MudPaper Elevation="2" Class="border-rounded mb-1">
+        <MudCardHeader Class="pa-2">
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">
+                    <MudIcon Icon="@Icons.Material.Outlined.Event" Class="mr-2" />
+                    @TranslationService.GetTranslation("superAdmin.eventList", "Lista Eventi")
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                        (@_filteredEvents.Count() @TranslationService.GetTranslation("superAdmin.itemsFound", "elementi trovati"))
+                    </MudText>
+                </MudText>
+            </CardHeaderContent>
+            <CardHeaderActions>
+                <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
+                                   ShowRefresh="true"
+                                   ShowExport="true" 
+                                   ShowCreate="true"
+                                   ShowAuditLog="false"
+                                   CreateIcon="@Icons.Material.Outlined.Add"
+                                   CreateTooltip="@TranslationService.GetTranslation("superAdmin.createNewEvent", "Crea nuovo evento")"
+                                   IsDisabled="_isLoadingEvents"
+                                   OnRefresh="@LoadEventsAsync"
+                                   OnExport="@ExportEvents"
+                                   OnCreate="@OpenCreateEventDrawer" />
+            </CardHeaderActions>
+        </MudCardHeader>
+        <MudCardContent Class="pa-1">
+            @if (_isLoadingEvents)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+            }
+            else
+            {
+                <MudTable T="EventDto" 
+                          Items="_filteredEvents" 
+                          Hover="true" 
+                          Striped="true"
+                          Loading="_isLoadingEvents"
+                          LoadingProgressColor="Color.Info"
+                          SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
+                          AllowUnsorted="false"
+                          Dense="true"
+                          Breakpoint="Breakpoint.Sm">
+                    <HeaderContent>
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<EventDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<EventDto, object>(x => x.Location))">@TranslationService.GetTranslation("field.location", "Luogo")</MudTableSortLabel></MudTh>
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<EventDto, object>(x => x.StartDate))">@TranslationService.GetTranslation("field.startDate", "Data Inizio")</MudTableSortLabel></MudTh>
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<EventDto, object>(x => x.Capacity))">@TranslationService.GetTranslation("field.capacity", "Capienza")</MudTableSortLabel></MudTh>
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<EventDto, object>(x => x.Status))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel></MudTh>
+                        <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<EventDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel></MudTh>
+                        <MudTh Class="text-center" Style="min-width: 120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                    </HeaderContent>
+
+                    <RowTemplate>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                            <div class="d-flex align-center">
+                                <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                                    @(context.Name.FirstOrDefault())
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.body2">@context.Name</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.ShortDescription</MudText>
+                                </div>
+                            </div>
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.location", "Luogo")">
+                            <MudText Typo="Typo.body2">@(context.Location ?? TranslationService.GetTranslation("common.notAvailable", "N/A"))</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.startDate", "Data Inizio")">
+                            <MudText Typo="Typo.body2">@context.StartDate.ToString("dd/MM/yyyy")</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.capacity", "Capienza")">
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.Capacity</MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                            <MudChip T="string" Color="@GetStatusColor(context.Status)" 
+                                     Size="Size.Small"
+                                     Icon="@GetStatusIcon(context.Status)">
+                                @GetStatusTranslation(context.Status)
+                            </MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
+                            <MudText Typo="Typo.body2">@context.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                            <ActionButtonGroup EntityName="@context.Name"
+                                              ItemDisplayName="@context.Name"
+                                              ShowView="true"
+                                              ShowEdit="true"
+                                              ShowAuditLog="false"
+                                              ShowToggleStatus="false"
+                                              ShowDelete="true"
+                                              OnView="@(() => ViewEvent(context))"
+                                              OnEdit="@(() => EditEvent(context))"
+                                              OnDelete="@(() => DeleteEvent(context))" />
+                        </MudTd>
+                    </RowTemplate>
+
+                    <NoRecordsContent>
+                        <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                            <MudIcon Icon="@Icons.Material.Outlined.Event" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                            <MudText Typo="Typo.h6" Class="mb-2">
+                                @(_events.Any() ? 
+                                    TranslationService.GetTranslation("superAdmin.noEventsMatchFilters", "Nessun evento corrisponde ai filtri applicati") : 
+                                    TranslationService.GetTranslation("superAdmin.noEventsFound", "Nessun evento trovato"))
+                            </MudText>
+                            @if (_events.Any())
+                            {
+                                <MudButton Variant="Variant.Text" 
+                                           Color="Color.Primary" 
+                                           StartIcon="@Icons.Material.Outlined.Clear"
+                                           OnClick="@ClearFilters">
+                                    @TranslationService.GetTranslation("superAdmin.clearFilters", "Cancella filtri")
+                                </MudButton>
+                            }
+                        </div>
+                    </NoRecordsContent>
+                </MudTable>
+            }
+        </MudCardContent>
+    </MudPaper>
+
+</SuperAdminPageLayout>
+
+<!-- Event Management Drawer -->
+<EventDrawer @bind-IsOpen="_eventDrawerOpen" 
+             @bind-Mode="_eventDrawerMode"
+             OriginalEvent="_selectedEvent"
+             AllowEdit="true"
+             OnEventCreated="@OnEventCreated"
+             OnEventUpdated="@OnEventUpdated" />
+
+@code {
+    // UI State Management
+    private bool _isLoading = true;
+    private bool _isAuthorized = false;
+    private bool _isLoadingEvents = false;
+    private bool _eventDrawerOpen = false;
+    
+    // MudCollapse state management (all closed by default)
+    private bool _filtersExpanded = false;
+    
+    // Drawer and modal management
+    private EntityDrawerMode _eventDrawerMode = EntityDrawerMode.Create;
+    private EventDto? _selectedEvent;
+    
+    // Filter and search state
+    private string _searchTerm = string.Empty;
+    private string _statusFilter = "all";
+    
+    // Data collections
+    private List<EventDto> _events = new();
+    
+    /// <summary>
+    /// Computed property for filtered events based on search criteria.
+    /// </summary>
+    private IEnumerable<EventDto> _filteredEvents => 
+        _events.Where(e => 
+            // Search filter: check name and location
+            (string.IsNullOrEmpty(_searchTerm) || 
+             e.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             (!string.IsNullOrEmpty(e.Location) && e.Location.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))) &&
+            // Status filter
+            (_statusFilter == "all" || 
+             (_statusFilter == "planned" && e.Status == EventStatus.Planned) ||
+             (_statusFilter == "ongoing" && e.Status == EventStatus.Ongoing) ||
+             (_statusFilter == "completed" && e.Status == EventStatus.Completed) ||
+             (_statusFilter == "cancelled" && e.Status == EventStatus.Cancelled)));
+
+    /// <summary>
+    /// Component initialization with enhanced security checks.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Set all collapse sections to closed by default
+            _filtersExpanded = false;
+            
+            // Enhanced authentication and authorization flow
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                NavigationManager.NavigateTo("/login");
+                return;
+            }
+
+            // SuperAdmin role verification with proper error handling
+            var isSuperAdmin = await AuthService.IsSuperAdminAsync();
+            if (!isSuperAdmin)
+            {
+                _isAuthorized = false;
+                _isLoading = false;
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.accessDeniedSuperAdmin", "Accesso negato. È richiesto il ruolo Super Amministratore."), Severity.Warning);
+                return;
+            }
+
+            _isAuthorized = true;
+            
+            // Load events
+            await LoadEventsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            NavigationManager.NavigateTo("/");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Loads event data with proper error handling and loading state management.
+    /// </summary>
+    private async Task LoadEventsAsync()
+    {
+        try
+        {
+            _isLoadingEvents = true;
+            var result = await EventService.GetEventsAsync(1, 1000); // Load all events for now
+            _events = result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingEventsError", "Errore nel caricamento degli eventi: {0}", ex.Message), Severity.Error);
+        }
+        finally
+        {
+            _isLoadingEvents = false;
+        }
+    }
+
+    /// <summary>
+    /// Clears all active filters and resets search form to initial state.
+    /// </summary>
+    private async Task ClearFilters()
+    {
+        _searchTerm = string.Empty;
+        _statusFilter = "all";
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Called when the search term changes.
+    /// </summary>
+    private void OnSearchChanged()
+    {
+        // The filter is applied automatically via the computed property
+    }
+
+    /// <summary>
+    /// Called when the status filter changes.
+    /// </summary>
+    private void OnStatusFilterChanged()
+    {
+        // The filter is applied automatically via the computed property
+    }
+
+    /// <summary>
+    /// Opens the drawer to create a new event.
+    /// </summary>
+    private void OpenCreateEventDrawer()
+    {
+        _selectedEvent = null;
+        _eventDrawerMode = EntityDrawerMode.Create;
+        _eventDrawerOpen = true;
+    }
+
+    /// <summary>
+    /// Opens the drawer to view event details.
+    /// </summary>
+    private void ViewEvent(EventDto eventDto)
+    {
+        _selectedEvent = eventDto;
+        _eventDrawerMode = EntityDrawerMode.View;
+        _eventDrawerOpen = true;
+    }
+
+    /// <summary>
+    /// Opens the drawer to edit an event.
+    /// </summary>
+    private void EditEvent(EventDto eventDto)
+    {
+        _selectedEvent = eventDto;
+        _eventDrawerMode = EntityDrawerMode.Edit;
+        _eventDrawerOpen = true;
+    }
+
+    /// <summary>
+    /// Deletes an event after confirmation.
+    /// </summary>
+    private async Task DeleteEvent(EventDto eventDto)
+    {
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslation("superAdmin.confirmDeleteEvent", 
+            "Sei sicuro di voler eliminare l'evento '{0}'? Questa azione non può essere annullata.", 
+            eventDto.Name);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                await EventService.DeleteEventAsync(eventDto.Id);
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.eventDeletedSuccess", "Evento eliminato con successo"), Severity.Success);
+                await LoadEventsAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting event {EventId}", eventDto.Id);
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.eventDeleteError", "Errore durante l'eliminazione dell'evento: {0}", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Exports events to CSV.
+    /// </summary>
+    private async Task ExportEvents()
+    {
+        try
+        {
+            // TODO: Implement export functionality
+            Snackbar.Add(TranslationService.GetTranslation("common.featureNotImplemented", "Funzionalità non ancora implementata"), Severity.Info);
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error exporting events");
+            Snackbar.Add(TranslationService.GetTranslation("superAdmin.exportError", "Errore durante l'esportazione: {0}", ex.Message), Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Callback when an event is created.
+    /// </summary>
+    private async Task OnEventCreated(EventDto eventDto)
+    {
+        await LoadEventsAsync();
+    }
+
+    /// <summary>
+    /// Callback when an event is updated.
+    /// </summary>
+    private async Task OnEventUpdated(EventDto eventDto)
+    {
+        await LoadEventsAsync();
+    }
+
+    /// <summary>
+    /// Gets the color for an event status.
+    /// </summary>
+    private Color GetStatusColor(EventStatus status)
+    {
+        return status switch
+        {
+            EventStatus.Planned => Color.Info,
+            EventStatus.Ongoing => Color.Success,
+            EventStatus.Completed => Color.Default,
+            EventStatus.Cancelled => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    /// <summary>
+    /// Gets the icon for an event status.
+    /// </summary>
+    private string GetStatusIcon(EventStatus status)
+    {
+        return status switch
+        {
+            EventStatus.Planned => Icons.Material.Outlined.Schedule,
+            EventStatus.Ongoing => Icons.Material.Outlined.PlayArrow,
+            EventStatus.Completed => Icons.Material.Outlined.CheckCircle,
+            EventStatus.Cancelled => Icons.Material.Outlined.Cancel,
+            _ => Icons.Material.Outlined.Info
+        };
+    }
+
+    /// <summary>
+    /// Gets the translated status label.
+    /// </summary>
+    private string GetStatusTranslation(EventStatus status)
+    {
+        return status switch
+        {
+            EventStatus.Planned => TranslationService.GetTranslation("event.status.planned", "Pianificato"),
+            EventStatus.Ongoing => TranslationService.GetTranslation("event.status.ongoing", "In Corso"),
+            EventStatus.Completed => TranslationService.GetTranslation("event.status.completed", "Completato"),
+            EventStatus.Cancelled => TranslationService.GetTranslation("event.status.cancelled", "Annullato"),
+            _ => status.ToString()
+        };
+    }
+}
