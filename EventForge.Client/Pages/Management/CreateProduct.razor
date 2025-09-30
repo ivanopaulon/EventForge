@@ -1,0 +1,170 @@
+@page "/products/create"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Common
+@using EventForge.DTOs.Products
+@using System.Web
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+@inject IProductService ProductService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<CreateProduct> Logger
+@inject NavigationManager NavigationManager
+
+<PageTitle>@TranslationService.GetTranslation("products.createProduct", "Crea Nuovo Prodotto")</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Outlined.Add" Class="mr-2" Size="Size.Medium" />
+        @TranslationService.GetTranslation("products.createProduct", "Crea Nuovo Prodotto")
+    </MudText>
+
+    @if (_isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Class="mb-4" />
+    }
+
+    <MudPaper Elevation="2" Class="pa-4">
+        <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
+            <MudGrid Spacing="3">
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_createDto.Name"
+                                  Label="@TranslationService.GetTranslation("products.productName", "Nome Prodotto")"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                                  MaxLength="100"
+                                  Counter="100" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_createDto.Code"
+                                  Label="@TranslationService.GetTranslation("products.productCode", "Codice Prodotto")"
+                                  Variant="Variant.Outlined"
+                                  HelperText="@TranslationService.GetTranslation("products.codeHelper", "Codice SKU o simile")"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.QrCode" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_createDto.ShortDescription"
+                                  Label="@TranslationService.GetTranslation("products.shortDescription", "Descrizione Breve")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="50"
+                                  Counter="50" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_createDto.Description"
+                                  Label="@TranslationService.GetTranslation("products.description", "Descrizione")"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  MaxLength="500"
+                                  Counter="500" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_createDto.DefaultPrice"
+                                    Label="@TranslationService.GetTranslation("products.defaultPrice", "Prezzo Predefinito")"
+                                    Variant="Variant.Outlined"
+                                    Min="0m"
+                                    Format="N2"
+                                    Adornment="Adornment.Start"
+                                    AdornmentText="€" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect @bind-Value="_createDto.Status"
+                               Label="@TranslationService.GetTranslation("products.status", "Stato")"
+                               Variant="Variant.Outlined"
+                               Required="true">
+                        <MudSelectItem Value="@ProductStatus.Active">@TranslationService.GetTranslation("products.active", "Attivo")</MudSelectItem>
+                        <MudSelectItem Value="@ProductStatus.Suspended">@TranslationService.GetTranslation("products.suspended", "Sospeso")</MudSelectItem>
+                        <MudSelectItem Value="@ProductStatus.OutOfStock">@TranslationService.GetTranslation("products.outOfStock", "Esaurito")</MudSelectItem>
+                        <MudSelectItem Value="@ProductStatus.Deleted">@TranslationService.GetTranslation("products.deleted", "Eliminato")</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudSwitch @bind-Value="_createDto.IsVatIncluded"
+                              Label="@TranslationService.GetTranslation("products.vatIncluded", "IVA Inclusa")"
+                              Color="Color.Primary" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudStack Row="true" Spacing="2" Class="mt-3">
+                        <MudButton StartIcon="@Icons.Material.Outlined.Save"
+                                  Color="Color.Primary"
+                                  Variant="Variant.Filled"
+                                  OnClick="@SaveProduct"
+                                  Disabled="@(!_isFormValid || _isLoading)">
+                            @TranslationService.GetTranslation("common.save", "Salva")
+                        </MudButton>
+                        <MudButton StartIcon="@Icons.Material.Outlined.Cancel"
+                                  Color="Color.Default"
+                                  Variant="Variant.Outlined"
+                                  OnClick="@Cancel">
+                            @TranslationService.GetTranslation("common.cancel", "Annulla")
+                        </MudButton>
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private bool _isLoading = false;
+    private bool _isFormValid = false;
+    private MudForm? _form;
+    private CreateProductDto _createDto = new();
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "barcode")]
+    public string? Barcode { get; set; }
+
+    protected override void OnInitialized()
+    {
+        // Pre-fill the code if a barcode was provided
+        if (!string.IsNullOrWhiteSpace(Barcode))
+        {
+            _createDto.Code = Barcode;
+        }
+    }
+
+    private async Task SaveProduct()
+    {
+        if (!_isFormValid)
+            return;
+
+        _isLoading = true;
+        try
+        {
+            var result = await ProductService.CreateProductAsync(_createDto);
+
+            if (result != null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("products.createSuccess", "Prodotto creato con successo"), Severity.Success);
+                // Navigate back to inventory procedure or product list
+                NavigationManager.NavigateTo("/warehouse/inventory-procedure");
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("products.createError", "Errore nella creazione del prodotto"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating product");
+            Snackbar.Add(TranslationService.GetTranslation("products.createError", "Errore nella creazione del prodotto"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/warehouse/inventory-procedure");
+    }
+}

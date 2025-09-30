@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -75,6 +76,81 @@ public class ProductService : IProductService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving product by ID {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"{BaseUrl}?page={page}&pageSize={pageSize}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<PagedResult<ProductDto>>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+
+            _logger.LogError("Failed to retrieve products. Status: {StatusCode}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving products");
+            return null;
+        }
+    }
+
+    public async Task<ProductDto?> CreateProductAsync(CreateProductDto createDto)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync(BaseUrl, createDto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<ProductDto>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+
+            _logger.LogError("Failed to create product. Status: {StatusCode}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating product");
+            return null;
+        }
+    }
+
+    public async Task<ProductCodeDto?> CreateProductCodeAsync(CreateProductCodeDto createDto)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync($"{BaseUrl}/{createDto.ProductId}/codes", createDto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<ProductCodeDto>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+
+            _logger.LogError("Failed to create product code. Status: {StatusCode}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating product code");
             return null;
         }
     }
