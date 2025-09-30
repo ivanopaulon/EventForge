@@ -10,18 +10,19 @@ namespace EventForge.Client.Services;
 /// </summary>
 public class LotService : ILotService
 {
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<LotService> _logger;
     private const string BaseUrl = "api/v1/warehouse/lots";
 
-    public LotService(HttpClient httpClient, ILogger<LotService> logger)
+    public LotService(IHttpClientFactory httpClientFactory, ILogger<LotService> logger)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<PagedResult<LotDto>?> GetLotsAsync(int page = 1, int pageSize = 20, Guid? productId = null, string? status = null, bool? expiringSoon = null)
     {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
             var queryParams = new List<string>
@@ -40,7 +41,7 @@ public class LotService : ILotService
                 queryParams.Add($"expiringSoon={expiringSoon.Value}");
 
             var query = string.Join("&", queryParams);
-            var response = await _httpClient.GetAsync($"{BaseUrl}?{query}");
+            var response = await httpClient.GetAsync($"{BaseUrl}?{query}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -63,9 +64,10 @@ public class LotService : ILotService
 
     public async Task<LotDto?> GetLotByIdAsync(Guid id)
     {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await _httpClient.GetAsync($"{BaseUrl}/{id}");
+            var response = await httpClient.GetAsync($"{BaseUrl}/{id}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -89,9 +91,10 @@ public class LotService : ILotService
 
     public async Task<LotDto?> GetLotByCodeAsync(string code)
     {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await _httpClient.GetAsync($"{BaseUrl}/code/{Uri.EscapeDataString(code)}");
+            var response = await httpClient.GetAsync($"{BaseUrl}/code/{Uri.EscapeDataString(code)}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -115,9 +118,10 @@ public class LotService : ILotService
 
     public async Task<IEnumerable<LotDto>?> GetExpiringLotsAsync(int daysAhead = 30)
     {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await _httpClient.GetAsync($"{BaseUrl}/expiring?daysAhead={daysAhead}");
+            var response = await httpClient.GetAsync($"{BaseUrl}/expiring?daysAhead={daysAhead}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -136,9 +140,10 @@ public class LotService : ILotService
 
     public async Task<LotDto?> CreateLotAsync(CreateLotDto createDto)
     {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await _httpClient.PostAsJsonAsync(BaseUrl, createDto);
+            var response = await httpClient.PostAsJsonAsync(BaseUrl, createDto);
 
             if (response.IsSuccessStatusCode)
             {
@@ -157,9 +162,10 @@ public class LotService : ILotService
 
     public async Task<LotDto?> UpdateLotAsync(Guid id, UpdateLotDto updateDto)
     {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", updateDto);
+            var response = await httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", updateDto);
 
             if (response.IsSuccessStatusCode)
             {
@@ -183,9 +189,10 @@ public class LotService : ILotService
 
     public async Task<bool> DeleteLotAsync(Guid id)
     {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await _httpClient.DeleteAsync($"{BaseUrl}/{id}");
+            var response = await httpClient.DeleteAsync($"{BaseUrl}/{id}");
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
@@ -197,13 +204,14 @@ public class LotService : ILotService
 
     public async Task<bool> UpdateQualityStatusAsync(Guid id, string qualityStatus, string? notes = null)
     {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
             var queryParams = $"qualityStatus={Uri.EscapeDataString(qualityStatus)}";
             if (!string.IsNullOrEmpty(notes))
                 queryParams += $"&notes={Uri.EscapeDataString(notes)}";
 
-            var response = await _httpClient.PatchAsync($"{BaseUrl}/{id}/quality-status?{queryParams}", null);
+            var response = await httpClient.PatchAsync($"{BaseUrl}/{id}/quality-status?{queryParams}", null);
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
@@ -215,9 +223,10 @@ public class LotService : ILotService
 
     public async Task<bool> BlockLotAsync(Guid id, string reason)
     {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await _httpClient.PostAsync($"{BaseUrl}/{id}/block?reason={Uri.EscapeDataString(reason)}", null);
+            var response = await httpClient.PostAsync($"{BaseUrl}/{id}/block?reason={Uri.EscapeDataString(reason)}", null);
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
@@ -229,9 +238,10 @@ public class LotService : ILotService
 
     public async Task<bool> UnblockLotAsync(Guid id)
     {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await _httpClient.PostAsync($"{BaseUrl}/{id}/unblock", null);
+            var response = await httpClient.PostAsync($"{BaseUrl}/{id}/unblock", null);
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
