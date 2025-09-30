@@ -87,9 +87,14 @@
     "helpCenter": "Help Center",
     "interactiveTour": "Interactive Tour",
     "tutorialCenter": "Tutorial Center",
-    "notificationsDescription": "View your notifications",
+    "openMenu": "Open navigation menu",
+    "mainMenu": "Main menu",
+    "eventforge": "EventForge",
     "admin": "Administration",
-    "notifications": "Notifications"
+    "events": "Events",
+    "notifications": "Notifications",
+    "chat": "Chat",
+    "notificationsDescription": "View your notifications"
   },
   "home": {
     "title": "EventForge - Home",
@@ -841,7 +846,8 @@
   },
   "accessibility": {
     "languageSelectorDescription": "Select your preferred language",
-    "selectLanguage": "Select language"
+    "selectLanguage": "Select language",
+    "skipToContent": "Skip to main content"
   },
   "profile": {
     "title": "My Profile",
