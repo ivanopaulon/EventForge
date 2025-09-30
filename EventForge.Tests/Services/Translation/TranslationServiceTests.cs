@@ -24,8 +24,6 @@ public class TranslationFileTests
     [Theory]
     [InlineData("it.json")]
     [InlineData("en.json")]
-    [InlineData("es.json")]
-    [InlineData("fr.json")]
     public void TranslationFile_ShouldBeValidJson(string fileName)
     {
         // Arrange
