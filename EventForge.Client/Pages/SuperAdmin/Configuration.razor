@@ -1,6 +1,7 @@
 @page "/superadmin/configuration"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components
 @using EventForge.DTOs.SuperAdmin
 @attribute [Authorize(Roles = "SuperAdmin")]
 @inject IAuthService AuthService
@@ -10,175 +11,123 @@
 @inject IJSRuntime JSRuntime
 @inject ITranslationService TranslationService
 
-<PageTitle>@TranslationService.GetTranslation("superAdmin.pageTitle", "{0} - EventForge Super Admin", TranslationService.GetTranslation("superAdmin.systemConfiguration", "Configurazione"))</PageTitle>
+<SuperAdminPageLayout PageTitle="@TranslationService.GetTranslation("superAdmin.systemConfiguration", "Configurazione Sistema")"
+                      PageIcon="@Icons.Material.Outlined.Settings"
+                      IsLoading="_isLoading"
+                      IsAuthorized="_isAuthorized"
+                      OnNavigateHome="@(() => NavigationManager.NavigateTo("/"))">
 
-@* SuperAdminBanner removed as per refactoring requirements *@
+    <!-- Quick Actions Section -->
+    <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.quickActions", "Azioni Rapide")"
+                                  SectionIcon="@Icons.Material.Outlined.FastForward"
+                                  @bind-IsExpanded="_quickActionsExpanded">
+        <div class="d-flex gap-2 align-center">
+            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refresh", "Aggiorna dati")">
+                <MudIconButton Icon="@Icons.Material.Outlined.Refresh" 
+                               Color="Color.Info"
+                               OnClick="LoadConfigurationsAsync"
+                               Disabled="_isLoading"
+                               aria-label="@TranslationService.GetTranslation("tooltip.refresh", "Aggiorna dati")" />
+            </MudTooltip>
+            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.addConfiguration", "Aggiungi nuova configurazione")">
+                <MudIconButton Icon="@Icons.Material.Outlined.Add"
+                               Color="Color.Primary" 
+                               OnClick="OpenCreateDialog"
+                               aria-label="@TranslationService.GetTranslation("tooltip.addConfiguration", "Aggiungi nuova configurazione")" />
+            </MudTooltip>
+        </div>
+    </SuperAdminCollapsibleSection>
 
-@if (_isLoading)
-{
-    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-}
-else if (!_isAuthorized)
-{
-    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
-        <MudPaper Class="pa-2 pa-sm-3 pa-md-4" Elevation="4">
-            <MudGrid Justify="Justify.Center">
-                <MudItem xs="12">
-                    <div class="d-flex flex-column align-center">
-                        <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Medium" Class="mb-4" Style="font-size: 48px;" />
-                        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">@TranslationService.GetTranslation("error.accessDenied", "Accesso Negato")</MudText>
-                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
-                            @TranslationService.GetTranslation("superAdmin.superAdminRoleRequired", "Non hai i permessi per accedere a questa pagina. È richiesto il ruolo Super Amministratore.")
-                        </MudText>
-                        <MudButton Variant="Variant.Filled" 
-                                   Color="Color.Primary" 
-                                   StartIcon="Icons.Material.Filled.ArrowBack"
-                                   OnClick="@(() => NavigationManager.NavigateTo("/"))">
-                            @TranslationService.GetTranslation("superAdmin.returnToHome", "Torna alla Home")
-                        </MudButton>
-                    </div>
-                </MudItem>
-            </MudGrid>
+    @if (_configurations.Any())
+    {
+        <!-- Configuration Tabs: Main content area with reduced spacing -->
+        <MudPaper Elevation="2" Class="pa-2 mb-1 border-rounded">
+            <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" @bind-ActivePanelIndex="_activeTab">
+                @foreach (var category in _categories)
+                {
+                    <MudTabPanel Text="@TranslationService.GetTranslation($"superAdmin.category{category}", category)">
+                        <MudGrid Spacing="4">
+                            @foreach (var config in _configurations.Where(c => c.Category == category))
+                            {
+                                <MudItem xs="12" md="6" lg="4">
+                                    <MudCard Elevation="1" Class="mb-4">
+                                        <MudCardContent>
+                                            <div class="d-flex justify-space-between align-start mb-3">
+                                                <div class="flex-grow-1">
+                                                    <MudText Typo="Typo.h6" Class="mb-1">@config.Key</MudText>
+                                                    <MudText Typo="Typo.body2" Color="Color.Secondary">@config.Description</MudText>
+                                                </div>
+                                                <div class="d-flex ga-1">
+                                                    @if (config.IsEncrypted)
+                                                    {
+                                                        <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.encryptedValue", "Valore crittografato")">
+                                                            <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" Color="Color.Warning" />
+                                                        </MudTooltip>
+                                                    }
+                                                    @if (config.RequiresRestart)
+                                                    {
+                                                        <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.requiresRestart", "Richiede riavvio")">
+                                                            <MudIcon Icon="@Icons.Material.Outlined.RestartAlt" Size="Size.Small" Color="Color.Error" />
+                                                        </MudTooltip>
+                                                    }
+                                                </div>
+                                            </div>
+                                            
+                                            <MudTextField Value="@(config.IsEncrypted ? "••••••••" : config.Value)"
+                                                          Label="@TranslationService.GetTranslation("superAdmin.configValue", "Valore")"
+                                                          Variant="Variant.Outlined"
+                                                          ReadOnly="true"
+                                                          Lines="2"
+                                                          Class="mb-3" />
+                                            
+                                            <div class="d-flex justify-space-between align-center">
+                                                <MudText Typo="Typo.caption" Color="Color.Tertiary">
+                                                    @TranslationService.GetTranslation("superAdmin.modified", "Modificato"): @(config.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? TranslationService.GetTranslation("common.never", "Mai"))
+                                                </MudText>
+                                                <div class="d-flex ga-1">
+                                                    <MudTooltip Text="@TranslationService.GetTranslation("tooltip.edit", "Modifica")">
+                                                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
+                                                                       Size="Size.Small" 
+                                                                       Color="Color.Primary"
+                                                                       aria-label="@TranslationService.GetTranslation("tooltip.edit", "Modifica")"
+                                                                       OnClick="@(() => OpenEditDialog(config))" />
+                                                    </MudTooltip>
+                                                    <MudTooltip Text="@TranslationService.GetTranslation("tooltip.delete", "Elimina")">
+                                                        <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
+                                                                       Size="Size.Small" 
+                                                                       Color="Color.Error"
+                                                                       aria-label="@TranslationService.GetTranslation("tooltip.delete", "Elimina")"
+                                                                       OnClick="@(() => DeleteConfigurationAsync(config))" />
+                                                    </MudTooltip>
+                                                </div>
+                                            </div>
+                                        </MudCardContent>
+                                    </MudCard>
+                                </MudItem>
+                            }
+                        </MudGrid>
+                    </MudTabPanel>
+                }
+            </MudTabs>
         </MudPaper>
-    </MudContainer>
-}
-else
-{
-    <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-        <MudText Typo="Typo.h4" Class="mb-4">
-            <MudIcon Icon="@Icons.Material.Outlined.Settings" Class="mr-2" Size="Size.Medium" />
-            @TranslationService.GetTranslation("superAdmin.systemConfiguration", "Configurazione Sistema")
-        </MudText>
-
-        <!-- Reduced spacing with minimal margins between components -->
-        <MudStack Spacing="1">
-            <!-- Quick Actions Section: MudPaper with MudCollapse, closed by default -->
-            <MudPaper Elevation="1" Class="pa-2 mb-1">
-                <div style="cursor: pointer;" @onclick="@(() => _quickActionsExpanded = !_quickActionsExpanded)" 
-                     class="d-flex align-center pa-2 hover:bg-gray-100">
-                    <MudIcon Icon="@Icons.Material.Outlined.FastForward" Class="mr-2" />
-                    <MudText Typo="Typo.h6" Class="flex-grow-1">
-                        @TranslationService.GetTranslation("superAdmin.quickActions", "Azioni Rapide")
-                    </MudText>
-                    <MudIconButton Icon="@(_quickActionsExpanded ? Icons.Material.Outlined.ExpandLess : Icons.Material.Outlined.ExpandMore)"
-                                   Size="Size.Small"
-                                   Color="Color.Inherit"
-                                   aria-label="@TranslationService.GetTranslation("tooltip.toggleQuickActions", "Mostra/Nascondi azioni rapide")" />
-                </div>
-                <MudCollapse Expanded="_quickActionsExpanded">
-                    <div class="pa-2 mb-1">
-                        <!-- Toolbar with only MudIconButton and semantic icons as required -->
-                        <div class="d-flex gap-2 align-center">
-                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refresh", "Aggiorna dati")">
-                                <MudIconButton Icon="@Icons.Material.Outlined.Refresh" 
-                                               Color="Color.Info"
-                                               OnClick="LoadConfigurationsAsync"
-                                               Disabled="_isLoading"
-                                               aria-label="@TranslationService.GetTranslation("tooltip.refresh", "Aggiorna dati")" />
-                            </MudTooltip>
-                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.addConfiguration", "Aggiungi nuova configurazione")">
-                                <MudIconButton Icon="@Icons.Material.Outlined.Add"
-                                               Color="Color.Primary" 
-                                               OnClick="OpenCreateDialog"
-                                               aria-label="@TranslationService.GetTranslation("tooltip.addConfiguration", "Aggiungi nuova configurazione")" />
-                            </MudTooltip>
-                        </div>
-                    </div>
-                </MudCollapse>
-            </MudPaper>
-
-        @if (_configurations.Any())
-        {
-            <!-- Configuration Tabs: Main content area with reduced spacing -->
-            <MudPaper Elevation="2" Class="pa-2 mb-1">
-                <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" @bind-ActivePanelIndex="_activeTab">
-                        @foreach (var category in _categories)
-                        {
-                            <MudTabPanel Text="@TranslationService.GetTranslation($"superAdmin.category{category}", category)">
-                                <MudGrid Spacing="4">
-                                    @foreach (var config in _configurations.Where(c => c.Category == category))
-                                    {
-                                        <MudItem xs="12" md="6" lg="4">
-                                            <MudCard Elevation="1" Class="mb-4">
-                                                <MudCardContent>
-                                                    <div class="d-flex justify-space-between align-start mb-3">
-                                                        <div class="flex-grow-1">
-                                                            <MudText Typo="Typo.h6" Class="mb-1">@config.Key</MudText>
-                                                            <MudText Typo="Typo.body2" Color="Color.Secondary">@config.Description</MudText>
-                                                        </div>
-                                                        <div class="d-flex ga-1">
-                                                            @if (config.IsEncrypted)
-                                                            {
-                                                                <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.encryptedValue", "Valore crittografato")">
-                                                                    <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" Color="Color.Warning" />
-                                                                </MudTooltip>
-                                                            }
-                                                            @if (config.RequiresRestart)
-                                                            {
-                                                                <MudTooltip Text="@TranslationService.GetTranslation("superAdmin.requiresRestart", "Richiede riavvio")">
-                                                                    <MudIcon Icon="@Icons.Material.Outlined.RestartAlt" Size="Size.Small" Color="Color.Error" />
-                                                                </MudTooltip>
-                                                            }
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <MudTextField Value="@(config.IsEncrypted ? "••••••••" : config.Value)"
-                                                                  Label="@TranslationService.GetTranslation("superAdmin.configValue", "Valore")"
-                                                                  Variant="Variant.Outlined"
-                                                                  ReadOnly="true"
-                                                                  Lines="2"
-                                                                  Class="mb-3" />
-                                                    
-                                                    <div class="d-flex justify-space-between align-center">
-                                                        <MudText Typo="Typo.caption" Color="Color.Tertiary">
-                                                            @TranslationService.GetTranslation("superAdmin.modified", "Modificato"): @(config.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? TranslationService.GetTranslation("common.never", "Mai"))
-                                                        </MudText>
-                                                        <div class="d-flex ga-1">
-                                                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.edit", "Modifica")">
-                                                                <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
-                                                                               Size="Size.Small" 
-                                                                               Color="Color.Primary"
-                                                                               aria-label="@TranslationService.GetTranslation("tooltip.edit", "Modifica")"
-                                                                               OnClick="@(() => OpenEditDialog(config))" />
-                                                            </MudTooltip>
-                                                            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.delete", "Elimina")">
-                                                                <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
-                                                                               Size="Size.Small" 
-                                                                               Color="Color.Error"
-                                                                               aria-label="@TranslationService.GetTranslation("tooltip.delete", "Elimina")"
-                                                                               OnClick="@(() => DeleteConfigurationAsync(config))" />
-                                                            </MudTooltip>
-                                                        </div>
-                                                    </div>
-                                                </MudCardContent>
-                                            </MudCard>
-                                        </MudItem>
-                                    }
-                                </MudGrid>
-                            </MudTabPanel>
-                        }
-                    </MudTabs>
-            </MudPaper>
-        }
-        else
-        {
-            <!-- Empty State -->
-            <MudPaper Elevation="2" Class="pa-4 mb-1">
-                    <div class="d-flex flex-column align-center py-8">
-                        <MudIcon Icon="@Icons.Material.Outlined.Settings" Size="Size.Medium" Color="Color.Tertiary" Class="mb-4" />
-                        <MudText Typo="Typo.h6" Color="Color.Tertiary">@TranslationService.GetTranslation("superAdmin.noConfigurationsFound", "Nessuna configurazione trovata")</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Tertiary" Class="mb-4">@TranslationService.GetTranslation("superAdmin.createFirstConfiguration", "Inizia creando la prima configurazione")</MudText>
-                        <MudIconButton Icon="@Icons.Material.Outlined.Add"
-                                       Color="Color.Primary"
-                                       aria-label="@TranslationService.GetTranslation("superAdmin.createConfiguration", "Crea Configurazione")"
-                                       OnClick="OpenCreateDialog">
-                        </MudIconButton>
-                    </div>
-            </MudPaper>
-        }
-        </MudStack>
-    </MudContainer>
-}
+    }
+    else
+    {
+        <!-- Empty State -->
+        <MudPaper Elevation="2" Class="pa-4 mb-1 border-rounded">
+            <div class="d-flex flex-column align-center py-8">
+                <MudIcon Icon="@Icons.Material.Outlined.Settings" Size="Size.Medium" Color="Color.Tertiary" Class="mb-4" />
+                <MudText Typo="Typo.h6" Color="Color.Tertiary">@TranslationService.GetTranslation("superAdmin.noConfigurationsFound", "Nessuna configurazione trovata")</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Tertiary" Class="mb-4">@TranslationService.GetTranslation("superAdmin.createFirstConfiguration", "Inizia creando la prima configurazione")</MudText>
+                <MudIconButton Icon="@Icons.Material.Outlined.Add"
+                               Color="Color.Primary"
+                               aria-label="@TranslationService.GetTranslation("superAdmin.createConfiguration", "Crea Configurazione")"
+                               OnClick="OpenCreateDialog">
+                </MudIconButton>
+            </div>
+        </MudPaper>
+    }
+</SuperAdminPageLayout>
 
 <!-- Dialog for creating/editing configuration -->
 <MudDialog @bind-IsVisible="_showConfigDialog" Options="_dialogOptions">
