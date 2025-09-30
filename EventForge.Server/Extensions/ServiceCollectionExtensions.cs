@@ -37,11 +37,11 @@ public static class ServiceCollectionExtensions
         try
         {
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Information()
-                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-                .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", LogEventLevel.Warning)
-                .MinimumLevel.Override("Microsoft.AspNetCore.Mvc", LogEventLevel.Warning)
-                .MinimumLevel.Override("Microsoft.AspNetCore.Routing", LogEventLevel.Warning)
+                .MinimumLevel.Verbose()
+                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Verbose)
+                .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", LogEventLevel.Verbose)
+                .MinimumLevel.Override("Microsoft.AspNetCore.Mvc", LogEventLevel.Verbose)
+                .MinimumLevel.Override("Microsoft.AspNetCore.Routing", LogEventLevel.Verbose)
                 .WriteTo.MSSqlServer(
                     connectionString: builder.Configuration.GetConnectionString("LogDb"),
                     sinkOptions: new MSSqlServerSinkOptions
@@ -59,12 +59,12 @@ public static class ServiceCollectionExtensions
 
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Information()
-                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Verbose)
                 .WriteTo.File(
                     path: filePath,
                     rollingInterval: RollingInterval.Day,
                     retainedFileCountLimit: fileRetention,
-                    restrictedToMinimumLevel: LogEventLevel.Information
+                    restrictedToMinimumLevel: LogEventLevel.Verbose
                 )
                 .CreateLogger();
 
