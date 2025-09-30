@@ -454,10 +454,10 @@ else
     private bool _isLoadingUsers = false;
     private bool _userDrawerOpen = false;
     
-    // MudCollapse state management (tenant selector now expanded by default to prevent errors)
+    // MudCollapse state management (all sections closed by default for consistency with TenantManagement)
     private bool _statisticsExpanded = false;      // Closed by default
     private bool _filtersExpanded = false;         // Closed by default  
-    private bool _tenantSelectorExpanded = true;   // Expanded by default to prevent tenant selection errors
+    private bool _tenantSelectorExpanded = false;  // Closed by default, tenant selection is optional
     
     // Drawer and modal management
     private EntityDrawerMode _userDrawerMode = EntityDrawerMode.Create;
@@ -519,10 +519,10 @@ else
     {
         try
         {
-            // Set tenant selector expanded by default, others closed by default to prevent tenant selection errors
+            // Set all sections closed by default for consistency
             _statisticsExpanded = false;
             _filtersExpanded = false;
-            _tenantSelectorExpanded = true;  // Expanded by default to prevent tenant selection errors
+            _tenantSelectorExpanded = false;  // Tenant selection is optional, not required
             
             // Enhanced authentication and authorization flow
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
@@ -546,7 +546,7 @@ else
             _currentUser = await AuthService.GetCurrentUserAsync();
             _isAuthorized = true;
             
-            // Load tenants first, then users and statistics (sequential loading to allow tenant auto-selection)
+            // Load tenants first (for optional filtering), then users and statistics
             await LoadTenantsAsync();
             await Task.WhenAll(
                 LoadUsersAsync(),
@@ -566,7 +566,7 @@ else
 
     /// <summary>
     /// Loads tenant data with proper error handling and loading state management.
-    /// Auto-selects the first tenant if available to prevent errors.
+    /// Tenants are optional - users can be viewed across all tenants.
     /// </summary>
     private async Task LoadTenantsAsync()
     {
@@ -575,27 +575,20 @@ else
             _isLoadingTenants = true;
             _tenants = (await SuperAdminService.GetTenantsAsync()).ToList();
             
-            // Auto-select the first tenant if available and no tenant is currently selected
-            if (_tenants.Any() && string.IsNullOrEmpty(_selectedTenant))
+            // Do NOT auto-select a tenant - tenant selection is optional
+            // Users can view all users across all tenants by default
+            // If tenant context service has a saved tenant, use it
+            var contextTenantId = TenantContextService.CurrentTenantId;
+            if (contextTenantId.HasValue && _tenants.Any(t => t.Id == contextTenantId.Value))
             {
-                // Check if tenant context service has a saved tenant first
-                var contextTenantId = TenantContextService.CurrentTenantId;
-                if (contextTenantId.HasValue && _tenants.Any(t => t.Id == contextTenantId.Value))
-                {
-                    _selectedTenant = contextTenantId.Value.ToString();
-                }
-                else
-                {
-                    _selectedTenant = _tenants.First().Id.ToString();
-                }
-                
-                // Trigger data reload with the selected tenant
-                await OnTenantChanged();
+                _selectedTenant = contextTenantId.Value.ToString();
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingTenantsError", "Errore nel caricamento dei tenant: {0}", ex.Message), Severity.Error);
+            Logger.LogWarning(ex, "Error loading tenants for optional filtering");
+            // Don't show error to user - tenant selection is optional
+            // Page can still function without tenant list
         }
         finally
         {

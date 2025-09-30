@@ -281,16 +281,36 @@
     {
         try
         {
-            _isAuthorized = await AuthService.IsInRoleAsync("SuperAdmin");
-            if (_isAuthorized)
+            // Set all collapse sections to closed by default
+            _statisticsExpanded = false;
+            _filtersExpanded = false;
+            
+            // Enhanced authentication and authorization flow
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
             {
-                await LoadLicenses();
+                NavigationManager.NavigateTo("/login");
+                return;
             }
+
+            // SuperAdmin role verification with proper error handling
+            var isSuperAdmin = await AuthService.IsSuperAdminAsync();
+            if (!isSuperAdmin)
+            {
+                _isAuthorized = false;
+                _isLoading = false;
+                Snackbar.Add(TranslationService.GetTranslation("superAdmin.accessDeniedSuperAdmin", "Accesso negato. È richiesto il ruolo Super Amministratore."), Severity.Warning);
+                return;
+            }
+
+            _isAuthorized = true;
+            await LoadLicenses();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error initializing license management page");
-            Snackbar.Add(TranslationService.GetTranslation("error.loadFailed", "Errore durante il caricamento"), Severity.Error);
+            Snackbar.Add(TranslationService.GetTranslation("error.loadFailed", "Errore durante il caricamento: {0}", ex.Message), Severity.Error);
+            NavigationManager.NavigateTo("/");
         }
         finally
         {
