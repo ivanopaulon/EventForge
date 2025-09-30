@@ -45,24 +45,24 @@ namespace EventForge.Client.Services
         public async Task<PagedResult<ApplicationLogDto>> GetApplicationLogsAsync(Dictionary<string, object> queryParams)
         {
             var queryString = BuildQueryString(queryParams);
-            return await _httpClientService.GetAsync<PagedResult<ApplicationLogDto>>($"api/v1/ApplicationLog?{queryString}") ??
+            return await _httpClientService.GetAsync<PagedResult<ApplicationLogDto>>($"api/v1/application-logs?{queryString}") ??
                    new PagedResult<ApplicationLogDto>();
         }
 
         public async Task<ApplicationLogDto?> GetApplicationLogAsync(Guid id)
         {
-            return await _httpClientService.GetAsync<ApplicationLogDto>($"api/v1/ApplicationLog/{id}");
+            return await _httpClientService.GetAsync<ApplicationLogDto>($"api/v1/application-logs/{id}");
         }
 
         public async Task<ApplicationLogStatisticsDto> GetApplicationLogStatisticsAsync()
         {
-            return await _httpClientService.GetAsync<ApplicationLogStatisticsDto>("api/v1/ApplicationLog/statistics") ??
+            return await _httpClientService.GetAsync<ApplicationLogStatisticsDto>("api/v1/application-logs/statistics") ??
                    new ApplicationLogStatisticsDto();
         }
 
         public async Task<Stream> ExportApplicationLogsAsync(ExportRequestDto exportDto)
         {
-            return await _httpClientService.PostStreamAsync("api/v1/ApplicationLog/export", exportDto);
+            return await _httpClientService.PostStreamAsync("api/v1/application-logs/export", exportDto);
         }
 
         #endregion
@@ -72,24 +72,24 @@ namespace EventForge.Client.Services
         public async Task<PagedResult<EntityChangeLogDto>> GetAuditLogsAsync(Dictionary<string, object> queryParams)
         {
             var queryString = BuildQueryString(queryParams);
-            return await _httpClientService.GetAsync<PagedResult<EntityChangeLogDto>>($"api/v1/AuditLog?{queryString}") ??
+            return await _httpClientService.GetAsync<PagedResult<EntityChangeLogDto>>($"api/v1/audit-logs?{queryString}") ??
                    new PagedResult<EntityChangeLogDto>();
         }
 
         public async Task<EntityChangeLogDto?> GetAuditLogAsync(Guid id)
         {
-            return await _httpClientService.GetAsync<EntityChangeLogDto>($"api/v1/AuditLog/{id}");
+            return await _httpClientService.GetAsync<EntityChangeLogDto>($"api/v1/audit-logs/{id}");
         }
 
         public async Task<AuditTrailStatisticsDto> GetAuditLogStatisticsAsync()
         {
-            return await _httpClientService.GetAsync<AuditTrailStatisticsDto>("api/v1/AuditLog/audit-trail/statistics") ??
+            return await _httpClientService.GetAsync<AuditTrailStatisticsDto>("api/v1/audit-logs/statistics") ??
                    new AuditTrailStatisticsDto();
         }
 
         public async Task<Stream> ExportAuditLogsAsync(AuditLogExportDto exportDto)
         {
-            return await _httpClientService.PostStreamAsync("api/v1/AuditLog/export", exportDto);
+            return await _httpClientService.PostStreamAsync("api/v1/audit-logs/export", exportDto);
         }
 
         #endregion
