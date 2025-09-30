@@ -23,17 +23,20 @@ public class FinancialManagementController : BaseApiController
     private readonly IPaymentTermService _paymentTermService;
     private readonly IVatRateService _vatRateService;
     private readonly ITenantContext _tenantContext;
+    private readonly ILogger<FinancialManagementController> _logger;
 
     public FinancialManagementController(
         IBankService bankService,
         IPaymentTermService paymentTermService,
         IVatRateService vatRateService,
-        ITenantContext tenantContext)
+        ITenantContext tenantContext,
+        ILogger<FinancialManagementController> logger)
     {
         _bankService = bankService ?? throw new ArgumentNullException(nameof(bankService));
         _paymentTermService = paymentTermService ?? throw new ArgumentNullException(nameof(paymentTermService));
         _vatRateService = vatRateService ?? throw new ArgumentNullException(nameof(vatRateService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     #region Bank Management
@@ -70,6 +73,7 @@ public class FinancialManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving banks.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving banks.", ex);
         }
     }
@@ -106,6 +110,7 @@ public class FinancialManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving the bank.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the bank.", ex);
         }
     }
@@ -142,6 +147,7 @@ public class FinancialManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while creating the bank.");
             return CreateInternalServerErrorProblem("An error occurred while creating the bank.", ex);
         }
     }
@@ -187,6 +193,7 @@ public class FinancialManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while updating the bank.");
             return CreateInternalServerErrorProblem("An error occurred while updating the bank.", ex);
         }
     }
@@ -223,6 +230,7 @@ public class FinancialManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while deleting the bank.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the bank.", ex);
         }
     }
@@ -263,6 +271,7 @@ public class FinancialManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving payment terms.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving payment terms.", ex);
         }
     }
@@ -299,6 +308,7 @@ public class FinancialManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving the payment term.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the payment term.", ex);
         }
     }
@@ -335,6 +345,7 @@ public class FinancialManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while creating the payment term.");
             return CreateInternalServerErrorProblem("An error occurred while creating the payment term.", ex);
         }
     }
@@ -380,6 +391,7 @@ public class FinancialManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while updating the payment term.");
             return CreateInternalServerErrorProblem("An error occurred while updating the payment term.", ex);
         }
     }
@@ -416,6 +428,7 @@ public class FinancialManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while deleting the payment term.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the payment term.", ex);
         }
     }
@@ -456,6 +469,7 @@ public class FinancialManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving VAT rates.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving VAT rates.", ex);
         }
     }
@@ -492,6 +506,7 @@ public class FinancialManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving the VAT rate.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the VAT rate.", ex);
         }
     }
@@ -528,6 +543,7 @@ public class FinancialManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while creating the VAT rate.");
             return CreateInternalServerErrorProblem("An error occurred while creating the VAT rate.", ex);
         }
     }
@@ -573,6 +589,7 @@ public class FinancialManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while updating the VAT rate.");
             return CreateInternalServerErrorProblem("An error occurred while updating the VAT rate.", ex);
         }
     }
@@ -609,6 +626,7 @@ public class FinancialManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while deleting the VAT rate.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the VAT rate.", ex);
         }
     }

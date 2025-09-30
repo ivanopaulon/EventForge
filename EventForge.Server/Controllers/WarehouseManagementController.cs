@@ -23,6 +23,7 @@ public class WarehouseManagementController : BaseApiController
     private readonly IStockService _stockService;
     private readonly ISerialService _serialService;
     private readonly ITenantContext _tenantContext;
+    private readonly ILogger<WarehouseManagementController> _logger;
 
     public WarehouseManagementController(
         IStorageFacilityService storageFacilityService,
@@ -30,7 +31,8 @@ public class WarehouseManagementController : BaseApiController
         ILotService lotService,
         IStockService stockService,
         ISerialService serialService,
-        ITenantContext tenantContext)
+        ITenantContext tenantContext,
+        ILogger<WarehouseManagementController> logger)
     {
         _storageFacilityService = storageFacilityService ?? throw new ArgumentNullException(nameof(storageFacilityService));
         _storageLocationService = storageLocationService ?? throw new ArgumentNullException(nameof(storageLocationService));
@@ -38,6 +40,7 @@ public class WarehouseManagementController : BaseApiController
         _stockService = stockService ?? throw new ArgumentNullException(nameof(stockService));
         _serialService = serialService ?? throw new ArgumentNullException(nameof(serialService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     #region Storage Facilities Management
@@ -74,6 +77,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving storage facilities.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving storage facilities.", ex);
         }
     }
@@ -110,6 +114,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving the storage facility.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the storage facility.", ex);
         }
     }
@@ -146,6 +151,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while creating the storage facility.");
             return CreateInternalServerErrorProblem("An error occurred while creating the storage facility.", ex);
         }
     }
@@ -196,6 +202,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving storage locations.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving storage locations.", ex);
         }
     }
@@ -232,6 +239,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving the storage location.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the storage location.", ex);
         }
     }
@@ -268,6 +276,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while creating the storage location.");
             return CreateInternalServerErrorProblem("An error occurred while creating the storage location.", ex);
         }
     }
@@ -314,6 +323,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving lots.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving lots.", ex);
         }
     }
@@ -343,6 +353,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving the lot.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the lot.", ex);
         }
     }
@@ -372,6 +383,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving the lot.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the lot.", ex);
         }
     }
@@ -401,6 +413,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving expiring lots.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving expiring lots.", ex);
         }
     }
@@ -443,6 +456,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while creating the lot.");
             return CreateInternalServerErrorProblem("An error occurred while creating the lot.", ex);
         }
     }
@@ -489,6 +503,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while updating the lot.");
             return CreateInternalServerErrorProblem("An error occurred while updating the lot.", ex);
         }
     }
@@ -524,6 +539,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while deleting the lot.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the lot.", ex);
         }
     }
@@ -566,10 +582,12 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (ArgumentException ex)
         {
+            _logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while updating the lot quality status.");
             return CreateInternalServerErrorProblem("An error occurred while updating the lot quality status.", ex);
         }
     }
@@ -610,6 +628,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while blocking the lot.");
             return CreateInternalServerErrorProblem("An error occurred while blocking the lot.", ex);
         }
     }
@@ -639,6 +658,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while unblocking the lot.");
             return CreateInternalServerErrorProblem("An error occurred while unblocking the lot.", ex);
         }
     }
@@ -687,6 +707,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving stock entries.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving stock entries.", ex);
         }
     }
@@ -716,6 +737,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving the stock entry.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the stock entry.", ex);
         }
     }
@@ -750,6 +772,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while creating/updating the stock entry.");
             return CreateInternalServerErrorProblem("An error occurred while creating/updating the stock entry.", ex);
         }
     }
@@ -789,6 +812,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while reserving stock.");
             return CreateInternalServerErrorProblem("An error occurred while reserving stock.", ex);
         }
     }
@@ -836,6 +860,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving serials.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving serials.", ex);
         }
     }
@@ -862,6 +887,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving the serial.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the serial.", ex);
         }
     }
@@ -897,6 +923,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while creating the serial.");
             return CreateInternalServerErrorProblem("An error occurred while creating the serial.", ex);
         }
     }
@@ -935,10 +962,12 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (ArgumentException ex)
         {
+            _logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while updating the serial status.");
             return CreateInternalServerErrorProblem("An error occurred while updating the serial status.", ex);
         }
     }
@@ -1005,6 +1034,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving inventory entries.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving inventory entries.", ex);
         }
     }
@@ -1071,6 +1101,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while creating the inventory entry.");
             return CreateInternalServerErrorProblem("An error occurred while creating the inventory entry.", ex);
         }
     }

@@ -31,6 +31,7 @@ public class ProductManagementController : BaseApiController
     private readonly IPromotionService _promotionService;
     private readonly IBarcodeService _barcodeService;
     private readonly ITenantContext _tenantContext;
+    private readonly ILogger<ProductManagementController> _logger;
 
     public ProductManagementController(
         IProductService productService,
@@ -38,7 +39,8 @@ public class ProductManagementController : BaseApiController
         IPriceListService priceListService,
         IPromotionService promotionService,
         IBarcodeService barcodeService,
-        ITenantContext tenantContext)
+        ITenantContext tenantContext,
+        ILogger<ProductManagementController> logger)
     {
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
         _umService = umService ?? throw new ArgumentNullException(nameof(umService));
@@ -46,6 +48,7 @@ public class ProductManagementController : BaseApiController
         _promotionService = promotionService ?? throw new ArgumentNullException(nameof(promotionService));
         _barcodeService = barcodeService ?? throw new ArgumentNullException(nameof(barcodeService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     #region Product CRUD Operations
@@ -82,6 +85,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving products.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving products.", ex);
         }
     }
@@ -116,6 +120,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving the product.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the product.", ex);
         }
     }
@@ -150,6 +155,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving the product.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the product.", ex);
         }
     }
@@ -185,10 +191,12 @@ public class ProductManagementController : BaseApiController
         }
         catch (ArgumentException ex)
         {
+            _logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while creating the product.");
             return CreateInternalServerErrorProblem("An error occurred while creating the product.", ex);
         }
     }
@@ -231,10 +239,12 @@ public class ProductManagementController : BaseApiController
         }
         catch (ArgumentException ex)
         {
+            _logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while updating the product.");
             return CreateInternalServerErrorProblem("An error occurred while updating the product.", ex);
         }
     }
@@ -270,6 +280,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while deleting the product.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the product.", ex);
         }
     }
@@ -303,6 +314,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving product codes.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving product codes.", ex);
         }
     }
@@ -349,6 +361,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while adding the product code.");
             return CreateInternalServerErrorProblem("An error occurred while adding the product code.", ex);
         }
     }
@@ -389,6 +402,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving units of measure.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving units of measure.", ex);
         }
     }
@@ -423,6 +437,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving the unit of measure.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the unit of measure.", ex);
         }
     }
@@ -458,10 +473,12 @@ public class ProductManagementController : BaseApiController
         }
         catch (ArgumentException ex)
         {
+            _logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while creating the unit of measure.");
             return CreateInternalServerErrorProblem("An error occurred while creating the unit of measure.", ex);
         }
     }
@@ -504,10 +521,12 @@ public class ProductManagementController : BaseApiController
         }
         catch (ArgumentException ex)
         {
+            _logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while updating the unit of measure.");
             return CreateInternalServerErrorProblem("An error occurred while updating the unit of measure.", ex);
         }
     }
@@ -543,6 +562,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while deleting the unit of measure.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the unit of measure.", ex);
         }
     }
@@ -585,6 +605,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving price lists.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving price lists.", ex);
         }
     }
@@ -620,6 +641,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving the price list.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the price list.", ex);
         }
     }
@@ -656,10 +678,12 @@ public class ProductManagementController : BaseApiController
         }
         catch (ArgumentException ex)
         {
+            _logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while creating the price list.");
             return CreateInternalServerErrorProblem("An error occurred while creating the price list.", ex);
         }
     }
@@ -703,10 +727,12 @@ public class ProductManagementController : BaseApiController
         }
         catch (ArgumentException ex)
         {
+            _logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while updating the price list.");
             return CreateInternalServerErrorProblem("An error occurred while updating the price list.", ex);
         }
     }
@@ -743,6 +769,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while deleting the price list.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the price list.", ex);
         }
     }
@@ -785,6 +812,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving promotions.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving promotions.", ex);
         }
     }
@@ -820,6 +848,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving the promotion.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the promotion.", ex);
         }
     }
@@ -856,10 +885,12 @@ public class ProductManagementController : BaseApiController
         }
         catch (ArgumentException ex)
         {
+            _logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while creating the promotion.");
             return CreateInternalServerErrorProblem("An error occurred while creating the promotion.", ex);
         }
     }
@@ -903,10 +934,12 @@ public class ProductManagementController : BaseApiController
         }
         catch (ArgumentException ex)
         {
+            _logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while updating the promotion.");
             return CreateInternalServerErrorProblem("An error occurred while updating the promotion.", ex);
         }
     }
@@ -943,6 +976,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while deleting the promotion.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the promotion.", ex);
         }
     }
@@ -981,10 +1015,12 @@ public class ProductManagementController : BaseApiController
         }
         catch (ArgumentException ex)
         {
+            _logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while generating the barcode.");
             return CreateInternalServerErrorProblem("An error occurred while generating the barcode.", ex);
         }
     }
