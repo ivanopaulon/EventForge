@@ -1,170 +1,98 @@
 @page "/superadmin/tenant-switch"
 @using Microsoft.AspNetCore.Authorization
+@using EventForge.Client.Shared.Components
 @attribute [Authorize(Roles = "SuperAdmin")]
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
 
-<PageTitle>@TranslationService.GetTranslation("superAdmin.pageTitle", "{0} - EventForge Super Admin", TranslationService.GetTranslation("superAdmin.tenantSwitch", "Switch Tenant"))</PageTitle>
+<SuperAdminPageLayout PageTitle="@TranslationService.GetTranslation("superAdmin.tenantSwitch", "Switch Tenant")"
+                      PageIcon="@Icons.Material.Outlined.SwapHoriz"
+                      IsLoading="_isLoading"
+                      IsAuthorized="_isAuthorized"
+                      OnNavigateHome="@(() => NavigationManager.NavigateTo("/"))">
 
-@* SuperAdminBanner removed as per refactoring requirements *@
-
-@if (_isLoading)
-{
-    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-}
-else if (!_isAuthorized)
-{
-    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
-        <MudPaper Class="pa-4" Elevation="4">
-            <MudGrid Justify="Justify.Center">
-                <MudItem xs="12">
-                    <div class="d-flex flex-column align-center">
-                        <MudIcon Icon="Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Medium" Class="mb-4" Style="font-size: 48px;" />
-                        <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-4">@TranslationService.GetTranslation("error.accessDenied", "Accesso Negato")</MudText>
-                        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
-                            @TranslationService.GetTranslation("superAdmin.superAdminRoleRequired", "Non hai i permessi per accedere a questa pagina. È richiesto il ruolo Super Amministratore.")
-                        </MudText>
-                        <MudButton Variant="Variant.Filled" 
-                                   Color="Color.Primary" 
-                                   StartIcon="Icons.Material.Filled.ArrowBack"
-                                   OnClick="@(() => NavigationManager.NavigateTo("/"))">
-                            @TranslationService.GetTranslation("superAdmin.returnToHome", "Torna alla Home")
-                        </MudButton>
-                    </div>
-                </MudItem>
-            </MudGrid>
-        </MudPaper>
-    </MudContainer>
-}
-else
-{
-    <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-        <MudText Typo="Typo.h4" Class="mb-3">
-            <MudIcon Icon="@Icons.Material.Outlined.SwapHoriz" Class="mr-2" />
-            @TranslationService.GetTranslation("superAdmin.tenantSwitch", "Switch Tenant")
-        </MudText>
-
-        <!-- Reduced vertical spacing between components -->
-        <MudStack Spacing="1">
-            <!-- Current Status: First in vertical layout for context overview -->
-            <MudPaper Elevation="1" Class="pa-2 mb-1">
-                <div style="cursor: pointer;" @onclick="@(() => _statusExpanded = !_statusExpanded)" 
-                     class="d-flex align-center pa-2 hover:bg-gray-100">
-                    <MudIcon Icon="@Icons.Material.Outlined.AdminPanelSettings" Class="mr-2" />
-                    <MudText Typo="Typo.h6" Class="flex-grow-1">
-                        @TranslationService.GetTranslation("superAdmin.currentStatus", "Stato Corrente")
-                    </MudText>
-                    <MudIconButton Icon="@(_statusExpanded ? Icons.Material.Outlined.ExpandLess : Icons.Material.Outlined.ExpandMore)"
-                                   Size="Size.Small"
-                                   Color="Color.Inherit"
-                                   aria-label="@TranslationService.GetTranslation("tooltip.toggleStatus", "Mostra/Nascondi stato corrente")" />
+    <!-- Current Status Section -->
+    <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.currentStatus", "Stato Corrente")"
+                                  SectionIcon="@Icons.Material.Outlined.AdminPanelSettings"
+                                  @bind-IsExpanded="_statusExpanded">
+        <div class="d-flex align-center">
+            <MudAvatar Color="Color.Primary" Size="Size.Medium" Class="mr-2">
+                <MudIcon Icon="@Icons.Material.Outlined.AdminPanelSettings" />
+            </MudAvatar>
+            <div>
+                <MudText Typo="Typo.h6">@TranslationService.GetTranslation("superAdmin.superAdministrator", "Super Amministratore: {0}", _currentUser?.FullName ?? "N/A")</MudText>
+                <div class="d-flex ga-2 mt-2">
+                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">Super Admin</MudChip>
+                    @if (_isImpersonating)
+                    {
+                        <MudChip T="string" Color="Color.Error" Size="Size.Small">@TranslationService.GetTranslation("superAdmin.impersonationMode", "Modalità Impersonazione")</MudChip>
+                    }
+                    @if (!string.IsNullOrEmpty(_currentTenant))
+                    {
+                        <MudChip T="string" Color="Color.Info" Size="Size.Small">@TranslationService.GetTranslation("superAdmin.tenantContext", "Tenant: {0}", _currentTenant)</MudChip>
+                    }
                 </div>
-                <MudCollapse Expanded="_statusExpanded">
-                    <div class="pa-2">
-                        <div class="d-flex align-center">
-                            <MudAvatar Color="Color.Primary" Size="Size.Medium" Class="mr-2">
-                                <MudIcon Icon="@Icons.Material.Outlined.AdminPanelSettings" />
-                            </MudAvatar>
-                            <div>
-                                <MudText Typo="Typo.h6">@TranslationService.GetTranslation("superAdmin.superAdministrator", "Super Amministratore: {0}", _currentUser?.FullName ?? "N/A")</MudText>
-                                <div class="d-flex ga-2 mt-2">
-                                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">Super Admin</MudChip>
-                                    @if (_isImpersonating)
-                                    {
-                                        <MudChip T="string" Color="Color.Error" Size="Size.Small">@TranslationService.GetTranslation("superAdmin.impersonationMode", "Modalità Impersonazione")</MudChip>
-                                    }
-                                    @if (!string.IsNullOrEmpty(_currentTenant))
-                                    {
-                                        <MudChip T="string" Color="Color.Info" Size="Size.Small">@TranslationService.GetTranslation("superAdmin.tenantContext", "Tenant: {0}", _currentTenant)</MudChip>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </MudCollapse>
-            </MudPaper>
+            </div>
+        </div>
+    </SuperAdminCollapsibleSection>
 
-            <!-- Switch Tenant: Second in vertical layout -->
-            <MudPaper Elevation="1" Class="pa-2 mb-1">
-                <div style="cursor: pointer;" @onclick="@(() => _tenantSwitchExpanded = !_tenantSwitchExpanded)" 
-                     class="d-flex align-center pa-2 hover:bg-gray-100">
-                    <MudIcon Icon="@Icons.Material.Outlined.Business" Class="mr-2" />
-                    <MudText Typo="Typo.h6" Class="flex-grow-1">
-                        @TranslationService.GetTranslation("superAdmin.changeTenantContext", "Cambia Contesto Tenant")
-                    </MudText>
-                    <MudIconButton Icon="@(_tenantSwitchExpanded ? Icons.Material.Outlined.ExpandLess : Icons.Material.Outlined.ExpandMore)"
-                                   Size="Size.Small"
-                                   Color="Color.Inherit"
-                                   aria-label="@TranslationService.GetTranslation("tooltip.toggleTenantSwitch", "Mostra/Nascondi cambio tenant")" />
-                </div>
-                <MudCollapse Expanded="_tenantSwitchExpanded">
-                    <div class="pa-3">
-                        <MudStack Spacing="3">
-                            <MudSelect T="string" @bind-Value="_selectedTenantId" 
-                                       Label="@TranslationService.GetTranslation("superAdmin.selectTenant", "Seleziona Tenant")" 
-                                       Variant="Variant.Outlined"
-                                       FullWidth="true">
-                                <MudSelectItem Value="@("")">@TranslationService.GetTranslation("superAdmin.noTenantSuperAdminMode", "Nessun tenant (modalità SuperAdmin)")</MudSelectItem>
-                                <!-- TODO: Popolare con lista tenant da API -->
-                            </MudSelect>
-                            
-                            <MudTextField @bind-Value="_switchReason"
-                                          Label="@TranslationService.GetTranslation("superAdmin.switchReason", "Motivo del cambio (audit)")"
-                                          Variant="Variant.Outlined"
-                                          Lines="2"
-                                          Placeholder="@TranslationService.GetTranslation("superAdmin.switchReasonPlaceholder", "Es: Supporto tecnico, verifica configurazione...")" />
+    <!-- Switch Tenant Section -->
+    <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.changeTenantContext", "Cambia Contesto Tenant")"
+                                  SectionIcon="@Icons.Material.Outlined.Business"
+                                  @bind-IsExpanded="_tenantSwitchExpanded">
+        <MudStack Spacing="3">
+            <MudSelect T="string" @bind-Value="_selectedTenantId" 
+                       Label="@TranslationService.GetTranslation("superAdmin.selectTenant", "Seleziona Tenant")" 
+                       Variant="Variant.Outlined"
+                       FullWidth="true">
+                <MudSelectItem Value="@("")">@TranslationService.GetTranslation("superAdmin.noTenantSuperAdminMode", "Nessun tenant (modalità SuperAdmin)")</MudSelectItem>
+                <!-- TODO: Popolare con lista tenant da API -->
+            </MudSelect>
+            
+            <MudTextField @bind-Value="_switchReason"
+                          Label="@TranslationService.GetTranslation("superAdmin.switchReason", "Motivo del cambio (audit)")"
+                          Variant="Variant.Outlined"
+                          Lines="2"
+                          Placeholder="@TranslationService.GetTranslation("superAdmin.switchReasonPlaceholder", "Es: Supporto tecnico, verifica configurazione...")" />
 
-                            <MudStack Row="true" Spacing="2">
-                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.switchTenant", "Cambia contesto tenant")">
-                                    <MudIconButton Icon="@Icons.Material.Outlined.SwapHoriz"
-                                                   Color="Color.Primary"
-                                                   aria-label="@TranslationService.GetTranslation("superAdmin.changeTenant", "Cambia Tenant")"
-                                                   OnClick="@(() => SwitchTenant())"
-                                                   Disabled="@(string.IsNullOrWhiteSpace(_switchReason))" />
-                                </MudTooltip>
-                                
-                                @if (!string.IsNullOrEmpty(_currentTenant))
-                                {
-                                    <MudTooltip Text="@TranslationService.GetTranslation("tooltip.restoreContext", "Ripristina contesto originale")">
-                                        <MudIconButton Icon="@Icons.Material.Outlined.Restore"
-                                                       Color="Color.Secondary"
-                                                       aria-label="@TranslationService.GetTranslation("superAdmin.restoreOriginalContext", "Ripristina Contesto Originale")"
-                                                       OnClick="@(() => RestoreOriginalContext())" />
-                                    </MudTooltip>
-                                }
-                            </MudStack>
-                        </MudStack>
+            <MudStack Row="true" Spacing="2">
+                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.switchTenant", "Cambia contesto tenant")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.SwapHoriz"
+                                   Color="Color.Primary"
+                                   aria-label="@TranslationService.GetTranslation("superAdmin.changeTenant", "Cambia Tenant")"
+                                   OnClick="@(() => SwitchTenant())"
+                                   Disabled="@(string.IsNullOrWhiteSpace(_switchReason))" />
+                </MudTooltip>
+                
+                @if (!string.IsNullOrEmpty(_currentTenant))
+                {
+                    <MudTooltip Text="@TranslationService.GetTranslation("tooltip.restoreContext", "Ripristina contesto originale")">
+                        <MudIconButton Icon="@Icons.Material.Outlined.Restore"
+                                       Color="Color.Secondary"
+                                       aria-label="@TranslationService.GetTranslation("superAdmin.restoreOriginalContext", "Ripristina Contesto Originale")"
+                                       OnClick="@(() => RestoreOriginalContext())" />
+                    </MudTooltip>
+                }
+            </MudStack>
+        </MudStack>
 
-                        <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.Info" Class="mt-3">
-                            <strong>@TranslationService.GetTranslation("superAdmin.integrationTodo", "TODO:"):</strong> @TranslationService.GetTranslation("superAdmin.integrationTodo", "Integrare con API per"):
-                            <ul class="mt-2">
-                                <li>@TranslationService.GetTranslation("superAdmin.recoverTenantList", "Recuperare lista tenant gestibili dal SuperAdmin")</li>
-                                <li>@TranslationService.GetTranslation("superAdmin.performTenantSwitch", "Effettuare switch di contesto al tenant selezionato")</li>
-                                <li>@TranslationService.GetTranslation("superAdmin.registerAuditOperation", "Registrare operazione nell'audit trail")</li>
-                            </ul>
-                        </MudAlert>
-                    </div>
-                </MudCollapse>
-            </MudPaper>
+        <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.Info" Class="mt-3">
+            <strong>@TranslationService.GetTranslation("superAdmin.integrationTodo", "TODO:"):</strong> @TranslationService.GetTranslation("superAdmin.integrationTodo", "Integrare con API per"):
+            <ul class="mt-2">
+                <li>@TranslationService.GetTranslation("superAdmin.recoverTenantList", "Recuperare lista tenant gestibili dal SuperAdmin")</li>
+                <li>@TranslationService.GetTranslation("superAdmin.performTenantSwitch", "Effettuare switch di contesto al tenant selezionato")</li>
+                <li>@TranslationService.GetTranslation("superAdmin.registerAuditOperation", "Registrare operazione nell'audit trail")</li>
+            </ul>
+        </MudAlert>
+    </SuperAdminCollapsibleSection>
 
-            <!-- User Impersonation: Third in vertical layout -->
-            <MudPaper Elevation="1" Class="pa-2 mb-1">
-                <div style="cursor: pointer;" @onclick="@(() => _impersonationExpanded = !_impersonationExpanded)" 
-                     class="d-flex align-center pa-2 hover:bg-gray-100">
-                    <MudIcon Icon="@Icons.Material.Outlined.Person" Class="mr-2" />
-                    <MudText Typo="Typo.h6" Class="flex-grow-1">
-                        @TranslationService.GetTranslation("superAdmin.userImpersonation", "Impersonazione Utente")
-                    </MudText>
-                    <MudIconButton Icon="@(_impersonationExpanded ? Icons.Material.Outlined.ExpandLess : Icons.Material.Outlined.ExpandMore)"
-                                   Size="Size.Small"
-                                   Color="Color.Inherit"
-                                   aria-label="@TranslationService.GetTranslation("tooltip.toggleImpersonation", "Mostra/Nascondi impersonazione utente")" />
-                </div>
-                <MudCollapse Expanded="_impersonationExpanded">
-                    <div class="pa-3">
-                        @if (_isImpersonating)
+    <!-- User Impersonation Section -->
+    <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.userImpersonation", "Impersonazione Utente")"
+                                  SectionIcon="@Icons.Material.Outlined.Person"
+                                  @bind-IsExpanded="_impersonationExpanded">
+        @if (_isImpersonating)
                         {
                             <MudAlert Severity="Severity.Warning" Icon="@Icons.Material.Outlined.Warning" Class="mb-3">
                                 <strong>@TranslationService.GetTranslation("superAdmin.impersonationModeActive", "Modalità Impersonazione Attiva")</strong><br />
@@ -214,63 +142,50 @@ else
                             <strong>@TranslationService.GetTranslation("common.warning", "ATTENZIONE"):</strong> @TranslationService.GetTranslation("superAdmin.impersonationWarning", "L'impersonazione è una funzionalità critica che deve essere utilizzata solo per supporto tecnico urgente. Tutte le operazioni vengono registrate nell'audit trail.")
                         </MudAlert>
 
-                        <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.Info" Class="mt-2">
-                            <strong>@TranslationService.GetTranslation("superAdmin.implementImpersonationApi", "TODO:"):</strong> @TranslationService.GetTranslation("superAdmin.implementImpersonationApi", "Implementare API per impersonazione utente con audit completo.")
-                        </MudAlert>
-                    </div>
-                </MudCollapse>
-            </MudPaper>
+        <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.Info" Class="mt-2">
+            <strong>@TranslationService.GetTranslation("superAdmin.implementImpersonationApi", "TODO:"):</strong> @TranslationService.GetTranslation("superAdmin.implementImpersonationApi", "Implementare API per impersonazione utente con audit completo.")
+        </MudAlert>
+    </SuperAdminCollapsibleSection>
 
-            <!-- Recent History: Last in vertical layout -->
-            <MudPaper Elevation="1" Class="pa-2 mb-1">
-                <div style="cursor: pointer;" @onclick="@(() => _historyExpanded = !_historyExpanded)" 
-                     class="d-flex align-center pa-2 hover:bg-gray-100">
-                    <MudIcon Icon="@Icons.Material.Outlined.History" Class="mr-2" />
-                    <MudText Typo="Typo.h6" Class="flex-grow-1">
-                        @TranslationService.GetTranslation("superAdmin.recentSwitchHistory", "Cronologia Switch Recenti")
-                    </MudText>
-                    <!-- Quick Actions Toolbar: Ordered by function -->
-                    <div class="d-flex ga-1 mr-2">
-                        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refresh", "Aggiorna dati")">
-                            <MudIconButton Icon="@Icons.Material.Outlined.Refresh" 
-                                           Color="Color.Primary"
-                                           Size="Size.Small"
-                                           aria-label="@TranslationService.GetTranslation("tooltip.refresh", "Aggiorna dati")"
-                                           OnClick="@LoadSwitchHistoryAsync" />
-                        </MudTooltip>
-                        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.export", "Esporta dati")">
-                            <MudIconButton Icon="@Icons.Material.Outlined.Download" 
-                                           Color="Color.Secondary"
-                                           Size="Size.Small"
-                                           aria-label="@TranslationService.GetTranslation("tooltip.export", "Esporta dati")"
-                                           OnClick="@ExportSwitchHistory" />
-                        </MudTooltip>
-                    </div>
-                    <MudIconButton Icon="@(_historyExpanded ? Icons.Material.Outlined.ExpandLess : Icons.Material.Outlined.ExpandMore)"
-                                   Size="Size.Small"
-                                   Color="Color.Inherit"
-                                   aria-label="@TranslationService.GetTranslation("tooltip.toggleHistory", "Mostra/Nascondi cronologia")" />
-                </div>
-                <MudCollapse Expanded="_historyExpanded">
-                    <div class="pa-3">
-                        <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.Info" Class="mb-4">
-                            <strong>@TranslationService.GetTranslation("superAdmin.integrationTodo", "TODO:"):</strong> @TranslationService.GetTranslation("superAdmin.switchHistoryDescription", "Implementare recupero cronologia switch tenant e impersonazioni.")
-                            <br />
-                            @TranslationService.GetTranslation("superAdmin.switchHistoryFields", "La cronologia dovrebbe includere: data e ora dell'operazione, tipo di operazione (switch tenant, impersonazione), tenant/utente target, motivo dell'operazione, durata dell'operazione, indirizzo IP e user agent.")
-                        </MudAlert>
+    <!-- Recent History Section -->
+    <SuperAdminCollapsibleSection SectionTitle="@TranslationService.GetTranslation("superAdmin.recentSwitchHistory", "Cronologia Switch Recenti")"
+                                  SectionIcon="@Icons.Material.Outlined.History"
+                                  @bind-IsExpanded="_historyExpanded">
+        <div class="d-flex justify-end ga-1 mb-2">
+            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refresh", "Aggiorna dati")">
+                <MudIconButton Icon="@Icons.Material.Outlined.Refresh" 
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               aria-label="@TranslationService.GetTranslation("tooltip.refresh", "Aggiorna dati")"
+                               OnClick="@LoadSwitchHistoryAsync" />
+            </MudTooltip>
+            <MudTooltip Text="@TranslationService.GetTranslation("tooltip.export", "Esporta dati")">
+                <MudIconButton Icon="@Icons.Material.Outlined.Download" 
+                               Color="Color.Secondary"
+                               Size="Size.Small"
+                               aria-label="@TranslationService.GetTranslation("tooltip.export", "Esporta dati")"
+                               OnClick="@ExportSwitchHistory" />
+            </MudTooltip>
+        </div>
+        
+        <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.Info" Class="mb-4">
+            <strong>@TranslationService.GetTranslation("superAdmin.integrationTodo", "TODO:"):</strong> @TranslationService.GetTranslation("superAdmin.switchHistoryDescription", "Implementare recupero cronologia switch tenant e impersonazioni.")
+            <br />
+            @TranslationService.GetTranslation("superAdmin.switchHistoryFields", "La cronologia dovrebbe includere: data e ora dell'operazione, tipo di operazione (switch tenant, impersonazione), tenant/utente target, motivo dell'operazione, durata dell'operazione, indirizzo IP e user agent.")
+        </MudAlert>
 
-                        <!-- Table with server-side pagination, sortable columns, horizontal scrolling -->
-                        <MudTable T="object" Items="@(new object[0])" 
-                                  Hover="true" 
-                                  Striped="true"
-                                  Loading="false"
-                                  LoadingProgressColor="Color.Info"
-                                  SortLabel="@TranslationService.GetTranslation("tooltip.sort", "Ordina")"
-                                  AllowUnsorted="false"
-                                  Elevation="0"
-                                  Class="overflow-x-auto">
-                            <HeaderContent>
-                                <MudTh><MudTableSortLabel SortBy="new Func<object, object>(x => x)">
+        <!-- Table with server-side pagination, sortable columns, horizontal scrolling -->
+        <MudTable T="object" Items="@(new object[0])" 
+                  Hover="true" 
+                  Striped="true"
+                  Loading="false"
+                  LoadingProgressColor="Color.Info"
+                  SortLabel="@TranslationService.GetTranslation("tooltip.sort", "Ordina")"
+                  AllowUnsorted="false"
+                  Elevation="0"
+                  Class="overflow-x-auto">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel SortBy="new Func<object, object>(x => x)">
                                     @TranslationService.GetTranslation("superAdmin.dateTime", "Data/Ora")
                                 </MudTableSortLabel></MudTh>
                                 <MudTh><MudTableSortLabel SortBy="new Func<object, object>(x => x)">
@@ -298,26 +213,22 @@ else
                                 <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.reason", "Motivo")">@context</MudTd>
                                 <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.duration", "Durata")">@context</MudTd>
                                 <MudTd DataLabel="@TranslationService.GetTranslation("superAdmin.ipAddress", "IP")">@context</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")">
-                                    <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewDetails", "Visualizza dettagli")">
-                                        <MudIconButton Icon="@Icons.Material.Outlined.Visibility" 
-                                                       Size="Size.Small" 
-                                                       Color="Color.Primary"
-                                                       aria-label="@TranslationService.GetTranslation("tooltip.viewDetails", "Visualizza dettagli")" />
-                                    </MudTooltip>
-                                </MudTd>
-                            </RowTemplate>
-                            <NoRecordsContent>
-                                <MudText>@TranslationService.GetTranslation("superAdmin.noHistoryAvailable", "Nessuna cronologia disponibile. Integrare con API audit trail.")</MudText>
-                            </NoRecordsContent>
-                        </MudTable>
-                    </div>
-                </MudCollapse>
-            </MudPaper>
-        </MudStack>
-    </MudContainer>
-}
+                            <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")">
+                                <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewDetails", "Visualizza dettagli")">
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Visibility" 
+                                                   Size="Size.Small" 
+                                                   Color="Color.Primary"
+                                                   aria-label="@TranslationService.GetTranslation("tooltip.viewDetails", "Visualizza dettagli")" />
+                                </MudTooltip>
+                            </MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText>@TranslationService.GetTranslation("superAdmin.noHistoryAvailable", "Nessuna cronologia disponibile. Integrare con API audit trail.")</MudText>
+                        </NoRecordsContent>
+                    </MudTable>
+    </SuperAdminCollapsibleSection>
 
+</SuperAdminPageLayout>
 @code {
     private bool _isLoading = true;
     private bool _isAuthorized = false;
