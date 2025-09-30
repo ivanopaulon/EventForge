@@ -13,7 +13,9 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 // Note: WebAssembly uses BrowserHttpHandler which doesn't support HttpClientHandler configuration
 builder.Services.AddHttpClient("ApiClient", client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7241/");
+    // Use the base address from the host environment (where the WASM app is served from)
+    // This ensures the API calls go to the correct server in all environments (dev, staging, prod)
+    client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);
     client.Timeout = TimeSpan.FromSeconds(30);
     // Add default headers for API requests
     client.DefaultRequestHeaders.Add("Accept", "application/json");

@@ -30,9 +30,12 @@ public class LicenseController : BaseApiController
     /// </summary>
     /// <returns>List of available licenses</returns>
     /// <response code="200">Returns the list of licenses</response>
+    /// <response code="403">If the user doesn't have SuperAdmin role</response>
     /// <response code="500">If an internal error occurs</response>
     [HttpGet]
+    [Authorize(Roles = "SuperAdmin")]
     [ProducesResponseType(typeof(IEnumerable<LicenseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<LicenseDto>>> GetLicenses()
     {
@@ -96,10 +99,13 @@ public class LicenseController : BaseApiController
     /// <param name="id">License ID</param>
     /// <returns>License details</returns>
     /// <response code="200">Returns the license details</response>
+    /// <response code="403">If the user doesn't have SuperAdmin role</response>
     /// <response code="404">If the license is not found</response>
     /// <response code="500">If an internal error occurs</response>
     [HttpGet("{id}")]
+    [Authorize(Roles = "SuperAdmin")]
     [ProducesResponseType(typeof(LicenseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<LicenseDto>> GetLicense(Guid id)
@@ -342,7 +348,14 @@ public class LicenseController : BaseApiController
     /// Get all tenant licenses.
     /// </summary>
     /// <returns>List of tenant licenses</returns>
+    /// <response code="200">Returns the list of tenant licenses</response>
+    /// <response code="403">If the user doesn't have SuperAdmin role</response>
+    /// <response code="500">If an internal error occurs</response>
     [HttpGet("tenant-licenses")]
+    [Authorize(Roles = "SuperAdmin")]
+    [ProducesResponseType(typeof(IEnumerable<TenantLicenseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<TenantLicenseDto>>> GetTenantLicenses()
     {
         try
@@ -527,10 +540,19 @@ public class LicenseController : BaseApiController
 
     /// <summary>
     /// Get license information for a specific tenant.
+    /// Users can only access their own tenant's license information unless they are SuperAdmin.
     /// </summary>
     /// <param name="tenantId">Tenant ID</param>
     /// <returns>Tenant license information</returns>
+    /// <response code="200">Returns the tenant license information</response>
+    /// <response code="403">If the user tries to access another tenant's license</response>
+    /// <response code="404">If no active license is found for the tenant</response>
+    /// <response code="500">If an internal error occurs</response>
     [HttpGet("tenant/{tenantId}")]
+    [ProducesResponseType(typeof(TenantLicenseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<TenantLicenseDto>> GetTenantLicense(Guid tenantId)
     {
         try
