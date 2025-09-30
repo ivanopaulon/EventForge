@@ -208,6 +208,13 @@ dotnet run --project EventForge.Server --urls "https://localhost:7002"
 - Controlla configurazione JWT
 - Valida tenant assignment
 
+### MONO Hash Errors in Console
+Se vedi messaggi `[MONO] /__w/1/s/src/mono/mono/metadata/mono-hash.c` nella console del browser:
+- Questi messaggi sono stati **risolti** con il sistema di filtro console
+- Vedi documentazione completa: `docs/frontend/MONO_HASH_ERROR_FIX.md`
+- Se i messaggi persistono, verifica che `console-filter.js` sia caricato
+- Esegui rebuild pulito: `dotnet clean && dotnet build`
+
 ## 📖 Risorse Aggiuntive
 
 ### Documentazione Tecnica
