@@ -19,17 +19,20 @@ public class EntityManagementController : BaseApiController
     private readonly IContactService _contactService;
     private readonly IClassificationNodeService _classificationNodeService;
     private readonly ITenantContext _tenantContext;
+    private readonly ILogger<EntityManagementController> _logger;
 
     public EntityManagementController(
         IAddressService addressService,
         IContactService contactService,
         IClassificationNodeService classificationNodeService,
-        ITenantContext tenantContext)
+        ITenantContext tenantContext,
+        ILogger<EntityManagementController> logger)
     {
         _addressService = addressService ?? throw new ArgumentNullException(nameof(addressService));
         _contactService = contactService ?? throw new ArgumentNullException(nameof(contactService));
         _classificationNodeService = classificationNodeService ?? throw new ArgumentNullException(nameof(classificationNodeService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     #region Address Management
@@ -66,6 +69,7 @@ public class EntityManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving addresses.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving addresses.", ex);
         }
     }
@@ -95,6 +99,7 @@ public class EntityManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving addresses for owner.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving addresses for owner.", ex);
         }
     }
@@ -131,6 +136,7 @@ public class EntityManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving the address.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the address.", ex);
         }
     }
@@ -167,6 +173,7 @@ public class EntityManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while creating the address.");
             return CreateInternalServerErrorProblem("An error occurred while creating the address.", ex);
         }
     }
@@ -212,6 +219,7 @@ public class EntityManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while updating the address.");
             return CreateInternalServerErrorProblem("An error occurred while updating the address.", ex);
         }
     }
@@ -248,6 +256,7 @@ public class EntityManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while deleting the address.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the address.", ex);
         }
     }
@@ -288,6 +297,7 @@ public class EntityManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving contacts.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving contacts.", ex);
         }
     }
@@ -317,6 +327,7 @@ public class EntityManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving contacts for owner.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving contacts for owner.", ex);
         }
     }
@@ -353,6 +364,7 @@ public class EntityManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving the contact.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the contact.", ex);
         }
     }
@@ -389,6 +401,7 @@ public class EntityManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while creating the contact.");
             return CreateInternalServerErrorProblem("An error occurred while creating the contact.", ex);
         }
     }
@@ -434,6 +447,7 @@ public class EntityManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while updating the contact.");
             return CreateInternalServerErrorProblem("An error occurred while updating the contact.", ex);
         }
     }
@@ -470,6 +484,7 @@ public class EntityManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while deleting the contact.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the contact.", ex);
         }
     }
@@ -520,6 +535,7 @@ public class EntityManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving classification nodes.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving classification nodes.", ex);
         }
     }
@@ -547,6 +563,7 @@ public class EntityManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving root classification nodes.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving root classification nodes.", ex);
         }
     }
@@ -583,6 +600,7 @@ public class EntityManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving the classification node.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the classification node.", ex);
         }
     }
@@ -619,6 +637,7 @@ public class EntityManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while creating the classification node.");
             return CreateInternalServerErrorProblem("An error occurred while creating the classification node.", ex);
         }
     }
@@ -664,6 +683,7 @@ public class EntityManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while updating the classification node.");
             return CreateInternalServerErrorProblem("An error occurred while updating the classification node.", ex);
         }
     }
@@ -700,6 +720,7 @@ public class EntityManagementController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while deleting the classification node.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the classification node.", ex);
         }
     }
