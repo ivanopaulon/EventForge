@@ -149,6 +149,12 @@ public async Task<TenantResponseDto?> GetTenantAsync(Guid id)
 - **12 new endpoints** created for entity and financial management
 - **100% of SuperAdmin functionality** preserved with new endpoints
 
+### Client Services Alignment: ✅ **COMPLETE** (Updated)
+- **BackupService**: All 6 endpoints migrated to `api/v1/super-admin/backup/*`
+- **ConfigurationService**: All 9 endpoints migrated to `api/v1/super-admin/configuration/*`
+- **LogsService**: All 8 endpoints migrated to `api/v1/application-logs/*` and `api/v1/audit-logs/*`
+- Client code now fully aligned with documented backend API structure
+
 ### Error Handling: ✅ **ENHANCED**
 - All services now benefit from RFC7807 standardized error responses
 - Automatic correlation ID tracking for better debugging
