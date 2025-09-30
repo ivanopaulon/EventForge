@@ -33,21 +33,6 @@
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.licenseManagement", "Gestione Licenze")
                 </MudNavLink>
-                <MudNavLink Href="/superadmin/event-management" 
-                            Icon="@Icons.Material.Outlined.Event" 
-                            Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.eventManagement", "Gestione Eventi")
-                </MudNavLink>
-                <MudNavLink Href="/superadmin/event-category-management" 
-                            Icon="@Icons.Material.Outlined.BookmarkBorder" 
-                            Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.eventCategoryManagement", "Gestione Categorie")
-                </MudNavLink>
-                <MudNavLink Href="/superadmin/event-type-management" 
-                            Icon="@Icons.Material.Outlined.Category" 
-                            Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.eventTypeManagement", "Gestione Tipi Evento")
-                </MudNavLink>
                 <MudNavLink Href="/superadmin/tenant-switch" 
                             Icon="@Icons.Material.Outlined.SwapHoriz" 
                             Match="NavLinkMatch.All">
@@ -95,15 +80,6 @@
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.adminDashboard", "Dashboard Admin")
                 </MudNavLink>
-                <!-- Gestione Eventi visible to SuperAdmin, Admin, Manager as per requirements -->
-                @if (_canManageEvents)
-                {
-                    <MudNavLink Href="/management/event-management" 
-                                Icon="@Icons.Material.Outlined.Event" 
-                                Match="NavLinkMatch.All">
-                        @TranslationService.GetTranslation("nav.eventManagement", "Gestione Eventi")
-                    </MudNavLink>
-                }
                 <!-- Warehouse Management -->
                 @if (_canManageWarehouse)
                 {
@@ -210,7 +186,6 @@
     private bool _isAdmin = false;
     private bool _isSuperAdmin = false;
     private bool _isManager = false;
-    private bool _canManageEvents = false;
     private bool _canManageWarehouse = false;
     private int _unreadNotificationCount = 0;
     private int _unreadMessageCount = 0;
@@ -240,9 +215,7 @@
             _isAdmin = await AuthService.IsInRoleAsync("Admin");
             _isManager = await AuthService.IsInRoleAsync("Manager");
             
-            // "Gestione Eventi" visible to SuperAdmin, Admin, Manager as per requirements
-            _canManageEvents = _isSuperAdmin || _isAdmin || _isManager;
-            _canManageWarehouse = _isSuperAdmin || _isAdmin || _isManager; // Same permissions as events for now
+            _canManageWarehouse = _isSuperAdmin || _isAdmin || _isManager;
             
             // Load notification and message counts
             await LoadCommunicationCountsAsync();
@@ -252,7 +225,6 @@
             _isAdmin = false;
             _isSuperAdmin = false;
             _isManager = false;
-            _canManageEvents = false;
             _canManageWarehouse = false;
             _unreadNotificationCount = 0;
             _unreadMessageCount = 0;
