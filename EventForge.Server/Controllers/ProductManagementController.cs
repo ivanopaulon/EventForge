@@ -285,6 +285,73 @@ public class ProductManagementController : BaseApiController
         }
     }
 
+    /// <summary>
+    /// Uploads a product image.
+    /// </summary>
+    /// <param name="file">Image file to upload</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Image URL</returns>
+    /// <response code="200">Image uploaded successfully</response>
+    /// <response code="400">If the file is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("products/upload-image")]
+    [ProducesResponseType(typeof(ImageUploadResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ImageUploadResultDto>> UploadProductImage(
+        IFormFile file,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        if (file == null || file.Length == 0)
+        {
+            return CreateValidationProblemDetails("File cannot be empty");
+        }
+
+        // Check file size limit (5MB)
+        const long maxFileSize = 5 * 1024 * 1024;
+        if (file.Length > maxFileSize)
+        {
+            return CreateValidationProblemDetails($"File size cannot exceed {maxFileSize / (1024 * 1024)} MB");
+        }
+
+        // Validate file type
+        var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp" };
+        if (!allowedTypes.Contains(file.ContentType.ToLower()))
+        {
+            return CreateValidationProblemDetails("Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.");
+        }
+
+        try
+        {
+            // Generate a unique filename
+            var extension = Path.GetExtension(file.FileName);
+            var fileName = $"product_{Guid.NewGuid()}{extension}";
+            
+            // For now, save to wwwroot/images/products (in a real implementation, use cloud storage)
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "products");
+            Directory.CreateDirectory(uploadsFolder);
+            
+            var filePath = Path.Combine(uploadsFolder, fileName);
+            
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream, cancellationToken);
+            }
+
+            var imageUrl = $"/images/products/{fileName}";
+            
+            return Ok(new ImageUploadResultDto { ImageUrl = imageUrl });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while uploading the product image.");
+            return CreateInternalServerErrorProblem("An error occurred while uploading the product image.", ex);
+        }
+    }
+
     #endregion
 
     #region Product Codes Management
@@ -1026,4 +1093,15 @@ public class ProductManagementController : BaseApiController
     }
 
     #endregion
+}
+
+/// <summary>
+/// DTO for image upload result.
+/// </summary>
+public class ImageUploadResultDto
+{
+    /// <summary>
+    /// URL of the uploaded image.
+    /// </summary>
+    public string ImageUrl { get; set; } = string.Empty;
 }
