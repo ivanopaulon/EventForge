@@ -315,9 +315,28 @@ namespace EventForge.Client.Services
             }
         }
 
+        private async Task<HttpClient> GetAuthenticatedHttpClientAsync()
+        {
+            var httpClient = _httpClient;
+
+            // Add authentication header if available
+            var token = await _authService.GetAccessTokenAsync();
+            if (!string.IsNullOrEmpty(token))
+            {
+                if (httpClient.DefaultRequestHeaders.Authorization?.Parameter != token)
+                {
+                    httpClient.DefaultRequestHeaders.Authorization =
+                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+            }
+
+            return httpClient;
+        }
+
         private async Task SendSingleLogToServerAsync(ClientLogDto clientLog)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/ClientLogs", clientLog);
+            var httpClient = await GetAuthenticatedHttpClientAsync();
+            var response = await httpClient.PostAsJsonAsync("api/ClientLogs", clientLog);
             response.EnsureSuccessStatusCode();
         }
 
@@ -325,8 +344,9 @@ namespace EventForge.Client.Services
         {
             if (logs.Count == 0) return;
 
+            var httpClient = await GetAuthenticatedHttpClientAsync();
             var batchRequest = new ClientLogBatchDto { Logs = logs };
-            var response = await _httpClient.PostAsJsonAsync("api/ClientLogs/batch", batchRequest);
+            var response = await httpClient.PostAsJsonAsync("api/ClientLogs/batch", batchRequest);
             response.EnsureSuccessStatusCode();
         }
 
