@@ -1,6 +1,12 @@
 @using EventForge.DTOs.Common
 @using EventForge.DTOs.Products
+@using EventForge.DTOs.VatRates
+@using EventForge.DTOs.UnitOfMeasures
+@using EventForge.DTOs.Station
+@using Microsoft.AspNetCore.Components.Forms
 @inject IProductService ProductService
+@inject IFinancialService FinancialService
+@inject IEntityManagementService EntityManagementService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
 @inject ILogger<CreateProductDialog> Logger
@@ -84,6 +90,108 @@
                               Label="@TranslationService.GetTranslation("products.vatIncluded", "IVA Inclusa")"
                               Color="Color.Primary" />
                 </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="Guid?" @bind-Value="_createDto.VatRateId"
+                               Label="@TranslationService.GetTranslation("products.vatRate", "Aliquota IVA")"
+                               Variant="Variant.Outlined"
+                               Clearable="true">
+                        @foreach (var vatRate in _vatRates)
+                        {
+                            <MudSelectItem Value="@((Guid?)vatRate.Id)">@vatRate.Name (@vatRate.Percentage%)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="Guid?" @bind-Value="_createDto.UnitOfMeasureId"
+                               Label="@TranslationService.GetTranslation("products.unitOfMeasure", "Unità di Misura")"
+                               Variant="Variant.Outlined"
+                               Clearable="true">
+                        @foreach (var um in _unitsOfMeasure)
+                        {
+                            <MudSelectItem Value="@((Guid?)um.Id)">@um.Name (@um.Symbol)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="Guid?" @bind-Value="_createDto.CategoryNodeId"
+                               Label="@TranslationService.GetTranslation("products.category", "Categoria")"
+                               Variant="Variant.Outlined"
+                               Clearable="true">
+                        @foreach (var node in _categoryNodes)
+                        {
+                            <MudSelectItem Value="@((Guid?)node.Id)">@node.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="Guid?" @bind-Value="_createDto.FamilyNodeId"
+                               Label="@TranslationService.GetTranslation("products.family", "Famiglia")"
+                               Variant="Variant.Outlined"
+                               Clearable="true">
+                        @foreach (var node in _familyNodes)
+                        {
+                            <MudSelectItem Value="@((Guid?)node.Id)">@node.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="Guid?" @bind-Value="_createDto.GroupNodeId"
+                               Label="@TranslationService.GetTranslation("products.statisticalGroup", "Gruppo Statistico")"
+                               Variant="Variant.Outlined"
+                               Clearable="true">
+                        @foreach (var node in _groupNodes)
+                        {
+                            <MudSelectItem Value="@((Guid?)node.Id)">@node.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="Guid?" @bind-Value="_createDto.StationId"
+                               Label="@TranslationService.GetTranslation("products.station", "Postazione")"
+                               Variant="Variant.Outlined"
+                               Clearable="true">
+                        @foreach (var station in _stations)
+                        {
+                            <MudSelectItem Value="@((Guid?)station.Id)">@station.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudSwitch @bind-Value="_createDto.IsBundle"
+                              Label="@TranslationService.GetTranslation("products.isBundle", "È un Bundle")"
+                              Color="Color.Primary" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle2">@TranslationService.GetTranslation("products.productImage", "Immagine Prodotto")</MudText>
+                    <MudFileUpload T="IBrowserFile" Accept="image/*" @bind-Files="_selectedImage" MaximumFileCount="1">
+                        <ActivatorContent>
+                            <MudButton HtmlTag="label"
+                                      Variant="Variant.Filled"
+                                      Color="Color.Primary"
+                                      StartIcon="@Icons.Material.Filled.CloudUpload">
+                                @TranslationService.GetTranslation("products.selectImage", "Seleziona Immagine")
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                    @if (_selectedImage != null)
+                    {
+                        <MudChip T="string" Color="Color.Info" Icon="@Icons.Material.Filled.Image" OnClose="ClearImage">
+                            @_selectedImage.Name
+                        </MudChip>
+                    }
+                    @if (_isUploadingImage)
+                    {
+                        <MudProgressLinear Indeterminate="true" Class="mt-2" />
+                    }
+                </MudItem>
             </MudGrid>
         </MudForm>
     </DialogContent>
@@ -105,15 +213,64 @@
     public string Barcode { get; set; } = string.Empty;
 
     private bool _isLoading = false;
+    private bool _isUploadingImage = false;
     private bool _isFormValid = false;
     private MudForm? _form;
     private CreateProductDto _createDto = new();
+    private IBrowserFile? _selectedImage;
 
-    protected override void OnInitialized()
+    private List<VatRateDto> _vatRates = new();
+    private List<UMDto> _unitsOfMeasure = new();
+    private List<ClassificationNodeDto> _categoryNodes = new();
+    private List<ClassificationNodeDto> _familyNodes = new();
+    private List<ClassificationNodeDto> _groupNodes = new();
+    private List<StationDto> _stations = new();
+
+    protected override async Task OnInitializedAsync()
     {
         // Pre-fill the code with the scanned barcode
         _createDto.Code = Barcode;
         _createDto.Status = ProductStatus.Active;
+
+        // Load related entities
+        await LoadRelatedEntitiesAsync();
+    }
+
+    private async Task LoadRelatedEntitiesAsync()
+    {
+        try
+        {
+            // Load VAT rates
+            var vatRates = await FinancialService.GetVatRatesAsync();
+            _vatRates = vatRates.ToList();
+
+            // Load units of measure
+            var unitsOfMeasure = await ProductService.GetUnitsOfMeasureAsync();
+            _unitsOfMeasure = unitsOfMeasure.ToList();
+
+            // Load classification nodes
+            var classificationNodes = await EntityManagementService.GetClassificationNodesAsync();
+            var nodesList = classificationNodes.ToList();
+            
+            _categoryNodes = nodesList.Where(n => n.Type == ProductClassificationType.Category).ToList();
+            _familyNodes = nodesList.Where(n => n.Type == ProductClassificationType.Subcategory).ToList();
+            _groupNodes = nodesList.Where(n => n.Type == ProductClassificationType.Brand).ToList();
+
+            // Load stations
+            var stations = await ProductService.GetStationsAsync();
+            _stations = stations.ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading related entities");
+            Snackbar.Add(TranslationService.GetTranslation("products.loadError", "Errore nel caricamento dei dati"), Severity.Error);
+        }
+    }
+
+    private void ClearImage()
+    {
+        _selectedImage = null;
+        _createDto.ImageUrl = string.Empty;
     }
 
     private async Task SaveProduct()
@@ -124,6 +281,18 @@
         _isLoading = true;
         try
         {
+            // Upload image if selected and not already uploaded
+            if (_selectedImage != null && string.IsNullOrEmpty(_createDto.ImageUrl))
+            {
+                _isUploadingImage = true;
+                var imageUrl = await ProductService.UploadProductImageAsync(_selectedImage);
+                if (imageUrl != null)
+                {
+                    _createDto.ImageUrl = imageUrl;
+                }
+                _isUploadingImage = false;
+            }
+
             var result = await ProductService.CreateProductAsync(_createDto);
 
             if (result != null)
@@ -144,6 +313,7 @@
         finally
         {
             _isLoading = false;
+            _isUploadingImage = false;
         }
     }
 

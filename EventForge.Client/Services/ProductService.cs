@@ -1,5 +1,8 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
+using EventForge.DTOs.UnitOfMeasures;
+using EventForge.DTOs.Station;
+using Microsoft.AspNetCore.Components.Forms;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -159,4 +162,97 @@ public class ProductService : IProductService
             return null;
         }
     }
+
+    public async Task<IEnumerable<UMDto>> GetUnitsOfMeasureAsync()
+    {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        try
+        {
+            var response = await httpClient.GetAsync("api/v1/product-management/units?page=1&pageSize=100");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                var pagedResult = JsonSerializer.Deserialize<PagedResult<UMDto>>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                return pagedResult?.Items ?? new List<UMDto>();
+            }
+
+            _logger.LogError("Failed to retrieve units of measure. Status: {StatusCode}", response.StatusCode);
+            return new List<UMDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving units of measure");
+            return new List<UMDto>();
+        }
+    }
+
+    public async Task<IEnumerable<StationDto>> GetStationsAsync()
+    {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        try
+        {
+            var response = await httpClient.GetAsync("api/v1/stations?page=1&pageSize=100");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                var pagedResult = JsonSerializer.Deserialize<PagedResult<StationDto>>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                return pagedResult?.Items ?? new List<StationDto>();
+            }
+
+            _logger.LogError("Failed to retrieve stations. Status: {StatusCode}", response.StatusCode);
+            return new List<StationDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving stations");
+            return new List<StationDto>();
+        }
+    }
+
+    public async Task<string?> UploadProductImageAsync(IBrowserFile file)
+    {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        try
+        {
+            const long maxFileSize = 5 * 1024 * 1024; // 5MB
+            
+            using var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(file.OpenReadStream(maxFileSize));
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.Name);
+
+            var response = await httpClient.PostAsync("api/v1/product-management/products/upload-image", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<ImageUploadResultDto>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                return result?.ImageUrl;
+            }
+
+            _logger.LogError("Failed to upload product image. Status: {StatusCode}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading product image");
+            return null;
+        }
+    }
+}
+
+public class ImageUploadResultDto
+{
+    public string ImageUrl { get; set; } = string.Empty;
 }

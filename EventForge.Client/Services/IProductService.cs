@@ -1,5 +1,8 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
+using EventForge.DTOs.UnitOfMeasures;
+using EventForge.DTOs.Station;
+using Microsoft.AspNetCore.Components.Forms;
 
 namespace EventForge.Client.Services;
 
@@ -13,4 +16,7 @@ public interface IProductService
     Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20);
     Task<ProductDto?> CreateProductAsync(CreateProductDto createDto);
     Task<ProductCodeDto?> CreateProductCodeAsync(CreateProductCodeDto createDto);
+    Task<IEnumerable<UMDto>> GetUnitsOfMeasureAsync();
+    Task<IEnumerable<StationDto>> GetStationsAsync();
+    Task<string?> UploadProductImageAsync(IBrowserFile file);
 }
