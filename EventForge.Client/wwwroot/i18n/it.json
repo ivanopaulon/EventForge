@@ -1024,5 +1024,24 @@
         "action": "Accedi al pannello impostazioni"
       }
     }
+  },
+  "products": {
+    "createProduct": "Crea Nuovo Prodotto",
+    "productName": "Nome Prodotto",
+    "productCode": "Codice Prodotto",
+    "codeHelper": "Codice SKU o simile",
+    "shortDescription": "Descrizione Breve",
+    "description": "Descrizione",
+    "defaultPrice": "Prezzo Predefinito",
+    "status": "Stato",
+    "active": "Attivo",
+    "suspended": "Sospeso",
+    "outOfStock": "Esaurito",
+    "deleted": "Eliminato",
+    "vatIncluded": "IVA Inclusa",
+    "createSuccess": "Prodotto creato con successo",
+    "createError": "Errore nella creazione del prodotto",
+    "assignBarcode": "Assegna Codice a Barre",
+    "barcodeToAssign": "Codice da Assegnare"
   }
 }

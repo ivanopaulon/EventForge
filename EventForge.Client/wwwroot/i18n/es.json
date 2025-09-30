@@ -284,7 +284,8 @@
     "deleteTenantError": "Error al eliminar el inquilino: {0}",
     "confirmUserDelete": "¿Está seguro de que quiere eliminar el usuario '{0}'? Esta acción no se puede deshacer.",
     "userDeleted": "¡Usuario eliminado con éxito!",
-    "deleteUserError": "Error al eliminar el usuario: {0}",
+    "deleteUserError": "Error al eliminar el usuario: {0}"
+  },
   "superAdmin": {
     "warning": "Advertencia: Está operando con privilegios de Súper Administrador",
     "tenantManagement": "Gestión de Inquilinos",
@@ -945,5 +946,24 @@
       "name": "Divertido",
       "description": "Tema lúdico con colores pastel vibrantes"
     }
+  },
+  "products": {
+    "createProduct": "Crear Nuevo Producto",
+    "productName": "Nombre del Producto",
+    "productCode": "Código del Producto",
+    "codeHelper": "Código SKU o similar",
+    "shortDescription": "Descripción Breve",
+    "description": "Descripción",
+    "defaultPrice": "Precio Predeterminado",
+    "status": "Estado",
+    "active": "Activo",
+    "suspended": "Suspendido",
+    "outOfStock": "Agotado",
+    "deleted": "Eliminado",
+    "vatIncluded": "IVA Incluido",
+    "createSuccess": "Producto creado con éxito",
+    "createError": "Error al crear el producto",
+    "assignBarcode": "Asignar Código de Barras",
+    "barcodeToAssign": "Código a Asignar"
   }
 }
