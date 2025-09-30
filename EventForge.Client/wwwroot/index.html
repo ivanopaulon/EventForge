@@ -44,6 +44,9 @@
         window.__apiBaseUrl = "https://localhost:7241";
     </script>
 
+    <!-- Console filter to suppress harmless Mono runtime diagnostics (must load before Blazor) -->
+    <script src="js/console-filter.js"></script>
+
     <!-- Blazor runtime (must load first) -->
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>

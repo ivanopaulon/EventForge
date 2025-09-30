@@ -1,0 +1,10 @@
+{
+  "configProperties": {
+    "System.Globalization.Invariant": false,
+    "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false,
+    "Microsoft.Extensions.Logging.Console.DisableColors": false,
+    "MONO_LOG_LEVEL": "error",
+    "MONO_LOG_MASK": "error"
+  }
+}
+
