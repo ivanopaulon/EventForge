@@ -114,13 +114,21 @@ public class ProductService : IProductService
             ArgumentNullException.ThrowIfNull(createProductDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Current tenant ID is not available.");
+            }
+
             var product = new Product
             {
+                TenantId = currentTenantId.Value,
                 Name = createProductDto.Name,
                 ShortDescription = createProductDto.ShortDescription,
                 Description = createProductDto.Description,
                 Code = createProductDto.Code,
                 ImageUrl = createProductDto.ImageUrl,
+                Status = (EventForge.Server.Data.Entities.Products.ProductStatus)createProductDto.Status,
                 IsVatIncluded = createProductDto.IsVatIncluded,
                 DefaultPrice = createProductDto.DefaultPrice,
                 VatRateId = createProductDto.VatRateId,
