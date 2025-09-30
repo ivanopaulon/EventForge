@@ -358,6 +358,31 @@ public class ProductService : IProductService
         }
     }
 
+    public async Task<ProductDto?> GetProductByCodeAsync(string codeValue, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(codeValue);
+
+            var productCode = await _context.ProductCodes
+                .Where(pc => pc.Code == codeValue && !pc.IsDeleted)
+                .Include(pc => pc.Product)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (productCode?.Product == null || productCode.Product.IsDeleted)
+            {
+                return null;
+            }
+
+            return MapToProductDto(productCode.Product);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product by code {CodeValue}.", codeValue);
+            throw;
+        }
+    }
+
     public async Task<ProductCodeDto> AddProductCodeAsync(CreateProductCodeDto createProductCodeDto, string currentUser, CancellationToken cancellationToken = default)
     {
         try
