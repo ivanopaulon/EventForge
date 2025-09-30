@@ -81,6 +81,14 @@ public interface IProductService
     Task<ProductCodeDto?> GetProductCodeByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets a product by barcode/code value.
+    /// </summary>
+    /// <param name="codeValue">Barcode or code value to search for</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Product DTO or null if not found</returns>
+    Task<ProductDto?> GetProductByCodeAsync(string codeValue, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Adds a new code to a product.
     /// </summary>
     /// <param name="createProductCodeDto">Product code creation data</param>

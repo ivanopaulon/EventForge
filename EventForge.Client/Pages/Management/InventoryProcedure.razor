@@ -1,0 +1,372 @@
+@page "/warehouse/inventory-procedure"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Common
+@using EventForge.DTOs.Warehouse
+@using EventForge.DTOs.Products
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
+@inject IProductService ProductService
+@inject IInventoryService InventoryService
+@inject IStorageLocationService StorageLocationService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<InventoryProcedure> Logger
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<PageTitle>@TranslationService.GetTranslation("warehouse.inventoryProcedure", "Procedura Inventario")</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Outlined.Inventory" Class="mr-2" Size="Size.Medium" />
+        @TranslationService.GetTranslation("warehouse.inventoryProcedure", "Procedura Inventario")
+    </MudText>
+
+    @if (_isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Class="mb-4" />
+    }
+
+    <!-- Barcode Scanner Section -->
+    <MudPaper Elevation="2" Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-3">
+            <MudIcon Icon="@Icons.Material.Outlined.QrCodeScanner" Class="mr-2" />
+            @TranslationService.GetTranslation("warehouse.scanBarcode", "Scansiona Codice a Barre")
+        </MudText>
+
+        <MudGrid Spacing="3">
+            <MudItem xs="12" md="8">
+                <MudTextField @bind-Value="_scannedBarcode"
+                              Label="@TranslationService.GetTranslation("warehouse.barcodeInput", "Codice a Barre")"
+                              Variant="Variant.Outlined"
+                              @onkeydown="@OnBarcodeKeyDown"
+                              @ref="_barcodeInput"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Outlined.QrCode"
+                              HelperText="@TranslationService.GetTranslation("warehouse.scanOrTypeBarcode", "Scansiona o digita il codice a barre")" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudButton StartIcon="@Icons.Material.Outlined.Search"
+                           Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           FullWidth="true"
+                           OnClick="@SearchBarcode"
+                           Disabled="@string.IsNullOrWhiteSpace(_scannedBarcode)">
+                    @TranslationService.GetTranslation("common.search", "Cerca")
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <!-- Product Found/Not Found Section -->
+    @if (_productSearched)
+    {
+        @if (_currentProduct != null)
+        {
+            <!-- Product Information -->
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Class="mr-2" />
+                    @TranslationService.GetTranslation("warehouse.productInfo", "Informazioni Prodotto")
+                </MudText>
+
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("warehouse.productName", "Nome Prodotto")</MudText>
+                        <MudText Typo="Typo.body1" Style="font-weight: 600;">@_currentProduct.Name</MudText>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("warehouse.productCode", "Codice Prodotto")</MudText>
+                        <MudText Typo="Typo.body1" Style="font-weight: 600;">@_currentProduct.Code</MudText>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("warehouse.description", "Descrizione")</MudText>
+                        <MudText Typo="Typo.body1">@_currentProduct.Description</MudText>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+
+            <!-- Inventory Entry Form -->
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Outlined.PostAdd" Class="mr-2" />
+                    @TranslationService.GetTranslation("warehouse.inventoryEntry", "Inserimento Inventario")
+                </MudText>
+
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="Guid?"
+                                   @bind-Value="_selectedLocationId"
+                                   Label="@TranslationService.GetTranslation("warehouse.storageLocation", "Ubicazione")"
+                                   Variant="Variant.Outlined"
+                                   Required="true">
+                            @if (_locations != null)
+                            {
+                                @foreach (var location in _locations)
+                                {
+                                    <MudSelectItem Value="@((Guid?)location.Id)">@location.Code - @location.Description</MudSelectItem>
+                                }
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudNumericField @bind-Value="_quantity"
+                                        Label="@TranslationService.GetTranslation("warehouse.quantity", "Quantità")"
+                                        Variant="Variant.Outlined"
+                                        Min="0"
+                                        Required="true"
+                                        Adornment="Adornment.Start"
+                                        AdornmentIcon="@Icons.Material.Outlined.Numbers" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_notes"
+                                     Label="@TranslationService.GetTranslation("warehouse.notes", "Note")"
+                                     Variant="Variant.Outlined"
+                                     Lines="3"
+                                     MaxLength="500" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudStack Row="true" Spacing="2">
+                            <MudButton StartIcon="@Icons.Material.Outlined.Save"
+                                      Color="Color.Success"
+                                      Variant="Variant.Filled"
+                                      OnClick="@SaveInventoryEntry"
+                                      Disabled="@(!_selectedLocationId.HasValue || _quantity <= 0)">
+                                @TranslationService.GetTranslation("common.save", "Salva")
+                            </MudButton>
+                            <MudButton StartIcon="@Icons.Material.Outlined.Clear"
+                                      Color="Color.Default"
+                                      Variant="Variant.Outlined"
+                                      OnClick="@ClearForm">
+                                @TranslationService.GetTranslation("common.clear", "Pulisci")
+                            </MudButton>
+                        </MudStack>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        }
+        else
+        {
+            <!-- Product Not Found -->
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudAlert Severity="Severity.Warning" Class="mb-3">
+                    @TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato con il codice: {0}", _scannedBarcode)
+                </MudAlert>
+
+                <MudText Typo="Typo.body1" Class="mb-3">
+                    @TranslationService.GetTranslation("warehouse.createOrAssignPrompt", "Cosa vuoi fare?")
+                </MudText>
+
+                <MudStack Row="true" Spacing="2">
+                    <MudButton StartIcon="@Icons.Material.Outlined.Add"
+                              Color="Color.Primary"
+                              Variant="Variant.Filled"
+                              OnClick="@CreateNewProduct">
+                        @TranslationService.GetTranslation("warehouse.createNewProduct", "Crea Nuovo Prodotto")
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Outlined.Link"
+                              Color="Color.Secondary"
+                              Variant="Variant.Filled"
+                              OnClick="@AssignToExistingProduct">
+                        @TranslationService.GetTranslation("warehouse.assignToExisting", "Assegna a Prodotto Esistente")
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Outlined.Clear"
+                              Color="Color.Default"
+                              Variant="Variant.Outlined"
+                              OnClick="@ClearForm">
+                        @TranslationService.GetTranslation("common.cancel", "Annulla")
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+        }
+    }
+
+    <!-- Recent Entries -->
+    @if (_recentEntries.Any())
+    {
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-3">
+                <MudIcon Icon="@Icons.Material.Outlined.History" Class="mr-2" />
+                @TranslationService.GetTranslation("warehouse.recentEntries", "Inserimenti Recenti")
+            </MudText>
+
+            <MudTable Items="_recentEntries" Hover="true" Dense="true">
+                <HeaderContent>
+                    <MudTh>@TranslationService.GetTranslation("warehouse.product", "Prodotto")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("warehouse.location", "Ubicazione")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("warehouse.quantity", "Quantità")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("warehouse.time", "Ora")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Product">
+                        <MudText Typo="Typo.body2">@context.ProductName</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ProductCode</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Location">@context.LocationName</MudTd>
+                    <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
+                    <MudTd DataLabel="Time">@context.CreatedAt.ToLocalTime().ToString("HH:mm:ss")</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    private bool _isLoading = false;
+    private string _scannedBarcode = string.Empty;
+    private bool _productSearched = false;
+    private ProductDto? _currentProduct;
+    private List<StorageLocationDto> _locations = new();
+    private Guid? _selectedLocationId;
+    private decimal _quantity = 0;
+    private string _notes = string.Empty;
+    private List<InventoryEntryDto> _recentEntries = new();
+    private MudTextField<string>? _barcodeInput;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLocations();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _barcodeInput != null)
+        {
+            await _barcodeInput.FocusAsync();
+        }
+    }
+
+    private async Task LoadLocations()
+    {
+        _isLoading = true;
+        try
+        {
+            var result = await StorageLocationService.GetStorageLocationsAsync(1, 100);
+            if (result?.Items != null)
+            {
+                _locations = result.Items.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading storage locations");
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.loadLocationsError", "Errore nel caricamento ubicazioni"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task OnBarcodeKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_scannedBarcode))
+        {
+            await SearchBarcode();
+        }
+    }
+
+    private async Task SearchBarcode()
+    {
+        if (string.IsNullOrWhiteSpace(_scannedBarcode))
+            return;
+
+        _isLoading = true;
+        _productSearched = false;
+        _currentProduct = null;
+
+        try
+        {
+            _currentProduct = await ProductService.GetProductByCodeAsync(_scannedBarcode);
+            _productSearched = true;
+
+            if (_currentProduct != null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato: {0}", _currentProduct.Name), Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error searching product by barcode {Barcode}", _scannedBarcode);
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.searchError", "Errore nella ricerca"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SaveInventoryEntry()
+    {
+        if (_currentProduct == null || !_selectedLocationId.HasValue || _quantity <= 0)
+            return;
+
+        _isLoading = true;
+        try
+        {
+            var createDto = new CreateInventoryEntryDto
+            {
+                ProductId = _currentProduct.Id,
+                LocationId = _selectedLocationId.Value,
+                Quantity = _quantity,
+                Notes = _notes
+            };
+
+            var result = await InventoryService.CreateInventoryEntryAsync(createDto);
+
+            if (result != null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.inventoryEntrySaved", "Inserimento inventario salvato"), Severity.Success);
+                _recentEntries.Insert(0, result);
+                
+                // Keep only last 10 entries
+                if (_recentEntries.Count > 10)
+                {
+                    _recentEntries = _recentEntries.Take(10).ToList();
+                }
+
+                ClearForm();
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.inventorySaveError", "Errore nel salvataggio"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving inventory entry");
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.inventorySaveError", "Errore nel salvataggio"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void ClearForm()
+    {
+        _scannedBarcode = string.Empty;
+        _productSearched = false;
+        _currentProduct = null;
+        _selectedLocationId = null;
+        _quantity = 0;
+        _notes = string.Empty;
+        
+        if (_barcodeInput != null)
+        {
+            InvokeAsync(async () => await _barcodeInput.FocusAsync());
+        }
+    }
+
+    private void CreateNewProduct()
+    {
+        // Navigate to product creation page with barcode pre-filled
+        NavigationManager.NavigateTo($"/products/create?barcode={Uri.EscapeDataString(_scannedBarcode)}");
+    }
+
+    private void AssignToExistingProduct()
+    {
+        // Navigate to product assignment page
+        NavigationManager.NavigateTo($"/products/assign-barcode?barcode={Uri.EscapeDataString(_scannedBarcode)}");
+    }
+}

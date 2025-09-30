@@ -76,6 +76,11 @@ builder.Services.AddScoped<IPrintingService, PrintingService>();
 
 // Add warehouse management services
 builder.Services.AddScoped<ILotService, LotService>();
+builder.Services.AddScoped<IInventoryService, InventoryService>();
+builder.Services.AddScoped<IStorageLocationService, StorageLocationService>();
+
+// Add product management services
+builder.Services.AddScoped<IProductService, ProductService>();
 
 // Add SuperAdmin services
 builder.Services.AddScoped<ISuperAdminService, SuperAdminService>();

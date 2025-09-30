@@ -944,4 +944,74 @@ public class WarehouseManagementController : BaseApiController
     }
 
     #endregion
+
+    #region Inventory
+
+    /// <summary>
+    /// Records an inventory entry for a product at a specific location.
+    /// This creates or updates a stock record with the counted quantity.
+    /// </summary>
+    /// <param name="createDto">Inventory entry data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created inventory entry information</returns>
+    /// <response code="200">Returns the created inventory entry</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("inventory")]
+    [ProducesResponseType(typeof(InventoryEntryDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> CreateInventoryEntry([FromBody] CreateInventoryEntryDto createDto, CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Create or update stock record with inventory count
+            var createStockDto = new CreateStockDto
+            {
+                ProductId = createDto.ProductId,
+                StorageLocationId = createDto.LocationId,
+                Quantity = createDto.Quantity,
+                LotId = createDto.LotId,
+                Notes = createDto.Notes
+            };
+
+            var stock = await _stockService.CreateOrUpdateStockAsync(createStockDto, GetCurrentUser(), cancellationToken);
+
+            // Get location information for response
+            var location = await _storageLocationService.GetStorageLocationByIdAsync(createDto.LocationId, cancellationToken);
+
+            // Build response
+            var result = new InventoryEntryDto
+            {
+                Id = stock.Id,
+                ProductId = createDto.ProductId,
+                ProductName = stock.ProductName ?? string.Empty,
+                ProductCode = stock.ProductCode ?? string.Empty,
+                LocationId = createDto.LocationId,
+                LocationName = location?.Code ?? string.Empty,
+                Quantity = createDto.Quantity,
+                LotId = createDto.LotId,
+                LotCode = stock.LotCode,
+                Notes = createDto.Notes,
+                CreatedAt = stock.CreatedAt,
+                CreatedBy = stock.CreatedBy
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while creating the inventory entry.", ex);
+        }
+    }
+
+    #endregion
 }

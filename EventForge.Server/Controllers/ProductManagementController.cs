@@ -121,6 +121,40 @@ public class ProductManagementController : BaseApiController
     }
 
     /// <summary>
+    /// Gets a product by barcode/code value.
+    /// </summary>
+    /// <param name="code">Barcode or code value to search for</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Product information if found</returns>
+    /// <response code="200">Returns the product</response>
+    /// <response code="404">If no product with the given code is found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("products/by-code/{code}")]
+    [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ProductDto>> GetProductByCode(
+        string code,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var product = await _productService.GetProductByCodeAsync(code, cancellationToken);
+            if (product == null)
+                return CreateNotFoundProblem($"Product with code '{code}' not found.");
+
+            return Ok(product);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the product.", ex);
+        }
+    }
+
+    /// <summary>
     /// Creates a new product.
     /// </summary>
     /// <param name="createProductDto">Product creation data</param>
