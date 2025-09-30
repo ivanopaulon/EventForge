@@ -10,6 +10,7 @@
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
 @inject ILogger<CreateProductDialog> Logger
+@inject IClientLogService ClientLogService
 
 <MudDialog>
     <TitleContent>
@@ -228,42 +229,131 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Pre-fill the code with the scanned barcode
-        _createDto.Code = Barcode;
-        _createDto.Status = ProductStatus.Active;
+        try
+        {
+            await ClientLogService.LogInformationAsync("CreateProductDialog: Opening dialog", "CreateProductDialog");
+            
+            // Pre-fill the code with the scanned barcode
+            _createDto.Code = Barcode;
+            _createDto.Status = ProductStatus.Active;
 
-        // Load related entities
-        await LoadRelatedEntitiesAsync();
+            await ClientLogService.LogDebugAsync($"CreateProductDialog: Initialized with barcode {Barcode}", "CreateProductDialog");
+
+            // Load related entities
+            await LoadRelatedEntitiesAsync();
+            
+            await ClientLogService.LogInformationAsync("CreateProductDialog: Dialog opened successfully", "CreateProductDialog");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing CreateProductDialog");
+            await ClientLogService.LogErrorAsync("CreateProductDialog: Error during initialization", ex, "CreateProductDialog");
+            Snackbar.Add(TranslationService.GetTranslation("products.initError", "Errore durante l'inizializzazione"), Severity.Error);
+            throw;
+        }
     }
 
     private async Task LoadRelatedEntitiesAsync()
     {
         try
         {
+            await ClientLogService.LogInformationAsync("CreateProductDialog: Loading related entities", "CreateProductDialog");
+            
             // Load VAT rates
-            var vatRates = await FinancialService.GetVatRatesAsync();
-            _vatRates = vatRates.ToList();
+            try
+            {
+                await ClientLogService.LogDebugAsync("CreateProductDialog: Loading VAT rates", "CreateProductDialog");
+                var vatRates = await FinancialService.GetVatRatesAsync();
+                _vatRates = vatRates.ToList();
+                await ClientLogService.LogInformationAsync($"CreateProductDialog: Loaded {_vatRates.Count} VAT rates", "CreateProductDialog");
+                
+                if (_vatRates.Count == 0)
+                {
+                    await ClientLogService.LogWarningAsync("CreateProductDialog: No VAT rates available", "CreateProductDialog");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading VAT rates");
+                await ClientLogService.LogErrorAsync("CreateProductDialog: Error loading VAT rates", ex, "CreateProductDialog");
+                // Continue - VAT rate is optional
+            }
 
             // Load units of measure
-            var unitsOfMeasure = await ProductService.GetUnitsOfMeasureAsync();
-            _unitsOfMeasure = unitsOfMeasure.ToList();
+            try
+            {
+                await ClientLogService.LogDebugAsync("CreateProductDialog: Loading units of measure", "CreateProductDialog");
+                var unitsOfMeasure = await ProductService.GetUnitsOfMeasureAsync();
+                _unitsOfMeasure = unitsOfMeasure.ToList();
+                await ClientLogService.LogInformationAsync($"CreateProductDialog: Loaded {_unitsOfMeasure.Count} units of measure", "CreateProductDialog");
+                
+                if (_unitsOfMeasure.Count == 0)
+                {
+                    await ClientLogService.LogWarningAsync("CreateProductDialog: No units of measure available", "CreateProductDialog");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading units of measure");
+                await ClientLogService.LogErrorAsync("CreateProductDialog: Error loading units of measure", ex, "CreateProductDialog");
+                // Continue - unit of measure is optional
+            }
 
             // Load classification nodes
-            var classificationNodes = await EntityManagementService.GetClassificationNodesAsync();
-            var nodesList = classificationNodes.ToList();
-            
-            _categoryNodes = nodesList.Where(n => n.Type == ProductClassificationType.Category).ToList();
-            _familyNodes = nodesList.Where(n => n.Type == ProductClassificationType.Subcategory).ToList();
-            _groupNodes = nodesList.Where(n => n.Type == ProductClassificationType.Brand).ToList();
+            try
+            {
+                await ClientLogService.LogDebugAsync("CreateProductDialog: Loading classification nodes", "CreateProductDialog");
+                var classificationNodes = await EntityManagementService.GetClassificationNodesAsync();
+                var nodesList = classificationNodes.ToList();
+                
+                _categoryNodes = nodesList.Where(n => n.Type == ProductClassificationType.Category).ToList();
+                _familyNodes = nodesList.Where(n => n.Type == ProductClassificationType.Subcategory).ToList();
+                _groupNodes = nodesList.Where(n => n.Type == ProductClassificationType.Brand).ToList();
+                
+                await ClientLogService.LogInformationAsync(
+                    $"CreateProductDialog: Loaded classification nodes - Categories: {_categoryNodes.Count}, Families: {_familyNodes.Count}, Groups: {_groupNodes.Count}", 
+                    "CreateProductDialog");
+                
+                if (nodesList.Count == 0)
+                {
+                    await ClientLogService.LogWarningAsync("CreateProductDialog: No classification nodes available", "CreateProductDialog");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading classification nodes");
+                await ClientLogService.LogErrorAsync("CreateProductDialog: Error loading classification nodes", ex, "CreateProductDialog");
+                // Continue - classification nodes are optional
+            }
 
             // Load stations
-            var stations = await ProductService.GetStationsAsync();
-            _stations = stations.ToList();
+            try
+            {
+                await ClientLogService.LogDebugAsync("CreateProductDialog: Loading stations", "CreateProductDialog");
+                var stations = await ProductService.GetStationsAsync();
+                _stations = stations.ToList();
+                await ClientLogService.LogInformationAsync($"CreateProductDialog: Loaded {_stations.Count} stations", "CreateProductDialog");
+                
+                if (_stations.Count == 0)
+                {
+                    await ClientLogService.LogWarningAsync("CreateProductDialog: No stations available", "CreateProductDialog");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading stations");
+                await ClientLogService.LogErrorAsync("CreateProductDialog: Error loading stations", ex, "CreateProductDialog");
+                // Continue - station is optional
+            }
+            
+            await ClientLogService.LogInformationAsync("CreateProductDialog: All related entities loaded", "CreateProductDialog");
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading related entities");
+            await ClientLogService.LogErrorAsync("CreateProductDialog: Critical error loading related entities", ex, "CreateProductDialog");
             Snackbar.Add(TranslationService.GetTranslation("products.loadError", "Errore nel caricamento dei dati"), Severity.Error);
+            throw;
         }
     }
 
@@ -276,38 +366,54 @@
     private async Task SaveProduct()
     {
         if (!_isFormValid)
+        {
+            await ClientLogService.LogWarningAsync("CreateProductDialog: Attempted to save product with invalid form", "CreateProductDialog");
             return;
+        }
 
         _isLoading = true;
         try
         {
+            await ClientLogService.LogInformationAsync($"CreateProductDialog: Saving product with code {_createDto.Code}", "CreateProductDialog");
+            
             // Upload image if selected and not already uploaded
             if (_selectedImage != null && string.IsNullOrEmpty(_createDto.ImageUrl))
             {
                 _isUploadingImage = true;
+                await ClientLogService.LogDebugAsync($"CreateProductDialog: Uploading image {_selectedImage.Name}", "CreateProductDialog");
+                
                 var imageUrl = await ProductService.UploadProductImageAsync(_selectedImage);
                 if (imageUrl != null)
                 {
                     _createDto.ImageUrl = imageUrl;
+                    await ClientLogService.LogInformationAsync($"CreateProductDialog: Image uploaded successfully to {imageUrl}", "CreateProductDialog");
+                }
+                else
+                {
+                    await ClientLogService.LogWarningAsync("CreateProductDialog: Image upload returned null", "CreateProductDialog");
                 }
                 _isUploadingImage = false;
             }
 
+            await ClientLogService.LogDebugAsync("CreateProductDialog: Calling ProductService.CreateProductAsync", "CreateProductDialog");
             var result = await ProductService.CreateProductAsync(_createDto);
 
             if (result != null)
             {
+                await ClientLogService.LogInformationAsync($"CreateProductDialog: Product created successfully with ID {result.Id}", "CreateProductDialog");
                 Snackbar.Add(TranslationService.GetTranslation("products.createSuccess", "Prodotto creato con successo"), Severity.Success);
                 MudDialog.Close(DialogResult.Ok(result));
             }
             else
             {
+                await ClientLogService.LogErrorAsync("CreateProductDialog: CreateProductAsync returned null", null, "CreateProductDialog");
                 Snackbar.Add(TranslationService.GetTranslation("products.createError", "Errore nella creazione del prodotto"), Severity.Error);
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error creating product");
+            await ClientLogService.LogErrorAsync($"CreateProductDialog: Exception creating product: {ex.Message}", ex, "CreateProductDialog");
             Snackbar.Add(TranslationService.GetTranslation("products.createError", "Errore nella creazione del prodotto"), Severity.Error);
         }
         finally
