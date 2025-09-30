@@ -22,7 +22,7 @@ namespace EventForge.Client.Shared
                     // Get required services
                     var clientLogService = serviceProvider.GetService<IClientLogService>();
                     var snackbar = serviceProvider.GetService<ISnackbar>();
-                    
+
                     var message = $"JavaScript error: {errorInfo.Message}";
                     var properties = new Dictionary<string, object>
                     {

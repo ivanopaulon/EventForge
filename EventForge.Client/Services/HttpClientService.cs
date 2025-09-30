@@ -352,7 +352,7 @@ public class HttpClientService : IHttpClientService
         };
 
         // Show user-friendly notification for critical errors
-        if (response.StatusCode == HttpStatusCode.Forbidden || 
+        if (response.StatusCode == HttpStatusCode.Forbidden ||
             response.StatusCode == (HttpStatusCode)429 ||
             response.StatusCode == HttpStatusCode.Unauthorized)
         {
