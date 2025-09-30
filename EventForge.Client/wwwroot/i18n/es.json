@@ -284,7 +284,8 @@
     "deleteTenantError": "Error al eliminar el inquilino: {0}",
     "confirmUserDelete": "¿Está seguro de que quiere eliminar el usuario '{0}'? Esta acción no se puede deshacer.",
     "userDeleted": "¡Usuario eliminado con éxito!",
-    "deleteUserError": "Error al eliminar el usuario: {0}",
+    "deleteUserError": "Error al eliminar el usuario: {0}"
+  },
   "superAdmin": {
     "warning": "Advertencia: Está operando con privilegios de Súper Administrador",
     "tenantManagement": "Gestión de Inquilinos",
