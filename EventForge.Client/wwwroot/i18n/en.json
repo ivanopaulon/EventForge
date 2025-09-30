@@ -1010,5 +1010,24 @@
         "action": "Access the settings panel"
       }
     }
+  },
+  "products": {
+    "createProduct": "Create New Product",
+    "productName": "Product Name",
+    "productCode": "Product Code",
+    "codeHelper": "SKU code or similar",
+    "shortDescription": "Short Description",
+    "description": "Description",
+    "defaultPrice": "Default Price",
+    "status": "Status",
+    "active": "Active",
+    "suspended": "Suspended",
+    "outOfStock": "Out of Stock",
+    "deleted": "Deleted",
+    "vatIncluded": "VAT Included",
+    "createSuccess": "Product created successfully",
+    "createError": "Error creating product",
+    "assignBarcode": "Assign Barcode",
+    "barcodeToAssign": "Barcode to Assign"
   }
 }

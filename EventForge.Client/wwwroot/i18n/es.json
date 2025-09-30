@@ -945,5 +945,24 @@
       "name": "Divertido",
       "description": "Tema lúdico con colores pastel vibrantes"
     }
+  },
+  "products": {
+    "createProduct": "Crear Nuevo Producto",
+    "productName": "Nombre del Producto",
+    "productCode": "Código del Producto",
+    "codeHelper": "Código SKU o similar",
+    "shortDescription": "Descripción Breve",
+    "description": "Descripción",
+    "defaultPrice": "Precio Predeterminado",
+    "status": "Estado",
+    "active": "Activo",
+    "suspended": "Suspendido",
+    "outOfStock": "Agotado",
+    "deleted": "Eliminado",
+    "vatIncluded": "IVA Incluido",
+    "createSuccess": "Producto creado con éxito",
+    "createError": "Error al crear el producto",
+    "assignBarcode": "Asignar Código de Barras",
+    "barcodeToAssign": "Código a Asignar"
   }
 }

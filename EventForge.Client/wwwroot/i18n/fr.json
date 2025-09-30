@@ -945,5 +945,24 @@
       "name": "Amusant",
       "description": "Thème ludique avec des couleurs pastel vibrantes"
     }
+  },
+  "products": {
+    "createProduct": "Créer un Nouveau Produit",
+    "productName": "Nom du Produit",
+    "productCode": "Code du Produit",
+    "codeHelper": "Code SKU ou similaire",
+    "shortDescription": "Description Courte",
+    "description": "Description",
+    "defaultPrice": "Prix par Défaut",
+    "status": "Statut",
+    "active": "Actif",
+    "suspended": "Suspendu",
+    "outOfStock": "En Rupture de Stock",
+    "deleted": "Supprimé",
+    "vatIncluded": "TVA Incluse",
+    "createSuccess": "Produit créé avec succès",
+    "createError": "Erreur lors de la création du produit",
+    "assignBarcode": "Attribuer un Code-Barres",
+    "barcodeToAssign": "Code à Attribuer"
   }
 }
