@@ -71,13 +71,22 @@ public class BootstrapServiceTests
         Assert.Equal(user.Id, userRole.UserId);
         Assert.Equal(role.Id, userRole.RoleId);
 
-        // Verify basic license was created
-        var license = await context.Licenses.FirstOrDefaultAsync(l => l.Name == "basic");
+        // Verify superadmin license was created
+        var license = await context.Licenses.FirstOrDefaultAsync(l => l.Name == "superadmin");
         Assert.NotNull(license);
-        Assert.Equal("Basic License", license.DisplayName);
-        Assert.Equal(10, license.MaxUsers);
-        Assert.Equal(1000, license.MaxApiCallsPerMonth);
-        Assert.Equal(1, license.TierLevel);
+        Assert.Equal("SuperAdmin License", license.DisplayName);
+        Assert.Equal(int.MaxValue, license.MaxUsers);
+        Assert.Equal(int.MaxValue, license.MaxApiCallsPerMonth);
+        Assert.Equal(5, license.TierLevel);
+
+        // Verify superadmin license features were created
+        var licenseFeatures = await context.LicenseFeatures
+            .Where(lf => lf.LicenseId == license.Id)
+            .ToListAsync();
+        Assert.NotEmpty(licenseFeatures);
+        Assert.Contains(licenseFeatures, lf => lf.Name == "ProductManagement");
+        Assert.Contains(licenseFeatures, lf => lf.Name == "BasicEventManagement");
+        Assert.Contains(licenseFeatures, lf => lf.Name == "BasicTeamManagement");
 
         // Verify tenant license assignment
         var tenantLicense = await context.TenantLicenses.FirstOrDefaultAsync();
