@@ -213,14 +213,17 @@ public class LicenseService : ILicenseService
 
     private async Task<Data.Entities.Auth.TenantLicense?> GetActiveTenantLicense(Guid tenantId)
     {
+        // Se ci sono più licenze attive, prende quella con TierLevel più alto
         return await _context.TenantLicenses
             .Include(tl => tl.Tenant)
             .Include(tl => tl.License)
                 .ThenInclude(l => l.LicenseFeatures)
                     .ThenInclude(lf => lf.LicenseFeaturePermissions)
                         .ThenInclude(lfp => lfp.Permission)
-            .FirstOrDefaultAsync(tl => tl.TargetTenantId == tenantId &&
-                                      tl.IsAssignmentActive && !tl.IsDeleted);
+            .Where(tl => tl.TargetTenantId == tenantId &&
+                         tl.IsAssignmentActive && !tl.IsDeleted)
+            .OrderByDescending(tl => tl.License.TierLevel)
+            .FirstOrDefaultAsync();
     }
 
     private async Task ResetApiCallsIfNeeded(Data.Entities.Auth.TenantLicense tenantLicense)
