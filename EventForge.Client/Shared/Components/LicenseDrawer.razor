@@ -223,10 +223,31 @@
             await OnEntitySaved.InvokeAsync();
             await HandleClose();
         }
+        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            Logger.LogError(httpEx, "Forbidden error saving license");
+            Snackbar.Add(
+                TranslationService.GetTranslation("error.forbidden", "Non hai i permessi necessari per questa operazione"),
+                Severity.Error,
+                config => config.VisibleStateDuration = 5000
+            );
+        }
+        catch (HttpRequestException httpEx) when (httpEx.StatusCode == (System.Net.HttpStatusCode)429)
+        {
+            Logger.LogError(httpEx, "API limit exceeded saving license");
+            Snackbar.Add(
+                TranslationService.GetTranslation("error.apiLimitExceeded", "Limite di chiamate API superato. Riprova più tardi."),
+                Severity.Error,
+                config => config.VisibleStateDuration = 5000
+            );
+        }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving license");
-            Snackbar.Add(TranslationService.GetTranslation("error.saveFailed", "Errore durante il salvataggio"), Severity.Error);
+            var errorMessage = ex.Message.Contains("HTTP") || ex.Message.Contains("Errore")
+                ? ex.Message
+                : TranslationService.GetTranslation("error.saveFailed", "Errore durante il salvataggio");
+            Snackbar.Add(errorMessage, Severity.Error, config => config.VisibleStateDuration = 5000);
         }
     }
 

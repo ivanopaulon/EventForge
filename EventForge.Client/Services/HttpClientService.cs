@@ -1,4 +1,5 @@
 using EventForge.DTOs.Common;
+using MudBlazor;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -65,16 +66,22 @@ public class HttpClientService : IHttpClientService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IAuthService _authService;
     private readonly ILogger<HttpClientService> _logger;
+    private readonly IClientLogService? _clientLogService;
+    private readonly ISnackbar? _snackbar;
     private readonly JsonSerializerOptions _jsonOptions;
 
     public HttpClientService(
         IHttpClientFactory httpClientFactory,
         IAuthService authService,
-        ILogger<HttpClientService> logger)
+        ILogger<HttpClientService> logger,
+        IClientLogService? clientLogService = null,
+        ISnackbar? snackbar = null)
     {
         _httpClientFactory = httpClientFactory;
         _authService = authService;
         _logger = logger;
+        _clientLogService = clientLogService;
+        _snackbar = snackbar;
 
         // Configure JSON options for consistent serialization
         _jsonOptions = new JsonSerializerOptions
@@ -312,15 +319,18 @@ public class HttpClientService : IHttpClientService
             "HTTP request failed. Endpoint: {Endpoint}, Status: {StatusCode}, Content: {Content}",
             endpoint, response.StatusCode, content);
 
+        // Parse error message from ProblemDetails or use status code message
+        string errorMessage;
+        string? detail = null;
+        ProblemDetailsDto? problemDetails = null;
+
         // Try to parse ProblemDetails if available
         try
         {
-            var problemDetails = JsonSerializer.Deserialize<ProblemDetailsDto>(content, _jsonOptions);
+            problemDetails = JsonSerializer.Deserialize<ProblemDetailsDto>(content, _jsonOptions);
             if (problemDetails != null)
             {
-                var exception = new HttpRequestException($"Request failed: {problemDetails.Title}", null, response.StatusCode);
-                exception.Data["ProblemDetails"] = problemDetails;
-                throw exception;
+                detail = problemDetails.Detail;
             }
         }
         catch (JsonException)
@@ -328,18 +338,70 @@ public class HttpClientService : IHttpClientService
             // Not a ProblemDetails response, continue with generic error
         }
 
-        // Throw generic HTTP exception
-        var message = response.StatusCode switch
+        // Generate user-friendly error message based on status code
+        errorMessage = response.StatusCode switch
         {
             HttpStatusCode.Unauthorized => "Non autorizzato. Effettua l'accesso e riprova.",
-            HttpStatusCode.Forbidden => "Non hai i permessi necessari per questa operazione.",
+            HttpStatusCode.Forbidden => detail ?? "Non hai i permessi necessari per questa operazione. Verifica la tua licenza e i permessi assegnati.",
             HttpStatusCode.NotFound => "La risorsa richiesta non è stata trovata.",
-            HttpStatusCode.BadRequest => "Richiesta non valida. Verifica i dati inseriti.",
+            HttpStatusCode.BadRequest => detail ?? "Richiesta non valida. Verifica i dati inseriti.",
             HttpStatusCode.InternalServerError => "Errore interno del server. Riprova più tardi.",
             HttpStatusCode.ServiceUnavailable => "Servizio temporaneamente non disponibile.",
-            _ => $"Errore HTTP {(int)response.StatusCode}: {response.ReasonPhrase}"
+            (HttpStatusCode)429 => detail ?? "Limite di chiamate API superato. Riprova più tardi o aggiorna la tua licenza.",
+            _ => detail ?? $"Errore HTTP {(int)response.StatusCode}: {response.ReasonPhrase}"
         };
 
-        throw new HttpRequestException(message, null, response.StatusCode);
+        // Show user-friendly notification for critical errors
+        if (response.StatusCode == HttpStatusCode.Forbidden || 
+            response.StatusCode == (HttpStatusCode)429 ||
+            response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            if (_snackbar != null)
+            {
+                _snackbar.Add(errorMessage, Severity.Error, config =>
+                {
+                    config.VisibleStateDuration = 5000;
+                    config.ShowCloseIcon = true;
+                });
+            }
+        }
+
+        // Log the error to client logging service
+        if (_clientLogService != null)
+        {
+            try
+            {
+                var logProperties = new Dictionary<string, object>
+                {
+                    ["Endpoint"] = endpoint,
+                    ["StatusCode"] = (int)response.StatusCode,
+                    ["StatusText"] = response.StatusCode.ToString()
+                };
+
+                if (problemDetails != null)
+                {
+                    logProperties["ProblemDetails"] = JsonSerializer.Serialize(problemDetails);
+                }
+
+                await _clientLogService.LogErrorAsync(
+                    $"HTTP {(int)response.StatusCode} error on {endpoint}: {errorMessage}",
+                    null,
+                    "HttpClientService",
+                    logProperties
+                );
+            }
+            catch
+            {
+                // Don't fail the original request if logging fails
+            }
+        }
+
+        // Throw exception with proper data
+        var exception = new HttpRequestException(errorMessage, null, response.StatusCode);
+        if (problemDetails != null)
+        {
+            exception.Data["ProblemDetails"] = problemDetails;
+        }
+        throw exception;
     }
 }

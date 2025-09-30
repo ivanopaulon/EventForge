@@ -45,7 +45,15 @@ public class RequireLicenseFeatureAttribute : Attribute, IAsyncAuthorizationFilt
         var tenantIdClaim = context.HttpContext.User.FindFirst("tenant_id")?.Value;
         if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var tenantId))
         {
-            context.Result = new ObjectResult("Tenant information not found")
+            var problemDetails = new ProblemDetails
+            {
+                Type = "https://tools.ietf.org/html/rfc7231#section-6.5.3",
+                Title = "Forbidden",
+                Status = StatusCodes.Status403Forbidden,
+                Detail = "Informazioni sul tenant non trovate. Effettua nuovamente l'accesso.",
+                Instance = context.HttpContext.Request.Path
+            };
+            context.Result = new ObjectResult(problemDetails)
             {
                 StatusCode = 403
             };
@@ -68,7 +76,15 @@ public class RequireLicenseFeatureAttribute : Attribute, IAsyncAuthorizationFilt
 
             if (tenantLicense == null)
             {
-                context.Result = new ObjectResult("No active license found for tenant")
+                var problemDetails = new ProblemDetails
+                {
+                    Type = "https://tools.ietf.org/html/rfc7231#section-6.5.3",
+                    Title = "Forbidden",
+                    Status = StatusCodes.Status403Forbidden,
+                    Detail = "Nessuna licenza attiva trovata per il tenant. Contatta l'amministratore.",
+                    Instance = context.HttpContext.Request.Path
+                };
+                context.Result = new ObjectResult(problemDetails)
                 {
                     StatusCode = 403
                 };
@@ -78,7 +94,15 @@ public class RequireLicenseFeatureAttribute : Attribute, IAsyncAuthorizationFilt
             // Check if license is valid (not expired)
             if (!tenantLicense.IsValid)
             {
-                context.Result = new ObjectResult("License has expired or is not yet active")
+                var problemDetails = new ProblemDetails
+                {
+                    Type = "https://tools.ietf.org/html/rfc7231#section-6.5.3",
+                    Title = "Forbidden",
+                    Status = StatusCodes.Status403Forbidden,
+                    Detail = "La licenza è scaduta o non ancora attiva. Contatta l'amministratore per rinnovarla.",
+                    Instance = context.HttpContext.Request.Path
+                };
+                context.Result = new ObjectResult(problemDetails)
                 {
                     StatusCode = 403
                 };
@@ -92,7 +116,15 @@ public class RequireLicenseFeatureAttribute : Attribute, IAsyncAuthorizationFilt
 
             if (requiredFeature == null)
             {
-                context.Result = new ObjectResult($"Feature '{_featureName}' is not available in current license")
+                var problemDetails = new ProblemDetails
+                {
+                    Type = "https://tools.ietf.org/html/rfc7231#section-6.5.3",
+                    Title = "Forbidden",
+                    Status = StatusCodes.Status403Forbidden,
+                    Detail = $"La funzionalità '{_featureName}' non è disponibile nella licenza corrente. Aggiorna la licenza per accedere a questa funzionalità.",
+                    Instance = context.HttpContext.Request.Path
+                };
+                context.Result = new ObjectResult(problemDetails)
                 {
                     StatusCode = 403
                 };
@@ -113,7 +145,19 @@ public class RequireLicenseFeatureAttribute : Attribute, IAsyncAuthorizationFilt
                 // Check if API limit is exceeded
                 if (tenantLicense.ApiCallsThisMonth >= tenantLicense.License.MaxApiCallsPerMonth)
                 {
-                    context.Result = new ObjectResult("API call limit exceeded for this month")
+                    var problemDetails = new ProblemDetails
+                    {
+                        Type = "https://tools.ietf.org/html/rfc6585#section-4",
+                        Title = "Too Many Requests",
+                        Status = StatusCodes.Status429TooManyRequests,
+                        Detail = $"Limite mensile di chiamate API superato ({tenantLicense.License.MaxApiCallsPerMonth}). Attendi il prossimo mese o aggiorna la licenza.",
+                        Instance = context.HttpContext.Request.Path
+                    };
+                    problemDetails.Extensions["currentUsage"] = tenantLicense.ApiCallsThisMonth;
+                    problemDetails.Extensions["limit"] = tenantLicense.License.MaxApiCallsPerMonth;
+                    problemDetails.Extensions["resetDate"] = tenantLicense.ApiCallsResetAt.AddMonths(1).ToString("yyyy-MM-dd");
+
+                    context.Result = new ObjectResult(problemDetails)
                     {
                         StatusCode = 429 // Too Many Requests
                     };
@@ -137,7 +181,18 @@ public class RequireLicenseFeatureAttribute : Attribute, IAsyncAuthorizationFilt
             if (!hasRequiredPermissions)
             {
                 var missingPermissions = requiredPermissions.Except(userPermissions, StringComparer.OrdinalIgnoreCase);
-                context.Result = new ObjectResult($"Missing required permissions: {string.Join(", ", missingPermissions)}")
+                var problemDetails = new ProblemDetails
+                {
+                    Type = "https://tools.ietf.org/html/rfc7231#section-6.5.3",
+                    Title = "Forbidden",
+                    Status = StatusCodes.Status403Forbidden,
+                    Detail = $"Permessi mancanti per la funzionalità '{_featureName}': {string.Join(", ", missingPermissions)}. Contatta l'amministratore per ottenere i permessi necessari.",
+                    Instance = context.HttpContext.Request.Path
+                };
+                problemDetails.Extensions["missingPermissions"] = missingPermissions.ToArray();
+                problemDetails.Extensions["featureName"] = _featureName;
+
+                context.Result = new ObjectResult(problemDetails)
                 {
                     StatusCode = 403
                 };
@@ -150,7 +205,16 @@ public class RequireLicenseFeatureAttribute : Attribute, IAsyncAuthorizationFilt
             logger.LogError(ex, "Error checking license feature authorization for feature '{FeatureName}' and tenant '{TenantId}'",
                 _featureName, tenantId);
 
-            context.Result = new ObjectResult("Error validating license")
+            var problemDetails = new ProblemDetails
+            {
+                Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1",
+                Title = "Internal Server Error",
+                Status = StatusCodes.Status500InternalServerError,
+                Detail = "Errore durante la validazione della licenza. Riprova più tardi.",
+                Instance = context.HttpContext.Request.Path
+            };
+
+            context.Result = new ObjectResult(problemDetails)
             {
                 StatusCode = 500
             };
