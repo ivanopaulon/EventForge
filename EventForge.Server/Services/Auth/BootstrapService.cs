@@ -503,7 +503,7 @@ public class BootstrapService : IBootstrapService
             // Mark features that are no longer in the expected list as inactive
             var expectedNames = expectedFeatures.Select(f => f.Name).ToHashSet();
             var obsoleteFeatures = existingFeatures.Where(f => !expectedNames.Contains(f.Name) && f.IsActive).ToList();
-            
+
             foreach (var obsolete in obsoleteFeatures)
             {
                 obsolete.IsActive = false;

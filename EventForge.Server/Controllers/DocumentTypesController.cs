@@ -24,7 +24,7 @@ public class DocumentTypesController : BaseApiController
     /// <param name="tenantContext">Tenant context service</param>
     /// <param name="logger">Logger instance</param>
     public DocumentTypesController(
-        IDocumentTypeService documentTypeService, 
+        IDocumentTypeService documentTypeService,
         ITenantContext tenantContext,
         ILogger<DocumentTypesController> logger)
     {

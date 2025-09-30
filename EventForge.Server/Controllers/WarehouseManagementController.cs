@@ -1004,7 +1004,7 @@ public class WarehouseManagementController : BaseApiController
         try
         {
             var stockResult = await _stockService.GetStockAsync(page, pageSize, null, null, null, null, cancellationToken);
-            
+
             // Convert StockDto to InventoryEntryDto
             var inventoryEntries = stockResult.Items.Select(stock => new InventoryEntryDto
             {
