@@ -59,7 +59,11 @@
     "resetToDefaults": "Reset to defaults",
     "saveSettings": "Save settings",
     "settingsReset": "Settings reset",
-    "settingsSaved": "Settings saved"
+    "settingsSaved": "Settings saved",
+    "system": "System",
+    "tenant": "Tenant",
+    "thisItem": "This item",
+    "user": "User"
   },
   "navigation": {
     "home": "Home",
@@ -82,7 +86,10 @@
     "help": "Help & Support",
     "helpCenter": "Help Center",
     "interactiveTour": "Interactive Tour",
-    "tutorialCenter": "Tutorial Center"
+    "tutorialCenter": "Tutorial Center",
+    "notificationsDescription": "View your notifications",
+    "admin": "Administration",
+    "notifications": "Notifications"
   },
   "home": {
     "title": "EventForge - Home",
@@ -169,7 +176,16 @@
     "icon": "Icon",
     "location": "Location",
     "startDate": "Start date",
-    "user": "User"
+    "user": "User",
+    "endTime": "End time",
+    "event": "Event",
+    "eventCategory": "Event category",
+    "eventType": "Event type",
+    "isActive": "Active",
+    "license": "License",
+    "shortDescription": "Short description",
+    "startTime": "Start time",
+    "teamCount": "Team count"
   },
   "validation": {
     "required": "This field is required",
@@ -177,7 +193,11 @@
     "minLength": "Minimum {0} characters",
     "maxLength": "Maximum {0} characters",
     "passwordMismatch": "Passwords do not match",
-    "invalidFormat": "Invalid format"
+    "invalidFormat": "Invalid format",
+    "endDateAfterStartDate": "End date must be after start date",
+    "nameMinLength": "Name must be at least 2 characters",
+    "nameRequired": "Name is required",
+    "shortDescriptionRequired": "Short description is required"
   },
   "messages": {
     "saveSuccess": "Saved successfully",
@@ -185,7 +205,11 @@
     "deleteConfirm": "Are you sure you want to delete this item?",
     "unsavedChanges": "There are unsaved changes. Continue?",
     "operationSuccess": "Operation completed successfully",
-    "operationFailed": "Operation failed"
+    "operationFailed": "Operation failed",
+    "createFailed": "Creation failed",
+    "createSuccessful": "Created successfully",
+    "updateFailed": "Update failed",
+    "updateSuccessful": "Updated successfully"
   },
   "superAdmin": {
     "warning": "Warning: You are operating with Super Administrator privileges",
@@ -618,7 +642,9 @@
     "totalChats": "Total chats",
     "totalEvents": "Total events",
     "userAuditHistoryError": "User audit history error",
-    "viewMessage": "View message"
+    "viewMessage": "View message",
+    "eventManagement": "Event Management",
+    "inactiveTenants": "Inactive tenants"
   },
   "pagination": {
     "showing": "Showing {0}-{1} of {2}",
@@ -689,7 +715,21 @@
     "toggleStatus": "Toggle status",
     "toggleTenantSwitch": "Toggle tenant switch",
     "toggleTrends": "Toggle trends",
-    "viewEventType": "View event type"
+    "viewEventType": "View event type",
+    "activate": "Activate",
+    "auditLog": "View audit log",
+    "deactivate": "Deactivate",
+    "exportItem": "Export item",
+    "toggleEventCategoryStatus": "Toggle event category status",
+    "activateItem": "Activate item",
+    "createNew": "Create new",
+    "deactivateItem": "Deactivate item",
+    "deleteItem": "Delete item",
+    "editItem": "Edit item",
+    "sortColumn": "Sort column",
+    "toggleSection": "Toggle section",
+    "viewAuditLog": "View audit log",
+    "viewItem": "View item"
   },
   "health": {
     "serverStatus": "Server Health Status",
@@ -708,7 +748,16 @@
     "appliedMigrations": "Applied Migrations",
     "andMore": "and {0} more",
     "checkFailed": "Health Check Failed",
-    "loadingStatus": "Loading health status..."
+    "loadingStatus": "Loading health status...",
+    "api.title": "API Status",
+    "database.title": "Database status",
+    "dialog.title": "System status",
+    "lastUpdated": "Last updated",
+    "loading": "Loading status...",
+    "migrations": "Migrations",
+    "version": "Version",
+    "openDialog": "Open status dialog",
+    "status": "Status"
   },
   "admin": {
     "welcomeBack": "Welcome back, {0}!",
@@ -778,7 +827,17 @@
     "invalidOperation": "Invalid operation at this time.",
     "unexpectedError": "An unexpected error occurred. Please try again or contact support if the problem persists.",
     "deleteFailed": "Delete failed",
-    "loadFailed": "Load failed"
+    "loadFailed": "Load failed",
+    "apiLimitExceeded": "API limit exceeded",
+    "eventCategoryCreateFailed": "Event category creation failed",
+    "eventCategoryUpdateFailed": "Event category update failed",
+    "eventCreateFailed": "Event creation failed",
+    "eventTypeCreateFailed": "Event type creation failed",
+    "eventTypeUpdateFailed": "Event type update failed",
+    "eventUpdateFailed": "Event update failed",
+    "forbidden": "Forbidden",
+    "loadAuditHistory": "Error loading audit history",
+    "saveFailed": "Save failed"
   },
   "accessibility": {
     "languageSelectorDescription": "Select your preferred language",
@@ -822,7 +881,11 @@
       "name": "Fun",
       "description": "Playful theme with vibrant pastel colors"
     },
-    "system": "System"
+    "system": "System",
+    "changeError": "Error changing theme",
+    "compact": "Compact",
+    "default": "Default",
+    "detailed": "Detailed"
   },
   "drawer": {
     "title": {
@@ -940,7 +1003,20 @@
       "admin": "Complete tenant administration",
       "superadmin": "Full system access",
       "default": "Custom role"
-    }
+    },
+    "createEvent": "Create event",
+    "createEventCategory": "Create event category",
+    "createEventType": "Create event type",
+    "edit": "Edit",
+    "error.cognomeMinLength": "Last name must be at least 2 characters",
+    "error.nomeMinLength": "First name must be at least 2 characters",
+    "error.ruoloObbligatorio": "Role is required",
+    "error.userCreationFailed": "User creation failed",
+    "error.userUpdateFailed": "User update failed",
+    "info.passwordAutoGenerated": "Password auto-generated and sent via email",
+    "success.userCreated": "User created successfully",
+    "success.userUpdated": "User updated successfully",
+    "view": "View"
   },
   "help": {
     "general": {
@@ -1003,7 +1079,25 @@
       "sharing": "Control who can access your files. Set permissions for viewing, downloading, or editing shared content."
     },
     "quickStart": "Quick start",
-    "takeATour": "Take a tour"
+    "takeATour": "Take a tour",
+    "eventCapacity": "Maximum capacity of participants for this event",
+    "eventCategoryActive": "Indicates if this event category is active and available",
+    "eventCategoryColor": "Color to visually identify this category",
+    "eventCategoryDescription": "Description of the event category",
+    "eventCategoryName": "Unique name of the event category",
+    "eventEndDate": "End date of the event",
+    "eventEndTime": "End time of the event",
+    "eventLocation": "Location where the event will take place",
+    "eventName": "Event name",
+    "eventStartDate": "Start date of the event",
+    "eventStartTime": "Start time of the event",
+    "eventTypeActive": "Indicates if this event type is active and available",
+    "eventTypeColor": "Color to visually identify this type",
+    "eventTypeDescription": "Description of the event type",
+    "eventTypeName": "Unique name of the event type",
+    "eventShortDescription": "Brief description of the event",
+    "eventStatus": "Current status of the event",
+    "eventTypeIcon": "Icon to visually identify this type"
   },
   "onboarding": {
     "progress": "Step {0} of {1}",
@@ -1083,7 +1177,43 @@
         "imageAlt": "Audit trail interface"
       }
     },
-    "completed": "Completed"
+    "completed": "Completed",
+    "complete.activityFeed": "Explore activity feed",
+    "complete.notifications": "View notifications",
+    "complete.preferences": "Configure preferences",
+    "filtering.desc": "Filter notifications by type, date and priority",
+    "filtering.title": "Powerful filtering",
+    "grouping.events": "Similar events",
+    "grouping.latest": "Latest activity",
+    "next": "Next",
+    "notifications.complete.description": "You're ready to use the notification system!",
+    "notifications.complete.tip": "You can always customize your preferences in settings",
+    "notifications.complete.title": "All set!",
+    "notifications.features.chat": "Chat",
+    "notifications.features.chatDesc": "Messages and conversations",
+    "notifications.features.events": "Events",
+    "notifications.features.eventsDesc": "Event updates",
+    "notifications.features.security": "Security",
+    "notifications.features.securityDesc": "Security alerts",
+    "notifications.organization.description": "Similar notifications are automatically grouped for cleaner viewing",
+    "notifications.organization.tip": "Click on a group to expand and see all details",
+    "notifications.organization.title": "Smart organization",
+    "notifications.personalization.description": "Configure which notifications to receive and how to display them",
+    "notifications.personalization.title": "Full personalization",
+    "notifications.rich.description": "Each notification includes detailed information and quick actions",
+    "notifications.rich.tip": "Hover over a notification to see available actions",
+    "notifications.rich.title": "Rich notifications",
+    "notifications.welcome.description": "Discover how EventForge's notification system works",
+    "personalization.feed": "Activity feed",
+    "personalization.feedDesc": "View all recent activities",
+    "personalization.openPreferences": "Open preferences",
+    "personalization.preferences": "Preferences",
+    "personalization.preferencesDesc": "Customize your notifications",
+    "previous": "Previous",
+    "sample.confirm": "Confirm",
+    "sample.message": "This is a sample notification",
+    "sample.title": "Sample notification",
+    "sample.view": "View"
   },
   "walkthrough": {
     "step": "Step {0} of {1}",
@@ -1187,7 +1317,16 @@
     "other": "Other",
     "searchProduct": "Search product",
     "selectProduct": "Select product",
-    "selectedProduct": "Selected product"
+    "selectedProduct": "Selected product",
+    "category": "Category",
+    "family": "Family",
+    "isBundle": "Is bundle",
+    "productImage": "Product image",
+    "selectImage": "Select image",
+    "station": "Station",
+    "statisticalGroup": "Statistical group",
+    "unitOfMeasure": "Unit of measure",
+    "vatRate": "VAT rate"
   },
   "activityFeed": {
     "allTime": "All time",
@@ -1247,7 +1386,34 @@
     "timeNow": "Now",
     "title": "Chat",
     "welcomeMessage": "Welcome to EventForge chat",
-    "welcomeTitle": "Welcome"
+    "welcomeTitle": "Welcome",
+    "addEmoji": "Add emoji",
+    "addReaction": "Add reaction",
+    "attachFile": "Attach file",
+    "attachments": "Attachments",
+    "cancelReply": "Cancel reply",
+    "copyMessage": "Copy message",
+    "deleteMessage": "Delete message",
+    "downloadFile": "Download file",
+    "editMessage": "Edit message",
+    "formatBold": "Bold",
+    "formatCode": "Code",
+    "formatItalic": "Italic",
+    "moreActions": "More actions",
+    "replies": "Replies",
+    "reply": "Reply",
+    "replyPlaceholder": "Reply to message...",
+    "replyingTo": "Replying to",
+    "reportMessage": "Report message",
+    "sendMessage": "Send message",
+    "shareMessage": "Share message",
+    "status.delivered": "Delivered",
+    "status.failed": "Failed",
+    "status.pending": "Pending",
+    "status.read": "Read",
+    "status.sent": "Sent",
+    "typeMessage": "Type a message...",
+    "viewReplies": "View replies"
   },
   "eventStatus": {
     "cancelled": "Cancelled",
@@ -1331,7 +1497,31 @@
     "systemNotifications": "System notifications",
     "title": "Notifications",
     "type": "Type",
-    "unreadOnly": "Unread only"
+    "unreadOnly": "Unread only",
+    "andMore": "and more",
+    "archive": "Archive",
+    "archiveGroup": "Archive group",
+    "attachments": "Attachments",
+    "daysAgo": "{0} days ago",
+    "details": "Details",
+    "from": "From",
+    "groupCount": "{0} notifications",
+    "hoursAgo": "{0} hours ago",
+    "justNow": "Just now",
+    "lastUpdated": "Last updated",
+    "latestActivity": "Latest activity",
+    "markAsRead": "Mark as read",
+    "markGroupAsRead": "Mark group as read",
+    "minutesAgo": "{0} minutes ago",
+    "multipleNewNotifications": "You have {0} new notifications",
+    "multipleNewNotificationsAria": "{0} new unread notifications",
+    "noNewNotifications": "No new notifications",
+    "noNewNotificationsAria": "No unread notifications",
+    "oneNewNotification": "You have 1 new notification",
+    "oneNewNotificationAria": "1 new unread notification",
+    "ungroup": "Ungroup",
+    "viewDetails": "View details",
+    "showAll": "Show all"
   },
   "notificationPreferences": {
     "allowDataCollection": "Allow data collection",
@@ -1369,7 +1559,10 @@
     "indefinite": "Indefinite"
   },
   "dialog": {
-    "confirmDeleteEventCategory": "Confirm delete event category"
+    "confirmDeleteEventCategory": "Confirm delete event category",
+    "confirmDelete": "Confirm delete",
+    "confirmDeleteEventCategoryMessage": "Are you sure you want to delete this event category?",
+    "confirmDeleteMessage": "Are you sure you want to delete this item?"
   },
   "filter": {
     "all": "All"
@@ -1396,7 +1589,32 @@
       "totalTenants": "Total tenants"
     },
     "tenantCount": "Tenant count",
-    "tierLevel": "Tier level"
+    "tierLevel": "Tier level",
+    "created": "Created",
+    "current": "Current license",
+    "edit": "Edit license",
+    "expiryDate": "Expiry date",
+    "features": "Features",
+    "field.description": "Description",
+    "field.displayName": "Display name",
+    "field.isActive": "Active",
+    "field.maxApiCalls": "Maximum API calls",
+    "field.maxUsers": "Maximum users",
+    "field.tierLevel": "Tier level",
+    "info": "License information",
+    "noExpiry": "No expiry",
+    "noLicense": "No license",
+    "startDate": "Start date",
+    "status": "Status",
+    "field.isActiveHelp": "Indicates if the license is active",
+    "field.maxApiCallsHelp": "Maximum number of API calls allowed",
+    "field.maxUsersHelp": "Maximum number of users allowed",
+    "field.nameCreate": "License name",
+    "field.nameEdit": "License name",
+    "field.tierLevelHelp": "License tier level",
+    "permissions": "Permissions",
+    "updated": "Updated",
+    "view": "View license"
   },
   "warehouse": {
     "active": "Active",
@@ -1451,7 +1669,10 @@
     "time": "Time",
     "totalEntries": "Total entries",
     "totalLots": "Total lots",
-    "viewInventory": "View inventory"
+    "viewInventory": "View inventory",
+    "assignToExisting": "Assign to existing product",
+    "createNewProduct": "Create new product",
+    "createOrAssignPrompt": "Do you want to create a new product or assign to an existing one?"
   },
   "printing": {
     "actions": "Actions",
@@ -1504,5 +1725,88 @@
     "versionError": "Version error",
     "versionFailed": "Version retrieval failed",
     "versionRetrieved": "Version retrieved"
+  },
+  "aria": {
+    "eventCategoryStatus": "Event category status",
+    "eventStatus": "Event status",
+    "eventTypeStatus": "Event type status"
+  },
+  "audit": {
+    "activated": "Activated",
+    "advancedFilters": "Advanced filters",
+    "applyFilters": "Apply filters",
+    "changes": "Changes",
+    "clearFilters": "Clear filters",
+    "created": "Created",
+    "deactivated": "Deactivated",
+    "deleted": "Deleted",
+    "export": "Export",
+    "exportImplementingSoon": "Export functionality coming soon",
+    "fieldPlaceholder": "Select field...",
+    "filterByField": "Filter by field",
+    "filterByUser": "Filter by user",
+    "fromDate": "From date",
+    "historyTitle": "Audit history",
+    "loadingHistory": "Loading history...",
+    "modifiedBy": "Modified by",
+    "newValue": "New value",
+    "noHistory": "No history",
+    "noHistoryDescription": "There are no recorded changes for this item",
+    "noMatchingHistory": "No matching history",
+    "noMatchingHistoryDescription": "No records match the applied filters",
+    "oldValue": "Old value",
+    "operationType": "Operation type",
+    "toDate": "To date",
+    "updated": "Updated",
+    "userPlaceholder": "Select user..."
+  },
+  "auditLog": {
+    "advancedFilters": "Advanced filters",
+    "create": "Create",
+    "dateFrom": "Date from",
+    "dateTo": "Date to",
+    "delete": "Delete",
+    "entityHistory": "Entity history",
+    "field": "Field",
+    "fieldName": "Field name",
+    "fieldNamePlaceholder": "Enter field name...",
+    "loadError": "Error loading audit logs",
+    "newValue": "New value",
+    "noData": "No data",
+    "noDataDescription": "There are no audit logs available",
+    "oldValue": "Old value",
+    "operationType": "Operation type",
+    "resetFilters": "Reset filters",
+    "selectOperationType": "Select operation type",
+    "title": "Audit log",
+    "update": "Update",
+    "user": "User"
+  },
+  "language": {
+    "changeError": "Error changing language"
+  },
+  "mobileBadge": {
+    "activities": "Activities",
+    "messages": "Messages",
+    "noNotifications": "No notifications",
+    "notifications": "Notifications",
+    "urgent": "Urgent"
+  },
+  "userMenu": {
+    "ariaLabel": "User menu",
+    "avatarLabel": "User avatar"
+  },
+  "success": {
+    "eventCategoryCreated": "Event category created successfully",
+    "eventCategoryUpdated": "Event category updated successfully",
+    "eventCreated": "Event created successfully",
+    "eventTypeCreated": "Event type created successfully",
+    "eventTypeUpdated": "Event type updated successfully",
+    "eventUpdated": "Event updated successfully"
+  },
+  "table": {
+    "noData": "No data available",
+    "pagerInfo": "Showing {0} to {1} of {2}",
+    "rowsPerPage": "Rows per page"
   }
 }
