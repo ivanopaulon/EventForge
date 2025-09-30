@@ -33,7 +33,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var response = await _httpClientService.GetAsync<IEnumerable<ConfigurationDto>>("api/SuperAdmin/configuration");
+            var response = await _httpClientService.GetAsync<IEnumerable<ConfigurationDto>>("api/v1/super-admin/configuration");
             return response ?? Enumerable.Empty<ConfigurationDto>();
         }
         catch (Exception ex)
@@ -47,7 +47,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var response = await _httpClientService.GetAsync<IEnumerable<ConfigurationDto>>($"api/SuperAdmin/configuration/category/{category}");
+            var response = await _httpClientService.GetAsync<IEnumerable<ConfigurationDto>>($"api/v1/super-admin/configuration/category/{category}");
             return response ?? Enumerable.Empty<ConfigurationDto>();
         }
         catch (Exception ex)
@@ -61,7 +61,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var response = await _httpClientService.GetAsync<IEnumerable<string>>("api/SuperAdmin/configuration/categories");
+            var response = await _httpClientService.GetAsync<IEnumerable<string>>("api/v1/super-admin/configuration/categories");
             return response ?? Enumerable.Empty<string>();
         }
         catch (Exception ex)
@@ -75,7 +75,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            return await _httpClientService.GetAsync<ConfigurationDto>($"api/SuperAdmin/configuration/{key}");
+            return await _httpClientService.GetAsync<ConfigurationDto>($"api/v1/super-admin/configuration/{key}");
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("404"))
         {
@@ -92,7 +92,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<CreateConfigurationDto, ConfigurationDto>("api/SuperAdmin/configuration", createDto);
+            var result = await _httpClientService.PostAsync<CreateConfigurationDto, ConfigurationDto>("api/v1/super-admin/configuration", createDto);
             return result ?? throw new InvalidOperationException("Failed to deserialize response");
         }
         catch (Exception ex)
@@ -106,7 +106,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var result = await _httpClientService.PutAsync<UpdateConfigurationDto, ConfigurationDto>($"api/SuperAdmin/configuration/{key}", updateDto);
+            var result = await _httpClientService.PutAsync<UpdateConfigurationDto, ConfigurationDto>($"api/v1/super-admin/configuration/{key}", updateDto);
             return result ?? throw new InvalidOperationException("Failed to deserialize response");
         }
         catch (Exception ex)
@@ -120,7 +120,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"api/SuperAdmin/configuration/{key}");
+            await _httpClientService.DeleteAsync($"api/v1/super-admin/configuration/{key}");
         }
         catch (Exception ex)
         {
@@ -133,7 +133,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<SmtpTestDto, SmtpTestResultDto>("api/SuperAdmin/configuration/test-smtp", testDto);
+            var result = await _httpClientService.PostAsync<SmtpTestDto, SmtpTestResultDto>("api/v1/super-admin/configuration/test-smtp", testDto);
             return result ?? throw new InvalidOperationException("Failed to deserialize response");
         }
         catch (Exception ex)
@@ -147,7 +147,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            await _httpClientService.PostAsync<object?>("api/SuperAdmin/configuration/reload", null);
+            await _httpClientService.PostAsync<object?>("api/v1/super-admin/configuration/reload", null);
         }
         catch (Exception ex)
         {

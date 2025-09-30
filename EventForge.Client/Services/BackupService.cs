@@ -38,7 +38,7 @@ public class BackupService : IBackupService
             await _loadingDialogService.UpdateOperationAsync("Invio richiesta di backup al server...");
             await _loadingDialogService.UpdateProgressAsync(50);
 
-            var result = await _httpClientService.PostAsync<BackupRequestDto, BackupStatusDto>("api/SuperAdmin/backup", request);
+            var result = await _httpClientService.PostAsync<BackupRequestDto, BackupStatusDto>("api/v1/super-admin/backup", request);
 
             await _loadingDialogService.UpdateOperationAsync("Backup avviato con successo");
             await _loadingDialogService.UpdateProgressAsync(100);
@@ -60,7 +60,7 @@ public class BackupService : IBackupService
     {
         try
         {
-            return await _httpClientService.GetAsync<BackupStatusDto>($"api/SuperAdmin/backup/{backupId}");
+            return await _httpClientService.GetAsync<BackupStatusDto>($"api/v1/super-admin/backup/{backupId}");
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("404"))
         {
@@ -77,7 +77,7 @@ public class BackupService : IBackupService
     {
         try
         {
-            var response = await _httpClientService.GetAsync<IEnumerable<BackupStatusDto>>($"api/SuperAdmin/backup?limit={limit}");
+            var response = await _httpClientService.GetAsync<IEnumerable<BackupStatusDto>>($"api/v1/super-admin/backup?limit={limit}");
             return response ?? Enumerable.Empty<BackupStatusDto>();
         }
         catch (Exception ex)
@@ -91,7 +91,7 @@ public class BackupService : IBackupService
     {
         try
         {
-            await _httpClientService.PostAsync<object?>($"api/SuperAdmin/backup/{backupId}/cancel", null);
+            await _httpClientService.PostAsync<object?>($"api/v1/super-admin/backup/{backupId}/cancel", null);
         }
         catch (Exception ex)
         {
@@ -105,14 +105,14 @@ public class BackupService : IBackupService
         // This method constructs a URL and doesn't make HTTP call, so it doesn't need to be changed
         // However, I should get the base address from the HttpClientService somehow
         // For now, keeping the existing logic but this could be improved
-        return Task.FromResult($"api/SuperAdmin/backup/{backupId}/download");
+        return Task.FromResult($"api/v1/super-admin/backup/{backupId}/download");
     }
 
     public async Task DeleteBackupAsync(Guid backupId)
     {
         try
         {
-            await _httpClientService.DeleteAsync($"api/SuperAdmin/backup/{backupId}");
+            await _httpClientService.DeleteAsync($"api/v1/super-admin/backup/{backupId}");
         }
         catch (Exception ex)
         {
