@@ -83,39 +83,39 @@ public class BootstrapService : IBootstrapService
         {
             _logger.LogInformation("Starting bootstrap process...");
 
-            // Check if any tenants exist; if yes, do nothing
-            var existingTenants = await _dbContext.Tenants.AnyAsync(cancellationToken);
-            if (existingTenants)
-            {
-                _logger.LogInformation("Tenants already exist. Skipping bootstrap process.");
-                return true;
-            }
-
-            _logger.LogInformation("No tenants found. Starting initial bootstrap...");
-
             // Ensure database is created
             await _dbContext.Database.EnsureCreatedAsync(cancellationToken);
 
-            // Seed default roles and permissions first
+            // Always seed/update default roles and permissions
             if (!await SeedDefaultRolesAndPermissionsAsync(cancellationToken))
             {
                 _logger.LogError("Failed to seed default roles and permissions");
                 return false;
             }
 
+            // Always ensure SuperAdmin license is up to date
+            var superAdminLicense = await EnsureSuperAdminLicenseAsync(cancellationToken);
+            if (superAdminLicense == null)
+            {
+                _logger.LogError("Failed to ensure SuperAdmin license");
+                return false;
+            }
+
+            // Check if any tenants exist
+            var existingTenants = await _dbContext.Tenants.AnyAsync(cancellationToken);
+            if (existingTenants)
+            {
+                _logger.LogInformation("Tenants already exist. Bootstrap data update completed.");
+                return true;
+            }
+
+            _logger.LogInformation("No tenants found. Starting initial bootstrap...");
+
             // Create default tenant
             var defaultTenant = await CreateDefaultTenantAsync(cancellationToken);
             if (defaultTenant == null)
             {
                 _logger.LogError("Failed to create default tenant");
-                return false;
-            }
-
-            // Create SuperAdmin license with full management capabilities
-            var superAdminLicense = await CreateSuperAdminLicenseAsync(cancellationToken);
-            if (superAdminLicense == null)
-            {
-                _logger.LogError("Failed to create SuperAdmin license");
                 return false;
             }
 
@@ -276,25 +276,17 @@ public class BootstrapService : IBootstrapService
     }
 
     /// <summary>
-    /// Creates the SuperAdmin license with full management capabilities.
+    /// Ensures the SuperAdmin license exists and is up to date with the code-defined configuration.
+    /// Creates the license if it doesn't exist, or updates it if the definition has changed.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Created license entity</returns>
-    private async Task<License?> CreateSuperAdminLicenseAsync(CancellationToken cancellationToken = default)
+    /// <returns>SuperAdmin license entity</returns>
+    private async Task<License?> EnsureSuperAdminLicenseAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            // Check if superadmin license already exists
-            var existingLicense = await _dbContext.Licenses
-                .FirstOrDefaultAsync(l => l.Name == "superadmin", cancellationToken);
-
-            if (existingLicense != null)
-            {
-                _logger.LogInformation("SuperAdmin license already exists");
-                return existingLicense;
-            }
-
-            var superAdminLicense = new License
+            // Define the expected license configuration (source of truth)
+            var expectedConfig = new
             {
                 Name = "superadmin",
                 DisplayName = "SuperAdmin License",
@@ -302,7 +294,93 @@ public class BootstrapService : IBootstrapService
                 MaxUsers = int.MaxValue,
                 MaxApiCallsPerMonth = int.MaxValue,
                 TierLevel = 5,
-                IsActive = true,
+                IsActive = true
+            };
+
+            // Check if superadmin license already exists
+            var existingLicense = await _dbContext.Licenses
+                .FirstOrDefaultAsync(l => l.Name == expectedConfig.Name, cancellationToken);
+
+            if (existingLicense != null)
+            {
+                // Update license if any properties differ from expected configuration
+                var hasChanges = false;
+
+                if (existingLicense.DisplayName != expectedConfig.DisplayName)
+                {
+                    _logger.LogInformation("Updating SuperAdmin license DisplayName: '{OldValue}' -> '{NewValue}'",
+                        existingLicense.DisplayName, expectedConfig.DisplayName);
+                    existingLicense.DisplayName = expectedConfig.DisplayName;
+                    hasChanges = true;
+                }
+
+                if (existingLicense.Description != expectedConfig.Description)
+                {
+                    _logger.LogInformation("Updating SuperAdmin license Description");
+                    existingLicense.Description = expectedConfig.Description;
+                    hasChanges = true;
+                }
+
+                if (existingLicense.MaxUsers != expectedConfig.MaxUsers)
+                {
+                    _logger.LogInformation("Updating SuperAdmin license MaxUsers: {OldValue} -> {NewValue}",
+                        existingLicense.MaxUsers, expectedConfig.MaxUsers);
+                    existingLicense.MaxUsers = expectedConfig.MaxUsers;
+                    hasChanges = true;
+                }
+
+                if (existingLicense.MaxApiCallsPerMonth != expectedConfig.MaxApiCallsPerMonth)
+                {
+                    _logger.LogInformation("Updating SuperAdmin license MaxApiCallsPerMonth: {OldValue} -> {NewValue}",
+                        existingLicense.MaxApiCallsPerMonth, expectedConfig.MaxApiCallsPerMonth);
+                    existingLicense.MaxApiCallsPerMonth = expectedConfig.MaxApiCallsPerMonth;
+                    hasChanges = true;
+                }
+
+                if (existingLicense.TierLevel != expectedConfig.TierLevel)
+                {
+                    _logger.LogInformation("Updating SuperAdmin license TierLevel: {OldValue} -> {NewValue}",
+                        existingLicense.TierLevel, expectedConfig.TierLevel);
+                    existingLicense.TierLevel = expectedConfig.TierLevel;
+                    hasChanges = true;
+                }
+
+                if (existingLicense.IsActive != expectedConfig.IsActive)
+                {
+                    _logger.LogInformation("Updating SuperAdmin license IsActive: {OldValue} -> {NewValue}",
+                        existingLicense.IsActive, expectedConfig.IsActive);
+                    existingLicense.IsActive = expectedConfig.IsActive;
+                    hasChanges = true;
+                }
+
+                if (hasChanges)
+                {
+                    existingLicense.ModifiedBy = "system";
+                    existingLicense.ModifiedAt = DateTime.UtcNow;
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    _logger.LogInformation("SuperAdmin license updated with new configuration");
+                }
+                else
+                {
+                    _logger.LogInformation("SuperAdmin license is up to date");
+                }
+
+                // Always sync license features to ensure they match the expected configuration
+                await SyncSuperAdminLicenseFeaturesAsync(existingLicense.Id, cancellationToken);
+
+                return existingLicense;
+            }
+
+            // License doesn't exist, create it
+            var superAdminLicense = new License
+            {
+                Name = expectedConfig.Name,
+                DisplayName = expectedConfig.DisplayName,
+                Description = expectedConfig.Description,
+                MaxUsers = expectedConfig.MaxUsers,
+                MaxApiCallsPerMonth = expectedConfig.MaxApiCallsPerMonth,
+                TierLevel = expectedConfig.TierLevel,
+                IsActive = expectedConfig.IsActive,
                 CreatedBy = "system",
                 CreatedAt = DateTime.UtcNow,
                 TenantId = Guid.Empty // System-level entity
@@ -314,147 +392,140 @@ public class BootstrapService : IBootstrapService
             _logger.LogInformation("SuperAdmin license created: {LicenseName}", superAdminLicense.Name);
 
             // Create all license features for SuperAdmin
-            await CreateSuperAdminLicenseFeaturesAsync(superAdminLicense.Id, cancellationToken);
+            await SyncSuperAdminLicenseFeaturesAsync(superAdminLicense.Id, cancellationToken);
 
             return superAdminLicense;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating SuperAdmin license");
+            _logger.LogError(ex, "Error ensuring SuperAdmin license");
             return null;
         }
     }
 
     /// <summary>
-    /// Creates all license features for the SuperAdmin license.
+    /// Synchronizes all license features for the SuperAdmin license with the code-defined configuration.
+    /// Adds new features, updates existing ones, and marks obsolete ones as inactive.
     /// </summary>
     /// <param name="licenseId">License ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Task</returns>
-    private async Task CreateSuperAdminLicenseFeaturesAsync(Guid licenseId, CancellationToken cancellationToken = default)
+    private async Task SyncSuperAdminLicenseFeaturesAsync(Guid licenseId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var features = new List<LicenseFeature>
+            // Define the expected features configuration (source of truth)
+            var expectedFeatures = new[]
             {
-                new LicenseFeature
-                {
-                    Name = "BasicEventManagement",
-                    DisplayName = "Gestione Eventi Base",
-                    Description = "Funzionalità base per la gestione degli eventi",
-                    Category = "Events",
-                    LicenseId = licenseId,
-                    IsActive = true,
-                    CreatedBy = "system",
-                    CreatedAt = DateTime.UtcNow,
-                    TenantId = Guid.Empty
-                },
-                new LicenseFeature
-                {
-                    Name = "BasicTeamManagement",
-                    DisplayName = "Gestione Team Base",
-                    Description = "Funzionalità base per la gestione dei team",
-                    Category = "Teams",
-                    LicenseId = licenseId,
-                    IsActive = true,
-                    CreatedBy = "system",
-                    CreatedAt = DateTime.UtcNow,
-                    TenantId = Guid.Empty
-                },
-                new LicenseFeature
-                {
-                    Name = "ProductManagement",
-                    DisplayName = "Gestione Prodotti",
-                    Description = "Funzionalità complete per la gestione dei prodotti",
-                    Category = "Products",
-                    LicenseId = licenseId,
-                    IsActive = true,
-                    CreatedBy = "system",
-                    CreatedAt = DateTime.UtcNow,
-                    TenantId = Guid.Empty
-                },
-                new LicenseFeature
-                {
-                    Name = "BasicReporting",
-                    DisplayName = "Report Base",
-                    Description = "Funzionalità di reporting standard",
-                    Category = "Reports",
-                    LicenseId = licenseId,
-                    IsActive = true,
-                    CreatedBy = "system",
-                    CreatedAt = DateTime.UtcNow,
-                    TenantId = Guid.Empty
-                },
-                new LicenseFeature
-                {
-                    Name = "AdvancedReporting",
-                    DisplayName = "Report Avanzati",
-                    Description = "Funzionalità di reporting avanzate e analisi",
-                    Category = "Reports",
-                    LicenseId = licenseId,
-                    IsActive = true,
-                    CreatedBy = "system",
-                    CreatedAt = DateTime.UtcNow,
-                    TenantId = Guid.Empty
-                },
-                new LicenseFeature
-                {
-                    Name = "NotificationManagement",
-                    DisplayName = "Gestione Notifiche",
-                    Description = "Funzionalità avanzate per le notifiche",
-                    Category = "Notifications",
-                    LicenseId = licenseId,
-                    IsActive = true,
-                    CreatedBy = "system",
-                    CreatedAt = DateTime.UtcNow,
-                    TenantId = Guid.Empty
-                },
-                new LicenseFeature
-                {
-                    Name = "ApiIntegrations",
-                    DisplayName = "Integrazioni API",
-                    Description = "Accesso completo alle API per integrazioni esterne",
-                    Category = "Integrations",
-                    LicenseId = licenseId,
-                    IsActive = true,
-                    CreatedBy = "system",
-                    CreatedAt = DateTime.UtcNow,
-                    TenantId = Guid.Empty
-                },
-                new LicenseFeature
-                {
-                    Name = "CustomIntegrations",
-                    DisplayName = "Integrazioni Custom",
-                    Description = "Integrazioni personalizzate e webhook",
-                    Category = "Integrations",
-                    LicenseId = licenseId,
-                    IsActive = true,
-                    CreatedBy = "system",
-                    CreatedAt = DateTime.UtcNow,
-                    TenantId = Guid.Empty
-                },
-                new LicenseFeature
-                {
-                    Name = "AdvancedSecurity",
-                    DisplayName = "Sicurezza Avanzata",
-                    Description = "Funzionalità di sicurezza avanzate",
-                    Category = "Security",
-                    LicenseId = licenseId,
-                    IsActive = true,
-                    CreatedBy = "system",
-                    CreatedAt = DateTime.UtcNow,
-                    TenantId = Guid.Empty
-                }
+                new { Name = "BasicEventManagement", DisplayName = "Gestione Eventi Base", Description = "Funzionalità base per la gestione degli eventi", Category = "Events" },
+                new { Name = "BasicTeamManagement", DisplayName = "Gestione Team Base", Description = "Funzionalità base per la gestione dei team", Category = "Teams" },
+                new { Name = "ProductManagement", DisplayName = "Gestione Prodotti", Description = "Funzionalità complete per la gestione dei prodotti", Category = "Products" },
+                new { Name = "BasicReporting", DisplayName = "Report Base", Description = "Funzionalità di reporting standard", Category = "Reports" },
+                new { Name = "AdvancedReporting", DisplayName = "Report Avanzati", Description = "Funzionalità di reporting avanzate e analisi", Category = "Reports" },
+                new { Name = "NotificationManagement", DisplayName = "Gestione Notifiche", Description = "Funzionalità avanzate per le notifiche", Category = "Notifications" },
+                new { Name = "ApiIntegrations", DisplayName = "Integrazioni API", Description = "Accesso completo alle API per integrazioni esterne", Category = "Integrations" },
+                new { Name = "CustomIntegrations", DisplayName = "Integrazioni Custom", Description = "Integrazioni personalizzate e webhook", Category = "Integrations" },
+                new { Name = "AdvancedSecurity", DisplayName = "Sicurezza Avanzata", Description = "Funzionalità di sicurezza avanzate", Category = "Security" }
             };
 
-            _dbContext.LicenseFeatures.AddRange(features);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            // Get existing features for this license
+            var existingFeatures = await _dbContext.LicenseFeatures
+                .Where(lf => lf.LicenseId == licenseId)
+                .ToListAsync(cancellationToken);
 
-            _logger.LogInformation("SuperAdmin license features created: {FeatureCount} features", features.Count);
+            var featuresAdded = 0;
+            var featuresUpdated = 0;
+
+            // Process each expected feature
+            foreach (var expected in expectedFeatures)
+            {
+                var existing = existingFeatures.FirstOrDefault(f => f.Name == expected.Name);
+
+                if (existing == null)
+                {
+                    // Feature doesn't exist, create it
+                    var newFeature = new LicenseFeature
+                    {
+                        Name = expected.Name,
+                        DisplayName = expected.DisplayName,
+                        Description = expected.Description,
+                        Category = expected.Category,
+                        LicenseId = licenseId,
+                        IsActive = true,
+                        CreatedBy = "system",
+                        CreatedAt = DateTime.UtcNow,
+                        TenantId = Guid.Empty
+                    };
+
+                    _dbContext.LicenseFeatures.Add(newFeature);
+                    featuresAdded++;
+                    _logger.LogInformation("Adding new SuperAdmin license feature: {FeatureName}", expected.Name);
+                }
+                else
+                {
+                    // Feature exists, check if it needs updating
+                    var hasChanges = false;
+
+                    if (existing.DisplayName != expected.DisplayName)
+                    {
+                        existing.DisplayName = expected.DisplayName;
+                        hasChanges = true;
+                    }
+
+                    if (existing.Description != expected.Description)
+                    {
+                        existing.Description = expected.Description;
+                        hasChanges = true;
+                    }
+
+                    if (existing.Category != expected.Category)
+                    {
+                        existing.Category = expected.Category;
+                        hasChanges = true;
+                    }
+
+                    if (!existing.IsActive)
+                    {
+                        existing.IsActive = true;
+                        hasChanges = true;
+                    }
+
+                    if (hasChanges)
+                    {
+                        existing.ModifiedBy = "system";
+                        existing.ModifiedAt = DateTime.UtcNow;
+                        featuresUpdated++;
+                        _logger.LogInformation("Updating SuperAdmin license feature: {FeatureName}", expected.Name);
+                    }
+                }
+            }
+
+            // Mark features that are no longer in the expected list as inactive
+            var expectedNames = expectedFeatures.Select(f => f.Name).ToHashSet();
+            var obsoleteFeatures = existingFeatures.Where(f => !expectedNames.Contains(f.Name) && f.IsActive).ToList();
+            
+            foreach (var obsolete in obsoleteFeatures)
+            {
+                obsolete.IsActive = false;
+                obsolete.ModifiedBy = "system";
+                obsolete.ModifiedAt = DateTime.UtcNow;
+                _logger.LogInformation("Marking obsolete SuperAdmin license feature as inactive: {FeatureName}", obsolete.Name);
+            }
+
+            if (featuresAdded > 0 || featuresUpdated > 0 || obsoleteFeatures.Count > 0)
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation("SuperAdmin license features synchronized: {Added} added, {Updated} updated, {Deactivated} deactivated",
+                    featuresAdded, featuresUpdated, obsoleteFeatures.Count);
+            }
+            else
+            {
+                _logger.LogInformation("SuperAdmin license features are up to date");
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating SuperAdmin license features");
+            _logger.LogError(ex, "Error synchronizing SuperAdmin license features");
             throw;
         }
     }

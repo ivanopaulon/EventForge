@@ -199,4 +199,134 @@ public class BootstrapServiceTests
             Environment.SetEnvironmentVariable("EVENTFORGE_BOOTSTRAP_SUPERADMIN_PASSWORD", null);
         }
     }
+
+    [Fact]
+    public async Task EnsureAdminBootstrappedAsync_RunningTwice_ShouldUpdateLicenseConfiguration()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<EventForgeDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new EventForgeDbContext(options);
+
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string>
+            {
+                ["Bootstrap:SuperAdminPassword"] = "TestPassword123!",
+                ["Bootstrap:AutoCreateAdmin"] = "true"
+            })
+            .Build();
+
+        var logger = new LoggerFactory().CreateLogger<BootstrapService>();
+        var passwordLogger = new LoggerFactory().CreateLogger<PasswordService>();
+        var passwordService = new PasswordService(config, passwordLogger);
+        var bootstrapService = new BootstrapService(context, passwordService, config, logger);
+
+        // Act - First run: create everything
+        var firstResult = await bootstrapService.EnsureAdminBootstrappedAsync();
+        Assert.True(firstResult);
+
+        // Get the created license
+        var license = await context.Licenses.FirstOrDefaultAsync(l => l.Name == "superadmin");
+        Assert.NotNull(license);
+        var originalLicenseId = license.Id;
+
+        // Manually modify the license to simulate an outdated configuration
+        license.DisplayName = "Old Display Name";
+        license.Description = "Old Description";
+        license.MaxUsers = 100; // Changed from int.MaxValue
+        license.MaxApiCallsPerMonth = 1000; // Changed from int.MaxValue
+        license.TierLevel = 1; // Changed from 5
+        await context.SaveChangesAsync();
+
+        // Also remove a feature to test synchronization
+        var featureToRemove = await context.LicenseFeatures
+            .FirstOrDefaultAsync(f => f.LicenseId == license.Id && f.Name == "AdvancedSecurity");
+        if (featureToRemove != null)
+        {
+            context.LicenseFeatures.Remove(featureToRemove);
+            await context.SaveChangesAsync();
+        }
+
+        // Act - Second run: should update the license and restore the feature
+        var secondResult = await bootstrapService.EnsureAdminBootstrappedAsync();
+        Assert.True(secondResult);
+
+        // Assert - Verify license was updated to match expected configuration
+        var updatedLicense = await context.Licenses.FirstOrDefaultAsync(l => l.Name == "superadmin");
+        Assert.NotNull(updatedLicense);
+        Assert.Equal(originalLicenseId, updatedLicense.Id); // Same license, not recreated
+        Assert.Equal("SuperAdmin License", updatedLicense.DisplayName); // Updated
+        Assert.Equal("SuperAdmin license with unlimited features for complete system management", updatedLicense.Description); // Updated
+        Assert.Equal(int.MaxValue, updatedLicense.MaxUsers); // Updated
+        Assert.Equal(int.MaxValue, updatedLicense.MaxApiCallsPerMonth); // Updated
+        Assert.Equal(5, updatedLicense.TierLevel); // Updated
+        Assert.NotNull(updatedLicense.ModifiedAt); // Modified timestamp set
+        Assert.Equal("system", updatedLicense.ModifiedBy);
+
+        // Assert - Verify the removed feature was restored
+        var restoredFeature = await context.LicenseFeatures
+            .FirstOrDefaultAsync(f => f.LicenseId == license.Id && f.Name == "AdvancedSecurity");
+        Assert.NotNull(restoredFeature);
+        Assert.True(restoredFeature.IsActive);
+
+        // Assert - Verify all expected features are present
+        var allFeatures = await context.LicenseFeatures
+            .Where(f => f.LicenseId == license.Id)
+            .ToListAsync();
+        Assert.Equal(9, allFeatures.Count); // All 9 features should be present
+        Assert.All(allFeatures, f => Assert.True(f.IsActive));
+    }
+
+    [Fact]
+    public async Task EnsureAdminBootstrappedAsync_WithExistingData_ShouldUpdateLicenseOnlyWithoutRecreatingTenant()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<EventForgeDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new EventForgeDbContext(options);
+
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string>
+            {
+                ["Bootstrap:SuperAdminPassword"] = "TestPassword123!",
+                ["Bootstrap:AutoCreateAdmin"] = "true"
+            })
+            .Build();
+
+        var logger = new LoggerFactory().CreateLogger<BootstrapService>();
+        var passwordLogger = new LoggerFactory().CreateLogger<PasswordService>();
+        var passwordService = new PasswordService(config, passwordLogger);
+        var bootstrapService = new BootstrapService(context, passwordService, config, logger);
+
+        // First run to create everything
+        await bootstrapService.EnsureAdminBootstrappedAsync();
+
+        var initialTenantCount = await context.Tenants.CountAsync();
+        var initialUserCount = await context.Users.CountAsync();
+
+        // Modify license to outdated state
+        var license = await context.Licenses.FirstOrDefaultAsync(l => l.Name == "superadmin");
+        Assert.NotNull(license);
+        license.MaxUsers = 50;
+        await context.SaveChangesAsync();
+
+        // Act - Second run with existing tenants
+        var result = await bootstrapService.EnsureAdminBootstrappedAsync();
+
+        // Assert
+        Assert.True(result);
+
+        // Verify no new tenants or users were created
+        Assert.Equal(initialTenantCount, await context.Tenants.CountAsync());
+        Assert.Equal(initialUserCount, await context.Users.CountAsync());
+
+        // Verify license was still updated despite existing tenants
+        var updatedLicense = await context.Licenses.FirstOrDefaultAsync(l => l.Name == "superadmin");
+        Assert.NotNull(updatedLicense);
+        Assert.Equal(int.MaxValue, updatedLicense.MaxUsers); // Should be updated
+    }
 }
