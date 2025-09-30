@@ -1,5 +1,6 @@
 using EventForge.Client.Services;
 using Microsoft.JSInterop;
+using MudBlazor;
 
 namespace EventForge.Client.Shared
 {
@@ -18,19 +19,37 @@ namespace EventForge.Client.Shared
                 var serviceProvider = ServiceProvider;
                 if (serviceProvider != null)
                 {
+                    // Get required services
                     var clientLogService = serviceProvider.GetService<IClientLogService>();
+                    var snackbar = serviceProvider.GetService<ISnackbar>();
+                    
+                    var message = $"JavaScript error: {errorInfo.Message}";
+                    var properties = new Dictionary<string, object>
+                    {
+                        ["Source"] = errorInfo.Source,
+                        ["Line"] = errorInfo.Line,
+                        ["Column"] = errorInfo.Column,
+                        ["Stack"] = errorInfo.Stack
+                    };
+
+                    // Log the error
                     if (clientLogService != null)
                     {
-                        var message = $"JavaScript error: {errorInfo.Message}";
-                        var properties = new Dictionary<string, object>
-                        {
-                            ["Source"] = errorInfo.Source,
-                            ["Line"] = errorInfo.Line,
-                            ["Column"] = errorInfo.Column,
-                            ["Stack"] = errorInfo.Stack
-                        };
-
                         await clientLogService.LogErrorAsync(message, null, "JavaScriptErrorHandler", properties);
+                    }
+
+                    // Show user-friendly notification
+                    if (snackbar != null)
+                    {
+                        snackbar.Add(
+                            "Si è verificato un errore nell'applicazione. L'errore è stato registrato.",
+                            Severity.Error,
+                            config =>
+                            {
+                                config.VisibleStateDuration = 4000;
+                                config.ShowCloseIcon = true;
+                            }
+                        );
                     }
                 }
             }

@@ -79,8 +79,12 @@
                             
                             // Call back to .NET
                             DotNet.invokeMethodAsync('EventForge.Client', 'HandleJavaScriptError', errorInfo);
+                            
+                            // Return true to prevent default browser error handling
+                            return true;
                         } catch (callbackError) {
                             console.error('Error in JavaScript error handler callback:', callbackError);
+                            return false;
                         }
                     }
                 };
@@ -104,6 +108,9 @@
                         0,
                         event.reason
                     );
+                    
+                    // Prevent default browser handling
+                    event.preventDefault();
                 });
 
                 console.log('EventForge global error handlers initialized');
