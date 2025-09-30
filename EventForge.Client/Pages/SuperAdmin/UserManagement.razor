@@ -454,10 +454,10 @@ else
     private bool _isLoadingUsers = false;
     private bool _userDrawerOpen = false;
     
-    // MudCollapse state management (tenant selector now expanded by default to prevent errors)
+    // MudCollapse state management
     private bool _statisticsExpanded = false;      // Closed by default
     private bool _filtersExpanded = false;         // Closed by default  
-    private bool _tenantSelectorExpanded = true;   // Expanded by default to prevent tenant selection errors
+    private bool _tenantSelectorExpanded = false;  // Closed by default - no auto-selection needed
     
     // Drawer and modal management
     private EntityDrawerMode _userDrawerMode = EntityDrawerMode.Create;
@@ -519,10 +519,10 @@ else
     {
         try
         {
-            // Set tenant selector expanded by default, others closed by default to prevent tenant selection errors
+            // Set all collapsible sections to closed by default
             _statisticsExpanded = false;
             _filtersExpanded = false;
-            _tenantSelectorExpanded = true;  // Expanded by default to prevent tenant selection errors
+            _tenantSelectorExpanded = false;
             
             // Enhanced authentication and authorization flow
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
@@ -546,7 +546,7 @@ else
             _currentUser = await AuthService.GetCurrentUserAsync();
             _isAuthorized = true;
             
-            // Load tenants first, then users and statistics (sequential loading to allow tenant auto-selection)
+            // Load tenants first, then users and statistics (sequential loading to allow proper initialization)
             await LoadTenantsAsync();
             await Task.WhenAll(
                 LoadUsersAsync(),
@@ -566,7 +566,7 @@ else
 
     /// <summary>
     /// Loads tenant data with proper error handling and loading state management.
-    /// Auto-selects the first tenant if available to prevent errors.
+    /// Does NOT auto-select a tenant to allow viewing all users by default.
     /// </summary>
     private async Task LoadTenantsAsync()
     {
@@ -575,22 +575,15 @@ else
             _isLoadingTenants = true;
             _tenants = (await SuperAdminService.GetTenantsAsync()).ToList();
             
-            // Auto-select the first tenant if available and no tenant is currently selected
+            // Check if tenant context service has a saved tenant selection
             if (_tenants.Any() && string.IsNullOrEmpty(_selectedTenant))
             {
-                // Check if tenant context service has a saved tenant first
                 var contextTenantId = TenantContextService.CurrentTenantId;
                 if (contextTenantId.HasValue && _tenants.Any(t => t.Id == contextTenantId.Value))
                 {
                     _selectedTenant = contextTenantId.Value.ToString();
                 }
-                else
-                {
-                    _selectedTenant = _tenants.First().Id.ToString();
-                }
-                
-                // Trigger data reload with the selected tenant
-                await OnTenantChanged();
+                // Do NOT auto-select first tenant - leave empty to show all users by default
             }
         }
         catch (Exception ex)

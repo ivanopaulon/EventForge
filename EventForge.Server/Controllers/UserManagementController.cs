@@ -50,6 +50,7 @@ public class UserManagementController : BaseApiController
             var query = _context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                .Include(u => u.Tenant)  // Include tenant in the query to avoid N+1 problem
                 .AsQueryable();
 
             if (tenantId.HasValue)
@@ -63,31 +64,22 @@ public class UserManagementController : BaseApiController
                 .ThenBy(u => u.FirstName)
                 .ToListAsync();
 
-            var result = new List<UserManagementDto>();
-
-            foreach (var user in users)
+            var result = users.Select(user => new UserManagementDto
             {
-                var tenant = await _context.Tenants.FindAsync(user.TenantId);
-
-                var userDto = new UserManagementDto
-                {
-                    Id = user.Id,
-                    Username = user.Username,
-                    Email = user.Email,
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    FullName = user.FullName,
-                    IsActive = user.IsActive,
-                    MustChangePassword = user.MustChangePassword,
-                    Roles = user.UserRoles.Select(ur => ur.Role.Name).ToList(),
-                    TenantId = user.TenantId,
-                    TenantName = tenant?.Name ?? "Unknown",
-                    CreatedAt = user.CreatedAt,
-                    LastLoginAt = user.LastLoginAt
-                };
-
-                result.Add(userDto);
-            }
+                Id = user.Id,
+                Username = user.Username,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                FullName = user.FullName,
+                IsActive = user.IsActive,
+                MustChangePassword = user.MustChangePassword,
+                Roles = user.UserRoles.Select(ur => ur.Role.Name).ToList(),
+                TenantId = user.TenantId,
+                TenantName = user.Tenant?.Name ?? "Unknown",
+                CreatedAt = user.CreatedAt,
+                LastLoginAt = user.LastLoginAt
+            }).ToList();
 
             return Ok(result);
         }
