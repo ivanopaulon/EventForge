@@ -111,18 +111,18 @@ public class BootstrapService : IBootstrapService
                 return false;
             }
 
-            // Create basic license
-            var basicLicense = await CreateBasicLicenseAsync(cancellationToken);
-            if (basicLicense == null)
+            // Create SuperAdmin license with full management capabilities
+            var superAdminLicense = await CreateSuperAdminLicenseAsync(cancellationToken);
+            if (superAdminLicense == null)
             {
-                _logger.LogError("Failed to create basic license");
+                _logger.LogError("Failed to create SuperAdmin license");
                 return false;
             }
 
-            // Assign basic license to default tenant
-            if (!await AssignLicenseToTenantAsync(defaultTenant.Id, basicLicense.Id, cancellationToken))
+            // Assign SuperAdmin license to default tenant
+            if (!await AssignLicenseToTenantAsync(defaultTenant.Id, superAdminLicense.Id, cancellationToken))
             {
-                _logger.LogError("Failed to assign basic license to default tenant");
+                _logger.LogError("Failed to assign SuperAdmin license to default tenant");
                 return false;
             }
 
@@ -146,7 +146,7 @@ public class BootstrapService : IBootstrapService
             _logger.LogInformation("SuperAdmin user created: {Username} ({Email})", superAdminUser.Username, superAdminUser.Email);
             _logger.LogInformation("Password: {Password}", _options.DefaultAdminPassword);
             _logger.LogWarning("SECURITY: Please change the SuperAdmin password immediately after first login!");
-            _logger.LogInformation("Basic license assigned to tenant with 10 users and 1000 API calls per month");
+            _logger.LogInformation("SuperAdmin license assigned with unlimited users and API calls, including all features");
             _logger.LogInformation("==========================================");
 
             return true;
@@ -276,48 +276,186 @@ public class BootstrapService : IBootstrapService
     }
 
     /// <summary>
-    /// Creates the basic license.
+    /// Creates the SuperAdmin license with full management capabilities.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Created license entity</returns>
-    private async Task<License?> CreateBasicLicenseAsync(CancellationToken cancellationToken = default)
+    private async Task<License?> CreateSuperAdminLicenseAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            // Check if basic license already exists
+            // Check if superadmin license already exists
             var existingLicense = await _dbContext.Licenses
-                .FirstOrDefaultAsync(l => l.Name == "basic", cancellationToken);
+                .FirstOrDefaultAsync(l => l.Name == "superadmin", cancellationToken);
 
             if (existingLicense != null)
             {
-                _logger.LogInformation("Basic license already exists");
+                _logger.LogInformation("SuperAdmin license already exists");
                 return existingLicense;
             }
 
-            var basicLicense = new License
+            var superAdminLicense = new License
             {
-                Name = "basic",
-                DisplayName = "Basic License",
-                Description = "Basic license for small organizations with essential features",
-                MaxUsers = 10,
-                MaxApiCallsPerMonth = 1000,
-                TierLevel = 1,
+                Name = "superadmin",
+                DisplayName = "SuperAdmin License",
+                Description = "SuperAdmin license with unlimited features for complete system management",
+                MaxUsers = int.MaxValue,
+                MaxApiCallsPerMonth = int.MaxValue,
+                TierLevel = 5,
                 IsActive = true,
                 CreatedBy = "system",
                 CreatedAt = DateTime.UtcNow,
                 TenantId = Guid.Empty // System-level entity
             };
 
-            _dbContext.Licenses.Add(basicLicense);
+            _dbContext.Licenses.Add(superAdminLicense);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Basic license created: {LicenseName}", basicLicense.Name);
-            return basicLicense;
+            _logger.LogInformation("SuperAdmin license created: {LicenseName}", superAdminLicense.Name);
+
+            // Create all license features for SuperAdmin
+            await CreateSuperAdminLicenseFeaturesAsync(superAdminLicense.Id, cancellationToken);
+
+            return superAdminLicense;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating basic license");
+            _logger.LogError(ex, "Error creating SuperAdmin license");
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Creates all license features for the SuperAdmin license.
+    /// </summary>
+    /// <param name="licenseId">License ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Task</returns>
+    private async Task CreateSuperAdminLicenseFeaturesAsync(Guid licenseId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var features = new List<LicenseFeature>
+            {
+                new LicenseFeature
+                {
+                    Name = "BasicEventManagement",
+                    DisplayName = "Gestione Eventi Base",
+                    Description = "Funzionalità base per la gestione degli eventi",
+                    Category = "Events",
+                    LicenseId = licenseId,
+                    IsActive = true,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow,
+                    TenantId = Guid.Empty
+                },
+                new LicenseFeature
+                {
+                    Name = "BasicTeamManagement",
+                    DisplayName = "Gestione Team Base",
+                    Description = "Funzionalità base per la gestione dei team",
+                    Category = "Teams",
+                    LicenseId = licenseId,
+                    IsActive = true,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow,
+                    TenantId = Guid.Empty
+                },
+                new LicenseFeature
+                {
+                    Name = "ProductManagement",
+                    DisplayName = "Gestione Prodotti",
+                    Description = "Funzionalità complete per la gestione dei prodotti",
+                    Category = "Products",
+                    LicenseId = licenseId,
+                    IsActive = true,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow,
+                    TenantId = Guid.Empty
+                },
+                new LicenseFeature
+                {
+                    Name = "BasicReporting",
+                    DisplayName = "Report Base",
+                    Description = "Funzionalità di reporting standard",
+                    Category = "Reports",
+                    LicenseId = licenseId,
+                    IsActive = true,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow,
+                    TenantId = Guid.Empty
+                },
+                new LicenseFeature
+                {
+                    Name = "AdvancedReporting",
+                    DisplayName = "Report Avanzati",
+                    Description = "Funzionalità di reporting avanzate e analisi",
+                    Category = "Reports",
+                    LicenseId = licenseId,
+                    IsActive = true,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow,
+                    TenantId = Guid.Empty
+                },
+                new LicenseFeature
+                {
+                    Name = "NotificationManagement",
+                    DisplayName = "Gestione Notifiche",
+                    Description = "Funzionalità avanzate per le notifiche",
+                    Category = "Notifications",
+                    LicenseId = licenseId,
+                    IsActive = true,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow,
+                    TenantId = Guid.Empty
+                },
+                new LicenseFeature
+                {
+                    Name = "ApiIntegrations",
+                    DisplayName = "Integrazioni API",
+                    Description = "Accesso completo alle API per integrazioni esterne",
+                    Category = "Integrations",
+                    LicenseId = licenseId,
+                    IsActive = true,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow,
+                    TenantId = Guid.Empty
+                },
+                new LicenseFeature
+                {
+                    Name = "CustomIntegrations",
+                    DisplayName = "Integrazioni Custom",
+                    Description = "Integrazioni personalizzate e webhook",
+                    Category = "Integrations",
+                    LicenseId = licenseId,
+                    IsActive = true,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow,
+                    TenantId = Guid.Empty
+                },
+                new LicenseFeature
+                {
+                    Name = "AdvancedSecurity",
+                    DisplayName = "Sicurezza Avanzata",
+                    Description = "Funzionalità di sicurezza avanzate",
+                    Category = "Security",
+                    LicenseId = licenseId,
+                    IsActive = true,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow,
+                    TenantId = Guid.Empty
+                }
+            };
+
+            _dbContext.LicenseFeatures.AddRange(features);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("SuperAdmin license features created: {FeatureCount} features", features.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating SuperAdmin license features");
+            throw;
         }
     }
 
