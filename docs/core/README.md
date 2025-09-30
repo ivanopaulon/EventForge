@@ -66,8 +66,6 @@ Users can select their preferred theme using the theme selector in the app bar:
 ### Supported Languages
 - **Italian (it)** - Default language
 - **English (en)** - Fallback language
-- **Spanish (es)** - Additional language
-- **French (fr)** - Additional language
 
 ### Translation Key Structure
 ```json

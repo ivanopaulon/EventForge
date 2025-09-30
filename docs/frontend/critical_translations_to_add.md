@@ -1,5 +1,9 @@
 # Critical Missing Translations for EventForge
 
+> **⚠️ UPDATE (2024):** Spanish and French language support has been removed from the project.
+> The system now only supports Italian (it) and English (en), which have been fully aligned with 1615 keys each.
+> This document is kept for historical reference but is no longer applicable.
+
 This document contains translations for the most critical missing keys that should be added IMMEDIATELY to all 4 language files.
 
 ## Priority 1: Activity Feed (Complete Feature - 30 keys)

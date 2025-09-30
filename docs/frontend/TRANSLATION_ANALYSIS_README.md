@@ -1,5 +1,9 @@
 # Translation Coverage Analysis - EventForge
 
+> **⚠️ UPDATE (2024):** Spanish and French language support has been removed from the project.
+> The system now only supports Italian (it) and English (en), which have been fully aligned with 1615 keys each.
+> This document is kept for historical reference but is no longer applicable.
+
 ## Quick Start 🚀
 
 This directory contains a complete analysis of translation coverage for the EventForge client application.
