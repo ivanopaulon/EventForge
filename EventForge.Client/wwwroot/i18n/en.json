@@ -95,7 +95,9 @@
     "healthCheck": "System Health Check",
     "healthStatus": "Health Status",
     "errorLoadingHealth": "Error loading health status",
-    "noHealthData": "No health data available"
+    "noHealthData": "No health data available",
+    "dashboardSubtitle": "System overview and key metrics",
+    "welcomeBack": "Welcome back"
   },
   "auth": {
     "login": "Login",
@@ -116,7 +118,13 @@
     "usernameRequired": "Username is required",
     "passwordRequired": "Password is required",
     "loginDescription": "Login to system",
-    "logoutDescription": "Logout from system"
+    "logoutDescription": "Logout from system",
+    "noTenants": "No tenants available",
+    "selectTenant": "Select tenant",
+    "selectTenantHelp": "Select the tenant you want to work with",
+    "selectTenantPlaceholder": "Choose a tenant...",
+    "tenantRequired": "Tenant selection is required",
+    "tenantsLoadError": "Error loading tenants"
   },
   "field": {
     "id": "ID",
@@ -153,7 +161,15 @@
     "domain": "Domain",
     "contactEmail": "Contact email",
     "maxUsers": "Max users",
-    "subscriptionExpires": "Subscription expires"
+    "subscriptionExpires": "Subscription expires",
+    "capacity": "Capacity",
+    "color": "Color",
+    "endDate": "End date",
+    "eventCount": "Event count",
+    "icon": "Icon",
+    "location": "Location",
+    "startDate": "Start date",
+    "user": "User"
   },
   "validation": {
     "required": "This field is required",
@@ -593,7 +609,30 @@
     "manageUsers": "Manage Users",
     "manageTenants": "Manage Tenants",
     "viewReports": "View Reports",
-    "systemSettings": "System Settings"
+    "systemSettings": "System Settings",
+    "accessDenied": "Access denied",
+    "advancedFilters": "Advanced filters",
+    "clearFilters": "Clear filters",
+    "completedEvents": "Completed events",
+    "confirmEventDelete": "Confirm event deletion",
+    "createNewEvent": "Create new event",
+    "deleteEventError": "Error deleting event",
+    "eventDeleted": "Event deleted",
+    "eventList": "Event list",
+    "eventManagement": "Event management",
+    "exportFunctionalityComingSoon": "Export functionality coming soon",
+    "itemsFound": "{0} items found",
+    "loadingEventsError": "Error loading events",
+    "loadingPageError": "Error loading page",
+    "loadingStatisticsError": "Error loading statistics",
+    "noEventsFound": "No events found",
+    "noEventsMatchFilters": "No events match filters",
+    "ongoingEvents": "Ongoing events",
+    "plannedEvents": "Planned events",
+    "searchByNameLocation": "Search by name or location",
+    "searchPlaceholder": "Search...",
+    "selectStatus": "Select status",
+    "showStatistics": "Show statistics"
   },
   "error": {
     "accessDenied": "Access Denied",
@@ -614,7 +653,9 @@
     "unauthorizedOperation": "You do not have the necessary permissions for this operation.",
     "invalidData": "Invalid data provided.",
     "invalidOperation": "Invalid operation at this time.",
-    "unexpectedError": "An unexpected error occurred. Please try again or contact support if the problem persists."
+    "unexpectedError": "An unexpected error occurred. Please try again or contact support if the problem persists.",
+    "deleteFailed": "Delete failed",
+    "loadFailed": "Load failed"
   },
   "accessibility": {
     "languageSelectorDescription": "Select your preferred language",
@@ -657,7 +698,8 @@
     "fun": {
       "name": "Fun",
       "description": "Playful theme with vibrant pastel colors"
-    }
+    },
+    "system": "System"
   },
   "drawer": {
     "title": {
@@ -836,7 +878,9 @@
       "upload": "Drag and drop files or click to browse. Supported formats include documents, images, and archives up to 50MB.",
       "management": "Organize files in folders, rename items, and manage permissions. Use search to quickly find specific files.",
       "sharing": "Control who can access your files. Set permissions for viewing, downloading, or editing shared content."
-    }
+    },
+    "quickStart": "Quick start",
+    "takeATour": "Take a tour"
   },
   "onboarding": {
     "progress": "Step {0} of {1}",
@@ -1044,5 +1088,153 @@
     "cancel": "Cancel",
     "clearFilters": "Clear filters",
     "delete": "Delete"
+  },
+  "chat": {
+    "allChats": "All chats",
+    "chatInfo": "Chat info",
+    "chatInfoPlaceholder": "View chat information",
+    "confirmDelete": "Confirm delete",
+    "confirmDeleteMessage": "Are you sure you want to delete this message?",
+    "directMessages": "Direct messages",
+    "fileAttachmentPlaceholder": "Attach file to chat",
+    "groups": "Groups",
+    "manageGroup": "Manage group",
+    "manageGroupPlaceholder": "Manage group settings",
+    "messageDeleted": "Message deleted",
+    "newChat": "New chat",
+    "newChatPlaceholder": "Start a new conversation",
+    "noChats": "No chats available",
+    "noMessages": "No messages",
+    "search": "Search chats...",
+    "startConversation": "Start conversation",
+    "timeNow": "Now",
+    "title": "Chat",
+    "welcomeMessage": "Welcome to EventForge chat",
+    "welcomeTitle": "Welcome"
+  },
+  "eventStatus": {
+    "cancelled": "Cancelled",
+    "completed": "Completed",
+    "ongoing": "Ongoing",
+    "planned": "Planned"
+  },
+  "notificationPriority": {
+    "critical": "Critical",
+    "high": "High",
+    "low": "Low",
+    "normal": "Normal"
+  },
+  "notificationType": {
+    "audit": "Audit",
+    "event": "Event",
+    "marketing": "Marketing",
+    "security": "Security",
+    "system": "System",
+    "user": "User"
+  },
+  "notificationTypeDesc": {
+    "audit": "Notifications related to audit activities",
+    "event": "Notifications related to events",
+    "marketing": "Marketing communications",
+    "security": "Security alerts",
+    "system": "System notifications",
+    "user": "User notifications"
+  },
+  "role": {
+    "admin": "Administrator",
+    "manager": "Manager",
+    "superAdmin": "Super Administrator",
+    "user": "User"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "notifications": {
+    "actions": "Actions",
+    "allMarkedRead": "All marked as read",
+    "allNotifications": "All notifications",
+    "allTypes": "All types",
+    "archiveRead": "Archive read",
+    "archived": "Archived",
+    "chatNotifications": "Chat notifications",
+    "emailDescription": "Receive notifications via email",
+    "emailEnabled": "Email enabled",
+    "eventNotifications": "Event notifications",
+    "filter": "Filter",
+    "groupArchived": "Group archived",
+    "groupMarkedAsRead": "Group marked as read",
+    "groupUngrouped": "Group ungrouped",
+    "grouping": "Grouping",
+    "groups": {
+      "audit": "Audit",
+      "event": "Events",
+      "marketing": "Marketing",
+      "security": "Security",
+      "system": "System",
+      "user": "User"
+    },
+    "helpTooltip": "Click to view help",
+    "importantOnly": "Important only",
+    "list": "List",
+    "markAllRead": "Mark all as read",
+    "noNotifications": "No notifications",
+    "noNotificationsSubtext": "There are no notifications to display",
+    "pageTitle": "Notifications",
+    "preferences": "Preferences",
+    "pushDescription": "Receive push notifications",
+    "pushEnabled": "Push enabled",
+    "readArchived": "Read/Archived",
+    "refresh": "Refresh",
+    "refreshed": "Refreshed",
+    "search": "Search notifications...",
+    "settings": "Settings",
+    "settingsSaved": "Settings saved",
+    "subtitle": "Manage your notifications",
+    "systemNotifications": "System notifications",
+    "title": "Notifications",
+    "type": "Type",
+    "unreadOnly": "Unread only"
+  },
+  "notificationPreferences": {
+    "allowDataCollection": "Allow data collection",
+    "allowPersonalization": "Allow personalization",
+    "autoArchive": "Auto archive",
+    "autoArchiveHelp": "Automatically archive notifications after a period",
+    "dataRetention": "Data retention",
+    "displaySettings": "Display settings",
+    "enableGrouping": "Enable grouping",
+    "enableNotifications": "Enable notifications",
+    "enableSound": "Enable sound",
+    "generalSettings": "General settings",
+    "itemsPerPage": "Items per page",
+    "language": "Language",
+    "minPriority": "Minimum priority",
+    "notificationTypes": "Notification types",
+    "pageTitle": "Notification Preferences",
+    "preview": "Preview",
+    "previewFeatureComingSoon": "Preview feature coming soon",
+    "privacySettings": "Privacy settings",
+    "reset": "Reset",
+    "resetToDefaults": "Reset to defaults",
+    "save": "Save",
+    "saved": "Saved",
+    "showAvatars": "Show avatars",
+    "showInActivityFeed": "Show in activity feed",
+    "showPreviews": "Show previews",
+    "showTimestamps": "Show timestamps",
+    "subtitle": "Customize your notification preferences",
+    "theme": "Theme",
+    "title": "Notification Preferences",
+    "typesDescription": "Select the notification types you want to receive"
+  },
+  "dataRetention": {
+    "indefinite": "Indefinite"
+  },
+  "dialog": {
+    "confirmDeleteEventCategory": "Confirm delete event category"
+  },
+  "filter": {
+    "all": "All"
   }
 }

@@ -103,7 +103,9 @@
     "healthCheck": "Controllo Integrità Sistema",
     "healthStatus": "Stato Integrità",
     "errorLoadingHealth": "Errore nel caricamento dello stato di integrità",
-    "noHealthData": "Nessun dato di integrità disponibile"
+    "noHealthData": "Nessun dato di integrità disponibile",
+    "dashboardSubtitle": "Panoramica del sistema e metriche chiave",
+    "welcomeBack": "Bentornato"
   },
   "auth": {
     "login": "Accedi",
@@ -124,7 +126,13 @@
     "usernameRequired": "Il nome utente è obbligatorio",
     "passwordRequired": "La password è obbligatoria",
     "loginDescription": "Accedi al sistema",
-    "logoutDescription": "Disconnetti dal sistema"
+    "logoutDescription": "Disconnetti dal sistema",
+    "noTenants": "Nessun tenant disponibile",
+    "selectTenant": "Seleziona tenant",
+    "selectTenantHelp": "Seleziona il tenant con cui vuoi lavorare",
+    "selectTenantPlaceholder": "Scegli un tenant...",
+    "tenantRequired": "È richiesta la selezione di un tenant",
+    "tenantsLoadError": "Errore nel caricamento dei tenant"
   },
   "field": {
     "id": "ID",
@@ -161,7 +169,15 @@
     "domain": "Dominio",
     "contactEmail": "Email di contatto",
     "maxUsers": "Massimo utenti",
-    "subscriptionExpires": "Scadenza abbonamento"
+    "subscriptionExpires": "Scadenza abbonamento",
+    "capacity": "Capacità",
+    "color": "Colore",
+    "endDate": "Data fine",
+    "eventCount": "Conteggio eventi",
+    "icon": "Icona",
+    "location": "Posizione",
+    "startDate": "Data inizio",
+    "user": "Utente"
   },
   "validation": {
     "required": "Questo campo è obbligatorio",
@@ -622,7 +638,30 @@
     "manageUsers": "Gestisci Utenti",
     "manageTenants": "Gestisci Tenant",
     "viewReports": "Visualizza Report",
-    "systemSettings": "Impostazioni Sistema"
+    "systemSettings": "Impostazioni Sistema",
+    "accessDenied": "Accesso negato",
+    "advancedFilters": "Filtri avanzati",
+    "clearFilters": "Cancella filtri",
+    "completedEvents": "Eventi completati",
+    "confirmEventDelete": "Conferma eliminazione evento",
+    "createNewEvent": "Crea nuovo evento",
+    "deleteEventError": "Errore nell'eliminazione dell'evento",
+    "eventDeleted": "Evento eliminato",
+    "eventList": "Elenco eventi",
+    "eventManagement": "Gestione eventi",
+    "exportFunctionalityComingSoon": "Funzionalità di esportazione in arrivo",
+    "itemsFound": "{0} elementi trovati",
+    "loadingEventsError": "Errore nel caricamento degli eventi",
+    "loadingPageError": "Errore nel caricamento della pagina",
+    "loadingStatisticsError": "Errore nel caricamento delle statistiche",
+    "noEventsFound": "Nessun evento trovato",
+    "noEventsMatchFilters": "Nessun evento corrisponde ai filtri",
+    "ongoingEvents": "Eventi in corso",
+    "plannedEvents": "Eventi pianificati",
+    "searchByNameLocation": "Cerca per nome o posizione",
+    "searchPlaceholder": "Cerca...",
+    "selectStatus": "Seleziona stato",
+    "showStatistics": "Mostra statistiche"
   },
   "error": {
     "accessDenied": "Accesso Negato",
@@ -643,7 +682,9 @@
     "unauthorizedOperation": "Non si dispone delle autorizzazioni necessarie per questa operazione.",
     "invalidData": "Dati non validi forniti.",
     "invalidOperation": "Operazione non valida in questo momento.",
-    "unexpectedError": "Si è verificato un errore imprevisto. Riprovare o contattare l'assistenza se il problema persiste."
+    "unexpectedError": "Si è verificato un errore imprevisto. Riprovare o contattare l'assistenza se il problema persiste.",
+    "deleteFailed": "Eliminazione fallita",
+    "loadFailed": "Caricamento fallito"
   },
   "accessibility": {
     "languageSelectorDescription": "Seleziona la tua lingua preferita",
@@ -687,7 +728,8 @@
     "fun": {
       "name": "Divertente",
       "description": "Tema giocoso con colori pastello vibranti"
-    }
+    },
+    "system": "Sistema"
   },
   "drawer": {
     "title": {
@@ -866,7 +908,9 @@
       "upload": "Trascina e rilascia file o clicca per sfogliare. I formati supportati includono documenti, immagini e archivi fino a 50MB.",
       "management": "Organizza file in cartelle, rinomina elementi e gestisci permessi. Usa la ricerca per trovare rapidamente file specifici.",
       "sharing": "Controlla chi può accedere ai tuoi file. Imposta permessi per visualizzazione, download o modifica del contenuto condiviso."
-    }
+    },
+    "quickStart": "Avvio rapido",
+    "takeATour": "Fai un tour"
   },
   "onboarding": {
     "progress": "Passo {0} di {1}",
@@ -1074,5 +1118,153 @@
     "cancel": "Annulla",
     "clearFilters": "Cancella filtri",
     "delete": "Elimina"
+  },
+  "chat": {
+    "allChats": "Tutte le chat",
+    "chatInfo": "Informazioni chat",
+    "chatInfoPlaceholder": "Visualizza informazioni sulla chat",
+    "confirmDelete": "Conferma eliminazione",
+    "confirmDeleteMessage": "Sei sicuro di voler eliminare questo messaggio?",
+    "directMessages": "Messaggi diretti",
+    "fileAttachmentPlaceholder": "Allega file alla chat",
+    "groups": "Gruppi",
+    "manageGroup": "Gestisci gruppo",
+    "manageGroupPlaceholder": "Gestisci impostazioni del gruppo",
+    "messageDeleted": "Messaggio eliminato",
+    "newChat": "Nuova chat",
+    "newChatPlaceholder": "Inizia una nuova conversazione",
+    "noChats": "Nessuna chat disponibile",
+    "noMessages": "Nessun messaggio",
+    "search": "Cerca chat...",
+    "startConversation": "Inizia conversazione",
+    "timeNow": "Ora",
+    "title": "Chat",
+    "welcomeMessage": "Benvenuto nella chat di EventForge",
+    "welcomeTitle": "Benvenuto"
+  },
+  "eventStatus": {
+    "cancelled": "Annullato",
+    "completed": "Completato",
+    "ongoing": "In corso",
+    "planned": "Pianificato"
+  },
+  "notificationPriority": {
+    "critical": "Critica",
+    "high": "Alta",
+    "low": "Bassa",
+    "normal": "Normale"
+  },
+  "notificationType": {
+    "audit": "Audit",
+    "event": "Evento",
+    "marketing": "Marketing",
+    "security": "Sicurezza",
+    "system": "Sistema",
+    "user": "Utente"
+  },
+  "notificationTypeDesc": {
+    "audit": "Notifiche relative alle attività di audit",
+    "event": "Notifiche relative agli eventi",
+    "marketing": "Comunicazioni di marketing",
+    "security": "Avvisi di sicurezza",
+    "system": "Notifiche di sistema",
+    "user": "Notifiche utente"
+  },
+  "role": {
+    "admin": "Amministratore",
+    "manager": "Manager",
+    "superAdmin": "Super Amministratore",
+    "user": "Utente"
+  },
+  "status": {
+    "active": "Attivo",
+    "inactive": "Inattivo"
+  },
+  "notifications": {
+    "actions": "Azioni",
+    "allMarkedRead": "Tutte contrassegnate come lette",
+    "allNotifications": "Tutte le notifiche",
+    "allTypes": "Tutti i tipi",
+    "archiveRead": "Archivia lette",
+    "archived": "Archiviate",
+    "chatNotifications": "Notifiche chat",
+    "emailDescription": "Ricevi notifiche via email",
+    "emailEnabled": "Email abilitate",
+    "eventNotifications": "Notifiche eventi",
+    "filter": "Filtra",
+    "groupArchived": "Gruppo archiviato",
+    "groupMarkedAsRead": "Gruppo contrassegnato come letto",
+    "groupUngrouped": "Gruppo separato",
+    "grouping": "Raggruppamento",
+    "groups": {
+      "audit": "Audit",
+      "event": "Eventi",
+      "marketing": "Marketing",
+      "security": "Sicurezza",
+      "system": "Sistema",
+      "user": "Utente"
+    },
+    "helpTooltip": "Clicca per visualizzare l'aiuto",
+    "importantOnly": "Solo importanti",
+    "list": "Elenco",
+    "markAllRead": "Segna tutte come lette",
+    "noNotifications": "Nessuna notifica",
+    "noNotificationsSubtext": "Non ci sono notifiche da visualizzare",
+    "pageTitle": "Notifiche",
+    "preferences": "Preferenze",
+    "pushDescription": "Ricevi notifiche push",
+    "pushEnabled": "Push abilitate",
+    "readArchived": "Lette/Archiviate",
+    "refresh": "Aggiorna",
+    "refreshed": "Aggiornato",
+    "search": "Cerca notifiche...",
+    "settings": "Impostazioni",
+    "settingsSaved": "Impostazioni salvate",
+    "subtitle": "Gestisci le tue notifiche",
+    "systemNotifications": "Notifiche di sistema",
+    "title": "Notifiche",
+    "type": "Tipo",
+    "unreadOnly": "Solo non lette"
+  },
+  "notificationPreferences": {
+    "allowDataCollection": "Consenti raccolta dati",
+    "allowPersonalization": "Consenti personalizzazione",
+    "autoArchive": "Archiviazione automatica",
+    "autoArchiveHelp": "Archivia automaticamente le notifiche dopo un periodo",
+    "dataRetention": "Conservazione dati",
+    "displaySettings": "Impostazioni visualizzazione",
+    "enableGrouping": "Abilita raggruppamento",
+    "enableNotifications": "Abilita notifiche",
+    "enableSound": "Abilita suoni",
+    "generalSettings": "Impostazioni generali",
+    "itemsPerPage": "Elementi per pagina",
+    "language": "Lingua",
+    "minPriority": "Priorità minima",
+    "notificationTypes": "Tipi di notifica",
+    "pageTitle": "Preferenze Notifiche",
+    "preview": "Anteprima",
+    "previewFeatureComingSoon": "Funzionalità di anteprima in arrivo",
+    "privacySettings": "Impostazioni privacy",
+    "reset": "Ripristina",
+    "resetToDefaults": "Ripristina predefiniti",
+    "save": "Salva",
+    "saved": "Salvato",
+    "showAvatars": "Mostra avatar",
+    "showInActivityFeed": "Mostra nel feed attività",
+    "showPreviews": "Mostra anteprime",
+    "showTimestamps": "Mostra timestamp",
+    "subtitle": "Personalizza le tue preferenze di notifica",
+    "theme": "Tema",
+    "title": "Preferenze Notifiche",
+    "typesDescription": "Seleziona i tipi di notifica che vuoi ricevere"
+  },
+  "dataRetention": {
+    "indefinite": "Indefinito"
+  },
+  "dialog": {
+    "confirmDeleteEventCategory": "Conferma eliminazione categoria evento"
+  },
+  "filter": {
+    "all": "Tutti"
   }
 }
