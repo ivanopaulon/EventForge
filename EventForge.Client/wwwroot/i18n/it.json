@@ -642,7 +642,10 @@
         "tenants": "Amministra configurazioni tenant",
         "users": "Gestisci account utente e permessi"
       }
-    }
+    },
+    "generalHelpContent": "Contenuto guida generale",
+    "generalHelpTitle": "Guida Generale",
+    "helpCenter": "Centro Assistenza"
   },
   "home": {
     "connected": "Connesso",
@@ -761,7 +764,8 @@
     "translationManagement": "Gestione Traduzioni",
     "tutorialCenter": "Centro Tutorial",
     "userManagement": "Gestione Utenti",
-    "users": "Utenti"
+    "users": "Utenti",
+    "superadmin": "Super Admin"
   },
   "notificationPreferences": {
     "allowDataCollection": "Consenti raccolta dati",
@@ -1020,7 +1024,8 @@
         "title": "Panoramica SuperAdmin"
       }
     },
-    "tips": "Suggerimenti:"
+    "tips": "Suggerimenti:",
+    "centerMessage": "Messaggio centro onboarding"
   },
   "pagination": {
     "firstPage": "Prima pagina",
@@ -1123,7 +1128,8 @@
     "suspended": "Sospeso",
     "unitOfMeasure": "Unità di misura",
     "vatIncluded": "IVA Inclusa",
-    "vatRate": "Aliquota IVA"
+    "vatRate": "Aliquota IVA",
+    "initError": "Errore durante l'inizializzazione dei prodotti"
   },
   "profile": {
     "accountStatus": "Stato Account",
@@ -1853,5 +1859,43 @@
     "totalEntries": "Totale registrazioni",
     "totalLots": "Totale lotti",
     "viewInventory": "Visualizza inventario"
+  },
+  "nav": {
+    "activityFeed": "Feed Attività",
+    "adminDashboard": "Dashboard Admin",
+    "administration": "Amministrazione",
+    "auditTrail": "Audit Trail",
+    "chat": "Chat",
+    "chatModeration": "Moderazione Chat",
+    "clientLogManagement": "Log Client",
+    "communication": "Comunicazione",
+    "configuration": "Configurazione",
+    "eventCategoryManagement": "Gestione Categorie",
+    "eventManagement": "Gestione Eventi",
+    "eventTypeManagement": "Gestione Tipi Evento",
+    "help": "Aiuto",
+    "helpCenter": "Centro Assistenza",
+    "interactiveTour": "Tour Interattivo",
+    "inventoryList": "Elenco Inventario",
+    "inventoryProcedure": "Procedura Inventario",
+    "licenseManagement": "Gestione Licenze",
+    "login": "Accedi",
+    "lotManagement": "Gestione Lotti",
+    "notifications": "Notifiche",
+    "printerManagement": "Gestione Stampanti",
+    "profile": "Profilo",
+    "superAdmin": "Super Amministrazione",
+    "systemLogs": "Log Sistema",
+    "tenantManagement": "Gestione Tenant",
+    "tenantSwitch": "Switch Tenant",
+    "translationManagement": "Gestione Traduzioni",
+    "tutorialCenter": "Centro Tutorial",
+    "userManagement": "Gestione Utenti"
+  },
+  "tour": {
+    "chat": "Tour Chat",
+    "notifications": "Tour Notifiche",
+    "selectMessage": "Visita le sezioni specifiche (Notifiche, Chat, SuperAdmin) e clicca \"Fai un Tour\" per iniziare una guida interattiva di quella funzionalità.",
+    "superadmin": "Tour SuperAdmin"
   }
 }

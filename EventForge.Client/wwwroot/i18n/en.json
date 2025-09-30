@@ -642,7 +642,10 @@
         "tenants": "Administer tenant configurations",
         "users": "Manage user accounts and permissions"
       }
-    }
+    },
+    "generalHelpContent": "General help content",
+    "generalHelpTitle": "General Help",
+    "helpCenter": "Help Center"
   },
   "home": {
     "connected": "Connected",
@@ -761,7 +764,8 @@
     "translationManagement": "Translation Management",
     "tutorialCenter": "Tutorial Center",
     "userManagement": "User Management",
-    "users": "Users"
+    "users": "Users",
+    "superadmin": "Super Admin"
   },
   "notificationPreferences": {
     "allowDataCollection": "Allow data collection",
@@ -1020,7 +1024,8 @@
         "title": "SuperAdmin Overview"
       }
     },
-    "tips": "Tips:"
+    "tips": "Tips:",
+    "centerMessage": "Onboarding center message"
   },
   "pagination": {
     "firstPage": "First page",
@@ -1123,7 +1128,8 @@
     "suspended": "Suspended",
     "unitOfMeasure": "Unit of measure",
     "vatIncluded": "VAT Included",
-    "vatRate": "VAT rate"
+    "vatRate": "VAT rate",
+    "initError": "Error initializing products"
   },
   "profile": {
     "accountStatus": "Account Status",
@@ -1853,5 +1859,43 @@
     "totalEntries": "Total entries",
     "totalLots": "Total lots",
     "viewInventory": "View inventory"
+  },
+  "nav": {
+    "activityFeed": "Activity Feed",
+    "adminDashboard": "Admin Dashboard",
+    "administration": "Administration",
+    "auditTrail": "Audit Trail",
+    "chat": "Chat",
+    "chatModeration": "Chat Moderation",
+    "clientLogManagement": "Client Logs",
+    "communication": "Communication",
+    "configuration": "Configuration",
+    "eventCategoryManagement": "Category Management",
+    "eventManagement": "Event Management",
+    "eventTypeManagement": "Event Type Management",
+    "help": "Help",
+    "helpCenter": "Help Center",
+    "interactiveTour": "Interactive Tour",
+    "inventoryList": "Inventory List",
+    "inventoryProcedure": "Inventory Procedure",
+    "licenseManagement": "License Management",
+    "login": "Login",
+    "lotManagement": "Lot Management",
+    "notifications": "Notifications",
+    "printerManagement": "Printer Management",
+    "profile": "Profile",
+    "superAdmin": "Super Administration",
+    "systemLogs": "System Logs",
+    "tenantManagement": "Tenant Management",
+    "tenantSwitch": "Switch Tenant",
+    "translationManagement": "Translation Management",
+    "tutorialCenter": "Tutorial Center",
+    "userManagement": "User Management"
+  },
+  "tour": {
+    "chat": "Chat Tour",
+    "notifications": "Notifications Tour",
+    "selectMessage": "Visit the specific sections (Notifications, Chat, SuperAdmin) and click \"Take a Tour\" to start an interactive walkthrough of that feature.",
+    "superadmin": "SuperAdmin Tour"
   }
 }
