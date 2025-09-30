@@ -1,7 +1,7 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
-using EventForge.DTOs.UnitOfMeasures;
 using EventForge.DTOs.Station;
+using EventForge.DTOs.UnitOfMeasures;
 using Microsoft.AspNetCore.Components.Forms;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -223,7 +223,7 @@ public class ProductService : IProductService
         try
         {
             const long maxFileSize = 5 * 1024 * 1024; // 5MB
-            
+
             using var content = new MultipartFormDataContent();
             var fileContent = new StreamContent(file.OpenReadStream(maxFileSize));
             fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);

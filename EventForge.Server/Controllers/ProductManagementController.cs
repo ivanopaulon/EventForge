@@ -329,20 +329,20 @@ public class ProductManagementController : BaseApiController
             // Generate a unique filename
             var extension = Path.GetExtension(file.FileName);
             var fileName = $"product_{Guid.NewGuid()}{extension}";
-            
+
             // For now, save to wwwroot/images/products (in a real implementation, use cloud storage)
             var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "products");
             Directory.CreateDirectory(uploadsFolder);
-            
+
             var filePath = Path.Combine(uploadsFolder, fileName);
-            
+
             using (var stream = new FileStream(filePath, FileMode.Create))
             {
                 await file.CopyToAsync(stream, cancellationToken);
             }
 
             var imageUrl = $"/images/products/{fileName}";
-            
+
             return Ok(new ImageUploadResultDto { ImageUrl = imageUrl });
         }
         catch (Exception ex)
