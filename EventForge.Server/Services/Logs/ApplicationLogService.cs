@@ -26,11 +26,15 @@ internal class DbLogRecord
 public class ApplicationLogService : IApplicationLogService
 {
     private readonly string _logDbConnectionString;
+    private readonly ILogger<ApplicationLogService> _logger;
 
-    public ApplicationLogService(IConfiguration configuration)
+    public ApplicationLogService(
+        IConfiguration configuration,
+        ILogger<ApplicationLogService> logger)
     {
         _logDbConnectionString = configuration.GetConnectionString("LogDB")
             ?? throw new InvalidOperationException("LogDB connection string not found.");
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     private SqlConnection CreateConnection() => new SqlConnection(_logDbConnectionString);
