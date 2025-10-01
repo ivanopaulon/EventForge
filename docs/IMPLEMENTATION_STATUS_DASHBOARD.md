@@ -42,20 +42,31 @@
 
 | Issue | Stato | Priorità | Completamento | ETA |
 |-------|-------|----------|---------------|-----|
-| #314 | 🟡 INFRASTRUTTURA ESISTENTE | ALTA | 25% | Mar 2025 |
+| #314 | ✅ COMPLETATO | ALTA | 100% | COMPLETATO |
 | #315 | 🟡 INFRASTRUTTURA ESISTENTE | ALTA | 20% | Mar 2025 |
 
 **📊 Breakdown Implementazione:**
 - [x] DocumentReference base (100% - implementato per Team/TeamMember)
-- [ ] Product integration (0/3 entity changes)
+- [x] Product integration (3/3 entity changes) ✅ COMPLETATO
+- [x] Product API endpoints (3/3 endpoints: POST/GET/DELETE) ✅ COMPLETATO
+- [x] Product DTO updates (4/4 DTO classes) ✅ COMPLETATO
+- [x] Unit tests (9/9 tests passing) ✅ COMPLETATO
 - [ ] Store entities integration (0/12 entity changes)
-- [ ] API endpoints (0/12 endpoints)
-- [ ] DTO updates (0/4 DTO classes)
+- [ ] Store API endpoints (0/9 endpoints)
+- [ ] Store DTO updates (0/3 DTO classes)
+
+**✅ Issue #314 Completato:**
+- Entity: Product.ImageDocumentId + ImageDocument navigation
+- Migration: 20251001060806_AddImageDocumentToProduct
+- API: POST/GET/DELETE `/api/v1/products/{id}/image`
+- DTOs: ProductDto, CreateProductDto, UpdateProductDto, ProductDetailDto
+- Tests: 9 unit tests passing (164 total tests)
+- Backward compatibility: ImageUrl deprecated but maintained
 
 **🎯 Milestone Prossimi:**
-- **Week 4**: Product DocumentReference complete
-- **Week 6**: Store entities complete
-- **Week 8**: API + DTO complete
+- **Week 4**: Store entities DocumentReference integration (#315)
+- **Week 6**: Store API + DTO complete
+- **Week 8**: UI integration + testing
 
 ---
 
@@ -148,8 +159,11 @@
 - **Issue #244**: Unit conversion - Errori di calcolo business
 
 ### 🟡 **ALTO - Pianificazione Q1 2025**  
-- **Issue #314, #315**: Image management - UX consistency
+- **Issue #315**: Store entities image management - UX consistency
 - **Issue #245**: Price optimization - Performance issues
+
+### ✅ **COMPLETATO**
+- **Issue #314**: Product image management - DocumentReference integration ✅
 
 ### 🟢 **MEDIO - Pianificazione Q2+ 2025**
 - **Epic #277**: Wizard system - Feature evolution

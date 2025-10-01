@@ -5190,6 +5190,9 @@ namespace EventForge.Server.Migrations
                     b.Property<Guid?>("GroupNodeId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("ImageDocumentId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("ImageUrl")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -5272,6 +5275,9 @@ namespace EventForge.Server.Migrations
                     b.HasIndex("FamilyNodeId");
 
                     b.HasIndex("GroupNodeId");
+
+                    b.HasIndex("ImageDocumentId")
+                        .HasDatabaseName("IX_Product_ImageDocumentId");
 
                     b.HasIndex("ModelId")
                         .HasDatabaseName("IX_Product_ModelId");
@@ -8503,6 +8509,11 @@ namespace EventForge.Server.Migrations
                         .WithMany()
                         .HasForeignKey("GroupNodeId");
 
+                    b.HasOne("EventForge.Server.Data.Entities.Teams.DocumentReference", "ImageDocument")
+                        .WithMany()
+                        .HasForeignKey("ImageDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("EventForge.Server.Data.Entities.Products.Model", "Model")
                         .WithMany("Products")
                         .HasForeignKey("ModelId")
@@ -8527,6 +8538,8 @@ namespace EventForge.Server.Migrations
                     b.Navigation("FamilyNode");
 
                     b.Navigation("GroupNode");
+
+                    b.Navigation("ImageDocument");
 
                     b.Navigation("Model");
 
