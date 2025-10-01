@@ -63,8 +63,14 @@ public class AddressService : IAddressService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for address operations.");
+            }
+
             var addresses = await _context.Addresses
-                .Where(a => a.OwnerId == ownerId && !a.IsDeleted)
+                .Where(a => a.OwnerId == ownerId && !a.IsDeleted && a.TenantId == currentTenantId.Value)
                 .OrderBy(a => a.AddressType)
                 .ToListAsync(cancellationToken);
 
@@ -101,9 +107,16 @@ public class AddressService : IAddressService
             ArgumentNullException.ThrowIfNull(createAddressDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for address operations.");
+            }
+
             var address = new Address
             {
                 Id = Guid.NewGuid(),
+                TenantId = currentTenantId.Value,
                 OwnerId = createAddressDto.OwnerId,
                 OwnerType = createAddressDto.OwnerType,
                 AddressType = createAddressDto.AddressType.ToEntity(),
