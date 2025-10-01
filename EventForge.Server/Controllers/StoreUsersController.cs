@@ -589,4 +589,431 @@ public class StoreUsersController : BaseApiController
     }
 
     #endregion
+
+    #region StoreUser Image Management - Issue #315
+
+    /// <summary>
+    /// Uploads a photo for a store user (with GDPR consent validation).
+    /// </summary>
+    /// <param name="id">Store user ID</param>
+    /// <param name="file">Photo file</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated store user with photo</returns>
+    /// <response code="200">Photo uploaded successfully</response>
+    /// <response code="400">If file is invalid or consent not given</response>
+    /// <response code="404">If store user not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("{id:guid}/photo")]
+    [ProducesResponseType(typeof(StoreUserDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<StoreUserDto>> UploadStoreUserPhoto(
+        Guid id,
+        IFormFile file,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        if (file == null || file.Length == 0)
+        {
+            return CreateValidationProblemDetails("File cannot be empty");
+        }
+
+        // Check file size limit (5MB)
+        const long maxFileSize = 5 * 1024 * 1024;
+        if (file.Length > maxFileSize)
+        {
+            return CreateValidationProblemDetails($"File size cannot exceed {maxFileSize / (1024 * 1024)} MB");
+        }
+
+        // Validate file type
+        var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp" };
+        if (!allowedTypes.Contains(file.ContentType.ToLower()))
+        {
+            return CreateValidationProblemDetails("Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.");
+        }
+
+        try
+        {
+            var updatedStoreUser = await _storeUserService.UploadStoreUserPhotoAsync(id, file, cancellationToken);
+            if (updatedStoreUser == null)
+            {
+                return CreateNotFoundProblem($"Store user with ID {id} not found.");
+            }
+
+            return Ok(updatedStoreUser);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("consent"))
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while uploading photo for store user {StoreUserId}.", id);
+            return CreateInternalServerErrorProblem("An error occurred while uploading the photo.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets the photo DocumentReference for a store user.
+    /// </summary>
+    /// <param name="id">Store user ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Photo document reference</returns>
+    /// <response code="200">Returns the photo document</response>
+    /// <response code="404">If store user not found or has no photo</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("{id:guid}/photo")]
+    [ProducesResponseType(typeof(EventForge.DTOs.Teams.DocumentReferenceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> GetStoreUserPhotoDocument(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var photoDocument = await _storeUserService.GetStoreUserPhotoDocumentAsync(id, cancellationToken);
+            if (photoDocument == null)
+            {
+                return CreateNotFoundProblem($"Store user with ID {id} not found or has no photo.");
+            }
+
+            return Ok(photoDocument);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving photo for store user {StoreUserId}.", id);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the photo.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes the photo for a store user.
+    /// </summary>
+    /// <param name="id">Store user ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content on success</returns>
+    /// <response code="204">Photo deleted successfully</response>
+    /// <response code="404">If store user not found or has no photo</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("{id:guid}/photo")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> DeleteStoreUserPhoto(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var deleted = await _storeUserService.DeleteStoreUserPhotoAsync(id, cancellationToken);
+            if (!deleted)
+            {
+                return CreateNotFoundProblem($"Store user with ID {id} not found or has no photo.");
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while deleting photo for store user {StoreUserId}.", id);
+            return CreateInternalServerErrorProblem("An error occurred while deleting the photo.", ex);
+        }
+    }
+
+    #endregion
+
+    #region StoreUserGroup Image Management - Issue #315
+
+    /// <summary>
+    /// Uploads a logo for a store user group.
+    /// </summary>
+    /// <param name="id">Store user group ID</param>
+    /// <param name="file">Logo file</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated store user group with logo</returns>
+    /// <response code="200">Logo uploaded successfully</response>
+    /// <response code="400">If file is invalid</response>
+    /// <response code="404">If store user group not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("groups/{id:guid}/logo")]
+    [ProducesResponseType(typeof(StoreUserGroupDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<StoreUserGroupDto>> UploadStoreUserGroupLogo(
+        Guid id,
+        IFormFile file,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        if (file == null || file.Length == 0)
+        {
+            return CreateValidationProblemDetails("File cannot be empty");
+        }
+
+        // Check file size limit (5MB)
+        const long maxFileSize = 5 * 1024 * 1024;
+        if (file.Length > maxFileSize)
+        {
+            return CreateValidationProblemDetails($"File size cannot exceed {maxFileSize / (1024 * 1024)} MB");
+        }
+
+        // Validate file type
+        var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp" };
+        if (!allowedTypes.Contains(file.ContentType.ToLower()))
+        {
+            return CreateValidationProblemDetails("Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.");
+        }
+
+        try
+        {
+            var updatedGroup = await _storeUserService.UploadStoreUserGroupLogoAsync(id, file, cancellationToken);
+            if (updatedGroup == null)
+            {
+                return CreateNotFoundProblem($"Store user group with ID {id} not found.");
+            }
+
+            return Ok(updatedGroup);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while uploading logo for store user group {GroupId}.", id);
+            return CreateInternalServerErrorProblem("An error occurred while uploading the logo.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets the logo DocumentReference for a store user group.
+    /// </summary>
+    /// <param name="id">Store user group ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Logo document reference</returns>
+    /// <response code="200">Returns the logo document</response>
+    /// <response code="404">If store user group not found or has no logo</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("groups/{id:guid}/logo")]
+    [ProducesResponseType(typeof(EventForge.DTOs.Teams.DocumentReferenceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> GetStoreUserGroupLogoDocument(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var logoDocument = await _storeUserService.GetStoreUserGroupLogoDocumentAsync(id, cancellationToken);
+            if (logoDocument == null)
+            {
+                return CreateNotFoundProblem($"Store user group with ID {id} not found or has no logo.");
+            }
+
+            return Ok(logoDocument);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving logo for store user group {GroupId}.", id);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the logo.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes the logo for a store user group.
+    /// </summary>
+    /// <param name="id">Store user group ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content on success</returns>
+    /// <response code="204">Logo deleted successfully</response>
+    /// <response code="404">If store user group not found or has no logo</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("groups/{id:guid}/logo")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> DeleteStoreUserGroupLogo(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var deleted = await _storeUserService.DeleteStoreUserGroupLogoAsync(id, cancellationToken);
+            if (!deleted)
+            {
+                return CreateNotFoundProblem($"Store user group with ID {id} not found or has no logo.");
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while deleting logo for store user group {GroupId}.", id);
+            return CreateInternalServerErrorProblem("An error occurred while deleting the logo.", ex);
+        }
+    }
+
+    #endregion
+
+    #region StorePos Image Management - Issue #315
+
+    /// <summary>
+    /// Uploads an image for a store POS.
+    /// </summary>
+    /// <param name="id">Store POS ID</param>
+    /// <param name="file">Image file</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated store POS with image</returns>
+    /// <response code="200">Image uploaded successfully</response>
+    /// <response code="400">If file is invalid</response>
+    /// <response code="404">If store POS not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("pos/{id:guid}/image")]
+    [ProducesResponseType(typeof(StorePosDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<StorePosDto>> UploadStorePosImage(
+        Guid id,
+        IFormFile file,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        if (file == null || file.Length == 0)
+        {
+            return CreateValidationProblemDetails("File cannot be empty");
+        }
+
+        // Check file size limit (5MB)
+        const long maxFileSize = 5 * 1024 * 1024;
+        if (file.Length > maxFileSize)
+        {
+            return CreateValidationProblemDetails($"File size cannot exceed {maxFileSize / (1024 * 1024)} MB");
+        }
+
+        // Validate file type
+        var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp" };
+        if (!allowedTypes.Contains(file.ContentType.ToLower()))
+        {
+            return CreateValidationProblemDetails("Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.");
+        }
+
+        try
+        {
+            var updatedStorePos = await _storeUserService.UploadStorePosImageAsync(id, file, cancellationToken);
+            if (updatedStorePos == null)
+            {
+                return CreateNotFoundProblem($"Store POS with ID {id} not found.");
+            }
+
+            return Ok(updatedStorePos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while uploading image for store POS {StorePosId}.", id);
+            return CreateInternalServerErrorProblem("An error occurred while uploading the image.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets the image DocumentReference for a store POS.
+    /// </summary>
+    /// <param name="id">Store POS ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Image document reference</returns>
+    /// <response code="200">Returns the image document</response>
+    /// <response code="404">If store POS not found or has no image</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("pos/{id:guid}/image")]
+    [ProducesResponseType(typeof(EventForge.DTOs.Teams.DocumentReferenceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> GetStorePosImageDocument(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var imageDocument = await _storeUserService.GetStorePosImageDocumentAsync(id, cancellationToken);
+            if (imageDocument == null)
+            {
+                return CreateNotFoundProblem($"Store POS with ID {id} not found or has no image.");
+            }
+
+            return Ok(imageDocument);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving image for store POS {StorePosId}.", id);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the image.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes the image for a store POS.
+    /// </summary>
+    /// <param name="id">Store POS ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content on success</returns>
+    /// <response code="204">Image deleted successfully</response>
+    /// <response code="404">If store POS not found or has no image</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("pos/{id:guid}/image")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> DeleteStorePosImage(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantValidation != null)
+            return tenantValidation;
+
+        try
+        {
+            var deleted = await _storeUserService.DeleteStorePosImageAsync(id, cancellationToken);
+            if (!deleted)
+            {
+                return CreateNotFoundProblem($"Store POS with ID {id} not found or has no image.");
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while deleting image for store POS {StorePosId}.", id);
+            return CreateInternalServerErrorProblem("An error occurred while deleting the image.", ex);
+        }
+    }
+
+    #endregion
 }

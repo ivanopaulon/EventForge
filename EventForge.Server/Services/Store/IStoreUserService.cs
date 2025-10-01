@@ -179,4 +179,81 @@ public interface IStoreUserService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if exists, false otherwise</returns>
     Task<bool> StoreUserGroupExistsAsync(Guid groupId, CancellationToken cancellationToken = default);
+
+    // Image Management Operations - Issue #315
+
+    /// <summary>
+    /// Uploads a photo for a store user (with GDPR consent validation).
+    /// </summary>
+    /// <param name="storeUserId">Store user ID</param>
+    /// <param name="file">Photo file</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated store user DTO or null if not found</returns>
+    Task<StoreUserDto?> UploadStoreUserPhotoAsync(Guid storeUserId, Microsoft.AspNetCore.Http.IFormFile file, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the photo DocumentReference for a store user.
+    /// </summary>
+    /// <param name="storeUserId">Store user ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Photo document reference or null if not found</returns>
+    Task<EventForge.DTOs.Teams.DocumentReferenceDto?> GetStoreUserPhotoDocumentAsync(Guid storeUserId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes the photo for a store user.
+    /// </summary>
+    /// <param name="storeUserId">Store user ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if deleted, false if not found</returns>
+    Task<bool> DeleteStoreUserPhotoAsync(Guid storeUserId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Uploads a logo for a store user group.
+    /// </summary>
+    /// <param name="groupId">Store user group ID</param>
+    /// <param name="file">Logo file</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated store user group DTO or null if not found</returns>
+    Task<StoreUserGroupDto?> UploadStoreUserGroupLogoAsync(Guid groupId, Microsoft.AspNetCore.Http.IFormFile file, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the logo DocumentReference for a store user group.
+    /// </summary>
+    /// <param name="groupId">Store user group ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Logo document reference or null if not found</returns>
+    Task<EventForge.DTOs.Teams.DocumentReferenceDto?> GetStoreUserGroupLogoDocumentAsync(Guid groupId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes the logo for a store user group.
+    /// </summary>
+    /// <param name="groupId">Store user group ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if deleted, false if not found</returns>
+    Task<bool> DeleteStoreUserGroupLogoAsync(Guid groupId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Uploads an image for a store POS.
+    /// </summary>
+    /// <param name="storePosId">Store POS ID</param>
+    /// <param name="file">Image file</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated store POS DTO or null if not found</returns>
+    Task<StorePosDto?> UploadStorePosImageAsync(Guid storePosId, Microsoft.AspNetCore.Http.IFormFile file, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the image DocumentReference for a store POS.
+    /// </summary>
+    /// <param name="storePosId">Store POS ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Image document reference or null if not found</returns>
+    Task<EventForge.DTOs.Teams.DocumentReferenceDto?> GetStorePosImageDocumentAsync(Guid storePosId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes the image for a store POS.
+    /// </summary>
+    /// <param name="storePosId">Store POS ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if deleted, false if not found</returns>
+    Task<bool> DeleteStorePosImageAsync(Guid storePosId, CancellationToken cancellationToken = default);
 }
