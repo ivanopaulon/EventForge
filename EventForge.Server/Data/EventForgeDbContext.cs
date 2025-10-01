@@ -92,6 +92,10 @@ public class EventForgeDbContext : DbContext
     public DbSet<StockAlert> StockAlerts { get; set; }
     public DbSet<QualityControl> QualityControls { get; set; }
     public DbSet<MaintenanceRecord> MaintenanceRecords { get; set; }
+    public DbSet<SustainabilityCertificate> SustainabilityCertificates { get; set; }
+    public DbSet<WasteManagementRecord> WasteManagementRecords { get; set; }
+    public DbSet<ProjectOrder> ProjectOrders { get; set; }
+    public DbSet<ProjectMaterialAllocation> ProjectMaterialAllocations { get; set; }
 
     // Station Monitor
     public DbSet<Station> Stations { get; set; }
