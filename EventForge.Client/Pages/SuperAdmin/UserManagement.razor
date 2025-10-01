@@ -454,10 +454,10 @@ else
     private bool _isLoadingUsers = false;
     private bool _userDrawerOpen = false;
     
-    // MudCollapse state management (tenant selector now expanded by default to prevent errors)
+    // MudCollapse state management (all closed by default to align with TenantManagement page)
     private bool _statisticsExpanded = false;      // Closed by default
     private bool _filtersExpanded = false;         // Closed by default  
-    private bool _tenantSelectorExpanded = true;   // Expanded by default to prevent tenant selection errors
+    private bool _tenantSelectorExpanded = false;  // Closed by default (no auto-selection)
     
     // Drawer and modal management
     private EntityDrawerMode _userDrawerMode = EntityDrawerMode.Create;
@@ -514,16 +514,12 @@ else
 
     /// <summary>
     /// Component initialization with enhanced security checks and responsive UI setup.
+    /// Aligned with TenantManagement page pattern - no tenant auto-selection.
     /// </summary>
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            // Set tenant selector expanded by default, others closed by default to prevent tenant selection errors
-            _statisticsExpanded = false;
-            _filtersExpanded = false;
-            _tenantSelectorExpanded = true;  // Expanded by default to prevent tenant selection errors
-            
             // Enhanced authentication and authorization flow
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
             if (!isAuthenticated)
@@ -546,15 +542,16 @@ else
             _currentUser = await AuthService.GetCurrentUserAsync();
             _isAuthorized = true;
             
-            // Load tenants first, then users and statistics (sequential loading to allow tenant auto-selection)
-            await LoadTenantsAsync();
+            // Parallel data loading for better performance (like TenantManagement)
             await Task.WhenAll(
+                LoadTenantsAsync(),
                 LoadUsersAsync(),
                 LoadUserStatisticsAsync()
             );
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "Error initializing user management page");
             Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
             NavigationManager.NavigateTo("/");
         }
@@ -566,7 +563,7 @@ else
 
     /// <summary>
     /// Loads tenant data with proper error handling and loading state management.
-    /// Auto-selects the first tenant if available to prevent errors.
+    /// Does not auto-select tenants to align with TenantManagement page behavior.
     /// </summary>
     private async Task LoadTenantsAsync()
     {
@@ -574,27 +571,10 @@ else
         {
             _isLoadingTenants = true;
             _tenants = (await SuperAdminService.GetTenantsAsync()).ToList();
-            
-            // Auto-select the first tenant if available and no tenant is currently selected
-            if (_tenants.Any() && string.IsNullOrEmpty(_selectedTenant))
-            {
-                // Check if tenant context service has a saved tenant first
-                var contextTenantId = TenantContextService.CurrentTenantId;
-                if (contextTenantId.HasValue && _tenants.Any(t => t.Id == contextTenantId.Value))
-                {
-                    _selectedTenant = contextTenantId.Value.ToString();
-                }
-                else
-                {
-                    _selectedTenant = _tenants.First().Id.ToString();
-                }
-                
-                // Trigger data reload with the selected tenant
-                await OnTenantChanged();
-            }
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "Error loading tenants for user management");
             Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingTenantsError", "Errore nel caricamento dei tenant: {0}", ex.Message), Severity.Error);
         }
         finally
@@ -616,6 +596,7 @@ else
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "Error loading users for tenant {TenantId}", _selectedTenant);
             Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingUsersError", "Errore nel caricamento degli utenti: {0}", ex.Message), Severity.Error);
         }
         finally
@@ -636,6 +617,7 @@ else
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "Error loading user statistics for tenant {TenantId}", _selectedTenant);
             Snackbar.Add(TranslationService.GetTranslation("superAdmin.loadingStatisticsError", "Errore nel caricamento delle statistiche utenti: {0}", ex.Message), Severity.Error);
         }
     }
