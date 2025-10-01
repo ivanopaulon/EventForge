@@ -648,7 +648,8 @@
     "value": "Valore",
     "purpose": "Scopo",
     "isPrimary": "Primario",
-    "department": "Dipartimento"
+    "department": "Dipartimento",
+    "contacts": "Contatti"
   },
   "filter": {
     "all": "Tutti"
@@ -2079,5 +2080,16 @@
     "cliente": "Cliente",
     "supplier": "Fornitore",
     "both": "Cliente/Fornitore"
+  },
+  "supplier": {
+    "management": "Gestione Fornitori",
+    "managementDescription": "Gestisci i fornitori per la tua organizzazione",
+    "search": "Cerca fornitori",
+    "searchPlaceholder": "Inserisci nome, P.IVA o codice fiscale...",
+    "selectType": "Seleziona tipo...",
+    "list": "Lista Fornitori",
+    "itemsFound": "elementi trovati",
+    "createNew": "Crea nuovo fornitore",
+    "clearFilters": "Cancella filtri"
   }
 }
