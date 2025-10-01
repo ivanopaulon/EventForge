@@ -10,12 +10,18 @@ public class StationService : IStationService
 {
     private readonly EventForgeDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<StationService> _logger;
 
-    public StationService(EventForgeDbContext context, IAuditLogService auditLogService, ILogger<StationService> logger)
+    public StationService(
+        EventForgeDbContext context, 
+        IAuditLogService auditLogService,
+        ITenantContext tenantContext,
+        ILogger<StationService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -25,8 +31,15 @@ public class StationService : IStationService
     {
         try
         {
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot retrieve stations without a tenant context.");
+                throw new InvalidOperationException("Tenant context is required.");
+            }
+
             var query = _context.Stations
-                .Where(s => !s.IsDeleted);
+                .Where(s => !s.IsDeleted && s.TenantId == tenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);
             var stations = await query
@@ -40,7 +53,7 @@ public class StationService : IStationService
             foreach (var station in stations)
             {
                 var printerCount = await _context.Printers
-                    .CountAsync(p => p.StationId == station.Id && !p.IsDeleted, cancellationToken);
+                    .CountAsync(p => p.StationId == station.Id && !p.IsDeleted && p.TenantId == tenantId.Value, cancellationToken);
 
                 stationDtos.Add(MapToStationDto(station, printerCount));
             }
@@ -64,8 +77,15 @@ public class StationService : IStationService
     {
         try
         {
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot retrieve station without a tenant context.");
+                throw new InvalidOperationException("Tenant context is required.");
+            }
+
             var station = await _context.Stations
-                .Where(s => s.Id == id && !s.IsDeleted)
+                .Where(s => s.Id == id && !s.IsDeleted && s.TenantId == tenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (station == null)
@@ -75,7 +95,7 @@ public class StationService : IStationService
             }
 
             var printerCount = await _context.Printers
-                .CountAsync(p => p.StationId == id && !p.IsDeleted, cancellationToken);
+                .CountAsync(p => p.StationId == id && !p.IsDeleted && p.TenantId == tenantId.Value, cancellationToken);
 
             return MapToStationDto(station, printerCount);
         }
@@ -90,8 +110,16 @@ public class StationService : IStationService
     {
         try
         {
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot create station without a tenant context.");
+                throw new InvalidOperationException("Tenant context is required.");
+            }
+
             var station = new EventForge.Server.Data.Entities.StationMonitor.Station
             {
+                TenantId = tenantId.Value,
                 Name = createStationDto.Name,
                 Description = createStationDto.Description,
                 Location = createStationDto.Location,
@@ -122,9 +150,16 @@ public class StationService : IStationService
     {
         try
         {
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot update station without a tenant context.");
+                throw new InvalidOperationException("Tenant context is required.");
+            }
+
             var originalStation = await _context.Stations
                 .AsNoTracking()
-                .Where(s => s.Id == id && !s.IsDeleted)
+                .Where(s => s.Id == id && !s.IsDeleted && s.TenantId == tenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalStation == null)
@@ -134,7 +169,7 @@ public class StationService : IStationService
             }
 
             var station = await _context.Stations
-                .Where(s => s.Id == id && !s.IsDeleted)
+                .Where(s => s.Id == id && !s.IsDeleted && s.TenantId == tenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (station == null)
@@ -158,7 +193,7 @@ public class StationService : IStationService
             _logger.LogInformation("Station {StationId} updated by {User}", id, currentUser);
 
             var printerCount = await _context.Printers
-                .CountAsync(p => p.StationId == id && !p.IsDeleted, cancellationToken);
+                .CountAsync(p => p.StationId == id && !p.IsDeleted && p.TenantId == tenantId.Value, cancellationToken);
 
             return MapToStationDto(station, printerCount);
         }
@@ -173,9 +208,16 @@ public class StationService : IStationService
     {
         try
         {
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot delete station without a tenant context.");
+                throw new InvalidOperationException("Tenant context is required.");
+            }
+
             var originalStation = await _context.Stations
                 .AsNoTracking()
-                .Where(s => s.Id == id && !s.IsDeleted)
+                .Where(s => s.Id == id && !s.IsDeleted && s.TenantId == tenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalStation == null)
@@ -185,7 +227,7 @@ public class StationService : IStationService
             }
 
             var station = await _context.Stations
-                .Where(s => s.Id == id && !s.IsDeleted)
+                .Where(s => s.Id == id && !s.IsDeleted && s.TenantId == tenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (station == null)
@@ -223,9 +265,16 @@ public class StationService : IStationService
     {
         try
         {
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot retrieve printers without a tenant context.");
+                throw new InvalidOperationException("Tenant context is required.");
+            }
+
             var query = _context.Printers
                 .Include(p => p.Station)
-                .Where(p => !p.IsDeleted);
+                .Where(p => !p.IsDeleted && p.TenantId == tenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);
             var printers = await query
@@ -255,9 +304,16 @@ public class StationService : IStationService
     {
         try
         {
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot retrieve printer without a tenant context.");
+                throw new InvalidOperationException("Tenant context is required.");
+            }
+
             var printer = await _context.Printers
                 .Include(p => p.Station)
-                .Where(p => p.Id == id && !p.IsDeleted)
+                .Where(p => p.Id == id && !p.IsDeleted && p.TenantId == tenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (printer == null)
@@ -279,9 +335,16 @@ public class StationService : IStationService
     {
         try
         {
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot retrieve printers without a tenant context.");
+                throw new InvalidOperationException("Tenant context is required.");
+            }
+
             var printers = await _context.Printers
                 .Include(p => p.Station)
-                .Where(p => p.StationId == stationId && !p.IsDeleted)
+                .Where(p => p.StationId == stationId && !p.IsDeleted && p.TenantId == tenantId.Value)
                 .OrderBy(p => p.Name)
                 .ToListAsync(cancellationToken);
 
@@ -298,8 +361,16 @@ public class StationService : IStationService
     {
         try
         {
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot create printer without a tenant context.");
+                throw new InvalidOperationException("Tenant context is required.");
+            }
+
             var printer = new Printer
             {
+                TenantId = tenantId.Value,
                 Name = createPrinterDto.Name,
                 Type = createPrinterDto.Type,
                 Model = createPrinterDto.Model,
@@ -336,9 +407,16 @@ public class StationService : IStationService
     {
         try
         {
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot update printer without a tenant context.");
+                throw new InvalidOperationException("Tenant context is required.");
+            }
+
             var originalPrinter = await _context.Printers
                 .AsNoTracking()
-                .Where(p => p.Id == id && !p.IsDeleted)
+                .Where(p => p.Id == id && !p.IsDeleted && p.TenantId == tenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalPrinter == null)
@@ -348,7 +426,7 @@ public class StationService : IStationService
             }
 
             var printer = await _context.Printers
-                .Where(p => p.Id == id && !p.IsDeleted)
+                .Where(p => p.Id == id && !p.IsDeleted && p.TenantId == tenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (printer == null)
@@ -390,9 +468,16 @@ public class StationService : IStationService
     {
         try
         {
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot delete printer without a tenant context.");
+                throw new InvalidOperationException("Tenant context is required.");
+            }
+
             var originalPrinter = await _context.Printers
                 .AsNoTracking()
-                .Where(p => p.Id == id && !p.IsDeleted)
+                .Where(p => p.Id == id && !p.IsDeleted && p.TenantId == tenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalPrinter == null)
@@ -402,7 +487,7 @@ public class StationService : IStationService
             }
 
             var printer = await _context.Printers
-                .Where(p => p.Id == id && !p.IsDeleted)
+                .Where(p => p.Id == id && !p.IsDeleted && p.TenantId == tenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (printer == null)
@@ -438,8 +523,14 @@ public class StationService : IStationService
 
     public async Task<bool> StationExistsAsync(Guid stationId, CancellationToken cancellationToken = default)
     {
+        var tenantId = _tenantContext.CurrentTenantId;
+        if (!tenantId.HasValue)
+        {
+            return false;
+        }
+
         return await _context.Stations
-            .AnyAsync(s => s.Id == stationId && !s.IsDeleted, cancellationToken);
+            .AnyAsync(s => s.Id == stationId && !s.IsDeleted && s.TenantId == tenantId.Value, cancellationToken);
     }
 
     private static StationDto MapToStationDto(EventForge.Server.Data.Entities.StationMonitor.Station station, int printerCount)
