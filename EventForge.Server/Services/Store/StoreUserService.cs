@@ -807,4 +807,591 @@ public class StoreUserService : IStoreUserService
     }
 
     #endregion
+
+    #region Image Management Methods - Issue #315
+
+    public async Task<StoreUserDto?> UploadStoreUserPhotoAsync(Guid storeUserId, Microsoft.AspNetCore.Http.IFormFile file, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user operations.");
+            }
+
+            var storeUser = await _context.StoreUsers
+                .Include(su => su.PhotoDocument)
+                .Include(su => su.CashierGroup)
+                .FirstOrDefaultAsync(su => su.Id == storeUserId && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
+
+            if (storeUser == null)
+            {
+                _logger.LogWarning("Store user {StoreUserId} not found for photo upload in tenant {TenantId}.", storeUserId, currentTenantId.Value);
+                return null;
+            }
+
+            // GDPR Compliance: Check photo consent
+            if (!storeUser.PhotoConsent)
+            {
+                throw new InvalidOperationException("Photo upload requires explicit user consent (GDPR). PhotoConsent must be true.");
+            }
+
+            // Generate a unique filename
+            var extension = Path.GetExtension(file.FileName);
+            var fileName = $"storeuser_{storeUserId}_{Guid.NewGuid()}{extension}";
+
+            // Save to wwwroot/images/storeusers
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "storeusers");
+            Directory.CreateDirectory(uploadsFolder);
+
+            var filePath = Path.Combine(uploadsFolder, fileName);
+            var storageKey = $"/images/storeusers/{fileName}";
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream, cancellationToken);
+            }
+
+            // Create or update DocumentReference
+            var documentReference = new EventForge.Server.Data.Entities.Teams.DocumentReference
+            {
+                TenantId = currentTenantId.Value,
+                OwnerId = storeUserId,
+                OwnerType = "StoreUser",
+                FileName = file.FileName,
+                Type = EventForge.DTOs.Common.DocumentReferenceType.ProfilePhoto,
+                SubType = EventForge.DTOs.Common.DocumentReferenceSubType.None,
+                MimeType = file.ContentType,
+                StorageKey = storageKey,
+                Url = storageKey,
+                FileSizeBytes = file.Length,
+                Title = $"Store User {storeUser.Name} Photo",
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "System"
+            };
+
+            // If store user already has a photo, delete the old one first
+            if (storeUser.PhotoDocumentId.HasValue)
+            {
+                var oldDocument = await _context.DocumentReferences
+                    .FirstOrDefaultAsync(d => d.Id == storeUser.PhotoDocumentId.Value, cancellationToken);
+                
+                if (oldDocument != null)
+                {
+                    // Delete old physical file
+                    var oldFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", oldDocument.StorageKey.TrimStart('/'));
+                    if (File.Exists(oldFilePath))
+                    {
+                        File.Delete(oldFilePath);
+                    }
+                    
+                    _context.DocumentReferences.Remove(oldDocument);
+                }
+            }
+
+            _context.DocumentReferences.Add(documentReference);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // Update store user with new DocumentReference ID
+            storeUser.PhotoDocumentId = documentReference.Id;
+            storeUser.ModifiedAt = DateTime.UtcNow;
+            storeUser.ModifiedBy = "System";
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Store user {StoreUserId} photo uploaded successfully as DocumentReference {DocumentId}.", storeUserId, documentReference.Id);
+            
+            // Reload to get the document reference
+            storeUser.PhotoDocument = documentReference;
+            return MapToStoreUserDto(storeUser);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading photo for store user {StoreUserId}.", storeUserId);
+            throw;
+        }
+    }
+
+    public async Task<EventForge.DTOs.Teams.DocumentReferenceDto?> GetStoreUserPhotoDocumentAsync(Guid storeUserId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user operations.");
+            }
+
+            var storeUser = await _context.StoreUsers
+                .Include(su => su.PhotoDocument)
+                .FirstOrDefaultAsync(su => su.Id == storeUserId && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
+
+            if (storeUser?.PhotoDocument == null)
+            {
+                _logger.LogWarning("Store user {StoreUserId} not found or has no photo in tenant {TenantId}.", storeUserId, currentTenantId.Value);
+                return null;
+            }
+
+            return MapToDocumentReferenceDto(storeUser.PhotoDocument);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving photo document for store user {StoreUserId}.", storeUserId);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteStoreUserPhotoAsync(Guid storeUserId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user operations.");
+            }
+
+            var storeUser = await _context.StoreUsers
+                .Include(su => su.PhotoDocument)
+                .FirstOrDefaultAsync(su => su.Id == storeUserId && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
+
+            if (storeUser?.PhotoDocument == null)
+            {
+                _logger.LogWarning("Store user {StoreUserId} not found or has no photo to delete in tenant {TenantId}.", storeUserId, currentTenantId.Value);
+                return false;
+            }
+
+            // Delete physical file
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", storeUser.PhotoDocument.StorageKey.TrimStart('/'));
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
+
+            // Remove DocumentReference
+            _context.DocumentReferences.Remove(storeUser.PhotoDocument);
+
+            // Update store user
+            storeUser.PhotoDocumentId = null;
+            storeUser.ModifiedAt = DateTime.UtcNow;
+            storeUser.ModifiedBy = "System";
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Store user {StoreUserId} photo deleted successfully.", storeUserId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting photo for store user {StoreUserId}.", storeUserId);
+            throw;
+        }
+    }
+
+    public async Task<StoreUserGroupDto?> UploadStoreUserGroupLogoAsync(Guid groupId, Microsoft.AspNetCore.Http.IFormFile file, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user group operations.");
+            }
+
+            var group = await _context.StoreUserGroups
+                .Include(g => g.LogoDocument)
+                .FirstOrDefaultAsync(g => g.Id == groupId && !g.IsDeleted && g.TenantId == currentTenantId.Value, cancellationToken);
+
+            if (group == null)
+            {
+                _logger.LogWarning("Store user group {GroupId} not found for logo upload in tenant {TenantId}.", groupId, currentTenantId.Value);
+                return null;
+            }
+
+            // Generate a unique filename
+            var extension = Path.GetExtension(file.FileName);
+            var fileName = $"storegroup_{groupId}_{Guid.NewGuid()}{extension}";
+
+            // Save to wwwroot/images/storegroups
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "storegroups");
+            Directory.CreateDirectory(uploadsFolder);
+
+            var filePath = Path.Combine(uploadsFolder, fileName);
+            var storageKey = $"/images/storegroups/{fileName}";
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream, cancellationToken);
+            }
+
+            // Create or update DocumentReference
+            var documentReference = new EventForge.Server.Data.Entities.Teams.DocumentReference
+            {
+                TenantId = currentTenantId.Value,
+                OwnerId = groupId,
+                OwnerType = "StoreUserGroup",
+                FileName = file.FileName,
+                Type = EventForge.DTOs.Common.DocumentReferenceType.ProfilePhoto,
+                SubType = EventForge.DTOs.Common.DocumentReferenceSubType.None,
+                MimeType = file.ContentType,
+                StorageKey = storageKey,
+                Url = storageKey,
+                FileSizeBytes = file.Length,
+                Title = $"Store User Group {group.Name} Logo",
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "System"
+            };
+
+            // If group already has a logo, delete the old one first
+            if (group.LogoDocumentId.HasValue)
+            {
+                var oldDocument = await _context.DocumentReferences
+                    .FirstOrDefaultAsync(d => d.Id == group.LogoDocumentId.Value, cancellationToken);
+                
+                if (oldDocument != null)
+                {
+                    // Delete old physical file
+                    var oldFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", oldDocument.StorageKey.TrimStart('/'));
+                    if (File.Exists(oldFilePath))
+                    {
+                        File.Delete(oldFilePath);
+                    }
+                    
+                    _context.DocumentReferences.Remove(oldDocument);
+                }
+            }
+
+            _context.DocumentReferences.Add(documentReference);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // Update group with new DocumentReference ID
+            group.LogoDocumentId = documentReference.Id;
+            group.ModifiedAt = DateTime.UtcNow;
+            group.ModifiedBy = "System";
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Store user group {GroupId} logo uploaded successfully as DocumentReference {DocumentId}.", groupId, documentReference.Id);
+            
+            // Reload to get the document reference
+            group.LogoDocument = documentReference;
+            
+            // Get counts for DTO
+            var cashierCount = await _context.StoreUsers.CountAsync(su => su.CashierGroupId == groupId && !su.IsDeleted, cancellationToken);
+            var privilegeCount = 0; // Placeholder - would need StoreUserGroupPrivilege relationship
+            
+            return MapToStoreUserGroupDto(group, cashierCount, privilegeCount);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading logo for store user group {GroupId}.", groupId);
+            throw;
+        }
+    }
+
+    public async Task<EventForge.DTOs.Teams.DocumentReferenceDto?> GetStoreUserGroupLogoDocumentAsync(Guid groupId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user group operations.");
+            }
+
+            var group = await _context.StoreUserGroups
+                .Include(g => g.LogoDocument)
+                .FirstOrDefaultAsync(g => g.Id == groupId && !g.IsDeleted && g.TenantId == currentTenantId.Value, cancellationToken);
+
+            if (group?.LogoDocument == null)
+            {
+                _logger.LogWarning("Store user group {GroupId} not found or has no logo in tenant {TenantId}.", groupId, currentTenantId.Value);
+                return null;
+            }
+
+            return MapToDocumentReferenceDto(group.LogoDocument);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving logo document for store user group {GroupId}.", groupId);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteStoreUserGroupLogoAsync(Guid groupId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user group operations.");
+            }
+
+            var group = await _context.StoreUserGroups
+                .Include(g => g.LogoDocument)
+                .FirstOrDefaultAsync(g => g.Id == groupId && !g.IsDeleted && g.TenantId == currentTenantId.Value, cancellationToken);
+
+            if (group?.LogoDocument == null)
+            {
+                _logger.LogWarning("Store user group {GroupId} not found or has no logo to delete in tenant {TenantId}.", groupId, currentTenantId.Value);
+                return false;
+            }
+
+            // Delete physical file
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", group.LogoDocument.StorageKey.TrimStart('/'));
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
+
+            // Remove DocumentReference
+            _context.DocumentReferences.Remove(group.LogoDocument);
+
+            // Update group
+            group.LogoDocumentId = null;
+            group.ModifiedAt = DateTime.UtcNow;
+            group.ModifiedBy = "System";
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Store user group {GroupId} logo deleted successfully.", groupId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting logo for store user group {GroupId}.", groupId);
+            throw;
+        }
+    }
+
+    public async Task<StorePosDto?> UploadStorePosImageAsync(Guid storePosId, Microsoft.AspNetCore.Http.IFormFile file, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store POS operations.");
+            }
+
+            var storePos = await _context.StorePoses
+                .Include(sp => sp.ImageDocument)
+                .FirstOrDefaultAsync(sp => sp.Id == storePosId && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
+
+            if (storePos == null)
+            {
+                _logger.LogWarning("Store POS {StorePosId} not found for image upload in tenant {TenantId}.", storePosId, currentTenantId.Value);
+                return null;
+            }
+
+            // Generate a unique filename
+            var extension = Path.GetExtension(file.FileName);
+            var fileName = $"storepos_{storePosId}_{Guid.NewGuid()}{extension}";
+
+            // Save to wwwroot/images/storepos
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "storepos");
+            Directory.CreateDirectory(uploadsFolder);
+
+            var filePath = Path.Combine(uploadsFolder, fileName);
+            var storageKey = $"/images/storepos/{fileName}";
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream, cancellationToken);
+            }
+
+            // Create or update DocumentReference
+            var documentReference = new EventForge.Server.Data.Entities.Teams.DocumentReference
+            {
+                TenantId = currentTenantId.Value,
+                OwnerId = storePosId,
+                OwnerType = "StorePos",
+                FileName = file.FileName,
+                Type = EventForge.DTOs.Common.DocumentReferenceType.ProfilePhoto,
+                SubType = EventForge.DTOs.Common.DocumentReferenceSubType.None,
+                MimeType = file.ContentType,
+                StorageKey = storageKey,
+                Url = storageKey,
+                FileSizeBytes = file.Length,
+                Title = $"Store POS {storePos.Name} Image",
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "System"
+            };
+
+            // If store POS already has an image, delete the old one first
+            if (storePos.ImageDocumentId.HasValue)
+            {
+                var oldDocument = await _context.DocumentReferences
+                    .FirstOrDefaultAsync(d => d.Id == storePos.ImageDocumentId.Value, cancellationToken);
+                
+                if (oldDocument != null)
+                {
+                    // Delete old physical file
+                    var oldFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", oldDocument.StorageKey.TrimStart('/'));
+                    if (File.Exists(oldFilePath))
+                    {
+                        File.Delete(oldFilePath);
+                    }
+                    
+                    _context.DocumentReferences.Remove(oldDocument);
+                }
+            }
+
+            _context.DocumentReferences.Add(documentReference);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // Update store POS with new DocumentReference ID
+            storePos.ImageDocumentId = documentReference.Id;
+            storePos.ModifiedAt = DateTime.UtcNow;
+            storePos.ModifiedBy = "System";
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Store POS {StorePosId} image uploaded successfully as DocumentReference {DocumentId}.", storePosId, documentReference.Id);
+            
+            // Reload to get the document reference
+            storePos.ImageDocument = documentReference;
+            return MapToStorePosDto(storePos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading image for store POS {StorePosId}.", storePosId);
+            throw;
+        }
+    }
+
+    public async Task<EventForge.DTOs.Teams.DocumentReferenceDto?> GetStorePosImageDocumentAsync(Guid storePosId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store POS operations.");
+            }
+
+            var storePos = await _context.StorePoses
+                .Include(sp => sp.ImageDocument)
+                .FirstOrDefaultAsync(sp => sp.Id == storePosId && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
+
+            if (storePos?.ImageDocument == null)
+            {
+                _logger.LogWarning("Store POS {StorePosId} not found or has no image in tenant {TenantId}.", storePosId, currentTenantId.Value);
+                return null;
+            }
+
+            return MapToDocumentReferenceDto(storePos.ImageDocument);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving image document for store POS {StorePosId}.", storePosId);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteStorePosImageAsync(Guid storePosId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store POS operations.");
+            }
+
+            var storePos = await _context.StorePoses
+                .Include(sp => sp.ImageDocument)
+                .FirstOrDefaultAsync(sp => sp.Id == storePosId && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
+
+            if (storePos?.ImageDocument == null)
+            {
+                _logger.LogWarning("Store POS {StorePosId} not found or has no image to delete in tenant {TenantId}.", storePosId, currentTenantId.Value);
+                return false;
+            }
+
+            // Delete physical file
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", storePos.ImageDocument.StorageKey.TrimStart('/'));
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
+
+            // Remove DocumentReference
+            _context.DocumentReferences.Remove(storePos.ImageDocument);
+
+            // Update store POS
+            storePos.ImageDocumentId = null;
+            storePos.ModifiedAt = DateTime.UtcNow;
+            storePos.ModifiedBy = "System";
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Store POS {StorePosId} image deleted successfully.", storePosId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting image for store POS {StorePosId}.", storePosId);
+            throw;
+        }
+    }
+
+    private static EventForge.DTOs.Teams.DocumentReferenceDto MapToDocumentReferenceDto(EventForge.Server.Data.Entities.Teams.DocumentReference documentReference)
+    {
+        return new EventForge.DTOs.Teams.DocumentReferenceDto
+        {
+            Id = documentReference.Id,
+            OwnerId = documentReference.OwnerId,
+            OwnerType = documentReference.OwnerType,
+            FileName = documentReference.FileName,
+            Type = documentReference.Type,
+            SubType = documentReference.SubType,
+            MimeType = documentReference.MimeType,
+            StorageKey = documentReference.StorageKey,
+            Url = documentReference.Url,
+            ThumbnailStorageKey = documentReference.ThumbnailStorageKey,
+            Expiry = documentReference.Expiry,
+            FileSizeBytes = documentReference.FileSizeBytes,
+            Title = documentReference.Title,
+            Notes = documentReference.Notes,
+            CreatedAt = documentReference.CreatedAt,
+            CreatedBy = documentReference.CreatedBy,
+            ModifiedAt = documentReference.ModifiedAt,
+            ModifiedBy = documentReference.ModifiedBy
+        };
+    }
+
+    private StorePosDto MapToStorePosDto(EventForge.Server.Data.Entities.Store.StorePos storePos)
+    {
+        return new StorePosDto
+        {
+            Id = storePos.Id,
+            Name = storePos.Name,
+            Description = storePos.Description,
+            Status = (EventForge.DTOs.Common.CashRegisterStatus)storePos.Status,
+            Location = storePos.Location,
+            LastOpenedAt = storePos.LastOpenedAt,
+            Notes = storePos.Notes,
+            // Issue #315: Image Management & Extended Fields
+            ImageDocumentId = storePos.ImageDocumentId,
+            ImageUrl = storePos.ImageDocument?.Url,
+            ImageThumbnailUrl = storePos.ImageDocument?.ThumbnailStorageKey,
+            TerminalIdentifier = storePos.TerminalIdentifier,
+            IPAddress = storePos.IPAddress,
+            IsOnline = storePos.IsOnline,
+            LastSyncAt = storePos.LastSyncAt,
+            LocationLatitude = storePos.LocationLatitude,
+            LocationLongitude = storePos.LocationLongitude,
+            CurrencyCode = storePos.CurrencyCode,
+            TimeZone = storePos.TimeZone,
+            CreatedAt = storePos.CreatedAt,
+            CreatedBy = storePos.CreatedBy,
+            ModifiedAt = storePos.ModifiedAt,
+            ModifiedBy = storePos.ModifiedBy
+        };
+    }
+
+    #endregion
 }
