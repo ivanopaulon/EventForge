@@ -83,9 +83,16 @@ public class VatRateService : IVatRateService
             ArgumentNullException.ThrowIfNull(createVatRateDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for VAT rate operations.");
+            }
+
             var vatRate = new VatRate
             {
                 Id = Guid.NewGuid(),
+                TenantId = currentTenantId.Value,
                 Name = createVatRateDto.Name,
                 Percentage = createVatRateDto.Percentage,
                 ValidFrom = createVatRateDto.ValidFrom,
