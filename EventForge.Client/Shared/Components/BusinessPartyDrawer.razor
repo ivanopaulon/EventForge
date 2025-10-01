@@ -7,6 +7,7 @@
 @inject ISnackbar Snackbar
 @inject ILogger<BusinessPartyDrawer> Logger
 @inject ITranslationService TranslationService
+@inject IDialogService DialogService
 
 <EntityDrawer @bind-IsOpen="@IsOpen"
               @bind-Mode="@Mode"
@@ -752,28 +753,69 @@
     
     #region Address Management
     
-    private void OpenAddAddressDialog()
+    private async Task OpenAddAddressDialog()
     {
-        // TODO: Implement dialog for adding address
-        Snackbar.Add(TranslationService.GetTranslation("messages.featureComingSoon", "Funzionalità in arrivo"), Severity.Info);
+        if (OriginalBusinessParty == null) return;
+        
+        var parameters = new DialogParameters
+        {
+            ["OwnerId"] = OriginalBusinessParty.Id,
+            ["OwnerType"] = "BusinessParty"
+        };
+        
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<AddAddressDialog>(
+            TranslationService.GetTranslation("dialog.addAddress", "Aggiungi Indirizzo"),
+            parameters,
+            options
+        );
+        
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadRelatedEntitiesAsync();
+        }
     }
     
-    private void OpenEditAddressDialog(AddressDto address)
+    private async Task OpenEditAddressDialog(AddressDto address)
     {
-        // TODO: Implement dialog for editing address
-        Snackbar.Add(TranslationService.GetTranslation("messages.featureComingSoon", "Funzionalità in arrivo"), Severity.Info);
+        var parameters = new DialogParameters
+        {
+            ["Address"] = address
+        };
+        
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<EditAddressDialog>(
+            TranslationService.GetTranslation("dialog.editAddress", "Modifica Indirizzo"),
+            parameters,
+            options
+        );
+        
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadRelatedEntitiesAsync();
+        }
     }
     
     private async Task DeleteAddress(Guid addressId)
     {
         try
         {
-            var confirmed = await ShowConfirmationDialog(
+            var parameters = new DialogParameters
+            {
+                ["ContentText"] = TranslationService.GetTranslation("dialog.confirmDeleteAddress", "Sei sicuro di voler eliminare questo indirizzo?"),
+                ["ButtonText"] = TranslationService.GetTranslation("button.delete", "Elimina"),
+                ["Color"] = Color.Error
+            };
+            
+            var dialog = await DialogService.ShowAsync<ConfirmationDialog>(
                 TranslationService.GetTranslation("dialog.confirmDelete", "Conferma eliminazione"),
-                TranslationService.GetTranslation("dialog.confirmDeleteAddress", "Sei sicuro di voler eliminare questo indirizzo?")
+                parameters
             );
             
-            if (!confirmed) return;
+            var result = await dialog.Result;
+            if (result.Canceled) return;
             
             await EntityManagementService.DeleteAddressAsync(addressId);
             Snackbar.Add(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminazione completata con successo"), Severity.Success);
@@ -792,28 +834,69 @@
     
     #region Contact Management
     
-    private void OpenAddContactDialog()
+    private async Task OpenAddContactDialog()
     {
-        // TODO: Implement dialog for adding contact
-        Snackbar.Add(TranslationService.GetTranslation("messages.featureComingSoon", "Funzionalità in arrivo"), Severity.Info);
+        if (OriginalBusinessParty == null) return;
+        
+        var parameters = new DialogParameters
+        {
+            ["OwnerId"] = OriginalBusinessParty.Id,
+            ["OwnerType"] = "BusinessParty"
+        };
+        
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<AddContactDialog>(
+            TranslationService.GetTranslation("dialog.addContact", "Aggiungi Contatto"),
+            parameters,
+            options
+        );
+        
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadRelatedEntitiesAsync();
+        }
     }
     
-    private void OpenEditContactDialog(ContactDto contact)
+    private async Task OpenEditContactDialog(ContactDto contact)
     {
-        // TODO: Implement dialog for editing contact
-        Snackbar.Add(TranslationService.GetTranslation("messages.featureComingSoon", "Funzionalità in arrivo"), Severity.Info);
+        var parameters = new DialogParameters
+        {
+            ["Contact"] = contact
+        };
+        
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<EditContactDialog>(
+            TranslationService.GetTranslation("dialog.editContact", "Modifica Contatto"),
+            parameters,
+            options
+        );
+        
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadRelatedEntitiesAsync();
+        }
     }
     
     private async Task DeleteContact(Guid contactId)
     {
         try
         {
-            var confirmed = await ShowConfirmationDialog(
+            var parameters = new DialogParameters
+            {
+                ["ContentText"] = TranslationService.GetTranslation("dialog.confirmDeleteContact", "Sei sicuro di voler eliminare questo contatto?"),
+                ["ButtonText"] = TranslationService.GetTranslation("button.delete", "Elimina"),
+                ["Color"] = Color.Error
+            };
+            
+            var dialog = await DialogService.ShowAsync<ConfirmationDialog>(
                 TranslationService.GetTranslation("dialog.confirmDelete", "Conferma eliminazione"),
-                TranslationService.GetTranslation("dialog.confirmDeleteContact", "Sei sicuro di voler eliminare questo contatto?")
+                parameters
             );
             
-            if (!confirmed) return;
+            var result = await dialog.Result;
+            if (result.Canceled) return;
             
             await EntityManagementService.DeleteContactAsync(contactId);
             Snackbar.Add(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminazione completata con successo"), Severity.Success);
@@ -832,28 +915,69 @@
     
     #region Reference Management
     
-    private void OpenAddReferenceDialog()
+    private async Task OpenAddReferenceDialog()
     {
-        // TODO: Implement dialog for adding reference
-        Snackbar.Add(TranslationService.GetTranslation("messages.featureComingSoon", "Funzionalità in arrivo"), Severity.Info);
+        if (OriginalBusinessParty == null) return;
+        
+        var parameters = new DialogParameters
+        {
+            ["OwnerId"] = OriginalBusinessParty.Id,
+            ["OwnerType"] = "BusinessParty"
+        };
+        
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<AddReferenceDialog>(
+            TranslationService.GetTranslation("dialog.addReference", "Aggiungi Referente"),
+            parameters,
+            options
+        );
+        
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadRelatedEntitiesAsync();
+        }
     }
     
-    private void OpenEditReferenceDialog(ReferenceDto reference)
+    private async Task OpenEditReferenceDialog(ReferenceDto reference)
     {
-        // TODO: Implement dialog for editing reference
-        Snackbar.Add(TranslationService.GetTranslation("messages.featureComingSoon", "Funzionalità in arrivo"), Severity.Info);
+        var parameters = new DialogParameters
+        {
+            ["Reference"] = reference
+        };
+        
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<EditReferenceDialog>(
+            TranslationService.GetTranslation("dialog.editReference", "Modifica Referente"),
+            parameters,
+            options
+        );
+        
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadRelatedEntitiesAsync();
+        }
     }
     
     private async Task DeleteReference(Guid referenceId)
     {
         try
         {
-            var confirmed = await ShowConfirmationDialog(
+            var parameters = new DialogParameters
+            {
+                ["ContentText"] = TranslationService.GetTranslation("dialog.confirmDeleteReference", "Sei sicuro di voler eliminare questo referente?"),
+                ["ButtonText"] = TranslationService.GetTranslation("button.delete", "Elimina"),
+                ["Color"] = Color.Error
+            };
+            
+            var dialog = await DialogService.ShowAsync<ConfirmationDialog>(
                 TranslationService.GetTranslation("dialog.confirmDelete", "Conferma eliminazione"),
-                TranslationService.GetTranslation("dialog.confirmDeleteReference", "Sei sicuro di voler eliminare questo referente?")
+                parameters
             );
             
-            if (!confirmed) return;
+            var result = await dialog.Result;
+            if (result.Canceled) return;
             
             await EntityManagementService.DeleteReferenceAsync(referenceId);
             Snackbar.Add(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminazione completata con successo"), Severity.Success);
@@ -869,11 +993,4 @@
     }
     
     #endregion
-    
-    private async Task<bool> ShowConfirmationDialog(string title, string message)
-    {
-        // Simple confirmation using Snackbar for now
-        // TODO: Implement a proper MudDialog for confirmation
-        return true; // For now, always return true (simplified implementation)
-    }
 }
