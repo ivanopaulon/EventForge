@@ -361,6 +361,140 @@ public class ProductManagementController : BaseApiController
         }
     }
 
+    /// <summary>
+    /// Uploads an image as a DocumentReference for a specific product.
+    /// </summary>
+    /// <param name="id">Product ID</param>
+    /// <param name="file">Image file to upload</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated product with ImageDocumentId</returns>
+    /// <response code="200">Image uploaded successfully and linked to product</response>
+    /// <response code="400">If the file is invalid</response>
+    /// <response code="404">If product not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("products/{id}/image")]
+    [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ProductDto>> UploadProductImageDocument(
+        Guid id,
+        IFormFile file,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        if (file == null || file.Length == 0)
+        {
+            return CreateValidationProblemDetails("File cannot be empty");
+        }
+
+        // Check file size limit (5MB)
+        const long maxFileSize = 5 * 1024 * 1024;
+        if (file.Length > maxFileSize)
+        {
+            return CreateValidationProblemDetails($"File size cannot exceed {maxFileSize / (1024 * 1024)} MB");
+        }
+
+        // Validate file type
+        var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp" };
+        if (!allowedTypes.Contains(file.ContentType.ToLower()))
+        {
+            return CreateValidationProblemDetails("Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.");
+        }
+
+        try
+        {
+            var updatedProduct = await _productService.UploadProductImageAsync(id, file, cancellationToken);
+            if (updatedProduct == null)
+            {
+                return CreateNotFoundProblem($"Product with ID {id} not found.");
+            }
+
+            return Ok(updatedProduct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while uploading the product image for product {ProductId}.", id);
+            return CreateInternalServerErrorProblem("An error occurred while uploading the product image.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets the image DocumentReference for a specific product.
+    /// </summary>
+    /// <param name="id">Product ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Image document reference</returns>
+    /// <response code="200">Returns the image document</response>
+    /// <response code="404">If product not found or has no image</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("products/{id}/image")]
+    [ProducesResponseType(typeof(EventForge.DTOs.Teams.DocumentReferenceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> GetProductImageDocument(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var imageDocument = await _productService.GetProductImageDocumentAsync(id, cancellationToken);
+            if (imageDocument == null)
+            {
+                return CreateNotFoundProblem($"Product with ID {id} not found or has no image.");
+            }
+
+            return Ok(imageDocument);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving the product image for product {ProductId}.", id);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the product image.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes the image DocumentReference for a specific product.
+    /// </summary>
+    /// <param name="id">Product ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content on success</returns>
+    /// <response code="204">Image deleted successfully</response>
+    /// <response code="404">If product not found or has no image</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("products/{id}/image")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> DeleteProductImageDocument(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var success = await _productService.DeleteProductImageAsync(id, cancellationToken);
+            if (!success)
+            {
+                return CreateNotFoundProblem($"Product with ID {id} not found or has no image.");
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while deleting the product image for product {ProductId}.", id);
+            return CreateInternalServerErrorProblem("An error occurred while deleting the product image.", ex);
+        }
+    }
+
     #endregion
 
     #region Product Codes Management

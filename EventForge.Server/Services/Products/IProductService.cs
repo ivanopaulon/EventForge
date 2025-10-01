@@ -225,4 +225,29 @@ public interface IProductService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Updated product DTO or null if not found</returns>
     Task<ProductDto?> UpdateProductImageAsync(Guid productId, string imageUrl, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Uploads an image file as a DocumentReference and links it to a product.
+    /// </summary>
+    /// <param name="productId">Product ID</param>
+    /// <param name="file">Image file to upload</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated product DTO or null if not found</returns>
+    Task<ProductDto?> UploadProductImageAsync(Guid productId, Microsoft.AspNetCore.Http.IFormFile file, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the image DocumentReference for a product.
+    /// </summary>
+    /// <param name="productId">Product ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>DocumentReference DTO or null if not found</returns>
+    Task<EventForge.DTOs.Teams.DocumentReferenceDto?> GetProductImageDocumentAsync(Guid productId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes the image DocumentReference for a product.
+    /// </summary>
+    /// <param name="productId">Product ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if deleted, false if not found</returns>
+    Task<bool> DeleteProductImageAsync(Guid productId, CancellationToken cancellationToken = default);
 }
