@@ -123,6 +123,178 @@
                                   ReadOnly="true"
                                   aria-label="@TranslationService.GetTranslation("drawer.aria.createdAt", "Data e ora di creazione")" />
                 </MudItem>
+                
+                @* Related Entities Management in Edit Mode *@
+                @if (_loadingRelatedEntities)
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                        <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-2">
+                            @TranslationService.GetTranslation("common.loading", "Caricamento...")
+                        </MudText>
+                    </MudItem>
+                }
+                else
+                {
+                    @* Addresses Section with Actions *@
+                    <MudItem xs="12" Class="mt-4">
+                        <MudExpansionPanels>
+                            <MudExpansionPanel>
+                                <TitleContent>
+                                    <div class="d-flex justify-space-between align-center" style="width: 100%;">
+                                        <MudText>@($"{TranslationService.GetTranslation("field.addressCount", "Indirizzi")} ({_addresses?.Count() ?? 0})")</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                                      Color="Color.Primary" 
+                                                      Size="Size.Small"
+                                                      OnClick="@(() => OpenAddAddressDialog())"
+                                                      aria-label="@TranslationService.GetTranslation("button.addAddress", "Aggiungi indirizzo")" />
+                                    </div>
+                                </TitleContent>
+                                <ChildContent>
+                                    @if (_addresses?.Any() == true)
+                                    {
+                                        <MudTable Items="_addresses" Hover="true" Dense="true" Striped="true">
+                                            <HeaderContent>
+                                                <MudTh>@TranslationService.GetTranslation("field.addressType", "Tipo")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.street", "Via")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.city", "Città")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.zipCode", "CAP")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                                            </HeaderContent>
+                                            <RowTemplate>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.addressType", "Tipo")">@context.AddressType</MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.street", "Via")">@context.Street</MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.city", "Città")">@context.City</MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.zipCode", "CAP")">@context.ZipCode</MudTd>
+                                                <MudTd>
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                                                  Color="Color.Primary" 
+                                                                  Size="Size.Small"
+                                                                  OnClick="@(() => OpenEditAddressDialog(context))" />
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                                  Color="Color.Error" 
+                                                                  Size="Size.Small"
+                                                                  OnClick="@(() => DeleteAddress(context.Id))" />
+                                                </MudTd>
+                                            </RowTemplate>
+                                        </MudTable>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body2" Class="pa-4">@TranslationService.GetTranslation("messages.noAddresses", "Nessun indirizzo disponibile")</MudText>
+                                    }
+                                </ChildContent>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudItem>
+                    
+                    @* Contacts Section with Actions *@
+                    <MudItem xs="12" Class="mt-2">
+                        <MudExpansionPanels>
+                            <MudExpansionPanel>
+                                <TitleContent>
+                                    <div class="d-flex justify-space-between align-center" style="width: 100%;">
+                                        <MudText>@($"{TranslationService.GetTranslation("field.contactCount", "Contatti")} ({_contacts?.Count() ?? 0})")</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                                      Color="Color.Primary" 
+                                                      Size="Size.Small"
+                                                      OnClick="@(() => OpenAddContactDialog())"
+                                                      aria-label="@TranslationService.GetTranslation("button.addContact", "Aggiungi contatto")" />
+                                    </div>
+                                </TitleContent>
+                                <ChildContent>
+                                    @if (_contacts?.Any() == true)
+                                    {
+                                        <MudTable Items="_contacts" Hover="true" Dense="true" Striped="true">
+                                            <HeaderContent>
+                                                <MudTh>@TranslationService.GetTranslation("field.contactType", "Tipo")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.value", "Valore")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.purpose", "Scopo")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.isPrimary", "Primario")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                                            </HeaderContent>
+                                            <RowTemplate>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.contactType", "Tipo")">@context.ContactType</MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.value", "Valore")">@context.Value</MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.purpose", "Scopo")">@context.Purpose</MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.isPrimary", "Primario")">
+                                                    @if (context.IsPrimary)
+                                                    {
+                                                        <MudIcon Icon="@Icons.Material.Filled.Check" Color="Color.Success" Size="Size.Small" />
+                                                    }
+                                                </MudTd>
+                                                <MudTd>
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                                                  Color="Color.Primary" 
+                                                                  Size="Size.Small"
+                                                                  OnClick="@(() => OpenEditContactDialog(context))" />
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                                  Color="Color.Error" 
+                                                                  Size="Size.Small"
+                                                                  OnClick="@(() => DeleteContact(context.Id))" />
+                                                </MudTd>
+                                            </RowTemplate>
+                                        </MudTable>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body2" Class="pa-4">@TranslationService.GetTranslation("messages.noContacts", "Nessun contatto disponibile")</MudText>
+                                    }
+                                </ChildContent>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudItem>
+                    
+                    @* References Section with Actions *@
+                    <MudItem xs="12" Class="mt-2">
+                        <MudExpansionPanels>
+                            <MudExpansionPanel>
+                                <TitleContent>
+                                    <div class="d-flex justify-space-between align-center" style="width: 100%;">
+                                        <MudText>@($"{TranslationService.GetTranslation("field.referenceCount", "Referenti")} ({_references?.Count() ?? 0})")</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                                      Color="Color.Primary" 
+                                                      Size="Size.Small"
+                                                      OnClick="@(() => OpenAddReferenceDialog())"
+                                                      aria-label="@TranslationService.GetTranslation("button.addReference", "Aggiungi referente")" />
+                                    </div>
+                                </TitleContent>
+                                <ChildContent>
+                                    @if (_references?.Any() == true)
+                                    {
+                                        <MudTable Items="_references" Hover="true" Dense="true" Striped="true">
+                                            <HeaderContent>
+                                                <MudTh>@TranslationService.GetTranslation("field.firstName", "Nome")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.lastName", "Cognome")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.department", "Dipartimento")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                                            </HeaderContent>
+                                            <RowTemplate>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.firstName", "Nome")">@context.FirstName</MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.lastName", "Cognome")">@context.LastName</MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.department", "Dipartimento")">@context.Department</MudTd>
+                                                <MudTd>
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                                                  Color="Color.Primary" 
+                                                                  Size="Size.Small"
+                                                                  OnClick="@(() => OpenEditReferenceDialog(context))" />
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                                  Color="Color.Error" 
+                                                                  Size="Size.Small"
+                                                                  OnClick="@(() => DeleteReference(context.Id))" />
+                                                </MudTd>
+                                            </RowTemplate>
+                                        </MudTable>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body2" Class="pa-4">@TranslationService.GetTranslation("messages.noReferences", "Nessun referente disponibile")</MudText>
+                                    }
+                                </ChildContent>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudItem>
+                }
             }
         </MudGrid>
     </FormContent>
@@ -431,6 +603,9 @@
             };
             
             _customTitle = TranslationService.GetTranslation("drawer.title.editBusinessParty", "Modifica {0}", OriginalBusinessParty.Name);
+            
+            // Load related entities in Edit mode as well
+            await LoadRelatedEntitiesAsync();
         }
         else if (Mode == EntityDrawerMode.View && OriginalBusinessParty != null)
         {
@@ -462,14 +637,13 @@
             // Load addresses, contacts, and references in parallel
             var addressesTask = EntityManagementService.GetAddressesByOwnerAsync(OriginalBusinessParty.Id);
             var contactsTask = EntityManagementService.GetContactsByOwnerAsync(OriginalBusinessParty.Id);
-            // Note: References endpoint doesn't seem to exist in EntityManagementService, 
-            // so we'll keep it as empty for now
+            var referencesTask = EntityManagementService.GetReferencesByOwnerAsync(OriginalBusinessParty.Id);
             
-            await Task.WhenAll(addressesTask, contactsTask);
+            await Task.WhenAll(addressesTask, contactsTask, referencesTask);
             
             _addresses = await addressesTask;
             _contacts = await contactsTask;
-            _references = new List<ReferenceDto>(); // Placeholder until Reference API is available
+            _references = await referencesTask;
             
             _loadingRelatedEntities = false;
             StateHasChanged();
@@ -574,5 +748,132 @@
             BusinessPartyType.Both => TranslationService.GetTranslation("partyType.both", "Cliente/Fornitore"),
             _ => partyType.ToString()
         };
+    }
+    
+    #region Address Management
+    
+    private void OpenAddAddressDialog()
+    {
+        // TODO: Implement dialog for adding address
+        Snackbar.Add(TranslationService.GetTranslation("messages.featureComingSoon", "Funzionalità in arrivo"), Severity.Info);
+    }
+    
+    private void OpenEditAddressDialog(AddressDto address)
+    {
+        // TODO: Implement dialog for editing address
+        Snackbar.Add(TranslationService.GetTranslation("messages.featureComingSoon", "Funzionalità in arrivo"), Severity.Info);
+    }
+    
+    private async Task DeleteAddress(Guid addressId)
+    {
+        try
+        {
+            var confirmed = await ShowConfirmationDialog(
+                TranslationService.GetTranslation("dialog.confirmDelete", "Conferma eliminazione"),
+                TranslationService.GetTranslation("dialog.confirmDeleteAddress", "Sei sicuro di voler eliminare questo indirizzo?")
+            );
+            
+            if (!confirmed) return;
+            
+            await EntityManagementService.DeleteAddressAsync(addressId);
+            Snackbar.Add(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminazione completata con successo"), Severity.Success);
+            
+            // Reload addresses
+            await LoadRelatedEntitiesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to delete address {AddressId}", addressId);
+            Snackbar.Add(TranslationService.GetTranslation("messages.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
+        }
+    }
+    
+    #endregion
+    
+    #region Contact Management
+    
+    private void OpenAddContactDialog()
+    {
+        // TODO: Implement dialog for adding contact
+        Snackbar.Add(TranslationService.GetTranslation("messages.featureComingSoon", "Funzionalità in arrivo"), Severity.Info);
+    }
+    
+    private void OpenEditContactDialog(ContactDto contact)
+    {
+        // TODO: Implement dialog for editing contact
+        Snackbar.Add(TranslationService.GetTranslation("messages.featureComingSoon", "Funzionalità in arrivo"), Severity.Info);
+    }
+    
+    private async Task DeleteContact(Guid contactId)
+    {
+        try
+        {
+            var confirmed = await ShowConfirmationDialog(
+                TranslationService.GetTranslation("dialog.confirmDelete", "Conferma eliminazione"),
+                TranslationService.GetTranslation("dialog.confirmDeleteContact", "Sei sicuro di voler eliminare questo contatto?")
+            );
+            
+            if (!confirmed) return;
+            
+            await EntityManagementService.DeleteContactAsync(contactId);
+            Snackbar.Add(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminazione completata con successo"), Severity.Success);
+            
+            // Reload contacts
+            await LoadRelatedEntitiesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to delete contact {ContactId}", contactId);
+            Snackbar.Add(TranslationService.GetTranslation("messages.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
+        }
+    }
+    
+    #endregion
+    
+    #region Reference Management
+    
+    private void OpenAddReferenceDialog()
+    {
+        // TODO: Implement dialog for adding reference
+        Snackbar.Add(TranslationService.GetTranslation("messages.featureComingSoon", "Funzionalità in arrivo"), Severity.Info);
+    }
+    
+    private void OpenEditReferenceDialog(ReferenceDto reference)
+    {
+        // TODO: Implement dialog for editing reference
+        Snackbar.Add(TranslationService.GetTranslation("messages.featureComingSoon", "Funzionalità in arrivo"), Severity.Info);
+    }
+    
+    private async Task DeleteReference(Guid referenceId)
+    {
+        try
+        {
+            var confirmed = await ShowConfirmationDialog(
+                TranslationService.GetTranslation("dialog.confirmDelete", "Conferma eliminazione"),
+                TranslationService.GetTranslation("dialog.confirmDeleteReference", "Sei sicuro di voler eliminare questo referente?")
+            );
+            
+            if (!confirmed) return;
+            
+            await EntityManagementService.DeleteReferenceAsync(referenceId);
+            Snackbar.Add(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminazione completata con successo"), Severity.Success);
+            
+            // Reload references
+            await LoadRelatedEntitiesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to delete reference {ReferenceId}", referenceId);
+            Snackbar.Add(TranslationService.GetTranslation("messages.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
+        }
+    }
+    
+    #endregion
+    
+    private async Task<bool> ShowConfirmationDialog(string title, string message)
+    {
+        // Simple confirmation using Snackbar for now
+        // TODO: Implement a proper MudDialog for confirmation
+        return true; // For now, always return true (simplified implementation)
     }
 }

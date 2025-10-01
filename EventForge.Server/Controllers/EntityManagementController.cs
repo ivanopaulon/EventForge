@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 namespace EventForge.Server.Controllers;
 
 /// <summary>
-/// Consolidated REST API controller for managing common entities (Addresses, Contacts, Classification Nodes).
+/// Consolidated REST API controller for managing common entities (Addresses, Contacts, References, Classification Nodes).
 /// Provides unified CRUD operations with multi-tenant support and standardized patterns.
-/// This controller replaces individual AddressesController, ContactsController, and ClassificationNodesController
+/// This controller replaces individual AddressesController, ContactsController, ReferencesController, and ClassificationNodesController
 /// to reduce endpoint fragmentation and improve maintainability.
 /// </summary>
 [Route("api/v1/entities")]
@@ -17,6 +17,7 @@ public class EntityManagementController : BaseApiController
 {
     private readonly IAddressService _addressService;
     private readonly IContactService _contactService;
+    private readonly IReferenceService _referenceService;
     private readonly IClassificationNodeService _classificationNodeService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<EntityManagementController> _logger;
@@ -24,12 +25,14 @@ public class EntityManagementController : BaseApiController
     public EntityManagementController(
         IAddressService addressService,
         IContactService contactService,
+        IReferenceService referenceService,
         IClassificationNodeService classificationNodeService,
         ITenantContext tenantContext,
         ILogger<EntityManagementController> logger)
     {
         _addressService = addressService ?? throw new ArgumentNullException(nameof(addressService));
         _contactService = contactService ?? throw new ArgumentNullException(nameof(contactService));
+        _referenceService = referenceService ?? throw new ArgumentNullException(nameof(referenceService));
         _classificationNodeService = classificationNodeService ?? throw new ArgumentNullException(nameof(classificationNodeService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -486,6 +489,234 @@ public class EntityManagementController : BaseApiController
         {
             _logger.LogError(ex, "An error occurred while deleting the contact.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the contact.", ex);
+        }
+    }
+
+    #endregion
+
+    #region Reference Management
+
+    /// <summary>
+    /// Gets all references with optional pagination.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of references</returns>
+    /// <response code="200">Returns the paginated list of references</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("references")]
+    [ProducesResponseType(typeof(PagedResult<ReferenceDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<ReferenceDto>>> GetReferences(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _referenceService.GetReferencesAsync(page, pageSize, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving references.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving references.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets references by owner ID.
+    /// </summary>
+    /// <param name="ownerId">Owner ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of references for the owner</returns>
+    /// <response code="200">Returns the references for the owner</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("references/owner/{ownerId:guid}")]
+    [ProducesResponseType(typeof(IEnumerable<ReferenceDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<ReferenceDto>>> GetReferencesByOwner(
+        Guid ownerId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var references = await _referenceService.GetReferencesByOwnerAsync(ownerId, cancellationToken);
+            return Ok(references);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving references for owner.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving references for owner.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a reference by ID.
+    /// </summary>
+    /// <param name="id">Reference ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Reference information</returns>
+    /// <response code="200">Returns the reference</response>
+    /// <response code="404">If the reference is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("references/{id:guid}")]
+    [ProducesResponseType(typeof(ReferenceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ReferenceDto>> GetReference(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var reference = await _referenceService.GetReferenceByIdAsync(id, cancellationToken);
+            if (reference == null)
+            {
+                return CreateNotFoundProblem($"Reference with ID {id} not found.");
+            }
+
+            return Ok(reference);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving the reference.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the reference.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new reference.
+    /// </summary>
+    /// <param name="createReferenceDto">Reference creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created reference information</returns>
+    /// <response code="201">Reference created successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("references")]
+    [ProducesResponseType(typeof(ReferenceDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ReferenceDto>> CreateReference(
+        [FromBody] CreateReferenceDto createReferenceDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _referenceService.CreateReferenceAsync(createReferenceDto, GetCurrentUser(), cancellationToken);
+            return CreatedAtAction(nameof(GetReference), new { id = result.Id }, result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while creating the reference.");
+            return CreateInternalServerErrorProblem("An error occurred while creating the reference.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing reference.
+    /// </summary>
+    /// <param name="id">Reference ID</param>
+    /// <param name="updateReferenceDto">Reference update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated reference information</returns>
+    /// <response code="200">Reference updated successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="404">If the reference is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPut("references/{id:guid}")]
+    [ProducesResponseType(typeof(ReferenceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ReferenceDto>> UpdateReference(
+        Guid id,
+        [FromBody] UpdateReferenceDto updateReferenceDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _referenceService.UpdateReferenceAsync(id, updateReferenceDto, GetCurrentUser(), cancellationToken);
+            if (result == null)
+            {
+                return CreateNotFoundProblem($"Reference with ID {id} not found.");
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while updating the reference.");
+            return CreateInternalServerErrorProblem("An error occurred while updating the reference.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a reference (soft delete).
+    /// </summary>
+    /// <param name="id">Reference ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content</returns>
+    /// <response code="204">Reference deleted successfully</response>
+    /// <response code="404">If the reference is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("references/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteReference(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var deleted = await _referenceService.DeleteReferenceAsync(id, GetCurrentUser(), cancellationToken);
+            if (!deleted)
+            {
+                return CreateNotFoundProblem($"Reference with ID {id} not found.");
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while deleting the reference.");
+            return CreateInternalServerErrorProblem("An error occurred while deleting the reference.", ex);
         }
     }
 
