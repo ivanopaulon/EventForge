@@ -476,6 +476,19 @@
         {
             if (Mode == EntityDrawerMode.Create)
             {
+                // Validate required fields
+                if (_model.WarehouseId == Guid.Empty)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("messages.warehouseRequired", "Seleziona un magazzino"), Severity.Warning);
+                    return;
+                }
+                
+                if (string.IsNullOrWhiteSpace(_model.Code))
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("messages.codeRequired", "Il codice è obbligatorio"), Severity.Warning);
+                    return;
+                }
+                
                 var createDto = new CreateStorageLocationDto
                 {
                     Code = _model.Code,

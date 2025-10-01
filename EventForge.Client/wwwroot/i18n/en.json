@@ -726,7 +726,11 @@
     "saveSuccess": "Saved successfully",
     "unsavedChanges": "There are unsaved changes. Continue?",
     "updateFailed": "Update failed",
-    "updateSuccessful": "Updated successfully"
+    "updateSuccessful": "Updated successfully",
+    "loadFailed": "Loading failed",
+    "warehouseRequired": "Please select a warehouse",
+    "codeRequired": "Code is required",
+    "loadWarehousesError": "Error loading warehouses"
   },
   "mobileBadge": {
     "activities": "Activities",

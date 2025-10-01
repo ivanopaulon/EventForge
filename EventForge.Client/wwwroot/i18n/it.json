@@ -851,7 +851,10 @@
     "unsavedChanges": "Ci sono modifiche non salvate. Continuare?",
     "updateFailed": "Errore durante l'aggiornamento",
     "updateSuccessful": "Aggiornato con successo",
-    "loadFailed": "Errore durante il caricamento"
+    "loadFailed": "Errore durante il caricamento",
+    "warehouseRequired": "Seleziona un magazzino",
+    "codeRequired": "Il codice è obbligatorio",
+    "loadWarehousesError": "Errore nel caricamento dei magazzini"
   },
   "mobileBadge": {
     "activities": "Attività",
