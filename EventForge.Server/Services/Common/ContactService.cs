@@ -64,8 +64,14 @@ public class ContactService : IContactService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for contact operations.");
+            }
+
             var contacts = await _context.Contacts
-                .Where(c => c.OwnerId == ownerId && !c.IsDeleted)
+                .Where(c => c.OwnerId == ownerId && !c.IsDeleted && c.TenantId == currentTenantId.Value)
                 .OrderBy(c => c.ContactType)
                 .ThenBy(c => c.Value)
                 .ToListAsync(cancellationToken);
@@ -103,9 +109,16 @@ public class ContactService : IContactService
             ArgumentNullException.ThrowIfNull(createContactDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for contact operations.");
+            }
+
             var contact = new Contact
             {
                 Id = Guid.NewGuid(),
+                TenantId = currentTenantId.Value,
                 OwnerId = createContactDto.OwnerId,
                 OwnerType = createContactDto.OwnerType,
                 ContactType = createContactDto.ContactType.ToEntity(),

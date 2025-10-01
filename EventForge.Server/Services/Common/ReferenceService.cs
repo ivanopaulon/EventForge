@@ -80,8 +80,14 @@ public class ReferenceService : IReferenceService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for reference operations.");
+            }
+
             var entities = await _context.References
-                .Where(r => r.OwnerId == ownerId)
+                .Where(r => r.OwnerId == ownerId && !r.IsDeleted && r.TenantId == currentTenantId.Value)
                 .OrderBy(r => r.LastName)
                 .ThenBy(r => r.FirstName)
                 .ToListAsync(cancellationToken);
@@ -120,8 +126,15 @@ public class ReferenceService : IReferenceService
             ArgumentNullException.ThrowIfNull(createReferenceDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for reference operations.");
+            }
+
             var entity = ReferenceMapper.ToEntity(createReferenceDto);
             entity.Id = Guid.NewGuid();
+            entity.TenantId = currentTenantId.Value;
             entity.CreatedAt = DateTime.UtcNow;
             entity.CreatedBy = currentUser;
 
