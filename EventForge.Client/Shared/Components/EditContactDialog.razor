@@ -1,0 +1,131 @@
+@using MudBlazor
+@using EventForge.DTOs.Common
+@inject IEntityManagementService EntityManagementService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<EditContactDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudSelect @bind-Value="_model.ContactType"
+                              Label="@($"{TranslationService.GetTranslation("field.contactType", "Tipo Contatto")} *")"
+                              Variant="Variant.Outlined"
+                              Required="true">
+                        <MudSelectItem Value="@ContactType.Email">@TranslationService.GetTranslation("contactType.email", "Email")</MudSelectItem>
+                        <MudSelectItem Value="@ContactType.Phone">@TranslationService.GetTranslation("contactType.phone", "Telefono")</MudSelectItem>
+                        <MudSelectItem Value="@ContactType.Fax">@TranslationService.GetTranslation("contactType.fax", "Fax")</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudSelect @bind-Value="_model.Purpose"
+                              Label="@TranslationService.GetTranslation("field.purpose", "Scopo")"
+                              Variant="Variant.Outlined">
+                        <MudSelectItem Value="@ContactPurpose.Primary">@TranslationService.GetTranslation("contactPurpose.primary", "Primario")</MudSelectItem>
+                        <MudSelectItem Value="@ContactPurpose.Emergency">@TranslationService.GetTranslation("contactPurpose.emergency", "Emergenza")</MudSelectItem>
+                        <MudSelectItem Value="@ContactPurpose.Coach">@TranslationService.GetTranslation("contactPurpose.coach", "Allenatore")</MudSelectItem>
+                        <MudSelectItem Value="@ContactPurpose.Other">@TranslationService.GetTranslation("contactPurpose.other", "Altro")</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Value"
+                                 Label="@($"{TranslationService.GetTranslation("field.value", "Valore")} *")"
+                                 Variant="Variant.Outlined"
+                                 Required="true"
+                                 MaxLength="100" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.Relationship"
+                                 Label="@TranslationService.GetTranslation("field.relationship", "Relazione")"
+                                 Variant="Variant.Outlined"
+                                 MaxLength="50" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudSwitch @bind-Value="_model.IsPrimary" 
+                              Label="@TranslationService.GetTranslation("field.isPrimary", "Contatto Primario")" 
+                              Color="Color.Primary" />
+                </MudItem>
+                
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Notes"
+                                 Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                 Variant="Variant.Outlined"
+                                 Lines="3"
+                                 MaxLength="100" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_isValid || _isProcessing)">
+            @if (_isProcessing)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            }
+            else
+            {
+                @TranslationService.GetTranslation("button.save", "Salva")
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] 
+    public ContactDto Contact { get; set; } = null!;
+
+    private MudForm _form = null!;
+    private bool _isValid;
+    private bool _isProcessing;
+    private UpdateContactDto _model = new();
+
+    protected override void OnParametersSet()
+    {
+        if (Contact != null)
+        {
+            _model = new UpdateContactDto
+            {
+                ContactType = Contact.ContactType,
+                Value = Contact.Value,
+                Purpose = Contact.Purpose,
+                Relationship = Contact.Relationship,
+                IsPrimary = Contact.IsPrimary,
+                Notes = Contact.Notes
+            };
+        }
+    }
+
+    private async Task Submit()
+    {
+        if (!_isValid || Contact == null) return;
+
+        try
+        {
+            _isProcessing = true;
+            await EntityManagementService.UpdateContactAsync(Contact.Id, _model);
+            Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornamento completato con successo"), Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to update contact");
+            Snackbar.Add(TranslationService.GetTranslation("messages.updateFailed", "Errore durante l'aggiornamento"), Severity.Error);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

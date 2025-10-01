@@ -1,0 +1,135 @@
+@using MudBlazor
+@using EventForge.DTOs.Common
+@inject IEntityManagementService EntityManagementService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<EditAddressDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudSelect @bind-Value="_model.AddressType"
+                              Label="@TranslationService.GetTranslation("field.addressType", "Tipo Indirizzo")"
+                              Variant="Variant.Outlined"
+                              Required="true">
+                        <MudSelectItem Value="@AddressType.Legal">@TranslationService.GetTranslation("addressType.legal", "Legale")</MudSelectItem>
+                        <MudSelectItem Value="@AddressType.Operational">@TranslationService.GetTranslation("addressType.operational", "Operativo")</MudSelectItem>
+                        <MudSelectItem Value="@AddressType.Destination">@TranslationService.GetTranslation("addressType.destination", "Destinazione")</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Street"
+                                 Label="@TranslationService.GetTranslation("field.street", "Via")"
+                                 Variant="Variant.Outlined"
+                                 MaxLength="100" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.City"
+                                 Label="@TranslationService.GetTranslation("field.city", "Città")"
+                                 Variant="Variant.Outlined"
+                                 MaxLength="50" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.ZipCode"
+                                 Label="@TranslationService.GetTranslation("field.zipCode", "CAP")"
+                                 Variant="Variant.Outlined"
+                                 MaxLength="10" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.Province"
+                                 Label="@TranslationService.GetTranslation("field.province", "Provincia")"
+                                 Variant="Variant.Outlined"
+                                 MaxLength="50" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.Country"
+                                 Label="@TranslationService.GetTranslation("field.country", "Paese")"
+                                 Variant="Variant.Outlined"
+                                 MaxLength="50" />
+                </MudItem>
+                
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Notes"
+                                 Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                 Variant="Variant.Outlined"
+                                 Lines="3"
+                                 MaxLength="100" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_isValid || _isProcessing)">
+            @if (_isProcessing)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            }
+            else
+            {
+                @TranslationService.GetTranslation("button.save", "Salva")
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] 
+    public AddressDto Address { get; set; } = null!;
+
+    private MudForm _form = null!;
+    private bool _isValid;
+    private bool _isProcessing;
+    private UpdateAddressDto _model = new();
+
+    protected override void OnParametersSet()
+    {
+        if (Address != null)
+        {
+            _model = new UpdateAddressDto
+            {
+                AddressType = Address.AddressType,
+                Street = Address.Street,
+                City = Address.City,
+                ZipCode = Address.ZipCode,
+                Province = Address.Province,
+                Country = Address.Country,
+                Notes = Address.Notes
+            };
+        }
+    }
+
+    private async Task Submit()
+    {
+        if (!_isValid || Address == null) return;
+
+        try
+        {
+            _isProcessing = true;
+            await EntityManagementService.UpdateAddressAsync(Address.Id, _model);
+            Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornamento completato con successo"), Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to update address");
+            Snackbar.Add(TranslationService.GetTranslation("messages.updateFailed", "Errore durante l'aggiornamento"), Severity.Error);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

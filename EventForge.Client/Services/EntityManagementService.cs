@@ -20,6 +20,14 @@ namespace EventForge.Client.Services
         Task<ContactDto> UpdateContactAsync(Guid id, UpdateContactDto updateDto);
         Task DeleteContactAsync(Guid id);
 
+        // Reference Management
+        Task<IEnumerable<ReferenceDto>> GetReferencesAsync();
+        Task<IEnumerable<ReferenceDto>> GetReferencesByOwnerAsync(Guid ownerId);
+        Task<ReferenceDto?> GetReferenceAsync(Guid id);
+        Task<ReferenceDto> CreateReferenceAsync(CreateReferenceDto createDto);
+        Task<ReferenceDto> UpdateReferenceAsync(Guid id, UpdateReferenceDto updateDto);
+        Task DeleteReferenceAsync(Guid id);
+
         // Classification Node Management
         Task<IEnumerable<ClassificationNodeDto>> GetClassificationNodesAsync();
         Task<IEnumerable<ClassificationNodeDto>> GetRootClassificationNodesAsync();
@@ -129,6 +137,42 @@ namespace EventForge.Client.Services
         public async Task DeleteContactAsync(Guid id)
         {
             await _httpClientService.DeleteAsync($"api/v1/entities/contacts/{id}");
+        }
+
+        #endregion
+
+        #region Reference Management
+
+        public async Task<IEnumerable<ReferenceDto>> GetReferencesAsync()
+        {
+            return await _httpClientService.GetAsync<IEnumerable<ReferenceDto>>("api/v1/entities/references") ?? new List<ReferenceDto>();
+        }
+
+        public async Task<IEnumerable<ReferenceDto>> GetReferencesByOwnerAsync(Guid ownerId)
+        {
+            return await _httpClientService.GetAsync<IEnumerable<ReferenceDto>>($"api/v1/entities/references/owner/{ownerId}") ?? new List<ReferenceDto>();
+        }
+
+        public async Task<ReferenceDto?> GetReferenceAsync(Guid id)
+        {
+            return await _httpClientService.GetAsync<ReferenceDto>($"api/v1/entities/references/{id}");
+        }
+
+        public async Task<ReferenceDto> CreateReferenceAsync(CreateReferenceDto createDto)
+        {
+            return await _httpClientService.PostAsync<CreateReferenceDto, ReferenceDto>("api/v1/entities/references", createDto) ??
+                   throw new InvalidOperationException("Failed to create reference");
+        }
+
+        public async Task<ReferenceDto> UpdateReferenceAsync(Guid id, UpdateReferenceDto updateDto)
+        {
+            return await _httpClientService.PutAsync<UpdateReferenceDto, ReferenceDto>($"api/v1/entities/references/{id}", updateDto) ??
+                   throw new InvalidOperationException("Failed to update reference");
+        }
+
+        public async Task DeleteReferenceAsync(Guid id)
+        {
+            await _httpClientService.DeleteAsync($"api/v1/entities/references/{id}");
         }
 
         #endregion
