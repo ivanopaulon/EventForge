@@ -2484,6 +2484,63 @@ namespace EventForge.Server.Migrations
                     b.ToTable("SystemConfigurations");
                 });
 
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Documents.DocumentAccessLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AccessType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("AccessedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("DocumentHeaderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<string>("Result")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("SessionId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentHeaderId");
+
+                    b.ToTable("DocumentAccessLogs");
+                });
+
             modelBuilder.Entity("EventForge.Server.Data.Entities.Documents.DocumentAnalytics", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3400,6 +3457,86 @@ namespace EventForge.Server.Migrations
                         .HasDatabaseName("IX_DocumentReminders_TargetDate");
 
                     b.ToTable("DocumentReminders");
+                });
+
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Documents.DocumentRetentionPolicy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("ArchiveInsteadOfDelete")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("AutoDeleteEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("DocumentTypeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("DocumentsArchived")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DocumentsDeleted")
+                        .HasColumnType("int");
+
+                    b.Property<int>("GracePeriodDays")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastAppliedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("RetentionDays")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentTypeId");
+
+                    b.ToTable("DocumentRetentionPolicies");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Documents.DocumentRow", b =>
@@ -8188,6 +8325,17 @@ namespace EventForge.Server.Migrations
                     b.Navigation("StartedByUser");
                 });
 
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Documents.DocumentAccessLog", b =>
+                {
+                    b.HasOne("EventForge.Server.Data.Entities.Documents.DocumentHeader", "DocumentHeader")
+                        .WithMany()
+                        .HasForeignKey("DocumentHeaderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DocumentHeader");
+                });
+
             modelBuilder.Entity("EventForge.Server.Data.Entities.Documents.DocumentAnalytics", b =>
                 {
                     b.HasOne("EventForge.Server.Data.Entities.Documents.DocumentHeader", "DocumentHeader")
@@ -8363,6 +8511,17 @@ namespace EventForge.Server.Migrations
                         .HasForeignKey("DocumentScheduleId");
 
                     b.Navigation("DocumentHeader");
+                });
+
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Documents.DocumentRetentionPolicy", b =>
+                {
+                    b.HasOne("EventForge.Server.Data.Entities.Documents.DocumentType", "DocumentType")
+                        .WithMany()
+                        .HasForeignKey("DocumentTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DocumentType");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Documents.DocumentRow", b =>
