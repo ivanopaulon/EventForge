@@ -1,0 +1,426 @@
+@using MudBlazor
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@inject IBusinessPartyService BusinessPartyService
+@inject ISnackbar Snackbar
+@inject ILogger<BusinessPartyDrawer> Logger
+@inject ITranslationService TranslationService
+
+<EntityDrawer @bind-IsOpen="@IsOpen"
+              @bind-Mode="@Mode"
+              EntityName="@TranslationService.GetTranslation("field.supplier", "Fornitore")"
+              Model="@_model"
+              OnSave="@HandleSave"
+              OnCancel="@HandleCancel"
+              OnClose="@HandleClose"
+              CustomTitle="@_customTitle"
+              AllowEdit="@AllowEdit"
+              Width="900px">
+    
+    <FormContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="_model.PartyType"
+                           Label="@($"{TranslationService.GetTranslation("field.partyType", "Tipo")} *")"
+                           Variant="Variant.Outlined"
+                           Required="true"
+                           aria-describedby="partyType-help">
+                    <MudSelectItem Value="@BusinessPartyType.Cliente">@TranslationService.GetTranslation("partyType.cliente", "Cliente")</MudSelectItem>
+                    <MudSelectItem Value="@BusinessPartyType.Supplier">@TranslationService.GetTranslation("partyType.supplier", "Fornitore")</MudSelectItem>
+                    <MudSelectItem Value="@BusinessPartyType.Both">@TranslationService.GetTranslation("partyType.both", "Cliente/Fornitore")</MudSelectItem>
+                </MudSelect>
+                <MudText id="partyType-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.partyType", "Seleziona il tipo di business party")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.Name"
+                              Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
+                              MaxLength="200"
+                              Immediate="true"
+                              aria-describedby="name-help" />
+                <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.name", "Ragione sociale o nome completo")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.TaxCode"
+                              Label="@TranslationService.GetTranslation("field.taxCode", "Codice Fiscale")"
+                              Variant="Variant.Outlined"
+                              MaxLength="20"
+                              aria-describedby="taxCode-help" />
+                <MudText id="taxCode-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.taxCode", "Codice fiscale")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.VatNumber"
+                              Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
+                              Variant="Variant.Outlined"
+                              MaxLength="20"
+                              aria-describedby="vatNumber-help" />
+                <MudText id="vatNumber-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.vatNumber", "Partita IVA")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.SdiCode"
+                              Label="@TranslationService.GetTranslation("field.sdiCode", "Codice SDI")"
+                              Variant="Variant.Outlined"
+                              MaxLength="10"
+                              aria-describedby="sdiCode-help" />
+                <MudText id="sdiCode-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.sdiCode", "Codice destinatario SDI per fatturazione elettronica")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.Pec"
+                              Label="@TranslationService.GetTranslation("field.pec", "PEC")"
+                              Variant="Variant.Outlined"
+                              MaxLength="100"
+                              aria-describedby="pec-help" />
+                <MudText id="pec-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.pec", "Posta Elettronica Certificata")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.Notes"
+                              Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                              MaxLength="500"
+                              aria-describedby="notes-help" />
+                <MudText id="notes-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.notes", "Note aggiuntive")
+                </MudText>
+            </MudItem>
+            
+            @if (Mode == EntityDrawerMode.Edit && OriginalBusinessParty != null)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalBusinessParty.Id.ToString()"
+                                  Label="@TranslationService.GetTranslation("field.id", "ID")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.id", "Identificativo unico")" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalBusinessParty.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                  Label="@TranslationService.GetTranslation("field.createdAt", "Data Creazione")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.createdAt", "Data e ora di creazione")" />
+                </MudItem>
+            }
+        </MudGrid>
+    </FormContent>
+    
+    <ViewContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@GetPartyTypeText(OriginalBusinessParty?.PartyType ?? BusinessPartyType.Cliente)"
+                              Label="@TranslationService.GetTranslation("field.partyType", "Tipo")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              aria-label="@TranslationService.GetTranslation("field.partyType", "Tipo")" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalBusinessParty?.Name ?? "")"
+                              Label="@TranslationService.GetTranslation("field.name", "Nome")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              aria-label="@TranslationService.GetTranslation("field.name", "Nome")" />
+            </MudItem>
+            
+            @if (!string.IsNullOrWhiteSpace(OriginalBusinessParty?.TaxCode))
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalBusinessParty.TaxCode"
+                                  Label="@TranslationService.GetTranslation("field.taxCode", "Codice Fiscale")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("field.taxCode", "Codice Fiscale")" />
+                </MudItem>
+            }
+            
+            @if (!string.IsNullOrWhiteSpace(OriginalBusinessParty?.VatNumber))
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalBusinessParty.VatNumber"
+                                  Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")" />
+                </MudItem>
+            }
+            
+            @if (!string.IsNullOrWhiteSpace(OriginalBusinessParty?.SdiCode))
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalBusinessParty.SdiCode"
+                                  Label="@TranslationService.GetTranslation("field.sdiCode", "Codice SDI")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("field.sdiCode", "Codice SDI")" />
+                </MudItem>
+            }
+            
+            @if (!string.IsNullOrWhiteSpace(OriginalBusinessParty?.Pec))
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalBusinessParty.Pec"
+                                  Label="@TranslationService.GetTranslation("field.pec", "PEC")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("field.pec", "PEC")" />
+                </MudItem>
+            }
+            
+            @if (!string.IsNullOrWhiteSpace(OriginalBusinessParty?.Notes))
+            {
+                <MudItem xs="12">
+                    <MudTextField Value="@OriginalBusinessParty.Notes"
+                                  Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("field.notes", "Note")" />
+                </MudItem>
+            }
+            
+            @if (OriginalBusinessParty != null)
+            {
+                <MudItem xs="12" md="4">
+                    <MudTextField Value="@OriginalBusinessParty.AddressCount.ToString()"
+                                  Label="@TranslationService.GetTranslation("field.addressCount", "Indirizzi")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("field.addressCount", "Numero di indirizzi")" />
+                </MudItem>
+                
+                <MudItem xs="12" md="4">
+                    <MudTextField Value="@OriginalBusinessParty.ContactCount.ToString()"
+                                  Label="@TranslationService.GetTranslation("field.contactCount", "Contatti")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("field.contactCount", "Numero di contatti")" />
+                </MudItem>
+                
+                <MudItem xs="12" md="4">
+                    <MudTextField Value="@OriginalBusinessParty.ReferenceCount.ToString()"
+                                  Label="@TranslationService.GetTranslation("field.referenceCount", "Referenti")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("field.referenceCount", "Numero di referenti")" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalBusinessParty.Id.ToString()"
+                                  Label="@TranslationService.GetTranslation("field.id", "ID")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.id", "Identificativo unico")" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalBusinessParty.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                  Label="@TranslationService.GetTranslation("field.createdAt", "Data Creazione")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.createdAt", "Data e ora di creazione")" />
+                </MudItem>
+                
+                @if (OriginalBusinessParty.ModifiedAt != null && OriginalBusinessParty.ModifiedAt != OriginalBusinessParty.CreatedAt)
+                {
+                    <MudItem xs="12" md="6">
+                        <MudTextField Value="@OriginalBusinessParty.ModifiedAt?.ToString("dd/MM/yyyy HH:mm")"
+                                      Label="@TranslationService.GetTranslation("field.modifiedAt", "Ultima Modifica")"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="true"
+                                      aria-label="@TranslationService.GetTranslation("drawer.aria.modifiedAt", "Data e ora ultima modifica")" />
+                    </MudItem>
+                }
+            }
+        </MudGrid>
+    </ViewContent>
+    
+</EntityDrawer>
+
+@code {
+    private BusinessPartyDto _model = new() { PartyType = BusinessPartyType.Supplier, Name = string.Empty };
+    private string? _customTitle;
+
+    /// <summary>
+    /// Whether the drawer is open.
+    /// </summary>
+    [Parameter] public bool IsOpen { get; set; }
+    
+    /// <summary>
+    /// Event callback for when IsOpen changes.
+    /// </summary>
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    
+    /// <summary>
+    /// The current mode of the drawer.
+    /// </summary>
+    [Parameter] public EntityDrawerMode Mode { get; set; } = EntityDrawerMode.Create;
+    
+    /// <summary>
+    /// Event callback for when Mode changes.
+    /// </summary>
+    [Parameter] public EventCallback<EntityDrawerMode> ModeChanged { get; set; }
+    
+    /// <summary>
+    /// The business party being edited/viewed (for Edit/View modes).
+    /// </summary>
+    [Parameter] public BusinessPartyDto? OriginalBusinessParty { get; set; }
+    
+    /// <summary>
+    /// Whether editing is allowed.
+    /// </summary>
+    [Parameter] public bool AllowEdit { get; set; } = true;
+    
+    /// <summary>
+    /// Event callback when a business party is created.
+    /// </summary>
+    [Parameter] public EventCallback<BusinessPartyDto> OnBusinessPartyCreated { get; set; }
+    
+    /// <summary>
+    /// Event callback when a business party is updated.
+    /// </summary>
+    [Parameter] public EventCallback<BusinessPartyDto> OnBusinessPartyUpdated { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Mode == EntityDrawerMode.Edit && OriginalBusinessParty != null)
+        {
+            // Initialize model for editing
+            _model = new BusinessPartyDto
+            {
+                Id = OriginalBusinessParty.Id,
+                PartyType = OriginalBusinessParty.PartyType,
+                Name = OriginalBusinessParty.Name,
+                TaxCode = OriginalBusinessParty.TaxCode,
+                VatNumber = OriginalBusinessParty.VatNumber,
+                SdiCode = OriginalBusinessParty.SdiCode,
+                Pec = OriginalBusinessParty.Pec,
+                Notes = OriginalBusinessParty.Notes,
+                CreatedAt = OriginalBusinessParty.CreatedAt,
+                ModifiedAt = OriginalBusinessParty.ModifiedAt,
+                CreatedBy = OriginalBusinessParty.CreatedBy,
+                ModifiedBy = OriginalBusinessParty.ModifiedBy
+            };
+            
+            _customTitle = TranslationService.GetTranslation("drawer.title.editBusinessParty", "Modifica {0}", OriginalBusinessParty.Name);
+        }
+        else if (Mode == EntityDrawerMode.View && OriginalBusinessParty != null)
+        {
+            _customTitle = TranslationService.GetTranslation("drawer.title.viewBusinessParty", "Visualizza {0}", OriginalBusinessParty.Name);
+        }
+        else if (Mode == EntityDrawerMode.Create)
+        {
+            // Reset for create mode
+            _model = new BusinessPartyDto { PartyType = BusinessPartyType.Supplier, Name = string.Empty };
+            _customTitle = null;
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleSave()
+    {
+        try
+        {
+            if (Mode == EntityDrawerMode.Create)
+            {
+                var createDto = new CreateBusinessPartyDto
+                {
+                    PartyType = _model.PartyType,
+                    Name = _model.Name,
+                    TaxCode = _model.TaxCode,
+                    VatNumber = _model.VatNumber,
+                    SdiCode = _model.SdiCode,
+                    Pec = _model.Pec,
+                    Notes = _model.Notes
+                };
+                
+                var newBusinessParty = await BusinessPartyService.CreateBusinessPartyAsync(createDto);
+                Snackbar.Add(TranslationService.GetTranslation("messages.createSuccessful", "Creazione completata con successo"), Severity.Success);
+                
+                if (OnBusinessPartyCreated.HasDelegate)
+                {
+                    await OnBusinessPartyCreated.InvokeAsync(newBusinessParty);
+                }
+            }
+            else if (Mode == EntityDrawerMode.Edit && OriginalBusinessParty != null)
+            {
+                var updateDto = new UpdateBusinessPartyDto
+                {
+                    PartyType = _model.PartyType,
+                    Name = _model.Name,
+                    TaxCode = _model.TaxCode,
+                    VatNumber = _model.VatNumber,
+                    SdiCode = _model.SdiCode,
+                    Pec = _model.Pec,
+                    Notes = _model.Notes
+                };
+                
+                var updatedBusinessParty = await BusinessPartyService.UpdateBusinessPartyAsync(OriginalBusinessParty.Id, updateDto);
+                Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornamento completato con successo"), Severity.Success);
+                
+                if (OnBusinessPartyUpdated.HasDelegate)
+                {
+                    await OnBusinessPartyUpdated.InvokeAsync(updatedBusinessParty);
+                }
+            }
+            
+            await HandleClose();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to save business party");
+            var message = Mode == EntityDrawerMode.Create ? 
+                TranslationService.GetTranslation("messages.createFailed", "Errore durante la creazione") : 
+                TranslationService.GetTranslation("messages.updateFailed", "Errore durante l'aggiornamento");
+            Snackbar.Add($"{message}: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task HandleCancel()
+    {
+        await HandleClose();
+    }
+
+    private async Task HandleClose()
+    {
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(IsOpen);
+        
+        // Reset state
+        _model = new BusinessPartyDto { PartyType = BusinessPartyType.Supplier, Name = string.Empty };
+        _customTitle = null;
+    }
+
+    private string GetPartyTypeText(BusinessPartyType partyType)
+    {
+        return partyType switch
+        {
+            BusinessPartyType.Cliente => TranslationService.GetTranslation("partyType.cliente", "Cliente"),
+            BusinessPartyType.Supplier => TranslationService.GetTranslation("partyType.supplier", "Fornitore"),
+            BusinessPartyType.Both => TranslationService.GetTranslation("partyType.both", "Cliente/Fornitore"),
+            _ => partyType.ToString()
+        };
+    }
+}
