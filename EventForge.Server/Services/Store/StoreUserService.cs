@@ -41,6 +41,7 @@ public class StoreUserService : IStoreUserService
             var query = _context.StoreUsers
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(su => su.CashierGroup)
+                .Include(su => su.PhotoDocument)
                 .Where(su => !su.IsDeleted);
 
             var totalCount = await query.CountAsync(cancellationToken);
@@ -73,6 +74,7 @@ public class StoreUserService : IStoreUserService
         {
             var storeUser = await _context.StoreUsers
                 .Include(su => su.CashierGroup)
+                .Include(su => su.PhotoDocument)
                 .Where(su => su.Id == id && !su.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -121,8 +123,12 @@ public class StoreUserService : IStoreUserService
                 Email = createStoreUserDto.Email,
                 PasswordHash = createStoreUserDto.PasswordHash,
                 Role = createStoreUserDto.Role,
+                Status = (EventForge.Server.Data.Entities.Store.CashierStatus)createStoreUserDto.Status,
                 Notes = createStoreUserDto.Notes,
                 CashierGroupId = createStoreUserDto.CashierGroupId,
+                // Issue #315: Extended Fields
+                PhotoConsent = createStoreUserDto.PhotoConsent,
+                PhoneNumber = createStoreUserDto.PhoneNumber,
                 CreatedBy = currentUser,
                 ModifiedBy = currentUser
             };
@@ -138,6 +144,7 @@ public class StoreUserService : IStoreUserService
             // Reload with includes
             var createdStoreUser = await _context.StoreUsers
                 .Include(su => su.CashierGroup)
+                .Include(su => su.PhotoDocument)
                 .FirstAsync(su => su.Id == storeUser.Id, cancellationToken);
 
             return MapToStoreUserDto(createdStoreUser);
@@ -178,9 +185,11 @@ public class StoreUserService : IStoreUserService
             // Note: Username and PasswordHash are intentionally not updatable via this method
             storeUser.Email = updateStoreUserDto.Email;
             storeUser.Role = updateStoreUserDto.Role;
-            storeUser.Status = updateStoreUserDto.Status;
+            storeUser.Status = (EventForge.Server.Data.Entities.Store.CashierStatus)updateStoreUserDto.Status;
             storeUser.Notes = updateStoreUserDto.Notes;
             storeUser.CashierGroupId = updateStoreUserDto.CashierGroupId;
+            // Issue #315: Extended Fields
+            storeUser.PhoneNumber = updateStoreUserDto.PhoneNumber;
             storeUser.ModifiedAt = DateTime.UtcNow;
             storeUser.ModifiedBy = currentUser;
 
@@ -193,6 +202,7 @@ public class StoreUserService : IStoreUserService
             // Reload with includes
             var updatedStoreUser = await _context.StoreUsers
                 .Include(su => su.CashierGroup)
+                .Include(su => su.PhotoDocument)
                 .FirstAsync(su => su.Id == id, cancellationToken);
 
             return MapToStoreUserDto(updatedStoreUser);
@@ -259,6 +269,7 @@ public class StoreUserService : IStoreUserService
         try
         {
             var query = _context.StoreUserGroups
+                .Include(sug => sug.LogoDocument)
                 .Where(sug => !sug.IsDeleted);
 
             var totalCount = await query.CountAsync(cancellationToken);
@@ -299,6 +310,7 @@ public class StoreUserService : IStoreUserService
         try
         {
             var storeUserGroup = await _context.StoreUserGroups
+                .Include(sug => sug.LogoDocument)
                 .Where(sug => sug.Id == id && !sug.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -331,6 +343,11 @@ public class StoreUserService : IStoreUserService
                 Code = createStoreUserGroupDto.Code,
                 Name = createStoreUserGroupDto.Name,
                 Description = createStoreUserGroupDto.Description,
+                Status = (EventForge.Server.Data.Entities.Store.CashierGroupStatus)createStoreUserGroupDto.Status,
+                // Issue #315: Branding Fields
+                ColorHex = createStoreUserGroupDto.ColorHex,
+                IsSystemGroup = createStoreUserGroupDto.IsSystemGroup,
+                IsDefault = createStoreUserGroupDto.IsDefault,
                 CreatedBy = currentUser,
                 ModifiedBy = currentUser
             };
@@ -380,6 +397,9 @@ public class StoreUserService : IStoreUserService
             storeUserGroup.Code = updateStoreUserGroupDto.Code;
             storeUserGroup.Name = updateStoreUserGroupDto.Name;
             storeUserGroup.Description = updateStoreUserGroupDto.Description;
+            storeUserGroup.Status = (EventForge.Server.Data.Entities.Store.CashierGroupStatus)updateStoreUserGroupDto.Status;
+            // Issue #315: Branding Fields
+            storeUserGroup.ColorHex = updateStoreUserGroupDto.ColorHex;
             storeUserGroup.ModifiedAt = DateTime.UtcNow;
             storeUserGroup.ModifiedBy = currentUser;
 
@@ -556,7 +576,14 @@ public class StoreUserService : IStoreUserService
                 Name = createStoreUserPrivilegeDto.Name,
                 Category = createStoreUserPrivilegeDto.Category,
                 Description = createStoreUserPrivilegeDto.Description,
+                Status = (EventForge.Server.Data.Entities.Store.CashierPrivilegeStatus)createStoreUserPrivilegeDto.Status,
                 SortOrder = createStoreUserPrivilegeDto.SortOrder,
+                // Issue #315: Permission System Fields
+                IsSystemPrivilege = createStoreUserPrivilegeDto.IsSystemPrivilege,
+                DefaultAssigned = createStoreUserPrivilegeDto.DefaultAssigned,
+                Resource = createStoreUserPrivilegeDto.Resource,
+                Action = createStoreUserPrivilegeDto.Action,
+                PermissionKey = createStoreUserPrivilegeDto.PermissionKey,
                 CreatedBy = currentUser,
                 ModifiedBy = currentUser
             };
@@ -607,7 +634,12 @@ public class StoreUserService : IStoreUserService
             storeUserPrivilege.Name = updateStoreUserPrivilegeDto.Name;
             storeUserPrivilege.Category = updateStoreUserPrivilegeDto.Category;
             storeUserPrivilege.Description = updateStoreUserPrivilegeDto.Description;
+            storeUserPrivilege.Status = (EventForge.Server.Data.Entities.Store.CashierPrivilegeStatus)updateStoreUserPrivilegeDto.Status;
             storeUserPrivilege.SortOrder = updateStoreUserPrivilegeDto.SortOrder;
+            // Issue #315: Permission System Fields
+            storeUserPrivilege.Resource = updateStoreUserPrivilegeDto.Resource;
+            storeUserPrivilege.Action = updateStoreUserPrivilegeDto.Action;
+            storeUserPrivilege.PermissionKey = updateStoreUserPrivilegeDto.PermissionKey;
             storeUserPrivilege.ModifiedAt = DateTime.UtcNow;
             storeUserPrivilege.ModifiedBy = currentUser;
 
@@ -700,10 +732,23 @@ public class StoreUserService : IStoreUserService
             Username = storeUser.Username,
             Email = storeUser.Email,
             Role = storeUser.Role,
+            Status = (EventForge.DTOs.Common.CashierStatus)storeUser.Status,
             LastLoginAt = storeUser.LastLoginAt,
             Notes = storeUser.Notes,
             CashierGroupId = storeUser.CashierGroupId,
             CashierGroupName = storeUser.CashierGroup?.Name,
+            // Issue #315: Image Management & Extended Fields
+            PhotoDocumentId = storeUser.PhotoDocumentId,
+            PhotoUrl = storeUser.PhotoDocument?.StorageKey,
+            PhotoThumbnailUrl = storeUser.PhotoDocument?.ThumbnailStorageKey,
+            PhotoConsent = storeUser.PhotoConsent,
+            PhotoConsentAt = storeUser.PhotoConsentAt,
+            PhoneNumber = storeUser.PhoneNumber,
+            LastPasswordChangedAt = storeUser.LastPasswordChangedAt,
+            TwoFactorEnabled = storeUser.TwoFactorEnabled,
+            ExternalId = storeUser.ExternalId,
+            IsOnShift = storeUser.IsOnShift,
+            ShiftId = storeUser.ShiftId,
             CreatedAt = storeUser.CreatedAt,
             CreatedBy = storeUser.CreatedBy,
             ModifiedAt = storeUser.ModifiedAt,
@@ -719,8 +764,16 @@ public class StoreUserService : IStoreUserService
             Code = storeUserGroup.Code,
             Name = storeUserGroup.Name,
             Description = storeUserGroup.Description,
+            Status = (EventForge.DTOs.Common.CashierGroupStatus)storeUserGroup.Status,
             CashierCount = cashierCount,
             PrivilegeCount = privilegeCount,
+            // Issue #315: Image Management & Branding Fields
+            LogoDocumentId = storeUserGroup.LogoDocumentId,
+            LogoUrl = storeUserGroup.LogoDocument?.StorageKey,
+            LogoThumbnailUrl = storeUserGroup.LogoDocument?.ThumbnailStorageKey,
+            ColorHex = storeUserGroup.ColorHex,
+            IsSystemGroup = storeUserGroup.IsSystemGroup,
+            IsDefault = storeUserGroup.IsDefault,
             CreatedAt = storeUserGroup.CreatedAt,
             CreatedBy = storeUserGroup.CreatedBy,
             ModifiedAt = storeUserGroup.ModifiedAt,
@@ -737,8 +790,15 @@ public class StoreUserService : IStoreUserService
             Name = storeUserPrivilege.Name,
             Category = storeUserPrivilege.Category,
             Description = storeUserPrivilege.Description,
+            Status = (EventForge.DTOs.Common.CashierPrivilegeStatus)storeUserPrivilege.Status,
             SortOrder = storeUserPrivilege.SortOrder,
             GroupCount = groupCount,
+            // Issue #315: Permission System Fields
+            IsSystemPrivilege = storeUserPrivilege.IsSystemPrivilege,
+            DefaultAssigned = storeUserPrivilege.DefaultAssigned,
+            Resource = storeUserPrivilege.Resource,
+            Action = storeUserPrivilege.Action,
+            PermissionKey = storeUserPrivilege.PermissionKey,
             CreatedAt = storeUserPrivilege.CreatedAt,
             CreatedBy = storeUserPrivilege.CreatedBy,
             ModifiedAt = storeUserPrivilege.ModifiedAt,

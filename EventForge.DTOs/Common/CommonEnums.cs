@@ -213,6 +213,17 @@ namespace EventForge.DTOs.Common
     }
 
     /// <summary>
+    /// Cash register (POS) status enumeration.
+    /// </summary>
+    public enum CashRegisterStatus
+    {
+        Active,         // POS is active and usable
+        Suspended,      // Temporarily suspended
+        Maintenance,    // Under maintenance
+        Disabled        // Disabled/not usable
+    }
+
+    /// <summary>
     /// Printer status enumeration.
     /// </summary>
     public enum PrinterStatus

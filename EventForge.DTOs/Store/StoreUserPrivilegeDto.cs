@@ -48,6 +48,33 @@ namespace EventForge.DTOs.Store
         /// </summary>
         public int GroupCount { get; set; }
 
+        // --- Issue #315: Permission System Fields ---
+
+        /// <summary>
+        /// Indicates if this is a system-defined privilege (cannot be deleted).
+        /// </summary>
+        public bool IsSystemPrivilege { get; set; }
+
+        /// <summary>
+        /// Indicates if this privilege should be assigned by default to new groups.
+        /// </summary>
+        public bool DefaultAssigned { get; set; }
+
+        /// <summary>
+        /// Resource that this privilege controls access to (e.g., "products", "sales", "reports").
+        /// </summary>
+        public string? Resource { get; set; }
+
+        /// <summary>
+        /// Action that this privilege permits (e.g., "read", "write", "delete", "manage").
+        /// </summary>
+        public string? Action { get; set; }
+
+        /// <summary>
+        /// Unique permission key in dot notation (e.g., "store.users.manage", "sales.refunds.process").
+        /// </summary>
+        public string? PermissionKey { get; set; }
+
         /// <summary>
         /// Date and time when the store user privilege was created (UTC).
         /// </summary>

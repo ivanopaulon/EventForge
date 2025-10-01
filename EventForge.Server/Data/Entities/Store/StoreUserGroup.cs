@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.Server.Data.Entities.Teams;
 
 namespace EventForge.Server.Data.Entities.Store;
 
@@ -49,6 +50,38 @@ public class StoreUserGroup : AuditableEntity
     /// </summary>
     [Display(Name = "Privileges", Description = "Privileges assigned to this group.")]
     public ICollection<StoreUserPrivilege> Privileges { get; set; } = new List<StoreUserPrivilege>();
+
+    // --- Issue #315: Image Management & Branding Fields ---
+
+    /// <summary>
+    /// Logo document identifier (references DocumentReference).
+    /// </summary>
+    [Display(Name = "Logo Document", Description = "Logo document identifier.")]
+    public Guid? LogoDocumentId { get; set; }
+
+    /// <summary>
+    /// Logo document navigation property.
+    /// </summary>
+    public DocumentReference? LogoDocument { get; set; }
+
+    /// <summary>
+    /// Brand color in hexadecimal format (e.g., #FF5733).
+    /// </summary>
+    [MaxLength(7, ErrorMessage = "The color hex cannot exceed 7 characters.")]
+    [Display(Name = "Color Hex", Description = "Brand color in hexadecimal format (e.g., #FF5733).")]
+    public string? ColorHex { get; set; }
+
+    /// <summary>
+    /// Indicates if this is a system-defined group (cannot be deleted).
+    /// </summary>
+    [Display(Name = "Is System Group", Description = "System-defined group (protected).")]
+    public bool IsSystemGroup { get; set; } = false;
+
+    /// <summary>
+    /// Indicates if this is the default group for new users.
+    /// </summary>
+    [Display(Name = "Is Default", Description = "Default group for new users.")]
+    public bool IsDefault { get; set; } = false;
 }
 
 /// <summary>

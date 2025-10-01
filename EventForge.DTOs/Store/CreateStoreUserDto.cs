@@ -66,5 +66,21 @@ namespace EventForge.DTOs.Store
         /// </summary>
         [Display(Name = "Cashier Group", Description = "Cashier group the operator belongs to.")]
         public Guid? CashierGroupId { get; set; }
+
+        // --- Issue #315: Image Management & Extended Fields ---
+
+        /// <summary>
+        /// Indicates if the operator has given consent for photo storage (GDPR compliance).
+        /// Required before uploading a photo.
+        /// </summary>
+        [Display(Name = "Photo Consent", Description = "Photo storage consent (GDPR).")]
+        public bool PhotoConsent { get; set; } = false;
+
+        /// <summary>
+        /// Phone number of the operator.
+        /// </summary>
+        [MaxLength(20, ErrorMessage = "The phone number cannot exceed 20 characters.")]
+        [Display(Name = "Phone Number", Description = "Phone number of the operator.")]
+        public string? PhoneNumber { get; set; }
     }
 }

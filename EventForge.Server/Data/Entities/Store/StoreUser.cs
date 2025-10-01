@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.Server.Data.Entities.Teams;
 
 namespace EventForge.Server.Data.Entities.Store;
 
@@ -76,4 +77,76 @@ public class StoreUser : AuditableEntity
     /// Navigation property for the cashier group.
     /// </summary>
     public StoreUserGroup? CashierGroup { get; set; }
+
+    // --- Issue #315: Image Management & Extended Fields ---
+
+    /// <summary>
+    /// Photo document identifier (references DocumentReference).
+    /// </summary>
+    [Display(Name = "Photo Document", Description = "Photo document identifier.")]
+    public Guid? PhotoDocumentId { get; set; }
+
+    /// <summary>
+    /// Photo document navigation property.
+    /// </summary>
+    public DocumentReference? PhotoDocument { get; set; }
+
+    /// <summary>
+    /// Indicates if the operator has given consent for photo storage (GDPR compliance).
+    /// </summary>
+    [Display(Name = "Photo Consent", Description = "Photo storage consent (GDPR).")]
+    public bool PhotoConsent { get; set; } = false;
+
+    /// <summary>
+    /// Date and time when photo consent was given.
+    /// </summary>
+    [Display(Name = "Photo Consent At", Description = "Date and time of photo consent.")]
+    public DateTime? PhotoConsentAt { get; set; }
+
+    /// <summary>
+    /// Phone number of the operator.
+    /// </summary>
+    [MaxLength(20, ErrorMessage = "The phone number cannot exceed 20 characters.")]
+    [Display(Name = "Phone Number", Description = "Phone number of the operator.")]
+    public string? PhoneNumber { get; set; }
+
+    /// <summary>
+    /// Date and time of the last password change.
+    /// </summary>
+    [Display(Name = "Last Password Changed At", Description = "Date and time of last password change.")]
+    public DateTime? LastPasswordChangedAt { get; set; }
+
+    /// <summary>
+    /// Indicates if two-factor authentication is enabled.
+    /// </summary>
+    [Display(Name = "Two Factor Enabled", Description = "Two-factor authentication enabled.")]
+    public bool TwoFactorEnabled { get; set; } = false;
+
+    /// <summary>
+    /// External ID for integration with external authentication providers.
+    /// </summary>
+    [Display(Name = "External ID", Description = "External authentication provider ID.")]
+    public string? ExternalId { get; set; }
+
+    /// <summary>
+    /// Indicates if the operator is currently on shift.
+    /// </summary>
+    [Display(Name = "Is On Shift", Description = "Currently on shift.")]
+    public bool IsOnShift { get; set; } = false;
+
+    /// <summary>
+    /// Current shift identifier (if on shift).
+    /// </summary>
+    [Display(Name = "Shift ID", Description = "Current shift identifier.")]
+    public Guid? ShiftId { get; set; }
+}
+
+/// <summary>
+/// Status for the cashier.
+/// </summary>
+public enum CashierStatus
+{
+    Active,      // Cashier is active and usable
+    Suspended,   // Temporarily suspended
+    Deleted      // Cashier is deleted/disabled
 }

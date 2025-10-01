@@ -43,6 +43,38 @@ namespace EventForge.DTOs.Store
         /// </summary>
         public int PrivilegeCount { get; set; }
 
+        // --- Issue #315: Image Management & Branding Fields ---
+
+        /// <summary>
+        /// Logo document identifier (references DocumentReference).
+        /// </summary>
+        public Guid? LogoDocumentId { get; set; }
+
+        /// <summary>
+        /// Logo URL (from LogoDocument if available).
+        /// </summary>
+        public string? LogoUrl { get; set; }
+
+        /// <summary>
+        /// Logo thumbnail URL (from LogoDocument if available).
+        /// </summary>
+        public string? LogoThumbnailUrl { get; set; }
+
+        /// <summary>
+        /// Brand color in hexadecimal format (e.g., #FF5733).
+        /// </summary>
+        public string? ColorHex { get; set; }
+
+        /// <summary>
+        /// Indicates if this is a system-defined group (cannot be deleted).
+        /// </summary>
+        public bool IsSystemGroup { get; set; }
+
+        /// <summary>
+        /// Indicates if this is the default group for new users.
+        /// </summary>
+        public bool IsDefault { get; set; }
+
         /// <summary>
         /// Date and time when the store user group was created (UTC).
         /// </summary>

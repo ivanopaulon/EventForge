@@ -37,5 +37,15 @@ namespace EventForge.DTOs.Store
         [Required]
         [Display(Name = "Status", Description = "Current status of the group.")]
         public CashierGroupStatus Status { get; set; } = CashierGroupStatus.Active;
+
+        // --- Issue #315: Branding Fields ---
+
+        /// <summary>
+        /// Brand color in hexadecimal format (e.g., #FF5733).
+        /// </summary>
+        [MaxLength(7, ErrorMessage = "The color hex cannot exceed 7 characters.")]
+        [RegularExpression(@"^#([A-Fa-f0-9]{6})$", ErrorMessage = "Invalid color format. Use #RRGGBB format.")]
+        [Display(Name = "Color Hex", Description = "Brand color in hexadecimal format (e.g., #FF5733).")]
+        public string? ColorHex { get; set; }
     }
 }
