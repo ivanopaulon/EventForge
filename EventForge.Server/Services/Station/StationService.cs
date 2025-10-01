@@ -14,7 +14,7 @@ public class StationService : IStationService
     private readonly ILogger<StationService> _logger;
 
     public StationService(
-        EventForgeDbContext context, 
+        EventForgeDbContext context,
         IAuditLogService auditLogService,
         ITenantContext tenantContext,
         ILogger<StationService> logger)

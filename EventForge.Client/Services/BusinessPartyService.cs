@@ -21,8 +21,8 @@ namespace EventForge.Client.Services
         private readonly ILoadingDialogService _loadingDialogService;
 
         public BusinessPartyService(
-            IHttpClientService httpClientService, 
-            ILogger<BusinessPartyService> logger, 
+            IHttpClientService httpClientService,
+            ILogger<BusinessPartyService> logger,
             ILoadingDialogService loadingDialogService)
         {
             _httpClientService = httpClientService;
@@ -34,7 +34,7 @@ namespace EventForge.Client.Services
 
         public async Task<PagedResult<BusinessPartyDto>> GetBusinessPartiesAsync(int page = 1, int pageSize = 20)
         {
-            return await _httpClientService.GetAsync<PagedResult<BusinessPartyDto>>($"api/v1/businessparties?page={page}&pageSize={pageSize}") 
+            return await _httpClientService.GetAsync<PagedResult<BusinessPartyDto>>($"api/v1/businessparties?page={page}&pageSize={pageSize}")
                 ?? new PagedResult<BusinessPartyDto> { Items = new List<BusinessPartyDto>(), TotalCount = 0, Page = page, PageSize = pageSize };
         }
 
@@ -45,7 +45,7 @@ namespace EventForge.Client.Services
 
         public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(BusinessPartyType partyType)
         {
-            return await _httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>($"api/v1/businessparties/by-type/{partyType}") 
+            return await _httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>($"api/v1/businessparties/by-type/{partyType}")
                 ?? new List<BusinessPartyDto>();
         }
 

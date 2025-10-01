@@ -1,7 +1,7 @@
 using EventForge.DTOs.Banks;
 using EventForge.DTOs.Business;
-using EventForge.DTOs.VatRates;
 using EventForge.DTOs.Common;
+using EventForge.DTOs.VatRates;
 
 namespace EventForge.Client.Services
 {

@@ -43,7 +43,7 @@ public class DocumentCollaborationHub : Hub
             // Join tenant-wide group for tenant isolation
             await Groups.AddToGroupAsync(Context.ConnectionId, $"tenant_{tenantId.Value}");
 
-            _logger.LogInformation("User {UserId} connected to document collaboration hub for tenant {TenantId}", 
+            _logger.LogInformation("User {UserId} connected to document collaboration hub for tenant {TenantId}",
                 userId.Value, tenantId.Value);
         }
 
@@ -87,7 +87,7 @@ public class DocumentCollaborationHub : Hub
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, $"document_{documentId}");
 
-            _logger.LogInformation("User {UserId} joined document {DocumentId} collaboration room", 
+            _logger.LogInformation("User {UserId} joined document {DocumentId} collaboration room",
                 userId.Value, documentId);
 
             // Notify other users in the document that someone joined
@@ -118,7 +118,7 @@ public class DocumentCollaborationHub : Hub
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"document_{documentId}");
 
-            _logger.LogInformation("User {UserId} left document {DocumentId} collaboration room", 
+            _logger.LogInformation("User {UserId} left document {DocumentId} collaboration room",
                 userId.Value, documentId);
 
             // Notify other users in the document that someone left
@@ -156,7 +156,7 @@ public class DocumentCollaborationHub : Hub
             var comment = await _commentService.CreateCommentAsync(createDto, userName, CancellationToken.None);
 
             var documentId = createDto.DocumentHeaderId ?? Guid.Empty;
-            
+
             // Broadcast new comment to all users watching this document
             await Clients.Group($"document_{documentId}")
                 .SendAsync("CommentCreated", comment);
@@ -171,15 +171,15 @@ public class DocumentCollaborationHub : Hub
             if (!string.IsNullOrEmpty(createDto.AssignedTo))
             {
                 await Clients.Group($"user_{createDto.AssignedTo}")
-                    .SendAsync("TaskAssigned", new 
-                    { 
-                        Comment = comment, 
+                    .SendAsync("TaskAssigned", new
+                    {
+                        Comment = comment,
                         DocumentId = documentId,
-                        AssignedBy = userName 
+                        AssignedBy = userName
                     });
             }
 
-            _logger.LogInformation("User {UserId} created comment {CommentId} on document {DocumentId}", 
+            _logger.LogInformation("User {UserId} created comment {CommentId} on document {DocumentId}",
                 userId.Value, comment.Id, documentId);
         }
         catch (Exception ex)
@@ -223,11 +223,11 @@ public class DocumentCollaborationHub : Hub
             if (updateDto.AssignedTo != null && updatedComment.AssignedTo != null)
             {
                 await Clients.Group($"user_{updatedComment.AssignedTo}")
-                    .SendAsync("TaskAssigned", new 
-                    { 
-                        Comment = updatedComment, 
+                    .SendAsync("TaskAssigned", new
+                    {
+                        Comment = updatedComment,
                         DocumentId = documentId,
-                        AssignedBy = userName 
+                        AssignedBy = userName
                     });
             }
 
@@ -258,7 +258,7 @@ public class DocumentCollaborationHub : Hub
         {
             // Get comment info before deletion to know which document to notify
             var comment = await _commentService.GetCommentByIdAsync(commentId, false, CancellationToken.None);
-            
+
             if (comment == null)
             {
                 throw new HubException("Comment not found");
@@ -314,9 +314,9 @@ public class DocumentCollaborationHub : Hub
 
             // Broadcast comment resolution to all users watching this document
             await Clients.Group($"document_{documentId}")
-                .SendAsync("CommentResolved", new 
-                { 
-                    Comment = resolvedComment, 
+                .SendAsync("CommentResolved", new
+                {
+                    Comment = resolvedComment,
                     ResolvedBy = userName,
                     ResolutionNotes = resolveDto.ResolutionNotes
                 });
@@ -357,9 +357,9 @@ public class DocumentCollaborationHub : Hub
 
             // Broadcast comment reopening to all users watching this document
             await Clients.Group($"document_{documentId}")
-                .SendAsync("CommentReopened", new 
-                { 
-                    Comment = reopenedComment, 
+                .SendAsync("CommentReopened", new
+                {
+                    Comment = reopenedComment,
                     ReopenedBy = userName
                 });
 
@@ -395,8 +395,8 @@ public class DocumentCollaborationHub : Hub
         {
             // Send typing indicator to other document collaborators (excluding sender)
             await Clients.GroupExcept($"document_{documentId}", Context.ConnectionId)
-                .SendAsync("TypingIndicator", new 
-                { 
+                .SendAsync("TypingIndicator", new
+                {
                     DocumentId = documentId,
                     UserId = userId.Value,
                     UserName = userName,
@@ -406,7 +406,7 @@ public class DocumentCollaborationHub : Hub
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send typing indicator for user {UserId} in document {DocumentId}", 
+            _logger.LogError(ex, "Failed to send typing indicator for user {UserId} in document {DocumentId}",
                 userId.Value, documentId);
             // Don't throw exception for typing indicators as they're not critical
         }
@@ -427,12 +427,12 @@ public class DocumentCollaborationHub : Hub
         try
         {
             var users = mentionedUsers.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            
+
             foreach (var user in users)
             {
                 await Clients.Group($"user_{user}")
-                    .SendAsync("UserMentioned", new 
-                    { 
+                    .SendAsync("UserMentioned", new
+                    {
                         Comment = comment,
                         DocumentId = documentId,
                         MentionedBy = comment.CreatedBy
@@ -459,8 +459,8 @@ public class DocumentCollaborationHub : Hub
     /// </summary>
     private string GetCurrentUserName()
     {
-        return Context.User?.FindFirst(ClaimTypes.Name)?.Value 
-            ?? Context.User?.FindFirst(ClaimTypes.Email)?.Value 
+        return Context.User?.FindFirst(ClaimTypes.Name)?.Value
+            ?? Context.User?.FindFirst(ClaimTypes.Email)?.Value
             ?? "Unknown User";
     }
 
