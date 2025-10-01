@@ -43,17 +43,22 @@
 | Issue | Stato | Priorità | Completamento | ETA |
 |-------|-------|----------|---------------|-----|
 | #314 | ✅ COMPLETATO | ALTA | 100% | COMPLETATO |
-| #315 | 🟡 INFRASTRUTTURA ESISTENTE | ALTA | 20% | Mar 2025 |
+| #315 | 🔴 ANALISI COMPLETA - NON IMPLEMENTATO | ALTA | 0% | Q1 2025 |
 
 **📊 Breakdown Implementazione:**
 - [x] DocumentReference base (100% - implementato per Team/TeamMember)
-- [x] Product integration (3/3 entity changes) ✅ COMPLETATO
-- [x] Product API endpoints (3/3 endpoints: POST/GET/DELETE) ✅ COMPLETATO
-- [x] Product DTO updates (4/4 DTO classes) ✅ COMPLETATO
-- [x] Unit tests (9/9 tests passing) ✅ COMPLETATO
-- [ ] Store entities integration (0/12 entity changes)
-- [ ] Store API endpoints (0/9 endpoints)
-- [ ] Store DTO updates (0/3 DTO classes)
+- [x] Product integration (3/3 entity changes) ✅ COMPLETATO (#314)
+- [x] Product API endpoints (3/3 endpoints: POST/GET/DELETE) ✅ COMPLETATO (#314)
+- [x] Product DTO updates (4/4 DTO classes) ✅ COMPLETATO (#314)
+- [x] Product unit tests (9/9 tests passing) ✅ COMPLETATO (#314)
+- [ ] **Issue #315 - Store Entities** (NON INIZIATO):
+  - [ ] 4 entità da modificare (0/29 nuovi campi)
+  - [ ] 1 migration EF Core (0/1)
+  - [ ] 12 DTOs da aggiornare (0/12)
+  - [ ] 9 API endpoints (0/9: POST/GET/DELETE per StoreUser/Group/Pos)
+  - [ ] 9 service methods (0/9)
+  - [ ] 25-30 unit tests (0/30)
+  - [ ] Documentazione (analisi completa ✅, implementazione 0%)
 
 **✅ Issue #314 Completato:**
 - Entity: Product.ImageDocumentId + ImageDocument navigation
@@ -62,11 +67,19 @@
 - DTOs: ProductDto, CreateProductDto, UpdateProductDto, ProductDetailDto
 - Tests: 9 unit tests passing (164 total tests)
 - Backward compatibility: ImageUrl deprecated but maintained
+- Documentation: `/docs/ISSUE_314_IMPLEMENTATION_SUMMARY.md`
 
-**🎯 Milestone Prossimi:**
-- **Week 4**: Store entities DocumentReference integration (#315)
-- **Week 6**: Store API + DTO complete
-- **Week 8**: UI integration + testing
+**🔴 Issue #315 Stato Attuale:**
+- Analisi completa: `/docs/ISSUE_315_ANALYSIS_AND_IMPLEMENTATION_STATUS.md`
+- Implementazione: NON INIZIATA (0%)
+- Pattern di riferimento: Issue #314
+- Scope: 4 entità Store (StoreUser, StoreUserGroup, StorePos, StoreUserPrivilege)
+- Effort stimato: 15 giorni lavorativi (3 settimane)
+
+**🎯 Milestone Issue #315:**
+- **Week 1**: Entity model + migration + DTOs (NON INIZIATO)
+- **Week 2**: Service layer + API endpoints (NON INIZIATO)
+- **Week 3**: Testing + documentation (NON INIZIATO)
 
 ---
 
@@ -159,7 +172,7 @@
 - **Issue #244**: Unit conversion - Errori di calcolo business
 
 ### 🟡 **ALTO - Pianificazione Q1 2025**  
-- **Issue #315**: Store entities image management - UX consistency
+- **Issue #315**: Store entities image management - 🔴 **NON IMPLEMENTATO** (0%) - Analisi completa disponibile
 - **Issue #245**: Price optimization - Performance issues
 
 ### ✅ **COMPLETATO**

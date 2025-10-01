@@ -25,11 +25,12 @@
 ### 🔴 **CRITICO - Q1 2025** 
 **Investimento**: €150,000 | **ROI Immediato**
 
-| Issue | Tema | Impatto Business | Effort |
-|-------|------|------------------|--------|
-| #317 | StationMonitor Enhancement | **ALTO** - Operatività cucina/bar | 6-8 settimane |
-| #314/#315 | Image Management | **MEDIO** - UX consistency | 4-5 settimane |
-| #244/#245 | Price/UM Optimization | **MEDIO** - Business accuracy | 4-5 settimane |
+| Issue | Tema | Impatto Business | Effort | Stato |
+|-------|------|------------------|--------|-------|
+| #317 | StationMonitor Enhancement | **ALTO** - Operatività cucina/bar | 6-8 settimane | 🔴 0% |
+| #314 | Product Image Management | **MEDIO** - UX consistency | ✅ **COMPLETATO** | ✅ 100% |
+| #315 | Store Entities Image Management | **MEDIO** - UX consistency | 3 settimane | 🔴 0% (analisi ✅) |
+| #244/#245 | Price/UM Optimization | **MEDIO** - Business accuracy | 4-5 settimane | 🔴 0% |
 
 **📈 Benefici Q1:**
 - ✅ Zero blocchi operativi cucina/bar

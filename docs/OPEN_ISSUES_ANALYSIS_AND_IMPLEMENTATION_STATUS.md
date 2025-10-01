@@ -45,7 +45,7 @@ Estensione e miglioramento della gestione ordini cucina/bar tramite StationMonit
 ---
 
 ### 2. 🖼️ **Gestione Immagini e DocumentReference** 
-**Issue**: #315, ~~#314~~ | **Stato**: 🟡 PARZIALMENTE IMPLEMENTATO (#314 ✅ COMPLETATO) | **Priorità**: MEDIA
+**Issue**: #315, ~~#314~~ | **Stato**: 🔴 NON IMPLEMENTATO (#314 ✅ COMPLETATO, #315 ❌ 0% COMPLETO) | **Priorità**: MEDIA
 
 #### Descrizione
 Standardizzazione gestione immagini per Store entities (StoreUser, StoreUserGroup, StorePos) e Product tramite sistema DocumentReference unificato.
@@ -76,17 +76,49 @@ Standardizzazione gestione immagini per Store entities (StoreUser, StoreUserGrou
 - ✅ **Unit Tests**: 9 tests passing
 - ✅ **Service Implementation**: UploadProductImageAsync, GetProductImageDocumentAsync, DeleteProductImageAsync
 
-##### Issue #315 - Store Entities Images (IN PROGRESS)
-- **StoreUser**: `PhotoDocumentId`, `PhotoConsent`, `PhotoConsentAt`, `PhoneNumber`, `LastPasswordChangedAt`, `TwoFactorEnabled`
-- **StoreUserGroup**: `LogoDocumentId`, `ColorHex`, `IsSystemGroup`, `IsDefault`
-- **StorePos**: `ImageDocumentId`, `TerminalIdentifier`, `IPAddress`, `IsOnline`, `LastSyncAt`, `LocationLatitude/Longitude`
-- **StoreUserPrivilege**: `IsSystemPrivilege`, `DefaultAssigned`, `Resource`, `Action`, `PermissionKey`
+##### 🔴 Issue #315 - Store Entities Images (ANALYSIS COMPLETE - NOT STARTED)
+
+**📊 Analisi Completa**: Vedere `/docs/ISSUE_315_ANALYSIS_AND_IMPLEMENTATION_STATUS.md`
+
+**Entità da estendere** (4 totali):
+1. **StoreUser** (9 nuovi campi)
+   - `PhotoDocumentId` (Guid?), `PhotoDocument` (navigation property)
+   - `PhotoConsent` (bool), `PhotoConsentAt` (DateTime?) - GDPR compliance
+   - `PhoneNumber`, `LastPasswordChangedAt`, `TwoFactorEnabled`
+   - `ExternalId`, `IsOnShift`, `ShiftId`
+
+2. **StoreUserGroup** (5 nuovi campi)
+   - `LogoDocumentId` (Guid?), `LogoDocument` (navigation property)
+   - `ColorHex` (string?, validazione #RRGGBB), `IsSystemGroup`, `IsDefault`
+
+3. **StorePos** (10 nuovi campi)
+   - `ImageDocumentId` (Guid?), `ImageDocument` (navigation property)
+   - `TerminalIdentifier`, `IPAddress`, `IsOnline`, `LastSyncAt`
+   - `LocationLatitude`, `LocationLongitude` (decimal?, geo coordinates)
+   - `CurrencyCode`, `TimeZone`
+
+4. **StoreUserPrivilege** (5 nuovi campi)
+   - `IsSystemPrivilege`, `DefaultAssigned`
+   - `Resource`, `Action`, `PermissionKey`
+
+**Scope implementazione**:
+- ❌ 4 entità da modificare (29 nuovi campi totali)
+- ❌ 1 migration EF Core
+- ❌ 12 DTOs da aggiornare
+- ❌ 9 API endpoints (POST/GET/DELETE per StoreUser/StoreUserGroup/StorePos)
+- ❌ 9 service methods
+- ❌ 25-30 unit tests
+- ❌ Documentazione completa
+
+**Stato**: 🔴 **NON IMPLEMENTATO** (0% completo)  
+**Analisi**: ✅ **COMPLETA** (100%)  
+**Pattern di riferimento**: Issue #314 (Product images)
 
 #### Roadmap Stimata
-1. ✅ **Settimana 1**: Product DocumentReference integration (COMPLETATO)
-2. **Settimana 2-3**: Store entities extensions + migration
-3. **Settimana 4**: Store API endpoints implementation
-4. **Settimana 5**: UI integration + testing
+1. ✅ **Settimana 1**: Product DocumentReference integration (COMPLETATO - Issue #314)
+2. ❌ **Settimana 2-3**: Store entities extensions + migration (NON INIZIATO)
+3. ❌ **Settimana 4**: Store API endpoints implementation (NON INIZIATO)
+4. ❌ **Settimana 5**: UI integration + testing (NON INIZIATO)
 
 ---
 
