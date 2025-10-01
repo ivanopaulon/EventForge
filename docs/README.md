@@ -4,6 +4,11 @@ Benvenuto nella documentazione completa di EventForge. Questa sezione contiene t
 
 ## 🚨 **AGGIORNAMENTO IMPORTANTE - Gennaio 2025**
 
+### 🎉 **Chiusura Issue Completate >90%**
+- [**🎯 Riepilogo Chiusura Issue**](./RIEPILOGO_CHIUSURA_ISSUE_2025.md) - **11 issue pronte per chiusura**
+- [**🚀 Guida Chiusura Issue**](./GUIDA_CHIUSURA_ISSUE.md) - **Procedura e template per chiusura**
+- [**📋 Closed Issues Recommendations**](./CLOSED_ISSUES_RECOMMENDATIONS.md) - **Analisi dettagliata (EN)**
+
 ### 📊 **Analisi Issue Aperte e Stato Implementazioni**
 - [**📊 Implementation Status Dashboard**](./IMPLEMENTATION_STATUS_DASHBOARD.md) - **Dashboard generale stato implementazioni**
 - [**📋 Open Issues Analysis**](./OPEN_ISSUES_ANALYSIS_AND_IMPLEMENTATION_STATUS.md) - **Analisi completa 21 issue aperte per tema**  
