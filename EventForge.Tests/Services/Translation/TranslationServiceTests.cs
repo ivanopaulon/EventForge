@@ -225,4 +225,29 @@ public class TranslationFileTests
         // Assert
         Assert.True(found, $"Newly added key '{key}' not found in {fileName}. This key was added to fix missing translation warnings.");
     }
+
+    /// <summary>
+    /// Tests to verify StorageLocationDrawer translation keys are present.
+    /// These keys are required for the StorageLocationDrawer component.
+    /// </summary>
+    [Theory]
+    [InlineData("it.json", "messages.warehouseRequired")]
+    [InlineData("it.json", "messages.codeRequired")]
+    [InlineData("it.json", "messages.loadWarehousesError")]
+    [InlineData("en.json", "messages.warehouseRequired")]
+    [InlineData("en.json", "messages.codeRequired")]
+    [InlineData("en.json", "messages.loadWarehousesError")]
+    public void StorageLocationDrawer_TranslationKeys_ShouldExist(string fileName, string key)
+    {
+        // Arrange
+        var filePath = Path.Combine(_clientWwwRootPath, "i18n", fileName);
+        var jsonContent = File.ReadAllText(filePath);
+        using var document = JsonDocument.Parse(jsonContent);
+
+        // Act
+        var found = FindKeyInJson(document.RootElement, key);
+
+        // Assert
+        Assert.True(found, $"StorageLocationDrawer key '{key}' not found in {fileName}");
+    }
 }
