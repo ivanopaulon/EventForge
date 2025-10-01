@@ -162,6 +162,17 @@ public class StockMovement : AuditableEntity
     /// Navigation property for the movement plan.
     /// </summary>
     public StockMovementPlan? MovementPlan { get; set; }
+
+    /// <summary>
+    /// Project order associated with this movement (if applicable).
+    /// </summary>
+    [Display(Name = "Project Order", Description = "Project order associated with this movement.")]
+    public Guid? ProjectOrderId { get; set; }
+
+    /// <summary>
+    /// Navigation property for the project order.
+    /// </summary>
+    public ProjectOrder? ProjectOrder { get; set; }
 }
 
 /// <summary>
