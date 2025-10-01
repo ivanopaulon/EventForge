@@ -418,6 +418,7 @@
 <StorageLocationDrawer @bind-IsOpen="_locationDrawerOpen"
                        @bind-Mode="_locationDrawerMode"
                        OriginalStorageLocation="_selectedLocation"
+                       DefaultWarehouseId="@OriginalStorageFacility?.Id"
                        AllowEdit="true"
                        OnStorageLocationCreated="@OnLocationCreated"
                        OnStorageLocationUpdated="@OnLocationUpdated" />
