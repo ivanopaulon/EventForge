@@ -1915,7 +1915,8 @@
     "tenantSwitch": "Switch Tenant",
     "translationManagement": "Gestione Traduzioni",
     "tutorialCenter": "Centro Tutorial",
-    "userManagement": "Gestione Utenti"
+    "userManagement": "Gestione Utenti",
+    "vatRateManagement": "Gestione Aliquote IVA"
   },
   "tour": {
     "chat": "Tour Chat",

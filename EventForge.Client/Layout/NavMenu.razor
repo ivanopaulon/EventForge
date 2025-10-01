@@ -104,6 +104,11 @@
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.printerManagement", "Gestione Stampanti")
                 </MudNavLink>
+                <MudNavLink Href="/financial/vat-rates" 
+                            Icon="@Icons.Material.Outlined.Percent" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.vatRateManagement", "Gestione Aliquote IVA")
+                </MudNavLink>
             </MudNavGroup>
         }
         
