@@ -45,7 +45,7 @@ Estensione e miglioramento della gestione ordini cucina/bar tramite StationMonit
 ---
 
 ### 2. 🖼️ **Gestione Immagini e DocumentReference** 
-**Issue**: #315, #314 | **Stato**: 🟡 PARZIALMENTE IMPLEMENTATO | **Priorità**: MEDIA
+**Issue**: #315, ~~#314~~ | **Stato**: 🟡 PARZIALMENTE IMPLEMENTATO (#314 ✅ COMPLETATO) | **Priorità**: MEDIA
 
 #### Descrizione
 Standardizzazione gestione immagini per Store entities (StoreUser, StoreUserGroup, StorePos) e Product tramite sistema DocumentReference unificato.
@@ -55,29 +55,37 @@ Standardizzazione gestione immagini per Store entities (StoreUser, StoreUserGrou
   - Supporta OwnerType/OwnerId pattern
   - Gestione thumbnail, storage, signed URLs
   - MIME type validation, file size limits
-- ✅ **Product Entity**: Ha campo `ImageUrl` (string) - **DEPRECATO**
+- ✅ **Product Entity**: Ha campo `ImageUrl` (string) - **DEPRECATO** ma mantenuto per backward compatibility
+- ✅ **Product DocumentReference**: ✅ COMPLETATO (Issue #314)
+  - Entity: Product.ImageDocumentId + ImageDocument navigation property
+  - Migration: 20251001060806_AddImageDocumentToProduct
+  - API: POST/GET/DELETE `/api/v1/products/{id}/image`
+  - DTOs: ProductDto, CreateProductDto, UpdateProductDto, ProductDetailDto
+  - Tests: 9 unit tests (164 total)
 - ❌ **Store Entities**: Non hanno gestione immagini
-- ❌ **Product DocumentReference**: Non implementato
 
 #### Implementazione Richiesta
 
-##### Issue #314 - Product Images
-- **Entity Changes**: 
-  - Aggiungere `ImageDocumentId` (Guid?), `ImageDocument` navigation property
-  - Deprecare `ImageUrl` field
-- **API Endpoints**: `POST/GET/DELETE /api/v1/products/{id}/image`
-- **DTO Updates**: Esporre `ImageDocumentId`, `ImageUrl`, `ThumbnailUrl`
+##### ✅ Issue #314 - Product Images (COMPLETATO)
+- ✅ **Entity Changes**: 
+  - ✅ Aggiunto `ImageDocumentId` (Guid?), `ImageDocument` navigation property
+  - ✅ Deprecato `ImageUrl` field (mantenuto per backward compatibility)
+- ✅ **API Endpoints**: POST/GET/DELETE `/api/v1/products/{id}/image`
+- ✅ **DTO Updates**: Esposti `ImageDocumentId`, `ImageUrl`, `ThumbnailUrl`
+- ✅ **Database Migration**: 20251001060806_AddImageDocumentToProduct
+- ✅ **Unit Tests**: 9 tests passing
+- ✅ **Service Implementation**: UploadProductImageAsync, GetProductImageDocumentAsync, DeleteProductImageAsync
 
-##### Issue #315 - Store Entities Images
+##### Issue #315 - Store Entities Images (IN PROGRESS)
 - **StoreUser**: `PhotoDocumentId`, `PhotoConsent`, `PhotoConsentAt`, `PhoneNumber`, `LastPasswordChangedAt`, `TwoFactorEnabled`
 - **StoreUserGroup**: `LogoDocumentId`, `ColorHex`, `IsSystemGroup`, `IsDefault`
 - **StorePos**: `ImageDocumentId`, `TerminalIdentifier`, `IPAddress`, `IsOnline`, `LastSyncAt`, `LocationLatitude/Longitude`
 - **StoreUserPrivilege**: `IsSystemPrivilege`, `DefaultAssigned`, `Resource`, `Action`, `PermissionKey`
 
 #### Roadmap Stimata
-1. **Settimana 1**: Product DocumentReference integration
+1. ✅ **Settimana 1**: Product DocumentReference integration (COMPLETATO)
 2. **Settimana 2-3**: Store entities extensions + migration
-3. **Settimana 4**: API endpoints implementation
+3. **Settimana 4**: Store API endpoints implementation
 4. **Settimana 5**: UI integration + testing
 
 ---
