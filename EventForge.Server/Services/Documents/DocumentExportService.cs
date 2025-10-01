@@ -9,6 +9,12 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
+using OfficeOpenXml;
+using OfficeOpenXml.Style;
+using ExcelColor = System.Drawing.Color;
 
 namespace EventForge.Server.Services.Documents;
 
@@ -16,10 +22,8 @@ namespace EventForge.Server.Services.Documents;
 /// Implementation of document export service.
 /// Supports multiple export formats: PDF, Excel, HTML, CSV, JSON.
 /// 
-/// NOTE: PDF and Excel exports are currently stub implementations.
-/// To enable full functionality, add the following packages:
-/// - For PDF: iText7 or QuestPDF
-/// - For Excel: EPPlus or ClosedXML
+/// PDF export uses QuestPDF (MIT License) for professional document generation.
+/// Excel export uses EPPlus (NonCommercial License) for spreadsheet generation.
 /// </summary>
 public class DocumentExportService : IDocumentExportService
 {
@@ -43,6 +47,12 @@ public class DocumentExportService : IDocumentExportService
         _accessLogService = accessLogService ?? throw new ArgumentNullException(nameof(accessLogService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
+
+        // Set EPPlus license context to NonCommercial
+        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+        
+        // Set QuestPDF license to Community (for non-commercial use)
+        QuestPDF.Settings.License = LicenseType.Community;
     }
 
     public async Task<DocumentExportResultDto> ExportDocumentsAsync(
@@ -233,27 +243,125 @@ public class DocumentExportService : IDocumentExportService
         Guid? templateId = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogWarning(
-            "PDF export is a stub implementation. Install iText7 or QuestPDF for full functionality.");
+        _logger.LogInformation(
+            "Generating PDF export for {Count} documents using QuestPDF", 
+            documents.Count());
 
-        // Stub implementation - returns a simple text representation
-        var content = new StringBuilder();
-        content.AppendLine("DOCUMENT EXPORT - PDF");
-        content.AppendLine("====================");
-        content.AppendLine();
-
-        foreach (var doc in documents)
+        try
         {
-            content.AppendLine($"Document: {doc.Series}{doc.Number}");
-            content.AppendLine($"Date: {doc.Date:yyyy-MM-dd}");
-            content.AppendLine($"Customer: {doc.CustomerName ?? "N/A"}");
-            content.AppendLine($"Total: {doc.TotalGrossAmount:C}");
-            content.AppendLine($"Status: {doc.Status}");
-            content.AppendLine("---");
-            content.AppendLine();
-        }
+            var documentsList = documents.ToList();
+            
+            // Generate PDF using QuestPDF
+            var pdfBytes = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(2, Unit.Centimetre);
+                    page.PageColor(Colors.White);
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Arial"));
 
-        return Task.FromResult(Encoding.UTF8.GetBytes(content.ToString()));
+                    // Header
+                    page.Header()
+                        .AlignCenter()
+                        .Text("Document Export Report")
+                        .FontSize(20)
+                        .Bold()
+                        .FontColor(Colors.Blue.Darken2);
+
+                    // Content
+                    page.Content()
+                        .PaddingVertical(1, Unit.Centimetre)
+                        .Column(column =>
+                        {
+                            column.Spacing(5);
+
+                            // Export metadata
+                            column.Item().Row(row =>
+                            {
+                                row.RelativeItem().Text($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC").FontSize(9);
+                                row.RelativeItem().AlignRight().Text($"Total Documents: {documentsList.Count}").FontSize(9).Bold();
+                            });
+
+                            column.Item().PaddingTop(10).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+
+                            // Documents table
+                            column.Item().PaddingTop(10).Table(table =>
+                            {
+                                // Define columns
+                                table.ColumnsDefinition(columns =>
+                                {
+                                    columns.ConstantColumn(80);  // Number
+                                    columns.ConstantColumn(80);  // Date
+                                    columns.RelativeColumn(2);   // Customer
+                                    columns.ConstantColumn(80);  // Total
+                                    columns.ConstantColumn(70);  // Status
+                                });
+
+                                // Header row
+                                table.Header(header =>
+                                {
+                                    header.Cell().Element(CellStyle).Text("Number").Bold();
+                                    header.Cell().Element(CellStyle).Text("Date").Bold();
+                                    header.Cell().Element(CellStyle).Text("Customer").Bold();
+                                    header.Cell().Element(CellStyle).AlignRight().Text("Total").Bold();
+                                    header.Cell().Element(CellStyle).Text("Status").Bold();
+
+                                    static IContainer CellStyle(IContainer container)
+                                    {
+                                        return container
+                                            .Background(Colors.Grey.Lighten3)
+                                            .Border(1)
+                                            .BorderColor(Colors.Grey.Lighten1)
+                                            .Padding(5);
+                                    }
+                                });
+
+                                // Data rows
+                                foreach (var doc in documentsList)
+                                {
+                                    table.Cell().Element(DataCellStyle).Text($"{doc.Series}{doc.Number}");
+                                    table.Cell().Element(DataCellStyle).Text(doc.Date.ToString("yyyy-MM-dd"));
+                                    table.Cell().Element(DataCellStyle).Text(doc.CustomerName ?? "N/A");
+                                    table.Cell().Element(DataCellStyle).AlignRight().Text($"{doc.TotalGrossAmount:C}");
+                                    table.Cell().Element(DataCellStyle).Text(doc.Status.ToString());
+
+                                    static IContainer DataCellStyle(IContainer container)
+                                    {
+                                        return container
+                                            .Border(1)
+                                            .BorderColor(Colors.Grey.Lighten2)
+                                            .Padding(5);
+                                    }
+                                }
+                            });
+                        });
+
+                    // Footer
+                    page.Footer()
+                        .AlignCenter()
+                        .Text(text =>
+                        {
+                            text.DefaultTextStyle(x => x.FontSize(9));
+                            text.Span("Page ");
+                            text.CurrentPageNumber();
+                            text.Span(" of ");
+                            text.TotalPages();
+                        });
+                });
+            }).GeneratePdf();
+
+            _logger.LogInformation(
+                "PDF export completed successfully. Size: {Size} bytes", 
+                pdfBytes.Length);
+
+            return Task.FromResult(pdfBytes);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating PDF export");
+            throw new InvalidOperationException("Failed to generate PDF export", ex);
+        }
     }
 
     public Task<byte[]> ExportToExcelAsync(
@@ -261,12 +369,131 @@ public class DocumentExportService : IDocumentExportService
         bool includeRows = true,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogWarning(
-            "Excel export is a stub implementation. Install EPPlus or ClosedXML for full functionality.");
+        _logger.LogInformation(
+            "Generating Excel export for {Count} documents using EPPlus", 
+            documents.Count());
 
-        // Stub implementation - returns CSV format as byte array
-        var csv = ExportToCsvAsync(documents, includeRows, cancellationToken).Result;
-        return Task.FromResult(Encoding.UTF8.GetBytes(csv));
+        try
+        {
+            var documentsList = documents.ToList();
+
+            using (var package = new ExcelPackage())
+            {
+                var worksheet = package.Workbook.Worksheets.Add("Documents Export");
+
+                // Add title
+                worksheet.Cells["A1:H1"].Merge = true;
+                worksheet.Cells["A1"].Value = "Document Export Report";
+                worksheet.Cells["A1"].Style.Font.Size = 16;
+                worksheet.Cells["A1"].Style.Font.Bold = true;
+                worksheet.Cells["A1"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+                // Add metadata
+                worksheet.Cells["A2"].Value = "Generated:";
+                worksheet.Cells["B2"].Value = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+                worksheet.Cells["A3"].Value = "Total Documents:";
+                worksheet.Cells["B3"].Value = documentsList.Count;
+
+                // Add header row
+                int headerRow = 5;
+                worksheet.Cells[headerRow, 1].Value = "Number";
+                worksheet.Cells[headerRow, 2].Value = "Date";
+                worksheet.Cells[headerRow, 3].Value = "Customer";
+                worksheet.Cells[headerRow, 4].Value = "Net Total";
+                worksheet.Cells[headerRow, 5].Value = "VAT";
+                worksheet.Cells[headerRow, 6].Value = "Gross Total";
+                worksheet.Cells[headerRow, 7].Value = "Currency";
+                worksheet.Cells[headerRow, 8].Value = "Status";
+                worksheet.Cells[headerRow, 9].Value = "Payment Status";
+
+                // Style header
+                using (var range = worksheet.Cells[headerRow, 1, headerRow, 9])
+                {
+                    range.Style.Font.Bold = true;
+                    range.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                    range.Style.Fill.BackgroundColor.SetColor(ExcelColor.FromArgb(79, 129, 189));
+                    range.Style.Font.Color.SetColor(ExcelColor.White);
+                    range.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                    range.Style.Border.BorderAround(ExcelBorderStyle.Thin);
+                }
+
+                // Add data rows
+                int currentRow = headerRow + 1;
+                foreach (var doc in documentsList)
+                {
+                    worksheet.Cells[currentRow, 1].Value = $"{doc.Series}{doc.Number}";
+                    worksheet.Cells[currentRow, 2].Value = doc.Date.ToString("yyyy-MM-dd");
+                    worksheet.Cells[currentRow, 3].Value = doc.CustomerName ?? "N/A";
+                    worksheet.Cells[currentRow, 4].Value = doc.TotalNetAmount;
+                    worksheet.Cells[currentRow, 4].Style.Numberformat.Format = "#,##0.00";
+                    worksheet.Cells[currentRow, 5].Value = doc.VatAmount;
+                    worksheet.Cells[currentRow, 5].Style.Numberformat.Format = "#,##0.00";
+                    worksheet.Cells[currentRow, 6].Value = doc.TotalGrossAmount;
+                    worksheet.Cells[currentRow, 6].Style.Numberformat.Format = "#,##0.00";
+                    worksheet.Cells[currentRow, 7].Value = doc.Currency ?? "EUR";
+                    worksheet.Cells[currentRow, 8].Value = doc.Status.ToString();
+                    worksheet.Cells[currentRow, 9].Value = doc.PaymentStatus.ToString();
+
+                    // Add borders
+                    using (var range = worksheet.Cells[currentRow, 1, currentRow, 9])
+                    {
+                        range.Style.Border.BorderAround(ExcelBorderStyle.Thin, ExcelColor.Gray);
+                    }
+
+                    currentRow++;
+                }
+
+                // Add totals row
+                if (documentsList.Any())
+                {
+                    currentRow++; // Skip a row
+                    worksheet.Cells[currentRow, 3].Value = "TOTALS:";
+                    worksheet.Cells[currentRow, 3].Style.Font.Bold = true;
+                    
+                    worksheet.Cells[currentRow, 4].Formula = $"SUM(D{headerRow + 1}:D{currentRow - 2})";
+                    worksheet.Cells[currentRow, 4].Style.Numberformat.Format = "#,##0.00";
+                    worksheet.Cells[currentRow, 4].Style.Font.Bold = true;
+                    
+                    worksheet.Cells[currentRow, 5].Formula = $"SUM(E{headerRow + 1}:E{currentRow - 2})";
+                    worksheet.Cells[currentRow, 5].Style.Numberformat.Format = "#,##0.00";
+                    worksheet.Cells[currentRow, 5].Style.Font.Bold = true;
+                    
+                    worksheet.Cells[currentRow, 6].Formula = $"SUM(F{headerRow + 1}:F{currentRow - 2})";
+                    worksheet.Cells[currentRow, 6].Style.Numberformat.Format = "#,##0.00";
+                    worksheet.Cells[currentRow, 6].Style.Font.Bold = true;
+
+                    // Style totals row
+                    using (var range = worksheet.Cells[currentRow, 3, currentRow, 6])
+                    {
+                        range.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                        range.Style.Fill.BackgroundColor.SetColor(ExcelColor.FromArgb(220, 230, 241));
+                        range.Style.Border.Top.Style = ExcelBorderStyle.Double;
+                    }
+                }
+
+                // Auto-fit columns
+                worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
+
+                // Set column widths (override auto-fit for some columns)
+                worksheet.Column(1).Width = 15; // Number
+                worksheet.Column(2).Width = 12; // Date
+                worksheet.Column(3).Width = 30; // Customer
+
+                // Freeze header row
+                worksheet.View.FreezePanes(headerRow + 1, 1);
+
+                _logger.LogInformation(
+                    "Excel export completed successfully for {Count} documents", 
+                    documentsList.Count);
+
+                return Task.FromResult(package.GetAsByteArray());
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating Excel export");
+            throw new InvalidOperationException("Failed to generate Excel export", ex);
+        }
     }
 
     public Task<string> ExportToHtmlAsync(

@@ -39,6 +39,9 @@
     <!-- Redis packages for distributed caching and sessions -->
     <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.9" />
     <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
+    <!-- Document Export packages -->
+    <PackageVersion Include="QuestPDF" Version="2024.12.3" />
+    <PackageVersion Include="EPPlus" Version="7.5.4" />
     <!-- Test packages -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="xunit" Version="2.9.3" />

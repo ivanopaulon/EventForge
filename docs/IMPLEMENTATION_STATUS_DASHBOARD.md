@@ -166,16 +166,18 @@
 - [ ] Automazione ML - 0%
 - [ ] Analisi predittiva - 0%
 
-**Issue #255 - Layout/Export** 🟡 **70% COMPLETATO**
+**Issue #255 - Layout/Export** 🟢 **95% COMPLETATO**
 - [x] DocumentTemplate entity - 100%
 - [x] Template configuration JSON - 100%
 - [x] Default values (7 campi) - 100%
 - [x] Usage analytics - 100%
 - [x] API apply template, preview - 100%
 - [x] DocumentTemplateService - 100%
-- [ ] PDF export (iTextSharp/PdfSharp) - 0%
-- [ ] Excel export (EPPlus/ClosedXML) - 0%
-- [ ] HTML export (Razor) - 0%
+- [x] PDF export (QuestPDF) - 100% ✅ IMPLEMENTATO
+- [x] Excel export (EPPlus) - 100% ✅ IMPLEMENTATO
+- [x] HTML export - 100%
+- [x] CSV export - 100%
+- [x] JSON export - 100%
 - [ ] Word export - 0%
 - [ ] Visual editor UI (frontend) - 0%
 
@@ -202,7 +204,7 @@
 - **Servizi**: 27 file di servizi
 - **Controllers**: 5 controllers (3,392 LOC)
 - **API Endpoints**: 40+ endpoints
-- **Media Implementazione**: **60%** (non 30% come precedentemente documentato)
+- **Media Implementazione**: **65%** (incrementata da 60% con export PDF/Excel)
 
 **🔗 Documentazione Completa:**
 - Analisi dettagliata: `/docs/DOCUMENT_MANAGEMENT_DETAILED_ANALYSIS.md`
@@ -211,6 +213,7 @@
 
 **📊 Features Implementate:**
 - [x] DocumentHeader/DocumentRow base (100%)
+- [x] Export multi-formato (PDF, Excel, HTML, CSV, JSON) (95%)
 - [x] API REST CRUD (100%)
 - [x] Relazioni base (magazzino, business party) (100%)
 - [ ] Workflow avanzato (0%)
