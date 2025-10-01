@@ -37,6 +37,9 @@
     <!-- Redis support for distributed caching and sessions -->
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
     <PackageReference Include="AspNetCore.HealthChecks.Redis" />
+    <!-- Document Export packages -->
+    <PackageReference Include="QuestPDF" />
+    <PackageReference Include="EPPlus" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EventForge.DTOs\EventForge.DTOs.csproj" />
