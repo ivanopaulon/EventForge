@@ -1,5 +1,6 @@
 ﻿using EventForge.Server.Data.Entities;
 using EventForge.Server.Data.Entities.Chat;
+using EventForge.Server.Data.Entities.Documents;
 using EventForge.Server.Data.Entities.Notifications;
 using Microsoft.EntityFrameworkCore;
 
@@ -50,6 +51,8 @@ public class EventForgeDbContext : DbContext
     public DbSet<DocumentVersion> DocumentVersions { get; set; }
     public DbSet<DocumentReminder> DocumentReminders { get; set; }
     public DbSet<DocumentSchedule> DocumentSchedules { get; set; }
+    public DbSet<DocumentRetentionPolicy> DocumentRetentionPolicies { get; set; }
+    public DbSet<DocumentAccessLog> DocumentAccessLogs { get; set; }
 
     // Events & Teams
     public DbSet<Event> Events { get; set; }
