@@ -634,17 +634,10 @@
         {
             _loadingRelatedEntities = true;
             StateHasChanged();
-            
-            // Load addresses, contacts, and references in parallel
-            var addressesTask = EntityManagementService.GetAddressesByOwnerAsync(OriginalBusinessParty.Id);
-            var contactsTask = EntityManagementService.GetContactsByOwnerAsync(OriginalBusinessParty.Id);
-            var referencesTask = EntityManagementService.GetReferencesByOwnerAsync(OriginalBusinessParty.Id);
-            
-            await Task.WhenAll(addressesTask, contactsTask, referencesTask);
-            
-            _addresses = await addressesTask;
-            _contacts = await contactsTask;
-            _references = await referencesTask;
+                       
+            _addresses = await EntityManagementService.GetAddressesByOwnerAsync(OriginalBusinessParty.Id);
+            _contacts = await EntityManagementService.GetContactsByOwnerAsync(OriginalBusinessParty.Id);
+            _references = await EntityManagementService.GetReferencesByOwnerAsync(OriginalBusinessParty.Id);
             
             _loadingRelatedEntities = false;
             StateHasChanged();
