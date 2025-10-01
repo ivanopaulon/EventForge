@@ -258,6 +258,7 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions
 app.MapHub<AuditLogHub>("/hubs/audit-log");
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<ChatHub>("/hubs/chat");
+app.MapHub<DocumentCollaborationHub>("/hubs/document-collaboration");
 
 app.Run();
 

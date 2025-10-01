@@ -1,4 +1,5 @@
 using EventForge.DTOs.Chat;
+using EventForge.DTOs.Documents;
 using EventForge.DTOs.Notifications;
 using Microsoft.AspNetCore.SignalR.Client;
 
@@ -16,6 +17,7 @@ public class SignalRService : IAsyncDisposable
     private HubConnection? _auditHubConnection;
     private HubConnection? _notificationHubConnection;
     private HubConnection? _chatHubConnection;
+    private HubConnection? _documentCollaborationHubConnection;
 
     #region Audit Log Events
     public event Action<object>? AuditLogUpdated;
@@ -57,6 +59,19 @@ public class SignalRService : IAsyncDisposable
     public event Action<string>? ChatLocaleUpdated;
     #endregion
 
+    #region Document Collaboration Events
+    public event Action<DocumentCommentDto>? CommentCreated;
+    public event Action<DocumentCommentDto>? CommentUpdated;
+    public event Action<object>? CommentDeleted;
+    public event Action<object>? CommentResolved;
+    public event Action<object>? CommentReopened;
+    public event Action<object>? TaskAssigned;
+    public event Action<object>? UserMentioned;
+    public event Action<object>? UserJoinedDocument;
+    public event Action<object>? UserLeftDocument;
+    public event Action<object>? DocumentTypingIndicator;
+    #endregion
+
     public SignalRService(IHttpClientFactory httpClientFactory, IAuthService authService, ILogger<SignalRService> logger)
     {
         _httpClientFactory = httpClientFactory;
@@ -82,22 +97,28 @@ public class SignalRService : IAsyncDisposable
     public bool IsChatConnected => _chatHubConnection?.State == HubConnectionState.Connected;
 
     /// <summary>
+    /// Gets whether the document collaboration hub connection is connected.
+    /// </summary>
+    public bool IsDocumentCollaborationConnected => _documentCollaborationHubConnection?.State == HubConnectionState.Connected;
+
+    /// <summary>
     /// Gets whether all hub connections are connected.
     /// </summary>
-    public bool IsAllConnected => IsAuditConnected && IsNotificationConnected && IsChatConnected;
+    public bool IsAllConnected => IsAuditConnected && IsNotificationConnected && IsChatConnected && IsDocumentCollaborationConnected;
 
     #endregion
 
     #region Connection Management
 
     /// <summary>
-    /// Starts all SignalR connections (audit, notifications, chat).
+    /// Starts all SignalR connections (audit, notifications, chat, document collaboration).
     /// </summary>
     public async Task StartAllConnectionsAsync()
     {
         await StartAuditConnectionAsync();
         await StartNotificationConnectionAsync();
         await StartChatConnectionAsync();
+        await StartDocumentCollaborationConnectionAsync();
     }
 
     /// <summary>
@@ -108,6 +129,7 @@ public class SignalRService : IAsyncDisposable
         await StopAuditConnectionAsync();
         await StopNotificationConnectionAsync();
         await StopChatConnectionAsync();
+        await StopDocumentCollaborationConnectionAsync();
     }
 
     #endregion
@@ -591,6 +613,61 @@ public class SignalRService : IAsyncDisposable
     }
 
     /// <summary>
+    /// Starts the document collaboration SignalR connection.
+    /// </summary>
+    public async Task StartDocumentCollaborationConnectionAsync()
+    {
+        if (_documentCollaborationHubConnection != null)
+        {
+            _logger.LogWarning("Document collaboration SignalR connection already started");
+            return;
+        }
+
+        try
+        {
+            var token = await _authService.GetAccessTokenAsync();
+            if (string.IsNullOrEmpty(token))
+            {
+                _logger.LogWarning("Cannot start document collaboration connection: no authentication token");
+                return;
+            }
+
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+            var hubUrl = new Uri(httpClient.BaseAddress!, "/hubs/document-collaboration").ToString();
+
+            _documentCollaborationHubConnection = new HubConnectionBuilder()
+                .WithUrl(hubUrl, options =>
+                {
+                    options.AccessTokenProvider = () => Task.FromResult(token!);
+                })
+                .WithAutomaticReconnect()
+                .Build();
+
+            RegisterDocumentCollaborationEventHandlers();
+
+            await _documentCollaborationHubConnection.StartAsync();
+            _logger.LogInformation("Document collaboration SignalR connection started successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to start document collaboration SignalR connection");
+        }
+    }
+
+    /// <summary>
+    /// Stops the document collaboration SignalR connection.
+    /// </summary>
+    public async Task StopDocumentCollaborationConnectionAsync()
+    {
+        if (_documentCollaborationHubConnection != null)
+        {
+            await _documentCollaborationHubConnection.DisposeAsync();
+            _documentCollaborationHubConnection = null;
+            _logger.LogInformation("Document collaboration SignalR connection stopped");
+        }
+    }
+
+    /// <summary>
     /// Creates a new chat.
     /// </summary>
     /// <param name="createChatDto">Chat creation parameters</param>
@@ -884,6 +961,232 @@ public class SignalRService : IAsyncDisposable
 
     #endregion
 
+    #region Document Collaboration Methods
+
+    /// <summary>
+    /// Joins a document collaboration room to receive real-time updates.
+    /// </summary>
+    /// <param name="documentId">ID of the document to subscribe to</param>
+    public async Task JoinDocumentAsync(Guid documentId)
+    {
+        if (_documentCollaborationHubConnection?.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await _documentCollaborationHubConnection.InvokeAsync("JoinDocument", documentId);
+                _logger.LogInformation("Joined document {DocumentId} collaboration room", documentId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to join document {DocumentId}", documentId);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Leaves a document collaboration room.
+    /// </summary>
+    /// <param name="documentId">ID of the document to unsubscribe from</param>
+    public async Task LeaveDocumentAsync(Guid documentId)
+    {
+        if (_documentCollaborationHubConnection?.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await _documentCollaborationHubConnection.InvokeAsync("LeaveDocument", documentId);
+                _logger.LogInformation("Left document {DocumentId} collaboration room", documentId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to leave document {DocumentId}", documentId);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Creates a comment on a document.
+    /// </summary>
+    /// <param name="createDto">Comment creation data</param>
+    public async Task CreateDocumentCommentAsync(CreateDocumentCommentDto createDto)
+    {
+        if (_documentCollaborationHubConnection?.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await _documentCollaborationHubConnection.InvokeAsync("CreateComment", createDto);
+                _logger.LogInformation("Created comment on document");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create document comment");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Updates a comment on a document.
+    /// </summary>
+    /// <param name="commentId">ID of the comment to update</param>
+    /// <param name="updateDto">Comment update data</param>
+    public async Task UpdateDocumentCommentAsync(Guid commentId, UpdateDocumentCommentDto updateDto)
+    {
+        if (_documentCollaborationHubConnection?.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await _documentCollaborationHubConnection.InvokeAsync("UpdateComment", commentId, updateDto);
+                _logger.LogInformation("Updated comment {CommentId}", commentId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update comment {CommentId}", commentId);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Deletes a comment from a document.
+    /// </summary>
+    /// <param name="commentId">ID of the comment to delete</param>
+    public async Task DeleteDocumentCommentAsync(Guid commentId)
+    {
+        if (_documentCollaborationHubConnection?.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await _documentCollaborationHubConnection.InvokeAsync("DeleteComment", commentId);
+                _logger.LogInformation("Deleted comment {CommentId}", commentId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to delete comment {CommentId}", commentId);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resolves a comment.
+    /// </summary>
+    /// <param name="commentId">ID of the comment to resolve</param>
+    /// <param name="resolveDto">Resolution data</param>
+    public async Task ResolveDocumentCommentAsync(Guid commentId, ResolveCommentDto resolveDto)
+    {
+        if (_documentCollaborationHubConnection?.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await _documentCollaborationHubConnection.InvokeAsync("ResolveComment", commentId, resolveDto);
+                _logger.LogInformation("Resolved comment {CommentId}", commentId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to resolve comment {CommentId}", commentId);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Reopens a resolved comment.
+    /// </summary>
+    /// <param name="commentId">ID of the comment to reopen</param>
+    public async Task ReopenDocumentCommentAsync(Guid commentId)
+    {
+        if (_documentCollaborationHubConnection?.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await _documentCollaborationHubConnection.InvokeAsync("ReopenComment", commentId);
+                _logger.LogInformation("Reopened comment {CommentId}", commentId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to reopen comment {CommentId}", commentId);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Sends typing indicator for document collaboration.
+    /// </summary>
+    /// <param name="documentId">ID of the document where user is typing</param>
+    /// <param name="isTyping">Whether user is currently typing</param>
+    public async Task SendDocumentTypingIndicatorAsync(Guid documentId, bool isTyping)
+    {
+        if (_documentCollaborationHubConnection?.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await _documentCollaborationHubConnection.InvokeAsync("SendTypingIndicator", documentId, isTyping);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send typing indicator for document {DocumentId}", documentId);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Registers event handlers for document collaboration hub events.
+    /// </summary>
+    private void RegisterDocumentCollaborationEventHandlers()
+    {
+        if (_documentCollaborationHubConnection == null) return;
+
+        _documentCollaborationHubConnection.On<DocumentCommentDto>("CommentCreated", (comment) =>
+        {
+            _logger.LogInformation("Comment created: {CommentId}", comment.Id);
+            CommentCreated?.Invoke(comment);
+        });
+
+        _documentCollaborationHubConnection.On<DocumentCommentDto>("CommentUpdated", (comment) =>
+        {
+            _logger.LogInformation("Comment updated: {CommentId}", comment.Id);
+            CommentUpdated?.Invoke(comment);
+        });
+
+        _documentCollaborationHubConnection.On<object>("CommentDeleted", (data) =>
+        {
+            CommentDeleted?.Invoke(data);
+        });
+
+        _documentCollaborationHubConnection.On<object>("CommentResolved", (data) =>
+        {
+            CommentResolved?.Invoke(data);
+        });
+
+        _documentCollaborationHubConnection.On<object>("CommentReopened", (data) =>
+        {
+            CommentReopened?.Invoke(data);
+        });
+
+        _documentCollaborationHubConnection.On<object>("TaskAssigned", (data) =>
+        {
+            TaskAssigned?.Invoke(data);
+        });
+
+        _documentCollaborationHubConnection.On<object>("UserMentioned", (data) =>
+        {
+            UserMentioned?.Invoke(data);
+        });
+
+        _documentCollaborationHubConnection.On<object>("UserJoinedDocument", (data) =>
+        {
+            UserJoinedDocument?.Invoke(data);
+        });
+
+        _documentCollaborationHubConnection.On<object>("UserLeftDocument", (data) =>
+        {
+            UserLeftDocument?.Invoke(data);
+        });
+
+        _documentCollaborationHubConnection.On<object>("TypingIndicator", (data) =>
+        {
+            DocumentTypingIndicator?.Invoke(data);
+        });
+    }
+
+    #endregion
+
     #region Legacy Compatibility Methods
 
     /// <summary>
@@ -924,6 +1227,11 @@ public class SignalRService : IAsyncDisposable
     public HubConnectionState ChatConnectionState => _chatHubConnection?.State ?? HubConnectionState.Disconnected;
 
     /// <summary>
+    /// Gets the current document collaboration connection state.
+    /// </summary>
+    public HubConnectionState DocumentCollaborationConnectionState => _documentCollaborationHubConnection?.State ?? HubConnectionState.Disconnected;
+
+    /// <summary>
     /// Legacy property - gets the audit connection state for backward compatibility.
     /// </summary>
     [Obsolete("Use AuditConnectionState instead")]
@@ -938,7 +1246,7 @@ public class SignalRService : IAsyncDisposable
     /// <summary>
     /// Checks if all connections are active.
     /// </summary>
-    public bool AreAllConnectionsActive => IsAuditConnected && IsNotificationConnected && IsChatConnected;
+    public bool AreAllConnectionsActive => IsAuditConnected && IsNotificationConnected && IsChatConnected && IsDocumentCollaborationConnected;
 
     #endregion
 
@@ -957,6 +1265,10 @@ public class SignalRService : IAsyncDisposable
         if (_chatHubConnection != null)
         {
             await _chatHubConnection.DisposeAsync();
+        }
+        if (_documentCollaborationHubConnection != null)
+        {
+            await _documentCollaborationHubConnection.DisposeAsync();
         }
     }
 
