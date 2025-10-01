@@ -105,5 +105,51 @@ namespace EventForge.DTOs.Products
         /// </summary>
         [Display(Name = "Is Bundle", Description = "Indicates if the product is a bundle.")]
         public bool IsBundle { get; set; } = false;
+
+        /// <summary>
+        /// Brand identifier.
+        /// </summary>
+        [Display(Name = "Brand", Description = "Identifier of the brand.")]
+        public Guid? BrandId { get; set; }
+
+        /// <summary>
+        /// Model identifier.
+        /// </summary>
+        [Display(Name = "Model", Description = "Identifier of the model.")]
+        public Guid? ModelId { get; set; }
+
+        /// <summary>
+        /// Preferred supplier identifier.
+        /// </summary>
+        [Display(Name = "Preferred Supplier", Description = "Identifier of the preferred supplier.")]
+        public Guid? PreferredSupplierId { get; set; }
+
+        /// <summary>
+        /// Reorder point - inventory level at which to reorder.
+        /// </summary>
+        [Range(0, double.MaxValue, ErrorMessage = "Reorder point must be non-negative.")]
+        [Display(Name = "Reorder Point", Description = "Inventory level at which to reorder.")]
+        public decimal? ReorderPoint { get; set; }
+
+        /// <summary>
+        /// Safety stock level - minimum stock to maintain.
+        /// </summary>
+        [Range(0, double.MaxValue, ErrorMessage = "Safety stock must be non-negative.")]
+        [Display(Name = "Safety Stock", Description = "Minimum stock to maintain.")]
+        public decimal? SafetyStock { get; set; }
+
+        /// <summary>
+        /// Target stock level - desired inventory level.
+        /// </summary>
+        [Range(0, double.MaxValue, ErrorMessage = "Target stock level must be non-negative.")]
+        [Display(Name = "Target Stock Level", Description = "Desired inventory level.")]
+        public decimal? TargetStockLevel { get; set; }
+
+        /// <summary>
+        /// Average daily demand for inventory planning.
+        /// </summary>
+        [Range(0, double.MaxValue, ErrorMessage = "Average daily demand must be non-negative.")]
+        [Display(Name = "Average Daily Demand", Description = "Average daily demand for inventory planning.")]
+        public decimal? AverageDailyDemand { get; set; }
     }
 }

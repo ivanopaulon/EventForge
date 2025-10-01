@@ -17,7 +17,7 @@ namespace EventForge.Server.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.12")
+                .HasAnnotation("ProductVersion", "9.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -5010,10 +5010,148 @@ namespace EventForge.Server.Migrations
                     b.ToTable("PriceListEntries");
                 });
 
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Products.Brand", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Country")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Website")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .HasDatabaseName("IX_Brand_Name");
+
+                    b.ToTable("Brands");
+                });
+
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Products.Model", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BrandId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ManufacturerPartNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BrandId", "Name")
+                        .HasDatabaseName("IX_Model_BrandId_Name");
+
+                    b.ToTable("Models");
+                });
+
             modelBuilder.Entity("EventForge.Server.Data.Entities.Products.Product", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("AverageDailyDemand")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<Guid?>("BrandId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("CategoryNodeId")
@@ -5069,6 +5207,9 @@ namespace EventForge.Server.Migrations
                     b.Property<bool>("IsVatIncluded")
                         .HasColumnType("bit");
 
+                    b.Property<Guid?>("ModelId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
 
@@ -5081,10 +5222,21 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<Guid?>("PreferredSupplierId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("ReorderPoint")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
+
+                    b.Property<decimal?>("SafetyStock")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
 
                     b.Property<string>("ShortDescription")
                         .IsRequired()
@@ -5097,6 +5249,10 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<decimal?>("TargetStockLevel")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
@@ -5108,11 +5264,20 @@ namespace EventForge.Server.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BrandId")
+                        .HasDatabaseName("IX_Product_BrandId");
+
                     b.HasIndex("CategoryNodeId");
 
                     b.HasIndex("FamilyNodeId");
 
                     b.HasIndex("GroupNodeId");
+
+                    b.HasIndex("ModelId")
+                        .HasDatabaseName("IX_Product_ModelId");
+
+                    b.HasIndex("PreferredSupplierId")
+                        .HasDatabaseName("IX_Product_PreferredSupplierId");
 
                     b.HasIndex("StationId");
 
@@ -5248,6 +5413,106 @@ namespace EventForge.Server.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("ProductCodes");
+                });
+
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Products.ProductSupplier", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Currency")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("IncrementQty")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastPurchaseDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("LastPurchasePrice")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<int?>("LeadTimeDays")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MinOrderQty")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("Preferred")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PurchaseDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SupplierProductCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("UnitCost")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("IX_ProductSupplier_ProductId");
+
+                    b.HasIndex("SupplierId")
+                        .HasDatabaseName("IX_ProductSupplier_SupplierId");
+
+                    b.HasIndex("ProductId", "Preferred")
+                        .HasDatabaseName("IX_ProductSupplier_ProductId_Preferred");
+
+                    b.ToTable("ProductSuppliers");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Products.ProductUnit", b =>
@@ -5405,7 +5670,7 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("CategoryIds")
+                    b.PrimitiveCollection<string>("CategoryIds")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
@@ -5415,7 +5680,7 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("CustomerGroupIds")
+                    b.PrimitiveCollection<string>("CustomerGroupIds")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("DeletedAt")
@@ -5477,7 +5742,7 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("RuleType")
                         .HasColumnType("int");
 
-                    b.Property<string>("SalesChannels")
+                    b.PrimitiveCollection<string>("SalesChannels")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<TimeSpan?>("StartTime")
@@ -5486,7 +5751,7 @@ namespace EventForge.Server.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("ValidDays")
+                    b.PrimitiveCollection<string>("ValidDays")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
@@ -8208,8 +8473,24 @@ namespace EventForge.Server.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Products.Model", b =>
+                {
+                    b.HasOne("EventForge.Server.Data.Entities.Products.Brand", "Brand")
+                        .WithMany("Models")
+                        .HasForeignKey("BrandId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Brand");
+                });
+
             modelBuilder.Entity("EventForge.Server.Data.Entities.Products.Product", b =>
                 {
+                    b.HasOne("EventForge.Server.Data.Entities.Products.Brand", "Brand")
+                        .WithMany("Products")
+                        .HasForeignKey("BrandId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("EventForge.Server.Data.Entities.Common.ClassificationNode", "CategoryNode")
                         .WithMany()
                         .HasForeignKey("CategoryNodeId");
@@ -8221,6 +8502,11 @@ namespace EventForge.Server.Migrations
                     b.HasOne("EventForge.Server.Data.Entities.Common.ClassificationNode", "GroupNode")
                         .WithMany()
                         .HasForeignKey("GroupNodeId");
+
+                    b.HasOne("EventForge.Server.Data.Entities.Products.Model", "Model")
+                        .WithMany("Products")
+                        .HasForeignKey("ModelId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("EventForge.Server.Data.Entities.StationMonitor.Station", "Station")
                         .WithMany()
@@ -8234,11 +8520,15 @@ namespace EventForge.Server.Migrations
                         .WithMany("Products")
                         .HasForeignKey("VatRateId");
 
+                    b.Navigation("Brand");
+
                     b.Navigation("CategoryNode");
 
                     b.Navigation("FamilyNode");
 
                     b.Navigation("GroupNode");
+
+                    b.Navigation("Model");
 
                     b.Navigation("Station");
 
@@ -8275,6 +8565,25 @@ namespace EventForge.Server.Migrations
                         .IsRequired();
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Products.ProductSupplier", b =>
+                {
+                    b.HasOne("EventForge.Server.Data.Entities.Products.Product", "Product")
+                        .WithMany("Suppliers")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EventForge.Server.Data.Entities.Business.BusinessParty", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Supplier");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Products.ProductUnit", b =>
@@ -8885,6 +9194,18 @@ namespace EventForge.Server.Migrations
                     b.Navigation("ProductPrices");
                 });
 
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Products.Brand", b =>
+                {
+                    b.Navigation("Models");
+
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Products.Model", b =>
+                {
+                    b.Navigation("Products");
+                });
+
             modelBuilder.Entity("EventForge.Server.Data.Entities.Products.Product", b =>
                 {
                     b.Navigation("BundleItems");
@@ -8892,6 +9213,8 @@ namespace EventForge.Server.Migrations
                     b.Navigation("Codes");
 
                     b.Navigation("IncludedInBundles");
+
+                    b.Navigation("Suppliers");
 
                     b.Navigation("Units");
                 });
