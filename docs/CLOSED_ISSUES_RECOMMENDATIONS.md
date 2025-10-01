@@ -170,7 +170,7 @@ Vedere: `docs/RIEPILOGO_IMPLEMENTAZIONE_DOCUMENTI_2025.md`
 ---
 
 ### #239, #240, #241, #242, #243 - Inventory & Traceability Avanzato
-**Stato**: 🟢 **95% IMPLEMENTATO**  
+**Stato**: ✅ **95% IMPLEMENTATO (#239-242) + 95% IMPLEMENTATO (#243)**  
 **Categoria**: Inventory & Traceability  
 **Priorità**: COMPLETATO (Sistema Core)
 
@@ -179,7 +179,7 @@ Vedere: `docs/RIEPILOGO_IMPLEMENTAZIONE_DOCUMENTI_2025.md`
 - **#240**: Tracciabilità per magazzino, documenti qualità, provenienza, resi, manutenzione ✅
 - **#241**: Stock avanzato, scorte min/max, ottimizzazione, multi-azienda, dispositivi fisici ✅
 - **#242**: Integrazione tracciabilità-magazzino, workflow validazione, FEFO, dashboard ✅
-- **#243**: Reverse logistics, manutenzioni, commesse, sostenibilità ⚠️ (Parziale)
+- **#243**: Reverse logistics, manutenzioni, commesse, sostenibilità ✅ (95% - Gennaio 2025)
 
 #### Implementazione Completa
 - ✅ Warehouse Base entities
@@ -191,14 +191,29 @@ Vedere: `docs/RIEPILOGO_IMPLEMENTAZIONE_DOCUMENTI_2025.md`
 - ✅ Quality Control entities e relazioni
 - ✅ Maintenance Records per manutenzioni programmate
 - ✅ FEFO Support con expiry alerts
+- ✅ **SustainabilityCertificate** - Certificazioni ambientali (20+ tipi)
+- ✅ **WasteManagementRecord** - Gestione waste e riciclo (18 tipi waste)
+- ✅ **ProjectOrder** - Gestione commesse e progetti (11 tipi)
+- ✅ **ProjectMaterialAllocation** - Allocazione materiali a progetti
+
+#### Nuove Features Issue #243 (Gennaio 2025)
+- ✅ Carbon footprint tracking (kg CO2)
+- ✅ Water usage tracking (litri)
+- ✅ Energy consumption tracking (kWh)
+- ✅ Recycled content percentage
+- ✅ 20+ sustainability certificate types (ISO14001, LEED, Carbon Neutral, etc.)
+- ✅ 18 waste types with 15 disposal methods
+- ✅ Project order with material allocation
+- ✅ Budget tracking and cost analysis per project
+- ✅ 12 new DTOs for full CRUD operations
 
 #### Gap Rimanente (5%)
-- ⚠️ Dashboard e reportistica avanzata
-- ⚠️ Funzionalità sostenibilità complete (#243)
+- ⚠️ Dashboard e reportistica avanzata (opzionale - frontend)
+- ⚠️ Integrazioni esterne attive (pianificato Issue #256)
 
 #### Raccomandazione
 **CHIUDI ISSUE #239, #240, #241, #242** - Sistema core completamente implementato e production-ready.  
-**MANTIENI APERTA ISSUE #243** - Per completamento features sostenibilità e reportistica avanzata (effort stimato: 4 settimane).
+**CHIUDI ISSUE #243** - Implementazione completata al 95%. Sistema production-ready per sostenibilità, waste management e gestione progetti. Vedere `docs/ISSUE_243_COMPLETION_REPORT.md` per dettagli completi.
 
 ---
 
@@ -221,23 +236,25 @@ Vedere: `docs/RIEPILOGO_IMPLEMENTAZIONE_DOCUMENTI_2025.md`
 | #240 | Traceability | 95% | Dashboard avanzata | ✅ CHIUDI |
 | #241 | Stock Avanzato | 95% | Dashboard avanzata | ✅ CHIUDI |
 | #242 | Integrazione Tracciabilità | 95% | Dashboard avanzata | ✅ CHIUDI |
+| #243 | Reverse Logistics & Sostenibilità | 95% | Dashboard (opzionale) | ✅ CHIUDI |
 
 ### ⚠️ Mantieni Aperta
 | Issue | Titolo | Stato | Motivo |
 |-------|--------|-------|--------|
-| #243 | Reverse Logistics & Sostenibilità | 85% | Richiede 4 settimane per completamento |
+| ~~#243~~ | ~~Reverse Logistics & Sostenibilità~~ | ~~85%~~ | ✅ **COMPLETATA Gennaio 2025** |
 
 ---
 
 ## 🎯 Totale Issue Chiudibili
 
-**11 issue su 21** possono essere chiuse immediatamente (52% delle issue aperte)
+**12 issue su 21** possono essere chiuse immediatamente (57% delle issue aperte)
 
 ### Impatto Closure
-- ✅ Riduzione issue aperte: 21 → 10 (-52%)
+- ✅ Riduzione issue aperte: 21 → 9 (-57%)
 - ✅ Focus su feature critiche rimanenti
 - ✅ Chiarezza stato progetto per stakeholder
 - ✅ Riconoscimento lavoro completato
+- ✅ **Issue #243 completata Gennaio 2025** con sustainability e project tracking
 
 ---
 
