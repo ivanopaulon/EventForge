@@ -1,6 +1,7 @@
 using EventForge.DTOs.Banks;
 using EventForge.DTOs.Business;
 using EventForge.DTOs.VatRates;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Client.Services
 {
@@ -45,7 +46,8 @@ namespace EventForge.Client.Services
 
         public async Task<IEnumerable<BankDto>> GetBanksAsync()
         {
-            return await _httpClientService.GetAsync<IEnumerable<BankDto>>("api/v1/financial/banks") ?? new List<BankDto>();
+            var pagedResult = await _httpClientService.GetAsync<PagedResult<BankDto>>("api/v1/financial/banks");
+            return pagedResult?.Items ?? new List<BankDto>();
         }
 
         public async Task<BankDto?> GetBankAsync(Guid id)
@@ -98,7 +100,8 @@ namespace EventForge.Client.Services
 
         public async Task<IEnumerable<VatRateDto>> GetVatRatesAsync()
         {
-            return await _httpClientService.GetAsync<IEnumerable<VatRateDto>>("api/v1/financial/vat-rates") ?? new List<VatRateDto>();
+            var pagedResult = await _httpClientService.GetAsync<PagedResult<VatRateDto>>("api/v1/financial/vat-rates");
+            return pagedResult?.Items ?? new List<VatRateDto>();
         }
 
         public async Task<VatRateDto?> GetVatRateAsync(Guid id)
@@ -129,7 +132,8 @@ namespace EventForge.Client.Services
 
         public async Task<IEnumerable<PaymentTermDto>> GetPaymentTermsAsync()
         {
-            return await _httpClientService.GetAsync<IEnumerable<PaymentTermDto>>("api/v1/financial/payment-terms") ?? new List<PaymentTermDto>();
+            var pagedResult = await _httpClientService.GetAsync<PagedResult<PaymentTermDto>>("api/v1/financial/payment-terms");
+            return pagedResult?.Items ?? new List<PaymentTermDto>();
         }
 
         public async Task<PaymentTermDto?> GetPaymentTermAsync(Guid id)
