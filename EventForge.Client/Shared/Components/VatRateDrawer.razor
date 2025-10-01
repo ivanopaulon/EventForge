@@ -1,0 +1,409 @@
+@using MudBlazor
+@using EventForge.DTOs.VatRates
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@inject IFinancialService FinancialService
+@inject ISnackbar Snackbar
+@inject ILogger<VatRateDrawer> Logger
+@inject ITranslationService TranslationService
+
+<EntityDrawer @bind-IsOpen="@IsOpen"
+              @bind-Mode="@Mode"
+              EntityName="@TranslationService.GetTranslation("field.vatRate")"
+              Model="@_model"
+              OnSave="@HandleSave"
+              OnCancel="@HandleCancel"
+              OnClose="@HandleClose"
+              CustomTitle="@_customTitle"
+              AllowEdit="@AllowEdit"
+              Width="700px">
+    
+    <FormContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.Name"
+                              Label="@($"{TranslationService.GetTranslation("drawer.field.nomeAliquotaIva")} *")"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="@TranslationService.GetTranslation("drawer.error.nomeAliquotaIvaObbligatorio")"
+                              MaxLength="50"
+                              Immediate="true"
+                              OnBlur="@ValidateVatRateName"
+                              aria-describedby="name-help" />
+                <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.nomeAliquotaIva")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudNumericField @bind-Value="_model.Percentage"
+                                 Label="@($"{TranslationService.GetTranslation("drawer.field.percentualeAliquotaIva")} *")"
+                                 Variant="Variant.Outlined"
+                                 Min="0"
+                                 Max="100"
+                                 Required="true"
+                                 Immediate="true"
+                                 aria-describedby="percentage-help" />
+                <MudText id="percentage-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.percentualeAliquotaIva")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="_model.Status"
+                           Label="@($"{TranslationService.GetTranslation("drawer.field.stato")} *")"
+                           Variant="Variant.Outlined"
+                           Required="true"
+                           aria-describedby="status-help">
+                    <MudSelectItem Value="@VatRateStatus.Active">@TranslationService.GetTranslation("drawer.status.attivo")</MudSelectItem>
+                    <MudSelectItem Value="@VatRateStatus.Suspended">@TranslationService.GetTranslation("drawer.status.sospeso")</MudSelectItem>
+                    <MudSelectItem Value="@VatRateStatus.Deleted">@TranslationService.GetTranslation("drawer.status.eliminato")</MudSelectItem>
+                </MudSelect>
+                <MudText id="status-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.statoAliquotaIva")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudDatePicker @bind-Date="_validFrom"
+                               Label="@TranslationService.GetTranslation("drawer.field.validoDa")"
+                               Variant="Variant.Outlined"
+                               aria-describedby="validFrom-help" />
+                <MudText id="validFrom-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.validoDa")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudDatePicker @bind-Date="_validTo"
+                               Label="@TranslationService.GetTranslation("drawer.field.validoA")"
+                               Variant="Variant.Outlined"
+                               aria-describedby="validTo-help" />
+                <MudText id="validTo-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.validoA")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.Notes"
+                              Label="@TranslationService.GetTranslation("drawer.field.note")"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                              MaxLength="200"
+                              aria-describedby="notes-help" />
+                <MudText id="notes-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.noteAliquotaIva")
+                </MudText>
+            </MudItem>
+            
+            @if (Mode == EntityDrawerMode.Edit && OriginalVatRate != null)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalVatRate.Id.ToString()"
+                                  Label="@TranslationService.GetTranslation("drawer.field.idAliquotaIva")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.identificativoUnico")" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalVatRate.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                  Label="@TranslationService.GetTranslation("drawer.field.dataCreazione")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.dataOraCreazione")" />
+                </MudItem>
+            }
+        </MudGrid>
+    </FormContent>
+    
+    <ViewContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalVatRate?.Name ?? "")"
+                              Label="@TranslationService.GetTranslation("drawer.field.nomeAliquotaIva")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              aria-label="@TranslationService.GetTranslation("drawer.field.nomeAliquotaIva")" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@($"{OriginalVatRate?.Percentage ?? 0}%")"
+                              Label="@TranslationService.GetTranslation("drawer.field.percentualeAliquotaIva")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              aria-label="@TranslationService.GetTranslation("drawer.field.percentualeAliquotaIva")" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudChip T="string" 
+                         Color="@GetStatusColor(OriginalVatRate?.Status ?? VatRateStatus.Active)" 
+                         Size="Size.Medium"
+                         aria-label="@TranslationService.GetTranslation("drawer.aria.statoEntita", TranslationService.GetTranslation("field.vatRate"), GetStatusText(OriginalVatRate?.Status ?? VatRateStatus.Active))">
+                    @GetStatusText(OriginalVatRate?.Status ?? VatRateStatus.Active)
+                </MudChip>
+            </MudItem>
+            
+            @if (OriginalVatRate?.ValidFrom != null)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalVatRate.ValidFrom?.ToString("dd/MM/yyyy")"
+                                  Label="@TranslationService.GetTranslation("drawer.field.validoDa")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.field.validoDa")" />
+                </MudItem>
+            }
+            
+            @if (OriginalVatRate?.ValidTo != null)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalVatRate.ValidTo?.ToString("dd/MM/yyyy")"
+                                  Label="@TranslationService.GetTranslation("drawer.field.validoA")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.field.validoA")" />
+                </MudItem>
+            }
+            
+            @if (!string.IsNullOrWhiteSpace(OriginalVatRate?.Notes))
+            {
+                <MudItem xs="12">
+                    <MudTextField Value="@OriginalVatRate.Notes"
+                                  Label="@TranslationService.GetTranslation("drawer.field.note")"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.field.note")" />
+                </MudItem>
+            }
+            
+            @if (OriginalVatRate != null)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalVatRate.Id.ToString()"
+                                  Label="@TranslationService.GetTranslation("drawer.field.idAliquotaIva")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.identificativoUnico")" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalVatRate.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                  Label="@TranslationService.GetTranslation("drawer.field.dataCreazione")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.dataOraCreazione")" />
+                </MudItem>
+                
+                @if (OriginalVatRate.ModifiedAt != null && OriginalVatRate.ModifiedAt != OriginalVatRate.CreatedAt)
+                {
+                    <MudItem xs="12">
+                        <MudTextField Value="@OriginalVatRate.ModifiedAt?.ToString("dd/MM/yyyy HH:mm")"
+                                      Label="@TranslationService.GetTranslation("drawer.field.ultimaModifica")"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="true"
+                                      aria-label="@TranslationService.GetTranslation("drawer.aria.dataOraUltimaModifica")" />
+                    </MudItem>
+                }
+            }
+        </MudGrid>
+    </ViewContent>
+    
+</EntityDrawer>
+
+@code {
+    private VatRateDto _model = new() { Status = VatRateStatus.Active, Percentage = 0 };
+    private string? _customTitle;
+    private DateTime? _validFrom;
+    private DateTime? _validTo;
+
+    /// <summary>
+    /// Whether the drawer is open.
+    /// </summary>
+    [Parameter] public bool IsOpen { get; set; }
+    
+    /// <summary>
+    /// Event callback for when IsOpen changes.
+    /// </summary>
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    
+    /// <summary>
+    /// The current mode of the drawer.
+    /// </summary>
+    [Parameter] public EntityDrawerMode Mode { get; set; } = EntityDrawerMode.Create;
+    
+    /// <summary>
+    /// Event callback for when Mode changes.
+    /// </summary>
+    [Parameter] public EventCallback<EntityDrawerMode> ModeChanged { get; set; }
+    
+    /// <summary>
+    /// The VAT rate being edited/viewed (for Edit/View modes).
+    /// </summary>
+    [Parameter] public VatRateDto? OriginalVatRate { get; set; }
+    
+    /// <summary>
+    /// Whether editing is allowed.
+    /// </summary>
+    [Parameter] public bool AllowEdit { get; set; } = true;
+    
+    /// <summary>
+    /// Event callback when a VAT rate is created.
+    /// </summary>
+    [Parameter] public EventCallback<VatRateDto> OnVatRateCreated { get; set; }
+    
+    /// <summary>
+    /// Event callback when a VAT rate is updated.
+    /// </summary>
+    [Parameter] public EventCallback<VatRateDto> OnVatRateUpdated { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Mode == EntityDrawerMode.Edit && OriginalVatRate != null)
+        {
+            // Initialize model for editing
+            _model = new VatRateDto
+            {
+                Id = OriginalVatRate.Id,
+                Name = OriginalVatRate.Name,
+                Percentage = OriginalVatRate.Percentage,
+                Status = OriginalVatRate.Status,
+                ValidFrom = OriginalVatRate.ValidFrom,
+                ValidTo = OriginalVatRate.ValidTo,
+                Notes = OriginalVatRate.Notes,
+                CreatedAt = OriginalVatRate.CreatedAt,
+                ModifiedAt = OriginalVatRate.ModifiedAt,
+                CreatedBy = OriginalVatRate.CreatedBy,
+                ModifiedBy = OriginalVatRate.ModifiedBy
+            };
+            
+            _validFrom = OriginalVatRate.ValidFrom;
+            _validTo = OriginalVatRate.ValidTo;
+            
+            _customTitle = TranslationService.GetTranslation("drawer.title.modificaAliquotaIva", OriginalVatRate.Name);
+        }
+        else if (Mode == EntityDrawerMode.View && OriginalVatRate != null)
+        {
+            _customTitle = TranslationService.GetTranslation("drawer.title.visualizzaAliquotaIva", OriginalVatRate.Name);
+        }
+        else if (Mode == EntityDrawerMode.Create)
+        {
+            // Reset for create mode
+            _model = new VatRateDto { Status = VatRateStatus.Active, Percentage = 0 };
+            _customTitle = null;
+            _validFrom = null;
+            _validTo = null;
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleSave()
+    {
+        try
+        {
+            // Update model with date picker values
+            _model.ValidFrom = _validFrom;
+            _model.ValidTo = _validTo;
+
+            if (Mode == EntityDrawerMode.Create)
+            {
+                var createDto = new CreateVatRateDto
+                {
+                    Name = _model.Name,
+                    Percentage = _model.Percentage,
+                    Status = _model.Status,
+                    ValidFrom = _model.ValidFrom,
+                    ValidTo = _model.ValidTo,
+                    Notes = _model.Notes
+                };
+                
+                var newVatRate = await FinancialService.CreateVatRateAsync(createDto);
+                Snackbar.Add(TranslationService.GetTranslation("messages.createSuccessful", "Creazione completata con successo"), Severity.Success);
+                
+                if (OnVatRateCreated.HasDelegate)
+                {
+                    await OnVatRateCreated.InvokeAsync(newVatRate);
+                }
+            }
+            else if (Mode == EntityDrawerMode.Edit && OriginalVatRate != null)
+            {
+                var updateDto = new UpdateVatRateDto
+                {
+                    Name = _model.Name,
+                    Percentage = _model.Percentage,
+                    Status = _model.Status,
+                    ValidFrom = _model.ValidFrom,
+                    ValidTo = _model.ValidTo,
+                    Notes = _model.Notes
+                };
+                
+                var updatedVatRate = await FinancialService.UpdateVatRateAsync(OriginalVatRate.Id, updateDto);
+                Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornamento completato con successo"), Severity.Success);
+                
+                if (OnVatRateUpdated.HasDelegate)
+                {
+                    await OnVatRateUpdated.InvokeAsync(updatedVatRate);
+                }
+            }
+            
+            await HandleClose();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to save VAT rate");
+            var message = Mode == EntityDrawerMode.Create ? 
+                TranslationService.GetTranslation("messages.createFailed", "Errore durante la creazione") : 
+                TranslationService.GetTranslation("messages.updateFailed", "Errore durante l'aggiornamento");
+            Snackbar.Add($"{message}: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task HandleCancel()
+    {
+        await HandleClose();
+    }
+
+    private async Task HandleClose()
+    {
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(IsOpen);
+        
+        // Reset state
+        _model = new VatRateDto { Status = VatRateStatus.Active, Percentage = 0 };
+        _customTitle = null;
+        _validFrom = null;
+        _validTo = null;
+    }
+
+    private void ValidateVatRateName()
+    {
+        if (string.IsNullOrWhiteSpace(_model.Name))
+        {
+            Snackbar.Add(TranslationService.GetTranslation("drawer.error.nomeAliquotaIvaObbligatorio", "Il nome dell'aliquota IVA è obbligatorio"), Severity.Warning);
+        }
+    }
+
+    private Color GetStatusColor(VatRateStatus status)
+    {
+        return status switch
+        {
+            VatRateStatus.Active => Color.Success,
+            VatRateStatus.Suspended => Color.Warning,
+            VatRateStatus.Deleted => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private string GetStatusText(VatRateStatus status)
+    {
+        return status switch
+        {
+            VatRateStatus.Active => TranslationService.GetTranslation("drawer.status.attivo", "Attivo"),
+            VatRateStatus.Suspended => TranslationService.GetTranslation("drawer.status.sospeso", "Sospeso"),
+            VatRateStatus.Deleted => TranslationService.GetTranslation("drawer.status.eliminato", "Eliminato"),
+            _ => status.ToString()
+        };
+    }
+}
