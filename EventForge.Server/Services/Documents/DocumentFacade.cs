@@ -13,6 +13,7 @@ public class DocumentFacade : IDocumentFacade
     private readonly IDocumentTemplateService _templateService;
     private readonly IDocumentWorkflowService _workflowService;
     private readonly IDocumentAnalyticsService _analyticsService;
+    private readonly ILogger<DocumentFacade> _logger;
 
     /// <summary>
     /// Initializes a new instance of the DocumentFacade
@@ -22,18 +23,21 @@ public class DocumentFacade : IDocumentFacade
     /// <param name="templateService">Document template service</param>
     /// <param name="workflowService">Document workflow service</param>
     /// <param name="analyticsService">Document analytics service</param>
+    /// <param name="logger">Logger instance</param>
     public DocumentFacade(
         IDocumentAttachmentService attachmentService,
         IDocumentCommentService commentService,
         IDocumentTemplateService templateService,
         IDocumentWorkflowService workflowService,
-        IDocumentAnalyticsService analyticsService)
+        IDocumentAnalyticsService analyticsService,
+        ILogger<DocumentFacade> logger)
     {
         _attachmentService = attachmentService ?? throw new ArgumentNullException(nameof(attachmentService));
         _commentService = commentService ?? throw new ArgumentNullException(nameof(commentService));
         _templateService = templateService ?? throw new ArgumentNullException(nameof(templateService));
         _workflowService = workflowService ?? throw new ArgumentNullException(nameof(workflowService));
         _analyticsService = analyticsService ?? throw new ArgumentNullException(nameof(analyticsService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     // Attachment operations
