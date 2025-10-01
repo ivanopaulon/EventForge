@@ -1,0 +1,6 @@
+/* Visual Studio Settings File */
+{
+  "projectsAndSolutions.aspNetCore.outputOptions.launchConsoleMinimized": true,
+  "projectsAndSolutions.aspNetCore.outputOptions.useIntegratedTerminal": true,
+  "projectsAndSolutions.aspNetCore.outputOptions.useSharedWebServerOutputWindow": true
+}

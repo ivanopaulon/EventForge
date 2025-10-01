@@ -1037,7 +1037,7 @@ public class ProductService : IProductService
             {
                 var oldDocument = await _context.DocumentReferences
                     .FirstOrDefaultAsync(d => d.Id == product.ImageDocumentId.Value, cancellationToken);
-                
+
                 if (oldDocument != null)
                 {
                     // Delete old physical file
@@ -1046,7 +1046,7 @@ public class ProductService : IProductService
                     {
                         File.Delete(oldFilePath);
                     }
-                    
+
                     _context.DocumentReferences.Remove(oldDocument);
                 }
             }
@@ -1062,7 +1062,7 @@ public class ProductService : IProductService
             await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Product {ProductId} image uploaded successfully as DocumentReference {DocumentId}.", productId, documentReference.Id);
-            
+
             // Reload to get the document reference
             product.ImageDocument = documentReference;
             return MapToProductDto(product);

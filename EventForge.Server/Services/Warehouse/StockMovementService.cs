@@ -1,5 +1,4 @@
 using EventForge.DTOs.Warehouse;
-using EventForge.Server.Data.Entities.Warehouse;
 using EventForge.Server.Mappers;
 using Microsoft.EntityFrameworkCore;
 
@@ -146,7 +145,7 @@ public class StockMovementService : IStockMovementService
     public async Task<IEnumerable<StockMovementDto>> GetMovementsByProductIdAsync(Guid productId, CancellationToken cancellationToken = default)
     {
         var currentTenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
-        
+
         var movements = await _context.StockMovements
             .Include(sm => sm.Product)
             .Include(sm => sm.Lot)
@@ -162,7 +161,7 @@ public class StockMovementService : IStockMovementService
     public async Task<IEnumerable<StockMovementDto>> GetMovementsByLotIdAsync(Guid lotId, CancellationToken cancellationToken = default)
     {
         var currentTenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
-        
+
         var movements = await _context.StockMovements
             .Include(sm => sm.Product)
             .Include(sm => sm.Lot)
@@ -178,7 +177,7 @@ public class StockMovementService : IStockMovementService
     public async Task<IEnumerable<StockMovementDto>> GetMovementsBySerialIdAsync(Guid serialId, CancellationToken cancellationToken = default)
     {
         var currentTenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
-        
+
         var movements = await _context.StockMovements
             .Include(sm => sm.Product)
             .Include(sm => sm.Serial)
@@ -194,7 +193,7 @@ public class StockMovementService : IStockMovementService
     public async Task<IEnumerable<StockMovementDto>> GetMovementsByLocationIdAsync(Guid locationId, CancellationToken cancellationToken = default)
     {
         var currentTenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
-        
+
         var movements = await _context.StockMovements
             .Include(sm => sm.Product)
             .Include(sm => sm.Lot)
@@ -210,7 +209,7 @@ public class StockMovementService : IStockMovementService
     public async Task<IEnumerable<StockMovementDto>> GetMovementsByDocumentIdAsync(Guid documentId, CancellationToken cancellationToken = default)
     {
         var currentTenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
-        
+
         var movements = await _context.StockMovements
             .Include(sm => sm.Product)
             .Include(sm => sm.Lot)
@@ -240,8 +239,8 @@ public class StockMovementService : IStockMovementService
             Quantity = createDto.Quantity,
             UnitCost = createDto.UnitCost,
             MovementDate = createDto.MovementDate,
-            Reason = !string.IsNullOrEmpty(createDto.Reason) && Enum.TryParse<StockMovementReason>(createDto.Reason, out var reasonEnum) 
-                ? reasonEnum 
+            Reason = !string.IsNullOrEmpty(createDto.Reason) && Enum.TryParse<StockMovementReason>(createDto.Reason, out var reasonEnum)
+                ? reasonEnum
                 : StockMovementReason.Other,
             Notes = createDto.Notes,
             UserId = currentUser,
@@ -251,10 +250,10 @@ public class StockMovementService : IStockMovementService
         };
 
         _context.StockMovements.Add(movement);
-        
+
         // Update stock levels
         await UpdateStockLevelsForMovementAsync(movement, cancellationToken);
-        
+
         await _context.SaveChangesAsync(cancellationToken);
 
         await _auditLogService.LogEntityChangeAsync("StockMovement", movement.Id, "Created", "Create",
@@ -264,8 +263,8 @@ public class StockMovementService : IStockMovementService
     }
 
     public async Task<IEnumerable<StockMovementDto>> CreateMovementsBatchAsync(
-        IEnumerable<CreateStockMovementDto> createDtos, 
-        string currentUser, 
+        IEnumerable<CreateStockMovementDto> createDtos,
+        string currentUser,
         CancellationToken cancellationToken = default)
     {
         var movements = new List<StockMovement>();
@@ -286,8 +285,8 @@ public class StockMovementService : IStockMovementService
                 Quantity = createDto.Quantity,
                 UnitCost = createDto.UnitCost,
                 MovementDate = createDto.MovementDate,
-                Reason = !string.IsNullOrEmpty(createDto.Reason) && Enum.TryParse<StockMovementReason>(createDto.Reason, out var reasonEnum) 
-                    ? reasonEnum 
+                Reason = !string.IsNullOrEmpty(createDto.Reason) && Enum.TryParse<StockMovementReason>(createDto.Reason, out var reasonEnum)
+                    ? reasonEnum
                     : StockMovementReason.Other,
                 Notes = createDto.Notes,
                 UserId = currentUser,
@@ -451,8 +450,8 @@ public class StockMovementService : IStockMovementService
         var currentTenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
         var query = _context.StockMovements
-            .Where(sm => sm.TenantId == currentTenantId 
-                      && sm.MovementDate >= fromDate 
+            .Where(sm => sm.TenantId == currentTenantId
+                      && sm.MovementDate >= fromDate
                       && sm.MovementDate <= toDate);
 
         if (productId.HasValue)
@@ -523,10 +522,10 @@ public class StockMovementService : IStockMovementService
         if (movementDto.MovementType == StockMovementType.Outbound.ToString() && movementDto.FromLocationId.HasValue)
         {
             var currentTenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
-            
+
             var availableStock = await _context.Stocks
                 .Where(s => s.TenantId == currentTenantId
-                         && s.ProductId == movementDto.ProductId 
+                         && s.ProductId == movementDto.ProductId
                          && s.StorageLocationId == movementDto.FromLocationId.Value
                          && (!movementDto.LotId.HasValue || s.LotId == movementDto.LotId.Value))
                 .SumAsync(s => s.AvailableQuantity, cancellationToken);
@@ -544,7 +543,7 @@ public class StockMovementService : IStockMovementService
     public async Task<IEnumerable<StockMovementDto>> GetPendingMovementsAsync(CancellationToken cancellationToken = default)
     {
         var currentTenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
-        
+
         var movements = await _context.StockMovements
             .Include(sm => sm.Product)
             .Include(sm => sm.Lot)
@@ -589,14 +588,14 @@ public class StockMovementService : IStockMovementService
         var currentTenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
         // For outbound or transfer from, reduce stock at source location
-        if ((movement.MovementType == StockMovementType.Outbound || movement.MovementType == StockMovementType.Transfer) 
+        if ((movement.MovementType == StockMovementType.Outbound || movement.MovementType == StockMovementType.Transfer)
             && movement.FromLocationId.HasValue)
         {
             var stock = await _context.Stocks
                 .FirstOrDefaultAsync(s => s.TenantId == currentTenantId
-                                       && s.ProductId == movement.ProductId 
+                                       && s.ProductId == movement.ProductId
                                        && s.StorageLocationId == movement.FromLocationId.Value
-                                       && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value), 
+                                       && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value),
                                      cancellationToken);
 
             if (stock != null)
@@ -607,14 +606,14 @@ public class StockMovementService : IStockMovementService
         }
 
         // For inbound or transfer to, increase stock at destination location
-        if ((movement.MovementType == StockMovementType.Inbound || movement.MovementType == StockMovementType.Transfer) 
+        if ((movement.MovementType == StockMovementType.Inbound || movement.MovementType == StockMovementType.Transfer)
             && movement.ToLocationId.HasValue)
         {
             var stock = await _context.Stocks
                 .FirstOrDefaultAsync(s => s.TenantId == currentTenantId
-                                       && s.ProductId == movement.ProductId 
+                                       && s.ProductId == movement.ProductId
                                        && s.StorageLocationId == movement.ToLocationId.Value
-                                       && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value), 
+                                       && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value),
                                      cancellationToken);
 
             if (stock == null)
@@ -649,9 +648,9 @@ public class StockMovementService : IStockMovementService
             {
                 var stock = await _context.Stocks
                     .FirstOrDefaultAsync(s => s.TenantId == currentTenantId
-                                           && s.ProductId == movement.ProductId 
+                                           && s.ProductId == movement.ProductId
                                            && s.StorageLocationId == locationId.Value
-                                           && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value), 
+                                           && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value),
                                          cancellationToken);
 
                 if (stock != null)

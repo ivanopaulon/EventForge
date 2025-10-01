@@ -1,5 +1,5 @@
-using EventForge.DTOs.Events;
 using EventForge.DTOs.Common;
+using EventForge.DTOs.Events;
 
 namespace EventForge.Client.Services
 {
@@ -33,7 +33,7 @@ namespace EventForge.Client.Services
             try
             {
                 var url = $"api/v1/events?page={page}&pageSize={pageSize}";
-                return await _httpClientService.GetAsync<PagedResult<EventDto>>(url) ?? 
+                return await _httpClientService.GetAsync<PagedResult<EventDto>>(url) ??
                     new PagedResult<EventDto> { Items = new List<EventDto>(), TotalCount = 0, Page = page, PageSize = pageSize };
             }
             catch (Exception ex)

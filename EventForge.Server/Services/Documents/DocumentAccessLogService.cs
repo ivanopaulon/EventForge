@@ -1,13 +1,4 @@
-using EventForge.DTOs.Common;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Documents;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace EventForge.Server.Services.Documents;
 

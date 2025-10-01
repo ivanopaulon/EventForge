@@ -1,19 +1,12 @@
 using EventForge.DTOs.Documents;
-using EventForge.Server.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
+using OfficeOpenXml;
+using OfficeOpenXml.Style;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using OfficeOpenXml;
-using OfficeOpenXml.Style;
+using System.Text;
+using System.Text.Json;
 using ExcelColor = System.Drawing.Color;
 
 namespace EventForge.Server.Services.Documents;
@@ -50,7 +43,7 @@ public class DocumentExportService : IDocumentExportService
 
         // Set EPPlus license context to NonCommercial
         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-        
+
         // Set QuestPDF license to Community (for non-commercial use)
         QuestPDF.Settings.License = LicenseType.Community;
     }
@@ -244,13 +237,13 @@ public class DocumentExportService : IDocumentExportService
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation(
-            "Generating PDF export for {Count} documents using QuestPDF", 
+            "Generating PDF export for {Count} documents using QuestPDF",
             documents.Count());
 
         try
         {
             var documentsList = documents.ToList();
-            
+
             // Generate PDF using QuestPDF
             var pdfBytes = Document.Create(container =>
             {
@@ -352,7 +345,7 @@ public class DocumentExportService : IDocumentExportService
             }).GeneratePdf();
 
             _logger.LogInformation(
-                "PDF export completed successfully. Size: {Size} bytes", 
+                "PDF export completed successfully. Size: {Size} bytes",
                 pdfBytes.Length);
 
             return Task.FromResult(pdfBytes);
@@ -370,7 +363,7 @@ public class DocumentExportService : IDocumentExportService
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation(
-            "Generating Excel export for {Count} documents using EPPlus", 
+            "Generating Excel export for {Count} documents using EPPlus",
             documents.Count());
 
         try
@@ -449,15 +442,15 @@ public class DocumentExportService : IDocumentExportService
                     currentRow++; // Skip a row
                     worksheet.Cells[currentRow, 3].Value = "TOTALS:";
                     worksheet.Cells[currentRow, 3].Style.Font.Bold = true;
-                    
+
                     worksheet.Cells[currentRow, 4].Formula = $"SUM(D{headerRow + 1}:D{currentRow - 2})";
                     worksheet.Cells[currentRow, 4].Style.Numberformat.Format = "#,##0.00";
                     worksheet.Cells[currentRow, 4].Style.Font.Bold = true;
-                    
+
                     worksheet.Cells[currentRow, 5].Formula = $"SUM(E{headerRow + 1}:E{currentRow - 2})";
                     worksheet.Cells[currentRow, 5].Style.Numberformat.Format = "#,##0.00";
                     worksheet.Cells[currentRow, 5].Style.Font.Bold = true;
-                    
+
                     worksheet.Cells[currentRow, 6].Formula = $"SUM(F{headerRow + 1}:F{currentRow - 2})";
                     worksheet.Cells[currentRow, 6].Style.Numberformat.Format = "#,##0.00";
                     worksheet.Cells[currentRow, 6].Style.Font.Bold = true;
@@ -483,7 +476,7 @@ public class DocumentExportService : IDocumentExportService
                 worksheet.View.FreezePanes(headerRow + 1, 1);
 
                 _logger.LogInformation(
-                    "Excel export completed successfully for {Count} documents", 
+                    "Excel export completed successfully for {Count} documents",
                     documentsList.Count);
 
                 return Task.FromResult(package.GetAsByteArray());

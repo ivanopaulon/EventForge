@@ -1,6 +1,4 @@
 using EventForge.DTOs.Products;
-using EventForge.Server.Data.Entities.Business;
-using EventForge.Server.Data.Entities.Products;
 using Microsoft.EntityFrameworkCore;
 using EntityBusinessPartyType = EventForge.Server.Data.Entities.Business.BusinessPartyType;
 

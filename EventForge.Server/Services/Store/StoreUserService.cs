@@ -876,7 +876,7 @@ public class StoreUserService : IStoreUserService
             {
                 var oldDocument = await _context.DocumentReferences
                     .FirstOrDefaultAsync(d => d.Id == storeUser.PhotoDocumentId.Value, cancellationToken);
-                
+
                 if (oldDocument != null)
                 {
                     // Delete old physical file
@@ -885,7 +885,7 @@ public class StoreUserService : IStoreUserService
                     {
                         File.Delete(oldFilePath);
                     }
-                    
+
                     _context.DocumentReferences.Remove(oldDocument);
                 }
             }
@@ -901,7 +901,7 @@ public class StoreUserService : IStoreUserService
             await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Store user {StoreUserId} photo uploaded successfully as DocumentReference {DocumentId}.", storeUserId, documentReference.Id);
-            
+
             // Reload to get the document reference
             storeUser.PhotoDocument = documentReference;
             return MapToStoreUserDto(storeUser);
@@ -1048,7 +1048,7 @@ public class StoreUserService : IStoreUserService
             {
                 var oldDocument = await _context.DocumentReferences
                     .FirstOrDefaultAsync(d => d.Id == group.LogoDocumentId.Value, cancellationToken);
-                
+
                 if (oldDocument != null)
                 {
                     // Delete old physical file
@@ -1057,7 +1057,7 @@ public class StoreUserService : IStoreUserService
                     {
                         File.Delete(oldFilePath);
                     }
-                    
+
                     _context.DocumentReferences.Remove(oldDocument);
                 }
             }
@@ -1073,14 +1073,14 @@ public class StoreUserService : IStoreUserService
             await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Store user group {GroupId} logo uploaded successfully as DocumentReference {DocumentId}.", groupId, documentReference.Id);
-            
+
             // Reload to get the document reference
             group.LogoDocument = documentReference;
-            
+
             // Get counts for DTO
             var cashierCount = await _context.StoreUsers.CountAsync(su => su.CashierGroupId == groupId && !su.IsDeleted, cancellationToken);
             var privilegeCount = 0; // Placeholder - would need StoreUserGroupPrivilege relationship
-            
+
             return MapToStoreUserGroupDto(group, cashierCount, privilegeCount);
         }
         catch (Exception ex)
@@ -1225,7 +1225,7 @@ public class StoreUserService : IStoreUserService
             {
                 var oldDocument = await _context.DocumentReferences
                     .FirstOrDefaultAsync(d => d.Id == storePos.ImageDocumentId.Value, cancellationToken);
-                
+
                 if (oldDocument != null)
                 {
                     // Delete old physical file
@@ -1234,7 +1234,7 @@ public class StoreUserService : IStoreUserService
                     {
                         File.Delete(oldFilePath);
                     }
-                    
+
                     _context.DocumentReferences.Remove(oldDocument);
                 }
             }
@@ -1250,7 +1250,7 @@ public class StoreUserService : IStoreUserService
             await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Store POS {StorePosId} image uploaded successfully as DocumentReference {DocumentId}.", storePosId, documentReference.Id);
-            
+
             // Reload to get the document reference
             storePos.ImageDocument = documentReference;
             return MapToStorePosDto(storePos);

@@ -2286,7 +2286,7 @@ public class DocumentsController : BaseApiController
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
             var exportService = HttpContext.RequestServices.GetRequiredService<IDocumentExportService>();
-            
+
             var result = await exportService.ExportDocumentsAsync(request, currentUser, cancellationToken);
 
             _logger.LogInformation(

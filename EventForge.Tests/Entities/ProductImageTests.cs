@@ -1,7 +1,6 @@
+using EventForge.DTOs.Common;
 using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Data.Entities.Teams;
-using EventForge.DTOs.Common;
-using Xunit;
 
 namespace EventForge.Tests.Entities;
 
@@ -46,7 +45,7 @@ public class ProductImageTests
         // Arrange
         var productId = Guid.NewGuid();
         var documentId = Guid.NewGuid();
-        
+
         var documentReference = new DocumentReference
         {
             Id = documentId,

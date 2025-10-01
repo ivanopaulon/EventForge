@@ -1,6 +1,4 @@
 using EventForge.Server.Data.Entities.Products;
-using EventForge.Server.Data.Entities.Business;
-using Xunit;
 
 namespace EventForge.Tests.Entities;
 
