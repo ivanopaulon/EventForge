@@ -10,10 +10,14 @@ namespace EventForge.Server.Services.Audit;
 public class AuditLogService : IAuditLogService
 {
     private readonly EventForgeDbContext _context;
+    private readonly ILogger<AuditLogService> _logger;
 
-    public AuditLogService(EventForgeDbContext context)
+    public AuditLogService(
+        EventForgeDbContext context,
+        ILogger<AuditLogService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <summary>
@@ -35,23 +39,37 @@ public class AuditLogService : IAuditLogService
         ArgumentException.ThrowIfNullOrWhiteSpace(operationType);
         ArgumentException.ThrowIfNullOrWhiteSpace(changedBy);
 
-        var changeLog = new EntityChangeLog
+        try
         {
-            EntityName = entityName,
-            EntityDisplayName = entityDisplayName,
-            EntityId = entityId,
-            PropertyName = propertyName,
-            OperationType = operationType,
-            OldValue = oldValue,
-            NewValue = newValue,
-            ChangedBy = changedBy,
-            ChangedAt = DateTime.UtcNow
-        };
+            var changeLog = new EntityChangeLog
+            {
+                EntityName = entityName,
+                EntityDisplayName = entityDisplayName,
+                EntityId = entityId,
+                PropertyName = propertyName,
+                OperationType = operationType,
+                OldValue = oldValue,
+                NewValue = newValue,
+                ChangedBy = changedBy,
+                ChangedAt = DateTime.UtcNow
+            };
 
-        _context.EntityChangeLogs.Add(changeLog);
-        await _context.SaveChangesAsync(cancellationToken);
+            _context.EntityChangeLogs.Add(changeLog);
+            await _context.SaveChangesAsync(cancellationToken);
 
-        return changeLog;
+            _logger.LogInformation(
+                "Audit log created: {OperationType} on {EntityName} [{EntityId}] property {PropertyName} by {ChangedBy}",
+                operationType, entityName, entityId, propertyName, changedBy);
+
+            return changeLog;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Error creating audit log for {OperationType} on {EntityName} [{EntityId}] property {PropertyName}",
+                operationType, entityName, entityId, propertyName);
+            throw;
+        }
     }
 
     /// <summary>
