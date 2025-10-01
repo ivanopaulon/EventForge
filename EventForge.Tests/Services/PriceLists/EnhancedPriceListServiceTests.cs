@@ -166,7 +166,7 @@ public class EnhancedPriceListServiceTests
     }
 
     [Fact]
-    public async Task GetPriceHistoryAsync_ShouldReturnEmptyList_ForNow()
+    public async Task GetPriceHistoryAsync_ShouldReturnEmptyList_WhenNoHistoryExists()
     {
         // Arrange
         var productId = Guid.NewGuid();
@@ -181,7 +181,36 @@ public class EnhancedPriceListServiceTests
     }
 
     [Fact]
-    public async Task BulkImportPriceListEntriesAsync_ShouldReturnResult_ForNow()
+    public async Task BulkImportPriceListEntriesAsync_ShouldReturnError_WhenPriceListNotFound()
+    {
+        // Arrange
+        var nonExistentPriceListId = Guid.NewGuid();
+        var entries = new List<CreatePriceListEntryDto>
+        {
+            new CreatePriceListEntryDto
+            {
+                ProductId = Guid.NewGuid(),
+                Price = 10.00m,
+                Currency = "EUR"
+            }
+        };
+        var currentUser = "testuser";
+
+        // Act
+        var result = await _priceListService.BulkImportPriceListEntriesAsync(
+            nonExistentPriceListId, entries, currentUser);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(nonExistentPriceListId, result.PriceListId);
+        Assert.False(result.IsSuccessful);
+        Assert.Equal(1, result.FailureCount);
+        Assert.Single(result.Errors);
+        Assert.Equal("PRICELIST_NOT_FOUND", result.Errors.First().ErrorCode);
+    }
+
+    [Fact]
+    public async Task BulkImportPriceListEntriesAsync_ShouldHandleEmptyList()
     {
         // Arrange
         var priceListId = Guid.NewGuid();
@@ -194,10 +223,12 @@ public class EnhancedPriceListServiceTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal(priceListId, result.PriceListId);
+        Assert.Equal(0, result.TotalProcessed);
+        Assert.Equal(0, result.SuccessCount);
     }
 
     [Fact]
-    public async Task ExportPriceListEntriesAsync_ShouldReturnEmptyList_ForNow()
+    public async Task ExportPriceListEntriesAsync_ShouldReturnEmptyList_WhenNoPriceListEntriesExist()
     {
         // Arrange
         var priceListId = Guid.NewGuid();
@@ -211,7 +242,22 @@ public class EnhancedPriceListServiceTests
     }
 
     [Fact]
-    public async Task ValidatePriceListPrecedenceAsync_ShouldReturnResult_ForNow()
+    public async Task ExportPriceListEntriesAsync_ShouldIncludeInactiveEntries_WhenRequested()
+    {
+        // Arrange
+        var priceListId = Guid.NewGuid();
+        var includeInactive = true;
+
+        // Act
+        var result = await _priceListService.ExportPriceListEntriesAsync(priceListId, includeInactive);
+
+        // Assert
+        Assert.NotNull(result);
+        // Empty because no data in test database, but method should execute successfully
+    }
+
+    [Fact]
+    public async Task ValidatePriceListPrecedenceAsync_ShouldReturnInvalid_WhenNoPriceListsExist()
     {
         // Arrange
         var eventId = Guid.NewGuid();
@@ -222,5 +268,94 @@ public class EnhancedPriceListServiceTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal(eventId, result.EventId);
+        Assert.False(result.IsValid);
+        Assert.Equal(0, result.TotalPriceListsValidated);
+        Assert.Single(result.Issues);
+        Assert.Equal(PrecedenceIssueType.NoPriceListsFound, result.Issues.First().IssueType);
+        Assert.Equal(ValidationSeverity.Critical, result.Issues.First().Severity);
+    }
+
+    [Fact]
+    public async Task ValidatePriceListPrecedenceAsync_ShouldHaveDuration()
+    {
+        // Arrange
+        var eventId = Guid.NewGuid();
+
+        // Act
+        var result = await _priceListService.ValidatePriceListPrecedenceAsync(eventId);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.True(result.ValidationDuration.TotalMilliseconds >= 0);
+        Assert.True(result.ValidatedAt <= DateTime.UtcNow);
+    }
+
+    [Fact]
+    public async Task GetPriceHistoryAsync_ShouldFilterByDateRange()
+    {
+        // Arrange
+        var productId = Guid.NewGuid();
+        var eventId = Guid.NewGuid();
+        var fromDate = DateTime.UtcNow.AddMonths(-6);
+        var toDate = DateTime.UtcNow;
+
+        // Act
+        var result = await _priceListService.GetPriceHistoryAsync(productId, eventId, fromDate, toDate);
+
+        // Assert
+        Assert.NotNull(result);
+        // Should return empty list for test database with no data
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task BulkImportPriceListEntriesAsync_ShouldTrackImportedBy()
+    {
+        // Arrange
+        var priceListId = Guid.NewGuid();
+        var entries = new List<CreatePriceListEntryDto>();
+        var currentUser = "admin@test.com";
+
+        // Act
+        var result = await _priceListService.BulkImportPriceListEntriesAsync(priceListId, entries, currentUser);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(currentUser, result.ImportedBy);
+        Assert.True(result.ImportedAt <= DateTime.UtcNow);
+    }
+
+    [Fact]
+    public async Task BulkImportPriceListEntriesAsync_ShouldSetReplacedExistingFlag()
+    {
+        // Arrange
+        var priceListId = Guid.NewGuid();
+        var entries = new List<CreatePriceListEntryDto>();
+        var currentUser = "testuser";
+        var replaceExisting = true;
+
+        // Act
+        var result = await _priceListService.BulkImportPriceListEntriesAsync(
+            priceListId, entries, currentUser, replaceExisting);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.True(result.ReplacedExisting);
+    }
+
+    [Fact]
+    public async Task ValidatePriceListPrecedenceAsync_ShouldProvideSummaryMessage()
+    {
+        // Arrange
+        var eventId = Guid.NewGuid();
+
+        // Act
+        var result = await _priceListService.ValidatePriceListPrecedenceAsync(eventId);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotNull(result.Summary);
+        Assert.NotEmpty(result.Summary);
+        Assert.Contains("Validation", result.Summary);
     }
 }

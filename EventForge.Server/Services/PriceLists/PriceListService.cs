@@ -717,32 +717,508 @@ public class PriceListService : IPriceListService
         }
     }
 
-    // Placeholder implementations for remaining methods (to be implemented)
+    // Enhanced methods implementation (Issue #245)
     public async Task<IEnumerable<PriceHistoryDto>> GetPriceHistoryAsync(Guid productId, Guid eventId, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement price history functionality
-        await Task.CompletedTask;
-        return new List<PriceHistoryDto>();
+        try
+        {
+            var from = fromDate ?? DateTime.UtcNow.AddYears(-1); // Default to last year
+            var to = toDate ?? DateTime.UtcNow;
+
+            // Get all price lists for the event
+            var priceLists = await _context.PriceLists
+                .Where(pl => pl.EventId == eventId && !pl.IsDeleted)
+                .Include(pl => pl.ProductPrices.Where(ple => ple.ProductId == productId && !ple.IsDeleted))
+                .ToListAsync(cancellationToken);
+
+            var historyEntries = new List<PriceHistoryDto>();
+
+            foreach (var priceList in priceLists)
+            {
+                foreach (var entry in priceList.ProductPrices)
+                {
+                    // Determine effective date range
+                    var effectiveFrom = priceList.ValidFrom ?? entry.CreatedAt;
+                    var effectiveTo = priceList.ValidTo;
+
+                    // Skip entries outside the requested date range
+                    if (effectiveTo.HasValue && effectiveTo.Value < from)
+                        continue;
+                    if (effectiveFrom > to)
+                        continue;
+
+                    var wasActive = priceList.Status == PriceListStatus.Active &&
+                                   entry.Status == PriceListEntryStatus.Attivo &&
+                                   (!priceList.ValidFrom.HasValue || priceList.ValidFrom.Value <= to) &&
+                                   (!priceList.ValidTo.HasValue || priceList.ValidTo.Value >= from);
+
+                    historyEntries.Add(new PriceHistoryDto
+                    {
+                        ProductId = productId,
+                        EventId = eventId,
+                        PriceListId = priceList.Id,
+                        PriceListName = priceList.Name,
+                        Price = entry.Price,
+                        Currency = entry.Currency,
+                        EffectiveFrom = effectiveFrom,
+                        EffectiveTo = effectiveTo,
+                        Priority = priceList.Priority,
+                        IsDefault = priceList.IsDefault,
+                        CreatedAt = entry.CreatedAt,
+                        CreatedBy = entry.CreatedBy,
+                        ModifiedAt = entry.ModifiedAt,
+                        ModifiedBy = entry.ModifiedBy,
+                        MinQuantity = entry.MinQuantity,
+                        MaxQuantity = entry.MaxQuantity,
+                        WasActive = wasActive,
+                        Notes = entry.Notes
+                    });
+                }
+            }
+
+            // Order by effective date descending, then by priority
+            var result = historyEntries
+                .OrderByDescending(h => h.EffectiveFrom)
+                .ThenBy(h => h.Priority)
+                .ToList();
+
+            _logger.LogInformation("Retrieved {Count} price history entries for product {ProductId} in event {EventId}",
+                result.Count, productId, eventId);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving price history for product {ProductId} in event {EventId}",
+                productId, eventId);
+            throw;
+        }
     }
 
     public async Task<BulkImportResultDto> BulkImportPriceListEntriesAsync(Guid priceListId, IEnumerable<CreatePriceListEntryDto> entries, string currentUser, bool replaceExisting = false, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement bulk import functionality
-        await Task.CompletedTask;
-        return new BulkImportResultDto { PriceListId = priceListId };
+        var startTime = DateTime.UtcNow;
+        var result = new BulkImportResultDto
+        {
+            PriceListId = priceListId,
+            ImportedBy = currentUser,
+            ReplacedExisting = replaceExisting
+        };
+
+        try
+        {
+            // Verify price list exists
+            var priceList = await _context.PriceLists
+                .FirstOrDefaultAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
+
+            if (priceList == null)
+            {
+                result.Errors.Add(new BulkImportErrorDto
+                {
+                    RowIndex = 0,
+                    ErrorCode = "PRICELIST_NOT_FOUND",
+                    ErrorMessage = $"Price list {priceListId} not found"
+                });
+                result.FailureCount = 1;
+                result.Duration = DateTime.UtcNow - startTime;
+                return result;
+            }
+
+            var entriesList = entries.ToList();
+            result.TotalProcessed = entriesList.Count;
+
+            var rowIndex = 0;
+            foreach (var entryDto in entriesList)
+            {
+                rowIndex++;
+
+                try
+                {
+                    // Validate product exists
+                    var productExists = await _context.Products
+                        .AnyAsync(p => p.Id == entryDto.ProductId && !p.IsDeleted, cancellationToken);
+
+                    if (!productExists)
+                    {
+                        result.Errors.Add(new BulkImportErrorDto
+                        {
+                            RowIndex = rowIndex,
+                            ProductId = entryDto.ProductId,
+                            ErrorCode = "PRODUCT_NOT_FOUND",
+                            ErrorMessage = $"Product {entryDto.ProductId} not found",
+                            FieldName = nameof(entryDto.ProductId)
+                        });
+                        result.FailureCount++;
+                        result.SkippedCount++;
+                        continue;
+                    }
+
+                    // Check if entry already exists
+                    var existingEntry = await _context.PriceListEntries
+                        .FirstOrDefaultAsync(ple => ple.PriceListId == priceListId &&
+                                                   ple.ProductId == entryDto.ProductId &&
+                                                   !ple.IsDeleted,
+                                                   cancellationToken);
+
+                    if (existingEntry != null)
+                    {
+                        if (replaceExisting)
+                        {
+                            // Update existing entry
+                            existingEntry.Price = entryDto.Price;
+                            existingEntry.Currency = entryDto.Currency;
+                            existingEntry.Score = entryDto.Score;
+                            existingEntry.IsEditableInFrontend = entryDto.IsEditableInFrontend;
+                            existingEntry.IsDiscountable = entryDto.IsDiscountable;
+                            existingEntry.MinQuantity = entryDto.MinQuantity;
+                            existingEntry.MaxQuantity = entryDto.MaxQuantity;
+                            existingEntry.Notes = entryDto.Notes;
+                            existingEntry.ModifiedAt = DateTime.UtcNow;
+                            existingEntry.ModifiedBy = currentUser;
+
+                            result.UpdatedCount++;
+                            result.SuccessCount++;
+                        }
+                        else
+                        {
+                            result.Warnings.Add(new BulkImportWarningDto
+                            {
+                                RowIndex = rowIndex,
+                                ProductId = entryDto.ProductId,
+                                WarningCode = "DUPLICATE_ENTRY",
+                                WarningMessage = $"Entry for product {entryDto.ProductId} already exists",
+                                ActionTaken = "Skipped"
+                            });
+                            result.SkippedCount++;
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        // Create new entry
+                        var newEntry = new PriceListEntry
+                        {
+                            Id = Guid.NewGuid(),
+                            PriceListId = priceListId,
+                            ProductId = entryDto.ProductId,
+                            Price = entryDto.Price,
+                            Currency = entryDto.Currency,
+                            Score = entryDto.Score,
+                            IsEditableInFrontend = entryDto.IsEditableInFrontend,
+                            IsDiscountable = entryDto.IsDiscountable,
+                            Status = PriceListEntryStatus.Attivo,
+                            MinQuantity = entryDto.MinQuantity,
+                            MaxQuantity = entryDto.MaxQuantity,
+                            Notes = entryDto.Notes,
+                            CreatedAt = DateTime.UtcNow,
+                            CreatedBy = currentUser
+                        };
+
+                        _context.PriceListEntries.Add(newEntry);
+                        result.CreatedCount++;
+                        result.SuccessCount++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error importing price list entry at row {RowIndex}", rowIndex);
+                    result.Errors.Add(new BulkImportErrorDto
+                    {
+                        RowIndex = rowIndex,
+                        ProductId = entryDto.ProductId,
+                        ErrorCode = "IMPORT_ERROR",
+                        ErrorMessage = ex.Message
+                    });
+                    result.FailureCount++;
+                }
+            }
+
+            // Save all changes
+            if (result.SuccessCount > 0)
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+
+                await _auditLogService.LogEntityChangeAsync(
+                    "PriceList",
+                    priceListId,
+                    "BulkImport",
+                    replaceExisting ? "BulkUpdate" : "BulkImport",
+                    null,
+                    $"Bulk import: {result.SuccessCount} entries imported/updated, {result.FailureCount} failed",
+                    currentUser,
+                    priceList.Name,
+                    cancellationToken);
+            }
+
+            result.Duration = DateTime.UtcNow - startTime;
+
+            _logger.LogInformation(
+                "Bulk import completed for price list {PriceListId}: {Success} succeeded, {Failed} failed, {Skipped} skipped in {Duration}ms",
+                priceListId, result.SuccessCount, result.FailureCount, result.SkippedCount, result.Duration.TotalMilliseconds);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during bulk import for price list {PriceListId}", priceListId);
+            result.Duration = DateTime.UtcNow - startTime;
+            throw;
+        }
     }
 
     public async Task<IEnumerable<ExportablePriceListEntryDto>> ExportPriceListEntriesAsync(Guid priceListId, bool includeInactiveEntries = false, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement export functionality
-        await Task.CompletedTask;
-        return new List<ExportablePriceListEntryDto>();
+        try
+        {
+            // Get price list entries with related product information
+            var query = _context.PriceListEntries
+                .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
+                .Include(ple => ple.Product)
+                .ThenInclude(p => p.CategoryNode)
+                .Include(ple => ple.Product)
+                .ThenInclude(p => p.Units.Where(pu => pu.UnitType == "Base" && !pu.IsDeleted))
+                .ThenInclude(pu => pu.UnitOfMeasure)
+                .AsQueryable();
+
+            if (!includeInactiveEntries)
+            {
+                query = query.Where(ple => ple.Status == PriceListEntryStatus.Attivo);
+            }
+
+            var entries = await query.ToListAsync(cancellationToken);
+
+            var exportableEntries = entries.Select(entry =>
+            {
+                var product = entry.Product;
+                var baseUnit = product?.Units.FirstOrDefault();
+                var unitOfMeasure = baseUnit?.UnitOfMeasure;
+
+                return new ExportablePriceListEntryDto
+                {
+                    Id = entry.Id,
+                    ProductId = entry.ProductId,
+                    ProductName = product?.Name ?? "Unknown",
+                    ProductCode = product?.Code,
+                    ProductSku = product?.Code, // Product uses Code property
+                    PriceListId = entry.PriceListId,
+                    Price = entry.Price,
+                    Currency = entry.Currency,
+                    Score = entry.Score,
+                    IsEditableInFrontend = entry.IsEditableInFrontend,
+                    IsDiscountable = entry.IsDiscountable,
+                    Status = entry.Status.ToString(),
+                    MinQuantity = entry.MinQuantity,
+                    MaxQuantity = entry.MaxQuantity,
+                    Notes = entry.Notes,
+                    CreatedAt = entry.CreatedAt,
+                    CreatedBy = entry.CreatedBy,
+                    ModifiedAt = entry.ModifiedAt,
+                    ModifiedBy = entry.ModifiedBy,
+                    IsActive = entry.Status == PriceListEntryStatus.Attivo,
+                    ProductCategory = product?.CategoryNode?.Name,
+                    UnitOfMeasure = unitOfMeasure?.Symbol,
+                    ProductDefaultPrice = product?.DefaultPrice
+                };
+            }).ToList();
+
+            _logger.LogInformation("Exported {Count} price list entries from price list {PriceListId}",
+                exportableEntries.Count, priceListId);
+
+            return exportableEntries;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting price list entries for price list {PriceListId}", priceListId);
+            throw;
+        }
     }
 
     public async Task<PrecedenceValidationResultDto> ValidatePriceListPrecedenceAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement precedence validation
-        await Task.CompletedTask;
-        return new PrecedenceValidationResultDto { EventId = eventId };
+        var startTime = DateTime.UtcNow;
+        var result = new PrecedenceValidationResultDto
+        {
+            EventId = eventId
+        };
+
+        try
+        {
+            // Get all price lists for the event
+            var priceLists = await _context.PriceLists
+                .Where(pl => pl.EventId == eventId && !pl.IsDeleted)
+                .ToListAsync(cancellationToken);
+
+            result.TotalPriceListsValidated = priceLists.Count;
+
+            if (priceLists.Count == 0)
+            {
+                result.IsValid = false;
+                result.Issues.Add(new PrecedenceValidationIssueDto
+                {
+                    IssueType = PrecedenceIssueType.NoPriceListsFound,
+                    Severity = ValidationSeverity.Critical,
+                    Description = "No price lists found for this event",
+                    SuggestedResolution = "Create at least one price list for the event",
+                    Impact = "Products cannot be priced for this event"
+                });
+                result.ValidationDuration = DateTime.UtcNow - startTime;
+                return result;
+            }
+
+            var activePriceLists = priceLists.Where(pl => pl.Status == PriceListStatus.Active).ToList();
+            var defaultPriceLists = priceLists.Where(pl => pl.IsDefault).ToList();
+            var now = DateTime.UtcNow;
+            var expiredPriceLists = priceLists.Where(pl => pl.ValidTo.HasValue && pl.ValidTo.Value < now).ToList();
+
+            result.ActivePriceListsCount = activePriceLists.Count;
+            result.DefaultPriceListsCount = defaultPriceLists.Count;
+            result.ExpiredPriceListsCount = expiredPriceLists.Count;
+
+            // Validation 1: Check for multiple default price lists
+            if (defaultPriceLists.Count > 1)
+            {
+                result.IsValid = false;
+                result.Issues.Add(new PrecedenceValidationIssueDto
+                {
+                    IssueType = PrecedenceIssueType.MultipleDefaultPriceLists,
+                    Severity = ValidationSeverity.High,
+                    Description = $"Multiple default price lists found ({defaultPriceLists.Count})",
+                    AffectedPriceListIds = defaultPriceLists.Select(pl => pl.Id).ToList(),
+                    AffectedPriceListNames = defaultPriceLists.Select(pl => pl.Name).ToList(),
+                    SuggestedResolution = "Set only one price list as default",
+                    Impact = "Ambiguous default price selection may cause inconsistent pricing"
+                });
+            }
+
+            // Validation 2: Check for no default price list (warning)
+            if (defaultPriceLists.Count == 0 && activePriceLists.Count > 0)
+            {
+                result.Warnings.Add(new PrecedenceValidationWarningDto
+                {
+                    WarningType = PrecedenceWarningType.UnusualPriorityRange,
+                    Description = "No default price list found",
+                    AffectedPriceListIds = activePriceLists.Select(pl => pl.Id).ToList(),
+                    Recommendation = "Consider setting one price list as default for fallback pricing"
+                });
+            }
+
+            // Validation 3: Check for conflicting priorities (same priority values)
+            var priorityGroups = activePriceLists.GroupBy(pl => pl.Priority).Where(g => g.Count() > 1).ToList();
+            if (priorityGroups.Any())
+            {
+                foreach (var group in priorityGroups)
+                {
+                    result.Warnings.Add(new PrecedenceValidationWarningDto
+                    {
+                        WarningType = PrecedenceWarningType.DuplicatePriorities,
+                        Description = $"Multiple price lists have priority {group.Key}",
+                        AffectedPriceListIds = group.Select(pl => pl.Id).ToList(),
+                        Recommendation = "Consider assigning unique priority values for clearer precedence"
+                    });
+                }
+            }
+
+            // Validation 4: Check if only expired price lists exist
+            if (activePriceLists.Count > 0 && activePriceLists.All(pl => pl.ValidTo.HasValue && pl.ValidTo.Value < now))
+            {
+                result.IsValid = false;
+                result.Issues.Add(new PrecedenceValidationIssueDto
+                {
+                    IssueType = PrecedenceIssueType.ExpiredPriceListsOnly,
+                    Severity = ValidationSeverity.Critical,
+                    Description = "All active price lists have expired",
+                    AffectedPriceListIds = activePriceLists.Select(pl => pl.Id).ToList(),
+                    AffectedPriceListNames = activePriceLists.Select(pl => pl.Name).ToList(),
+                    SuggestedResolution = "Extend validity dates or create new price lists",
+                    Impact = "No valid prices available for current date"
+                });
+            }
+
+            // Validation 5: Check for price lists expiring soon (within 7 days)
+            var soonToExpire = activePriceLists
+                .Where(pl => pl.ValidTo.HasValue &&
+                           pl.ValidTo.Value >= now &&
+                           pl.ValidTo.Value <= now.AddDays(7))
+                .ToList();
+
+            if (soonToExpire.Any())
+            {
+                result.Warnings.Add(new PrecedenceValidationWarningDto
+                {
+                    WarningType = PrecedenceWarningType.SoonToExpire,
+                    Description = $"{soonToExpire.Count} price list(s) expiring within 7 days",
+                    AffectedPriceListIds = soonToExpire.Select(pl => pl.Id).ToList(),
+                    Recommendation = "Review and extend validity dates or prepare replacement price lists"
+                });
+            }
+
+            // Validation 6: Check for too many active price lists (warning only)
+            if (activePriceLists.Count > 10)
+            {
+                result.Warnings.Add(new PrecedenceValidationWarningDto
+                {
+                    WarningType = PrecedenceWarningType.ManyActivePriceLists,
+                    Description = $"Large number of active price lists ({activePriceLists.Count})",
+                    Recommendation = "Consider consolidating or archiving unused price lists for better performance"
+                });
+            }
+
+            // Validation 7: Check for overlapping validity periods with same priority
+            foreach (var group in priorityGroups)
+            {
+                var sortedByDate = group.OrderBy(pl => pl.ValidFrom ?? DateTime.MinValue).ToList();
+                for (int i = 0; i < sortedByDate.Count - 1; i++)
+                {
+                    var current = sortedByDate[i];
+                    var next = sortedByDate[i + 1];
+
+                    var currentEnd = current.ValidTo ?? DateTime.MaxValue;
+                    var nextStart = next.ValidFrom ?? DateTime.MinValue;
+
+                    if (currentEnd >= nextStart)
+                    {
+                        result.Issues.Add(new PrecedenceValidationIssueDto
+                        {
+                            IssueType = PrecedenceIssueType.OverlappingValidityPeriods,
+                            Severity = ValidationSeverity.Medium,
+                            Description = $"Price lists '{current.Name}' and '{next.Name}' have overlapping validity periods with same priority",
+                            AffectedPriceListIds = new List<Guid> { current.Id, next.Id },
+                            AffectedPriceListNames = new List<string> { current.Name, next.Name },
+                            SuggestedResolution = "Adjust validity dates or priorities to avoid ambiguity",
+                            Impact = "Ambiguous price selection during overlap period"
+                        });
+                        result.IsValid = false;
+                    }
+                }
+            }
+
+            // Set recommended default price list
+            if (defaultPriceLists.Count == 1)
+            {
+                result.RecommendedDefaultPriceListId = defaultPriceLists[0].Id;
+                result.RecommendedDefaultPriceListName = defaultPriceLists[0].Name;
+            }
+            else if (activePriceLists.Any())
+            {
+                // Recommend the highest priority (lowest number) active price list
+                var recommended = activePriceLists.OrderBy(pl => pl.Priority).First();
+                result.RecommendedDefaultPriceListId = recommended.Id;
+                result.RecommendedDefaultPriceListName = recommended.Name;
+            }
+
+            result.ValidationDuration = DateTime.UtcNow - startTime;
+
+            _logger.LogInformation(
+                "Precedence validation completed for event {EventId}: {IsValid}, {IssueCount} issues, {WarningCount} warnings in {Duration}ms",
+                eventId, result.IsValid, result.Issues.Count, result.Warnings.Count, result.ValidationDuration.TotalMilliseconds);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating price list precedence for event {EventId}", eventId);
+            result.ValidationDuration = DateTime.UtcNow - startTime;
+            throw;
+        }
     }
 }
