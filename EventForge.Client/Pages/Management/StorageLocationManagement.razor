@@ -1,0 +1,464 @@
+@page "/warehouse/locations"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Warehouse
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@attribute [Authorize]
+@inject IAuthService AuthService
+@inject IStorageLocationService StorageLocationService
+@inject IWarehouseService WarehouseService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<StorageLocationManagement> Logger
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+    @if (_isLoading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else
+    {
+        <MudPaper Elevation="2" Class="pa-4 mb-4">
+            <div class="d-flex justify-space-between align-center mb-4">
+                <div>
+                    <MudText Typo="Typo.h4">
+                        <MudIcon Icon="@Icons.Material.Outlined.LocationOn" Class="mr-2" />
+                        @TranslationService.GetTranslation("warehouse.locationManagement", "Gestione Ubicazioni")
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+                        @TranslationService.GetTranslation("warehouse.locationManagementDescription", "Gestisci le ubicazioni nei magazzini")
+                    </MudText>
+                </div>
+            </div>
+
+            <!-- Filters Section -->
+            <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
+                <div class="d-flex gap-4 align-center flex-wrap">
+                    <MudTextField @bind-Value="_searchTerm"
+                                  @bind-Value:after="OnSearchChanged"
+                                  Label="@TranslationService.GetTranslation("warehouse.searchLocations", "Cerca ubicazioni")"
+                                  Placeholder="@TranslationService.GetTranslation("warehouse.searchLocationPlaceholder", "Inserisci codice...")"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@Icons.Material.Outlined.Search"
+                                  Clearable="true"
+                                  Style="flex: 2;" />
+                    <MudSelect @bind-Value="_warehouseFilter"
+                               @bind-Value:after="OnFilterChanged"
+                               Label="@TranslationService.GetTranslation("warehouse.filterByWarehouse", "Filtra per magazzino")"
+                               Variant="Variant.Outlined"
+                               Clearable="true"
+                               Style="flex: 1;">
+                        @foreach (var warehouse in _warehouses)
+                        {
+                            <MudSelectItem Value="@warehouse.Id">@warehouse.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudSwitch @bind-Value="_showOnlyActive"
+                               @bind-Value:after="OnFilterChanged"
+                               Label="@TranslationService.GetTranslation("warehouse.onlyActive", "Solo attive")"
+                               Color="Color.Success" />
+                    <MudSwitch @bind-Value="_showOnlyRefrigerated"
+                               @bind-Value:after="OnFilterChanged"
+                               Label="@TranslationService.GetTranslation("warehouse.onlyRefrigerated", "Solo refrigerate")"
+                               Color="Color.Info" />
+                </div>
+            </MudPaper>
+
+            <!-- Storage Locations Data Table -->
+            <MudPaper Elevation="1" Class="border-rounded">
+                <MudCardHeader Class="pa-2">
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">
+                            <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
+                            @TranslationService.GetTranslation("warehouse.locationList", "Lista Ubicazioni")
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                                (@_filteredLocations.Count() @TranslationService.GetTranslation("warehouse.itemsFound", "elementi trovati"))
+                            </MudText>
+                        </MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
+                                           ShowRefresh="true"
+                                           ShowExport="false" 
+                                           ShowCreate="true"
+                                           ShowAuditLog="false"
+                                           CreateIcon="@Icons.Material.Outlined.Add"
+                                           CreateTooltip="@TranslationService.GetTranslation("warehouse.createNewLocation", "Crea nuova ubicazione")"
+                                           IsDisabled="_isLoadingLocations"
+                                           OnRefresh="@LoadStorageLocationsAsync"
+                                           OnCreate="@OpenCreateStorageLocationDrawer" />
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent Class="pa-1">
+                    @if (_isLoadingLocations)
+                    {
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+                    }
+                    else
+                    {
+                        <MudTable T="StorageLocationDto" 
+                                  Items="_filteredLocations" 
+                                  Hover="true" 
+                                  Striped="true"
+                                  Loading="_isLoadingLocations"
+                                  LoadingProgressColor="Color.Info"
+                                  SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
+                                  AllowUnsorted="false"
+                                  Dense="true"
+                                  Breakpoint="Breakpoint.Sm">
+                            <HeaderContent>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<StorageLocationDto, object>(x => x.Code))">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<StorageLocationDto, object>(x => x.WarehouseName ?? string.Empty))">@TranslationService.GetTranslation("field.warehouse", "Magazzino")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<StorageLocationDto, object>(x => x.Zone ?? string.Empty))">@TranslationService.GetTranslation("field.zone", "Zona")</MudTableSortLabel></MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.position", "Posizione")</MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<StorageLocationDto, object>(x => x.Occupancy ?? 0))">@TranslationService.GetTranslation("field.occupancy", "Occupazione")</MudTableSortLabel></MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.properties", "Proprietà")</MudTh>
+                                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<StorageLocationDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel></MudTh>
+                                <MudTh Class="text-center" Style="min-width: 120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                            </HeaderContent>
+
+                            <RowTemplate>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">
+                                    <div class="d-flex align-center">
+                                        <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                                            <MudIcon Icon="@Icons.Material.Outlined.LocationOn" />
+                                        </MudAvatar>
+                                        <div>
+                                            <MudText Typo="Typo.body2">@context.Code</MudText>
+                                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                                @(!string.IsNullOrWhiteSpace(context.Description) ? context.Description : "")
+                                            </MudText>
+                                        </div>
+                                    </div>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.warehouse", "Magazzino")">
+                                    <MudText Typo="Typo.body2">@(context.WarehouseName ?? "-")</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.zone", "Zona")">
+                                    <MudText Typo="Typo.body2">@(context.Zone ?? "-")</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.position", "Posizione")">
+                                    @if (!string.IsNullOrWhiteSpace(context.Row) || !string.IsNullOrWhiteSpace(context.Column) || !string.IsNullOrWhiteSpace(context.Level))
+                                    {
+                                        <div class="d-flex flex-column">
+                                            <MudText Typo="Typo.body2">
+                                                @($"F:{context.Row ?? "-"} C:{context.Column ?? "-"} L:{context.Level ?? "-"}")
+                                            </MudText>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body2">-</MudText>
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.occupancy", "Occupazione")">
+                                    @if (context.Capacity != null && context.Occupancy != null)
+                                    {
+                                        var percentage = context.Capacity > 0 ? (double)context.Occupancy.Value / context.Capacity.Value * 100 : 0;
+                                        <div class="d-flex flex-column">
+                                            <MudText Typo="Typo.body2">@context.Occupancy/@context.Capacity</MudText>
+                                            <MudProgressLinear Value="@percentage" Color="@GetOccupancyColor(percentage)" Size="Size.Small" />
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body2">-</MudText>
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.properties", "Proprietà")">
+                                    <div class="d-flex gap-1 flex-wrap">
+                                        @if (context.IsActive)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Outlined.CheckCircle">Attiva</MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Icon="@Icons.Material.Outlined.Cancel">Inattiva</MudChip>
+                                        }
+                                        @if (context.IsRefrigerated)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Outlined.AcUnit">Refrigerata</MudChip>
+                                        }
+                                    </div>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
+                                    <MudText Typo="Typo.body2">@context.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                                    <ActionButtonGroup EntityName="@context.Code"
+                                                      ItemDisplayName="@context.Code"
+                                                      ShowView="true"
+                                                      ShowEdit="true"
+                                                      ShowAuditLog="false"
+                                                      ShowToggleStatus="false"
+                                                      ShowDelete="true"
+                                                      OnView="@(() => ViewStorageLocation(context))"
+                                                      OnEdit="@(() => EditStorageLocation(context))"
+                                                      OnDelete="@(() => DeleteStorageLocation(context))" />
+                                </MudTd>
+                            </RowTemplate>
+
+                            <NoRecordsContent>
+                                <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                                    <MudIcon Icon="@Icons.Material.Outlined.LocationOn" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                                    <MudText Typo="Typo.h6" Class="mb-2">
+                                        @(_storageLocations.Any() ? 
+                                            TranslationService.GetTranslation("warehouse.noLocationsMatchFilters", "Nessuna ubicazione corrisponde ai filtri applicati") : 
+                                            TranslationService.GetTranslation("warehouse.noLocationsFound", "Nessuna ubicazione trovata"))
+                                    </MudText>
+                                    @if (_storageLocations.Any())
+                                    {
+                                        <MudButton Variant="Variant.Text" 
+                                                   Color="Color.Primary" 
+                                                   StartIcon="@Icons.Material.Outlined.Clear"
+                                                   OnClick="@ClearFilters">
+                                            @TranslationService.GetTranslation("warehouse.clearFilters", "Cancella filtri")
+                                        </MudButton>
+                                    }
+                                </div>
+                            </NoRecordsContent>
+                        </MudTable>
+                    }
+                </MudCardContent>
+            </MudPaper>
+        </MudPaper>
+    }
+</MudContainer>
+
+<!-- Storage Location Management Drawer -->
+<StorageLocationDrawer @bind-IsOpen="_storageLocationDrawerOpen" 
+                       @bind-Mode="_storageLocationDrawerMode"
+                       OriginalStorageLocation="_selectedStorageLocation"
+                       AllowEdit="true"
+                       OnStorageLocationCreated="@OnStorageLocationCreated"
+                       OnStorageLocationUpdated="@OnStorageLocationUpdated" />
+
+@code {
+    // UI State Management
+    private bool _isLoading = true;
+    private bool _isLoadingLocations = false;
+    private bool _storageLocationDrawerOpen = false;
+    
+    // Drawer management
+    private EntityDrawerMode _storageLocationDrawerMode = EntityDrawerMode.Create;
+    private StorageLocationDto? _selectedStorageLocation;
+    
+    // Filter and search state
+    private string _searchTerm = string.Empty;
+    private Guid? _warehouseFilter = null;
+    private bool _showOnlyActive = false;
+    private bool _showOnlyRefrigerated = false;
+    
+    // Data collections
+    private List<StorageLocationDto> _storageLocations = new();
+    private List<StorageFacilityDto> _warehouses = new();
+
+    /// <summary>
+    /// Computed property for filtered storage locations based on search criteria.
+    /// </summary>
+    private IEnumerable<StorageLocationDto> _filteredLocations => 
+        _storageLocations.Where(l => 
+            // Search filter: check code and description
+            (string.IsNullOrEmpty(_searchTerm) || 
+             l.Code.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             (l.Description != null && l.Description.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))) &&
+            // Warehouse filter
+            (!_warehouseFilter.HasValue || l.WarehouseId == _warehouseFilter.Value) &&
+            // Active filter
+            (!_showOnlyActive || l.IsActive) &&
+            // Refrigerated filter
+            (!_showOnlyRefrigerated || l.IsRefrigerated));
+
+    /// <summary>
+    /// Component initialization.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Check authentication
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                NavigationManager.NavigateTo("/login");
+                return;
+            }
+
+            // Load warehouses and storage locations
+            await Task.WhenAll(LoadWarehousesAsync(), LoadStorageLocationsAsync());
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading storage locations page");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Loads warehouse data for filtering.
+    /// </summary>
+    private async Task LoadWarehousesAsync()
+    {
+        try
+        {
+            var result = await WarehouseService.GetStorageFacilitiesAsync(1, 1000);
+            if (result != null)
+            {
+                _warehouses = result.Items.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading warehouses");
+        }
+    }
+
+    /// <summary>
+    /// Loads storage location data.
+    /// </summary>
+    private async Task LoadStorageLocationsAsync()
+    {
+        try
+        {
+            _isLoadingLocations = true;
+            var result = await StorageLocationService.GetStorageLocationsAsync();
+            if (result != null)
+            {
+                _storageLocations = result.Items.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.loadingLocationsError", "Errore nel caricamento delle ubicazioni: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading storage locations");
+        }
+        finally
+        {
+            _isLoadingLocations = false;
+        }
+    }
+
+    /// <summary>
+    /// Clears all active filters.
+    /// </summary>
+    private async Task ClearFilters()
+    {
+        _searchTerm = string.Empty;
+        _warehouseFilter = null;
+        _showOnlyActive = false;
+        _showOnlyRefrigerated = false;
+        await Task.CompletedTask;
+        StateHasChanged();
+    }
+
+    private async Task OnSearchChanged()
+    {
+        await Task.Delay(300); // Debounce
+        StateHasChanged();
+    }
+
+    private async Task OnFilterChanged()
+    {
+        await Task.CompletedTask;
+        StateHasChanged();
+    }
+
+    private async Task OpenCreateStorageLocationDrawer()
+    {
+        _storageLocationDrawerMode = EntityDrawerMode.Create;
+        _selectedStorageLocation = null;
+        _storageLocationDrawerOpen = true;
+        await Task.CompletedTask;
+    }
+
+    private async Task OnStorageLocationCreated(StorageLocationDto newStorageLocation)
+    {
+        _storageLocations.Add(newStorageLocation);
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    private async Task OnStorageLocationUpdated(StorageLocationDto updatedStorageLocation)
+    {
+        var index = _storageLocations.FindIndex(l => l.Id == updatedStorageLocation.Id);
+        if (index >= 0)
+        {
+            _storageLocations[index] = updatedStorageLocation;
+        }
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    private async Task ViewStorageLocation(StorageLocationDto location)
+    {
+        _storageLocationDrawerMode = EntityDrawerMode.View;
+        _selectedStorageLocation = location;
+        _storageLocationDrawerOpen = true;
+        await Task.CompletedTask;
+    }
+
+    private async Task EditStorageLocation(StorageLocationDto location)
+    {
+        _storageLocationDrawerMode = EntityDrawerMode.Edit;
+        _selectedStorageLocation = location;
+        _storageLocationDrawerOpen = true;
+        await Task.CompletedTask;
+    }
+
+    private async Task DeleteStorageLocation(StorageLocationDto location)
+    {
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslation("warehouse.confirmLocationDelete", 
+            "Sei sicuro di voler eliminare l'ubicazione '{0}'? Questa azione non può essere annullata.", 
+            location.Code);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                var success = await StorageLocationService.DeleteStorageLocationAsync(location.Id);
+                if (success)
+                {
+                    _storageLocations.Remove(location);
+                    Snackbar.Add(TranslationService.GetTranslation("warehouse.locationDeleted", "Ubicazione eliminata con successo!"), Severity.Success);
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("warehouse.deleteLocationError", "Errore nell'eliminazione dell'ubicazione"), Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.deleteLocationError", 
+                    "Errore nell'eliminazione dell'ubicazione: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting storage location {LocationId}", location.Id);
+            }
+        }
+    }
+
+    private Color GetOccupancyColor(double percentage)
+    {
+        if (percentage >= 90)
+            return Color.Error;
+        else if (percentage >= 75)
+            return Color.Warning;
+        else if (percentage >= 50)
+            return Color.Info;
+        else
+            return Color.Success;
+    }
+}

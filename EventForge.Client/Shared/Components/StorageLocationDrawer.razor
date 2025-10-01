@@ -1,0 +1,561 @@
+@using MudBlazor
+@using EventForge.DTOs.Warehouse
+@using EventForge.Client.Shared.Components
+@inject IStorageLocationService StorageLocationService
+@inject IWarehouseService WarehouseService
+@inject ISnackbar Snackbar
+@inject ILogger<StorageLocationDrawer> Logger
+@inject ITranslationService TranslationService
+
+<EntityDrawer @bind-IsOpen="@IsOpen"
+              @bind-Mode="@Mode"
+              EntityName="@TranslationService.GetTranslation("field.storageLocation")"
+              Model="@_model"
+              OnSave="@HandleSave"
+              OnCancel="@HandleCancel"
+              OnClose="@HandleClose"
+              CustomTitle="@_customTitle"
+              AllowEdit="@AllowEdit"
+              Width="900px">
+    
+    <FormContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.Code"
+                              Label="@($"{TranslationService.GetTranslation("drawer.field.codiceUbicazione")} *")"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              MaxLength="30"
+                              Immediate="true"
+                              aria-describedby="code-help" />
+                <MudText id="code-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.codiceUbicazione")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="_model.WarehouseId"
+                           Label="@($"{TranslationService.GetTranslation("drawer.field.magazzino")} *")"
+                           Variant="Variant.Outlined"
+                           Required="true"
+                           aria-describedby="warehouse-help">
+                    @foreach (var warehouse in _warehouses)
+                    {
+                        <MudSelectItem Value="@warehouse.Id">@warehouse.Name (@warehouse.Code)</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudText id="warehouse-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.magazzino")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.Description"
+                              Label="@TranslationService.GetTranslation("drawer.field.descrizione")"
+                              Variant="Variant.Outlined"
+                              MaxLength="100"
+                              aria-describedby="description-help" />
+                <MudText id="description-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.descrizioneUbicazione")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.Zone"
+                              Label="@TranslationService.GetTranslation("drawer.field.zona")"
+                              Variant="Variant.Outlined"
+                              MaxLength="20"
+                              aria-describedby="zone-help" />
+                <MudText id="zone-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.zona")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.Floor"
+                              Label="@TranslationService.GetTranslation("drawer.field.piano")"
+                              Variant="Variant.Outlined"
+                              MaxLength="10"
+                              aria-describedby="floor-help" />
+                <MudText id="floor-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.piano")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_model.Row"
+                              Label="@TranslationService.GetTranslation("drawer.field.fila")"
+                              Variant="Variant.Outlined"
+                              MaxLength="10"
+                              aria-describedby="row-help" />
+                <MudText id="row-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.fila")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_model.Column"
+                              Label="@TranslationService.GetTranslation("drawer.field.colonna")"
+                              Variant="Variant.Outlined"
+                              MaxLength="10"
+                              aria-describedby="column-help" />
+                <MudText id="column-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.colonna")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_model.Level"
+                              Label="@TranslationService.GetTranslation("drawer.field.livello")"
+                              Variant="Variant.Outlined"
+                              MaxLength="10"
+                              aria-describedby="level-help" />
+                <MudText id="level-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.livello")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudNumericField @bind-Value="_model.Capacity"
+                                 Label="@TranslationService.GetTranslation("drawer.field.capacita")"
+                                 Variant="Variant.Outlined"
+                                 Min="0"
+                                 aria-describedby="capacity-help" />
+                <MudText id="capacity-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.capacita")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudNumericField @bind-Value="_model.Occupancy"
+                                 Label="@TranslationService.GetTranslation("drawer.field.occupazione")"
+                                 Variant="Variant.Outlined"
+                                 Min="0"
+                                 aria-describedby="occupancy-help" />
+                <MudText id="occupancy-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.occupazione")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudSwitch @bind-Value="_model.IsRefrigerated"
+                           Label="@TranslationService.GetTranslation("drawer.field.ubicazioneRefrigerata")"
+                           Color="Color.Primary"
+                           aria-describedby="refrigerated-help" />
+                <MudText id="refrigerated-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.ubicazioneRefrigerata")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudSwitch @bind-Value="_model.IsActive"
+                           Label="@TranslationService.GetTranslation("drawer.field.attiva")"
+                           Color="Color.Success"
+                           aria-describedby="active-help" />
+                <MudText id="active-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.ubicazioneAttiva")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.Notes"
+                              Label="@TranslationService.GetTranslation("drawer.field.note")"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                              MaxLength="200"
+                              aria-describedby="notes-help" />
+                <MudText id="notes-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.noteUbicazione")
+                </MudText>
+            </MudItem>
+            
+            @if (Mode == EntityDrawerMode.Edit && OriginalStorageLocation != null)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalStorageLocation.Id.ToString()"
+                                  Label="@TranslationService.GetTranslation("drawer.field.idUbicazione")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.identificativoUnico")" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalStorageLocation.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                  Label="@TranslationService.GetTranslation("drawer.field.dataCreazione")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.dataOraCreazione")" />
+                </MudItem>
+            }
+        </MudGrid>
+    </FormContent>
+    
+    <ViewContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalStorageLocation?.Code ?? "")"
+                              Label="@TranslationService.GetTranslation("drawer.field.codiceUbicazione")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              aria-label="@TranslationService.GetTranslation("drawer.field.codiceUbicazione")" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalStorageLocation?.WarehouseName ?? "")"
+                              Label="@TranslationService.GetTranslation("drawer.field.magazzino")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              aria-label="@TranslationService.GetTranslation("drawer.field.magazzino")" />
+            </MudItem>
+            
+            @if (!string.IsNullOrWhiteSpace(OriginalStorageLocation?.Description))
+            {
+                <MudItem xs="12">
+                    <MudTextField Value="@OriginalStorageLocation.Description"
+                                  Label="@TranslationService.GetTranslation("drawer.field.descrizione")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.field.descrizione")" />
+                </MudItem>
+            }
+            
+            @if (!string.IsNullOrWhiteSpace(OriginalStorageLocation?.Zone))
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalStorageLocation.Zone"
+                                  Label="@TranslationService.GetTranslation("drawer.field.zona")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.field.zona")" />
+                </MudItem>
+            }
+            
+            @if (!string.IsNullOrWhiteSpace(OriginalStorageLocation?.Floor))
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalStorageLocation.Floor"
+                                  Label="@TranslationService.GetTranslation("drawer.field.piano")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.field.piano")" />
+                </MudItem>
+            }
+            
+            <MudItem xs="12" md="4">
+                <MudTextField Value="@(OriginalStorageLocation?.Row ?? "-")"
+                              Label="@TranslationService.GetTranslation("drawer.field.fila")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              aria-label="@TranslationService.GetTranslation("drawer.field.fila")" />
+            </MudItem>
+            
+            <MudItem xs="12" md="4">
+                <MudTextField Value="@(OriginalStorageLocation?.Column ?? "-")"
+                              Label="@TranslationService.GetTranslation("drawer.field.colonna")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              aria-label="@TranslationService.GetTranslation("drawer.field.colonna")" />
+            </MudItem>
+            
+            <MudItem xs="12" md="4">
+                <MudTextField Value="@(OriginalStorageLocation?.Level ?? "-")"
+                              Label="@TranslationService.GetTranslation("drawer.field.livello")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              aria-label="@TranslationService.GetTranslation("drawer.field.livello")" />
+            </MudItem>
+            
+            @if (OriginalStorageLocation?.Capacity != null)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalStorageLocation.Capacity.ToString()"
+                                  Label="@TranslationService.GetTranslation("drawer.field.capacita")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.field.capacita")" />
+                </MudItem>
+            }
+            
+            @if (OriginalStorageLocation?.Occupancy != null)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalStorageLocation.Occupancy.ToString()"
+                                  Label="@TranslationService.GetTranslation("drawer.field.occupazione")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.field.occupazione")" />
+                </MudItem>
+            }
+            
+            <MudItem xs="12" md="6">
+                <MudChip T="string" 
+                         Color="@(OriginalStorageLocation?.IsRefrigerated == true ? Color.Info : Color.Default)" 
+                         Size="Size.Medium">
+                    @TranslationService.GetTranslation(OriginalStorageLocation?.IsRefrigerated == true ? "drawer.status.refrigerato" : "drawer.status.nonRefrigerato")
+                </MudChip>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudChip T="string" 
+                         Color="@(OriginalStorageLocation?.IsActive == true ? Color.Success : Color.Default)" 
+                         Size="Size.Medium">
+                    @TranslationService.GetTranslation(OriginalStorageLocation?.IsActive == true ? "drawer.status.attiva" : "drawer.status.nonAttiva")
+                </MudChip>
+            </MudItem>
+            
+            @if (!string.IsNullOrWhiteSpace(OriginalStorageLocation?.Notes))
+            {
+                <MudItem xs="12">
+                    <MudTextField Value="@OriginalStorageLocation.Notes"
+                                  Label="@TranslationService.GetTranslation("drawer.field.note")"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.field.note")" />
+                </MudItem>
+            }
+            
+            @if (OriginalStorageLocation != null)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalStorageLocation.Id.ToString()"
+                                  Label="@TranslationService.GetTranslation("drawer.field.idUbicazione")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.identificativoUnico")" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalStorageLocation.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                  Label="@TranslationService.GetTranslation("drawer.field.dataCreazione")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.dataOraCreazione")" />
+                </MudItem>
+                
+                @if (OriginalStorageLocation.ModifiedAt != null && OriginalStorageLocation.ModifiedAt != OriginalStorageLocation.CreatedAt)
+                {
+                    <MudItem xs="12">
+                        <MudTextField Value="@OriginalStorageLocation.ModifiedAt?.ToString("dd/MM/yyyy HH:mm")"
+                                      Label="@TranslationService.GetTranslation("drawer.field.ultimaModifica")"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="true"
+                                      aria-label="@TranslationService.GetTranslation("drawer.aria.dataOraUltimaModifica")" />
+                    </MudItem>
+                }
+            }
+        </MudGrid>
+    </ViewContent>
+    
+</EntityDrawer>
+
+@code {
+    private StorageLocationDto _model = new() { IsActive = true };
+    private string? _customTitle;
+    private List<StorageFacilityDto> _warehouses = new();
+
+    /// <summary>
+    /// Whether the drawer is open.
+    /// </summary>
+    [Parameter] public bool IsOpen { get; set; }
+    
+    /// <summary>
+    /// Event callback for when IsOpen changes.
+    /// </summary>
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    
+    /// <summary>
+    /// The current mode of the drawer.
+    /// </summary>
+    [Parameter] public EntityDrawerMode Mode { get; set; } = EntityDrawerMode.Create;
+    
+    /// <summary>
+    /// Event callback for when Mode changes.
+    /// </summary>
+    [Parameter] public EventCallback<EntityDrawerMode> ModeChanged { get; set; }
+    
+    /// <summary>
+    /// The storage location being edited/viewed (for Edit/View modes).
+    /// </summary>
+    [Parameter] public StorageLocationDto? OriginalStorageLocation { get; set; }
+    
+    /// <summary>
+    /// Whether editing is allowed.
+    /// </summary>
+    [Parameter] public bool AllowEdit { get; set; } = true;
+    
+    /// <summary>
+    /// Event callback when a storage location is created.
+    /// </summary>
+    [Parameter] public EventCallback<StorageLocationDto> OnStorageLocationCreated { get; set; }
+    
+    /// <summary>
+    /// Event callback when a storage location is updated.
+    /// </summary>
+    [Parameter] public EventCallback<StorageLocationDto> OnStorageLocationUpdated { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadWarehousesAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Mode == EntityDrawerMode.Edit && OriginalStorageLocation != null)
+        {
+            // Initialize model for editing
+            _model = new StorageLocationDto
+            {
+                Id = OriginalStorageLocation.Id,
+                Code = OriginalStorageLocation.Code,
+                Description = OriginalStorageLocation.Description,
+                WarehouseId = OriginalStorageLocation.WarehouseId,
+                WarehouseName = OriginalStorageLocation.WarehouseName,
+                Capacity = OriginalStorageLocation.Capacity,
+                Occupancy = OriginalStorageLocation.Occupancy,
+                IsRefrigerated = OriginalStorageLocation.IsRefrigerated,
+                Notes = OriginalStorageLocation.Notes,
+                Zone = OriginalStorageLocation.Zone,
+                Floor = OriginalStorageLocation.Floor,
+                Row = OriginalStorageLocation.Row,
+                Column = OriginalStorageLocation.Column,
+                Level = OriginalStorageLocation.Level,
+                IsActive = OriginalStorageLocation.IsActive,
+                CreatedAt = OriginalStorageLocation.CreatedAt,
+                ModifiedAt = OriginalStorageLocation.ModifiedAt,
+                CreatedBy = OriginalStorageLocation.CreatedBy,
+                ModifiedBy = OriginalStorageLocation.ModifiedBy
+            };
+            
+            _customTitle = TranslationService.GetTranslation("drawer.title.modificaUbicazione", OriginalStorageLocation.Code);
+        }
+        else if (Mode == EntityDrawerMode.View && OriginalStorageLocation != null)
+        {
+            _customTitle = TranslationService.GetTranslation("drawer.title.visualizzaUbicazione", OriginalStorageLocation.Code);
+        }
+        else if (Mode == EntityDrawerMode.Create)
+        {
+            // Reset for create mode
+            _model = new StorageLocationDto { IsActive = true };
+            _customTitle = null;
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private async Task LoadWarehousesAsync()
+    {
+        try
+        {
+            var result = await WarehouseService.GetStorageFacilitiesAsync(1, 1000);
+            if (result != null)
+            {
+                _warehouses = result.Items.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading warehouses");
+            Snackbar.Add(TranslationService.GetTranslation("messages.loadWarehousesError", "Errore nel caricamento dei magazzini"), Severity.Error);
+        }
+    }
+
+    private async Task HandleSave()
+    {
+        try
+        {
+            if (Mode == EntityDrawerMode.Create)
+            {
+                var createDto = new CreateStorageLocationDto
+                {
+                    Code = _model.Code,
+                    Description = _model.Description,
+                    WarehouseId = _model.WarehouseId,
+                    Capacity = _model.Capacity,
+                    Occupancy = _model.Occupancy,
+                    IsRefrigerated = _model.IsRefrigerated,
+                    Notes = _model.Notes,
+                    Zone = _model.Zone,
+                    Floor = _model.Floor,
+                    Row = _model.Row,
+                    Column = _model.Column,
+                    Level = _model.Level
+                };
+                
+                var newStorageLocation = await StorageLocationService.CreateStorageLocationAsync(createDto);
+                if (newStorageLocation != null)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("messages.createSuccessful", "Creazione completata con successo"), Severity.Success);
+                    
+                    if (OnStorageLocationCreated.HasDelegate)
+                    {
+                        await OnStorageLocationCreated.InvokeAsync(newStorageLocation);
+                    }
+                }
+                else
+                {
+                    throw new Exception("Failed to create storage location");
+                }
+            }
+            else if (Mode == EntityDrawerMode.Edit && OriginalStorageLocation != null)
+            {
+                var updateDto = new UpdateStorageLocationDto
+                {
+                    Code = _model.Code,
+                    Description = _model.Description,
+                    WarehouseId = _model.WarehouseId,
+                    Capacity = _model.Capacity,
+                    Occupancy = _model.Occupancy,
+                    IsRefrigerated = _model.IsRefrigerated,
+                    Notes = _model.Notes,
+                    Zone = _model.Zone,
+                    Floor = _model.Floor,
+                    Row = _model.Row,
+                    Column = _model.Column,
+                    Level = _model.Level,
+                    IsActive = _model.IsActive
+                };
+                
+                var updatedStorageLocation = await StorageLocationService.UpdateStorageLocationAsync(OriginalStorageLocation.Id, updateDto);
+                if (updatedStorageLocation != null)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornamento completato con successo"), Severity.Success);
+                    
+                    if (OnStorageLocationUpdated.HasDelegate)
+                    {
+                        await OnStorageLocationUpdated.InvokeAsync(updatedStorageLocation);
+                    }
+                }
+                else
+                {
+                    throw new Exception("Failed to update storage location");
+                }
+            }
+            
+            await HandleClose();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to save storage location");
+            var message = Mode == EntityDrawerMode.Create ? 
+                TranslationService.GetTranslation("messages.createFailed", "Errore durante la creazione") : 
+                TranslationService.GetTranslation("messages.updateFailed", "Errore durante l'aggiornamento");
+            Snackbar.Add($"{message}: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task HandleCancel()
+    {
+        await HandleClose();
+    }
+
+    private async Task HandleClose()
+    {
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(IsOpen);
+        
+        // Reset state
+        _model = new StorageLocationDto { IsActive = true };
+        _customTitle = null;
+    }
+}
