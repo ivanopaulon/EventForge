@@ -41,7 +41,8 @@ public class ProductService : IProductService
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(p => p.Codes.Where(c => !c.IsDeleted && c.TenantId == currentTenantId.Value))
                 .Include(p => p.Units.Where(u => !u.IsDeleted && u.TenantId == currentTenantId.Value))
-                .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted && bi.TenantId == currentTenantId.Value));
+                .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted && bi.TenantId == currentTenantId.Value))
+                .Include(p => p.ImageDocument);
 
             var totalCount = await query.CountAsync(cancellationToken);
             var products = await query
@@ -76,6 +77,7 @@ public class ProductService : IProductService
                 .Include(p => p.Codes.Where(c => !c.IsDeleted))
                 .Include(p => p.Units.Where(u => !u.IsDeleted))
                 .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
+                .Include(p => p.ImageDocument)
                 .FirstOrDefaultAsync(cancellationToken);
 
             return product != null ? MapToProductDto(product) : null;
@@ -96,6 +98,7 @@ public class ProductService : IProductService
                 .Include(p => p.Codes.Where(c => !c.IsDeleted))
                 .Include(p => p.Units.Where(u => !u.IsDeleted))
                 .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
+                .Include(p => p.ImageDocument)
                 .FirstOrDefaultAsync(cancellationToken);
 
             return product != null ? MapToProductDetailDto(product) : null;
@@ -127,7 +130,10 @@ public class ProductService : IProductService
                 ShortDescription = createProductDto.ShortDescription,
                 Description = createProductDto.Description,
                 Code = createProductDto.Code,
+#pragma warning disable CS0618 // Type or member is obsolete
                 ImageUrl = createProductDto.ImageUrl,
+#pragma warning restore CS0618 // Type or member is obsolete
+                ImageDocumentId = createProductDto.ImageDocumentId,
                 Status = (EventForge.Server.Data.Entities.Products.ProductStatus)createProductDto.Status,
                 IsVatIncluded = createProductDto.IsVatIncluded,
                 DefaultPrice = createProductDto.DefaultPrice,
@@ -187,7 +193,10 @@ public class ProductService : IProductService
                 ShortDescription = product.ShortDescription,
                 Description = product.Description,
                 Code = product.Code,
+#pragma warning disable CS0618 // Type or member is obsolete
                 ImageUrl = product.ImageUrl,
+#pragma warning restore CS0618 // Type or member is obsolete
+                ImageDocumentId = product.ImageDocumentId,
                 IsVatIncluded = product.IsVatIncluded,
                 DefaultPrice = product.DefaultPrice,
                 VatRateId = product.VatRateId,
@@ -208,7 +217,10 @@ public class ProductService : IProductService
             product.ShortDescription = updateProductDto.ShortDescription;
             product.Description = updateProductDto.Description;
             // Note: Code and IsBundle are intentionally not updatable after creation
+#pragma warning disable CS0618 // Type or member is obsolete
             product.ImageUrl = updateProductDto.ImageUrl;
+#pragma warning restore CS0618 // Type or member is obsolete
+            product.ImageDocumentId = updateProductDto.ImageDocumentId;
             product.Status = (EventForge.Server.Data.Entities.Products.ProductStatus)updateProductDto.Status;
             product.IsVatIncluded = updateProductDto.IsVatIncluded;
             product.DefaultPrice = updateProductDto.DefaultPrice;
@@ -971,7 +983,11 @@ public class ProductService : IProductService
             ShortDescription = product.ShortDescription,
             Description = product.Description,
             Code = product.Code,
+#pragma warning disable CS0618 // Type or member is obsolete
             ImageUrl = product.ImageUrl,
+#pragma warning restore CS0618 // Type or member is obsolete
+            ImageDocumentId = product.ImageDocumentId,
+            ThumbnailUrl = product.ImageDocument?.ThumbnailStorageKey,
             Status = (EventForge.DTOs.Common.ProductStatus)product.Status,
             IsVatIncluded = product.IsVatIncluded,
             DefaultPrice = product.DefaultPrice,
@@ -1001,7 +1017,11 @@ public class ProductService : IProductService
             ShortDescription = product.ShortDescription,
             Description = product.Description,
             Code = product.Code,
+#pragma warning disable CS0618 // Type or member is obsolete
             ImageUrl = product.ImageUrl,
+#pragma warning restore CS0618 // Type or member is obsolete
+            ImageDocumentId = product.ImageDocumentId,
+            ThumbnailUrl = product.ImageDocument?.ThumbnailStorageKey,
             Status = (EventForge.DTOs.Common.ProductStatus)product.Status,
             IsVatIncluded = product.IsVatIncluded,
             DefaultPrice = product.DefaultPrice,

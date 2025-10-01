@@ -828,6 +828,18 @@ public class EventForgeDbContext : DbContext
         modelBuilder.Entity<Product>().Property(p => p.SafetyStock).HasPrecision(18, 6);
         modelBuilder.Entity<Product>().Property(p => p.TargetStockLevel).HasPrecision(18, 6);
         modelBuilder.Entity<Product>().Property(p => p.AverageDailyDemand).HasPrecision(18, 6);
+
+        // Product → DocumentReference relationship (for product images)
+        modelBuilder.Entity<Product>()
+            .HasOne(p => p.ImageDocument)
+            .WithMany()
+            .HasForeignKey(p => p.ImageDocumentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Product image document index
+        modelBuilder.Entity<Product>()
+            .HasIndex(p => p.ImageDocumentId)
+            .HasDatabaseName("IX_Product_ImageDocumentId");
     }
 
     /// <summary>
