@@ -275,7 +275,7 @@ public class BootstrapServiceTests
         var allFeatures = await context.LicenseFeatures
             .Where(f => f.LicenseId == license.Id)
             .ToListAsync();
-        Assert.Equal(9, allFeatures.Count); // All 9 features should be present
+        Assert.Equal(16, allFeatures.Count); // All 16 features should be present (9 original + 7 new)
         Assert.All(allFeatures, f => Assert.True(f.IsActive));
     }
 
