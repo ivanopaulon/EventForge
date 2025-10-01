@@ -26,6 +26,9 @@ namespace EventForge.Server.Controllers;
 public class ProductManagementController : BaseApiController
 {
     private readonly IProductService _productService;
+    private readonly IBrandService _brandService;
+    private readonly IModelService _modelService;
+    private readonly IProductSupplierService _productSupplierService;
     private readonly IUMService _umService;
     private readonly IPriceListService _priceListService;
     private readonly IPromotionService _promotionService;
@@ -35,6 +38,9 @@ public class ProductManagementController : BaseApiController
 
     public ProductManagementController(
         IProductService productService,
+        IBrandService brandService,
+        IModelService modelService,
+        IProductSupplierService productSupplierService,
         IUMService umService,
         IPriceListService priceListService,
         IPromotionService promotionService,
@@ -43,6 +49,9 @@ public class ProductManagementController : BaseApiController
         ILogger<ProductManagementController> logger)
     {
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
+        _brandService = brandService ?? throw new ArgumentNullException(nameof(brandService));
+        _modelService = modelService ?? throw new ArgumentNullException(nameof(modelService));
+        _productSupplierService = productSupplierService ?? throw new ArgumentNullException(nameof(productSupplierService));
         _umService = umService ?? throw new ArgumentNullException(nameof(umService));
         _priceListService = priceListService ?? throw new ArgumentNullException(nameof(priceListService));
         _promotionService = promotionService ?? throw new ArgumentNullException(nameof(promotionService));
@@ -1089,6 +1098,683 @@ public class ProductManagementController : BaseApiController
         {
             _logger.LogError(ex, "An error occurred while generating the barcode.");
             return CreateInternalServerErrorProblem("An error occurred while generating the barcode.", ex);
+        }
+    }
+
+    #endregion
+
+    #region Brands Management
+
+    /// <summary>
+    /// Gets all brands with optional pagination.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of brands</returns>
+    /// <response code="200">Returns the paginated list of brands</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("brands")]
+    [ProducesResponseType(typeof(PagedResult<BrandDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<BrandDto>>> GetBrands(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _brandService.GetBrandsAsync(page, pageSize, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving brands.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving brands.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a brand by ID.
+    /// </summary>
+    /// <param name="id">Brand ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Brand information</returns>
+    /// <response code="200">Returns the brand</response>
+    /// <response code="404">If the brand is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("brands/{id:guid}")]
+    [ProducesResponseType(typeof(BrandDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<BrandDto>> GetBrand(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var brand = await _brandService.GetBrandByIdAsync(id, cancellationToken);
+            if (brand == null)
+                return CreateNotFoundProblem($"Brand with ID {id} not found.");
+
+            return Ok(brand);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving the brand.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the brand.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new brand.
+    /// </summary>
+    /// <param name="createBrandDto">Brand creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created brand information</returns>
+    /// <response code="201">Brand created successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("brands")]
+    [ProducesResponseType(typeof(BrandDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<BrandDto>> CreateBrand(
+        [FromBody] CreateBrandDto createBrandDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var brand = await _brandService.CreateBrandAsync(createBrandDto, currentUser, cancellationToken);
+            return CreatedAtAction(nameof(GetBrand), new { id = brand.Id }, brand);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while creating the brand.");
+            return CreateInternalServerErrorProblem("An error occurred while creating the brand.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing brand.
+    /// </summary>
+    /// <param name="id">Brand ID</param>
+    /// <param name="updateBrandDto">Brand update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated brand information</returns>
+    /// <response code="200">Brand updated successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="404">If the brand is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPut("brands/{id:guid}")]
+    [ProducesResponseType(typeof(BrandDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<BrandDto>> UpdateBrand(
+        Guid id,
+        [FromBody] UpdateBrandDto updateBrandDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var brand = await _brandService.UpdateBrandAsync(id, updateBrandDto, currentUser, cancellationToken);
+            if (brand == null)
+                return CreateNotFoundProblem($"Brand with ID {id} not found.");
+
+            return Ok(brand);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while updating the brand.");
+            return CreateInternalServerErrorProblem("An error occurred while updating the brand.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a brand.
+    /// </summary>
+    /// <param name="id">Brand ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content</returns>
+    /// <response code="204">Brand deleted successfully</response>
+    /// <response code="404">If the brand is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("brands/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteBrand(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var success = await _brandService.DeleteBrandAsync(id, currentUser, cancellationToken);
+            if (!success)
+                return CreateNotFoundProblem($"Brand with ID {id} not found.");
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while deleting the brand.");
+            return CreateInternalServerErrorProblem("An error occurred while deleting the brand.", ex);
+        }
+    }
+
+    #endregion
+
+    #region Models Management
+
+    /// <summary>
+    /// Gets all models with optional pagination.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="brandId">Optional brand ID to filter by</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of models</returns>
+    /// <response code="200">Returns the paginated list of models</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("models")]
+    [ProducesResponseType(typeof(PagedResult<ModelDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<ModelDto>>> GetModels(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] Guid? brandId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = brandId.HasValue
+                ? await _modelService.GetModelsByBrandIdAsync(brandId.Value, page, pageSize, cancellationToken)
+                : await _modelService.GetModelsAsync(page, pageSize, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving models.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving models.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a model by ID.
+    /// </summary>
+    /// <param name="id">Model ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Model information</returns>
+    /// <response code="200">Returns the model</response>
+    /// <response code="404">If the model is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("models/{id:guid}")]
+    [ProducesResponseType(typeof(ModelDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ModelDto>> GetModel(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var model = await _modelService.GetModelByIdAsync(id, cancellationToken);
+            if (model == null)
+                return CreateNotFoundProblem($"Model with ID {id} not found.");
+
+            return Ok(model);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving the model.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the model.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new model.
+    /// </summary>
+    /// <param name="createModelDto">Model creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created model information</returns>
+    /// <response code="201">Model created successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("models")]
+    [ProducesResponseType(typeof(ModelDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ModelDto>> CreateModel(
+        [FromBody] CreateModelDto createModelDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var model = await _modelService.CreateModelAsync(createModelDto, currentUser, cancellationToken);
+            return CreatedAtAction(nameof(GetModel), new { id = model.Id }, model);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while creating the model.");
+            return CreateInternalServerErrorProblem("An error occurred while creating the model.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing model.
+    /// </summary>
+    /// <param name="id">Model ID</param>
+    /// <param name="updateModelDto">Model update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated model information</returns>
+    /// <response code="200">Model updated successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="404">If the model is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPut("models/{id:guid}")]
+    [ProducesResponseType(typeof(ModelDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ModelDto>> UpdateModel(
+        Guid id,
+        [FromBody] UpdateModelDto updateModelDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var model = await _modelService.UpdateModelAsync(id, updateModelDto, currentUser, cancellationToken);
+            if (model == null)
+                return CreateNotFoundProblem($"Model with ID {id} not found.");
+
+            return Ok(model);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while updating the model.");
+            return CreateInternalServerErrorProblem("An error occurred while updating the model.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a model.
+    /// </summary>
+    /// <param name="id">Model ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content</returns>
+    /// <response code="204">Model deleted successfully</response>
+    /// <response code="404">If the model is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("models/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteModel(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var success = await _modelService.DeleteModelAsync(id, currentUser, cancellationToken);
+            if (!success)
+                return CreateNotFoundProblem($"Model with ID {id} not found.");
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while deleting the model.");
+            return CreateInternalServerErrorProblem("An error occurred while deleting the model.", ex);
+        }
+    }
+
+    #endregion
+
+    #region Product Suppliers Management
+
+    /// <summary>
+    /// Gets all product-supplier relationships with optional pagination.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="productId">Optional product ID to filter by</param>
+    /// <param name="supplierId">Optional supplier ID to filter by</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of product suppliers</returns>
+    /// <response code="200">Returns the paginated list of product suppliers</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("product-suppliers")]
+    [ProducesResponseType(typeof(PagedResult<ProductSupplierDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<ProductSupplierDto>>> GetProductSuppliers(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] Guid? productId = null,
+        [FromQuery] Guid? supplierId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            if (supplierId.HasValue)
+            {
+                var result = await _productSupplierService.GetProductSuppliersBySupplierIdAsync(supplierId.Value, page, pageSize, cancellationToken);
+                return Ok(result);
+            }
+            else if (productId.HasValue)
+            {
+                var items = await _productSupplierService.GetProductSuppliersByProductIdAsync(productId.Value, cancellationToken);
+                return Ok(new PagedResult<ProductSupplierDto>
+                {
+                    Items = items,
+                    Page = 1,
+                    PageSize = items.Count(),
+                    TotalCount = items.Count()
+                });
+            }
+            else
+            {
+                var result = await _productSupplierService.GetProductSuppliersAsync(page, pageSize, cancellationToken);
+                return Ok(result);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving product suppliers.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving product suppliers.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a product-supplier relationship by ID.
+    /// </summary>
+    /// <param name="id">Product supplier ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Product supplier information</returns>
+    /// <response code="200">Returns the product supplier</response>
+    /// <response code="404">If the product supplier is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("product-suppliers/{id:guid}")]
+    [ProducesResponseType(typeof(ProductSupplierDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ProductSupplierDto>> GetProductSupplier(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var productSupplier = await _productSupplierService.GetProductSupplierByIdAsync(id, cancellationToken);
+            if (productSupplier == null)
+                return CreateNotFoundProblem($"Product supplier with ID {id} not found.");
+
+            return Ok(productSupplier);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving the product supplier.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the product supplier.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets the preferred supplier for a product.
+    /// </summary>
+    /// <param name="productId">Product ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Preferred supplier information</returns>
+    /// <response code="200">Returns the preferred supplier</response>
+    /// <response code="404">If no preferred supplier is found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("products/{productId:guid}/preferred-supplier")]
+    [ProducesResponseType(typeof(ProductSupplierDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ProductSupplierDto>> GetPreferredSupplier(
+        Guid productId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var preferredSupplier = await _productSupplierService.GetPreferredSupplierAsync(productId, cancellationToken);
+            if (preferredSupplier == null)
+                return CreateNotFoundProblem($"No preferred supplier found for product with ID {productId}.");
+
+            return Ok(preferredSupplier);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving the preferred supplier.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the preferred supplier.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new product-supplier relationship.
+    /// Enforces business rules (preferred uniqueness, bundle restriction, supplier type validation).
+    /// </summary>
+    /// <param name="createProductSupplierDto">Product supplier creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created product supplier information</returns>
+    /// <response code="201">Product supplier created successfully</response>
+    /// <response code="400">If the input data is invalid or business rules are violated</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("product-suppliers")]
+    [ProducesResponseType(typeof(ProductSupplierDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ProductSupplierDto>> CreateProductSupplier(
+        [FromBody] CreateProductSupplierDto createProductSupplierDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var productSupplier = await _productSupplierService.CreateProductSupplierAsync(createProductSupplierDto, currentUser, cancellationToken);
+            return CreatedAtAction(nameof(GetProductSupplier), new { id = productSupplier.Id }, productSupplier);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Business rule violation occurred during request processing");
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while creating the product supplier.");
+            return CreateInternalServerErrorProblem("An error occurred while creating the product supplier.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing product-supplier relationship.
+    /// Enforces business rules (preferred uniqueness, bundle restriction, supplier type validation).
+    /// </summary>
+    /// <param name="id">Product supplier ID</param>
+    /// <param name="updateProductSupplierDto">Product supplier update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated product supplier information</returns>
+    /// <response code="200">Product supplier updated successfully</response>
+    /// <response code="400">If the input data is invalid or business rules are violated</response>
+    /// <response code="404">If the product supplier is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPut("product-suppliers/{id:guid}")]
+    [ProducesResponseType(typeof(ProductSupplierDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ProductSupplierDto>> UpdateProductSupplier(
+        Guid id,
+        [FromBody] UpdateProductSupplierDto updateProductSupplierDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var productSupplier = await _productSupplierService.UpdateProductSupplierAsync(id, updateProductSupplierDto, currentUser, cancellationToken);
+            if (productSupplier == null)
+                return CreateNotFoundProblem($"Product supplier with ID {id} not found.");
+
+            return Ok(productSupplier);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Business rule violation occurred during request processing");
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while updating the product supplier.");
+            return CreateInternalServerErrorProblem("An error occurred while updating the product supplier.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a product-supplier relationship.
+    /// </summary>
+    /// <param name="id">Product supplier ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content</returns>
+    /// <response code="204">Product supplier deleted successfully</response>
+    /// <response code="404">If the product supplier is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("product-suppliers/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteProductSupplier(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var success = await _productSupplierService.DeleteProductSupplierAsync(id, currentUser, cancellationToken);
+            if (!success)
+                return CreateNotFoundProblem($"Product supplier with ID {id} not found.");
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while deleting the product supplier.");
+            return CreateInternalServerErrorProblem("An error occurred while deleting the product supplier.", ex);
         }
     }
 
