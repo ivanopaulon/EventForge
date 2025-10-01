@@ -140,3 +140,13 @@ public class StoreUser : AuditableEntity
     [Display(Name = "Shift ID", Description = "Current shift identifier.")]
     public Guid? ShiftId { get; set; }
 }
+
+/// <summary>
+/// Status for the cashier.
+/// </summary>
+public enum CashierStatus
+{
+    Active,      // Cashier is active and usable
+    Suspended,   // Temporarily suspended
+    Deleted      // Cashier is deleted/disabled
+}
