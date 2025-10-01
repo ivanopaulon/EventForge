@@ -75,13 +75,24 @@
 
 | Issue | Titolo | Priorità | Stato Implementazione | Analisi | Effort | ETA |
 |-------|--------|----------|----------------------|---------|--------|-----|
-| #239 | Tracciabilità prodotti - migliorie future | 🟢 MEDIA | 🔴 0% NON IMPLEMENTATO | ⚠️ Parziale | 8-10 settimane | Q3-Q4 2025 |
-| #240 | Tracciabilità avanzata estensioni | 🟢 MEDIA | 🔴 0% NON IMPLEMENTATO | ⚠️ Parziale | 6-8 settimane | Q4 2025 |
-| #241 | Gestione stock e magazzini avanzata | 🟢 MEDIA | 🔴 0% NON IMPLEMENTATO | ⚠️ Parziale | 8-10 settimane | Q4 2025 |
-| #242 | Integrazione tracciabilità-magazzino | 🟢 MEDIA | 🔴 0% NON IMPLEMENTATO | ⚠️ Parziale | 6-8 settimane | Q4 2025 |
-| #243 | Funzionalità complementari tracciabilità | 🔵 BASSA | 🔴 0% NON IMPLEMENTATO | ⚠️ Parziale | 10+ settimane | 2026+ |
+| #239 | Tracciabilità prodotti - migliorie future | 🟢 MEDIA | 🟢 95% IMPLEMENTATO | ✅ Completa | 2 settimane | Q1 2025 |
+| #240 | Tracciabilità avanzata estensioni | 🟢 MEDIA | 🟢 95% IMPLEMENTATO | ✅ Completa | 1 settimana | Q1 2025 |
+| #241 | Gestione stock e magazzini avanzata | 🟢 MEDIA | 🟢 95% IMPLEMENTATO | ✅ Completa | 1 settimana | Q1 2025 |
+| #242 | Integrazione tracciabilità-magazzino | 🟢 MEDIA | 🟢 95% IMPLEMENTATO | ✅ Completa | 1 settimana | Q1 2025 |
+| #243 | Funzionalità complementari tracciabilità | 🔵 BASSA | 🟡 60% IMPLEMENTATO | ✅ Completa | 4 settimane | Q2 2025 |
 
 **Descrizione**: Sistema completo di tracciabilità prodotti (lotti/matricole), gestione magazzini avanzata, locations, inventory.
+
+**Stato Attuale**: ✅ **Sistema quasi completamente implementato**
+- ✅ Entità complete (Lot, Serial, Stock, StockMovement, StockAlert, QualityControl, MaintenanceRecord)
+- ✅ Servizi completi (LotService, SerialService, StockService, StockMovementService, StockAlertService)
+- ✅ API REST complete in WarehouseManagementController
+- ✅ Tracciabilità lotti e matricole con barcode/RFID
+- ✅ Movimenti magazzino (inbound, outbound, transfer, adjustment)
+- ✅ Sistema di allerta automatica (low stock, overstock, expiry)
+- ✅ Quality control e manutenzione
+- ✅ FEFO (First-Expired-First-Out) support
+- ⚠️ Dashboard e reportistica avanzata da completare
 
 ---
 

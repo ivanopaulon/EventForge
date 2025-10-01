@@ -184,6 +184,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ILotService, LotService>();
         services.AddScoped<IStockService, StockService>();
         services.AddScoped<ISerialService, SerialService>();
+        services.AddScoped<IStockMovementService, StockMovementService>();
+        services.AddScoped<IStockAlertService, StockAlertService>();
 
         // Register promotion services
         services.AddScoped<IPromotionService, PromotionService>();
