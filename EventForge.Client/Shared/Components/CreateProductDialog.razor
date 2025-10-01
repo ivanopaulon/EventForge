@@ -401,6 +401,39 @@
             if (result != null)
             {
                 await ClientLogService.LogInformationAsync($"CreateProductDialog: Product created successfully with ID {result.Id}", "CreateProductDialog");
+                
+                // Create a ProductCode entry for the barcode if provided
+                if (!string.IsNullOrWhiteSpace(Barcode))
+                {
+                    await ClientLogService.LogDebugAsync($"CreateProductDialog: Creating ProductCode entry for barcode {Barcode}", "CreateProductDialog");
+                    try
+                    {
+                        var createCodeDto = new CreateProductCodeDto
+                        {
+                            ProductId = result.Id,
+                            Code = Barcode,
+                            CodeType = "Barcode",
+                            Status = ProductCodeStatus.Active
+                        };
+                        
+                        var codeResult = await ProductService.CreateProductCodeAsync(createCodeDto);
+                        if (codeResult != null)
+                        {
+                            await ClientLogService.LogInformationAsync($"CreateProductDialog: ProductCode created successfully with ID {codeResult.Id}", "CreateProductDialog");
+                        }
+                        else
+                        {
+                            await ClientLogService.LogWarningAsync($"CreateProductDialog: Failed to create ProductCode for barcode {Barcode}", "CreateProductDialog");
+                        }
+                    }
+                    catch (Exception codeEx)
+                    {
+                        // Log the error but don't fail the entire operation
+                        Logger.LogError(codeEx, "Error creating product code for barcode {Barcode}", Barcode);
+                        await ClientLogService.LogErrorAsync($"CreateProductDialog: Exception creating ProductCode: {codeEx.Message}", codeEx, "CreateProductDialog");
+                    }
+                }
+                
                 Snackbar.Add(TranslationService.GetTranslation("products.createSuccess", "Prodotto creato con successo"), Severity.Success);
                 MudDialog.Close(DialogResult.Ok(result));
             }

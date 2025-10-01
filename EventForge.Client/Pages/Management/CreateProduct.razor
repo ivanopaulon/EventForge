@@ -143,6 +143,37 @@
 
             if (result != null)
             {
+                // Create a ProductCode entry for the barcode if provided
+                if (!string.IsNullOrWhiteSpace(Barcode))
+                {
+                    Logger.LogInformation("Creating ProductCode entry for barcode {Barcode}", Barcode);
+                    try
+                    {
+                        var createCodeDto = new CreateProductCodeDto
+                        {
+                            ProductId = result.Id,
+                            Code = Barcode,
+                            CodeType = "Barcode",
+                            Status = ProductCodeStatus.Active
+                        };
+                        
+                        var codeResult = await ProductService.CreateProductCodeAsync(createCodeDto);
+                        if (codeResult != null)
+                        {
+                            Logger.LogInformation("ProductCode created successfully with ID {CodeId}", codeResult.Id);
+                        }
+                        else
+                        {
+                            Logger.LogWarning("Failed to create ProductCode for barcode {Barcode}", Barcode);
+                        }
+                    }
+                    catch (Exception codeEx)
+                    {
+                        // Log the error but don't fail the entire operation
+                        Logger.LogError(codeEx, "Error creating product code for barcode {Barcode}", Barcode);
+                    }
+                }
+                
                 Snackbar.Add(TranslationService.GetTranslation("products.createSuccess", "Prodotto creato con successo"), Severity.Success);
                 // Navigate back to inventory procedure or product list
                 NavigationManager.NavigateTo("/warehouse/inventory-procedure");
