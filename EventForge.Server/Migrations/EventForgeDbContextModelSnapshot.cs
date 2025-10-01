@@ -6001,6 +6001,10 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("CurrencyCode")
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
@@ -6012,18 +6016,37 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("IPAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<Guid?>("ImageDocumentId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsOnline")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime?>("LastOpenedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LastSyncAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Location")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal?>("LocationLatitude")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("LocationLongitude")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
@@ -6052,7 +6075,18 @@ namespace EventForge.Server.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("TerminalIdentifier")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("TimeZone")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("ImageDocumentId")
+                        .HasDatabaseName("IX_StorePos_ImageDocumentId");
 
                     b.ToTable("StorePoses");
                 });
@@ -6084,13 +6118,22 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("ExternalId")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsOnShift")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LastPasswordChangedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("ModifiedAt")
@@ -6113,6 +6156,19 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<bool>("PhotoConsent")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("PhotoConsentAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("PhotoDocumentId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Role")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -6122,11 +6178,17 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
+                    b.Property<Guid?>("ShiftId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -6136,6 +6198,9 @@ namespace EventForge.Server.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CashierGroupId");
+
+                    b.HasIndex("PhotoDocumentId")
+                        .HasDatabaseName("IX_StoreUser_PhotoDocumentId");
 
                     b.ToTable("StoreUsers");
                 });
@@ -6150,6 +6215,10 @@ namespace EventForge.Server.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ColorHex")
+                        .HasMaxLength(7)
+                        .HasColumnType("nvarchar(7)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -6172,8 +6241,17 @@ namespace EventForge.Server.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
+
+                    b.Property<bool>("IsSystemGroup")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("LogoDocumentId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
@@ -6200,6 +6278,9 @@ namespace EventForge.Server.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("LogoDocumentId")
+                        .HasDatabaseName("IX_StoreUserGroup_LogoDocumentId");
+
                     b.ToTable("StoreUserGroups");
                 });
 
@@ -6208,6 +6289,10 @@ namespace EventForge.Server.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Category")
                         .HasMaxLength(50)
@@ -6225,6 +6310,9 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("DefaultAssigned")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
@@ -6242,6 +6330,9 @@ namespace EventForge.Server.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsSystemPrivilege")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
 
@@ -6253,6 +6344,14 @@ namespace EventForge.Server.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("PermissionKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Resource")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -8687,13 +8786,40 @@ namespace EventForge.Server.Migrations
                     b.Navigation("TeamMember");
                 });
 
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.StorePos", b =>
+                {
+                    b.HasOne("EventForge.Server.Data.Entities.Teams.DocumentReference", "ImageDocument")
+                        .WithMany()
+                        .HasForeignKey("ImageDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ImageDocument");
+                });
+
             modelBuilder.Entity("EventForge.Server.Data.Entities.Store.StoreUser", b =>
                 {
                     b.HasOne("EventForge.Server.Data.Entities.Store.StoreUserGroup", "CashierGroup")
                         .WithMany("Cashiers")
                         .HasForeignKey("CashierGroupId");
 
+                    b.HasOne("EventForge.Server.Data.Entities.Teams.DocumentReference", "PhotoDocument")
+                        .WithMany()
+                        .HasForeignKey("PhotoDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("CashierGroup");
+
+                    b.Navigation("PhotoDocument");
+                });
+
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.StoreUserGroup", b =>
+                {
+                    b.HasOne("EventForge.Server.Data.Entities.Teams.DocumentReference", "LogoDocument")
+                        .WithMany()
+                        .HasForeignKey("LogoDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("LogoDocument");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Teams.InsurancePolicy", b =>

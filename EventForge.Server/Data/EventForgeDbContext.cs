@@ -281,6 +281,42 @@ public class EventForgeDbContext : DbContext
             .WithMany(g => g.Cashiers)
             .HasForeignKey(u => u.CashierGroupId);
 
+        // StoreUser → DocumentReference relationship (for user photos) - Issue #315
+        modelBuilder.Entity<StoreUser>()
+            .HasOne(u => u.PhotoDocument)
+            .WithMany()
+            .HasForeignKey(u => u.PhotoDocumentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // StoreUser photo document index
+        modelBuilder.Entity<StoreUser>()
+            .HasIndex(u => u.PhotoDocumentId)
+            .HasDatabaseName("IX_StoreUser_PhotoDocumentId");
+
+        // StoreUserGroup → DocumentReference relationship (for group logos) - Issue #315
+        modelBuilder.Entity<StoreUserGroup>()
+            .HasOne(g => g.LogoDocument)
+            .WithMany()
+            .HasForeignKey(g => g.LogoDocumentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // StoreUserGroup logo document index
+        modelBuilder.Entity<StoreUserGroup>()
+            .HasIndex(g => g.LogoDocumentId)
+            .HasDatabaseName("IX_StoreUserGroup_LogoDocumentId");
+
+        // StorePos → DocumentReference relationship (for POS images) - Issue #315
+        modelBuilder.Entity<StorePos>()
+            .HasOne(p => p.ImageDocument)
+            .WithMany()
+            .HasForeignKey(p => p.ImageDocumentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // StorePos image document index
+        modelBuilder.Entity<StorePos>()
+            .HasIndex(p => p.ImageDocumentId)
+            .HasDatabaseName("IX_StorePos_ImageDocumentId");
+
         // Station → Printer
         modelBuilder.Entity<Printer>()
             .HasOne(p => p.Station)

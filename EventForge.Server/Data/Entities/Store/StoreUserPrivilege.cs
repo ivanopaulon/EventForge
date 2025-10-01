@@ -56,6 +56,41 @@ public class StoreUserPrivilege : AuditableEntity
     /// </summary>
     [Display(Name = "Groups", Description = "Groups that have this privilege.")]
     public ICollection<StoreUserGroup> Groups { get; set; } = new List<StoreUserGroup>();
+
+    // --- Issue #315: Permission System Fields ---
+
+    /// <summary>
+    /// Indicates if this is a system-defined privilege (cannot be deleted).
+    /// </summary>
+    [Display(Name = "Is System Privilege", Description = "System-defined privilege (protected).")]
+    public bool IsSystemPrivilege { get; set; } = false;
+
+    /// <summary>
+    /// Indicates if this privilege should be assigned by default to new groups.
+    /// </summary>
+    [Display(Name = "Default Assigned", Description = "Assigned by default to new groups.")]
+    public bool DefaultAssigned { get; set; } = false;
+
+    /// <summary>
+    /// Resource that this privilege controls access to (e.g., "products", "sales", "reports").
+    /// </summary>
+    [MaxLength(100, ErrorMessage = "The resource cannot exceed 100 characters.")]
+    [Display(Name = "Resource", Description = "Resource controlled by this privilege.")]
+    public string? Resource { get; set; }
+
+    /// <summary>
+    /// Action that this privilege permits (e.g., "read", "write", "delete", "manage").
+    /// </summary>
+    [MaxLength(50, ErrorMessage = "The action cannot exceed 50 characters.")]
+    [Display(Name = "Action", Description = "Action permitted by this privilege.")]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Unique permission key in dot notation (e.g., "store.users.manage", "sales.refunds.process").
+    /// </summary>
+    [MaxLength(200, ErrorMessage = "The permission key cannot exceed 200 characters.")]
+    [Display(Name = "Permission Key", Description = "Unique permission key (e.g., store.users.manage).")]
+    public string? PermissionKey { get; set; }
 }
 
 /// <summary>
