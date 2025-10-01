@@ -6,21 +6,21 @@ using System.Text.Json;
 namespace EventForge.Client.Services;
 
 /// <summary>
-/// Implementation of storage location management service using HTTP client.
+/// Implementation of warehouse management service using HTTP client.
 /// </summary>
-public class StorageLocationService : IStorageLocationService
+public class WarehouseService : IWarehouseService
 {
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ILogger<StorageLocationService> _logger;
-    private const string BaseUrl = "api/v1/warehouse/locations";
+    private readonly ILogger<WarehouseService> _logger;
+    private const string BaseUrl = "api/v1/warehouse/facilities";
 
-    public StorageLocationService(IHttpClientFactory httpClientFactory, ILogger<StorageLocationService> logger)
+    public WarehouseService(IHttpClientFactory httpClientFactory, ILogger<WarehouseService> logger)
     {
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<PagedResult<StorageLocationDto>?> GetStorageLocationsAsync(int page = 1, int pageSize = 100)
+    public async Task<PagedResult<StorageFacilityDto>?> GetStorageFacilitiesAsync(int page = 1, int pageSize = 100)
     {
         var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
@@ -30,23 +30,23 @@ public class StorageLocationService : IStorageLocationService
             if (response.IsSuccessStatusCode)
             {
                 var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<PagedResult<StorageLocationDto>>(json, new JsonSerializerOptions
+                return JsonSerializer.Deserialize<PagedResult<StorageFacilityDto>>(json, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
             }
 
-            _logger.LogError("Failed to retrieve storage locations. Status: {StatusCode}", response.StatusCode);
+            _logger.LogError("Failed to retrieve storage facilities. Status: {StatusCode}", response.StatusCode);
             return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving storage locations");
+            _logger.LogError(ex, "Error retrieving storage facilities");
             return null;
         }
     }
 
-    public async Task<StorageLocationDto?> GetStorageLocationAsync(Guid id)
+    public async Task<StorageFacilityDto?> GetStorageFacilityAsync(Guid id)
     {
         var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
@@ -56,23 +56,23 @@ public class StorageLocationService : IStorageLocationService
             if (response.IsSuccessStatusCode)
             {
                 var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<StorageLocationDto>(json, new JsonSerializerOptions
+                return JsonSerializer.Deserialize<StorageFacilityDto>(json, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
             }
 
-            _logger.LogError("Failed to retrieve storage location {LocationId}. Status: {StatusCode}", id, response.StatusCode);
+            _logger.LogError("Failed to retrieve storage facility {FacilityId}. Status: {StatusCode}", id, response.StatusCode);
             return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving storage location {LocationId}", id);
+            _logger.LogError(ex, "Error retrieving storage facility {FacilityId}", id);
             return null;
         }
     }
 
-    public async Task<StorageLocationDto?> CreateStorageLocationAsync(CreateStorageLocationDto dto)
+    public async Task<StorageFacilityDto?> CreateStorageFacilityAsync(CreateStorageFacilityDto dto)
     {
         var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
@@ -84,23 +84,23 @@ public class StorageLocationService : IStorageLocationService
             if (response.IsSuccessStatusCode)
             {
                 var responseJson = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<StorageLocationDto>(responseJson, new JsonSerializerOptions
+                return JsonSerializer.Deserialize<StorageFacilityDto>(responseJson, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
             }
 
-            _logger.LogError("Failed to create storage location. Status: {StatusCode}", response.StatusCode);
+            _logger.LogError("Failed to create storage facility. Status: {StatusCode}", response.StatusCode);
             return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating storage location");
+            _logger.LogError(ex, "Error creating storage facility");
             return null;
         }
     }
 
-    public async Task<StorageLocationDto?> UpdateStorageLocationAsync(Guid id, UpdateStorageLocationDto dto)
+    public async Task<StorageFacilityDto?> UpdateStorageFacilityAsync(Guid id, UpdateStorageFacilityDto dto)
     {
         var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
@@ -112,23 +112,23 @@ public class StorageLocationService : IStorageLocationService
             if (response.IsSuccessStatusCode)
             {
                 var responseJson = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<StorageLocationDto>(responseJson, new JsonSerializerOptions
+                return JsonSerializer.Deserialize<StorageFacilityDto>(responseJson, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
             }
 
-            _logger.LogError("Failed to update storage location {LocationId}. Status: {StatusCode}", id, response.StatusCode);
+            _logger.LogError("Failed to update storage facility {FacilityId}. Status: {StatusCode}", id, response.StatusCode);
             return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating storage location {LocationId}", id);
+            _logger.LogError(ex, "Error updating storage facility {FacilityId}", id);
             return null;
         }
     }
 
-    public async Task<bool> DeleteStorageLocationAsync(Guid id)
+    public async Task<bool> DeleteStorageFacilityAsync(Guid id)
     {
         var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
@@ -140,12 +140,12 @@ public class StorageLocationService : IStorageLocationService
                 return true;
             }
 
-            _logger.LogError("Failed to delete storage location {LocationId}. Status: {StatusCode}", id, response.StatusCode);
+            _logger.LogError("Failed to delete storage facility {FacilityId}. Status: {StatusCode}", id, response.StatusCode);
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting storage location {LocationId}", id);
+            _logger.LogError(ex, "Error deleting storage facility {FacilityId}", id);
             return false;
         }
     }
