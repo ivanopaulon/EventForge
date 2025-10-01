@@ -46,6 +46,32 @@ public class StorageLocationService : IStorageLocationService
         }
     }
 
+    public async Task<PagedResult<StorageLocationDto>?> GetStorageLocationsByWarehouseAsync(Guid warehouseId, int page = 1, int pageSize = 100)
+    {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        try
+        {
+            var response = await httpClient.GetAsync($"{BaseUrl}?facilityId={warehouseId}&page={page}&pageSize={pageSize}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<PagedResult<StorageLocationDto>>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+
+            _logger.LogError("Failed to retrieve storage locations for warehouse {WarehouseId}. Status: {StatusCode}", warehouseId, response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving storage locations for warehouse {WarehouseId}", warehouseId);
+            return null;
+        }
+    }
+
     public async Task<StorageLocationDto?> GetStorageLocationAsync(Guid id)
     {
         var httpClient = _httpClientFactory.CreateClient("ApiClient");

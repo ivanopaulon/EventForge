@@ -14,6 +14,11 @@ public interface IStorageLocationService
     Task<PagedResult<StorageLocationDto>?> GetStorageLocationsAsync(int page = 1, int pageSize = 100);
     
     /// <summary>
+    /// Gets storage locations for a specific warehouse with pagination.
+    /// </summary>
+    Task<PagedResult<StorageLocationDto>?> GetStorageLocationsByWarehouseAsync(Guid warehouseId, int page = 1, int pageSize = 100);
+    
+    /// <summary>
     /// Gets a specific storage location by ID.
     /// </summary>
     Task<StorageLocationDto?> GetStorageLocationAsync(Guid id);
