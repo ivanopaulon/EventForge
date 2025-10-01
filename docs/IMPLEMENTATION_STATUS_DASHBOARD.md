@@ -109,15 +109,105 @@
 
 ### 4. 📄 **Document Management Avanzato**
 
+> **⚠️ AGGIORNAMENTO ANALISI GENNAIO 2025**: Stato reale MOLTO superiore a quanto documentato. Vedere `/docs/DOCUMENT_MANAGEMENT_DETAILED_ANALYSIS.md`
+
 | Issue | Stato | Priorità | Completamento | ETA |
 |-------|-------|----------|---------------|-----|
-| #248 | 🟡 BASE ESISTENTE | MEDIA | 30% | Q4 2025 |
-| #250 | 🔴 NON IMPLEMENTATO | MEDIA | 0% | Q4 2025 |
-| #251 | 🔴 NON IMPLEMENTATO | MEDIA | 0% | Q4 2025 |
-| #253 | 🔴 NON IMPLEMENTATO | BASSA | 0% | Q2 2026 |
-| #255 | 🔴 NON IMPLEMENTATO | BASSA | 0% | Q1 2026 |
-| #256 | 🔴 NON IMPLEMENTATO | BASSA | 0% | Q1 2026 |
-| #257 | 🔴 NON IMPLEMENTATO | BASSA | 0% | Q2 2026 |
+| #248 | ✅ COMPLETATO | ALTA | **100%** | ✅ COMPLETATO |
+| #250 | 🟢 QUASI COMPLETO | ALTA | **90%** | Q1 2025 |
+| #251 | 🟢 QUASI COMPLETO | ALTA | **95%** | Q1 2025 |
+| #253 | 🔴 ANALYTICS ONLY | BASSA | **10%** | Q3+ 2026 |
+| #255 | 🟡 BACKEND COMPLETO | MEDIA | **70%** | Q2 2025 |
+| #256 | 🔴 FOUNDATION ONLY | BASSA | **15%** | Q3+ 2025 |
+| #257 | 🟡 ACCESS CONTROL OK | MEDIA | **40%** | Q2 2025 |
+
+**📊 Breakdown Implementazione Dettagliato:**
+
+**Issue #248 - Document Management Base** ✅ **100% COMPLETATO**
+- [x] DocumentHeader entity (30+ campi) - 100%
+- [x] DocumentRow entity completa - 100%
+- [x] DocumentType configurabile - 100%
+- [x] API REST CRUD (10 endpoints) - 100%
+- [x] Workflow approvazione/chiusura - 100%
+- [x] Calcolo totali automatico - 100%
+- [x] Relazioni magazzino/business party - 100%
+
+**Issue #250 - Allegati Evoluti** 🟢 **90% COMPLETATO**
+- [x] DocumentAttachment entity completa - 100%
+- [x] Versioning (Version, PreviousVersionId, NewerVersions) - 100%
+- [x] Firma digitale (IsSigned, SignatureInfo, SignedAt, SignedBy) - 100%
+- [x] Multi-formato (MIME type, 8 categorie) - 100%
+- [x] Cloud storage (StoragePath, Provider, ExternalRef) - 100%
+- [x] Access control (4 livelli) - 100%
+- [x] API 11 endpoints (upload, versioning, sign, download) - 100%
+- [x] IFileStorageService + LocalFileStorageService - 100%
+- [x] IAntivirusScanService per sicurezza - 100%
+- [ ] OCR automatico (Azure Vision/AWS Textract) - 0%
+
+**Issue #251 - Collaborazione** 🟢 **95% COMPLETATO**
+- [x] DocumentComment entity (25+ campi) - 100%
+- [x] Threading (ParentCommentId, Replies) - 100%
+- [x] Task assignment (AssignedTo, DueDate) - 100%
+- [x] 8 Comment types - 100%
+- [x] 4 Priority levels, 5 Status states - 100%
+- [x] Mentions (MentionedUsers) - 100%
+- [x] 5 Visibility levels - 100%
+- [x] IsPinned, IsPrivate, Tags - 100%
+- [x] API 10 endpoints (CRUD, resolve, reopen) - 100%
+- [x] DocumentCommentService completo - 100%
+- [ ] Real-time chat (SignalR integration) - 0%
+- [ ] Timeline UI component (frontend) - 0%
+
+**Issue #253 - Document Intelligence (AI)** 🔴 **10% COMPLETATO**
+- [x] DocumentAnalytics entity (50+ metriche) - 100%
+- [x] DocumentAnalyticsSummary aggregation - 100%
+- [x] DocumentAnalyticsService - 100%
+- [ ] AI suggerimenti (Azure ML/OpenAI) - 0%
+- [ ] Automazione ML - 0%
+- [ ] Analisi predittiva - 0%
+
+**Issue #255 - Layout/Export** 🟡 **70% COMPLETATO**
+- [x] DocumentTemplate entity - 100%
+- [x] Template configuration JSON - 100%
+- [x] Default values (7 campi) - 100%
+- [x] Usage analytics - 100%
+- [x] API apply template, preview - 100%
+- [x] DocumentTemplateService - 100%
+- [ ] PDF export (iTextSharp/PdfSharp) - 0%
+- [ ] Excel export (EPPlus/ClosedXML) - 0%
+- [ ] HTML export (Razor) - 0%
+- [ ] Word export - 0%
+- [ ] Visual editor UI (frontend) - 0%
+
+**Issue #256 - Integrazione Esterna** 🔴 **15% COMPLETATO**
+- [x] NotificationSettings in Workflow - 100%
+- [x] TriggerConditions in Workflow - 100%
+- [x] ExternalSystems tracking in Analytics - 100%
+- [ ] Webhook system - 0%
+- [ ] ERP/CRM sync adapters - 0%
+- [ ] Sistema fiscale (SDI, FE) - 0%
+
+**Issue #257 - Privacy/Sicurezza** 🟡 **40% COMPLETATO**
+- [x] AttachmentAccessLevel (4 livelli) - 100%
+- [x] CommentVisibility (5 livelli) - 100%
+- [x] AuditableEntity su tutte entità - 100%
+- [x] CreatedBy/UpdatedBy tracking - 100%
+- [x] IAuditLogService - 100%
+- [ ] Crittografia at-rest (Azure Key Vault) - 0%
+- [ ] GDPR retention policies - 0%
+- [ ] Access logging dettagliato - 0%
+
+**🎯 Inventario Completo Implementato:**
+- **Entità**: 13 entità documento complete
+- **Servizi**: 27 file di servizi
+- **Controllers**: 5 controllers (3,392 LOC)
+- **API Endpoints**: 40+ endpoints
+- **Media Implementazione**: **60%** (non 30% come precedentemente documentato)
+
+**🔗 Documentazione Completa:**
+- Analisi dettagliata: `/docs/DOCUMENT_MANAGEMENT_DETAILED_ANALYSIS.md`
+- Evidenze tecniche: 13 entità, 27 servizi, 40+ endpoints
+- Gap analysis completo per ogni issue
 
 **📊 Features Implementate:**
 - [x] DocumentHeader/DocumentRow base (100%)
