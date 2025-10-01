@@ -109,6 +109,16 @@
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.vatRateManagement", "Gestione Aliquote IVA")
                 </MudNavLink>
+                <MudNavLink Href="/warehouse/facilities" 
+                            Icon="@Icons.Material.Outlined.Warehouse" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.warehouseManagement", "Gestione Magazzini")
+                </MudNavLink>
+                <MudNavLink Href="/warehouse/locations" 
+                            Icon="@Icons.Material.Outlined.LocationOn" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.storageLocationManagement", "Gestione Ubicazioni")
+                </MudNavLink>
             </MudNavGroup>
         }
         
