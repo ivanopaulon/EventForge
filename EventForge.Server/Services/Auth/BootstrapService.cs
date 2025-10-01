@@ -417,14 +417,44 @@ public class BootstrapService : IBootstrapService
             // Define the expected features configuration (source of truth)
             var expectedFeatures = new[]
             {
+                // Event Management
                 new { Name = "BasicEventManagement", DisplayName = "Gestione Eventi Base", Description = "Funzionalità base per la gestione degli eventi", Category = "Events" },
+                
+                // Team Management
                 new { Name = "BasicTeamManagement", DisplayName = "Gestione Team Base", Description = "Funzionalità base per la gestione dei team", Category = "Teams" },
-                new { Name = "ProductManagement", DisplayName = "Gestione Prodotti", Description = "Funzionalità complete per la gestione dei prodotti", Category = "Products" },
+                
+                // Product & Warehouse Management
+                new { Name = "ProductManagement", DisplayName = "Gestione Prodotti", Description = "Funzionalità complete per la gestione dei prodotti e magazzino", Category = "Products" },
+                
+                // Document Management
+                new { Name = "DocumentManagement", DisplayName = "Gestione Documenti", Description = "Funzionalità complete per la gestione documenti, ricorrenze e riferimenti", Category = "Documents" },
+                
+                // Financial Management
+                new { Name = "FinancialManagement", DisplayName = "Gestione Finanziaria", Description = "Gestione banche, termini di pagamento e aliquote IVA", Category = "Financial" },
+                
+                // Entity Management
+                new { Name = "EntityManagement", DisplayName = "Gestione Entità", Description = "Gestione indirizzi, contatti e nodi di classificazione", Category = "Entities" },
+                
+                // Reporting
                 new { Name = "BasicReporting", DisplayName = "Report Base", Description = "Funzionalità di reporting standard", Category = "Reports" },
                 new { Name = "AdvancedReporting", DisplayName = "Report Avanzati", Description = "Funzionalità di reporting avanzate e analisi", Category = "Reports" },
-                new { Name = "NotificationManagement", DisplayName = "Gestione Notifiche", Description = "Funzionalità avanzate per le notifiche", Category = "Notifications" },
+                
+                // Communication
+                new { Name = "ChatManagement", DisplayName = "Gestione Chat", Description = "Funzionalità di chat e messaggistica", Category = "Communication" },
+                new { Name = "NotificationManagement", DisplayName = "Gestione Notifiche", Description = "Funzionalità avanzate per le notifiche", Category = "Communication" },
+                
+                // Retail & POS
+                new { Name = "RetailManagement", DisplayName = "Gestione Retail", Description = "Gestione punto vendita, carrelli e stazioni", Category = "Retail" },
+                new { Name = "StoreManagement", DisplayName = "Gestione Negozi", Description = "Gestione negozi e utenti punto vendita", Category = "Retail" },
+                
+                // Printing
+                new { Name = "PrintingManagement", DisplayName = "Gestione Stampa", Description = "Funzionalità di stampa e gestione etichette", Category = "Printing" },
+                
+                // Integrations
                 new { Name = "ApiIntegrations", DisplayName = "Integrazioni API", Description = "Accesso completo alle API per integrazioni esterne", Category = "Integrations" },
                 new { Name = "CustomIntegrations", DisplayName = "Integrazioni Custom", Description = "Integrazioni personalizzate e webhook", Category = "Integrations" },
+                
+                // Security
                 new { Name = "AdvancedSecurity", DisplayName = "Sicurezza Avanzata", Description = "Funzionalità di sicurezza avanzate", Category = "Security" }
             };
 
