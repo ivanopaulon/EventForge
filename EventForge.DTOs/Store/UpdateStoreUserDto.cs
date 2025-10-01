@@ -53,8 +53,18 @@ namespace EventForge.DTOs.Store
         [Display(Name = "Cashier Group", Description = "Cashier group the operator belongs to.")]
         public Guid? CashierGroupId { get; set; }
 
+        // --- Issue #315: Extended Fields ---
+
+        /// <summary>
+        /// Phone number of the operator.
+        /// </summary>
+        [MaxLength(20, ErrorMessage = "The phone number cannot exceed 20 characters.")]
+        [Display(Name = "Phone Number", Description = "Phone number of the operator.")]
+        public string? PhoneNumber { get; set; }
+
         // Note: Removed fields that should not be updatable:
         // - Username: Should be immutable after creation for security/audit reasons
         // - PasswordHash: Should be handled through dedicated password change endpoints
+        // - PhotoConsent/PhotoConsentAt: Handled through dedicated photo upload endpoint
     }
 }
