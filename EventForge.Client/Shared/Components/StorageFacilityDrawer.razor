@@ -2,6 +2,8 @@
 @using EventForge.DTOs.Warehouse
 @using EventForge.Client.Shared.Components
 @inject IWarehouseService WarehouseService
+@inject IStorageLocationService StorageLocationService
+@inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject ILogger<StorageFacilityDrawer> Logger
 @inject ITranslationService TranslationService
@@ -321,15 +323,114 @@
                                       aria-label="@TranslationService.GetTranslation("drawer.aria.dataOraUltimaModifica")" />
                     </MudItem>
                 }
+                
+                @* Storage Locations Section *@
+                @if (_loadingLocations)
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                        <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-2">
+                            @TranslationService.GetTranslation("common.loading", "Caricamento...")
+                        </MudText>
+                    </MudItem>
+                }
+                else if (_locations?.Any() == true)
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudExpansionPanels>
+                            <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("drawer.field.totaleUbicazioni", "Ubicazioni")} ({_locations.Count()})")" IsInitiallyExpanded="true">
+                                <TitleContent>
+                                    <div class="d-flex align-center justify-space-between w-100">
+                                        <MudText>@TranslationService.GetTranslation("drawer.field.totaleUbicazioni", "Ubicazioni") (@_locations.Count())</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Add" 
+                                                      Color="Color.Primary" 
+                                                      Size="Size.Small"
+                                                      OnClick="@OpenCreateLocationDrawer"
+                                                      title="@TranslationService.GetTranslation("warehouse.createNewLocation", "Crea nuova ubicazione")" />
+                                    </div>
+                                </TitleContent>
+                                <ChildContent>
+                                    <MudTable Items="_locations" Hover="true" Dense="true" Striped="true">
+                                        <HeaderContent>
+                                            <MudTh>@TranslationService.GetTranslation("field.code", "Codice")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("field.zone", "Zona")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("field.position", "Posizione")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("field.properties", "Proprietà")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                                        </HeaderContent>
+                                        <RowTemplate>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">@context.Code</MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("field.zone", "Zona")">@(context.Zone ?? "-")</MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("field.position", "Posizione")">
+                                                @if (!string.IsNullOrWhiteSpace(context.Floor) || !string.IsNullOrWhiteSpace(context.Row))
+                                                {
+                                                    <MudText Typo="Typo.body2">
+                                                        @string.Join(" ", new[] { context.Floor, context.Row, context.Column, context.Level }.Where(s => !string.IsNullOrWhiteSpace(s)))
+                                                    </MudText>
+                                                }
+                                                else
+                                                {
+                                                    <MudText Typo="Typo.body2">-</MudText>
+                                                }
+                                            </MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("field.properties", "Proprietà")">
+                                                <div class="d-flex gap-1">
+                                                    @if (context.IsActive)
+                                                    {
+                                                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Outlined.CheckCircle">@TranslationService.GetTranslation("status.active", "Attiva")</MudChip>
+                                                    }
+                                                    @if (context.IsRefrigerated)
+                                                    {
+                                                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Outlined.AcUnit">@TranslationService.GetTranslation("status.refrigerated", "Refrigerata")</MudChip>
+                                                    }
+                                                </div>
+                                            </MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")">
+                                                <MudIconButton Icon="@Icons.Material.Outlined.Visibility" 
+                                                              Size="Size.Small" 
+                                                              OnClick="@(() => ViewLocation(context))"
+                                                              title="@TranslationService.GetTranslation("common.view", "Visualizza")" />
+                                                <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
+                                                              Size="Size.Small" 
+                                                              Color="Color.Primary"
+                                                              OnClick="@(() => EditLocation(context))"
+                                                              title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
+                                                <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
+                                                              Size="Size.Small" 
+                                                              Color="Color.Error"
+                                                              OnClick="@(() => DeleteLocation(context))"
+                                                              title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
+                                            </MudTd>
+                                        </RowTemplate>
+                                    </MudTable>
+                                </ChildContent>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudItem>
+                }
             }
         </MudGrid>
     </ViewContent>
     
 </EntityDrawer>
 
+<!-- Storage Location Drawer -->
+<StorageLocationDrawer @bind-IsOpen="_locationDrawerOpen"
+                       @bind-Mode="_locationDrawerMode"
+                       OriginalStorageLocation="_selectedLocation"
+                       DefaultWarehouseId="@OriginalStorageFacility?.Id"
+                       AllowEdit="true"
+                       OnStorageLocationCreated="@OnLocationCreated"
+                       OnStorageLocationUpdated="@OnLocationUpdated" />
+
 @code {
     private StorageFacilityDto _model = new();
     private string? _customTitle;
+    private bool _loadingLocations = false;
+    private List<StorageLocationDto>? _locations;
+    private bool _locationDrawerOpen = false;
+    private EntityDrawerMode _locationDrawerMode = EntityDrawerMode.Create;
+    private StorageLocationDto? _selectedLocation;
 
     /// <summary>
     /// Whether the drawer is open.
@@ -403,15 +504,103 @@
         else if (Mode == EntityDrawerMode.View && OriginalStorageFacility != null)
         {
             _customTitle = TranslationService.GetTranslation("drawer.title.visualizzaMagazzino", OriginalStorageFacility.Name);
+            await LoadStorageLocationsAsync();
         }
         else if (Mode == EntityDrawerMode.Create)
         {
             // Reset for create mode
             _model = new StorageFacilityDto();
             _customTitle = null;
+            _locations = null;
         }
 
         await Task.CompletedTask;
+    }
+
+    private async Task LoadStorageLocationsAsync()
+    {
+        if (OriginalStorageFacility == null) return;
+        
+        try
+        {
+            _loadingLocations = true;
+            StateHasChanged();
+            
+            var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(OriginalStorageFacility.Id, 1, 1000);
+            _locations = result?.Items.ToList();
+            
+            _loadingLocations = false;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load storage locations for warehouse {WarehouseId}", OriginalStorageFacility.Id);
+            _loadingLocations = false;
+            Snackbar.Add(TranslationService.GetTranslation("messages.loadFailed", "Errore durante il caricamento"), Severity.Warning);
+        }
+    }
+
+    private void OpenCreateLocationDrawer()
+    {
+        _locationDrawerMode = EntityDrawerMode.Create;
+        _selectedLocation = null;
+        _locationDrawerOpen = true;
+    }
+
+    private void ViewLocation(StorageLocationDto location)
+    {
+        _locationDrawerMode = EntityDrawerMode.View;
+        _selectedLocation = location;
+        _locationDrawerOpen = true;
+    }
+
+    private void EditLocation(StorageLocationDto location)
+    {
+        _locationDrawerMode = EntityDrawerMode.Edit;
+        _selectedLocation = location;
+        _locationDrawerOpen = true;
+    }
+
+    private async Task DeleteLocation(StorageLocationDto location)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("dialog.confirmDelete", "Conferma Eliminazione"),
+            TranslationService.GetTranslation("dialog.confirmDeleteLocation", $"Sei sicuro di voler eliminare l'ubicazione '{location.Code}'?"),
+            TranslationService.GetTranslation("common.yes", "Sì"),
+            TranslationService.GetTranslation("common.no", "No")
+        );
+
+        if (confirmed == true)
+        {
+            try
+            {
+                var success = await StorageLocationService.DeleteStorageLocationAsync(location.Id);
+                if (success)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminazione completata con successo"), Severity.Success);
+                    await LoadStorageLocationsAsync();
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("messages.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to delete storage location {LocationId}", location.Id);
+                Snackbar.Add(TranslationService.GetTranslation("messages.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
+            }
+        }
+    }
+
+    private async Task OnLocationCreated(StorageLocationDto newLocation)
+    {
+        await LoadStorageLocationsAsync();
+    }
+
+    private async Task OnLocationUpdated(StorageLocationDto updatedLocation)
+    {
+        await LoadStorageLocationsAsync();
     }
 
     private async Task HandleSave()
@@ -507,5 +696,7 @@
         // Reset state
         _model = new StorageFacilityDto();
         _customTitle = null;
+        _locations = null;
+        _loadingLocations = false;
     }
 }

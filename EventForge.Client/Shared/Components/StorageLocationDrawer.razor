@@ -38,6 +38,7 @@
                            Label="@($"{TranslationService.GetTranslation("drawer.field.magazzino")} *")"
                            Variant="Variant.Outlined"
                            Required="true"
+                           Disabled="@(DefaultWarehouseId.HasValue && Mode == EntityDrawerMode.Create)"
                            aria-describedby="warehouse-help">
                     @foreach (var warehouse in _warehouses)
                     {
@@ -385,6 +386,11 @@
     [Parameter] public bool AllowEdit { get; set; } = true;
     
     /// <summary>
+    /// Default warehouse ID for new storage locations.
+    /// </summary>
+    [Parameter] public Guid? DefaultWarehouseId { get; set; }
+    
+    /// <summary>
     /// Event callback when a storage location is created.
     /// </summary>
     [Parameter] public EventCallback<StorageLocationDto> OnStorageLocationCreated { get; set; }
@@ -436,7 +442,11 @@
         else if (Mode == EntityDrawerMode.Create)
         {
             // Reset for create mode
-            _model = new StorageLocationDto { IsActive = true };
+            _model = new StorageLocationDto 
+            { 
+                IsActive = true,
+                WarehouseId = DefaultWarehouseId ?? Guid.Empty
+            };
             _customTitle = null;
         }
 
