@@ -11,6 +11,7 @@ public class DocumentTypeService : IDocumentTypeService
 {
     private readonly EventForgeDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<DocumentTypeService> _logger;
 
     /// <summary>
@@ -18,14 +19,17 @@ public class DocumentTypeService : IDocumentTypeService
     /// </summary>
     /// <param name="context">Database context</param>
     /// <param name="auditLogService">Audit log service</param>
+    /// <param name="tenantContext">Tenant context</param>
     /// <param name="logger">Logger</param>
     public DocumentTypeService(
         EventForgeDbContext context,
         IAuditLogService auditLogService,
+        ITenantContext tenantContext,
         ILogger<DocumentTypeService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -34,8 +38,16 @@ public class DocumentTypeService : IDocumentTypeService
     {
         try
         {
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot retrieve document types without a tenant context.");
+                throw new InvalidOperationException("Tenant context is required.");
+            }
+
             var entities = await _context.DocumentTypes
                 .Include(dt => dt.DefaultWarehouse)
+                .Where(dt => dt.TenantId == tenantId.Value)
                 .OrderBy(dt => dt.Name)
                 .ToListAsync(cancellationToken);
 
@@ -53,9 +65,16 @@ public class DocumentTypeService : IDocumentTypeService
     {
         try
         {
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot retrieve document type without a tenant context.");
+                throw new InvalidOperationException("Tenant context is required.");
+            }
+
             var entity = await _context.DocumentTypes
                 .Include(dt => dt.DefaultWarehouse)
-                .FirstOrDefaultAsync(dt => dt.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == tenantId.Value, cancellationToken);
 
             return entity == null ? null : DocumentTypeMapper.ToDto(entity);
         }
@@ -74,8 +93,16 @@ public class DocumentTypeService : IDocumentTypeService
             ArgumentNullException.ThrowIfNull(createDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot create document type without a tenant context.");
+                throw new InvalidOperationException("Tenant context is required.");
+            }
+
             var entity = DocumentTypeMapper.ToEntity(createDto);
             entity.Id = Guid.NewGuid();
+            entity.TenantId = tenantId.Value;
             entity.CreatedAt = DateTime.UtcNow;
             entity.CreatedBy = currentUser;
 
@@ -108,9 +135,16 @@ public class DocumentTypeService : IDocumentTypeService
             ArgumentNullException.ThrowIfNull(updateDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot update document type without a tenant context.");
+                throw new InvalidOperationException("Tenant context is required.");
+            }
+
             var originalEntity = await _context.DocumentTypes
                 .AsNoTracking()
-                .FirstOrDefaultAsync(dt => dt.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == tenantId.Value, cancellationToken);
 
             if (originalEntity == null)
             {
@@ -120,7 +154,7 @@ public class DocumentTypeService : IDocumentTypeService
 
             var entity = await _context.DocumentTypes
                 .Include(dt => dt.DefaultWarehouse)
-                .FirstOrDefaultAsync(dt => dt.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == tenantId.Value, cancellationToken);
 
             if (entity == null)
             {
@@ -154,9 +188,16 @@ public class DocumentTypeService : IDocumentTypeService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot delete document type without a tenant context.");
+                throw new InvalidOperationException("Tenant context is required.");
+            }
+
             var originalEntity = await _context.DocumentTypes
                 .AsNoTracking()
-                .FirstOrDefaultAsync(dt => dt.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == tenantId.Value, cancellationToken);
 
             if (originalEntity == null)
             {
@@ -165,7 +206,7 @@ public class DocumentTypeService : IDocumentTypeService
             }
 
             var entity = await _context.DocumentTypes
-                .FirstOrDefaultAsync(dt => dt.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == tenantId.Value, cancellationToken);
 
             if (entity == null)
             {
