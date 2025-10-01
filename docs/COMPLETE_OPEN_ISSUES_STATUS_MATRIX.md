@@ -64,10 +64,21 @@
 
 | Issue | Titolo | Priorità | Stato Implementazione | Analisi | Effort | ETA |
 |-------|--------|----------|----------------------|---------|--------|-----|
-| #244 | Gestione UM e conversioni decimali | 🟡 MEDIA | 🔴 0% NON IMPLEMENTATO | ⚠️ Parziale | 2-3 settimane | Q1 2025 |
-| #245 | Ottimizzazione listini prezzi | 🟡 MEDIA | 🔴 0% NON IMPLEMENTATO | ⚠️ Parziale | 2-3 settimane | Q1 2025 |
+| #244 | Gestione UM e conversioni decimali | ✅ COMPLETATO | ✅ 100% IMPLEMENTATO | ✅ Completa | ✅ FATTO | ✅ COMPLETATO |
+| #245 | Ottimizzazione listini prezzi | ✅ COMPLETATO | ✅ 100% IMPLEMENTATO | ✅ Completa | ✅ FATTO | ✅ COMPLETATO |
 
 **Descrizione**: Gestione avanzata unità di misura con conversioni decimali e arrotondamenti, ottimizzazione performance listini.
+
+**Stato Attuale**: ✅ **COMPLETAMENTE IMPLEMENTATO**
+- ✅ ProductUnit.ConversionFactor già decimal
+- ✅ UnitConversionService con MidpointRounding.AwayFromZero (24 tests)
+- ✅ GetAppliedPriceAsync con precedence logic
+- ✅ GetAppliedPriceWithUnitConversionAsync
+- ✅ GetPriceHistoryAsync con date filtering
+- ✅ BulkImportPriceListEntriesAsync con validation
+- ✅ ExportPriceListEntriesAsync
+- ✅ ValidatePriceListPrecedenceAsync (7 validation rules)
+- ✅ 14 integration tests passing
 
 ---
 
@@ -234,10 +245,12 @@
    - SignalR architecture
    - 1 settimana di effort
 
-3. **📋 Quick Analysis Issue #244/#245**
-   - Impatto business medio
-   - Complessità bassa
-   - 0.5 settimane di effort
+3. ~~**📋 Quick Analysis Issue #244/#245**~~ ✅ **COMPLETATO**
+   - ~~Impatto business medio~~
+   - ~~Complessità bassa~~
+   - ~~0.5 settimane di effort~~
+   - ✅ Issue #244: ConversionFactor già decimal, 24 tests passing
+   - ✅ Issue #245: Tutti i metodi implementati, 14 tests passing
 
 ### Risk Mitigation
 
