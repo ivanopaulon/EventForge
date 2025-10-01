@@ -87,6 +87,7 @@ builder.Services.AddScoped<ISuperAdminService, SuperAdminService>();
 builder.Services.AddScoped<ILogsService, LogsService>();
 builder.Services.AddScoped<IEntityManagementService, EntityManagementService>();
 builder.Services.AddScoped<IFinancialService, FinancialService>();
+builder.Services.AddScoped<IBusinessPartyService, BusinessPartyService>();
 builder.Services.AddScoped<ILicenseService, LicenseService>();
 
 // Add Event management services
