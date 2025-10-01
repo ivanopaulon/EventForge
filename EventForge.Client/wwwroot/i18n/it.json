@@ -639,7 +639,16 @@
     "pec": "PEC",
     "addressCount": "Indirizzi",
     "contactCount": "Contatti",
-    "referenceCount": "Referenti"
+    "referenceCount": "Referenti",
+    "addressType": "Tipo Indirizzo",
+    "street": "Via",
+    "zipCode": "CAP",
+    "province": "Provincia",
+    "contactType": "Tipo Contatto",
+    "value": "Valore",
+    "purpose": "Scopo",
+    "isPrimary": "Primario",
+    "department": "Dipartimento"
   },
   "filter": {
     "all": "Tutti"
@@ -840,7 +849,8 @@
     "saveSuccess": "Salvato con successo",
     "unsavedChanges": "Ci sono modifiche non salvate. Continuare?",
     "updateFailed": "Errore durante l'aggiornamento",
-    "updateSuccessful": "Aggiornato con successo"
+    "updateSuccessful": "Aggiornato con successo",
+    "loadFailed": "Errore durante il caricamento"
   },
   "mobileBadge": {
     "activities": "Attività",

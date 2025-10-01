@@ -3,6 +3,7 @@
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
 @inject IBusinessPartyService BusinessPartyService
+@inject IEntityManagementService EntityManagementService
 @inject ISnackbar Snackbar
 @inject ILogger<BusinessPartyDrawer> Logger
 @inject ITranslationService TranslationService
@@ -252,6 +253,103 @@
                                       aria-label="@TranslationService.GetTranslation("drawer.aria.modifiedAt", "Data e ora ultima modifica")" />
                     </MudItem>
                 }
+                
+                @* Related Entities Section *@
+                @if (_loadingRelatedEntities)
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                        <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-2">
+                            @TranslationService.GetTranslation("common.loading", "Caricamento...")
+                        </MudText>
+                    </MudItem>
+                }
+                else
+                {
+                    @* Addresses Section *@
+                    @if (_addresses?.Any() == true)
+                    {
+                        <MudItem xs="12" Class="mt-4">
+                            <MudExpansionPanels>
+                                <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.addressCount", "Indirizzi")} ({_addresses.Count()})")" IsInitiallyExpanded="false">
+                                    <MudTable Items="_addresses" Hover="true" Dense="true" Striped="true">
+                                        <HeaderContent>
+                                            <MudTh>@TranslationService.GetTranslation("field.addressType", "Tipo")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("field.street", "Via")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("field.city", "Città")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("field.zipCode", "CAP")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("field.province", "Provincia")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("field.country", "Paese")</MudTh>
+                                        </HeaderContent>
+                                        <RowTemplate>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("field.addressType", "Tipo")">@context.AddressType</MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("field.street", "Via")">@context.Street</MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("field.city", "Città")">@context.City</MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("field.zipCode", "CAP")">@context.ZipCode</MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("field.province", "Provincia")">@context.Province</MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("field.country", "Paese")">@context.Country</MudTd>
+                                        </RowTemplate>
+                                    </MudTable>
+                                </MudExpansionPanel>
+                            </MudExpansionPanels>
+                        </MudItem>
+                    }
+                    
+                    @* Contacts Section *@
+                    @if (_contacts?.Any() == true)
+                    {
+                        <MudItem xs="12" Class="mt-2">
+                            <MudExpansionPanels>
+                                <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.contactCount", "Contatti")} ({_contacts.Count()})")" IsInitiallyExpanded="false">
+                                    <MudTable Items="_contacts" Hover="true" Dense="true" Striped="true">
+                                        <HeaderContent>
+                                            <MudTh>@TranslationService.GetTranslation("field.contactType", "Tipo")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("field.value", "Valore")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("field.purpose", "Scopo")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("field.isPrimary", "Primario")</MudTh>
+                                        </HeaderContent>
+                                        <RowTemplate>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("field.contactType", "Tipo")">@context.ContactType</MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("field.value", "Valore")">@context.Value</MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("field.purpose", "Scopo")">@context.Purpose</MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("field.isPrimary", "Primario")">
+                                                @if (context.IsPrimary)
+                                                {
+                                                    <MudIcon Icon="@Icons.Material.Filled.Check" Color="Color.Success" Size="Size.Small" />
+                                                }
+                                            </MudTd>
+                                        </RowTemplate>
+                                    </MudTable>
+                                </MudExpansionPanel>
+                            </MudExpansionPanels>
+                        </MudItem>
+                    }
+                    
+                    @* References Section *@
+                    @if (_references?.Any() == true)
+                    {
+                        <MudItem xs="12" Class="mt-2">
+                            <MudExpansionPanels>
+                                <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.referenceCount", "Referenti")} ({_references.Count()})")" IsInitiallyExpanded="false">
+                                    <MudTable Items="_references" Hover="true" Dense="true" Striped="true">
+                                        <HeaderContent>
+                                            <MudTh>@TranslationService.GetTranslation("field.firstName", "Nome")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("field.lastName", "Cognome")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("field.department", "Dipartimento")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("field.notes", "Note")</MudTh>
+                                        </HeaderContent>
+                                        <RowTemplate>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("field.firstName", "Nome")">@context.FirstName</MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("field.lastName", "Cognome")">@context.LastName</MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("field.department", "Dipartimento")">@context.Department</MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("field.notes", "Note")">@context.Notes</MudTd>
+                                        </RowTemplate>
+                                    </MudTable>
+                                </MudExpansionPanel>
+                            </MudExpansionPanels>
+                        </MudItem>
+                    }
+                }
             }
         </MudGrid>
     </ViewContent>
@@ -261,6 +359,10 @@
 @code {
     private BusinessPartyDto _model = new() { PartyType = BusinessPartyType.Supplier, Name = string.Empty };
     private string? _customTitle;
+    private bool _loadingRelatedEntities = false;
+    private IEnumerable<AddressDto>? _addresses;
+    private IEnumerable<ContactDto>? _contacts;
+    private IEnumerable<ReferenceDto>? _references;
 
     /// <summary>
     /// Whether the drawer is open.
@@ -328,15 +430,59 @@
         else if (Mode == EntityDrawerMode.View && OriginalBusinessParty != null)
         {
             _customTitle = TranslationService.GetTranslation("drawer.title.viewBusinessParty", "Visualizza {0}", OriginalBusinessParty.Name);
+            
+            // Load related entities in View mode
+            await LoadRelatedEntitiesAsync();
         }
         else if (Mode == EntityDrawerMode.Create)
         {
             // Reset for create mode
             _model = new BusinessPartyDto { PartyType = BusinessPartyType.Supplier, Name = string.Empty };
             _customTitle = null;
+            ClearRelatedEntities();
         }
 
         await Task.CompletedTask;
+    }
+    
+    private async Task LoadRelatedEntitiesAsync()
+    {
+        if (OriginalBusinessParty == null) return;
+        
+        try
+        {
+            _loadingRelatedEntities = true;
+            StateHasChanged();
+            
+            // Load addresses, contacts, and references in parallel
+            var addressesTask = EntityManagementService.GetAddressesByOwnerAsync(OriginalBusinessParty.Id);
+            var contactsTask = EntityManagementService.GetContactsByOwnerAsync(OriginalBusinessParty.Id);
+            // Note: References endpoint doesn't seem to exist in EntityManagementService, 
+            // so we'll keep it as empty for now
+            
+            await Task.WhenAll(addressesTask, contactsTask);
+            
+            _addresses = await addressesTask;
+            _contacts = await contactsTask;
+            _references = new List<ReferenceDto>(); // Placeholder until Reference API is available
+            
+            _loadingRelatedEntities = false;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load related entities for business party {BusinessPartyId}", OriginalBusinessParty.Id);
+            _loadingRelatedEntities = false;
+            Snackbar.Add(TranslationService.GetTranslation("messages.loadFailed", "Errore durante il caricamento"), Severity.Warning);
+        }
+    }
+    
+    private void ClearRelatedEntities()
+    {
+        _addresses = null;
+        _contacts = null;
+        _references = null;
+        _loadingRelatedEntities = false;
     }
 
     private async Task HandleSave()
@@ -411,6 +557,7 @@
         // Reset state
         _model = new BusinessPartyDto { PartyType = BusinessPartyType.Supplier, Name = string.Empty };
         _customTitle = null;
+        ClearRelatedEntities();
     }
 
     private string GetPartyTypeText(BusinessPartyType partyType)
