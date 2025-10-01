@@ -357,7 +357,7 @@
 </EntityDrawer>
 
 @code {
-    private BusinessPartyDto _model = new() { PartyType = BusinessPartyType.Supplier, Name = string.Empty };
+    private BusinessPartyDto _model = new() { PartyType = BusinessPartyType.Cliente, Name = string.Empty };
     private string? _customTitle;
     private bool _loadingRelatedEntities = false;
     private IEnumerable<AddressDto>? _addresses;
@@ -393,6 +393,11 @@
     /// Whether editing is allowed.
     /// </summary>
     [Parameter] public bool AllowEdit { get; set; } = true;
+    
+    /// <summary>
+    /// Default party type for new business parties.
+    /// </summary>
+    [Parameter] public BusinessPartyType DefaultPartyType { get; set; } = BusinessPartyType.Supplier;
     
     /// <summary>
     /// Event callback when a business party is created.
@@ -437,7 +442,7 @@
         else if (Mode == EntityDrawerMode.Create)
         {
             // Reset for create mode
-            _model = new BusinessPartyDto { PartyType = BusinessPartyType.Supplier, Name = string.Empty };
+            _model = new BusinessPartyDto { PartyType = DefaultPartyType, Name = string.Empty };
             _customTitle = null;
             ClearRelatedEntities();
         }
