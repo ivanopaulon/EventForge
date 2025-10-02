@@ -122,8 +122,16 @@
                     </MudGrid>
                 </div>
             </MudStep>
+            
+            <!-- Step 4: Table Management (conditional for BAR/RESTAURANT) -->
+            <MudStep Title="Tavolo" Icon="@Icons.Material.Filled.TableRestaurant">
+                <div class="pa-4">
+                    <TableManagementStep SaleType="@_saleType" 
+                                        @bind-SelectedTableId="@_selectedTableId" />
+                </div>
+            </MudStep>
 
-            <!-- Step 4: Payment -->
+            <!-- Step 5: Payment -->
             <MudStep Title="Pagamento" Icon="@Icons.Material.Filled.Payment">
                 <div class="pa-4">
                     <MudText Typo="Typo.h6" Class="mb-4">Metodo di Pagamento</MudText>
@@ -148,27 +156,66 @@
                 </div>
             </MudStep>
 
-            <!-- Step 5: Complete -->
+            <!-- Step 6: Complete -->
             <MudStep Title="Completa" Icon="@Icons.Material.Filled.CheckCircle">
-                <div class="pa-4 text-center">
-                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" 
-                             Color="Color.Success" 
-                             Size="Size.Large" 
-                             Class="mb-4" />
-                    <MudText Typo="Typo.h5" Class="mb-4">Vendita Completata!</MudText>
-                    <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-4">
-                        La vendita è stata registrata con successo.
-                    </MudText>
+                <div class="pa-4">
+                    <div class="text-center mb-4">
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" 
+                                 Color="Color.Success" 
+                                 Size="Size.Large" 
+                                 Class="success-icon mb-3" />
+                        <MudText Typo="Typo.h4" Class="mb-2">Vendita Completata!</MudText>
+                        <MudText Typo="Typo.body1" Color="Color.Secondary">
+                            La vendita è stata registrata con successo.
+                        </MudText>
+                    </div>
                     
+                    <!-- Sale Summary -->
+                    <MudPaper Class="pa-4 mb-4" Elevation="1">
+                        <MudText Typo="Typo.h6" Class="mb-3">Riepilogo Vendita</MudText>
+                        <MudGrid>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Operatore:</MudText>
+                                <MudText Typo="Typo.body1"><strong>@_operatorName</strong></MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">POS:</MudText>
+                                <MudText Typo="Typo.body1"><strong>@_posName</strong></MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Tipo Vendita:</MudText>
+                                <MudText Typo="Typo.body1"><strong>@_saleType</strong></MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Articoli:</MudText>
+                                <MudText Typo="Typo.body1"><strong>@_cartItems.Count</strong></MudText>
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudDivider Class="my-2" />
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Totale:</MudText>
+                                <MudText Typo="Typo.h5" Color="Color.Primary"><strong>@GetCartTotal().ToString("C")</strong></MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Pagato:</MudText>
+                                <MudText Typo="Typo.h5" Color="Color.Success"><strong>@_payments.Sum(p => p.Amount).ToString("C")</strong></MudText>
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+                    
+                    <!-- Action Buttons -->
                     <div class="d-flex justify-center ga-2">
                         <MudButton Variant="Variant.Filled" 
                                    Color="Color.Primary"
+                                   Size="Size.Large"
                                    StartIcon="@Icons.Material.Filled.Add"
                                    OnClick="StartNewSale">
                             Nuova Vendita
                         </MudButton>
                         <MudButton Variant="Variant.Outlined" 
                                    Color="Color.Secondary"
+                                   Size="Size.Large"
                                    StartIcon="@Icons.Material.Filled.Home"
                                    OnClick="GoToHome">
                             Torna alla Home
@@ -179,7 +226,7 @@
         </MudStepper>
 
         <!-- Navigation Buttons -->
-        @if (_activeStepIndex < 4)
+        @if (_activeStepIndex < 5)
         {
             <div class="d-flex justify-space-between mt-4">
                 <MudButton Variant="Variant.Text"
@@ -193,7 +240,7 @@
                            Color="Color.Primary"
                            EndIcon="@Icons.Material.Filled.ArrowForward"
                            OnClick="NextStepAsync">
-                    @(_activeStepIndex == 3 ? "Completa" : "Avanti")
+                    @(_activeStepIndex == 4 ? "Completa" : "Avanti")
                 </MudButton>
             </div>
         }
@@ -215,7 +262,10 @@
     // Step 3 - Products (Cart)
     private List<SaleItemDto> _cartItems = new();
     
-    // Step 4 - Payment
+    // Step 4 - Table Management
+    private Guid? _selectedTableId;
+    
+    // Step 5 - Payment
     private List<PaymentMethodDto> _paymentMethods = new();
     private List<SalePaymentDto> _payments = new();
 
@@ -407,7 +457,7 @@
             _activeStepIndex++;
             
             // If completing payment step, process the sale
-            if (_activeStepIndex == 4)
+            if (_activeStepIndex == 5)
             {
                 await ProcessSaleAsync();
             }
@@ -437,8 +487,12 @@
                     return false;
                 }
                 return true;
+            
+            case 3: // Table Management
+                // Always valid, table selection is optional
+                return true;
 
-            case 3: // Payment
+            case 4: // Payment
                 var total = GetCartTotal();
                 var paid = _payments.Sum(p => p.Amount);
                 
@@ -499,6 +553,7 @@
         _saleType = "RETAIL";
         _currentSession = null;
         _cartItems.Clear();
+        _selectedTableId = null;
         _payments.Clear();
         _activeStepIndex = 0;
         
