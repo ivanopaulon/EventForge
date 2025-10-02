@@ -1,0 +1,228 @@
+@using EventForge.DTOs.Sales
+@inject ISnackbar Snackbar
+
+<MudPaper Class="pa-4 payment-panel" Elevation="2">
+    <div class="d-flex align-center mb-3">
+        <MudIcon Icon="@Icons.Material.Filled.Payment" Class="mr-2" Color="Color.Primary" />
+        <MudText Typo="Typo.h6">Pagamento</MudText>
+    </div>
+
+    <!-- Payment Summary -->
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+        <div class="d-flex justify-space-between align-center">
+            <div>
+                <MudText Typo="Typo.body2"><strong>Totale da pagare:</strong></MudText>
+                <MudText Typo="Typo.h5" Color="Color.Primary">@TotalAmount.ToString("C")</MudText>
+            </div>
+            <div class="text-right">
+                <MudText Typo="Typo.body2">Pagato:</MudText>
+                <MudText Typo="Typo.h6" Color="@(PaidAmount >= TotalAmount ? Color.Success : Color.Warning)">
+                    @PaidAmount.ToString("C")
+                </MudText>
+            </div>
+        </div>
+    </MudAlert>
+
+    @if (RemainingAmount > 0)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
+            <MudText Typo="Typo.body2">Resto da pagare: <strong>@RemainingAmount.ToString("C")</strong></MudText>
+        </MudAlert>
+    }
+    else if (RemainingAmount < 0)
+    {
+        <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
+            <MudText Typo="Typo.body2">Resto da dare: <strong>@Math.Abs(RemainingAmount).ToString("C")</strong></MudText>
+        </MudAlert>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
+            <MudText Typo="Typo.body2"><strong>Pagamento completo!</strong></MudText>
+        </MudAlert>
+    }
+
+    <!-- Payment Methods Grid -->
+    @if (PaymentMethods?.Any() == true)
+    {
+        <MudText Typo="Typo.subtitle2" Class="mb-2">Seleziona metodo di pagamento:</MudText>
+        <MudGrid Spacing="2" Class="mb-3">
+            @foreach (var method in PaymentMethods)
+            {
+                <MudItem xs="6" sm="4" md="3">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               FullWidth="true"
+                               Size="Size.Large"
+                               Class="payment-method-button"
+                               OnClick="@(() => SelectPaymentMethod(method))">
+                        @if (!string.IsNullOrEmpty(method.Icon))
+                        {
+                            <MudIcon Icon="@method.Icon" Class="mr-2" />
+                        }
+                        <div class="text-center">
+                            <MudText Typo="Typo.body2">@method.Name</MudText>
+                        </div>
+                    </MudButton>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
+            Nessun metodo di pagamento disponibile
+        </MudAlert>
+    }
+
+    <!-- Amount Input (shown when method is selected) -->
+    @if (_selectedMethod != null)
+    {
+        <MudPaper Class="pa-3 mb-3" Outlined="true">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">
+                Metodo: <strong>@_selectedMethod.Name</strong>
+            </MudText>
+            
+            <MudTextField @bind-Value="_paymentAmount"
+                          Label="Importo"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Adornment="Adornment.Start"
+                          AdornmentText="€"
+                          InputType="InputType.Number"
+                          Step="0.01m"
+                          Class="mb-2" />
+
+            <div class="d-flex ga-2">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="AddPayment"
+                           Disabled="@(_paymentAmount <= 0)"
+                           FullWidth="true">
+                    Aggiungi Pagamento
+                </MudButton>
+                <MudButton Variant="Variant.Text"
+                           Color="Color.Secondary"
+                           OnClick="@(() => _selectedMethod = null)">
+                    Annulla
+                </MudButton>
+            </div>
+
+            <!-- Quick Amount Buttons -->
+            <div class="d-flex ga-1 mt-2 flex-wrap">
+                <MudButton Size="Size.Small" 
+                           Variant="Variant.Outlined"
+                           OnClick="@(() => SetQuickAmount(RemainingAmount))">
+                    Esatto
+                </MudButton>
+                <MudButton Size="Size.Small" 
+                           Variant="Variant.Outlined"
+                           OnClick="@(() => SetQuickAmount(10))">
+                    €10
+                </MudButton>
+                <MudButton Size="Size.Small" 
+                           Variant="Variant.Outlined"
+                           OnClick="@(() => SetQuickAmount(20))">
+                    €20
+                </MudButton>
+                <MudButton Size="Size.Small" 
+                           Variant="Variant.Outlined"
+                           OnClick="@(() => SetQuickAmount(50))">
+                    €50
+                </MudButton>
+                <MudButton Size="Size.Small" 
+                           Variant="Variant.Outlined"
+                           OnClick="@(() => SetQuickAmount(100))">
+                    €100
+                </MudButton>
+            </div>
+        </MudPaper>
+    }
+
+    <!-- Added Payments List -->
+    @if (Payments?.Any() == true)
+    {
+        <MudText Typo="Typo.subtitle2" Class="mb-2">Pagamenti aggiunti:</MudText>
+        <MudList T="string" Dense="true">
+            @foreach (var payment in Payments)
+            {
+                <MudListItem T="string">
+                    <div class="d-flex justify-space-between align-center">
+                        <div>
+                            <MudText Typo="Typo.body2">@payment.PaymentMethodName</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @payment.CreatedAt.ToString("HH:mm:ss")
+                            </MudText>
+                        </div>
+                        <div class="d-flex align-center ga-2">
+                            <MudText Typo="Typo.body1"><strong>@payment.Amount.ToString("C")</strong></MudText>
+                            @if (AllowEdit)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Size="Size.Small"
+                                               Color="Color.Error"
+                                               OnClick="@(() => RemovePayment(payment))" />
+                            }
+                        </div>
+                    </div>
+                </MudListItem>
+            }
+        </MudList>
+    }
+</MudPaper>
+
+@code {
+    [Parameter]
+    public decimal TotalAmount { get; set; }
+
+    [Parameter]
+    public List<PaymentMethodDto>? PaymentMethods { get; set; }
+
+    [Parameter]
+    public List<SalePaymentDto>? Payments { get; set; }
+
+    [Parameter]
+    public bool AllowEdit { get; set; } = true;
+
+    [Parameter]
+    public EventCallback<(PaymentMethodDto Method, decimal Amount)> OnPaymentAdded { get; set; }
+
+    [Parameter]
+    public EventCallback<SalePaymentDto> OnPaymentRemoved { get; set; }
+
+    private PaymentMethodDto? _selectedMethod;
+    private decimal _paymentAmount;
+
+    private decimal PaidAmount => Payments?.Sum(p => p.Amount) ?? 0m;
+    private decimal RemainingAmount => TotalAmount - PaidAmount;
+
+    private void SelectPaymentMethod(PaymentMethodDto method)
+    {
+        _selectedMethod = method;
+        _paymentAmount = RemainingAmount > 0 ? RemainingAmount : 0;
+    }
+
+    private void SetQuickAmount(decimal amount)
+    {
+        _paymentAmount = amount;
+    }
+
+    private async Task AddPayment()
+    {
+        if (_selectedMethod != null && _paymentAmount > 0)
+        {
+            await OnPaymentAdded.InvokeAsync((_selectedMethod, _paymentAmount));
+            Snackbar.Add($"Aggiunto pagamento: {_selectedMethod.Name} - {_paymentAmount:C}", Severity.Success);
+            
+            // Reset
+            _selectedMethod = null;
+            _paymentAmount = 0;
+        }
+    }
+
+    private async Task RemovePayment(SalePaymentDto payment)
+    {
+        await OnPaymentRemoved.InvokeAsync(payment);
+        Snackbar.Add($"Rimosso pagamento: {payment.PaymentMethodName}", Severity.Warning);
+    }
+}

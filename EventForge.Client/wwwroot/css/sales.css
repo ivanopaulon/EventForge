@@ -151,3 +151,97 @@
     padding: 12px;
     background-color: rgba(244, 67, 54, 0.1);
 }
+
+/* ===================================================================
+   Shared Components Styling
+   =================================================================== */
+
+/* === CartSummary Component === */
+.cart-summary {
+    border-radius: 8px;
+}
+
+.cart-summary .cart-items-table {
+    margin-bottom: 16px;
+}
+
+.cart-summary .cart-items-table th {
+    font-weight: 600;
+    color: var(--mud-palette-text-secondary);
+}
+
+.cart-summary .cart-items-table tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.cart-summary .cart-totals {
+    padding-top: 8px;
+}
+
+/* Touch-friendly buttons in cart */
+.cart-summary .mud-icon-button {
+    min-width: 40px;
+    min-height: 40px;
+}
+
+/* === ProductSearch Component === */
+.product-search {
+    border-radius: 8px;
+}
+
+.product-search .search-results {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.product-search .search-result-card {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.product-search .search-result-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.product-search .search-result-card:active {
+    transform: translateY(0);
+}
+
+/* === PaymentPanel Component === */
+.payment-panel {
+    border-radius: 8px;
+}
+
+.payment-panel .payment-method-button {
+    min-height: 64px;
+    text-transform: none;
+}
+
+.payment-panel .payment-method-button:hover {
+    background-color: var(--mud-palette-primary-lighten);
+    color: white;
+}
+
+/* Touch-friendly payment buttons for tablet */
+@media (max-width: 1024px) {
+    .payment-panel .payment-method-button {
+        min-height: 80px;
+        font-size: 1.1rem;
+    }
+}
+
+/* === Responsive adjustments for shared components === */
+@media (max-width: 768px) {
+    .cart-summary .cart-items-table {
+        font-size: 0.875rem;
+    }
+    
+    .product-search .search-results {
+        max-height: 300px;
+    }
+    
+    .payment-panel .payment-method-button {
+        min-height: 72px;
+    }
+}
