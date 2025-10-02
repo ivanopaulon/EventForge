@@ -1,0 +1,304 @@
+@page "/sales/wizard"
+@using EventForge.Client.Services.Sales
+@using EventForge.DTOs.Sales
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject ISalesService SalesService
+@inject IPaymentMethodService PaymentMethodService
+@inject INoteFlagService NoteFlagService
+@inject ITableManagementService TableManagementService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject ILogger<SalesWizard> Logger
+
+<PageTitle>EventForge - Vendita</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4 sales-wizard">
+    <MudPaper Class="pa-4" Elevation="2">
+        <!-- Header -->
+        <div class="d-flex align-center mb-4">
+            <MudIcon Icon="@Icons.Material.Filled.PointOfSale" Class="mr-2" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h4">Nuova Vendita</MudText>
+            <MudSpacer />
+            <MudButton Variant="Variant.Text" 
+                       Color="Color.Error" 
+                       StartIcon="@Icons.Material.Filled.Close"
+                       OnClick="CancelWizard">
+                Annulla
+            </MudButton>
+        </div>
+
+        <!-- Stepper -->
+        <MudStepper @ref="_stepper" 
+                    @bind-ActiveStepIndex="_activeStepIndex"
+                    Linear="true"
+                    Color="Color.Primary"
+                    Variant="Variant.Filled"
+                    HeaderSize="Size.Large"
+                    HeaderTextView="HeaderTextView.All">
+
+            <!-- Step 1: Authentication -->
+            <MudStep Title="Autenticazione" Icon="@Icons.Material.Filled.Person">
+                <div class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-4">Identificazione Operatore</MudText>
+                    <MudAlert Severity="Severity.Info" Class="mb-4">
+                        Per iniziare una nuova vendita, identifica l'operatore e il POS.
+                    </MudAlert>
+                    
+                    <MudTextField @bind-Value="_operatorName" 
+                                  Label="Nome Operatore" 
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Class="mb-3"
+                                  Placeholder="Es. Mario Rossi" />
+                    
+                    <MudTextField @bind-Value="_posName" 
+                                  Label="Nome POS" 
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Placeholder="Es. POS-001" />
+                </div>
+            </MudStep>
+
+            <!-- Step 2: Sale Type -->
+            <MudStep Title="Tipo Vendita" Icon="@Icons.Material.Filled.ShoppingCart">
+                <div class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-4">Seleziona Tipo di Vendita</MudText>
+                    
+                    <MudRadioGroup @bind-Value="_saleType">
+                        <MudRadio Value="@("RETAIL")" Color="Color.Primary" Dense="true">
+                            <div class="d-flex align-center">
+                                <MudIcon Icon="@Icons.Material.Filled.Store" Class="mr-2" />
+                                <div>
+                                    <MudText Typo="Typo.body1"><strong>Retail</strong></MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Vendita al dettaglio</MudText>
+                                </div>
+                            </div>
+                        </MudRadio>
+                        
+                        <MudRadio Value="@("BAR")" Color="Color.Primary" Dense="true" Class="mt-2">
+                            <div class="d-flex align-center">
+                                <MudIcon Icon="@Icons.Material.Filled.LocalBar" Class="mr-2" />
+                                <div>
+                                    <MudText Typo="Typo.body1"><strong>Bar</strong></MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Servizio bar/caffetteria</MudText>
+                                </div>
+                            </div>
+                        </MudRadio>
+                        
+                        <MudRadio Value="@("RESTAURANT")" Color="Color.Primary" Dense="true" Class="mt-2">
+                            <div class="d-flex align-center">
+                                <MudIcon Icon="@Icons.Material.Filled.Restaurant" Class="mr-2" />
+                                <div>
+                                    <MudText Typo="Typo.body1"><strong>Ristorante</strong></MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Servizio ristorante completo</MudText>
+                                </div>
+                            </div>
+                        </MudRadio>
+                    </MudRadioGroup>
+                </div>
+            </MudStep>
+
+            <!-- Step 3: Products -->
+            <MudStep Title="Prodotti" Icon="@Icons.Material.Filled.Inventory">
+                <div class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-4">Aggiungi Prodotti</MudText>
+                    <MudAlert Severity="Severity.Warning" Class="mb-4">
+                        Componente prodotti in sviluppo. Questa è l'area dove verranno aggiunti i prodotti al carrello.
+                    </MudAlert>
+                    
+                    @if (_currentSession?.Items?.Any() == true)
+                    {
+                        <MudText Typo="Typo.subtitle1" Class="mb-2">Carrello corrente:</MudText>
+                        <MudSimpleTable Striped="true" Dense="true">
+                            <thead>
+                                <tr>
+                                    <th>Prodotto</th>
+                                    <th>Quantità</th>
+                                    <th>Prezzo</th>
+                                    <th>Totale</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in _currentSession.Items)
+                                {
+                                    <tr>
+                                        <td>@item.ProductName</td>
+                                        <td>@item.Quantity</td>
+                                        <td>@item.UnitPrice.ToString("C")</td>
+                                        <td>@item.TotalAmount.ToString("C")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    }
+                    else
+                    {
+                        <MudText Color="Color.Secondary" Typo="Typo.body2" Class="mt-4">
+                            Nessun prodotto aggiunto. (Funzionalità in sviluppo)
+                        </MudText>
+                    }
+                </div>
+            </MudStep>
+
+            <!-- Step 4: Payment -->
+            <MudStep Title="Pagamento" Icon="@Icons.Material.Filled.Payment">
+                <div class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-4">Metodo di Pagamento</MudText>
+                    <MudAlert Severity="Severity.Warning" Class="mb-4">
+                        Componente pagamento in sviluppo. Questa è l'area dove verrà gestito il pagamento multi-metodo.
+                    </MudAlert>
+                    
+                    <MudText Typo="Typo.subtitle1">Totale da pagare: €0.00</MudText>
+                </div>
+            </MudStep>
+
+            <!-- Step 5: Complete -->
+            <MudStep Title="Completa" Icon="@Icons.Material.Filled.CheckCircle">
+                <div class="pa-4 text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" 
+                             Color="Color.Success" 
+                             Size="Size.Large" 
+                             Class="mb-4" />
+                    <MudText Typo="Typo.h5" Class="mb-4">Vendita Completata!</MudText>
+                    <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-4">
+                        La vendita è stata registrata con successo.
+                    </MudText>
+                    
+                    <div class="d-flex justify-center ga-2">
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="StartNewSale">
+                            Nuova Vendita
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined" 
+                                   Color="Color.Secondary"
+                                   StartIcon="@Icons.Material.Filled.Home"
+                                   OnClick="GoToHome">
+                            Torna alla Home
+                        </MudButton>
+                    </div>
+                </div>
+            </MudStep>
+        </MudStepper>
+
+        <!-- Navigation Buttons -->
+        @if (_activeStepIndex < 4)
+        {
+            <div class="d-flex justify-space-between mt-4">
+                <MudButton Variant="Variant.Text"
+                           StartIcon="@Icons.Material.Filled.ArrowBack"
+                           OnClick="PreviousStep"
+                           Disabled="@(_activeStepIndex == 0)">
+                    Indietro
+                </MudButton>
+                
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           EndIcon="@Icons.Material.Filled.ArrowForward"
+                           OnClick="NextStepAsync">
+                    @(_activeStepIndex == 3 ? "Completa" : "Avanti")
+                </MudButton>
+            </div>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private MudStepper? _stepper;
+    private SaleSessionDto? _currentSession;
+    private int _activeStepIndex = 0;
+    
+    // Step 1 - Authentication
+    private string _operatorName = string.Empty;
+    private string _posName = string.Empty;
+    
+    // Step 2 - Sale Type
+    private string _saleType = "RETAIL";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Logger.LogInformation("SalesWizard initialized");
+            // TODO: Load payment methods and flags for later use
+            // var paymentMethods = await PaymentMethodService.GetActiveAsync();
+            // var noteFlags = await NoteFlagService.GetActiveAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing SalesWizard");
+            Snackbar.Add("Errore durante l'inizializzazione", Severity.Error);
+        }
+    }
+
+    private void PreviousStep()
+    {
+        if (_activeStepIndex > 0)
+        {
+            _activeStepIndex--;
+        }
+    }
+
+    private async Task NextStepAsync()
+    {
+        if (await ValidateCurrentStepAsync())
+        {
+            _activeStepIndex++;
+        }
+    }
+
+    private async Task<bool> ValidateCurrentStepAsync()
+    {
+        switch (_activeStepIndex)
+        {
+            case 0: // Authentication
+                if (string.IsNullOrWhiteSpace(_operatorName) || string.IsNullOrWhiteSpace(_posName))
+                {
+                    Snackbar.Add("Inserisci il nome dell'operatore e del POS", Severity.Warning);
+                    return false;
+                }
+                return true;
+
+            case 1: // Sale Type
+                // Always valid, type is required via radio buttons
+                return true;
+
+            case 2: // Products
+                // TODO: Validate that at least one product is added
+                Snackbar.Add("Aggiunta prodotti in sviluppo. Procedi pure.", Severity.Info);
+                return true;
+
+            case 3: // Payment
+                // TODO: Validate payment is complete
+                Snackbar.Add("Pagamento in sviluppo. Procedi pure.", Severity.Info);
+                return true;
+
+            default:
+                return true;
+        }
+    }
+
+    private async Task StartNewSale()
+    {
+        // Reset wizard state
+        _operatorName = string.Empty;
+        _posName = string.Empty;
+        _saleType = "RETAIL";
+        _currentSession = null;
+        _activeStepIndex = 0;
+        
+        Snackbar.Add("Pronto per una nuova vendita", Severity.Success);
+    }
+
+    private void GoToHome()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+
+    private void CancelWizard()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+}

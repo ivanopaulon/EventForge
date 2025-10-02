@@ -1,0 +1,153 @@
+/* ===================================================================
+   EventForge - Sales Wizard Styling
+   Touch-first design for tablet/POS interfaces
+   =================================================================== */
+
+/* === Sales Wizard Container === */
+.sales-wizard {
+    min-height: calc(100vh - 200px);
+}
+
+.sales-wizard .mud-stepper {
+    margin-bottom: 1rem;
+}
+
+/* === Touch-friendly buttons === */
+.sales-wizard .mud-button-root {
+    min-height: 48px;
+    min-width: 120px;
+}
+
+/* === Radio button styling === */
+.sales-wizard .mud-radio {
+    padding: 12px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.sales-wizard .mud-radio:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* === Step content padding === */
+.sales-wizard .mud-step-content {
+    padding: 24px;
+}
+
+/* === Responsive breakpoints === */
+
+/* Desktop POS (1920x1080) */
+@media (min-width: 1920px) {
+    .sales-wizard .mud-stepper-header {
+        font-size: 1.1rem;
+    }
+}
+
+/* Tablet Landscape (1024x768) - Primary target */
+@media (max-width: 1024px) {
+    .sales-wizard .mud-button-root {
+        min-height: 56px;
+        min-width: 140px;
+        font-size: 1rem;
+    }
+    
+    .sales-wizard .mud-radio {
+        padding: 16px;
+    }
+    
+    .sales-wizard .mud-text-field {
+        font-size: 1.1rem;
+    }
+}
+
+/* Tablet Portrait (768x1024) */
+@media (max-width: 768px) {
+    .sales-wizard {
+        margin-top: 0.5rem !important;
+    }
+    
+    .sales-wizard .pa-4 {
+        padding: 16px !important;
+    }
+    
+    .sales-wizard .mud-stepper-header-text {
+        font-size: 0.9rem;
+    }
+}
+
+/* Mobile (375x667) - Fallback */
+@media (max-width: 480px) {
+    .sales-wizard .mud-button-root {
+        min-width: 100px;
+        font-size: 0.875rem;
+    }
+    
+    .sales-wizard .mud-stepper {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* === Color states for different sale types === */
+.sale-type-retail {
+    border-left: 4px solid var(--mud-palette-primary);
+}
+
+.sale-type-bar {
+    border-left: 4px solid var(--mud-palette-secondary);
+}
+
+.sale-type-restaurant {
+    border-left: 4px solid var(--mud-palette-tertiary);
+}
+
+/* === Animation for step transitions === */
+.sales-wizard .mud-stepper-content {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* === Success state styling === */
+.sales-wizard .success-icon {
+    font-size: 4rem;
+    animation: scaleIn 0.5s ease-out;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0);
+    }
+    to {
+        transform: scale(1);
+    }
+}
+
+/* === Loading state === */
+.sales-wizard .loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+/* === Error state === */
+.sales-wizard .error-message {
+    border-left: 4px solid var(--mud-palette-error);
+    padding: 12px;
+    background-color: rgba(244, 67, 54, 0.1);
+}
