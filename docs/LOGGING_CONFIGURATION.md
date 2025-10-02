@@ -185,10 +185,15 @@ If logs are not appearing in the database:
 
 If client logs are not being sent to the server:
 
-1. **Check authentication**: Client must be authenticated to send logs (endpoint has `[Authorize]` attribute)
-2. **Check network**: Open browser DevTools Network tab and look for POST requests to `/api/ClientLogs`
-3. **Check localStorage**: Client logs are buffered in localStorage if server is unavailable
-4. **Check ClientLogService**: Verify `IClientLogService` is properly injected in client components
+1. **Check browser console**: Open browser DevTools Console tab to see detailed error messages from ClientLogService
+2. **Check network**: Open browser DevTools Network tab and look for POST requests to `/api/ClientLogs` or `/api/ClientLogs/batch`
+3. **Verify BaseAddress**: Check console logs for "[CLIENT LOG] Sending batch to..." messages to verify the correct URL is being used
+4. **Check CORS**: Ensure the client origin is allowed in CORS configuration in Server/Program.cs
+5. **Check localStorage**: Client logs are buffered in localStorage if server is unavailable
+6. **Verify service registration**: Ensure `IClientLogService` is properly injected in client components
+7. **Check server logs**: Look for any errors in the server logs when receiving client logs
+
+**Note**: The `/api/ClientLogs` endpoint uses `[AllowAnonymous]` to allow logging without authentication. This is intentional to capture errors during login/startup and authentication failures.
 
 ### Enriched Properties Not Captured
 

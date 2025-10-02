@@ -286,11 +286,14 @@
         try
         {
             await ClientLogService.FlushAsync();
+            Snackbar.Add("Logs flushed successfully to server", Severity.Success);
             await RefreshLogs(); // Refresh to see updated local storage
         }
         catch (Exception ex)
         {
-            await ClientLogService.LogErrorAsync($"Failed to flush logs: {ex.Message}", ex, "ClientLogManagement");
+            Snackbar.Add($"Failed to flush logs: {ex.Message}", Severity.Error);
+            Console.WriteLine($"[CLIENT LOG MANAGEMENT] Flush error: {ex}");
+            // Don't try to log this error to ClientLogService since it's already failing
         }
         finally
         {
