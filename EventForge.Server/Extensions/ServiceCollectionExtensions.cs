@@ -200,6 +200,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPaymentMethodService, PaymentMethodService>();
         services.AddScoped<ISaleSessionService, SaleSessionService>();
         services.AddScoped<INoteFlagService, NoteFlagService>();
+        services.AddScoped<ITableManagementService, TableManagementService>();
 
         // Register store user services
         services.AddScoped<IStoreUserService, StoreUserService>();
