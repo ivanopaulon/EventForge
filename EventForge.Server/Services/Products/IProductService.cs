@@ -250,4 +250,50 @@ public interface IProductService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if deleted, false if not found</returns>
     Task<bool> DeleteProductImageAsync(Guid productId, CancellationToken cancellationToken = default);
+
+    // Product Supplier management operations
+
+    /// <summary>
+    /// Gets all suppliers for a product.
+    /// </summary>
+    /// <param name="productId">Product ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of product suppliers</returns>
+    Task<IEnumerable<ProductSupplierDto>> GetProductSuppliersAsync(Guid productId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a product supplier by ID.
+    /// </summary>
+    /// <param name="id">Product supplier ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Product supplier DTO or null if not found</returns>
+    Task<ProductSupplierDto?> GetProductSupplierByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Adds a new supplier to a product.
+    /// </summary>
+    /// <param name="createProductSupplierDto">Product supplier creation data</param>
+    /// <param name="currentUser">Current user name</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created product supplier DTO</returns>
+    Task<ProductSupplierDto> AddProductSupplierAsync(CreateProductSupplierDto createProductSupplierDto, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates an existing product supplier.
+    /// </summary>
+    /// <param name="id">Product supplier ID</param>
+    /// <param name="updateProductSupplierDto">Product supplier update data</param>
+    /// <param name="currentUser">Current user name</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated product supplier DTO or null if not found</returns>
+    Task<ProductSupplierDto?> UpdateProductSupplierAsync(Guid id, UpdateProductSupplierDto updateProductSupplierDto, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Removes a supplier from a product (soft delete).
+    /// </summary>
+    /// <param name="id">Product supplier ID</param>
+    /// <param name="currentUser">Current user name</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if removed, false if not found</returns>
+    Task<bool> RemoveProductSupplierAsync(Guid id, string currentUser, CancellationToken cancellationToken = default);
 }
