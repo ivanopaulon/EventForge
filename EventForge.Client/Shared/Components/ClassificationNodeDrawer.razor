@@ -249,10 +249,14 @@
                     .ThenBy(n => n.Name)
                     .ToList();
             }
+            
+            // Empty list is not an error - it just means this is the first node
+            Logger.LogInformation("Loaded {Count} available parent nodes", _availableParentNodes.Count);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading parent nodes");
+            // Only show error if there's an actual exception, not for empty results
             Snackbar.Add(TranslationService.GetTranslation("classificationNode.loadParentNodesError", "Errore nel caricamento dei nodi padre"), Severity.Error);
         }
     }
