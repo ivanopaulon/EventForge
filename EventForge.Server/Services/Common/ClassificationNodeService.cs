@@ -234,6 +234,7 @@ public class ClassificationNodeService : IClassificationNodeService
                 Name = createDto.Name,
                 Description = createDto.Description,
                 Type = createDto.Type.ToEntity(),
+                Status = createDto.Status.ToEntity(),
                 Level = createDto.Level,
                 Order = createDto.Order,
                 ParentId = createDto.ParentId,
@@ -340,6 +341,7 @@ public class ClassificationNodeService : IClassificationNodeService
                 node.Description = updateDto.Description;
             
             node.Type = updateDto.Type.ToEntity();
+            node.Status = updateDto.Status.ToEntity();
             node.Level = updateDto.Level;
             node.Order = updateDto.Order;
             
