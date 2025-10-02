@@ -82,6 +82,7 @@ builder.Services.AddScoped<IStorageLocationService, StorageLocationService>();
 
 // Add product management services
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IUMService, UMService>();
 
 // Add SuperAdmin services
 builder.Services.AddScoped<ISuperAdminService, SuperAdminService>();

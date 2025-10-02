@@ -1,0 +1,406 @@
+@page "/product-management/units"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.UnitOfMeasures
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@attribute [Authorize]
+@inject IAuthService AuthService
+@inject IUMService UMService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<UnitOfMeasureManagement> Logger
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+    @if (_isLoading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else
+    {
+        <MudPaper Elevation="2" Class="pa-4 mb-4">
+            <div class="d-flex justify-space-between align-center mb-4">
+                <div>
+                    <MudText Typo="Typo.h4">
+                        <MudIcon Icon="@Icons.Material.Outlined.Straighten" Class="mr-2" />
+                        @TranslationService.GetTranslation("um.management", "Gestione Unità di Misura")
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+                        @TranslationService.GetTranslation("um.managementDescription", "Gestisci le unità di misura per i prodotti")
+                    </MudText>
+                </div>
+            </div>
+
+            <!-- Filters Section -->
+            <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
+                <div class="d-flex gap-4 align-center flex-wrap">
+                    <MudTextField @bind-Value="_searchTerm"
+                                  @bind-Value:after="OnSearchChanged"
+                                  Label="@TranslationService.GetTranslation("um.search", "Cerca unità di misura")"
+                                  Placeholder="@TranslationService.GetTranslation("um.searchPlaceholder", "Inserisci nome o simbolo...")"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@Icons.Material.Outlined.Search"
+                                  Clearable="true"
+                                  Style="flex: 2;" />
+                    <MudSelect T="string" @bind-Value="_defaultFilter" @bind-Value:after="OnDefaultFilterChanged" 
+                               Label="@TranslationService.GetTranslation("field.filter", "Filtro")" 
+                               Placeholder="@TranslationService.GetTranslation("um.selectFilter", "Seleziona filtro...")"
+                               Variant="Variant.Outlined"
+                               Clearable="true"
+                               Style="flex: 1;">
+                        <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
+                        <MudSelectItem Value="@("default")">@TranslationService.GetTranslation("um.defaultOnly", "Solo Predefinite")</MudSelectItem>
+                        <MudSelectItem Value="@("standard")">@TranslationService.GetTranslation("um.standardOnly", "Solo Standard")</MudSelectItem>
+                    </MudSelect>
+                </div>
+            </MudPaper>
+
+            <!-- Units of Measure Data Table -->
+            <MudPaper Elevation="1" Class="border-rounded">
+                <MudCardHeader Class="pa-2">
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">
+                            <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
+                            @TranslationService.GetTranslation("um.list", "Lista Unità di Misura")
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                                (@_filteredUMs.Count() @TranslationService.GetTranslation("um.itemsFound", "elementi trovati"))
+                            </MudText>
+                        </MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
+                                           ShowRefresh="true"
+                                           ShowExport="false" 
+                                           ShowCreate="true"
+                                           ShowAuditLog="false"
+                                           CreateIcon="@Icons.Material.Outlined.Add"
+                                           CreateTooltip="@TranslationService.GetTranslation("um.createNew", "Crea nuova unità di misura")"
+                                           IsDisabled="_isLoadingUMs"
+                                           OnRefresh="@LoadUMsAsync"
+                                           OnCreate="@OpenCreateUMDrawer" />
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent Class="pa-1">
+                    @if (_isLoadingUMs)
+                    {
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+                    }
+                    else
+                    {
+                        <MudTable T="UMDto" 
+                                  Items="_filteredUMs" 
+                                  Hover="true" 
+                                  Striped="true"
+                                  Loading="_isLoadingUMs"
+                                  LoadingProgressColor="Color.Info"
+                                  SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
+                                  AllowUnsorted="false"
+                                  Dense="true"
+                                  Breakpoint="Breakpoint.Sm">
+                            <HeaderContent>
+                                <MudTh>
+                                    <MudTableSortLabel SortBy="new Func<UMDto, object>(x => x.Name)">
+                                        @TranslationService.GetTranslation("field.name", "Nome")
+                                    </MudTableSortLabel>
+                                </MudTh>
+                                <MudTh>
+                                    <MudTableSortLabel SortBy="new Func<UMDto, object>(x => x.Symbol)">
+                                        @TranslationService.GetTranslation("field.symbol", "Simbolo")
+                                    </MudTableSortLabel>
+                                </MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
+                                <MudTh>
+                                    <MudTableSortLabel SortBy="new Func<UMDto, object>(x => x.IsDefault)">
+                                        @TranslationService.GetTranslation("field.status", "Stato")
+                                    </MudTableSortLabel>
+                                </MudTh>
+                                <MudTh>
+                                    <MudTableSortLabel SortBy="new Func<UMDto, object>(x => x.CreatedAt)">
+                                        @TranslationService.GetTranslation("field.createdAt", "Data Creazione")
+                                    </MudTableSortLabel>
+                                </MudTh>
+                                <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                                    <MudText Typo="Typo.body2">@context.Name</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.symbol", "Simbolo")">
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">
+                                        @context.Symbol
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
+                                    <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width: 300px;">
+                                        @(string.IsNullOrEmpty(context.Description) ? "-" : context.Description)
+                                    </MudText>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                                    @if (context.IsDefault)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">
+                                            @TranslationService.GetTranslation("status.defaultUnit", "Predefinita")
+                                        </MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+                                            @TranslationService.GetTranslation("status.standardUnit", "Standard")
+                                        </MudChip>
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Data Creazione")">
+                                    <MudText Typo="Typo.body2">@context.CreatedAt.ToString("dd/MM/yyyy")</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
+                                    <ActionButtonGroup EntityName="@context.Name"
+                                                      ItemDisplayName="@context.Name"
+                                                      ShowView="true"
+                                                      ShowEdit="true"
+                                                      ShowAuditLog="false"
+                                                      ShowToggleStatus="false"
+                                                      ShowDelete="true"
+                                                      OnView="@(() => ViewUM(context))"
+                                                      OnEdit="@(() => EditUM(context))"
+                                                      OnDelete="@(() => DeleteUM(context))" />
+                                </MudTd>
+                            </RowTemplate>
+
+                            <NoRecordsContent>
+                                <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Straighten" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                                    <MudText Typo="Typo.h6" Class="mb-2">
+                                        @(_unitOfMeasures.Any() ? 
+                                            TranslationService.GetTranslation("um.noMatchFilters", "Nessuna unità di misura corrisponde ai filtri applicati") : 
+                                            TranslationService.GetTranslation("um.noFound", "Nessuna unità di misura trovata"))
+                                    </MudText>
+                                    @if (_unitOfMeasures.Any())
+                                    {
+                                        <MudButton Variant="Variant.Text" 
+                                                   Color="Color.Primary" 
+                                                   OnClick="@ClearFilters">
+                                            @TranslationService.GetTranslation("button.clearFilters", "Cancella Filtri")
+                                        </MudButton>
+                                    }
+                                    else
+                                    {
+                                        <MudButton Variant="Variant.Filled" 
+                                                   Color="Color.Primary" 
+                                                   StartIcon="@Icons.Material.Outlined.Add"
+                                                   OnClick="@OpenCreateUMDrawer">
+                                            @TranslationService.GetTranslation("um.createFirst", "Crea la prima unità di misura")
+                                        </MudButton>
+                                    }
+                                </div>
+                            </NoRecordsContent>
+
+                            <PagerContent>
+                                <MudTablePager PageSizeOptions="new[] { 10, 25, 50, 100 }" />
+                            </PagerContent>
+                        </MudTable>
+                    }
+                </MudCardContent>
+            </MudPaper>
+        </MudPaper>
+
+        <!-- Unit of Measure Drawer -->
+        <UMDrawer @bind-IsOpen="@_umDrawerOpen"
+                  @bind-Mode="@_umDrawerMode"
+                  OriginalUM="@_selectedUM"
+                  AllowEdit="true"
+                  OnUMCreated="@OnUMCreated"
+                  OnUMUpdated="@OnUMUpdated" />
+    }
+</MudContainer>
+
+@code {
+    // Loading states
+    private bool _isLoading = true;
+    private bool _isLoadingUMs = false;
+    
+    // Drawer states
+    private bool _umDrawerOpen = false;
+    
+    // Drawer management
+    private EntityDrawerMode _umDrawerMode = EntityDrawerMode.Create;
+    private UMDto? _selectedUM;
+    
+    // Filter and search state
+    private string _searchTerm = string.Empty;
+    private string _defaultFilter = "all";
+    
+    // Data collections
+    private List<UMDto> _unitOfMeasures = new();
+
+    /// <summary>
+    /// Computed property for filtered units of measure based on search criteria.
+    /// </summary>
+    private IEnumerable<UMDto> _filteredUMs => 
+        _unitOfMeasures.Where(um => 
+            // Search filter: check name or symbol
+            (string.IsNullOrEmpty(_searchTerm) || 
+             um.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             um.Symbol.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) &&
+            // Default filter
+            (_defaultFilter == "all" || 
+             (_defaultFilter == "default" && um.IsDefault) ||
+             (_defaultFilter == "standard" && !um.IsDefault)));
+
+    /// <summary>
+    /// Component initialization.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Check authentication
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                NavigationManager.NavigateTo("/login");
+                return;
+            }
+
+            // Load units of measure
+            await LoadUMsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("um.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading units of measure page");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Loads unit of measure data.
+    /// </summary>
+    private async Task LoadUMsAsync()
+    {
+        try
+        {
+            _isLoadingUMs = true;
+            
+            var result = await UMService.GetUMsAsync(page: 1, pageSize: 100);
+            _unitOfMeasures = result.Items.OrderBy(um => um.Name).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("um.loadingError", "Errore nel caricamento delle unità di misura: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading units of measure");
+        }
+        finally
+        {
+            _isLoadingUMs = false;
+        }
+    }
+
+    /// <summary>
+    /// Clears all active filters.
+    /// </summary>
+    private async Task ClearFilters()
+    {
+        _searchTerm = string.Empty;
+        _defaultFilter = "all";
+        await Task.CompletedTask;
+        StateHasChanged();
+    }
+
+    private async Task OnSearchChanged()
+    {
+        await Task.Delay(300); // Debounce
+        StateHasChanged();
+    }
+
+    private async Task OnDefaultFilterChanged()
+    {
+        await Task.CompletedTask;
+        StateHasChanged();
+    }
+
+    private async Task OpenCreateUMDrawer()
+    {
+        _umDrawerMode = EntityDrawerMode.Create;
+        _selectedUM = null;
+        _umDrawerOpen = true;
+        await Task.CompletedTask;
+    }
+
+    private async Task OnUMCreated(UMDto newUM)
+    {
+        _unitOfMeasures.Add(newUM);
+        _unitOfMeasures = _unitOfMeasures.OrderBy(um => um.Name).ToList();
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    private async Task OnUMUpdated(UMDto updatedUM)
+    {
+        var index = _unitOfMeasures.FindIndex(um => um.Id == updatedUM.Id);
+        if (index >= 0)
+        {
+            _unitOfMeasures[index] = updatedUM;
+        }
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    private async Task ViewUM(UMDto um)
+    {
+        _umDrawerMode = EntityDrawerMode.View;
+        _selectedUM = um;
+        _umDrawerOpen = true;
+        await Task.CompletedTask;
+    }
+
+    private async Task EditUM(UMDto um)
+    {
+        _umDrawerMode = EntityDrawerMode.Edit;
+        _selectedUM = um;
+        _umDrawerOpen = true;
+        await Task.CompletedTask;
+    }
+
+    private async Task DeleteUM(UMDto um)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("um.deleteTitle", "Conferma Eliminazione"),
+            TranslationService.GetTranslation("um.deleteMessage", "Sei sicuro di voler eliminare l'unità di misura '{0}'?", um.Name),
+            yesText: TranslationService.GetTranslation("button.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("button.cancel", "Annulla"));
+
+        if (confirmed == true)
+        {
+            try
+            {
+                var success = await UMService.DeleteUMAsync(um.Id);
+                if (success)
+                {
+                    _unitOfMeasures.Remove(um);
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("um.deleteSuccess", "Unità di misura eliminata con successo"), 
+                        Severity.Success);
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("um.deleteNotFound", "Unità di misura non trovata"), 
+                        Severity.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting unit of measure");
+                Snackbar.Add(
+                    TranslationService.GetTranslation("um.deleteError", "Errore nell'eliminazione dell'unità di misura: {0}", ex.Message), 
+                    Severity.Error);
+            }
+        }
+    }
+}
