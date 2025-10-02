@@ -233,9 +233,10 @@ public class ClassificationNodeService : IClassificationNodeService
                 Code = createDto.Code,
                 Name = createDto.Name,
                 Description = createDto.Description,
-                Type = createDto.Type?.ToEntity() ?? ProductClassificationType.Category,
-                Level = createDto.Level ?? 0,
-                Order = createDto.Order ?? 0,
+                Type = createDto.Type.ToEntity(),
+                Status = createDto.Status.ToEntity(),
+                Level = createDto.Level,
+                Order = createDto.Order,
                 ParentId = createDto.ParentId,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
@@ -338,13 +339,12 @@ public class ClassificationNodeService : IClassificationNodeService
                 node.Name = updateDto.Name;
             if (updateDto.Description != null)
                 node.Description = updateDto.Description;
-            if (updateDto.Type.HasValue)
-                node.Type = updateDto.Type.Value.ToEntity();
-            if (updateDto.Status.HasValue)
-                if (updateDto.Level.HasValue)
-                    node.Level = updateDto.Level.Value;
-            if (updateDto.Order.HasValue)
-                node.Order = updateDto.Order.Value;
+            
+            node.Type = updateDto.Type.ToEntity();
+            node.Status = updateDto.Status.ToEntity();
+            node.Level = updateDto.Level;
+            node.Order = updateDto.Order;
+            
             if (updateDto.ParentId.HasValue)
                 node.ParentId = updateDto.ParentId;
 

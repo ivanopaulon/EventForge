@@ -31,24 +31,26 @@ namespace EventForge.DTOs.Common
         /// <summary>
         /// Type of the classification node.
         /// </summary>
-        public ProductClassificationType? Type { get; set; }
+        [Required(ErrorMessage = "Type is required.")]
+        public ProductClassificationType Type { get; set; }
 
         /// <summary>
         /// Status of the classification node.
         /// </summary>
-        public ProductClassificationNodeStatus? Status { get; set; }
+        [Required(ErrorMessage = "Status is required.")]
+        public ProductClassificationNodeStatus Status { get; set; }
 
         /// <summary>
         /// Hierarchy level (root = 0).
         /// </summary>
         [Range(0, 10, ErrorMessage = "Level must be between 0 and 10.")]
-        public int? Level { get; set; }
+        public int Level { get; set; }
 
         /// <summary>
         /// Order for sorting nodes at the same level.
         /// </summary>
         [Range(0, 1000, ErrorMessage = "Order must be between 0 and 1000.")]
-        public int? Order { get; set; }
+        public int Order { get; set; }
 
         /// <summary>
         /// Parent node ID (null if root).
