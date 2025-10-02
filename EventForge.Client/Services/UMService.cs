@@ -1,6 +1,5 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.UnitOfMeasures;
-using System.Net.Http.Json;
 
 namespace EventForge.Client.Services;
 
@@ -9,13 +8,13 @@ namespace EventForge.Client.Services;
 /// </summary>
 public class UMService : IUMService
 {
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientService _httpClientService;
     private readonly ILogger<UMService> _logger;
     private const string BaseUrl = "api/v1/product-management/units";
 
-    public UMService(HttpClient httpClient, ILogger<UMService> logger)
+    public UMService(IHttpClientService httpClientService, ILogger<UMService> logger)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -23,10 +22,7 @@ public class UMService : IUMService
     {
         try
         {
-            var response = await _httpClient.GetAsync($"{BaseUrl}?page={page}&pageSize={pageSize}");
-            response.EnsureSuccessStatusCode();
-
-            var result = await response.Content.ReadFromJsonAsync<PagedResult<UMDto>>();
+            var result = await _httpClientService.GetAsync<PagedResult<UMDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
             return result ?? new PagedResult<UMDto> { Items = new List<UMDto>(), TotalCount = 0, Page = page, PageSize = pageSize };
         }
         catch (Exception ex)
@@ -40,15 +36,7 @@ public class UMService : IUMService
     {
         try
         {
-            var response = await _httpClient.GetAsync($"{BaseUrl}/{id}");
-            if (!response.IsSuccessStatusCode)
-            {
-                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    return null;
-                response.EnsureSuccessStatusCode();
-            }
-
-            return await response.Content.ReadFromJsonAsync<UMDto>();
+            return await _httpClientService.GetAsync<UMDto>($"{BaseUrl}/{id}");
         }
         catch (Exception ex)
         {
@@ -61,11 +49,8 @@ public class UMService : IUMService
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync(BaseUrl, createUMDto);
-            response.EnsureSuccessStatusCode();
-
-            var result = await response.Content.ReadFromJsonAsync<UMDto>();
-            return result ?? throw new InvalidOperationException("Failed to deserialize created unit of measure");
+            var result = await _httpClientService.PostAsync<CreateUMDto, UMDto>(BaseUrl, createUMDto);
+            return result ?? throw new InvalidOperationException("Failed to create unit of measure");
         }
         catch (Exception ex)
         {
@@ -78,15 +63,7 @@ public class UMService : IUMService
     {
         try
         {
-            var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", updateUMDto);
-            if (!response.IsSuccessStatusCode)
-            {
-                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    return null;
-                response.EnsureSuccessStatusCode();
-            }
-
-            return await response.Content.ReadFromJsonAsync<UMDto>();
+            return await _httpClientService.PutAsync<UpdateUMDto, UMDto>($"{BaseUrl}/{id}", updateUMDto);
         }
         catch (Exception ex)
         {
@@ -99,12 +76,12 @@ public class UMService : IUMService
     {
         try
         {
-            var response = await _httpClient.DeleteAsync($"{BaseUrl}/{id}");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                return false;
-
-            response.EnsureSuccessStatusCode();
+            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
             return true;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return false;
         }
         catch (Exception ex)
         {
