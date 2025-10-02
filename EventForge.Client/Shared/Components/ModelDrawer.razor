@@ -206,8 +206,9 @@
         }
     }
 
-    private async Task<IEnumerable<BrandDto>> SearchBrands(string value)
+    private async Task<IEnumerable<BrandDto>> SearchBrands(string value, CancellationToken cancellationToken)
     {
+        await Task.CompletedTask; // Avoid async warning
         if (string.IsNullOrEmpty(value))
             return _brands;
 
