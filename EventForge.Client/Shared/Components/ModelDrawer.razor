@@ -212,7 +212,6 @@
         if (string.IsNullOrEmpty(value))
             return _brands;
 
-        await Task.CompletedTask; // Make method async
         return _brands.Where(b => b.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
     }
 
