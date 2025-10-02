@@ -1,0 +1,368 @@
+@using MudBlazor
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@inject IModelService ModelService
+@inject IBrandService BrandService
+@inject ISnackbar Snackbar
+@inject ILogger<ModelDrawer> Logger
+@inject ITranslationService TranslationService
+
+<EntityDrawer @bind-IsOpen="@IsOpen"
+              @bind-Mode="@Mode"
+              EntityName="@TranslationService.GetTranslation("field.model", "Modello")"
+              Model="@_model"
+              OnSave="@HandleSave"
+              OnCancel="@HandleCancel"
+              OnClose="@HandleClose"
+              CustomTitle="@_customTitle"
+              AllowEdit="@AllowEdit"
+              Width="50%">
+    
+    <FormContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudAutocomplete T="BrandDto"
+                                 @bind-Value="_selectedBrand"
+                                 Label="@($"{TranslationService.GetTranslation("drawer.field.brand", "Marchio")} *")"
+                                 Variant="Variant.Outlined"
+                                 SearchFunc="@SearchBrands"
+                                 ToStringFunc="@(b => b?.Name ?? "")"
+                                 Required="true"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true"
+                                 CoerceValue="true"
+                                 aria-describedby="brand-help">
+                    <ItemTemplate Context="brand">
+                        <MudText>@brand.Name</MudText>
+                        @if (!string.IsNullOrEmpty(brand.Country))
+                        {
+                            <MudText Typo="Typo.caption">@brand.Country</MudText>
+                        }
+                    </ItemTemplate>
+                </MudAutocomplete>
+                <MudText id="brand-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.brand", "Seleziona il marchio del modello")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.Name"
+                              Label="@($"{TranslationService.GetTranslation("drawer.field.nomeModello", "Nome Modello")} *")"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="@TranslationService.GetTranslation("drawer.error.nomeModelloObbligatorio", "Il nome del modello è obbligatorio")"
+                              MaxLength="200"
+                              Immediate="true"
+                              aria-describedby="name-help" />
+                <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.nomeModello", "Inserisci il nome del modello")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.Description"
+                              Label="@TranslationService.GetTranslation("drawer.field.descrizioneModello", "Descrizione")"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                              MaxLength="1000"
+                              aria-describedby="description-help" />
+                <MudText id="description-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.descrizioneModello", "Descrizione opzionale del modello")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.ManufacturerPartNumber"
+                              Label="@TranslationService.GetTranslation("drawer.field.mpn", "Codice Parte Produttore (MPN)")"
+                              Variant="Variant.Outlined"
+                              MaxLength="100"
+                              aria-describedby="mpn-help" />
+                <MudText id="mpn-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.mpn", "Numero di parte del produttore")
+                </MudText>
+            </MudItem>
+            
+            @if (Mode == EntityDrawerMode.Edit && OriginalModel != null)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalModel.Id.ToString()"
+                                  Label="@TranslationService.GetTranslation("drawer.field.id", "ID")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.identificativoUnico", "Identificativo unico")" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalModel.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                  Label="@TranslationService.GetTranslation("drawer.field.dataCreazione", "Data Creazione")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.dataOraCreazione", "Data e ora di creazione")" />
+                </MudItem>
+            }
+        </MudGrid>
+    </FormContent>
+    
+    <ViewContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField Value="@(OriginalModel?.BrandName ?? "")"
+                              Label="@TranslationService.GetTranslation("drawer.field.brand", "Marchio")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              aria-label="@TranslationService.GetTranslation("drawer.field.brand", "Marchio")" />
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudTextField Value="@(OriginalModel?.Name ?? "")"
+                              Label="@TranslationService.GetTranslation("drawer.field.nomeModello", "Nome Modello")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              aria-label="@TranslationService.GetTranslation("drawer.field.nomeModello", "Nome Modello")" />
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudTextField Value="@(OriginalModel?.Description ?? "")"
+                              Label="@TranslationService.GetTranslation("drawer.field.descrizioneModello", "Descrizione")"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                              ReadOnly="true"
+                              aria-label="@TranslationService.GetTranslation("drawer.field.descrizioneModello", "Descrizione")" />
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudTextField Value="@(OriginalModel?.ManufacturerPartNumber ?? "")"
+                              Label="@TranslationService.GetTranslation("drawer.field.mpn", "Codice Parte Produttore (MPN)")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              aria-label="@TranslationService.GetTranslation("drawer.field.mpn", "Codice Parte Produttore (MPN)")" />
+            </MudItem>
+            
+            @if (OriginalModel != null)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalModel.Id.ToString()"
+                                  Label="@TranslationService.GetTranslation("drawer.field.id", "ID")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.identificativoUnico", "Identificativo unico")" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalModel.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                  Label="@TranslationService.GetTranslation("drawer.field.dataCreazione", "Data Creazione")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.aria.dataOraCreazione", "Data e ora di creazione")" />
+                </MudItem>
+                
+                @if (!string.IsNullOrWhiteSpace(OriginalModel.CreatedBy))
+                {
+                    <MudItem xs="12">
+                        <MudTextField Value="@OriginalModel.CreatedBy"
+                                      Label="@TranslationService.GetTranslation("drawer.field.creatoDa", "Creato Da")"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="true"
+                                      aria-label="@TranslationService.GetTranslation("drawer.field.creatoDa", "Creato Da")" />
+                    </MudItem>
+                }
+            }
+        </MudGrid>
+    </ViewContent>
+</EntityDrawer>
+
+@code {
+    [Parameter]
+    public EventCallback OnEntitySaved { get; set; }
+
+    [Parameter]
+    public bool AllowEdit { get; set; } = true;
+
+    public bool IsOpen { get; set; }
+    public EntityDrawerMode Mode { get; set; } = EntityDrawerMode.View;
+    public ModelDto? OriginalModel { get; private set; }
+
+    private ModelDto _model = new();
+    private BrandDto? _selectedBrand;
+    private IEnumerable<BrandDto> _brands = new List<BrandDto>();
+    private string? _customTitle;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBrandsAsync();
+    }
+
+    private async Task LoadBrandsAsync()
+    {
+        try
+        {
+            var result = await BrandService.GetBrandsAsync(page: 1, pageSize: 1000);
+            _brands = result.Items ?? new List<BrandDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading brands");
+        }
+    }
+
+    private async Task<IEnumerable<BrandDto>> SearchBrands(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return _brands;
+
+        return _brands.Where(b => b.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public void OpenForCreate()
+    {
+        Mode = EntityDrawerMode.Create;
+        OriginalModel = null;
+        _model = new ModelDto();
+        _selectedBrand = null;
+        _customTitle = TranslationService.GetTranslation("drawer.title.creaModello", "Crea Nuovo Modello");
+        IsOpen = true;
+        StateHasChanged();
+    }
+
+    public async Task OpenForEdit(Guid id)
+    {
+        try
+        {
+            Mode = EntityDrawerMode.Edit;
+            var model = await ModelService.GetModelByIdAsync(id);
+            
+            if (model == null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("model.notFound", "Modello non trovato"),
+                    Severity.Warning);
+                return;
+            }
+
+            OriginalModel = model;
+            _model = new ModelDto
+            {
+                Id = model.Id,
+                BrandId = model.BrandId,
+                BrandName = model.BrandName,
+                Name = model.Name,
+                Description = model.Description,
+                ManufacturerPartNumber = model.ManufacturerPartNumber
+            };
+
+            _selectedBrand = _brands.FirstOrDefault(b => b.Id == model.BrandId);
+            _customTitle = $"{TranslationService.GetTranslation("drawer.title.modificaModello", "Modifica Modello")}: {model.Name}";
+            IsOpen = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading model for edit");
+            Snackbar.Add(
+                TranslationService.GetTranslation("model.loadError", "Errore nel caricamento del modello"),
+                Severity.Error);
+        }
+    }
+
+    public async Task OpenForView(Guid id)
+    {
+        try
+        {
+            Mode = EntityDrawerMode.View;
+            var model = await ModelService.GetModelByIdAsync(id);
+            
+            if (model == null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("model.notFound", "Modello non trovato"),
+                    Severity.Warning);
+                return;
+            }
+
+            OriginalModel = model;
+            _model = model;
+            _selectedBrand = _brands.FirstOrDefault(b => b.Id == model.BrandId);
+            _customTitle = $"{TranslationService.GetTranslation("drawer.title.visualizzaModello", "Visualizza Modello")}: {model.Name}";
+            IsOpen = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading model for view");
+            Snackbar.Add(
+                TranslationService.GetTranslation("model.loadError", "Errore nel caricamento del modello"),
+                Severity.Error);
+        }
+    }
+
+    private async Task HandleSave()
+    {
+        if (_selectedBrand == null)
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("model.brandRequired", "Il marchio è obbligatorio"),
+                Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            if (Mode == EntityDrawerMode.Create)
+            {
+                var createDto = new CreateModelDto
+                {
+                    BrandId = _selectedBrand.Id,
+                    Name = _model.Name,
+                    Description = _model.Description,
+                    ManufacturerPartNumber = _model.ManufacturerPartNumber
+                };
+                
+                await ModelService.CreateModelAsync(createDto);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("model.createSuccess", "Modello creato con successo"),
+                    Severity.Success);
+            }
+            else if (Mode == EntityDrawerMode.Edit && OriginalModel != null)
+            {
+                var updateDto = new UpdateModelDto
+                {
+                    BrandId = _selectedBrand.Id,
+                    Name = _model.Name,
+                    Description = _model.Description,
+                    ManufacturerPartNumber = _model.ManufacturerPartNumber
+                };
+                
+                await ModelService.UpdateModelAsync(OriginalModel.Id, updateDto);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("model.updateSuccess", "Modello aggiornato con successo"),
+                    Severity.Success);
+            }
+
+            await OnEntitySaved.InvokeAsync();
+            HandleClose();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving model");
+            Snackbar.Add(
+                TranslationService.GetTranslation("model.saveError", "Errore nel salvataggio del modello"),
+                Severity.Error);
+        }
+    }
+
+    private void HandleCancel()
+    {
+        HandleClose();
+    }
+
+    private void HandleClose()
+    {
+        IsOpen = false;
+        _model = new ModelDto();
+        _selectedBrand = null;
+        OriginalModel = null;
+        _customTitle = null;
+        StateHasChanged();
+    }
+}

@@ -135,6 +135,16 @@
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.unitOfMeasureManagement", "Gestione Unità di Misura")
                 </MudNavLink>
+                <MudNavLink Href="/product-management/brands"
+                            Icon="@Icons.Material.Outlined.Sell" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.brandManagement", "Gestione Marchi")
+                </MudNavLink>
+                <MudNavLink Href="/product-management/models"
+                            Icon="@Icons.Material.Outlined.Category" 
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.modelManagement", "Gestione Modelli")
+                </MudNavLink>
             </MudNavGroup>
         }
         
