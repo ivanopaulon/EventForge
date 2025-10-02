@@ -182,7 +182,8 @@ namespace EventForge.Client.Services
 
         public async Task<IEnumerable<ClassificationNodeDto>> GetClassificationNodesAsync()
         {
-            return await _httpClientService.GetAsync<IEnumerable<ClassificationNodeDto>>("api/v1/entities/classification-nodes") ?? new List<ClassificationNodeDto>();
+            var result = await _httpClientService.GetAsync<PagedResult<ClassificationNodeDto>>("api/v1/entities/classification-nodes?page=1&pageSize=1000");
+            return result?.Items ?? new List<ClassificationNodeDto>();
         }
 
         public async Task<IEnumerable<ClassificationNodeDto>> GetRootClassificationNodesAsync()
