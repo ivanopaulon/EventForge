@@ -250,4 +250,43 @@ public class TranslationFileTests
         // Assert
         Assert.True(found, $"StorageLocationDrawer key '{key}' not found in {fileName}");
     }
+
+    /// <summary>
+    /// Tests to verify drawer component translation keys are present.
+    /// These keys are required for the EntityDrawer and specific drawer components.
+    /// </summary>
+    [Theory]
+    [InlineData("it.json", "drawer.title.modificaUM")]
+    [InlineData("it.json", "drawer.title.visualizzaUM")]
+    [InlineData("it.json", "drawer.title.creaEntita")]
+    [InlineData("it.json", "drawer.title.modificaEntita")]
+    [InlineData("it.json", "drawer.title.visualizzaEntita")]
+    [InlineData("it.json", "drawer.button.crea")]
+    [InlineData("it.json", "drawer.button.salva")]
+    [InlineData("it.json", "drawer.button.annulla")]
+    [InlineData("it.json", "drawer.button.chiudi")]
+    [InlineData("it.json", "drawer.button.modifica")]
+    [InlineData("en.json", "drawer.title.modificaUM")]
+    [InlineData("en.json", "drawer.title.visualizzaUM")]
+    [InlineData("en.json", "drawer.title.creaEntita")]
+    [InlineData("en.json", "drawer.title.modificaEntita")]
+    [InlineData("en.json", "drawer.title.visualizzaEntita")]
+    [InlineData("en.json", "drawer.button.crea")]
+    [InlineData("en.json", "drawer.button.salva")]
+    [InlineData("en.json", "drawer.button.annulla")]
+    [InlineData("en.json", "drawer.button.chiudi")]
+    [InlineData("en.json", "drawer.button.modifica")]
+    public void DrawerComponent_TranslationKeys_ShouldExist(string fileName, string key)
+    {
+        // Arrange
+        var filePath = Path.Combine(_clientWwwRootPath, "i18n", fileName);
+        var jsonContent = File.ReadAllText(filePath);
+        using var document = JsonDocument.Parse(jsonContent);
+
+        // Act
+        var found = FindKeyInJson(document.RootElement, key);
+
+        // Assert
+        Assert.True(found, $"Drawer component key '{key}' not found in {fileName}");
+    }
 }
