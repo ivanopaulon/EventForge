@@ -250,6 +250,134 @@ public class ProductService : IProductService
             return null;
         }
     }
+
+    // Product Supplier management
+
+    public async Task<IEnumerable<ProductSupplierDto>?> GetProductSuppliersAsync(Guid productId)
+    {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        try
+        {
+            var response = await httpClient.GetAsync($"{BaseUrl}/{productId}/suppliers");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<IEnumerable<ProductSupplierDto>>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+
+            _logger.LogError("Failed to retrieve product suppliers. Status: {StatusCode}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product suppliers for product {ProductId}", productId);
+            return null;
+        }
+    }
+
+    public async Task<ProductSupplierDto?> GetProductSupplierByIdAsync(Guid id)
+    {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        try
+        {
+            var response = await httpClient.GetAsync($"api/v1/product-management/product-suppliers/{id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<ProductSupplierDto>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+
+            _logger.LogError("Failed to retrieve product supplier. Status: {StatusCode}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product supplier {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<ProductSupplierDto?> CreateProductSupplierAsync(CreateProductSupplierDto createDto)
+    {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync("api/v1/product-management/product-suppliers", createDto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<ProductSupplierDto>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+
+            _logger.LogError("Failed to create product supplier. Status: {StatusCode}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating product supplier");
+            return null;
+        }
+    }
+
+    public async Task<ProductSupplierDto?> UpdateProductSupplierAsync(Guid id, UpdateProductSupplierDto updateDto)
+    {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        try
+        {
+            var response = await httpClient.PutAsJsonAsync($"api/v1/product-management/product-suppliers/{id}", updateDto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<ProductSupplierDto>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+
+            _logger.LogError("Failed to update product supplier. Status: {StatusCode}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating product supplier {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<bool> DeleteProductSupplierAsync(Guid id)
+    {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        try
+        {
+            var response = await httpClient.DeleteAsync($"api/v1/product-management/product-suppliers/{id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+
+            _logger.LogError("Failed to delete product supplier. Status: {StatusCode}", response.StatusCode);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting product supplier {Id}", id);
+            return false;
+        }
+    }
 }
 
 public class ImageUploadResultDto

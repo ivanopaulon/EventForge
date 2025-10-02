@@ -19,4 +19,11 @@ public interface IProductService
     Task<IEnumerable<UMDto>> GetUnitsOfMeasureAsync();
     Task<IEnumerable<StationDto>> GetStationsAsync();
     Task<string?> UploadProductImageAsync(IBrowserFile file);
+
+    // Product Supplier management
+    Task<IEnumerable<ProductSupplierDto>?> GetProductSuppliersAsync(Guid productId);
+    Task<ProductSupplierDto?> GetProductSupplierByIdAsync(Guid id);
+    Task<ProductSupplierDto?> CreateProductSupplierAsync(CreateProductSupplierDto createDto);
+    Task<ProductSupplierDto?> UpdateProductSupplierAsync(Guid id, UpdateProductSupplierDto updateDto);
+    Task<bool> DeleteProductSupplierAsync(Guid id);
 }

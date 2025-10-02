@@ -223,6 +223,9 @@
     "welcomeMessage": "Benvenuto nella chat di EventForge",
     "welcomeTitle": "Benvenuto"
   },
+  "entity": {
+    "product": "Prodotto"
+  },
   "common": {
     "about": "Informazioni",
     "actions": "Azioni",
@@ -288,7 +291,9 @@
     "user": "Utente",
     "version": "Versione",
     "warning": "Attenzione",
-    "yes": "Sì"
+    "yes": "Sì",
+    "days": "giorni",
+    "itemsFound": "elementi trovati"
   },
   "dataRetention": {
     "indefinite": "Indefinito"
@@ -297,7 +302,10 @@
     "confirmDelete": "Conferma eliminazione",
     "confirmDeleteEventCategory": "Conferma eliminazione categoria evento",
     "confirmDeleteEventCategoryMessage": "Sei sicuro di voler eliminare questa categoria evento?",
-    "confirmDeleteMessage": "Sei sicuro di voler eliminare questo elemento?"
+    "confirmDeleteMessage": "Sei sicuro di voler eliminare questo elemento?",
+    "addSupplier": "Aggiungi Fornitore",
+    "editSupplier": "Modifica Fornitore",
+    "confirmDeleteSupplier": "Sei sicuro di voler eliminare questo fornitore?"
   },
   "drawer": {
     "aria": {
@@ -329,7 +337,12 @@
       "creando": "Creando...",
       "modifica": "Modifica",
       "salva": "Salva",
-      "salvando": "Salvando..."
+      "salvando": "Salvando...",
+      "addSupplier": "Aggiungi Fornitore",
+      "addAddress": "Aggiungi Indirizzo",
+      "cancel": "Annulla",
+      "save": "Salva",
+      "delete": "Elimina"
     },
     "createEvent": "Crea evento",
     "createEventCategory": "Crea categoria evento",
@@ -665,6 +678,21 @@
     "storageFacility": "Magazzino",
     "storageLocation": "Ubicazione",
     "supplier": "Fornitore",
+    "supplierCount": "Fornitori",
+    "supplierName": "Nome Fornitore",
+    "supplierCode": "Codice Fornitore",
+    "unitCost": "Costo Unitario",
+    "currency": "Valuta",
+    "leadTime": "Tempi di Consegna",
+    "leadTimeDays": "Tempi di Consegna (giorni)",
+    "minOrderQty": "Quantità Minima Ordine",
+    "incrementQty": "Incremento Quantità",
+    "lastPurchasePrice": "Ultimo Prezzo di Acquisto",
+    "lastPurchaseDate": "Data Ultimo Acquisto",
+    "purchaseDescription": "Descrizione Acquisto",
+    "preferred": "Preferito",
+    "preferredHelp": "Solo un fornitore può essere marcato come preferito per prodotto",
+    "price": "Prezzo",
     "partyType": "Tipo",
     "taxCode": "Codice Fiscale",
     "vatNumber": "Partita IVA",
@@ -878,6 +906,8 @@
     "createSuccessful": "Creato con successo",
     "deleteConfirm": "Sei sicuro di voler eliminare questo elemento?",
     "deleteSuccess": "Eliminato con successo",
+    "deleteSuccessful": "Eliminazione completata con successo",
+    "deleteFailed": "Errore durante l'eliminazione",
     "operationFailed": "Operazione fallita",
     "operationSuccess": "Operazione completata con successo",
     "saveSuccess": "Salvato con successo",
@@ -887,7 +917,15 @@
     "loadFailed": "Errore durante il caricamento",
     "warehouseRequired": "Seleziona un magazzino",
     "codeRequired": "Il codice è obbligatorio",
-    "loadWarehousesError": "Errore nel caricamento dei magazzini"
+    "loadWarehousesError": "Errore nel caricamento dei magazzini",
+    "noSuppliers": "Nessun fornitore disponibile",
+    "noProducts": "Nessun prodotto trovato",
+    "supplierAddedSuccessfully": "Fornitore aggiunto con successo",
+    "supplierAddFailed": "Errore durante l'aggiunta del fornitore",
+    "supplierUpdatedSuccessfully": "Fornitore aggiornato con successo",
+    "supplierUpdateFailed": "Errore durante l'aggiornamento del fornitore",
+    "updateNotImplemented": "Aggiornamento prodotto non ancora implementato",
+    "initializationError": "Errore durante l'inizializzazione"
   },
   "mobileBadge": {
     "activities": "Attività",
@@ -1290,7 +1328,13 @@
     "unitOfMeasure": "Unità di misura",
     "vatIncluded": "IVA Inclusa",
     "vatRate": "Aliquota IVA",
-    "initError": "Errore durante l'inizializzazione dei prodotti"
+    "initError": "Errore durante l'inizializzazione dei prodotti",
+    "management": "Gestione Prodotti",
+    "managementDescription": "Gestisci i prodotti e i loro fornitori",
+    "search": "Cerca prodotti",
+    "searchPlaceholder": "Inserisci nome o codice...",
+    "list": "Lista Prodotti",
+    "createNew": "Crea nuovo prodotto"
   },
   "profile": {
     "accountStatus": "Stato Account",
@@ -1872,7 +1916,9 @@
     "viewItem": "Visualizza {0}",
     "viewLogs": "Visualizza log",
     "viewTenant": "Visualizza dettagli tenant",
-    "viewUser": "Visualizza dettagli utente"
+    "viewUser": "Visualizza dettagli utente",
+    "view": "Visualizza",
+    "edit": "Modifica"
   },
   "userMenu": {
     "ariaLabel": "Menu utente",
@@ -1888,7 +1934,9 @@
     "nameRequired": "Il nome è obbligatorio",
     "passwordMismatch": "Le password non corrispondono",
     "required": "Questo campo è obbligatorio",
-    "shortDescriptionRequired": "La descrizione breve è obbligatoria"
+    "shortDescriptionRequired": "La descrizione breve è obbligatoria",
+    "codeRequired": "Il codice è obbligatorio",
+    "supplierRequired": "Il fornitore è obbligatorio"
   },
   "walkthrough": {
     "chat": {
@@ -2088,7 +2136,8 @@
     "vatRateManagement": "Gestione Aliquote IVA",
     "warehouseManagement": "Gestione Magazzini",
     "brandManagement": "Gestione Marchi",
-    "modelManagement": "Gestione Modelli"
+    "modelManagement": "Gestione Modelli",
+    "productManagement": "Gestione Prodotti"
   },
   "tour": {
     "chat": "Tour Chat",

@@ -1,0 +1,197 @@
+@using MudBlazor
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.Business
+@inject IProductService ProductService
+@inject IBusinessPartyService BusinessPartyService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<AddProductSupplierDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudAutocomplete T="BusinessPartyDto"
+                                     @bind-Value="_selectedSupplier"
+                                     SearchFunc="@SearchSuppliers"
+                                     Label="@($"{TranslationService.GetTranslation("field.supplier", "Fornitore")} *")"
+                                     Variant="Variant.Outlined"
+                                     ToStringFunc="@(s => s?.Name ?? string.Empty)"
+                                     Required="true"
+                                     RequiredError="@TranslationService.GetTranslation("validation.supplierRequired", "Il fornitore è obbligatorio")" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.SupplierProductCode"
+                                  Label="@TranslationService.GetTranslation("field.supplierCode", "Codice Fornitore")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="100" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.UnitCost"
+                                     Label="@TranslationService.GetTranslation("field.unitCost", "Costo Unitario")"
+                                     Variant="Variant.Outlined"
+                                     Min="0m"
+                                     Step="0.01m"
+                                     Format="N2" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.Currency"
+                                  Label="@TranslationService.GetTranslation("field.currency", "Valuta")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="10"
+                                  Placeholder="EUR" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.LeadTimeDays"
+                                     Label="@TranslationService.GetTranslation("field.leadTimeDays", "Tempi di Consegna (giorni)")"
+                                     Variant="Variant.Outlined"
+                                     Min="0" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.MinOrderQty"
+                                     Label="@TranslationService.GetTranslation("field.minOrderQty", "Quantità Minima Ordine")"
+                                     Variant="Variant.Outlined"
+                                     Min="0" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.IncrementQty"
+                                     Label="@TranslationService.GetTranslation("field.incrementQty", "Incremento Quantità")"
+                                     Variant="Variant.Outlined"
+                                     Min="0" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.PurchaseDescription"
+                                  Label="@TranslationService.GetTranslation("field.purchaseDescription", "Descrizione Acquisto")"
+                                  Variant="Variant.Outlined"
+                                  Lines="2"
+                                  MaxLength="500" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Notes"
+                                  Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  MaxLength="1000" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudCheckBox @bind-Value="_model.Preferred"
+                                 Label="@TranslationService.GetTranslation("field.preferred", "Fornitore Preferito")"
+                                 Color="Color.Primary" />
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("field.preferredHelp", "Solo un fornitore può essere marcato come preferito per prodotto")
+                    </MudText>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
+        <MudButton Color="Color.Primary" Disabled="@(!_isValid || _selectedSupplier == null || _isSaving)" OnClick="Submit">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            }
+            else
+            {
+                @TranslationService.GetTranslation("button.save", "Salva")
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+    [Parameter] public Guid ProductId { get; set; }
+    [Parameter] public string? ProductName { get; set; }
+
+    private MudForm? _form;
+    private bool _isValid;
+    private bool _isSaving;
+    private CreateProductSupplierDto _model = new();
+    private BusinessPartyDto? _selectedSupplier;
+    private IEnumerable<BusinessPartyDto> _suppliers = new List<BusinessPartyDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model.ProductId = ProductId;
+        _model.Currency = "EUR";
+        
+        // Load suppliers
+        try
+        {
+            var result = await BusinessPartyService.GetBusinessPartiesAsync();
+            if (result != null && result.Items != null)
+            {
+                // Filter to only suppliers (Fornitore or ClienteFornitore)
+                _suppliers = result.Items.Where(bp => 
+                    bp.PartyType == BusinessPartyType.Supplier || 
+                    bp.PartyType == BusinessPartyType.Both);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load suppliers");
+        }
+    }
+
+    private async Task<IEnumerable<BusinessPartyDto>> SearchSuppliers(string value, CancellationToken token)
+    {
+        await Task.Delay(50, token);
+        
+        if (string.IsNullOrWhiteSpace(value))
+            return _suppliers;
+
+        return _suppliers.Where(s => s.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task Submit()
+    {
+        if (_selectedSupplier == null)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("validation.supplierRequired", "Il fornitore è obbligatorio"), Severity.Error);
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            _model.SupplierId = _selectedSupplier.Id;
+            
+            var result = await ProductService.CreateProductSupplierAsync(_model);
+            if (result != null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("messages.supplierAddedSuccessfully", "Fornitore aggiunto con successo"), Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(result));
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("messages.supplierAddFailed", "Errore durante l'aggiunta del fornitore"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to add supplier to product {ProductId}", ProductId);
+            var errorMessage = TranslationService.GetTranslation("messages.supplierAddFailed", "Errore durante l'aggiunta del fornitore");
+            Snackbar.Add($"{errorMessage}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+}

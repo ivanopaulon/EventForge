@@ -1,0 +1,196 @@
+@using MudBlazor
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.Business
+@inject IProductService ProductService
+@inject IBusinessPartyService BusinessPartyService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<EditProductSupplierDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudTextField Value="@ProductSupplier?.SupplierName"
+                                  Label="@TranslationService.GetTranslation("field.supplier", "Fornitore")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  Disabled="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.SupplierProductCode"
+                                  Label="@TranslationService.GetTranslation("field.supplierCode", "Codice Fornitore")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="100" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.UnitCost"
+                                     Label="@TranslationService.GetTranslation("field.unitCost", "Costo Unitario")"
+                                     Variant="Variant.Outlined"
+                                     Min="0m"
+                                     Step="0.01m"
+                                     Format="N2" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.Currency"
+                                  Label="@TranslationService.GetTranslation("field.currency", "Valuta")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="10"
+                                  Placeholder="EUR" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.LeadTimeDays"
+                                     Label="@TranslationService.GetTranslation("field.leadTimeDays", "Tempi di Consegna (giorni)")"
+                                     Variant="Variant.Outlined"
+                                     Min="0" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.MinOrderQty"
+                                     Label="@TranslationService.GetTranslation("field.minOrderQty", "Quantità Minima Ordine")"
+                                     Variant="Variant.Outlined"
+                                     Min="0" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.IncrementQty"
+                                     Label="@TranslationService.GetTranslation("field.incrementQty", "Incremento Quantità")"
+                                     Variant="Variant.Outlined"
+                                     Min="0" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.LastPurchasePrice"
+                                     Label="@TranslationService.GetTranslation("field.lastPurchasePrice", "Ultimo Prezzo di Acquisto")"
+                                     Variant="Variant.Outlined"
+                                     Min="0m"
+                                     Step="0.01m"
+                                     Format="N2" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudDatePicker @bind-Date="_lastPurchaseDate"
+                                   Label="@TranslationService.GetTranslation("field.lastPurchaseDate", "Data Ultimo Acquisto")"
+                                   Variant="Variant.Outlined"
+                                   DateFormat="dd/MM/yyyy" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.PurchaseDescription"
+                                  Label="@TranslationService.GetTranslation("field.purchaseDescription", "Descrizione Acquisto")"
+                                  Variant="Variant.Outlined"
+                                  Lines="2"
+                                  MaxLength="500" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Notes"
+                                  Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  MaxLength="1000" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudCheckBox @bind-Value="_model.Preferred"
+                                 Label="@TranslationService.GetTranslation("field.preferred", "Fornitore Preferito")"
+                                 Color="Color.Primary" />
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("field.preferredHelp", "Solo un fornitore può essere marcato come preferito per prodotto")
+                    </MudText>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
+        <MudButton Color="Color.Primary" Disabled="@(!_isValid || _isSaving)" OnClick="Submit">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            }
+            else
+            {
+                @TranslationService.GetTranslation("button.save", "Salva")
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+    [Parameter] public ProductSupplierDto? ProductSupplier { get; set; }
+    [Parameter] public string? ProductName { get; set; }
+
+    private MudForm? _form;
+    private bool _isValid;
+    private bool _isSaving;
+    private UpdateProductSupplierDto _model = new();
+    private DateTime? _lastPurchaseDate;
+
+    protected override void OnInitialized()
+    {
+        if (ProductSupplier != null)
+        {
+            _model.ProductId = ProductSupplier.ProductId;
+            _model.SupplierId = ProductSupplier.SupplierId;
+            _model.SupplierProductCode = ProductSupplier.SupplierProductCode;
+            _model.PurchaseDescription = ProductSupplier.PurchaseDescription;
+            _model.UnitCost = ProductSupplier.UnitCost;
+            _model.Currency = ProductSupplier.Currency;
+            _model.MinOrderQty = ProductSupplier.MinOrderQty;
+            _model.IncrementQty = ProductSupplier.IncrementQty;
+            _model.LeadTimeDays = ProductSupplier.LeadTimeDays;
+            _model.LastPurchasePrice = ProductSupplier.LastPurchasePrice;
+            _model.Preferred = ProductSupplier.Preferred;
+            _model.Notes = ProductSupplier.Notes;
+            
+            if (ProductSupplier.LastPurchaseDate.HasValue)
+            {
+                _lastPurchaseDate = ProductSupplier.LastPurchaseDate.Value;
+            }
+        }
+    }
+
+    private async Task Submit()
+    {
+        if (ProductSupplier == null) return;
+
+        _isSaving = true;
+        try
+        {
+            _model.LastPurchaseDate = _lastPurchaseDate;
+            
+            var result = await ProductService.UpdateProductSupplierAsync(ProductSupplier.Id, _model);
+            if (result != null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("messages.supplierUpdatedSuccessfully", "Fornitore aggiornato con successo"), Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(result));
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("messages.supplierUpdateFailed", "Errore durante l'aggiornamento del fornitore"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to update product supplier {SupplierId}", ProductSupplier?.Id);
+            var errorMessage = TranslationService.GetTranslation("messages.supplierUpdateFailed", "Errore durante l'aggiornamento del fornitore");
+            Snackbar.Add($"{errorMessage}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+}

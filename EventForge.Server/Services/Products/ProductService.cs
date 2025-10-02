@@ -1306,4 +1306,338 @@ public class ProductService : IProductService
             ModifiedBy = documentReference.ModifiedBy
         };
     }
+
+    // Product Supplier management operations
+
+    public async Task<IEnumerable<ProductSupplierDto>> GetProductSuppliersAsync(Guid productId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for product supplier operations.");
+            }
+
+            var suppliers = await _context.ProductSuppliers
+                .Where(ps => ps.ProductId == productId && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
+                .Include(ps => ps.Supplier)
+                .Include(ps => ps.Product)
+                .OrderByDescending(ps => ps.Preferred)
+                .ThenBy(ps => ps.Supplier!.Name)
+                .ToListAsync(cancellationToken);
+
+            return suppliers.Select(MapToProductSupplierDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving suppliers for product {ProductId}.", productId);
+            throw;
+        }
+    }
+
+    public async Task<ProductSupplierDto?> GetProductSupplierByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for product supplier operations.");
+            }
+
+            var supplier = await _context.ProductSuppliers
+                .Where(ps => ps.Id == id && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
+                .Include(ps => ps.Supplier)
+                .Include(ps => ps.Product)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return supplier != null ? MapToProductSupplierDto(supplier) : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product supplier {Id}.", id);
+            throw;
+        }
+    }
+
+    public async Task<ProductSupplierDto> AddProductSupplierAsync(CreateProductSupplierDto createProductSupplierDto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for product supplier operations.");
+            }
+
+            // Validate product exists
+            var product = await _context.Products
+                .FirstOrDefaultAsync(p => p.Id == createProductSupplierDto.ProductId && !p.IsDeleted && p.TenantId == currentTenantId.Value, cancellationToken);
+            
+            if (product == null)
+            {
+                throw new InvalidOperationException($"Product with ID {createProductSupplierDto.ProductId} not found.");
+            }
+
+            // Validate bundle products cannot have suppliers
+            if (product.IsBundle)
+            {
+                throw new InvalidOperationException("Bundle products cannot have suppliers.");
+            }
+
+            // Validate supplier exists and is a supplier type
+            var supplier = await _context.BusinessParties
+                .FirstOrDefaultAsync(bp => bp.Id == createProductSupplierDto.SupplierId && !bp.IsDeleted && bp.TenantId == currentTenantId.Value, cancellationToken);
+            
+            if (supplier == null)
+            {
+                throw new InvalidOperationException($"Supplier with ID {createProductSupplierDto.SupplierId} not found.");
+            }
+
+            if (supplier.PartyType != EventForge.Server.Data.Entities.Business.BusinessPartyType.Fornitore && supplier.PartyType != EventForge.Server.Data.Entities.Business.BusinessPartyType.ClienteFornitore)
+            {
+                throw new InvalidOperationException("The selected business party is not a supplier.");
+            }
+
+            // If this is preferred, unset any other preferred suppliers for this product
+            if (createProductSupplierDto.Preferred)
+            {
+                var existingPreferred = await _context.ProductSuppliers
+                    .Where(ps => ps.ProductId == createProductSupplierDto.ProductId && ps.Preferred && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var ps in existingPreferred)
+                {
+                    ps.Preferred = false;
+                    ps.ModifiedBy = currentUser;
+                    ps.ModifiedAt = DateTime.UtcNow;
+                }
+            }
+
+            var productSupplier = new ProductSupplier
+            {
+                ProductId = createProductSupplierDto.ProductId,
+                SupplierId = createProductSupplierDto.SupplierId,
+                SupplierProductCode = createProductSupplierDto.SupplierProductCode,
+                PurchaseDescription = createProductSupplierDto.PurchaseDescription,
+                UnitCost = createProductSupplierDto.UnitCost,
+                Currency = createProductSupplierDto.Currency,
+                MinOrderQty = createProductSupplierDto.MinOrderQty,
+                IncrementQty = createProductSupplierDto.IncrementQty,
+                LeadTimeDays = createProductSupplierDto.LeadTimeDays,
+                LastPurchasePrice = createProductSupplierDto.LastPurchasePrice,
+                LastPurchaseDate = createProductSupplierDto.LastPurchaseDate,
+                Preferred = createProductSupplierDto.Preferred,
+                Notes = createProductSupplierDto.Notes,
+                TenantId = currentTenantId.Value,
+                CreatedBy = currentUser,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.ProductSuppliers.Add(productSupplier);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditLogService.LogEntityChangeAsync(
+                "ProductSupplier",
+                productSupplier.Id,
+                "SupplierId",
+                "Create",
+                null,
+                supplier.Name,
+                currentUser,
+                $"Added supplier {supplier.Name} to product {product.Name}",
+                cancellationToken
+            );
+
+            // Reload with navigation properties
+            await _context.Entry(productSupplier).Reference(ps => ps.Supplier).LoadAsync(cancellationToken);
+            await _context.Entry(productSupplier).Reference(ps => ps.Product).LoadAsync(cancellationToken);
+
+            return MapToProductSupplierDto(productSupplier);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding supplier to product.");
+            throw;
+        }
+    }
+
+    public async Task<ProductSupplierDto?> UpdateProductSupplierAsync(Guid id, UpdateProductSupplierDto updateProductSupplierDto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for product supplier operations.");
+            }
+
+            var productSupplier = await _context.ProductSuppliers
+                .Include(ps => ps.Product)
+                .Include(ps => ps.Supplier)
+                .FirstOrDefaultAsync(ps => ps.Id == id && !ps.IsDeleted && ps.TenantId == currentTenantId.Value, cancellationToken);
+
+            if (productSupplier == null)
+            {
+                return null;
+            }
+
+            // Validate product exists if changed
+            if (productSupplier.ProductId != updateProductSupplierDto.ProductId)
+            {
+                var product = await _context.Products
+                    .FirstOrDefaultAsync(p => p.Id == updateProductSupplierDto.ProductId && !p.IsDeleted && p.TenantId == currentTenantId.Value, cancellationToken);
+                
+                if (product == null)
+                {
+                    throw new InvalidOperationException($"Product with ID {updateProductSupplierDto.ProductId} not found.");
+                }
+
+                if (product.IsBundle)
+                {
+                    throw new InvalidOperationException("Bundle products cannot have suppliers.");
+                }
+            }
+
+            // Validate supplier exists and is a supplier type if changed
+            if (productSupplier.SupplierId != updateProductSupplierDto.SupplierId)
+            {
+                var supplier = await _context.BusinessParties
+                    .FirstOrDefaultAsync(bp => bp.Id == updateProductSupplierDto.SupplierId && !bp.IsDeleted && bp.TenantId == currentTenantId.Value, cancellationToken);
+                
+                if (supplier == null)
+                {
+                    throw new InvalidOperationException($"Supplier with ID {updateProductSupplierDto.SupplierId} not found.");
+                }
+
+                if (supplier.PartyType != EventForge.Server.Data.Entities.Business.BusinessPartyType.Fornitore && supplier.PartyType != EventForge.Server.Data.Entities.Business.BusinessPartyType.ClienteFornitore)
+                {
+                    throw new InvalidOperationException("The selected business party is not a supplier.");
+                }
+            }
+
+            // If this is being set as preferred, unset any other preferred suppliers for this product
+            if (updateProductSupplierDto.Preferred && !productSupplier.Preferred)
+            {
+                var existingPreferred = await _context.ProductSuppliers
+                    .Where(ps => ps.ProductId == updateProductSupplierDto.ProductId && ps.Preferred && ps.Id != id && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var ps in existingPreferred)
+                {
+                    ps.Preferred = false;
+                    ps.ModifiedBy = currentUser;
+                    ps.ModifiedAt = DateTime.UtcNow;
+                }
+            }
+
+            productSupplier.ProductId = updateProductSupplierDto.ProductId;
+            productSupplier.SupplierId = updateProductSupplierDto.SupplierId;
+            productSupplier.SupplierProductCode = updateProductSupplierDto.SupplierProductCode;
+            productSupplier.PurchaseDescription = updateProductSupplierDto.PurchaseDescription;
+            productSupplier.UnitCost = updateProductSupplierDto.UnitCost;
+            productSupplier.Currency = updateProductSupplierDto.Currency;
+            productSupplier.MinOrderQty = updateProductSupplierDto.MinOrderQty;
+            productSupplier.IncrementQty = updateProductSupplierDto.IncrementQty;
+            productSupplier.LeadTimeDays = updateProductSupplierDto.LeadTimeDays;
+            productSupplier.LastPurchasePrice = updateProductSupplierDto.LastPurchasePrice;
+            productSupplier.LastPurchaseDate = updateProductSupplierDto.LastPurchaseDate;
+            productSupplier.Preferred = updateProductSupplierDto.Preferred;
+            productSupplier.Notes = updateProductSupplierDto.Notes;
+            productSupplier.ModifiedBy = currentUser;
+            productSupplier.ModifiedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditLogService.LogEntityChangeAsync(
+                "ProductSupplier",
+                productSupplier.Id,
+                "ProductSupplier",
+                "Update",
+                null,
+                "Updated",
+                currentUser,
+                $"Updated supplier relationship for product",
+                cancellationToken
+            );
+
+            return MapToProductSupplierDto(productSupplier);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating product supplier {Id}.", id);
+            throw;
+        }
+    }
+
+    public async Task<bool> RemoveProductSupplierAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for product supplier operations.");
+            }
+
+            var productSupplier = await _context.ProductSuppliers
+                .FirstOrDefaultAsync(ps => ps.Id == id && !ps.IsDeleted && ps.TenantId == currentTenantId.Value, cancellationToken);
+
+            if (productSupplier == null)
+            {
+                return false;
+            }
+
+            productSupplier.IsDeleted = true;
+            productSupplier.ModifiedBy = currentUser;
+            productSupplier.ModifiedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditLogService.LogEntityChangeAsync(
+                "ProductSupplier",
+                productSupplier.Id,
+                "IsDeleted",
+                "Delete",
+                "false",
+                "true",
+                currentUser,
+                $"Removed supplier from product",
+                cancellationToken
+            );
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing product supplier {Id}.", id);
+            throw;
+        }
+    }
+
+    private static ProductSupplierDto MapToProductSupplierDto(ProductSupplier productSupplier)
+    {
+        return new ProductSupplierDto
+        {
+            Id = productSupplier.Id,
+            ProductId = productSupplier.ProductId,
+            ProductName = productSupplier.Product?.Name,
+            SupplierId = productSupplier.SupplierId,
+            SupplierName = productSupplier.Supplier?.Name,
+            SupplierProductCode = productSupplier.SupplierProductCode,
+            PurchaseDescription = productSupplier.PurchaseDescription,
+            UnitCost = productSupplier.UnitCost,
+            Currency = productSupplier.Currency,
+            MinOrderQty = productSupplier.MinOrderQty,
+            IncrementQty = productSupplier.IncrementQty,
+            LeadTimeDays = productSupplier.LeadTimeDays,
+            LastPurchasePrice = productSupplier.LastPurchasePrice,
+            LastPurchaseDate = productSupplier.LastPurchaseDate,
+            Preferred = productSupplier.Preferred,
+            Notes = productSupplier.Notes,
+            CreatedAt = productSupplier.CreatedAt,
+            CreatedBy = productSupplier.CreatedBy
+        };
+    }
 }
