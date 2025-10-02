@@ -207,11 +207,13 @@
     }
 
     private async Task<IEnumerable<BrandDto>> SearchBrands(string value, CancellationToken cancellationToken)
+    private async Task<IEnumerable<BrandDto>> SearchBrands(string value, CancellationToken token)
     {
         await Task.CompletedTask; // Avoid async warning
         if (string.IsNullOrEmpty(value))
             return _brands;
 
+        await Task.CompletedTask; // Make method async
         return _brands.Where(b => b.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
     }
 
