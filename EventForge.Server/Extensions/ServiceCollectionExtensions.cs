@@ -188,7 +188,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<IBrandService, BrandService>();
         services.AddScoped<IModelService, ModelService>();
-        services.AddScoped<IProductSupplierService, ProductSupplierService>();
 
         // Register price list services
         services.AddScoped<IPriceListService, PriceListService>();

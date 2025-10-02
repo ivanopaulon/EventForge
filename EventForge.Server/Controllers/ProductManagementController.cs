@@ -1639,9 +1639,9 @@ public class ProductManagementController : BaseApiController
     }
 
     #endregion
+}
 
-    #region Product Suppliers Management
-
+/// <summary>
 /// DTO for image upload result.
 /// </summary>
 public class ImageUploadResultDto

@@ -10,7 +10,7 @@
         <MudForm @ref="_form" @bind-IsValid="@_isValid">
             <MudGrid>
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="_model.BrandName"
+                    <MudTextField Value="@BrandName"
                                  Label="@TranslationService.GetTranslation("field.brand", "Marchio")"
                                  Variant="Variant.Outlined"
                                  ReadOnly="true" />
@@ -48,7 +48,7 @@
 </MudDialog>
 
 @code {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
     
     [Parameter] public Guid BrandId { get; set; }
     [Parameter] public string BrandName { get; set; } = string.Empty;
@@ -60,7 +60,6 @@
     protected override void OnInitialized()
     {
         _model.BrandId = BrandId;
-        _model.BrandName = BrandName;
     }
 
     private void Cancel()
