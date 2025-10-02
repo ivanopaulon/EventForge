@@ -1,0 +1,248 @@
+@page "/product-management/products"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@attribute [Authorize]
+@inject IAuthService AuthService
+@inject IProductService ProductService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<ProductManagement> Logger
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+    @if (_isLoading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else
+    {
+        <MudPaper Elevation="2" Class="pa-4 mb-4">
+            <div class="d-flex justify-space-between align-center mb-4">
+                <div>
+                    <MudText Typo="Typo.h4">
+                        <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Class="mr-2" />
+                        @TranslationService.GetTranslation("product.management", "Gestione Prodotti")
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+                        @TranslationService.GetTranslation("product.managementDescription", "Gestisci i prodotti e i loro fornitori")
+                    </MudText>
+                </div>
+            </div>
+
+            <!-- Filters Section -->
+            <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
+                <div class="d-flex gap-4 align-center flex-wrap">
+                    <MudTextField @bind-Value="_searchTerm"
+                                  @bind-Value:after="OnSearchChanged"
+                                  Label="@TranslationService.GetTranslation("product.search", "Cerca prodotti")"
+                                  Placeholder="@TranslationService.GetTranslation("product.searchPlaceholder", "Inserisci nome o codice...")"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@Icons.Material.Outlined.Search"
+                                  Clearable="true"
+                                  Style="flex: 2;" />
+                </div>
+            </MudPaper>
+
+            <!-- Products Data Table -->
+            <MudPaper Elevation="1" Class="border-rounded">
+                <MudCardHeader Class="pa-2">
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">
+                            <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
+                            @TranslationService.GetTranslation("product.list", "Lista Prodotti")
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                                (@_filteredProducts.Count() @TranslationService.GetTranslation("common.itemsFound", "elementi trovati"))
+                            </MudText>
+                        </MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
+                                           ShowRefresh="true"
+                                           ShowExport="false" 
+                                           ShowCreate="true"
+                                           ShowAuditLog="false"
+                                           CreateIcon="@Icons.Material.Outlined.Add"
+                                           CreateTooltip="@TranslationService.GetTranslation("product.createNew", "Crea nuovo prodotto")"
+                                           IsDisabled="_isLoadingProducts"
+                                           OnRefresh="@LoadProductsAsync"
+                                           OnCreate="@OpenCreateProductDrawer" />
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent Class="pa-1">
+                    @if (_isLoadingProducts)
+                    {
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+                    }
+                    else
+                    {
+                        <MudTable T="ProductDto" 
+                                  Items="_filteredProducts" 
+                                  Hover="true" 
+                                  Striped="true"
+                                  Loading="_isLoadingProducts"
+                                  LoadingProgressColor="Color.Info"
+                                  SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
+                                  AllowUnsorted="false"
+                                  FixedHeader="true"
+                                  Height="60vh">
+                            <HeaderContent>
+                                <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => x.Code)">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => x.Name)">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
+                                <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => x.DefaultPrice ?? 0)">@TranslationService.GetTranslation("field.price", "Prezzo")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => x.CreatedAt)">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel></MudTh>
+                                <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">@context.Code</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">@context.Name</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">@context.ShortDescription</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.price", "Prezzo")">
+                                    @if (context.DefaultPrice.HasValue)
+                                    {
+                                        @context.DefaultPrice.Value.ToString("C2")
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">@context.CreatedAt.ToString("dd/MM/yyyy")</MudTd>
+                                <MudTd Style="text-align: right;">
+                                    <MudIconButton Icon="@Icons.Material.Outlined.RemoveRedEye" 
+                                                   Color="Color.Info" 
+                                                   Size="Size.Small" 
+                                                   OnClick="@(() => OpenViewProductDrawer(context))"
+                                                   title="@TranslationService.GetTranslation("tooltip.view", "Visualizza")" />
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
+                                                   Color="Color.Primary" 
+                                                   Size="Size.Small" 
+                                                   OnClick="@(() => OpenEditProductDrawer(context))"
+                                                   title="@TranslationService.GetTranslation("tooltip.edit", "Modifica")" />
+                                </MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText>@TranslationService.GetTranslation("messages.noProducts", "Nessun prodotto trovato")</MudText>
+                            </NoRecordsContent>
+                            <LoadingContent>
+                                <MudText>@TranslationService.GetTranslation("common.loading", "Caricamento...")</MudText>
+                            </LoadingContent>
+                        </MudTable>
+                    }
+                </MudCardContent>
+            </MudPaper>
+        </MudPaper>
+    }
+</MudContainer>
+
+<ProductDrawer @bind-IsOpen="_productDrawerOpen"
+               @bind-Mode="_productDrawerMode"
+               OriginalProduct="_selectedProduct"
+               AllowEdit="true"
+               OnProductCreated="@HandleProductCreated"
+               OnProductUpdated="@HandleProductUpdated" />
+
+@code {
+    private bool _isLoading = true;
+    private bool _isLoadingProducts = false;
+    private string _searchTerm = string.Empty;
+    
+    private IEnumerable<ProductDto> _products = new List<ProductDto>();
+    private IEnumerable<ProductDto> _filteredProducts = new List<ProductDto>();
+    
+    private bool _productDrawerOpen = false;
+    private EntityDrawerMode _productDrawerMode = EntityDrawerMode.Create;
+    private ProductDto? _selectedProduct;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            await LoadProductsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing ProductManagement page");
+            Snackbar.Add(TranslationService.GetTranslation("messages.initializationError", "Errore durante l'inizializzazione"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadProductsAsync()
+    {
+        _isLoadingProducts = true;
+        try
+        {
+            var result = await ProductService.GetProductsAsync(1, 100);
+            if (result != null)
+            {
+                _products = result.Items;
+                ApplyFilters();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading products");
+            Snackbar.Add(TranslationService.GetTranslation("messages.loadFailed", "Errore durante il caricamento"), Severity.Error);
+        }
+        finally
+        {
+            _isLoadingProducts = false;
+        }
+    }
+
+    private void OnSearchChanged()
+    {
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        var filtered = _products.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            filtered = filtered.Where(p =>
+                p.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                p.Code.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                (p.ShortDescription?.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+
+        _filteredProducts = filtered.ToList();
+    }
+
+    private void OpenCreateProductDrawer()
+    {
+        _selectedProduct = null;
+        _productDrawerMode = EntityDrawerMode.Create;
+        _productDrawerOpen = true;
+    }
+
+    private void OpenEditProductDrawer(ProductDto product)
+    {
+        _selectedProduct = product;
+        _productDrawerMode = EntityDrawerMode.Edit;
+        _productDrawerOpen = true;
+    }
+
+    private void OpenViewProductDrawer(ProductDto product)
+    {
+        _selectedProduct = product;
+        _productDrawerMode = EntityDrawerMode.View;
+        _productDrawerOpen = true;
+    }
+
+    private async Task HandleProductCreated(ProductDto product)
+    {
+        await LoadProductsAsync();
+    }
+
+    private async Task HandleProductUpdated(ProductDto product)
+    {
+        await LoadProductsAsync();
+    }
+}
