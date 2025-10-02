@@ -335,19 +335,49 @@ namespace EventForge.Client.Services
 
         private async Task SendSingleLogToServerAsync(ClientLogDto clientLog)
         {
-            var httpClient = await GetAuthenticatedHttpClientAsync();
-            var response = await httpClient.PostAsJsonAsync("api/ClientLogs", clientLog);
-            response.EnsureSuccessStatusCode();
+            try
+            {
+                var httpClient = await GetAuthenticatedHttpClientAsync();
+                var response = await httpClient.PostAsJsonAsync("api/ClientLogs", clientLog);
+                response.EnsureSuccessStatusCode();
+            }
+            catch (HttpRequestException ex)
+            {
+                // Log to console for debugging since server logging failed
+                Console.WriteLine($"[CLIENT LOG] HTTP error sending log to server: {ex.Message}");
+                throw new Exception($"Failed to send log to server: {ex.Message}", ex);
+            }
+            catch (Exception ex)
+            {
+                // Log to console for debugging since server logging failed
+                Console.WriteLine($"[CLIENT LOG] Error sending log to server: {ex.Message}");
+                throw new Exception($"Failed to send log to server: {ex.Message}", ex);
+            }
         }
 
         private async Task SendBatchToServerAsync(List<ClientLogDto> logs)
         {
             if (logs.Count == 0) return;
 
-            var httpClient = await GetAuthenticatedHttpClientAsync();
-            var batchRequest = new ClientLogBatchDto { Logs = logs };
-            var response = await httpClient.PostAsJsonAsync("api/ClientLogs/batch", batchRequest);
-            response.EnsureSuccessStatusCode();
+            try
+            {
+                var httpClient = await GetAuthenticatedHttpClientAsync();
+                var batchRequest = new ClientLogBatchDto { Logs = logs };
+                var response = await httpClient.PostAsJsonAsync("api/ClientLogs/batch", batchRequest);
+                response.EnsureSuccessStatusCode();
+            }
+            catch (HttpRequestException ex)
+            {
+                // Log to console for debugging since server logging failed
+                Console.WriteLine($"[CLIENT LOG] HTTP error sending batch of {logs.Count} logs to server: {ex.Message}");
+                throw new Exception($"Failed to send log batch to server: {ex.Message}", ex);
+            }
+            catch (Exception ex)
+            {
+                // Log to console for debugging since server logging failed
+                Console.WriteLine($"[CLIENT LOG] Error sending batch of {logs.Count} logs to server: {ex.Message}");
+                throw new Exception($"Failed to send log batch to server: {ex.Message}", ex);
+            }
         }
 
         private async Task SaveToLocalStorageAsync(ClientLogDto clientLog)
