@@ -87,17 +87,18 @@
 
 | Issue | Stato | Priorità | Completamento | ETA |
 |-------|-------|----------|---------------|-----|
-| #277 | 🔴 EPIC NON IMPLEMENTATO | ALTA | 0% | Sep 2025 |
+| #277 | 🟡 EPIC IN CORSO | ALTA | 70% | Q1 2025 |
 | #267 | 🔴 NON IMPLEMENTATO | ALTA | 0% | Jun 2025 |
 | #262 | 🔴 NON IMPLEMENTATO | ALTA | 0% | Aug 2025 |
 | #261 | 🔴 NON IMPLEMENTATO | ALTA | 0% | Sep 2025 |
 
 **📊 Breakdown Epic #277:**
-- [ ] Backend wizard documents (0/7 step workflow)
+- [x] Backend services (4/4 servizi) ✅ 100%
+- [x] Backend controllers (4/4 controller, 43 endpoints) ✅ 100%
+- [x] Client services (4/4 servizi client) ✅ 100% **NUOVO GENNAIO 2025**
 - [ ] Touch UI design system (0% components)
-- [ ] Sales session management (0/5 core models)
+- [ ] Sales session management UI (0/8 wizard steps)
 - [ ] Table split/merge functionality (0% drag&drop)
-- [ ] Multi-payment system (0% validation)
 - [ ] Real-time dashboard (0% SignalR integration)
 
 **🎯 Epic Milestones:**

@@ -95,6 +95,12 @@ builder.Services.AddScoped<ILicenseService, LicenseService>();
 // Add Event management services
 builder.Services.AddScoped<IEventService, EventService>();
 
+// Add Sales management services
+builder.Services.AddScoped<EventForge.Client.Services.Sales.ISalesService, EventForge.Client.Services.Sales.SalesService>();
+builder.Services.AddScoped<EventForge.Client.Services.Sales.IPaymentMethodService, EventForge.Client.Services.Sales.PaymentMethodService>();
+builder.Services.AddScoped<EventForge.Client.Services.Sales.INoteFlagService, EventForge.Client.Services.Sales.NoteFlagService>();
+builder.Services.AddScoped<EventForge.Client.Services.Sales.ITableManagementService, EventForge.Client.Services.Sales.TableManagementService>();
+
 // Add authentication services
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
 builder.Services.AddAuthorizationCore();
