@@ -44,6 +44,11 @@ namespace EventForge.DTOs.VatRates
         public string? Notes { get; set; }
 
         /// <summary>
+        /// Indicates if the VAT rate is active.
+        /// </summary>
+        public bool IsActive { get; set; }
+
+        /// <summary>
         /// Date and time when the VAT rate was created (UTC).
         /// </summary>
         public DateTime CreatedAt { get; set; }

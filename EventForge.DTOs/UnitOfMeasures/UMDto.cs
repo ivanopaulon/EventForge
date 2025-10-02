@@ -37,6 +37,11 @@ namespace EventForge.DTOs.UnitOfMeasures
         public bool IsDefault { get; set; }
 
         /// <summary>
+        /// Indicates if the unit of measure is active.
+        /// </summary>
+        public bool IsActive { get; set; }
+
+        /// <summary>
         /// Date and time when the unit of measure was created (UTC).
         /// </summary>
         public DateTime CreatedAt { get; set; }

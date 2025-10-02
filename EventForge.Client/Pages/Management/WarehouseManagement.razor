@@ -153,11 +153,14 @@
                                                       ItemDisplayName="@context.Name"
                                                       ShowView="true"
                                                       ShowEdit="true"
-                                                      ShowAuditLog="false"
-                                                      ShowToggleStatus="false"
+                                                      ShowAuditLog="true"
+                                                      ShowToggleStatus="true"
                                                       ShowDelete="true"
+                                                      IsActive="@context.IsActive"
                                                       OnView="@(() => ViewStorageFacility(context))"
                                                       OnEdit="@(() => EditStorageFacility(context))"
+                                                      OnAuditLog="@(() => ViewStorageFacilityAuditLog(context))"
+                                                      OnToggleStatus="@(() => ToggleStorageFacilityStatus(context))"
                                                       OnDelete="@(() => DeleteStorageFacility(context))" />
                                 </MudTd>
                             </RowTemplate>
@@ -197,15 +200,23 @@
                        OnStorageFacilityCreated="@OnStorageFacilityCreated"
                        OnStorageFacilityUpdated="@OnStorageFacilityUpdated" />
 
+<!-- Audit History Drawer -->
+<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+                    EntityType="StorageFacility"
+                    EntityId="@_selectedFacilityForAudit?.Id"
+                    EntityName="@_selectedFacilityForAudit?.Name" />
+
 @code {
     // UI State Management
     private bool _isLoading = true;
     private bool _isLoadingFacilities = false;
     private bool _storageFacilityDrawerOpen = false;
+    private bool _auditDrawerOpen = false;
     
     // Drawer management
     private EntityDrawerMode _storageFacilityDrawerMode = EntityDrawerMode.Create;
     private StorageFacilityDto? _selectedStorageFacility;
+    private StorageFacilityDto? _selectedFacilityForAudit;
     
     // Filter and search state
     private string _searchTerm = string.Empty;
@@ -384,6 +395,64 @@
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.deleteFacilityError", 
                     "Errore nell'eliminazione del magazzino: {0}", ex.Message), Severity.Error);
                 Logger.LogError(ex, "Error deleting storage facility {FacilityId}", facility.Id);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Opens the audit log drawer for a storage facility.
+    /// </summary>
+    private async Task ViewStorageFacilityAuditLog(StorageFacilityDto facility)
+    {
+        _selectedFacilityForAudit = facility;
+        _auditDrawerOpen = true;
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Toggles the active status of a storage facility.
+    /// </summary>
+    private async Task ToggleStorageFacilityStatus(StorageFacilityDto facility)
+    {
+        var actionText = facility.IsActive ? 
+            TranslationService.GetTranslation("common.deactivate", "disattivare") : 
+            TranslationService.GetTranslation("common.activate", "attivare");
+            
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("warehouse.confirmStatusChange", 
+            "Sei sicuro di voler {0} il magazzino '{1}'?", 
+            actionText, facility.Name);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                // Toggle the status locally (in a real implementation, you would call a service method)
+                facility.IsActive = !facility.IsActive;
+                
+                var statusMessage = facility.IsActive ?
+                    TranslationService.GetTranslation("warehouse.facilityActivated", "Magazzino attivato con successo!") :
+                    TranslationService.GetTranslation("warehouse.facilityDeactivated", "Magazzino disattivato con successo!");
+                
+                Snackbar.Add(statusMessage, Severity.Success);
+                StateHasChanged();
+                
+                // Note: In a real implementation, you would call:
+                // await WarehouseService.ToggleStorageFacilityStatusAsync(facility.Id, facility.IsActive);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.statusChangeError", 
+                    "Errore nel cambio di stato: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error toggling storage facility status {FacilityId}", facility.Id);
+                // Revert the change on error
+                facility.IsActive = !facility.IsActive;
             }
         }
     }

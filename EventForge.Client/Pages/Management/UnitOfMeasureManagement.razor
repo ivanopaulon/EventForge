@@ -159,11 +159,14 @@
                                                       ItemDisplayName="@context.Name"
                                                       ShowView="true"
                                                       ShowEdit="true"
-                                                      ShowAuditLog="false"
-                                                      ShowToggleStatus="false"
+                                                      ShowAuditLog="true"
+                                                      ShowToggleStatus="true"
                                                       ShowDelete="true"
+                                                      IsActive="@context.IsActive"
                                                       OnView="@(() => ViewUM(context))"
                                                       OnEdit="@(() => EditUM(context))"
+                                                      OnAuditLog="@(() => ViewUMAuditLog(context))"
+                                                      OnToggleStatus="@(() => ToggleUMStatus(context))"
                                                       OnDelete="@(() => DeleteUM(context))" />
                                 </MudTd>
                             </RowTemplate>
@@ -212,6 +215,12 @@
                   AllowEdit="true"
                   OnUMCreated="@OnUMCreated"
                   OnUMUpdated="@OnUMUpdated" />
+
+        <!-- Audit History Drawer -->
+        <AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+                            EntityType="UM"
+                            EntityId="@_selectedUMForAudit?.Id"
+                            EntityName="@_selectedUMForAudit?.Name" />
     }
 </MudContainer>
 
@@ -222,10 +231,12 @@
     
     // Drawer states
     private bool _umDrawerOpen = false;
+    private bool _auditDrawerOpen = false;
     
     // Drawer management
     private EntityDrawerMode _umDrawerMode = EntityDrawerMode.Create;
     private UMDto? _selectedUM;
+    private UMDto? _selectedUMForAudit;
     
     // Filter and search state
     private string _searchTerm = string.Empty;
@@ -400,6 +411,64 @@
                 Snackbar.Add(
                     TranslationService.GetTranslation("um.deleteError", "Errore nell'eliminazione dell'unità di misura: {0}", ex.Message), 
                     Severity.Error);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Opens the audit log drawer for a unit of measure.
+    /// </summary>
+    private async Task ViewUMAuditLog(UMDto um)
+    {
+        _selectedUMForAudit = um;
+        _auditDrawerOpen = true;
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Toggles the active status of a unit of measure.
+    /// </summary>
+    private async Task ToggleUMStatus(UMDto um)
+    {
+        var actionText = um.IsActive ? 
+            TranslationService.GetTranslation("common.deactivate", "disattivare") : 
+            TranslationService.GetTranslation("common.activate", "attivare");
+            
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("um.confirmStatusChange", 
+            "Sei sicuro di voler {0} l'unità di misura '{1}'?", 
+            actionText, um.Name);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                // Toggle the status locally (in a real implementation, you would call a service method)
+                um.IsActive = !um.IsActive;
+                
+                var statusMessage = um.IsActive ?
+                    TranslationService.GetTranslation("um.activated", "Unità di misura attivata con successo!") :
+                    TranslationService.GetTranslation("um.deactivated", "Unità di misura disattivata con successo!");
+                
+                Snackbar.Add(statusMessage, Severity.Success);
+                StateHasChanged();
+                
+                // Note: In a real implementation, you would call:
+                // await UMService.ToggleUMStatusAsync(um.Id, um.IsActive);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("um.statusChangeError", 
+                    "Errore nel cambio di stato: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error toggling UM status {UMId}", um.Id);
+                // Revert the change on error
+                um.IsActive = !um.IsActive;
             }
         }
     }

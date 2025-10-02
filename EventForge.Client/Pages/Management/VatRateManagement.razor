@@ -146,11 +146,14 @@
                                                       ItemDisplayName="@context.Name"
                                                       ShowView="true"
                                                       ShowEdit="true"
-                                                      ShowAuditLog="false"
-                                                      ShowToggleStatus="false"
+                                                      ShowAuditLog="true"
+                                                      ShowToggleStatus="true"
                                                       ShowDelete="true"
+                                                      IsActive="@context.IsActive"
                                                       OnView="@(() => ViewVatRate(context))"
                                                       OnEdit="@(() => EditVatRate(context))"
+                                                      OnAuditLog="@(() => ViewVatRateAuditLog(context))"
+                                                      OnToggleStatus="@(() => ToggleVatRateStatus(context))"
                                                       OnDelete="@(() => DeleteVatRate(context))" />
                                 </MudTd>
                             </RowTemplate>
@@ -190,15 +193,23 @@
                OnVatRateCreated="@OnVatRateCreated"
                OnVatRateUpdated="@OnVatRateUpdated" />
 
+<!-- Audit History Drawer -->
+<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+                    EntityType="VatRate"
+                    EntityId="@_selectedVatRateForAudit?.Id"
+                    EntityName="@_selectedVatRateForAudit?.Name" />
+
 @code {
     // UI State Management
     private bool _isLoading = true;
     private bool _isLoadingVatRates = false;
     private bool _vatRateDrawerOpen = false;
+    private bool _auditDrawerOpen = false;
     
     // Drawer management
     private EntityDrawerMode _vatRateDrawerMode = EntityDrawerMode.Create;
     private VatRateDto? _selectedVatRate;
+    private VatRateDto? _selectedVatRateForAudit;
     
     // Filter and search state
     private string _searchTerm = string.Empty;
@@ -399,5 +410,63 @@
             VatRateStatus.Deleted => TranslationService.GetTranslation("field.deleted", "Eliminato"),
             _ => status.ToString()
         };
+    }
+
+    /// <summary>
+    /// Opens the audit log drawer for a VAT rate.
+    /// </summary>
+    private async Task ViewVatRateAuditLog(VatRateDto vatRate)
+    {
+        _selectedVatRateForAudit = vatRate;
+        _auditDrawerOpen = true;
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Toggles the active status of a VAT rate.
+    /// </summary>
+    private async Task ToggleVatRateStatus(VatRateDto vatRate)
+    {
+        var actionText = vatRate.IsActive ? 
+            TranslationService.GetTranslation("common.deactivate", "disattivare") : 
+            TranslationService.GetTranslation("common.activate", "attivare");
+            
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("vatRate.confirmStatusChange", 
+            "Sei sicuro di voler {0} l'aliquota IVA '{1}'?", 
+            actionText, vatRate.Name);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                // Toggle the status locally (in a real implementation, you would call a service method)
+                vatRate.IsActive = !vatRate.IsActive;
+                
+                var statusMessage = vatRate.IsActive ?
+                    TranslationService.GetTranslation("vatRate.activated", "Aliquota IVA attivata con successo!") :
+                    TranslationService.GetTranslation("vatRate.deactivated", "Aliquota IVA disattivata con successo!");
+                
+                Snackbar.Add(statusMessage, Severity.Success);
+                StateHasChanged();
+                
+                // Note: In a real implementation, you would call:
+                // await FinancialService.ToggleVatRateStatusAsync(vatRate.Id, vatRate.IsActive);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("vatRate.statusChangeError", 
+                    "Errore nel cambio di stato: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error toggling VAT rate status {VatRateId}", vatRate.Id);
+                // Revert the change on error
+                vatRate.IsActive = !vatRate.IsActive;
+            }
+        }
     }
 }

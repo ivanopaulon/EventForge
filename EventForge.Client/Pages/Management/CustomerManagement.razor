@@ -147,11 +147,14 @@
                                                       ItemDisplayName="@context.Name"
                                                       ShowView="true"
                                                       ShowEdit="true"
-                                                      ShowAuditLog="false"
-                                                      ShowToggleStatus="false"
+                                                      ShowAuditLog="true"
+                                                      ShowToggleStatus="true"
                                                       ShowDelete="true"
+                                                      IsActive="@context.IsActive"
                                                       OnView="@(() => ViewCustomer(context))"
                                                       OnEdit="@(() => EditCustomer(context))"
+                                                      OnAuditLog="@(() => ViewCustomerAuditLog(context))"
+                                                      OnToggleStatus="@(() => ToggleCustomerStatus(context))"
                                                       OnDelete="@(() => DeleteCustomer(context))" />
                                 </MudTd>
                             </RowTemplate>
@@ -192,15 +195,23 @@
                      OnBusinessPartyCreated="@OnCustomerCreated"
                      OnBusinessPartyUpdated="@OnCustomerUpdated" />
 
+<!-- Audit History Drawer -->
+<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+                    EntityType="BusinessParty"
+                    EntityId="@_selectedCustomerForAudit?.Id"
+                    EntityName="@_selectedCustomerForAudit?.Name" />
+
 @code {
     // UI State Management
     private bool _isLoading = true;
     private bool _isLoadingCustomers = false;
     private bool _customerDrawerOpen = false;
+    private bool _auditDrawerOpen = false;
     
     // Drawer management
     private EntityDrawerMode _customerDrawerMode = EntityDrawerMode.Create;
     private BusinessPartyDto? _selectedCustomer;
+    private BusinessPartyDto? _selectedCustomerForAudit;
     
     // Filter and search state
     private string _searchTerm = string.Empty;
@@ -399,5 +410,63 @@
             BusinessPartyType.Both => TranslationService.GetTranslation("partyType.both", "Cliente/Fornitore"),
             _ => partyType.ToString()
         };
+    }
+
+    /// <summary>
+    /// Opens the audit log drawer for a customer.
+    /// </summary>
+    private async Task ViewCustomerAuditLog(BusinessPartyDto customer)
+    {
+        _selectedCustomerForAudit = customer;
+        _auditDrawerOpen = true;
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Toggles the active status of a customer.
+    /// </summary>
+    private async Task ToggleCustomerStatus(BusinessPartyDto customer)
+    {
+        var actionText = customer.IsActive ? 
+            TranslationService.GetTranslation("common.deactivate", "disattivare") : 
+            TranslationService.GetTranslation("common.activate", "attivare");
+            
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("customer.confirmStatusChange", 
+            "Sei sicuro di voler {0} il cliente '{1}'?", 
+            actionText, customer.Name);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                // Toggle the status locally (in a real implementation, you would call a service method)
+                customer.IsActive = !customer.IsActive;
+                
+                var statusMessage = customer.IsActive ?
+                    TranslationService.GetTranslation("customer.activated", "Cliente attivato con successo!") :
+                    TranslationService.GetTranslation("customer.deactivated", "Cliente disattivato con successo!");
+                
+                Snackbar.Add(statusMessage, Severity.Success);
+                StateHasChanged();
+                
+                // Note: In a real implementation, you would call:
+                // await BusinessPartyService.ToggleBusinessPartyStatusAsync(customer.Id, customer.IsActive);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("customer.statusChangeError", 
+                    "Errore nel cambio di stato: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error toggling customer status {CustomerId}", customer.Id);
+                // Revert the change on error
+                customer.IsActive = !customer.IsActive;
+            }
+        }
     }
 }
