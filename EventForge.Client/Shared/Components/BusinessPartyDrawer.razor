@@ -18,7 +18,7 @@
               OnClose="@HandleClose"
               CustomTitle="@_customTitle"
               AllowEdit="@AllowEdit"
-              Width="900px">
+              Width="50%">
     
     <FormContent>
         <MudGrid>
@@ -171,11 +171,13 @@
                                                     <MudIconButton Icon="@Icons.Material.Filled.Edit" 
                                                                   Color="Color.Primary" 
                                                                   Size="Size.Small"
-                                                                  OnClick="@(() => OpenEditAddressDialog(context))" />
+                                                                  OnClick="@(() => OpenEditAddressDialog(context))"
+                                                                  title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
                                                     <MudIconButton Icon="@Icons.Material.Filled.Delete" 
                                                                   Color="Color.Error" 
                                                                   Size="Size.Small"
-                                                                  OnClick="@(() => DeleteAddress(context.Id))" />
+                                                                  OnClick="@(() => DeleteAddress(context.Id))"
+                                                                  title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
                                                 </MudTd>
                                             </RowTemplate>
                                         </MudTable>
@@ -228,11 +230,13 @@
                                                     <MudIconButton Icon="@Icons.Material.Filled.Edit" 
                                                                   Color="Color.Primary" 
                                                                   Size="Size.Small"
-                                                                  OnClick="@(() => OpenEditContactDialog(context))" />
+                                                                  OnClick="@(() => OpenEditContactDialog(context))"
+                                                                  title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
                                                     <MudIconButton Icon="@Icons.Material.Filled.Delete" 
                                                                   Color="Color.Error" 
                                                                   Size="Size.Small"
-                                                                  OnClick="@(() => DeleteContact(context.Id))" />
+                                                                  OnClick="@(() => DeleteContact(context.Id))"
+                                                                  title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
                                                 </MudTd>
                                             </RowTemplate>
                                         </MudTable>
@@ -278,11 +282,13 @@
                                                     <MudIconButton Icon="@Icons.Material.Filled.Edit" 
                                                                   Color="Color.Primary" 
                                                                   Size="Size.Small"
-                                                                  OnClick="@(() => OpenEditReferenceDialog(context))" />
+                                                                  OnClick="@(() => OpenEditReferenceDialog(context))"
+                                                                  title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
                                                     <MudIconButton Icon="@Icons.Material.Filled.Delete" 
                                                                   Color="Color.Error" 
                                                                   Size="Size.Small"
-                                                                  OnClick="@(() => DeleteReference(context.Id))" />
+                                                                  OnClick="@(() => DeleteReference(context.Id))"
+                                                                  title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
                                                 </MudTd>
                                             </RowTemplate>
                                         </MudTable>

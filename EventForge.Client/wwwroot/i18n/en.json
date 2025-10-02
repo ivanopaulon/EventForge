@@ -430,7 +430,9 @@
       "modificaUtente": "Edit User: {0} {1}",
       "visualizzaEntita": "View {0}",
       "visualizzaTenant": "View Tenant: {0}",
-      "visualizzaUtente": "View User: {0} {1}"
+      "visualizzaUtente": "View User: {0} {1}",
+      "modificaUM": "Edit Unit of Measure: {0}",
+      "visualizzaUM": "View Unit of Measure: {0}"
     },
     "view": "View"
   },

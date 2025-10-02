@@ -520,7 +520,9 @@
       "modificaAliquotaIva": "Modifica Aliquota IVA: {0}",
       "visualizzaAliquotaIva": "Visualizza Aliquota IVA: {0}",
       "editBusinessParty": "Modifica {0}",
-      "viewBusinessParty": "Visualizza {0}"
+      "viewBusinessParty": "Visualizza {0}",
+      "modificaUM": "Modifica Unità di Misura: {0}",
+      "visualizzaUM": "Visualizza Unità di Misura: {0}"
     },
     "view": "Visualizza"
   },
