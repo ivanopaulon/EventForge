@@ -1,6 +1,7 @@
 ﻿using EventForge.Server.Data.Entities;
 using EventForge.Server.Data.Entities.Chat;
 using EventForge.Server.Data.Entities.Notifications;
+using EventForge.Server.Data.Entities.Sales;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Data;
@@ -142,6 +143,16 @@ public class EventForgeDbContext : DbContext
     public DbSet<MessageAttachment> MessageAttachments { get; set; }
     public DbSet<MessageReadReceipt> MessageReadReceipts { get; set; }
 
+    // Sales
+    public DbSet<SaleSession> SaleSessions { get; set; }
+    public DbSet<SaleItem> SaleItems { get; set; }
+    public DbSet<SalePayment> SalePayments { get; set; }
+    public DbSet<Entities.Sales.PaymentMethod> PaymentMethods { get; set; }
+    public DbSet<SessionNote> SessionNotes { get; set; }
+    public DbSet<NoteFlag> NoteFlags { get; set; }
+    public DbSet<TableSession> TableSessions { get; set; }
+    public DbSet<TableReservation> TableReservations { get; set; }
+
     // Logging
     public DbSet<LogEntry> LogEntries { get; set; }
 
@@ -203,6 +214,23 @@ public class EventForgeDbContext : DbContext
 
         // VatRate - percentuale
         modelBuilder.Entity<VatRate>().Property(x => x.Percentage).HasPrecision(5, 2);
+
+        // Sales - SaleSession amounts
+        modelBuilder.Entity<SaleSession>().Property(x => x.OriginalTotal).HasPrecision(18, 6);
+        modelBuilder.Entity<SaleSession>().Property(x => x.DiscountAmount).HasPrecision(18, 6);
+        modelBuilder.Entity<SaleSession>().Property(x => x.FinalTotal).HasPrecision(18, 6);
+        modelBuilder.Entity<SaleSession>().Property(x => x.TaxAmount).HasPrecision(18, 6);
+
+        // Sales - SaleItem amounts and quantities
+        modelBuilder.Entity<SaleItem>().Property(x => x.UnitPrice).HasPrecision(18, 6);
+        modelBuilder.Entity<SaleItem>().Property(x => x.Quantity).HasPrecision(18, 6);
+        modelBuilder.Entity<SaleItem>().Property(x => x.DiscountPercent).HasPrecision(5, 2);
+        modelBuilder.Entity<SaleItem>().Property(x => x.TaxRate).HasPrecision(5, 2);
+        modelBuilder.Entity<SaleItem>().Property(x => x.TaxAmount).HasPrecision(18, 6);
+        modelBuilder.Entity<SaleItem>().Property(x => x.TotalAmount).HasPrecision(18, 6);
+
+        // Sales - SalePayment amounts
+        modelBuilder.Entity<SalePayment>().Property(x => x.Amount).HasPrecision(18, 6);
 
         // DocumentHeader → BusinessParty
         modelBuilder.Entity<DocumentHeader>()
