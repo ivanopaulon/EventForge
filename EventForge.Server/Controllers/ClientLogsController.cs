@@ -5,11 +5,12 @@ namespace EventForge.Server.Controllers;
 
 /// <summary>
 /// API controller for receiving client-side logs and forwarding them to Serilog infrastructure.
-/// Allows authenticated clients to send logs for centralized monitoring.
+/// Allows both authenticated and anonymous clients to send logs for centralized monitoring.
+/// Anonymous access is required to capture errors during login/startup and authentication failures.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[AllowAnonymous]
 [Produces("application/json")]
 public class ClientLogsController : BaseApiController
 {
