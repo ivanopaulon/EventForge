@@ -244,8 +244,8 @@
         if (!string.IsNullOrEmpty(Width))
             return Width;
             
-        // Responsive width based on screen size
-        return "min(90vw, 700px)";
+        // Default drawer width: 50% of viewport width on larger screens
+        return "min(90vw, 50vw)";
     }
 
     private string GetTitle()
