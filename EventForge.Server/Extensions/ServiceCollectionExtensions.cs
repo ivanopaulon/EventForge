@@ -36,21 +36,49 @@ public static class ServiceCollectionExtensions
     {
         try
         {
+            // Configure custom columns for SQL Server sink to capture enriched properties
+            var columnOptions = new Serilog.Sinks.MSSqlServer.ColumnOptions();
+            
+            // Remove default columns that we don't need or will add as properties
+            columnOptions.Store.Remove(Serilog.Sinks.MSSqlServer.StandardColumn.MessageTemplate);
+            
+            // Add custom properties columns for client log enrichment
+            columnOptions.Properties.PropertiesFilter = (propName) => propName != "SourceContext";
+            columnOptions.AdditionalColumns = new System.Collections.ObjectModel.Collection<Serilog.Sinks.MSSqlServer.SqlColumn>
+            {
+                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "Source", DataType = System.Data.SqlDbType.NVarChar, DataLength = 50, AllowNull = true },
+                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "Page", DataType = System.Data.SqlDbType.NVarChar, DataLength = 500, AllowNull = true },
+                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "UserAgent", DataType = System.Data.SqlDbType.NVarChar, DataLength = 500, AllowNull = true },
+                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "ClientTimestamp", DataType = System.Data.SqlDbType.DateTimeOffset, AllowNull = true },
+                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "CorrelationId", DataType = System.Data.SqlDbType.NVarChar, DataLength = 50, AllowNull = true },
+                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "Category", DataType = System.Data.SqlDbType.NVarChar, DataLength = 100, AllowNull = true },
+                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "UserId", DataType = System.Data.SqlDbType.UniqueIdentifier, AllowNull = true },
+                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "UserName", DataType = System.Data.SqlDbType.NVarChar, DataLength = 100, AllowNull = true },
+                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "RemoteIpAddress", DataType = System.Data.SqlDbType.NVarChar, DataLength = 50, AllowNull = true },
+                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "RequestPath", DataType = System.Data.SqlDbType.NVarChar, DataLength = 500, AllowNull = true },
+                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "ClientProperties", DataType = System.Data.SqlDbType.NVarChar, DataLength = -1, AllowNull = true }
+            };
+
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Verbose()
                 .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Debug)
                 .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", LogEventLevel.Debug)
                 .MinimumLevel.Override("Microsoft.AspNetCore.Mvc", LogEventLevel.Debug)
                 .MinimumLevel.Override("Microsoft.AspNetCore.Routing", LogEventLevel.Debug)
+                .Enrich.FromLogContext()  // Enable capturing scope properties
                 .WriteTo.MSSqlServer(
                     connectionString: builder.Configuration.GetConnectionString("LogDb"),
                     sinkOptions: new MSSqlServerSinkOptions
                     {
                         TableName = "Logs",
                         AutoCreateSqlTable = true,
-                    })
+                    },
+                    columnOptions: columnOptions)
+                .WriteTo.Console(
+                    restrictedToMinimumLevel: LogEventLevel.Information,
+                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
                 .CreateLogger();
-            Log.Information("Serilog configurato per SQL Server.");
+            Log.Information("Serilog configurato per SQL Server con enrichment.");
         }
         catch (Exception ex)
         {
@@ -60,12 +88,16 @@ public static class ServiceCollectionExtensions
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Information()
                 .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Debug)
+                .Enrich.FromLogContext()  // Enable capturing scope properties even in fallback mode
                 .WriteTo.File(
                     path: filePath,
                     rollingInterval: RollingInterval.Day,
                     retainedFileCountLimit: fileRetention,
-                    restrictedToMinimumLevel: LogEventLevel.Verbose
-                )
+                    restrictedToMinimumLevel: LogEventLevel.Verbose,
+                    outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
+                .WriteTo.Console(
+                    restrictedToMinimumLevel: LogEventLevel.Information,
+                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
                 .CreateLogger();
 
             Log.Error(ex, "Errore nella configurazione del logging su SQL Server. Fallback su file.");

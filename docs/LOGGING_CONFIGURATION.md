@@ -14,6 +14,8 @@ Server logs are configured in `ServiceCollectionExtensions.cs` using the `AddCus
 - **Fallback Sink**: File logging (if database is unavailable)
 - **Table Name**: `Logs`
 - **Auto-Create Table**: Yes
+- **Enrichment**: FromLogContext enabled to capture scope properties
+- **Console Output**: Enabled for development debugging
 
 The configuration uses the `LogDb` connection string from `appsettings.json`:
 
@@ -25,6 +27,26 @@ The configuration uses the `LogDb` connection string from `appsettings.json`:
 ```
 
 **Note**: The `Serilog` section in `appsettings.json` is NOT used for configuration. It exists only as a reference. The actual configuration is done programmatically in `ServiceCollectionExtensions.cs`.
+
+### Database Schema
+
+The `Logs` table includes the following custom columns for client log enrichment:
+
+| Column Name | Data Type | Description |
+|-------------|-----------|-------------|
+| `Source` | nvarchar(50) | Identifies if log is from "Client" or server |
+| `Page` | nvarchar(500) | Page/component where log was generated |
+| `UserAgent` | nvarchar(500) | Client browser/device information |
+| `ClientTimestamp` | datetimeoffset | When log was created on client |
+| `CorrelationId` | nvarchar(50) | For tracing related logs |
+| `Category` | nvarchar(100) | Log category |
+| `UserId` | uniqueidentifier | User identifier |
+| `UserName` | nvarchar(100) | Username |
+| `RemoteIpAddress` | nvarchar(50) | Client IP address |
+| `RequestPath` | nvarchar(500) | API endpoint path |
+| `ClientProperties` | nvarchar(max) | Additional custom properties as JSON |
+
+These columns are automatically created when Serilog creates the table or can be added to an existing table.
 
 ## Client-Side Logging
 
@@ -109,19 +131,92 @@ protected override async Task OnInitializedAsync()
 ### Database Query
 
 ```sql
+-- View all client logs from the last hour with enriched properties
 SELECT 
     [TimeStamp],
     [Level],
     [Message],
     [Exception],
+    [Source],
+    [Page],
+    [Category],
+    [UserName],
+    [RemoteIpAddress],
+    [CorrelationId],
     [Properties]
 FROM [EventLogger].[dbo].[Logs]
 WHERE 
-    [Properties] LIKE '%"Source":"Client"%'
+    [Source] = 'Client'
     AND [TimeStamp] > DATEADD(hour, -1, GETDATE())
+ORDER BY [TimeStamp] DESC;
+
+-- View all logs (client and server) with correlation
+SELECT 
+    [TimeStamp],
+    [Level],
+    [Message],
+    [Source],
+    [UserName],
+    [Category],
+    [CorrelationId]
+FROM [EventLogger].[dbo].[Logs]
+WHERE 
+    [TimeStamp] > DATEADD(hour, -1, GETDATE())
 ORDER BY [TimeStamp] DESC;
 ```
 
 ### Client Log Management UI
 
 Navigate to `/superadmin/client-logs` to view and manage client logs directly from the UI.
+
+## Troubleshooting
+
+### Logs Not Appearing in Database
+
+If logs are not appearing in the database:
+
+1. **Check database connection**: Verify the `LogDb` connection string in `appsettings.json` is correct
+2. **Check table exists**: Run `SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Logs'` to verify the table was created
+3. **Check console output**: In development, logs should appear in the console even if database logging fails
+4. **Check fallback logs**: If database is unavailable, check the `Logs/fallback-log-*.log` files
+5. **Verify Serilog configuration**: Look for "Serilog configurato per SQL Server con enrichment" message at startup
+
+### Client Logs Not Reaching Server
+
+If client logs are not being sent to the server:
+
+1. **Check authentication**: Client must be authenticated to send logs (endpoint has `[Authorize]` attribute)
+2. **Check network**: Open browser DevTools Network tab and look for POST requests to `/api/ClientLogs`
+3. **Check localStorage**: Client logs are buffered in localStorage if server is unavailable
+4. **Check ClientLogService**: Verify `IClientLogService` is properly injected in client components
+
+### Enriched Properties Not Captured
+
+If enriched properties (Source, Page, etc.) are not appearing in the database:
+
+1. **Verify Serilog version**: Requires `Serilog.AspNetCore` 9.0.0+ and `Serilog.Sinks.MSSqlServer` 8.2.2+
+2. **Check column configuration**: Custom columns should be auto-created by Serilog
+3. **Manually add columns**: If upgrading from old version, you may need to add columns manually:
+
+```sql
+-- Add missing columns to existing Logs table
+USE EventLogger;
+GO
+
+ALTER TABLE Logs ADD [Source] nvarchar(50) NULL;
+ALTER TABLE Logs ADD [Page] nvarchar(500) NULL;
+ALTER TABLE Logs ADD [UserAgent] nvarchar(500) NULL;
+ALTER TABLE Logs ADD [ClientTimestamp] datetimeoffset NULL;
+ALTER TABLE Logs ADD [CorrelationId] nvarchar(50) NULL;
+ALTER TABLE Logs ADD [Category] nvarchar(100) NULL;
+ALTER TABLE Logs ADD [UserId] uniqueidentifier NULL;
+ALTER TABLE Logs ADD [UserName] nvarchar(100) NULL;
+ALTER TABLE Logs ADD [RemoteIpAddress] nvarchar(50) NULL;
+ALTER TABLE Logs ADD [RequestPath] nvarchar(500) NULL;
+ALTER TABLE Logs ADD [ClientProperties] nvarchar(max) NULL;
+GO
+```
+
+### MockLogger in Tests
+
+The `MockLogger` class found in test files is intentional and only used for unit testing. It does NOT affect production logging. Production code uses the real `ILogger<T>` implementation provided by ASP.NET Core's dependency injection with Serilog as the logging provider.
