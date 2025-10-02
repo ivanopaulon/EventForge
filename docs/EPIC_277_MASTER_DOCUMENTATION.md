@@ -1,25 +1,9 @@
 # 📚 Epic #277 - Documentazione Master Completa
-## Wizard Multi-step Documenti e UI Vendita
 
-**Versione**: 3.0 MASTER CONSOLIDATA  
-**Data Ultimo Aggiornamento**: Gennaio 2025  
-**Status Finale**: Fase 1-2 Complete (70%), Fase 3 da Implementare  
-**Repository**: EventForge  
-**Issue GitHub**: #277
-
----
-
-## 📋 Indice
-
-1. [Executive Summary](#executive-summary)
-2. [Obiettivi Epic](#obiettivi-epic)
-3. [Stato Implementazione Corrente](#stato-implementazione-corrente)
-4. [Architettura Implementata](#architettura-implementata)
-5. [Componenti Completati](#componenti-completati)
-6. [Fase 3: UI Components - Da Implementare](#fase-3-ui-components)
-7. [Roadmap e Raccomandazioni](#roadmap-e-raccomandazioni)
-8. [Testing e Validazione](#testing-e-validazione)
-9. [Riferimenti e Links](#riferimenti-e-links)
+**Data Creazione**: Gennaio 2025  
+**Epic**: #277 - Wizard Multi-step Documenti e UI Vendita  
+**Issue Correlate**: #262 (UI Design), #261 (Technical Specs)  
+**Status Generale**: 70% Completato
 
 ---
 
@@ -29,22 +13,6 @@ L'**Epic #277** mira alla realizzazione completa di un sistema di vendita profes
 
 ### Risultati Raggiunti ✅
 
-**Fase 1 - Backend (100% Completo)**
-- ✅ 8 Entità database implementate (~950 righe)
-- ✅ 8 DTOs per API contracts (~320 righe)
-- ✅ 4 Servizi backend (~2,100 righe)
-- ✅ 4 Controller REST API con 43 endpoints (~1,704 righe)
-- ✅ Database migration applicata
-- ✅ Service registration configurata
-
-**Fase 2 - Client Services (100% Completo)**
-- ✅ 4 Interfacce client (~420 righe)
-- ✅ 4 Servizi client implementati (~665 righe)
-- ✅ Service registration nel client
-- ✅ Pattern consistente con servizi esistenti
-
-**Totale Righe Codice Backend+Client**: ~6,159+ righe  
-**Totale Endpoints REST API**: 43 endpoints  
 **Build Status**: ✅ 0 errori, 176 warning (solo MudBlazor analyzers)  
 **Test Status**: ✅ 208/208 test passanti
 
@@ -756,6 +724,59 @@ UI Layer (Blazor) → Client Services → REST API → Service Layer → Data La
 
 ### 3.2 Wizard Steps (40-50 ore)
 
+#### Step 1: Authentication (6-8 ore)
+**File**: `Step1_Authentication.razor`
+
+**Features:**
+- Login operatore con PIN/password
+- Selezione POS
+- Ripristino sessione sospesa
+- Cambio turno
+
+**Componenti UI:**
+- Numeric keypad per PIN
+- Dropdown POS attivi
+- Lista sessioni sospese
+
+**Stima**: 6-8 ore
+
+---
+
+#### Step 2: SaleType (8-10 ore)
+**File**: `Step2_SaleType.razor`
+
+**Features:**
+- Selezione tipo vendita (RETAIL, BAR, RESTAURANT)
+- Ricerca cliente o quick sale
+- Creazione cliente rapido
+- Selezione modalità (con/senza tavoli)
+
+**Componenti UI:**
+- Radio buttons per tipo vendita
+- Autocomplete ricerca clienti
+- Dialog creazione cliente veloce
+
+**Stima**: 8-10 ore
+
+---
+
+#### Step 3: Products (12-15 ore)
+**File**: `Step3_Products.razor`
+
+**Features:**
+- Layout differenziato per tipo vendita
+- Integrazione ProductKeyboard (bar/ristorante)
+- Integrazione ProductSearch (retail)
+- Lista items con quantità/sconti
+- Totali parziali live
+- Aggiunta note per item
+
+**Componenti nested:**
+- ProductKeyboard component
+- ProductSearch component
+- CartSummary component
+
+**Stima**: 12-15 ore
 #### Step 1: Authentication (4-5 ore)
 **File**: `Step1_Authentication.razor`
 
@@ -827,6 +848,76 @@ UI Layer (Blazor) → Client Services → REST API → Service Layer → Data La
 
 ---
 
+#### Step 5: Payment (10-12 ore)
+**File**: `Step5_Payment.razor`
+
+**Features:**
+- Lista metodi pagamento touch-friendly
+- Aggiunta pagamento con importo
+- Multi-pagamento support
+- Calcolo resto automatico
+- Visualizzazione totale pagato vs dovuto
+- Validazione importi
+
+**Componenti nested:**
+- PaymentPanel component
+- Numeric keypad
+
+**Stima**: 10-12 ore
+
+---
+
+#### Step 6: DocumentGeneration (6-8 ore)
+**File**: `Step6_DocumentGeneration.razor`
+
+**Features:**
+- Riepilogo completo vendita
+- Generazione documento fiscale
+- Gestione errori stampa
+- Scelta tipo documento (Ricevuta/Fattura)
+- Input dati cliente per fattura
+
+**Validazioni:**
+- Pagamento completo
+- Dati cliente per fattura
+- Integrazione con sistema fiscale
+
+**Stima**: 6-8 ore
+
+---
+
+#### Step 7: PrintSend (4-6 ore)
+**File**: `Step7_PrintSend.razor`
+
+**Features:**
+- Stampa documento su stampante fiscale
+- Invio email cliente (opzionale)
+- Feedback operazione
+- Gestione errori stampa
+- Retry mechanism
+
+**Integrations:**
+- QzTray per stampa
+- Email service per invio
+
+**Stima**: 4-6 ore
+
+---
+
+#### Step 8: Complete (3-4 ore)
+**File**: `Step8_Complete.razor`
+
+**Features:**
+- Messaggio successo con animazione
+- Riepilogo operazione
+- Opzioni: Nuova vendita / Esci / Dashboard
+- Reset completo wizard
+
+**UX:**
+- Animazioni conferma
+- Timer auto-redirect
+
+**Stima**: 3-4 ore
 #### Step 5: Payment (8-10 ore)
 **File**: `Step5_Payment.razor`
 
@@ -893,6 +984,44 @@ UI Layer (Blazor) → Client Services → REST API → Service Layer → Data La
 
 ### 3.3 Shared Components (24-30 ore)
 
+**Percorso**: `/EventForge.Client/Shared/Components/Sales/`
+
+#### ProductKeyboard.razor (12-15 ore)
+**Features:**
+- Griglia prodotti configurabile
+- Layout da backend (ProductLayout)
+- Touch-friendly buttons grandi
+- Categorie con scroll
+- Quantità quick (+1, +5, +10)
+- Visual feedback
+
+**Stima**: 12-15 ore (complesso)
+
+---
+
+#### ProductSearch.razor (8-10 ore)
+**Features:**
+- Ricerca barcode con scanner
+- Ricerca testo con debounce
+- Autocomplete con suggerimenti
+- Filtro categorie
+- Risultati con immagini
+- Add to cart rapido
+
+**Stima**: 8-10 ore
+
+---
+
+#### CartSummary.razor (6-8 ore)
+**Features:**
+- Lista items scrollabile
+- Edit quantità inline
+- Rimozione item
+- Applicazione sconti
+- Note per item
+- Totali (subtotal, sconto, IVA, totale)
+
+**Stima**: 6-8 ore
 #### ProductKeyboard.razor (8-10 ore)
 **Descrizione**: Tastiera prodotti touch per bar/ristorante
 
@@ -939,6 +1068,15 @@ UI Layer (Blazor) → Client Services → REST API → Service Layer → Data La
 ---
 
 #### TableLayout.razor (15-20 ore)
+**Features:**
+- Layout visuale tavoli drag&drop
+- Stati tavoli con colori
+- Coordinate posizionamento
+- Zoom e pan
+- Click selezione
+- Hover info
+
+**Stima**: 15-20 ore (drag&drop complesso)
 **Descrizione**: Layout visuale tavoli drag&drop
 
 **Features:**
@@ -961,6 +1099,13 @@ UI Layer (Blazor) → Client Services → REST API → Service Layer → Data La
 ---
 
 #### TableCard.razor (4-6 ore)
+**Features:**
+- Card singolo tavolo
+- Stato visuale (colore)
+- Numero/nome tavolo
+- Capacità posti
+- Info sessione attiva
+- Badge notifiche
 **Descrizione**: Card singolo tavolo con stato
 
 **Features:**

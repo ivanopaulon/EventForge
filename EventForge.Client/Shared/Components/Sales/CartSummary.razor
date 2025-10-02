@@ -1,0 +1,193 @@
+@using EventForge.DTOs.Sales
+@inject ISnackbar Snackbar
+
+<MudPaper Class="pa-4 cart-summary" Elevation="2">
+    <div class="d-flex align-center mb-3">
+        <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Class="mr-2" Color="Color.Primary" />
+        <MudText Typo="Typo.h6">Carrello</MudText>
+        @if (Items?.Any() == true)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Class="ml-2">@Items.Count</MudChip>
+        }
+    </div>
+
+    @if (Items?.Any() == true)
+    {
+        <MudSimpleTable Striped="true" Dense="true" Class="cart-items-table">
+            <thead>
+                <tr>
+                    <th>Prodotto</th>
+                    <th style="text-align: center;">Quantità</th>
+                    <th style="text-align: right;">Prezzo</th>
+                    <th style="text-align: right;">Totale</th>
+                    <th style="width: 48px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Items)
+                {
+                    <tr>
+                        <td>
+                            <div>
+                                <MudText Typo="Typo.body2"><strong>@item.ProductName</strong></MudText>
+                                @if (!string.IsNullOrEmpty(item.ProductCode))
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Cod: @item.ProductCode</MudText>
+                                }
+                                @if (!string.IsNullOrEmpty(item.Notes))
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Info">
+                                        <MudIcon Icon="@Icons.Material.Filled.Note" Size="Size.Small" /> @item.Notes
+                                    </MudText>
+                                }
+                            </div>
+                        </td>
+                        <td style="text-align: center;">
+                            @if (AllowEdit)
+                            {
+                                <div class="d-flex align-center justify-center">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Remove" 
+                                                   Size="Size.Small" 
+                                                   OnClick="@(() => DecreaseQuantity(item))"
+                                                   Disabled="item.Quantity <= 1" />
+                                    <MudText Typo="Typo.body2" Class="mx-2">@item.Quantity</MudText>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                                   Size="Size.Small" 
+                                                   OnClick="@(() => IncreaseQuantity(item))" />
+                                </div>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2">@item.Quantity</MudText>
+                            }
+                        </td>
+                        <td style="text-align: right;">
+                            <MudText Typo="Typo.body2">@item.UnitPrice.ToString("C")</MudText>
+                            @if (item.DiscountPercent > 0)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Success">
+                                    -@item.DiscountPercent.ToString("F1")%
+                                </MudText>
+                            }
+                        </td>
+                        <td style="text-align: right;">
+                            <MudText Typo="Typo.body2"><strong>@item.TotalAmount.ToString("C")</strong></MudText>
+                        </td>
+                        <td>
+                            @if (AllowEdit)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                               Size="Size.Small" 
+                                               Color="Color.Error"
+                                               OnClick="@(() => RemoveItem(item))" />
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+
+        <!-- Totals Section -->
+        <MudDivider Class="my-3" />
+        
+        <div class="cart-totals">
+            <div class="d-flex justify-space-between mb-2">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Subtotale:</MudText>
+                <MudText Typo="Typo.body2">@SubTotal.ToString("C")</MudText>
+            </div>
+            
+            @if (TotalDiscount > 0)
+            {
+                <div class="d-flex justify-space-between mb-2">
+                    <MudText Typo="Typo.body2" Color="Color.Success">Sconto:</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Success">-@TotalDiscount.ToString("C")</MudText>
+                </div>
+            }
+            
+            <div class="d-flex justify-space-between mb-2">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">IVA:</MudText>
+                <MudText Typo="Typo.body2">@TotalVat.ToString("C")</MudText>
+            </div>
+            
+            <MudDivider Class="my-2" />
+            
+            <div class="d-flex justify-space-between">
+                <MudText Typo="Typo.h6">Totale:</MudText>
+                <MudText Typo="Typo.h6" Color="Color.Primary"><strong>@GrandTotal.ToString("C")</strong></MudText>
+            </div>
+        </div>
+
+        @if (AllowEdit)
+        {
+            <div class="d-flex justify-end mt-3 ga-2">
+                <MudButton Variant="Variant.Text" 
+                           Color="Color.Error"
+                           StartIcon="@Icons.Material.Filled.Clear"
+                           OnClick="ClearCart"
+                           Size="Size.Small">
+                    Svuota Carrello
+                </MudButton>
+            </div>
+        }
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info" Dense="true">
+            Nessun prodotto nel carrello. Aggiungi prodotti per iniziare.
+        </MudAlert>
+    }
+</MudPaper>
+
+@code {
+    [Parameter]
+    public List<SaleItemDto>? Items { get; set; }
+
+    [Parameter]
+    public bool AllowEdit { get; set; } = true;
+
+    [Parameter]
+    public EventCallback<SaleItemDto> OnItemQuantityChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<SaleItemDto> OnItemRemoved { get; set; }
+
+    [Parameter]
+    public EventCallback OnCartCleared { get; set; }
+
+    private decimal SubTotal => Items?.Sum(i => i.Quantity * i.UnitPrice) ?? 0m;
+    private decimal TotalDiscount => Items?.Sum(i => i.Quantity * i.UnitPrice * i.DiscountPercent / 100) ?? 0m;
+    private decimal TotalVat => Items?.Sum(i => i.TaxAmount) ?? 0m;
+    private decimal GrandTotal => Items?.Sum(i => i.TotalAmount) ?? 0m;
+
+    private async Task IncreaseQuantity(SaleItemDto item)
+    {
+        item.Quantity++;
+        await OnItemQuantityChanged.InvokeAsync(item);
+        Snackbar.Add($"Quantità aggiornata: {item.ProductName}", Severity.Success);
+    }
+
+    private async Task DecreaseQuantity(SaleItemDto item)
+    {
+        if (item.Quantity > 1)
+        {
+            item.Quantity--;
+            await OnItemQuantityChanged.InvokeAsync(item);
+            Snackbar.Add($"Quantità aggiornata: {item.ProductName}", Severity.Success);
+        }
+    }
+
+    private async Task RemoveItem(SaleItemDto item)
+    {
+        await OnItemRemoved.InvokeAsync(item);
+        Snackbar.Add($"Rimosso: {item.ProductName}", Severity.Warning);
+    }
+
+    private async Task ClearCart()
+    {
+        if (Items?.Any() == true)
+        {
+            await OnCartCleared.InvokeAsync();
+            Snackbar.Add("Carrello svuotato", Severity.Warning);
+        }
+    }
+}
