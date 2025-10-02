@@ -1,6 +1,5 @@
 using EventForge.DTOs.Sales;
 using EventForge.Server.Filters;
-using EventForge.Server.Services.Auth;
 using EventForge.Server.Services.Sales;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -57,7 +56,7 @@ public class SalesController : BaseApiController
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
             var session = await _saleSessionService.CreateSessionAsync(createDto, currentUser, cancellationToken);
-            
+
             return CreatedAtAction(
                 nameof(GetSession),
                 new { sessionId = session.Id },
@@ -93,7 +92,7 @@ public class SalesController : BaseApiController
         try
         {
             var session = await _saleSessionService.GetSessionAsync(sessionId, cancellationToken);
-            
+
             if (session == null)
                 return NotFound(new { message = $"Sale session {sessionId} not found." });
 
@@ -137,7 +136,7 @@ public class SalesController : BaseApiController
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
             var session = await _saleSessionService.UpdateSessionAsync(sessionId, updateDto, currentUser, cancellationToken);
-            
+
             if (session == null)
                 return NotFound(new { message = $"Sale session {sessionId} not found." });
 
@@ -174,7 +173,7 @@ public class SalesController : BaseApiController
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
             var deleted = await _saleSessionService.DeleteSessionAsync(sessionId, currentUser, cancellationToken);
-            
+
             if (!deleted)
                 return NotFound(new { message = $"Sale session {sessionId} not found." });
 
@@ -276,7 +275,7 @@ public class SalesController : BaseApiController
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
             var session = await _saleSessionService.AddItemAsync(sessionId, addItemDto, currentUser, cancellationToken);
-            
+
             if (session == null)
                 return NotFound(new { message = $"Sale session {sessionId} not found." });
 
@@ -327,7 +326,7 @@ public class SalesController : BaseApiController
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
             var session = await _saleSessionService.UpdateItemAsync(sessionId, itemId, updateItemDto, currentUser, cancellationToken);
-            
+
             if (session == null)
                 return NotFound(new { message = $"Sale session {sessionId} not found." });
 
@@ -371,7 +370,7 @@ public class SalesController : BaseApiController
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
             var session = await _saleSessionService.RemoveItemAsync(sessionId, itemId, currentUser, cancellationToken);
-            
+
             if (session == null)
                 return NotFound(new { message = $"Sale session {sessionId} not found." });
 
@@ -420,7 +419,7 @@ public class SalesController : BaseApiController
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
             var session = await _saleSessionService.AddPaymentAsync(sessionId, addPaymentDto, currentUser, cancellationToken);
-            
+
             if (session == null)
                 return NotFound(new { message = $"Sale session {sessionId} not found." });
 
@@ -459,7 +458,7 @@ public class SalesController : BaseApiController
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
             var session = await _saleSessionService.RemovePaymentAsync(sessionId, paymentId, currentUser, cancellationToken);
-            
+
             if (session == null)
                 return NotFound(new { message = $"Sale session {sessionId} not found." });
 
@@ -508,7 +507,7 @@ public class SalesController : BaseApiController
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
             var session = await _saleSessionService.AddNoteAsync(sessionId, addNoteDto, currentUser, cancellationToken);
-            
+
             if (session == null)
                 return NotFound(new { message = $"Sale session {sessionId} not found." });
 
@@ -544,7 +543,7 @@ public class SalesController : BaseApiController
         try
         {
             var session = await _saleSessionService.CalculateTotalsAsync(sessionId, cancellationToken);
-            
+
             if (session == null)
                 return NotFound(new { message = $"Sale session {sessionId} not found." });
 
@@ -583,7 +582,7 @@ public class SalesController : BaseApiController
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
             var session = await _saleSessionService.CloseSessionAsync(sessionId, currentUser, cancellationToken);
-            
+
             if (session == null)
                 return NotFound(new { message = $"Sale session {sessionId} not found." });
 

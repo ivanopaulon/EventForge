@@ -1,6 +1,5 @@
 using EventForge.DTOs.Sales;
 using EventForge.Server.Filters;
-using EventForge.Server.Services.Auth;
 using EventForge.Server.Services.Sales;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -109,7 +108,7 @@ public class NoteFlagsController : BaseApiController
         try
         {
             var noteFlag = await _noteFlagService.GetByIdAsync(id, cancellationToken);
-            
+
             if (noteFlag == null)
                 return NotFound(new { message = $"Note flag {id} not found." });
 
@@ -149,7 +148,7 @@ public class NoteFlagsController : BaseApiController
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
             var noteFlag = await _noteFlagService.CreateAsync(createDto, currentUser, cancellationToken);
-            
+
             return CreatedAtAction(
                 nameof(GetById),
                 new { id = noteFlag.Id },
@@ -198,7 +197,7 @@ public class NoteFlagsController : BaseApiController
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
             var noteFlag = await _noteFlagService.UpdateAsync(id, updateDto, currentUser, cancellationToken);
-            
+
             if (noteFlag == null)
                 return NotFound(new { message = $"Note flag {id} not found." });
 
@@ -235,7 +234,7 @@ public class NoteFlagsController : BaseApiController
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
             var deleted = await _noteFlagService.DeleteAsync(id, currentUser, cancellationToken);
-            
+
             if (!deleted)
                 return NotFound(new { message = $"Note flag {id} not found." });
 

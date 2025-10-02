@@ -339,12 +339,12 @@ public class ClassificationNodeService : IClassificationNodeService
                 node.Name = updateDto.Name;
             if (updateDto.Description != null)
                 node.Description = updateDto.Description;
-            
+
             node.Type = updateDto.Type.ToEntity();
             node.Status = updateDto.Status.ToEntity();
             node.Level = updateDto.Level;
             node.Order = updateDto.Order;
-            
+
             if (updateDto.ParentId.HasValue)
                 node.ParentId = updateDto.ParentId;
 

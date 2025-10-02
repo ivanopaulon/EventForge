@@ -39,10 +39,10 @@ public static class ServiceCollectionExtensions
         {
             // Configure custom columns for SQL Server sink to capture enriched properties
             var columnOptions = new Serilog.Sinks.MSSqlServer.ColumnOptions();
-            
+
             // Remove default columns that we don't need or will add as properties
             columnOptions.Store.Remove(Serilog.Sinks.MSSqlServer.StandardColumn.MessageTemplate);
-            
+
             // Add custom properties columns for client log enrichment
             columnOptions.Properties.PropertiesFilter = (propName) => propName != "SourceContext";
             columnOptions.AdditionalColumns = new System.Collections.ObjectModel.Collection<Serilog.Sinks.MSSqlServer.SqlColumn>

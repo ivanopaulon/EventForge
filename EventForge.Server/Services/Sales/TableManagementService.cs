@@ -1,7 +1,5 @@
 using EventForge.DTOs.Sales;
-using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Sales;
-using EventForge.Server.Services.Auth;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Sales;

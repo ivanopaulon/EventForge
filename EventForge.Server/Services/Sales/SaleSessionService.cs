@@ -1,9 +1,5 @@
 using EventForge.DTOs.Sales;
-using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Sales;
-using EventForge.Server.Data.Entities.Products;
-using EventForge.Server.Services.Audit;
-using EventForge.Server.Services.Auth;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Sales;
@@ -130,7 +126,7 @@ public class SaleSessionService : ISaleSessionService
 
             session.CustomerId = updateDto.CustomerId ?? session.CustomerId;
             session.SaleType = updateDto.SaleType ?? session.SaleType;
-            
+
             if (updateDto.Status.HasValue)
             {
                 session.Status = (SaleSessionStatus)updateDto.Status.Value;

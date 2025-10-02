@@ -703,7 +703,7 @@ public class TenantsController : BaseApiController
 
             return Ok(tenants);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return StatusCode(StatusCodes.Status500InternalServerError, "Unable to load tenants");
         }
