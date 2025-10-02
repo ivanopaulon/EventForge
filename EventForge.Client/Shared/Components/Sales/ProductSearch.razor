@@ -147,11 +147,9 @@
             // TODO: Replace with actual API call
             // _searchResults = await ProductService.SearchAsync(_searchText);
             
-            // Mock data for now
-            await Task.Delay(500); // Simulate API call
-            _searchResults = new List<ProductDto>();
-            
-            Snackbar.Add("Ricerca prodotti non ancora implementata", Severity.Info);
+            // Mock data for demonstration
+            await Task.Delay(300); // Simulate API call
+            _searchResults = GenerateMockProducts();
         }
         catch (Exception ex)
         {
@@ -162,11 +160,78 @@
             _isSearching = false;
         }
     }
+    
+    private List<ProductDto> GenerateMockProducts()
+    {
+        // Generate some mock products for demonstration
+        var mockProducts = new List<ProductDto>
+        {
+            new ProductDto
+            {
+                Id = Guid.NewGuid(),
+                Name = "Caffè Espresso",
+                Code = "CAF001",
+                CategoryName = "Bevande",
+                SalePrice = 1.50m,
+                Stock = 100
+            },
+            new ProductDto
+            {
+                Id = Guid.NewGuid(),
+                Name = "Cappuccino",
+                Code = "CAF002",
+                CategoryName = "Bevande",
+                SalePrice = 2.00m,
+                Stock = 100
+            },
+            new ProductDto
+            {
+                Id = Guid.NewGuid(),
+                Name = "Cornetto",
+                Code = "PAS001",
+                CategoryName = "Pasticceria",
+                SalePrice = 1.20m,
+                Stock = 50
+            },
+            new ProductDto
+            {
+                Id = Guid.NewGuid(),
+                Name = "Acqua Naturale 0.5L",
+                Code = "BEV001",
+                CategoryName = "Bevande",
+                SalePrice = 1.00m,
+                Stock = 200
+            },
+            new ProductDto
+            {
+                Id = Guid.NewGuid(),
+                Name = "Panino Prosciutto",
+                Code = "PAN001",
+                CategoryName = "Panini",
+                SalePrice = 4.50m,
+                Stock = 30
+            },
+            new ProductDto
+            {
+                Id = Guid.NewGuid(),
+                Name = "Coca Cola 0.33L",
+                Code = "BEV002",
+                CategoryName = "Bevande",
+                SalePrice = 2.50m,
+                Stock = 150
+            }
+        };
+        
+        // Filter by search text
+        return mockProducts
+            .Where(p => p.Name.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
+                       p.Code.Contains(_searchText, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
 
     private async Task SelectProduct(ProductDto product)
     {
         await OnProductSelected.InvokeAsync(product);
-        Snackbar.Add($"Aggiunto: {product.Name}", Severity.Success);
         
         // Clear search after selection
         _searchText = string.Empty;
