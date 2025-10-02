@@ -21,6 +21,8 @@ The centralized logging system captures client-side errors, warnings, and inform
 - Integrates with existing Serilog infrastructure
 - No new database tables required
 - Structured logging with custom properties
+- **Anonymous access enabled** - Allows logging without authentication (critical for login/startup errors)
+- Captures authentication context when available (UserId, UserName)
 - Rate limiting ready (simplified implementation)
 
 #### 2. ClientLogDto and ClientLogBatchDto
@@ -240,27 +242,33 @@ HAVING COUNT(*) > 10
 
 ### Common Issues
 
-1. **Logs not appearing on server**
+1. **Logs not appearing on server** - FIXED in latest version
+   - **ISSUE**: The `ClientLogsController` had `[Authorize]` attribute requiring authentication
+   - **FIX**: Changed to `[AllowAnonymous]` to allow logging without authentication
    - Check network connectivity
-   - Verify API endpoints are accessible
+   - Verify API endpoints are accessible at `/api/ClientLogs`
    - Check server logs for any errors in `ClientLogsController`
+   - Verify client is using correct base URL in `Program.cs`
 
 2. **Local storage filling up**
    - Logs are automatically limited to 1000 entries
    - Use developer UI to clear local storage manually
    - Check if flush to server is working correctly
 
-3. **Authentication issues**
+3. **Authentication context not captured**
    - Client logs work with or without authentication
-   - Unauthenticated logs are marked as anonymous
+   - Unauthenticated logs have no UserId/UserName
+   - Authenticated logs capture user context automatically
    - Check CORS configuration if logs fail to send
 
 ### Debug Steps
-1. Open browser developer tools
+1. Open browser developer tools (F12)
 2. Navigate to `/superadmin/client-logs`
 3. Generate test logs using the test feature
 4. Verify logs appear in local storage
 5. Manually flush logs to server
+6. Check browser Network tab for requests to `/api/ClientLogs`
+7. Verify server logs show received client logs
 6. Check server logs for received client logs
 
 ## Future Enhancements
