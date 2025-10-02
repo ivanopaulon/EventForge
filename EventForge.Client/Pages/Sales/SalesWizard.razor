@@ -299,7 +299,7 @@
     
     #region Step 3 - Product Handlers
     
-    private void HandleProductSelected(ProductSearch.ProductDto product)
+    private void HandleProductSelected(EventForge.DTOs.Products.ProductDto product)
     {
         try
         {
@@ -315,6 +315,13 @@
             }
             else
             {
+                // Validate that product has a price
+                if (!product.DefaultPrice.HasValue || product.DefaultPrice.Value <= 0)
+                {
+                    Snackbar.Add($"Il prodotto {product.Name} non ha un prezzo valido", Severity.Warning);
+                    return;
+                }
+                
                 // Add new item to cart
                 var newItem = new SaleItemDto
                 {
@@ -323,10 +330,10 @@
                     ProductCode = product.Code,
                     ProductName = product.Name,
                     Quantity = 1,
-                    UnitPrice = product.SalePrice,
-                    TotalAmount = product.SalePrice,
+                    UnitPrice = product.DefaultPrice.Value,
+                    TotalAmount = product.DefaultPrice.Value,
                     TaxRate = 22.0m, // Default VAT rate (use TaxRate not VatRate)
-                    TaxAmount = product.SalePrice * 0.22m,
+                    TaxAmount = product.DefaultPrice.Value * 0.22m,
                     DiscountPercent = 0
                 };
                 
@@ -514,34 +521,80 @@
         {
             Logger.LogInformation("Processing sale...");
             
+            // TODO: In production, get actual Operator and POS IDs from authentication/session
+            // For now, we'll use placeholder GUIDs that should be replaced with real ones
+            var operatorId = Guid.NewGuid(); // Replace with actual authenticated operator ID
+            var posId = Guid.NewGuid(); // Replace with actual POS ID from configuration
+            
             // Create sale session
             var createDto = new CreateSaleSessionDto
             {
-                OperatorId = Guid.NewGuid(), // TODO: Get actual operator ID
-                PosId = Guid.NewGuid(), // TODO: Get actual POS ID
+                OperatorId = operatorId,
+                PosId = posId,
                 SaleType = _saleType,
+                TableId = _selectedTableId,
                 Currency = "EUR"
             };
             
-            // TODO: Call API to create sale session and add items/payments
-            // _currentSession = await SalesService.CreateAsync(createDto);
-            // foreach (var item in _cartItems)
-            // {
-            //     await SalesService.AddItemAsync(_currentSession.Id, new AddSaleItemDto { ... });
-            // }
-            // foreach (var payment in _payments)
-            // {
-            //     await SalesService.AddPaymentAsync(_currentSession.Id, new AddSalePaymentDto { ... });
-            // }
+            // Create the session
+            _currentSession = await SalesService.CreateSessionAsync(createDto);
             
+            if (_currentSession == null)
+            {
+                throw new Exception("Failed to create sale session");
+            }
+            
+            Logger.LogInformation($"Sale session created: {_currentSession.Id}");
+            
+            // Add all items to the session
+            foreach (var item in _cartItems)
+            {
+                var addItemDto = new AddSaleItemDto
+                {
+                    ProductId = item.ProductId,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice,
+                    DiscountPercent = item.DiscountPercent,
+                    Notes = item.Notes,
+                    IsService = item.IsService
+                };
+                
+                _currentSession = await SalesService.AddItemAsync(_currentSession.Id, addItemDto);
+                Logger.LogInformation($"Added item {item.ProductName} to session");
+            }
+            
+            // Add all payments to the session
+            foreach (var payment in _payments)
+            {
+                var addPaymentDto = new AddSalePaymentDto
+                {
+                    PaymentMethodId = payment.PaymentMethodId,
+                    Amount = payment.Amount,
+                    TransactionReference = payment.TransactionReference,
+                    Notes = payment.Notes
+                };
+                
+                _currentSession = await SalesService.AddPaymentAsync(_currentSession.Id, addPaymentDto);
+                Logger.LogInformation($"Added payment {payment.Amount:C} via {payment.PaymentMethodName} to session");
+            }
+            
+            // Close the session to complete the sale
+            _currentSession = await SalesService.CloseSessionAsync(_currentSession.Id);
+            
+            if (_currentSession == null)
+            {
+                throw new Exception("Failed to close sale session");
+            }
+            
+            Logger.LogInformation($"Sale session {_currentSession.Id} closed successfully");
             Snackbar.Add("Vendita completata con successo!", Severity.Success);
-            Logger.LogInformation("Sale processed successfully");
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error processing sale");
-            Snackbar.Add("Errore nel completamento della vendita", Severity.Error);
-            _activeStepIndex = 3; // Go back to payment step
+            Snackbar.Add($"Errore nel completamento della vendita: {ex.Message}", Severity.Error);
+            _activeStepIndex = 4; // Go back to payment step
+            throw; // Re-throw to prevent navigation to completion step
         }
     }
 
