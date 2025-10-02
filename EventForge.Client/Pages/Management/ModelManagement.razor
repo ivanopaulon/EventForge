@@ -89,7 +89,7 @@
                                   Height="60vh">
                             <HeaderContent>
                                 <MudTh><MudTableSortLabel SortBy="new Func<ModelDto, object>(x => x.Name)">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="new Func<ModelDto, object>(x => x.BrandName ?? "")">@TranslationService.GetTranslation("field.brand", "Marchio")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="new Func<ModelDto, object>(x => x.BrandName ?? string.Empty)">@TranslationService.GetTranslation("field.brand", "Marchio")</MudTableSortLabel></MudTh>
                                 <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
                                 <MudTh>@TranslationService.GetTranslation("field.mpn", "MPN")</MudTh>
                                 <MudTh><MudTableSortLabel SortBy="new Func<ModelDto, object>(x => x.CreatedAt)">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel></MudTh>
