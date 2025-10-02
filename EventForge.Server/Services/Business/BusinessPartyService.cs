@@ -559,6 +559,7 @@ public class BusinessPartyService : IBusinessPartyService
             ContactCount = contactCount,
             ReferenceCount = referenceCount,
             HasAccountingData = hasAccountingData,
+            IsActive = businessParty.IsActive,
             CreatedAt = businessParty.CreatedAt,
             CreatedBy = businessParty.CreatedBy,
             ModifiedAt = businessParty.ModifiedAt,

@@ -240,6 +240,7 @@ public class StorageFacilityService : IStorageFacilityService
             IsRefrigerated = facility.IsRefrigerated,
             TotalLocations = facility.TotalLocations,
             ActiveLocations = facility.ActiveLocations,
+            IsActive = facility.IsActive,
             CreatedAt = facility.CreatedAt,
             CreatedBy = facility.CreatedBy,
             ModifiedAt = facility.ModifiedAt,

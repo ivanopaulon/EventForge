@@ -231,6 +231,7 @@ public class UMService : IUMService
             Symbol = um.Symbol,
             Description = um.Description,
             IsDefault = um.IsDefault,
+            IsActive = um.IsActive,
             CreatedAt = um.CreatedAt,
             CreatedBy = um.CreatedBy,
             ModifiedAt = um.ModifiedAt,
