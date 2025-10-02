@@ -61,10 +61,10 @@ public static class ServiceCollectionExtensions
 
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Verbose()
-                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Debug)
-                .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", LogEventLevel.Debug)
-                .MinimumLevel.Override("Microsoft.AspNetCore.Mvc", LogEventLevel.Debug)
-                .MinimumLevel.Override("Microsoft.AspNetCore.Routing", LogEventLevel.Debug)
+                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Error)
+                .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", LogEventLevel.Error)
+                .MinimumLevel.Override("Microsoft.AspNetCore.Mvc", LogEventLevel.Error)
+                .MinimumLevel.Override("Microsoft.AspNetCore.Routing", LogEventLevel.Error)
                 .Enrich.FromLogContext()  // Enable capturing scope properties
                 .WriteTo.MSSqlServer(
                     connectionString: builder.Configuration.GetConnectionString("LogDb"),
@@ -75,7 +75,7 @@ public static class ServiceCollectionExtensions
                     },
                     columnOptions: columnOptions)
                 .WriteTo.Console(
-                    restrictedToMinimumLevel: LogEventLevel.Information,
+                    restrictedToMinimumLevel: LogEventLevel.Error,
                     outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
                 .CreateLogger();
             Log.Information("Serilog configurato per SQL Server con enrichment.");
@@ -87,16 +87,16 @@ public static class ServiceCollectionExtensions
 
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Information()
-                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Debug)
+                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Error)
                 .Enrich.FromLogContext()  // Enable capturing scope properties even in fallback mode
                 .WriteTo.File(
                     path: filePath,
                     rollingInterval: RollingInterval.Day,
                     retainedFileCountLimit: fileRetention,
-                    restrictedToMinimumLevel: LogEventLevel.Verbose,
+                    restrictedToMinimumLevel: LogEventLevel.Error,
                     outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
                 .WriteTo.Console(
-                    restrictedToMinimumLevel: LogEventLevel.Information,
+                    restrictedToMinimumLevel: LogEventLevel.Error,
                     outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
                 .CreateLogger();
 
