@@ -107,8 +107,14 @@ public class ModelService : IModelService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for model operations.");
+            }
+
             var model = await _context.Models
-                .Where(m => m.Id == id && !m.IsDeleted)
+                .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
                 .Include(m => m.Brand)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -128,9 +134,15 @@ public class ModelService : IModelService
             ArgumentNullException.ThrowIfNull(createModelDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            // Verify brand exists
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for model operations.");
+            }
+
+            // Verify brand exists and belongs to the same tenant
             var brandExists = await _context.Brands
-                .Where(b => b.Id == createModelDto.BrandId && !b.IsDeleted)
+                .Where(b => b.Id == createModelDto.BrandId && b.TenantId == currentTenantId.Value && !b.IsDeleted)
                 .AnyAsync(cancellationToken);
 
             if (!brandExists)
@@ -141,6 +153,7 @@ public class ModelService : IModelService
             var model = new Model
             {
                 Id = Guid.NewGuid(),
+                TenantId = currentTenantId.Value,
                 BrandId = createModelDto.BrandId,
                 Name = createModelDto.Name,
                 Description = createModelDto.Description,
@@ -177,16 +190,22 @@ public class ModelService : IModelService
             ArgumentNullException.ThrowIfNull(updateModelDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for model operations.");
+            }
+
             var originalModel = await _context.Models
                 .AsNoTracking()
-                .Where(m => m.Id == id && !m.IsDeleted)
+                .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalModel == null) return null;
 
-            // Verify brand exists
+            // Verify brand exists and belongs to the same tenant
             var brandExists = await _context.Brands
-                .Where(b => b.Id == updateModelDto.BrandId && !b.IsDeleted)
+                .Where(b => b.Id == updateModelDto.BrandId && b.TenantId == currentTenantId.Value && !b.IsDeleted)
                 .AnyAsync(cancellationToken);
 
             if (!brandExists)
@@ -195,7 +214,7 @@ public class ModelService : IModelService
             }
 
             var model = await _context.Models
-                .Where(m => m.Id == id && !m.IsDeleted)
+                .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (model == null) return null;
@@ -233,15 +252,21 @@ public class ModelService : IModelService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for model operations.");
+            }
+
             var originalModel = await _context.Models
                 .AsNoTracking()
-                .Where(m => m.Id == id && !m.IsDeleted)
+                .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalModel == null) return false;
 
             var model = await _context.Models
-                .Where(m => m.Id == id && !m.IsDeleted)
+                .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (model == null) return false;
@@ -269,8 +294,14 @@ public class ModelService : IModelService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for model operations.");
+            }
+
             return await _context.Models
-                .Where(m => m.Id == modelId && !m.IsDeleted)
+                .Where(m => m.Id == modelId && m.TenantId == currentTenantId.Value && !m.IsDeleted)
                 .AnyAsync(cancellationToken);
         }
         catch (Exception ex)

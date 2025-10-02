@@ -66,8 +66,14 @@ public class BrandService : IBrandService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for brand operations.");
+            }
+
             var brand = await _context.Brands
-                .Where(b => b.Id == id && !b.IsDeleted)
+                .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             return brand != null ? MapToBrandDto(brand) : null;
@@ -86,9 +92,16 @@ public class BrandService : IBrandService
             ArgumentNullException.ThrowIfNull(createBrandDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for brand operations.");
+            }
+
             var brand = new Brand
             {
                 Id = Guid.NewGuid(),
+                TenantId = currentTenantId.Value,
                 Name = createBrandDto.Name,
                 Description = createBrandDto.Description,
                 Website = createBrandDto.Website,
@@ -120,15 +133,21 @@ public class BrandService : IBrandService
             ArgumentNullException.ThrowIfNull(updateBrandDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for brand operations.");
+            }
+
             var originalBrand = await _context.Brands
                 .AsNoTracking()
-                .Where(b => b.Id == id && !b.IsDeleted)
+                .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalBrand == null) return null;
 
             var brand = await _context.Brands
-                .Where(b => b.Id == id && !b.IsDeleted)
+                .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (brand == null) return null;
@@ -161,15 +180,21 @@ public class BrandService : IBrandService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for brand operations.");
+            }
+
             var originalBrand = await _context.Brands
                 .AsNoTracking()
-                .Where(b => b.Id == id && !b.IsDeleted)
+                .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalBrand == null) return false;
 
             var brand = await _context.Brands
-                .Where(b => b.Id == id && !b.IsDeleted)
+                .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (brand == null) return false;
@@ -197,8 +222,14 @@ public class BrandService : IBrandService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for brand operations.");
+            }
+
             return await _context.Brands
-                .Where(b => b.Id == brandId && !b.IsDeleted)
+                .Where(b => b.Id == brandId && b.TenantId == currentTenantId.Value && !b.IsDeleted)
                 .AnyAsync(cancellationToken);
         }
         catch (Exception ex)
