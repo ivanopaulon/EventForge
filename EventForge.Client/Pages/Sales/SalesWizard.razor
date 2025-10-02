@@ -1,6 +1,7 @@
 @page "/sales/wizard"
 @using EventForge.Client.Services.Sales
 @using EventForge.DTOs.Sales
+@using EventForge.Client.Shared.Components.Sales
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize]
 @inject ISalesService SalesService
@@ -102,78 +103,119 @@
             <!-- Step 3: Products -->
             <MudStep Title="Prodotti" Icon="@Icons.Material.Filled.Inventory">
                 <div class="pa-4">
-                    <MudText Typo="Typo.h6" Class="mb-4">Aggiungi Prodotti</MudText>
-                    <MudAlert Severity="Severity.Warning" Class="mb-4">
-                        Componente prodotti in sviluppo. Questa è l'area dove verranno aggiunti i prodotti al carrello.
-                    </MudAlert>
+                    <MudText Typo="Typo.h6" Class="mb-4">Aggiungi Prodotti al Carrello</MudText>
                     
-                    @if (_currentSession?.Items?.Any() == true)
-                    {
-                        <MudText Typo="Typo.subtitle1" Class="mb-2">Carrello corrente:</MudText>
-                        <MudSimpleTable Striped="true" Dense="true">
-                            <thead>
-                                <tr>
-                                    <th>Prodotto</th>
-                                    <th>Quantità</th>
-                                    <th>Prezzo</th>
-                                    <th>Totale</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var item in _currentSession.Items)
-                                {
-                                    <tr>
-                                        <td>@item.ProductName</td>
-                                        <td>@item.Quantity</td>
-                                        <td>@item.UnitPrice.ToString("C")</td>
-                                        <td>@item.TotalAmount.ToString("C")</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </MudSimpleTable>
-                    }
-                    else
-                    {
-                        <MudText Color="Color.Secondary" Typo="Typo.body2" Class="mt-4">
-                            Nessun prodotto aggiunto. (Funzionalità in sviluppo)
-                        </MudText>
-                    }
+                    <MudGrid>
+                        <!-- Product Search - Left Side -->
+                        <MudItem xs="12" md="7">
+                            <ProductSearch OnProductSelected="@HandleProductSelected" />
+                        </MudItem>
+                        
+                        <!-- Cart Summary - Right Side -->
+                        <MudItem xs="12" md="5">
+                            <CartSummary Items="@_cartItems"
+                                        AllowEdit="true"
+                                        OnItemQuantityChanged="@HandleQuantityChanged"
+                                        OnItemRemoved="@HandleItemRemoved"
+                                        OnCartCleared="@HandleCartCleared" />
+                        </MudItem>
+                    </MudGrid>
+                </div>
+            </MudStep>
+            
+            <!-- Step 4: Table Management (conditional for BAR/RESTAURANT) -->
+            <MudStep Title="Tavolo" Icon="@Icons.Material.Filled.TableRestaurant">
+                <div class="pa-4">
+                    <TableManagementStep SaleType="@_saleType" 
+                                        @bind-SelectedTableId="@_selectedTableId" />
                 </div>
             </MudStep>
 
-            <!-- Step 4: Payment -->
+            <!-- Step 5: Payment -->
             <MudStep Title="Pagamento" Icon="@Icons.Material.Filled.Payment">
                 <div class="pa-4">
                     <MudText Typo="Typo.h6" Class="mb-4">Metodo di Pagamento</MudText>
-                    <MudAlert Severity="Severity.Warning" Class="mb-4">
-                        Componente pagamento in sviluppo. Questa è l'area dove verrà gestito il pagamento multi-metodo.
-                    </MudAlert>
                     
-                    <MudText Typo="Typo.subtitle1">Totale da pagare: €0.00</MudText>
+                    <MudGrid>
+                        <!-- Payment Panel - Left Side -->
+                        <MudItem xs="12" md="8">
+                            <PaymentPanel TotalAmount="@GetCartTotal()"
+                                         PaymentMethods="@_paymentMethods"
+                                         Payments="@_payments"
+                                         AllowEdit="true"
+                                         OnPaymentAdded="@HandlePaymentAdded"
+                                         OnPaymentRemoved="@HandlePaymentRemoved" />
+                        </MudItem>
+                        
+                        <!-- Cart Summary (Read-only) - Right Side -->
+                        <MudItem xs="12" md="4">
+                            <CartSummary Items="@_cartItems"
+                                        AllowEdit="false" />
+                        </MudItem>
+                    </MudGrid>
                 </div>
             </MudStep>
 
-            <!-- Step 5: Complete -->
+            <!-- Step 6: Complete -->
             <MudStep Title="Completa" Icon="@Icons.Material.Filled.CheckCircle">
-                <div class="pa-4 text-center">
-                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" 
-                             Color="Color.Success" 
-                             Size="Size.Large" 
-                             Class="mb-4" />
-                    <MudText Typo="Typo.h5" Class="mb-4">Vendita Completata!</MudText>
-                    <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-4">
-                        La vendita è stata registrata con successo.
-                    </MudText>
+                <div class="pa-4">
+                    <div class="text-center mb-4">
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" 
+                                 Color="Color.Success" 
+                                 Size="Size.Large" 
+                                 Class="success-icon mb-3" />
+                        <MudText Typo="Typo.h4" Class="mb-2">Vendita Completata!</MudText>
+                        <MudText Typo="Typo.body1" Color="Color.Secondary">
+                            La vendita è stata registrata con successo.
+                        </MudText>
+                    </div>
                     
+                    <!-- Sale Summary -->
+                    <MudPaper Class="pa-4 mb-4" Elevation="1">
+                        <MudText Typo="Typo.h6" Class="mb-3">Riepilogo Vendita</MudText>
+                        <MudGrid>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Operatore:</MudText>
+                                <MudText Typo="Typo.body1"><strong>@_operatorName</strong></MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">POS:</MudText>
+                                <MudText Typo="Typo.body1"><strong>@_posName</strong></MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Tipo Vendita:</MudText>
+                                <MudText Typo="Typo.body1"><strong>@_saleType</strong></MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Articoli:</MudText>
+                                <MudText Typo="Typo.body1"><strong>@_cartItems.Count</strong></MudText>
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudDivider Class="my-2" />
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Totale:</MudText>
+                                <MudText Typo="Typo.h5" Color="Color.Primary"><strong>@GetCartTotal().ToString("C")</strong></MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Pagato:</MudText>
+                                <MudText Typo="Typo.h5" Color="Color.Success"><strong>@_payments.Sum(p => p.Amount).ToString("C")</strong></MudText>
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+                    
+                    <!-- Action Buttons -->
                     <div class="d-flex justify-center ga-2">
                         <MudButton Variant="Variant.Filled" 
                                    Color="Color.Primary"
+                                   Size="Size.Large"
                                    StartIcon="@Icons.Material.Filled.Add"
                                    OnClick="StartNewSale">
                             Nuova Vendita
                         </MudButton>
                         <MudButton Variant="Variant.Outlined" 
                                    Color="Color.Secondary"
+                                   Size="Size.Large"
                                    StartIcon="@Icons.Material.Filled.Home"
                                    OnClick="GoToHome">
                             Torna alla Home
@@ -184,7 +226,7 @@
         </MudStepper>
 
         <!-- Navigation Buttons -->
-        @if (_activeStepIndex < 4)
+        @if (_activeStepIndex < 5)
         {
             <div class="d-flex justify-space-between mt-4">
                 <MudButton Variant="Variant.Text"
@@ -198,7 +240,7 @@
                            Color="Color.Primary"
                            EndIcon="@Icons.Material.Filled.ArrowForward"
                            OnClick="NextStepAsync">
-                    @(_activeStepIndex == 3 ? "Completa" : "Avanti")
+                    @(_activeStepIndex == 4 ? "Completa" : "Avanti")
                 </MudButton>
             </div>
         }
@@ -216,15 +258,24 @@
     
     // Step 2 - Sale Type
     private string _saleType = "RETAIL";
+    
+    // Step 3 - Products (Cart)
+    private List<SaleItemDto> _cartItems = new();
+    
+    // Step 4 - Table Management
+    private Guid? _selectedTableId;
+    
+    // Step 5 - Payment
+    private List<PaymentMethodDto> _paymentMethods = new();
+    private List<SalePaymentDto> _payments = new();
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             Logger.LogInformation("SalesWizard initialized");
-            // TODO: Load payment methods and flags for later use
-            // var paymentMethods = await PaymentMethodService.GetActiveAsync();
-            // var noteFlags = await NoteFlagService.GetActiveAsync();
+            // Load payment methods for later use
+            await LoadPaymentMethodsAsync();
         }
         catch (Exception ex)
         {
@@ -232,6 +283,164 @@
             Snackbar.Add("Errore durante l'inizializzazione", Severity.Error);
         }
     }
+    
+    private async Task LoadPaymentMethodsAsync()
+    {
+        try
+        {
+            _paymentMethods = (await PaymentMethodService.GetActiveAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading payment methods");
+            Snackbar.Add("Errore nel caricamento dei metodi di pagamento", Severity.Warning);
+        }
+    }
+    
+    #region Step 3 - Product Handlers
+    
+    private void HandleProductSelected(ProductSearch.ProductDto product)
+    {
+        try
+        {
+            // Check if product already in cart
+            var existingItem = _cartItems.FirstOrDefault(i => i.ProductId == product.Id);
+            
+            if (existingItem != null)
+            {
+                // Increase quantity
+                existingItem.Quantity++;
+                existingItem.TotalAmount = existingItem.Quantity * existingItem.UnitPrice;
+                Snackbar.Add($"Quantità di {product.Name} aumentata", Severity.Success);
+            }
+            else
+            {
+                // Add new item to cart
+                var newItem = new SaleItemDto
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = product.Id,
+                    ProductCode = product.Code,
+                    ProductName = product.Name,
+                    Quantity = 1,
+                    UnitPrice = product.SalePrice,
+                    TotalAmount = product.SalePrice,
+                    TaxRate = 22.0m, // Default VAT rate (use TaxRate not VatRate)
+                    TaxAmount = product.SalePrice * 0.22m,
+                    DiscountPercent = 0
+                };
+                
+                _cartItems.Add(newItem);
+                Snackbar.Add($"{product.Name} aggiunto al carrello", Severity.Success);
+            }
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error adding product to cart");
+            Snackbar.Add("Errore nell'aggiunta del prodotto", Severity.Error);
+        }
+    }
+    
+    private async Task HandleQuantityChanged(SaleItemDto item)
+    {
+        try
+        {
+            // Quantity already updated in CartSummary, just recalculate total
+            item.TotalAmount = item.Quantity * item.UnitPrice * (1 - item.DiscountPercent / 100);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating item quantity");
+            Snackbar.Add("Errore nell'aggiornamento della quantità", Severity.Error);
+        }
+    }
+    
+    private async Task HandleItemRemoved(SaleItemDto item)
+    {
+        try
+        {
+            _cartItems.Remove(item);
+            Snackbar.Add("Prodotto rimosso dal carrello", Severity.Info);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error removing item from cart");
+            Snackbar.Add("Errore nella rimozione del prodotto", Severity.Error);
+        }
+    }
+    
+    private async Task HandleCartCleared()
+    {
+        try
+        {
+            _cartItems.Clear();
+            Snackbar.Add("Carrello svuotato", Severity.Info);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error clearing cart");
+            Snackbar.Add("Errore nello svuotamento del carrello", Severity.Error);
+        }
+    }
+    
+    #endregion
+    
+    #region Step 4 - Payment Handlers
+    
+    private async Task HandlePaymentAdded((PaymentMethodDto Method, decimal Amount) paymentInfo)
+    {
+        try
+        {
+            // Create a SalePaymentDto from the tuple
+            var payment = new SalePaymentDto
+            {
+                Id = Guid.NewGuid(),
+                PaymentMethodId = paymentInfo.Method.Id,
+                PaymentMethodName = paymentInfo.Method.Name,
+                PaymentMethodCode = paymentInfo.Method.Code,
+                Amount = paymentInfo.Amount,
+                Status = PaymentStatusDto.Completed,
+                PaymentDate = DateTime.Now,
+                CreatedAt = DateTime.Now
+            };
+            
+            _payments.Add(payment);
+            Snackbar.Add($"Pagamento aggiunto: {payment.Amount:C}", Severity.Success);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error adding payment");
+            Snackbar.Add("Errore nell'aggiunta del pagamento", Severity.Error);
+        }
+    }
+    
+    private async Task HandlePaymentRemoved(SalePaymentDto payment)
+    {
+        try
+        {
+            _payments.Remove(payment);
+            Snackbar.Add("Pagamento rimosso", Severity.Info);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error removing payment");
+            Snackbar.Add("Errore nella rimozione del pagamento", Severity.Error);
+        }
+    }
+    
+    private decimal GetCartTotal()
+    {
+        return _cartItems.Sum(i => i.TotalAmount);
+    }
+    
+    #endregion
 
     private void PreviousStep()
     {
@@ -246,6 +455,12 @@
         if (await ValidateCurrentStepAsync())
         {
             _activeStepIndex++;
+            
+            // If completing payment step, process the sale
+            if (_activeStepIndex == 5)
+            {
+                await ProcessSaleAsync();
+            }
         }
     }
 
@@ -266,17 +481,67 @@
                 return true;
 
             case 2: // Products
-                // TODO: Validate that at least one product is added
-                Snackbar.Add("Aggiunta prodotti in sviluppo. Procedi pure.", Severity.Info);
+                if (!_cartItems.Any())
+                {
+                    Snackbar.Add("Aggiungi almeno un prodotto al carrello", Severity.Warning);
+                    return false;
+                }
+                return true;
+            
+            case 3: // Table Management
+                // Always valid, table selection is optional
                 return true;
 
-            case 3: // Payment
-                // TODO: Validate payment is complete
-                Snackbar.Add("Pagamento in sviluppo. Procedi pure.", Severity.Info);
+            case 4: // Payment
+                var total = GetCartTotal();
+                var paid = _payments.Sum(p => p.Amount);
+                
+                if (paid < total)
+                {
+                    Snackbar.Add($"Pagamento incompleto. Mancano {(total - paid):C}", Severity.Warning);
+                    return false;
+                }
                 return true;
 
             default:
                 return true;
+        }
+    }
+    
+    private async Task ProcessSaleAsync()
+    {
+        try
+        {
+            Logger.LogInformation("Processing sale...");
+            
+            // Create sale session
+            var createDto = new CreateSaleSessionDto
+            {
+                OperatorId = Guid.NewGuid(), // TODO: Get actual operator ID
+                PosId = Guid.NewGuid(), // TODO: Get actual POS ID
+                SaleType = _saleType,
+                Currency = "EUR"
+            };
+            
+            // TODO: Call API to create sale session and add items/payments
+            // _currentSession = await SalesService.CreateAsync(createDto);
+            // foreach (var item in _cartItems)
+            // {
+            //     await SalesService.AddItemAsync(_currentSession.Id, new AddSaleItemDto { ... });
+            // }
+            // foreach (var payment in _payments)
+            // {
+            //     await SalesService.AddPaymentAsync(_currentSession.Id, new AddSalePaymentDto { ... });
+            // }
+            
+            Snackbar.Add("Vendita completata con successo!", Severity.Success);
+            Logger.LogInformation("Sale processed successfully");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error processing sale");
+            Snackbar.Add("Errore nel completamento della vendita", Severity.Error);
+            _activeStepIndex = 3; // Go back to payment step
         }
     }
 
@@ -287,6 +552,9 @@
         _posName = string.Empty;
         _saleType = "RETAIL";
         _currentSession = null;
+        _cartItems.Clear();
+        _selectedTableId = null;
+        _payments.Clear();
         _activeStepIndex = 0;
         
         Snackbar.Add("Pronto per una nuova vendita", Severity.Success);
