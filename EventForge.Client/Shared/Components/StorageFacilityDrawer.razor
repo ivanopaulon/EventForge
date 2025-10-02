@@ -163,6 +163,98 @@
                                   ReadOnly="true"
                                   aria-label="@TranslationService.GetTranslation("drawer.aria.dataOraCreazione")" />
                 </MudItem>
+                
+                @* Storage Locations Management in Edit Mode *@
+                @if (_loadingLocations)
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                        <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-2">
+                            @TranslationService.GetTranslation("common.loading", "Caricamento...")
+                        </MudText>
+                    </MudItem>
+                }
+                else
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudExpansionPanels>
+                            <MudExpansionPanel>
+                                <TitleContent>
+                                    <div class="d-flex justify-space-between align-center" style="width: 100%;">
+                                        <MudText>@($"{TranslationService.GetTranslation("drawer.field.totaleUbicazioni", "Ubicazioni")} ({_locations?.Count() ?? 0})")</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                                      Color="Color.Primary" 
+                                                      Size="Size.Small"
+                                                      OnClick="@OpenCreateLocationDrawer"
+                                                      aria-label="@TranslationService.GetTranslation("warehouse.createNewLocation", "Crea nuova ubicazione")" />
+                                    </div>
+                                </TitleContent>
+                                <ChildContent>
+                                    @if (_locations?.Any() == true)
+                                    {
+                                        <MudTable Items="_locations" Hover="true" Dense="true" Striped="true">
+                                            <HeaderContent>
+                                                <MudTh>@TranslationService.GetTranslation("field.code", "Codice")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.zone", "Zona")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.position", "Posizione")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.properties", "Proprietà")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                                            </HeaderContent>
+                                            <RowTemplate>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">@context.Code</MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.zone", "Zona")">@(context.Zone ?? "-")</MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.position", "Posizione")">
+                                                    @if (!string.IsNullOrWhiteSpace(context.Floor) || !string.IsNullOrWhiteSpace(context.Row))
+                                                    {
+                                                        <MudText Typo="Typo.body2">
+                                                            @string.Join(" ", new[] { context.Floor, context.Row, context.Column, context.Level }.Where(s => !string.IsNullOrWhiteSpace(s)))
+                                                        </MudText>
+                                                    }
+                                                    else
+                                                    {
+                                                        <MudText Typo="Typo.body2">-</MudText>
+                                                    }
+                                                </MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.properties", "Proprietà")">
+                                                    <div class="d-flex gap-1">
+                                                        @if (context.IsActive)
+                                                        {
+                                                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Outlined.CheckCircle">@TranslationService.GetTranslation("status.active", "Attiva")</MudChip>
+                                                        }
+                                                        @if (context.IsRefrigerated)
+                                                        {
+                                                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Outlined.AcUnit">@TranslationService.GetTranslation("status.refrigerated", "Refrigerata")</MudChip>
+                                                        }
+                                                    </div>
+                                                </MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")">
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" 
+                                                                  Size="Size.Small" 
+                                                                  OnClick="@(() => ViewLocation(context))"
+                                                                  title="@TranslationService.GetTranslation("common.view", "Visualizza")" />
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                                                  Size="Size.Small" 
+                                                                  Color="Color.Primary"
+                                                                  OnClick="@(() => EditLocation(context))"
+                                                                  title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                                  Size="Size.Small" 
+                                                                  Color="Color.Error"
+                                                                  OnClick="@(() => DeleteLocation(context))"
+                                                                  title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
+                                                </MudTd>
+                                            </RowTemplate>
+                                        </MudTable>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body2" Class="pa-4">@TranslationService.GetTranslation("messages.noLocations", "Nessuna ubicazione disponibile")</MudText>
+                                    }
+                                </ChildContent>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudItem>
+                }
             }
         </MudGrid>
     </FormContent>
@@ -500,6 +592,9 @@
             };
             
             _customTitle = TranslationService.GetTranslation("drawer.title.modificaMagazzino", OriginalStorageFacility.Name);
+            
+            // Load storage locations in Edit mode as well
+            await LoadStorageLocationsAsync();
         }
         else if (Mode == EntityDrawerMode.View && OriginalStorageFacility != null)
         {
