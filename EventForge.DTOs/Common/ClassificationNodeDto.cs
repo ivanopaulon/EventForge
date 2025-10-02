@@ -59,6 +59,11 @@ namespace EventForge.DTOs.Common
         public string? ParentName { get; set; }
 
         /// <summary>
+        /// Indicates if the classification node is active.
+        /// </summary>
+        public bool IsActive { get; set; }
+
+        /// <summary>
         /// Date and time when the classification node was created (UTC).
         /// </summary>
         public DateTime CreatedAt { get; set; }

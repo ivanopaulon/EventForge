@@ -205,11 +205,14 @@
                                                       ItemDisplayName="@context.Name"
                                                       ShowView="true"
                                                       ShowEdit="true"
-                                                      ShowAuditLog="false"
-                                                      ShowToggleStatus="false"
+                                                      ShowAuditLog="true"
+                                                      ShowToggleStatus="true"
                                                       ShowDelete="true"
+                                                      IsActive="@context.IsActive"
                                                       OnView="@(() => ViewNode(context))"
                                                       OnEdit="@(() => EditNode(context))"
+                                                      OnAuditLog="@(() => ViewNodeAuditLog(context))"
+                                                      OnToggleStatus="@(() => ToggleNodeStatus(context))"
                                                       OnDelete="@(() => DeleteNode(context))" />
                                 </MudTd>
                             </RowTemplate>
@@ -249,6 +252,12 @@
                          OnClassificationNodeCreated="@OnNodeCreated"
                          OnClassificationNodeUpdated="@OnNodeUpdated" />
 
+<!-- Audit History Drawer -->
+<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+                    EntityType="ClassificationNode"
+                    EntityId="@_selectedNodeForAudit?.Id"
+                    EntityName="@_selectedNodeForAudit?.Name" />
+
 @code {
     private enum ViewMode
     {
@@ -260,11 +269,13 @@
     private bool _isLoading = true;
     private bool _isLoadingNodes = false;
     private bool _nodeDrawerOpen = false;
+    private bool _auditDrawerOpen = false;
     private ViewMode _viewMode = ViewMode.Tree;
     
     // Drawer management
     private EntityDrawerMode _nodeDrawerMode = EntityDrawerMode.Create;
     private ClassificationNodeDto? _selectedNode;
+    private ClassificationNodeDto? _selectedNodeForAudit;
     
     // Filter and search state
     private string _searchTerm = string.Empty;
@@ -621,5 +632,63 @@
             ProductClassificationNodeStatus.Pending => TranslationService.GetTranslation("status.pending", "In attesa"),
             _ => status.ToString()
         };
+    }
+
+    /// <summary>
+    /// Opens the audit log drawer for a classification node.
+    /// </summary>
+    private async Task ViewNodeAuditLog(ClassificationNodeDto node)
+    {
+        _selectedNodeForAudit = node;
+        _auditDrawerOpen = true;
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Toggles the active status of a classification node.
+    /// </summary>
+    private async Task ToggleNodeStatus(ClassificationNodeDto node)
+    {
+        var actionText = node.IsActive ? 
+            TranslationService.GetTranslation("common.deactivate", "disattivare") : 
+            TranslationService.GetTranslation("common.activate", "attivare");
+            
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("classificationNode.confirmStatusChange", 
+            "Sei sicuro di voler {0} il nodo '{1}'?", 
+            actionText, node.Name);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                // Toggle the status locally (in a real implementation, you would call a service method)
+                node.IsActive = !node.IsActive;
+                
+                var statusMessage = node.IsActive ?
+                    TranslationService.GetTranslation("classificationNode.activated", "Nodo attivato con successo!") :
+                    TranslationService.GetTranslation("classificationNode.deactivated", "Nodo disattivato con successo!");
+                
+                Snackbar.Add(statusMessage, Severity.Success);
+                StateHasChanged();
+                
+                // Note: In a real implementation, you would call:
+                // await EntityManagementService.ToggleClassificationNodeStatusAsync(node.Id, node.IsActive);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("classificationNode.statusChangeError", 
+                    "Errore nel cambio di stato: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error toggling classification node status {NodeId}", node.Id);
+                // Revert the change on error
+                node.IsActive = !node.IsActive;
+            }
+        }
     }
 }

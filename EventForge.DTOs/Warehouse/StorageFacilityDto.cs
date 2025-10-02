@@ -79,6 +79,11 @@ namespace EventForge.DTOs.Warehouse
         public int ActiveLocations { get; set; }
 
         /// <summary>
+        /// Indicates if the storage facility is active.
+        /// </summary>
+        public bool IsActive { get; set; }
+
+        /// <summary>
         /// Date and time when the storage facility was created (UTC).
         /// </summary>
         public DateTime CreatedAt { get; set; }

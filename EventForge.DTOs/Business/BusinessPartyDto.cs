@@ -69,6 +69,11 @@ namespace EventForge.DTOs.Business
         public bool HasAccountingData { get; set; }
 
         /// <summary>
+        /// Indicates if the business party is active.
+        /// </summary>
+        public bool IsActive { get; set; }
+
+        /// <summary>
         /// Date and time when the business party was created (UTC).
         /// </summary>
         public DateTime CreatedAt { get; set; }
