@@ -1,5 +1,5 @@
-using System.ComponentModel.DataAnnotations;
 using EventForge.DTOs.Warehouse;
+using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Tests.DTOs;
 

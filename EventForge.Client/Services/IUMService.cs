@@ -1,5 +1,5 @@
-using EventForge.DTOs.UnitOfMeasures;
 using EventForge.DTOs.Common;
+using EventForge.DTOs.UnitOfMeasures;
 
 namespace EventForge.Client.Services;
 

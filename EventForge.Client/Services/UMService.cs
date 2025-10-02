@@ -1,6 +1,6 @@
-using System.Net.Http.Json;
-using EventForge.DTOs.UnitOfMeasures;
 using EventForge.DTOs.Common;
+using EventForge.DTOs.UnitOfMeasures;
+using System.Net.Http.Json;
 
 namespace EventForge.Client.Services;
 
@@ -25,7 +25,7 @@ public class UMService : IUMService
         {
             var response = await _httpClient.GetAsync($"{BaseUrl}?page={page}&pageSize={pageSize}");
             response.EnsureSuccessStatusCode();
-            
+
             var result = await response.Content.ReadFromJsonAsync<PagedResult<UMDto>>();
             return result ?? new PagedResult<UMDto> { Items = new List<UMDto>(), TotalCount = 0, Page = page, PageSize = pageSize };
         }
@@ -47,7 +47,7 @@ public class UMService : IUMService
                     return null;
                 response.EnsureSuccessStatusCode();
             }
-            
+
             return await response.Content.ReadFromJsonAsync<UMDto>();
         }
         catch (Exception ex)
@@ -63,7 +63,7 @@ public class UMService : IUMService
         {
             var response = await _httpClient.PostAsJsonAsync(BaseUrl, createUMDto);
             response.EnsureSuccessStatusCode();
-            
+
             var result = await response.Content.ReadFromJsonAsync<UMDto>();
             return result ?? throw new InvalidOperationException("Failed to deserialize created unit of measure");
         }
@@ -85,7 +85,7 @@ public class UMService : IUMService
                     return null;
                 response.EnsureSuccessStatusCode();
             }
-            
+
             return await response.Content.ReadFromJsonAsync<UMDto>();
         }
         catch (Exception ex)
@@ -102,7 +102,7 @@ public class UMService : IUMService
             var response = await _httpClient.DeleteAsync($"{BaseUrl}/{id}");
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 return false;
-            
+
             response.EnsureSuccessStatusCode();
             return true;
         }
