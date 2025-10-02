@@ -119,4 +119,93 @@ public class NoteFlagDto
     /// </summary>
     public int DisplayOrder { get; set; }
 }
+
+/// <summary>
+/// DTO for creating a new note flag.
+/// </summary>
+public class CreateNoteFlagDto
+{
+    /// <summary>
+    /// Flag code.
+    /// </summary>
+    [Required(ErrorMessage = "Code is required")]
+    [MaxLength(50)]
+    public string Code { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Display name.
+    /// </summary>
+    [Required(ErrorMessage = "Name is required")]
+    [MaxLength(100)]
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Description.
+    /// </summary>
+    [MaxLength(500)]
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// Color (hex code).
+    /// </summary>
+    [MaxLength(7)]
+    public string? Color { get; set; }
+
+    /// <summary>
+    /// Icon identifier.
+    /// </summary>
+    [MaxLength(50)]
+    public string? Icon { get; set; }
+
+    /// <summary>
+    /// Is active flag.
+    /// </summary>
+    public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// Display order.
+    /// </summary>
+    public int DisplayOrder { get; set; }
+}
+
+/// <summary>
+/// DTO for updating a note flag.
+/// </summary>
+public class UpdateNoteFlagDto
+{
+    /// <summary>
+    /// Display name.
+    /// </summary>
+    [Required(ErrorMessage = "Name is required")]
+    [MaxLength(100)]
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Description.
+    /// </summary>
+    [MaxLength(500)]
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// Color (hex code).
+    /// </summary>
+    [MaxLength(7)]
+    public string? Color { get; set; }
+
+    /// <summary>
+    /// Icon identifier.
+    /// </summary>
+    [MaxLength(50)]
+    public string? Icon { get; set; }
+
+    /// <summary>
+    /// Is active flag.
+    /// </summary>
+    public bool IsActive { get; set; }
+
+    /// <summary>
+    /// Display order.
+    /// </summary>
+    public int DisplayOrder { get; set; }
+}
 }
