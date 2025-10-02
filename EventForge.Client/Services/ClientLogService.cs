@@ -338,19 +338,35 @@ namespace EventForge.Client.Services
             try
             {
                 var httpClient = await GetAuthenticatedHttpClientAsync();
+                
+                // Log the request details for debugging
+                Console.WriteLine($"[CLIENT LOG] Sending single log to {httpClient.BaseAddress}api/ClientLogs");
+                
                 var response = await httpClient.PostAsJsonAsync("api/ClientLogs", clientLog);
+                
+                // Log the response for debugging
+                Console.WriteLine($"[CLIENT LOG] Response status: {response.StatusCode}");
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[CLIENT LOG] Response content: {content}");
+                }
+                
                 response.EnsureSuccessStatusCode();
             }
             catch (HttpRequestException ex)
             {
                 // Log to console for debugging since server logging failed
                 Console.WriteLine($"[CLIENT LOG] HTTP error sending log to server: {ex.Message}");
+                Console.WriteLine($"[CLIENT LOG] Exception details: {ex}");
                 throw new Exception($"Failed to send log to server: {ex.Message}", ex);
             }
             catch (Exception ex)
             {
                 // Log to console for debugging since server logging failed
                 Console.WriteLine($"[CLIENT LOG] Error sending log to server: {ex.Message}");
+                Console.WriteLine($"[CLIENT LOG] Exception details: {ex}");
                 throw new Exception($"Failed to send log to server: {ex.Message}", ex);
             }
         }
@@ -363,19 +379,35 @@ namespace EventForge.Client.Services
             {
                 var httpClient = await GetAuthenticatedHttpClientAsync();
                 var batchRequest = new ClientLogBatchDto { Logs = logs };
+                
+                // Log the request details for debugging
+                Console.WriteLine($"[CLIENT LOG] Sending batch of {logs.Count} logs to {httpClient.BaseAddress}api/ClientLogs/batch");
+                
                 var response = await httpClient.PostAsJsonAsync("api/ClientLogs/batch", batchRequest);
+                
+                // Log the response for debugging
+                Console.WriteLine($"[CLIENT LOG] Response status: {response.StatusCode}");
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[CLIENT LOG] Response content: {content}");
+                }
+                
                 response.EnsureSuccessStatusCode();
             }
             catch (HttpRequestException ex)
             {
                 // Log to console for debugging since server logging failed
                 Console.WriteLine($"[CLIENT LOG] HTTP error sending batch of {logs.Count} logs to server: {ex.Message}");
+                Console.WriteLine($"[CLIENT LOG] Exception details: {ex}");
                 throw new Exception($"Failed to send log batch to server: {ex.Message}", ex);
             }
             catch (Exception ex)
             {
                 // Log to console for debugging since server logging failed
                 Console.WriteLine($"[CLIENT LOG] Error sending batch of {logs.Count} logs to server: {ex.Message}");
+                Console.WriteLine($"[CLIENT LOG] Exception details: {ex}");
                 throw new Exception($"Failed to send log batch to server: {ex.Message}", ex);
             }
         }
