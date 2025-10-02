@@ -38,10 +38,10 @@ public static class ServiceCollectionExtensions
         {
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Verbose()
-                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Verbose)
-                .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", LogEventLevel.Verbose)
-                .MinimumLevel.Override("Microsoft.AspNetCore.Mvc", LogEventLevel.Verbose)
-                .MinimumLevel.Override("Microsoft.AspNetCore.Routing", LogEventLevel.Verbose)
+                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Debug)
+                .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", LogEventLevel.Debug)
+                .MinimumLevel.Override("Microsoft.AspNetCore.Mvc", LogEventLevel.Debug)
+                .MinimumLevel.Override("Microsoft.AspNetCore.Routing", LogEventLevel.Debug)
                 .WriteTo.MSSqlServer(
                     connectionString: builder.Configuration.GetConnectionString("LogDb"),
                     sinkOptions: new MSSqlServerSinkOptions
@@ -59,7 +59,7 @@ public static class ServiceCollectionExtensions
 
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Information()
-                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Verbose)
+                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Debug)
                 .WriteTo.File(
                     path: filePath,
                     rollingInterval: RollingInterval.Day,
