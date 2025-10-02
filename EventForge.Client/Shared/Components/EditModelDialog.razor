@@ -1,0 +1,95 @@
+@using MudBlazor
+@using EventForge.DTOs.Products
+@inject IModelService ModelService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<EditModelDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudTextField Value="@Model.BrandName"
+                                 Label="@TranslationService.GetTranslation("field.brand", "Marchio")"
+                                 Variant="Variant.Outlined"
+                                 ReadOnly="true" />
+                </MudItem>
+                
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Name"
+                                 Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                                 Variant="Variant.Outlined"
+                                 Required="true"
+                                 MaxLength="200" />
+                </MudItem>
+                
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Description"
+                                 Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                                 Variant="Variant.Outlined"
+                                 Lines="3"
+                                 MaxLength="1000" />
+                </MudItem>
+                
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.ManufacturerPartNumber"
+                                 Label="@TranslationService.GetTranslation("field.mpn", "MPN")"
+                                 Variant="Variant.Outlined"
+                                 MaxLength="100" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
+        <MudButton Color="Color.Primary" Disabled="@(!_isValid)" OnClick="Save">@TranslationService.GetTranslation("button.save", "Salva")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter] public ModelDto Model { get; set; } = null!;
+
+    private MudForm _form = null!;
+    private bool _isValid;
+    private UpdateModelDto _model = new();
+
+    protected override void OnInitialized()
+    {
+        _model.Name = Model.Name;
+        _model.Description = Model.Description;
+        _model.ManufacturerPartNumber = Model.ManufacturerPartNumber;
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            await _form.Validate();
+            if (!_isValid) return;
+
+            var updateDto = new UpdateModelDto
+            {
+                Name = _model.Name,
+                Description = _model.Description,
+                ManufacturerPartNumber = _model.ManufacturerPartNumber
+            };
+
+            await ModelService.UpdateModelAsync(Model.Id, updateDto);
+            Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornamento completato con successo"), Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to update model {ModelId}", Model.Id);
+            Snackbar.Add(TranslationService.GetTranslation("messages.updateFailed", "Errore durante l'aggiornamento"), Severity.Error);
+        }
+    }
+}

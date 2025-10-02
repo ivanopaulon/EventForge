@@ -32,6 +32,20 @@ public class ModelService : IModelService
         }
     }
 
+    public async Task<PagedResult<ModelDto>> GetModelsByBrandIdAsync(Guid brandId, int page = 1, int pageSize = 100)
+    {
+        try
+        {
+            var result = await _httpClientService.GetAsync<PagedResult<ModelDto>>($"{BaseUrl}?brandId={brandId}&page={page}&pageSize={pageSize}");
+            return result ?? new PagedResult<ModelDto> { Items = new List<ModelDto>(), TotalCount = 0, Page = page, PageSize = pageSize };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving models for brand {BrandId}", brandId);
+            throw;
+        }
+    }
+
     public async Task<ModelDto?> GetModelByIdAsync(Guid id)
     {
         try

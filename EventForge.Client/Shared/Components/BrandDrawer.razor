@@ -3,6 +3,8 @@
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
 @inject IBrandService BrandService
+@inject IModelService ModelService
+@inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject ILogger<BrandDrawer> Logger
 @inject ITranslationService TranslationService
@@ -85,6 +87,79 @@
                                   ReadOnly="true"
                                   aria-label="@TranslationService.GetTranslation("drawer.aria.dataOraCreazione", "Data e ora di creazione")" />
                 </MudItem>
+                
+                @* Models Section with Actions *@
+                @if (_loadingModels)
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                        <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-2">
+                            @TranslationService.GetTranslation("common.loading", "Caricamento...")
+                        </MudText>
+                    </MudItem>
+                }
+                else
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudExpansionPanels>
+                            <MudExpansionPanel>
+                                <TitleContent>
+                                    <div class="d-flex justify-space-between align-center" style="width: 100%;">
+                                        <MudText>@($"{TranslationService.GetTranslation("field.models", "Modelli")} ({_models?.Count() ?? 0})")</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                                      Color="Color.Primary" 
+                                                      Size="Size.Small"
+                                                      OnClick="@(() => OpenAddModelDialog())"
+                                                      aria-label="@TranslationService.GetTranslation("button.addModel", "Aggiungi modello")" />
+                                    </div>
+                                </TitleContent>
+                                <ChildContent>
+                                    @if (_models?.Any() == true)
+                                    {
+                                        <MudTable Items="_models" Hover="true" Dense="true" Striped="true">
+                                            <HeaderContent>
+                                                <MudTh>@TranslationService.GetTranslation("field.name", "Nome")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.mpn", "MPN")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                                            </HeaderContent>
+                                            <RowTemplate>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">@context.Name</MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
+                                                    @if (!string.IsNullOrWhiteSpace(context.Description))
+                                                    {
+                                                        <span>@(context.Description.Length > 30 ? context.Description.Substring(0, 30) + "..." : context.Description)</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>-</span>
+                                                    }
+                                                </MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.mpn", "MPN")">@(context.ManufacturerPartNumber ?? "-")</MudTd>
+                                                <MudTd>
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                                                  Color="Color.Primary" 
+                                                                  Size="Size.Small"
+                                                                  OnClick="@(() => OpenEditModelDialog(context))"
+                                                                  title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                                  Color="Color.Error" 
+                                                                  Size="Size.Small"
+                                                                  OnClick="@(() => DeleteModel(context.Id))"
+                                                                  title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
+                                                </MudTd>
+                                            </RowTemplate>
+                                        </MudTable>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body2" Class="pa-4">@TranslationService.GetTranslation("messages.noModels", "Nessun modello disponibile")</MudText>
+                                    }
+                                </ChildContent>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudItem>
+                }
             }
         </MudGrid>
     </FormContent>
@@ -152,6 +227,49 @@
                                       aria-label="@TranslationService.GetTranslation("drawer.field.creatoDa", "Creato Da")" />
                     </MudItem>
                 }
+                
+                @* Models Section in View Mode *@
+                @if (_loadingModels)
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                        <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-2">
+                            @TranslationService.GetTranslation("common.loading", "Caricamento...")
+                        </MudText>
+                    </MudItem>
+                }
+                else if (_models?.Any() == true)
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudExpansionPanels>
+                            <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.models", "Modelli")} ({_models.Count()})")" IsInitiallyExpanded="false">
+                                <MudTable Items="_models" Hover="true" Dense="true" Striped="true">
+                                    <HeaderContent>
+                                        <MudTh>@TranslationService.GetTranslation("field.name", "Nome")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("field.mpn", "MPN")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">@context.Name</MudTd>
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
+                                            @if (!string.IsNullOrWhiteSpace(context.Description))
+                                            {
+                                                <span>@(context.Description.Length > 30 ? context.Description.Substring(0, 30) + "..." : context.Description)</span>
+                                            }
+                                            else
+                                            {
+                                                <span>-</span>
+                                            }
+                                        </MudTd>
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.mpn", "MPN")">@(context.ManufacturerPartNumber ?? "-")</MudTd>
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">@context.CreatedAt.ToString("dd/MM/yyyy")</MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudItem>
+                }
             }
         </MudGrid>
     </ViewContent>
@@ -170,6 +288,8 @@
 
     private BrandDto _model = new();
     private string? _customTitle;
+    private bool _loadingModels = false;
+    private IEnumerable<ModelDto>? _models;
 
     public void OpenForCreate()
     {
@@ -178,6 +298,7 @@
         _model = new BrandDto();
         _customTitle = TranslationService.GetTranslation("drawer.title.creaBrand", "Crea Nuovo Marchio");
         IsOpen = true;
+        ClearModels();
         StateHasChanged();
     }
 
@@ -209,6 +330,9 @@
             _customTitle = $"{TranslationService.GetTranslation("drawer.title.modificaBrand", "Modifica Marchio")}: {brand.Name}";
             IsOpen = true;
             StateHasChanged();
+            
+            // Load models for this brand
+            await LoadModelsAsync();
         }
         catch (Exception ex)
         {
@@ -239,6 +363,9 @@
             _customTitle = $"{TranslationService.GetTranslation("drawer.title.visualizzaBrand", "Visualizza Marchio")}: {brand.Name}";
             IsOpen = true;
             StateHasChanged();
+            
+            // Load models for this brand
+            await LoadModelsAsync();
         }
         catch (Exception ex)
         {
@@ -247,6 +374,35 @@
                 TranslationService.GetTranslation("brand.loadError", "Errore nel caricamento del marchio"),
                 Severity.Error);
         }
+    }
+    
+    private async Task LoadModelsAsync()
+    {
+        if (OriginalBrand == null) return;
+        
+        try
+        {
+            _loadingModels = true;
+            StateHasChanged();
+            
+            var result = await ModelService.GetModelsByBrandIdAsync(OriginalBrand.Id, page: 1, pageSize: 1000);
+            _models = result.Items ?? new List<ModelDto>();
+            
+            _loadingModels = false;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load models for brand {BrandId}", OriginalBrand.Id);
+            _loadingModels = false;
+            Snackbar.Add(TranslationService.GetTranslation("messages.loadFailed", "Errore durante il caricamento"), Severity.Warning);
+        }
+    }
+    
+    private void ClearModels()
+    {
+        _models = null;
+        _loadingModels = false;
     }
 
     private async Task HandleSave()
@@ -307,6 +463,84 @@
         _model = new BrandDto();
         OriginalBrand = null;
         _customTitle = null;
+        ClearModels();
         StateHasChanged();
     }
+    
+    #region Model Management
+    
+    private async Task OpenAddModelDialog()
+    {
+        if (OriginalBrand == null) return;
+        
+        var parameters = new DialogParameters
+        {
+            ["BrandId"] = OriginalBrand.Id,
+            ["BrandName"] = OriginalBrand.Name
+        };
+        
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<AddModelDialog>(
+            TranslationService.GetTranslation("dialog.addModel", "Aggiungi Modello"),
+            parameters,
+            options
+        );
+        
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadModelsAsync();
+        }
+    }
+    
+    private async Task OpenEditModelDialog(ModelDto model)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Model"] = model
+        };
+        
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<EditModelDialog>(
+            TranslationService.GetTranslation("dialog.editModel", "Modifica Modello"),
+            parameters,
+            options
+        );
+        
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadModelsAsync();
+        }
+    }
+    
+    private async Task DeleteModel(Guid modelId)
+    {
+        try
+        {
+            var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+            var confirmMessage = TranslationService.GetTranslation("dialog.confirmDeleteModel", "Sei sicuro di voler eliminare questo modello?");
+            
+            var confirm = await DialogService.ShowMessageBox(
+                confirmTitle,
+                confirmMessage,
+                yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+                cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+            
+            if (confirm != true) return;
+            
+            await ModelService.DeleteModelAsync(modelId);
+            Snackbar.Add(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminazione completata con successo"), Severity.Success);
+            
+            // Reload models
+            await LoadModelsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to delete model {ModelId}", modelId);
+            Snackbar.Add(TranslationService.GetTranslation("messages.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
+        }
+    }
+    
+    #endregion
 }
