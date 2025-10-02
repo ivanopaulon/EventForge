@@ -9715,7 +9715,7 @@ namespace EventForge.Server.Migrations
                     b.HasOne("EventForge.Server.Data.Entities.Documents.DocumentType", "DocumentType")
                         .WithMany()
                         .HasForeignKey("DocumentTypeId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("DocumentHeader");
 

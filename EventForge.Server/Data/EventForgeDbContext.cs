@@ -729,7 +729,7 @@ public class EventForgeDbContext : DbContext
             .HasOne(ds => ds.DocumentType)
             .WithMany()
             .HasForeignKey(ds => ds.DocumentTypeId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.NoAction);
 
         modelBuilder.Entity<DocumentSchedule>()
             .HasIndex(ds => ds.DocumentHeaderId)
