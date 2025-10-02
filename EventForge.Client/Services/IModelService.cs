@@ -17,6 +17,15 @@ public interface IModelService
     Task<PagedResult<ModelDto>> GetModelsAsync(int page = 1, int pageSize = 100);
 
     /// <summary>
+    /// Gets models by brand ID with optional pagination.
+    /// </summary>
+    /// <param name="brandId">Brand ID to filter by</param>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <returns>Paginated list of models for the brand</returns>
+    Task<PagedResult<ModelDto>> GetModelsByBrandIdAsync(Guid brandId, int page = 1, int pageSize = 100);
+
+    /// <summary>
     /// Gets a model by ID.
     /// </summary>
     /// <param name="id">Model ID</param>

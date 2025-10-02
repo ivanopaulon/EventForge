@@ -132,9 +132,11 @@
                                                        ItemDisplayName="@context.Name"
                                                        ShowView="true"
                                                        ShowEdit="true"
+                                                       ShowAuditLog="true"
                                                        ShowDelete="true"
                                                        OnView="@(() => ViewBrand(context.Id))"
                                                        OnEdit="@(() => EditBrand(context.Id))"
+                                                       OnAuditLog="@(() => ViewBrandAuditLog(context))"
                                                        OnDelete="@(() => DeleteBrand(context))" />
                                 </MudTd>
                             </RowTemplate>
@@ -165,13 +167,21 @@
 
 <BrandDrawer @ref="_brandDrawer" OnEntitySaved="HandleBrandSaved" />
 
+<!-- Audit History Drawer -->
+<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+                    EntityType="Brand"
+                    EntityId="@_selectedBrandForAudit?.Id"
+                    EntityName="@_selectedBrandForAudit?.Name" />
+
 @code {
     private BrandDrawer _brandDrawer = default!;
     private IEnumerable<BrandDto> _brands = new List<BrandDto>();
     private IEnumerable<BrandDto> _filteredBrands = new List<BrandDto>();
     private bool _isLoading = true;
     private bool _isLoadingBrands = false;
+    private bool _auditDrawerOpen = false;
     private string _searchTerm = string.Empty;
+    private BrandDto? _selectedBrandForAudit;
 
     protected override async Task OnInitializedAsync()
     {
@@ -277,5 +287,15 @@
     private async Task HandleBrandSaved()
     {
         await LoadBrandsAsync();
+    }
+    
+    /// <summary>
+    /// Opens the audit log drawer for a brand.
+    /// </summary>
+    private async Task ViewBrandAuditLog(BrandDto brand)
+    {
+        _selectedBrandForAudit = brand;
+        _auditDrawerOpen = true;
+        await Task.CompletedTask;
     }
 }
