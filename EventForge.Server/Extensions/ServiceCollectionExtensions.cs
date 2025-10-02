@@ -12,6 +12,7 @@ using EventForge.Server.Services.Printing;
 using EventForge.Server.Services.Products;
 using EventForge.Server.Services.Promotions;
 using EventForge.Server.Services.RetailCart;
+using EventForge.Server.Services.Sales;
 using EventForge.Server.Services.Station;
 using EventForge.Server.Services.Store;
 using EventForge.Server.Services.Teams;
@@ -194,6 +195,9 @@ public static class ServiceCollectionExtensions
 
         // Register payment term services
         services.AddScoped<IPaymentTermService, PaymentTermService>();
+
+        // Register sales services
+        services.AddScoped<IPaymentMethodService, PaymentMethodService>();
 
         // Register store user services
         services.AddScoped<IStoreUserService, StoreUserService>();
