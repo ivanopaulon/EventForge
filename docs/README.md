@@ -4,6 +4,18 @@ Benvenuto nella documentazione completa di EventForge. Questa sezione contiene t
 
 ## 🚨 **AGGIORNAMENTO IMPORTANTE - Gennaio 2025**
 
+### 🎉 **Epic #277 - Wizard Multi-step Documenti e UI Vendita**
+**Status: 70% Completato** (Fase 1-2 Complete, Fase 3 da Implementare)
+
+- [**⭐ EPIC_277_MASTER_DOCUMENTATION.md**](./EPIC_277_MASTER_DOCUMENTATION.md) - **Documento Master Consolidato (1,613 righe)** ⭐
+- [**📚 EPIC_277_INDEX.md**](./EPIC_277_INDEX.md) - **Indice completo documentazione Epic #277**
+
+**Implementato:**
+- ✅ Backend completo: 8 entità, 4 servizi, 4 controller (43 endpoints REST)
+- ✅ Client Services: 4 servizi client (40 metodi)
+- ✅ ~6,200 righe codice production-ready
+- ⚠️ UI Components: Roadmap dettagliata fornita (66-85 ore stimate)
+
 ### 🎉 **Chiusura Issue Completate >90%**
 - [**🎯 Riepilogo Chiusura Issue**](./RIEPILOGO_CHIUSURA_ISSUE_2025.md) - **11 issue pronte per chiusura**
 - [**🚀 Guida Chiusura Issue**](./GUIDA_CHIUSURA_ISSUE.md) - **Procedura e template per chiusura**
