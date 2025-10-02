@@ -31,6 +31,7 @@ namespace EventForge.Client.Services
         // Classification Node Management
         Task<IEnumerable<ClassificationNodeDto>> GetClassificationNodesAsync();
         Task<IEnumerable<ClassificationNodeDto>> GetRootClassificationNodesAsync();
+        Task<IEnumerable<ClassificationNodeDto>> GetChildrenClassificationNodesAsync(Guid parentId);
         Task<ClassificationNodeDto?> GetClassificationNodeAsync(Guid id);
         Task<ClassificationNodeDto> CreateClassificationNodeAsync(CreateClassificationNodeDto createDto);
         Task<ClassificationNodeDto> UpdateClassificationNodeAsync(Guid id, UpdateClassificationNodeDto updateDto);
@@ -187,6 +188,11 @@ namespace EventForge.Client.Services
         public async Task<IEnumerable<ClassificationNodeDto>> GetRootClassificationNodesAsync()
         {
             return await _httpClientService.GetAsync<IEnumerable<ClassificationNodeDto>>("api/v1/entities/classification-nodes/root") ?? new List<ClassificationNodeDto>();
+        }
+
+        public async Task<IEnumerable<ClassificationNodeDto>> GetChildrenClassificationNodesAsync(Guid parentId)
+        {
+            return await _httpClientService.GetAsync<IEnumerable<ClassificationNodeDto>>($"api/v1/entities/classification-nodes/{parentId}/children") ?? new List<ClassificationNodeDto>();
         }
 
         public async Task<ClassificationNodeDto?> GetClassificationNodeAsync(Guid id)

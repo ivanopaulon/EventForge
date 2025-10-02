@@ -800,6 +800,36 @@ public class EntityManagementController : BaseApiController
     }
 
     /// <summary>
+    /// Gets children of a classification node.
+    /// </summary>
+    /// <param name="id">Parent classification node ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of child classification nodes</returns>
+    /// <response code="200">Returns the list of child nodes</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("classification-nodes/{id:guid}/children")]
+    [ProducesResponseType(typeof(IEnumerable<ClassificationNodeDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<ClassificationNodeDto>>> GetClassificationNodeChildren(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var children = await _classificationNodeService.GetChildrenAsync(id, cancellationToken);
+            return Ok(children);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving child classification nodes.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving child classification nodes.", ex);
+        }
+    }
+
+    /// <summary>
     /// Gets a classification node by ID.
     /// </summary>
     /// <param name="id">Classification node ID</param>
