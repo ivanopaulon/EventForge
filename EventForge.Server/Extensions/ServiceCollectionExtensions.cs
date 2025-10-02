@@ -198,6 +198,7 @@ public static class ServiceCollectionExtensions
 
         // Register sales services
         services.AddScoped<IPaymentMethodService, PaymentMethodService>();
+        services.AddScoped<ISaleSessionService, SaleSessionService>();
 
         // Register store user services
         services.AddScoped<IStoreUserService, StoreUserService>();
