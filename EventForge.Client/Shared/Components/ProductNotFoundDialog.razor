@@ -102,6 +102,17 @@
                     </MudItem>
 
                     <MudItem xs="12">
+                        <MudTextField @bind-Value="_createCodeDto.Code"
+                                      Label="@TranslationService.GetTranslation("field.code", "Codice")"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                                      MaxLength="100"
+                                      Counter="100"
+                                      HelperText="@TranslationService.GetTranslation("products.codeHelper", "Codice SKU o simile")" />
+                    </MudItem>
+
+                    <MudItem xs="12">
                         <MudTextField @bind-Value="_createCodeDto.AlternativeDescription"
                                       Label="@TranslationService.GetTranslation("products.alternativeDescription", "Descrizione Alternativa")"
                                       Variant="Variant.Outlined"

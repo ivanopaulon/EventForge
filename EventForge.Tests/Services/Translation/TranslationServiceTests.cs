@@ -46,6 +46,7 @@ public class TranslationFileTests
     [InlineData("it.json", "navigation.home")]
     [InlineData("it.json", "auth.login")]
     [InlineData("it.json", "auth.loginDescription")]
+    [InlineData("it.json", "field.code")]
     public void ItalianTranslationFile_ShouldContainKey(string fileName, string key)
     {
         // Arrange
@@ -68,6 +69,7 @@ public class TranslationFileTests
     [InlineData("en.json", "navigation.home")]
     [InlineData("en.json", "auth.login")]
     [InlineData("en.json", "auth.loginDescription")]
+    [InlineData("en.json", "field.code")]
     public void EnglishTranslationFile_ShouldContainKey(string fileName, string key)
     {
         // Arrange

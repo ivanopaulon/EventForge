@@ -480,6 +480,7 @@
     "address": "Address",
     "capacity": "Capacity",
     "city": "City",
+    "code": "Code",
     "color": "Color",
     "confirmPassword": "Confirm password",
     "contactEmail": "Contact email",
