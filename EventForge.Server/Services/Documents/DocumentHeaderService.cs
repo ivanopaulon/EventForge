@@ -1,5 +1,6 @@
 using EventForge.DTOs.Documents;
 using Microsoft.EntityFrameworkCore;
+using EventForge.Server.Mappers;
 
 namespace EventForge.Server.Services.Documents;
 
@@ -449,5 +450,130 @@ public class DocumentHeaderService : IDocumentHeaderService
             query = query.Where(dh => dh.IsProforma == parameters.IsProforma.Value);
 
         return query;
+    }
+
+    public async Task<DocumentTypeDto> GetOrCreateInventoryDocumentTypeAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Try to find existing inventory document type
+            var existingType = await _context.DocumentTypes
+                .Where(dt => dt.TenantId == tenantId && dt.Code == "INVENTORY" && !dt.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (existingType != null)
+            {
+                return DocumentTypeMapper.ToDto(existingType);
+            }
+
+            // Create new inventory document type
+            var newType = new DocumentType
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                Code = "INVENTORY",
+                Name = "Inventory Document",
+                Notes = "Physical inventory count document",
+                IsActive = true,
+                CreatedBy = "system",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.DocumentTypes.Add(newType);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Created inventory document type for tenant {TenantId}.", tenantId);
+
+            return DocumentTypeMapper.ToDto(newType);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting or creating inventory document type for tenant {TenantId}.", tenantId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets or creates a system business party for internal operations.
+    /// </summary>
+    public async Task<Guid> GetOrCreateSystemBusinessPartyAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Try to find existing system business party
+            var existingParty = await _context.BusinessParties
+                .Where(bp => bp.TenantId == tenantId && bp.Name == "System Internal" && !bp.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (existingParty != null)
+            {
+                return existingParty.Id;
+            }
+
+            // Create new system business party
+            var newParty = new BusinessParty
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                Name = "System Internal",
+                PartyType = EventForge.Server.Data.Entities.Business.BusinessPartyType.Cliente,
+                IsActive = true,
+                CreatedBy = "system",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.BusinessParties.Add(newParty);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Created system business party for tenant {TenantId}.", tenantId);
+
+            return newParty.Id;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting or creating system business party for tenant {TenantId}.", tenantId);
+            throw;
+        }
+    }
+
+    public async Task<DocumentRowDto> AddDocumentRowAsync(
+        CreateDocumentRowDto createDto,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Verify document header exists
+            var documentHeader = await _context.DocumentHeaders
+                .FirstOrDefaultAsync(dh => dh.Id == createDto.DocumentHeaderId && !dh.IsDeleted, cancellationToken);
+
+            if (documentHeader == null)
+            {
+                throw new InvalidOperationException($"Document header with ID {createDto.DocumentHeaderId} not found.");
+            }
+
+            var row = createDto.ToEntity();
+            row.CreatedBy = currentUser;
+            row.CreatedAt = DateTime.UtcNow;
+
+            _context.DocumentRows.Add(row);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditLogService.TrackEntityChangesAsync(row, "Insert", currentUser, null, cancellationToken);
+
+            _logger.LogInformation("Document row {RowId} added to document {DocumentHeaderId} by {User}.", 
+                row.Id, createDto.DocumentHeaderId, currentUser);
+
+            return row.ToDto();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding document row to document {DocumentHeaderId}.", createDto.DocumentHeaderId);
+            throw;
+        }
     }
 }
