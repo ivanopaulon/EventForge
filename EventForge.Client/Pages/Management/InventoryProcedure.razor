@@ -385,11 +385,6 @@
             {
                 await AssignToExistingProduct();
             }
-            else if (action == "assigned")
-            {
-                // Barcode was assigned directly from the dialog, search again to load the product
-                await SearchBarcode();
-            }
         }
     }
 

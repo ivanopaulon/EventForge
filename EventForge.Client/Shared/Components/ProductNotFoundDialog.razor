@@ -1,134 +1,32 @@
 @using EventForge.DTOs.Common
-@using EventForge.DTOs.Products
 @inject ITranslationService TranslationService
-@inject IProductService ProductService
-@inject ISnackbar Snackbar
-@inject ILogger<ProductNotFoundDialog> Logger
 
 <MudDialog>
     <DialogContent>
-        @if (_isLoading)
-        {
-            <MudProgressLinear Indeterminate="true" Class="mb-4" />
-        }
-
         <MudAlert Severity="Severity.Warning" Class="mb-4">
             @TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato con il codice: {0}", Barcode)
         </MudAlert>
 
-        <!-- Product Search Section -->
-        <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-info-lighten);">
-            <MudText Typo="Typo.subtitle2" Class="mb-2">
-                @TranslationService.GetTranslation("warehouse.searchExistingProduct", "Cerca un prodotto esistente")
-            </MudText>
-            
-            <MudAutocomplete T="ProductDto"
-                             @bind-Value="_selectedProduct"
-                             Label="@TranslationService.GetTranslation("products.searchProduct", "Cerca Prodotto")"
-                             Variant="Variant.Outlined"
-                             SearchFunc="@SearchProducts"
-                             ToStringFunc="@(p => p?.Name ?? string.Empty)"
-                             Immediate="true"
-                             ResetValueOnEmptyText="true"
-                             CoerceText="true"
-                             CoerceValue="false"
-                             Adornment="Adornment.Start"
-                             AdornmentIcon="@Icons.Material.Outlined.Search"
-                             Disabled="@_isLoading">
-                <ItemTemplate Context="product">
-                    <MudText Typo="Typo.body2">@product.Name</MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">@product.Code</MudText>
-                </ItemTemplate>
-            </MudAutocomplete>
-        </MudPaper>
+        <MudText Typo="Typo.body1" Class="mb-4">
+            @TranslationService.GetTranslation("warehouse.createOrAssignPrompt", "Cosa vuoi fare?")
+        </MudText>
 
-        @if (_selectedProduct != null)
-        {
-            <!-- Selected Product Details -->
-            <MudPaper Elevation="1" Class="pa-3 mb-4">
-                <MudText Typo="Typo.subtitle2" Class="mb-3">
-                    @TranslationService.GetTranslation("products.selectedProduct", "Prodotto Selezionato")
-                </MudText>
-
-                <MudGrid Spacing="2">
-                    <MudItem xs="12" md="6">
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("products.productName", "Nome Prodotto")</MudText>
-                        <MudText Typo="Typo.body1" Style="font-weight: 600;">@_selectedProduct.Name</MudText>
-                    </MudItem>
-                    <MudItem xs="12" md="6">
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("products.productCode", "Codice Prodotto")</MudText>
-                        <MudText Typo="Typo.body1" Style="font-weight: 600;">@_selectedProduct.Code</MudText>
-                    </MudItem>
-                </MudGrid>
-            </MudPaper>
-
-            <!-- Assignment Form -->
-            <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
-                <MudGrid Spacing="3">
-                    <MudItem xs="12">
-                        <MudSelect @bind-Value="_createCodeDto.CodeType"
-                                   Label="@TranslationService.GetTranslation("products.codeType", "Tipo Codice")"
-                                   Variant="Variant.Outlined"
-                                   Required="true"
-                                   RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")">
-                            <MudSelectItem Value="@("EAN")">EAN</MudSelectItem>
-                            <MudSelectItem Value="@("UPC")">UPC</MudSelectItem>
-                            <MudSelectItem Value="@("SKU")">SKU</MudSelectItem>
-                            <MudSelectItem Value="@("QR")">QR Code</MudSelectItem>
-                            <MudSelectItem Value="@("Barcode")">@TranslationService.GetTranslation("products.barcode", "Codice a Barre")</MudSelectItem>
-                            <MudSelectItem Value="@("Other")">@TranslationService.GetTranslation("products.other", "Altro")</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
-
-                    <MudItem xs="12">
-                        <MudTextField @bind-Value="_createCodeDto.AlternativeDescription"
-                                      Label="@TranslationService.GetTranslation("products.alternativeDescription", "Descrizione Alternativa")"
-                                      Variant="Variant.Outlined"
-                                      Lines="2"
-                                      MaxLength="200"
-                                      Counter="200"
-                                      HelperText="@TranslationService.GetTranslation("products.descriptionHelper", "Descrizione opzionale per questo codice")" />
-                    </MudItem>
-
-                    <MudItem xs="12">
-                        <MudButton StartIcon="@Icons.Material.Outlined.Link"
-                                  Color="Color.Success"
-                                  Variant="Variant.Filled"
-                                  FullWidth="true"
-                                  OnClick="@AssignBarcodeToProduct"
-                                  Disabled="@(!_isFormValid || _isLoading)">
-                            @TranslationService.GetTranslation("warehouse.assignBarcodeNow", "Assegna Codice a Questo Prodotto")
-                        </MudButton>
-                    </MudItem>
-                </MudGrid>
-            </MudForm>
-
-            <MudDivider Class="my-4" />
-        }
-
-        @if (_selectedProduct == null)
-        {
-            <MudText Typo="Typo.body1" Class="mb-4">
-                @TranslationService.GetTranslation("warehouse.createOrAssignPrompt", "Cosa vuoi fare?")
-            </MudText>
-
-            <MudStack Spacing="3">
-                <MudButton StartIcon="@Icons.Material.Outlined.Add"
-                          Color="Color.Primary"
-                          Variant="Variant.Filled"
-                          FullWidth="true"
-                          OnClick="@(() => SelectAction("create"))">
-                    @TranslationService.GetTranslation("warehouse.createNewProduct", "Crea Nuovo Prodotto")
-                </MudButton>
-                <MudButton StartIcon="@Icons.Material.Outlined.Link"
-                          Color="Color.Secondary"
-                          Variant="Variant.Filled"
-                          FullWidth="true"
-                          OnClick="@(() => SelectAction("assign"))">
-                    @TranslationService.GetTranslation("warehouse.assignToExisting", "Assegna a Prodotto Esistente")
-                </MudButton>
-            </MudStack>
-        }
+        <MudStack Spacing="3">
+            <MudButton StartIcon="@Icons.Material.Outlined.Add"
+                      Color="Color.Primary"
+                      Variant="Variant.Filled"
+                      FullWidth="true"
+                      OnClick="@(() => SelectAction("create"))">
+                @TranslationService.GetTranslation("warehouse.createNewProduct", "Crea Nuovo Prodotto")
+            </MudButton>
+            <MudButton StartIcon="@Icons.Material.Outlined.Link"
+                      Color="Color.Secondary"
+                      Variant="Variant.Filled"
+                      FullWidth="true"
+                      OnClick="@(() => SelectAction("assign"))">
+                @TranslationService.GetTranslation("warehouse.assignToExisting", "Assegna a Prodotto Esistente")
+            </MudButton>
+        </MudStack>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel" Color="Color.Default" Variant="Variant.Outlined">
@@ -143,87 +41,6 @@
 
     [Parameter]
     public string Barcode { get; set; } = string.Empty;
-
-    private bool _isLoading = false;
-    private bool _isFormValid = false;
-    private MudForm? _form;
-    private ProductDto? _selectedProduct;
-    private CreateProductCodeDto _createCodeDto = new();
-    private List<ProductDto> _allProducts = new();
-
-    protected override async Task OnInitializedAsync()
-    {
-        _createCodeDto.Code = Barcode;
-        _createCodeDto.CodeType = "Barcode";
-        _createCodeDto.Status = ProductCodeStatus.Active;
-
-        await LoadProducts();
-    }
-
-    private async Task LoadProducts()
-    {
-        _isLoading = true;
-        try
-        {
-            var result = await ProductService.GetProductsAsync(1, 100);
-            if (result != null)
-            {
-                _allProducts = result.Items.ToList();
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading products");
-            Snackbar.Add(TranslationService.GetTranslation("products.loadError", "Errore nel caricamento prodotti"), Severity.Error);
-        }
-        finally
-        {
-            _isLoading = false;
-        }
-    }
-
-    private async Task<IEnumerable<ProductDto>> SearchProducts(string value, CancellationToken token)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return _allProducts;
-
-        return _allProducts
-            .Where(p => p.Name.Contains(value, StringComparison.OrdinalIgnoreCase) ||
-                       p.Code.Contains(value, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-    }
-
-    private async Task AssignBarcodeToProduct()
-    {
-        if (!_isFormValid || _selectedProduct == null)
-            return;
-
-        _isLoading = true;
-        try
-        {
-            _createCodeDto.ProductId = _selectedProduct.Id;
-            var result = await ProductService.CreateProductCodeAsync(_createCodeDto);
-
-            if (result != null)
-            {
-                Snackbar.Add(TranslationService.GetTranslation("products.barcodeAssigned", "Codice a barre assegnato con successo"), Severity.Success);
-                MudDialog.Close(DialogResult.Ok("assigned"));
-            }
-            else
-            {
-                Snackbar.Add(TranslationService.GetTranslation("products.assignError", "Errore nell'assegnazione del codice"), Severity.Error);
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error assigning barcode to product");
-            Snackbar.Add(TranslationService.GetTranslation("products.assignError", "Errore nell'assegnazione del codice"), Severity.Error);
-        }
-        finally
-        {
-            _isLoading = false;
-        }
-    }
 
     private void SelectAction(string action)
     {
