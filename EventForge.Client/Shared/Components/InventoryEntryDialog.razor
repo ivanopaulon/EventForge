@@ -1,0 +1,153 @@
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.Warehouse
+@inject ITranslationService TranslationService
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <!-- Product Information Display -->
+            @if (Product != null)
+            {
+                <MudPaper Elevation="0" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
+                    <MudStack Spacing="2">
+                        <div>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @TranslationService.GetTranslation("warehouse.productName", "Nome Prodotto")
+                            </MudText>
+                            <MudText Typo="Typo.body1" Style="font-weight: 600;">
+                                @Product.Name
+                            </MudText>
+                        </div>
+                        <div>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @TranslationService.GetTranslation("warehouse.productCode", "Codice Prodotto")
+                            </MudText>
+                            <MudText Typo="Typo.body2">
+                                @Product.Code
+                            </MudText>
+                        </div>
+                        @if (!string.IsNullOrEmpty(Product.Description))
+                        {
+                            <div>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @TranslationService.GetTranslation("warehouse.description", "Descrizione")
+                                </MudText>
+                                <MudText Typo="Typo.body2">
+                                    @Product.Description
+                                </MudText>
+                            </div>
+                        }
+                    </MudStack>
+                </MudPaper>
+            }
+
+            <!-- Entry Form -->
+            <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
+                <MudStack Spacing="3">
+                    <MudSelect T="Guid?"
+                               @bind-Value="@_selectedLocationId"
+                               Label="@TranslationService.GetTranslation("warehouse.storageLocation", "Ubicazione")"
+                               Variant="Variant.Outlined"
+                               Required="true"
+                               RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Outlined.LocationOn">
+                        @if (Locations != null)
+                        {
+                            @foreach (var location in Locations)
+                            {
+                                <MudSelectItem Value="@((Guid?)location.Id)">
+                                    @location.Code - @location.Description
+                                </MudSelectItem>
+                            }
+                        }
+                    </MudSelect>
+
+                    <MudNumericField @bind-Value="_quantity"
+                                    Label="@TranslationService.GetTranslation("warehouse.quantity", "Quantità")"
+                                    Variant="Variant.Outlined"
+                                    Min="0"
+                                    Required="true"
+                                    RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                                    Adornment="Adornment.Start"
+                                    AdornmentIcon="@Icons.Material.Outlined.Numbers"
+                                    @ref="_quantityField" />
+
+                    <MudTextField @bind-Value="_notes"
+                                 Label="@TranslationService.GetTranslation("warehouse.notes", "Note")"
+                                 Variant="Variant.Outlined"
+                                 Lines="2"
+                                 MaxLength="200"
+                                 Counter="200"
+                                 Adornment="Adornment.Start"
+                                 AdornmentIcon="@Icons.Material.Outlined.Comment" />
+                </MudStack>
+            </MudForm>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Color="Color.Default">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton OnClick="Submit" 
+                   Color="Color.Success" 
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.Add"
+                   Disabled="@(!_isFormValid)">
+            @TranslationService.GetTranslation("warehouse.addToInventory", "Aggiungi al Documento")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public ProductDto? Product { get; set; }
+
+    [Parameter]
+    public List<StorageLocationDto>? Locations { get; set; }
+
+    private MudForm? _form;
+    private MudNumericField<decimal>? _quantityField;
+    private bool _isFormValid;
+    private Guid? _selectedLocationId;
+    private decimal _quantity = 0;
+    private string _notes = string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _quantityField != null)
+        {
+            await _quantityField.FocusAsync();
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private void Submit()
+    {
+        if (!_isFormValid || !_selectedLocationId.HasValue)
+            return;
+
+        var result = new InventoryEntryResult
+        {
+            LocationId = _selectedLocationId.Value,
+            Quantity = _quantity,
+            Notes = _notes
+        };
+
+        MudDialog.Close(DialogResult.Ok(result));
+    }
+
+    public class InventoryEntryResult
+    {
+        public Guid LocationId { get; set; }
+        public decimal Quantity { get; set; }
+        public string Notes { get; set; } = string.Empty;
+    }
+}
