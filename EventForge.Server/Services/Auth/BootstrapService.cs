@@ -790,6 +790,9 @@ public class BootstrapService : IBootstrapService
 
             await _dbContext.SaveChangesAsync(cancellationToken);
 
+            // Get all permissions once for assigning to roles
+            var allPermissions = await _dbContext.Permissions.ToListAsync(cancellationToken);
+
             // Assign permissions to Admin role
             var adminRole = await _dbContext.Roles
                 .Include(r => r.RolePermissions)
@@ -797,8 +800,6 @@ public class BootstrapService : IBootstrapService
 
             if (adminRole != null && !adminRole.RolePermissions.Any())
             {
-                var allPermissions = await _dbContext.Permissions.ToListAsync(cancellationToken);
-
                 foreach (var permission in allPermissions)
                 {
                     var rolePermission = new RolePermission
@@ -815,8 +816,36 @@ public class BootstrapService : IBootstrapService
                     _dbContext.RolePermissions.Add(rolePermission);
                 }
 
-                await _dbContext.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation("Assigned {Count} permissions to Admin role", allPermissions.Count);
             }
+
+            // Assign permissions to SuperAdmin role - SuperAdmin must have unrestricted access to everything
+            var superAdminRole = await _dbContext.Roles
+                .Include(r => r.RolePermissions)
+                .FirstOrDefaultAsync(r => r.Name == "SuperAdmin", cancellationToken);
+
+            if (superAdminRole != null && !superAdminRole.RolePermissions.Any())
+            {
+                foreach (var permission in allPermissions)
+                {
+                    var rolePermission = new RolePermission
+                    {
+                        RoleId = superAdminRole.Id,
+                        PermissionId = permission.Id,
+                        GrantedBy = "system",
+                        GrantedAt = DateTime.UtcNow,
+                        CreatedBy = "system",
+                        CreatedAt = DateTime.UtcNow,
+                        TenantId = Guid.Empty
+                    };
+
+                    _dbContext.RolePermissions.Add(rolePermission);
+                }
+
+                _logger.LogInformation("Assigned {Count} permissions to SuperAdmin role", allPermissions.Count);
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Default roles and permissions seeded successfully");
             return true;
