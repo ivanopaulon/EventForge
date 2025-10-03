@@ -1,0 +1,168 @@
+@using EventForge.DTOs.Warehouse
+@using MudBlazor
+@inject ITranslationService TranslationService
+
+<MudDialog>
+    <DialogContent>
+        @if (Document != null)
+        {
+            <MudGrid>
+                <!-- Document Header Information -->
+                <MudItem xs="12">
+                    <MudPaper Elevation="0" Class="pa-4 mb-4" Style="background-color: var(--mud-palette-background-grey);">
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("document.number", "Numero Documento")</MudText>
+                                <MudText Typo="Typo.h6">@Document.Number</MudText>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("document.date", "Data")</MudText>
+                                <MudText Typo="Typo.h6">@Document.InventoryDate.ToLocalTime().ToString("dd/MM/yyyy")</MudText>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("document.status", "Stato")</MudText>
+                                @if (Document.Status == "Draft")
+                                {
+                                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">@TranslationService.GetTranslation("document.status.draft", "Bozza")</MudChip>
+                                }
+                                else if (Document.Status == "Closed")
+                                {
+                                    <MudChip T="string" Color="Color.Success" Size="Size.Small">@TranslationService.GetTranslation("document.status.closed", "Chiuso")</MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Color="Color.Default" Size="Size.Small">@Document.Status</MudChip>
+                                }
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")</MudText>
+                                <MudText Typo="Typo.body1">@(Document.WarehouseName ?? "-")</MudText>
+                            </MudItem>
+                            @if (!string.IsNullOrWhiteSpace(Document.Notes))
+                            {
+                                <MudItem xs="12">
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("common.notes", "Note")</MudText>
+                                    <MudText Typo="Typo.body1">@Document.Notes</MudText>
+                                </MudItem>
+                            }
+                        </MudGrid>
+                    </MudPaper>
+                </MudItem>
+
+                <!-- Document Statistics -->
+                <MudItem xs="12">
+                    <MudGrid>
+                        <MudItem xs="12" md="4">
+                            <MudPaper Elevation="2" Class="pa-3 text-center">
+                                <MudText Typo="Typo.h4" Color="Color.Primary">@Document.TotalItems</MudText>
+                                <MudText Typo="Typo.body2">@TranslationService.GetTranslation("document.totalItems", "Articoli Totali")</MudText>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudPaper Elevation="2" Class="pa-3 text-center">
+                                <MudText Typo="Typo.h4" Color="Color.Info">@Document.CreatedBy</MudText>
+                                <MudText Typo="Typo.body2">@TranslationService.GetTranslation("common.createdBy", "Creato Da")</MudText>
+                            </MudPaper>
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudPaper Elevation="2" Class="pa-3 text-center">
+                                <MudText Typo="Typo.h4" Color="Color.Secondary">@Document.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</MudText>
+                                <MudText Typo="Typo.body2">@TranslationService.GetTranslation("common.createdAt", "Data Creazione")</MudText>
+                            </MudPaper>
+                        </MudItem>
+                    </MudGrid>
+                </MudItem>
+
+                <!-- Document Rows -->
+                <MudItem xs="12">
+                    <MudText Typo="Typo.h6" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
+                        @TranslationService.GetTranslation("document.rows", "Righe Documento")
+                    </MudText>
+
+                    @if (Document.Rows != null && Document.Rows.Any())
+                    {
+                        <MudTable Items="Document.Rows" Hover="true" Dense="true" Elevation="0" Style="max-height: 400px; overflow-y: auto;">
+                            <HeaderContent>
+                                <MudTh>#</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("warehouse.product", "Prodotto")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("warehouse.location", "Ubicazione")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("warehouse.quantity", "Quantità")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("warehouse.notes", "Note")</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                @{
+                                    var rowNumber = Document.Rows.IndexOf(context) + 1;
+                                }
+                                <MudTd>@rowNumber</MudTd>
+                                <MudTd>
+                                    <MudText Typo="Typo.body2">@context.ProductName</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ProductCode</MudText>
+                                </MudTd>
+                                <MudTd>@context.LocationName</MudTd>
+                                <MudTd>
+                                    <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.Quantity</MudText>
+                                    @if (context.AdjustmentQuantity.HasValue)
+                                    {
+                                        @if (context.AdjustmentQuantity.Value > 0)
+                                        {
+                                            <MudChip T="string" Color="Color.Success" Size="Size.Small">+@context.AdjustmentQuantity.Value</MudChip>
+                                        }
+                                        else if (context.AdjustmentQuantity.Value < 0)
+                                        {
+                                            <MudChip T="string" Color="Color.Warning" Size="Size.Small">@context.AdjustmentQuantity.Value</MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="string" Color="Color.Default" Size="Size.Small">0</MudChip>
+                                        }
+                                    }
+                                </MudTd>
+                                <MudTd>@(context.Notes ?? "-")</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info">@TranslationService.GetTranslation("document.noRows", "Nessuna riga presente nel documento")</MudAlert>
+                    }
+                </MudItem>
+
+                <!-- Finalization Info (if closed) -->
+                @if (Document.Status == "Closed" && Document.FinalizedAt.HasValue)
+                {
+                    <MudItem xs="12">
+                        <MudDivider Class="my-4" />
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("document.finalizedBy", "Finalizzato Da")</MudText>
+                                <MudText Typo="Typo.body1">@(Document.FinalizedBy ?? "-")</MudText>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("document.finalizedAt", "Data Finalizzazione")</MudText>
+                                <MudText Typo="Typo.body1">@Document.FinalizedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
+                            </MudItem>
+                        </MudGrid>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+        else
+        {
+            <MudText>@TranslationService.GetTranslation("common.noDataAvailable", "Nessun dato disponibile")</MudText>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Color="Color.Primary">@TranslationService.GetTranslation("common.close", "Chiudi")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public InventoryDocumentDto? Document { get; set; }
+
+    private void Close() => MudDialog?.Close();
+}
