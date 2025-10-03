@@ -120,4 +120,36 @@ public interface IDocumentHeaderService
     Task<bool> DocumentHeaderExistsAsync(
         Guid id,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets or creates an inventory document type.
+    /// </summary>
+    /// <param name="tenantId">Tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Inventory document type</returns>
+    Task<DocumentTypeDto> GetOrCreateInventoryDocumentTypeAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets or creates a system business party for internal operations.
+    /// </summary>
+    /// <param name="tenantId">Tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>System business party ID</returns>
+    Task<Guid> GetOrCreateSystemBusinessPartyAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Adds a row to an existing document header.
+    /// </summary>
+    /// <param name="createDto">Document row creation data</param>
+    /// <param name="currentUser">Current user for auditing</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created document row DTO</returns>
+    Task<DocumentRowDto> AddDocumentRowAsync(
+        CreateDocumentRowDto createDto,
+        string currentUser,
+        CancellationToken cancellationToken = default);
 }

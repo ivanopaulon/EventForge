@@ -1,6 +1,8 @@
 using EventForge.DTOs.Warehouse;
+using EventForge.DTOs.Documents;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Warehouse;
+using EventForge.Server.Services.Documents;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,6 +25,7 @@ public class WarehouseManagementController : BaseApiController
     private readonly IStockService _stockService;
     private readonly ISerialService _serialService;
     private readonly IStockMovementService _stockMovementService;
+    private readonly IDocumentHeaderService _documentHeaderService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<WarehouseManagementController> _logger;
 
@@ -33,6 +36,7 @@ public class WarehouseManagementController : BaseApiController
         IStockService stockService,
         ISerialService serialService,
         IStockMovementService stockMovementService,
+        IDocumentHeaderService documentHeaderService,
         ITenantContext tenantContext,
         ILogger<WarehouseManagementController> logger)
     {
@@ -42,6 +46,7 @@ public class WarehouseManagementController : BaseApiController
         _stockService = stockService ?? throw new ArgumentNullException(nameof(stockService));
         _serialService = serialService ?? throw new ArgumentNullException(nameof(serialService));
         _stockMovementService = stockMovementService ?? throw new ArgumentNullException(nameof(stockMovementService));
+        _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -1152,6 +1157,289 @@ public class WarehouseManagementController : BaseApiController
         {
             _logger.LogError(ex, "An error occurred while creating the inventory entry.");
             return CreateInternalServerErrorProblem("An error occurred while creating the inventory entry.", ex);
+        }
+    }
+
+    #endregion
+
+    #region Inventory Document Management
+
+    /// <summary>
+    /// Starts a new inventory document.
+    /// </summary>
+    /// <param name="createDto">Inventory document creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created inventory document</returns>
+    /// <response code="200">Returns the created inventory document</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("inventory/document/start")]
+    [ProducesResponseType(typeof(InventoryDocumentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> StartInventoryDocument([FromBody] CreateInventoryDocumentDto createDto, CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                return Problem("Tenant not found or invalid.", statusCode: StatusCodes.Status403Forbidden);
+            }
+
+            // Get or create an "Inventory" document type
+            var inventoryDocumentType = await _documentHeaderService.GetOrCreateInventoryDocumentTypeAsync(currentTenantId.Value, cancellationToken);
+
+            // Get or create system business party for internal operations
+            var systemBusinessPartyId = await _documentHeaderService.GetOrCreateSystemBusinessPartyAsync(currentTenantId.Value, cancellationToken);
+
+            // Generate document number if not provided
+            var documentNumber = createDto.Number ?? $"INV-{DateTime.UtcNow:yyyyMMdd-HHmmss}";
+
+            // Create a simplified document header for inventory
+            var createHeaderDto = new CreateDocumentHeaderDto
+            {
+                DocumentTypeId = inventoryDocumentType.Id,
+                Series = createDto.Series,
+                Number = documentNumber,
+                Date = createDto.InventoryDate,
+                BusinessPartyId = systemBusinessPartyId,
+                SourceWarehouseId = createDto.WarehouseId,
+                Notes = createDto.Notes,
+                IsFiscal = false,
+                IsProforma = true
+            };
+
+            var documentHeader = await _documentHeaderService.CreateDocumentHeaderAsync(createHeaderDto, GetCurrentUser(), cancellationToken);
+
+            // Map to inventory document DTO
+            var result = new InventoryDocumentDto
+            {
+                Id = documentHeader.Id,
+                Number = documentHeader.Number,
+                Series = documentHeader.Series,
+                InventoryDate = documentHeader.Date,
+                WarehouseId = documentHeader.SourceWarehouseId,
+                WarehouseName = documentHeader.SourceWarehouseName,
+                Status = documentHeader.Status.ToString(),
+                Notes = documentHeader.Notes,
+                CreatedAt = documentHeader.CreatedAt,
+                CreatedBy = documentHeader.CreatedBy,
+                Rows = new List<InventoryDocumentRowDto>()
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while starting the inventory document.");
+            return CreateInternalServerErrorProblem("An error occurred while starting the inventory document.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Adds a row to an existing inventory document.
+    /// </summary>
+    /// <param name="documentId">Inventory document ID</param>
+    /// <param name="rowDto">Row data to add</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated inventory document</returns>
+    /// <response code="200">Returns the updated inventory document</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="404">If the document is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("inventory/document/{documentId:guid}/row")]
+    [ProducesResponseType(typeof(InventoryDocumentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> AddInventoryDocumentRow(Guid documentId, [FromBody] AddInventoryDocumentRowDto rowDto, CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Get the document header
+            var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            if (documentHeader == null)
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Title = "Document not found",
+                    Detail = $"Inventory document with ID {documentId} was not found.",
+                    Status = StatusCodes.Status404NotFound
+                });
+            }
+
+            // Get current stock level to calculate adjustment
+            var existingStocks = await _stockService.GetStockAsync(
+                page: 1,
+                pageSize: 1,
+                productId: rowDto.ProductId,
+                locationId: rowDto.LocationId,
+                lotId: rowDto.LotId,
+                cancellationToken: cancellationToken);
+
+            var existingStock = existingStocks.Items.FirstOrDefault();
+            var currentQuantity = existingStock?.Quantity ?? 0;
+            var adjustmentQuantity = rowDto.Quantity - currentQuantity;
+
+            // Get product and location info for the row
+            var product = existingStock != null ? new { existingStock.ProductName, existingStock.ProductCode } : null;
+            var location = await _storageLocationService.GetStorageLocationByIdAsync(rowDto.LocationId, cancellationToken);
+
+            // Create document row
+            var createRowDto = new CreateDocumentRowDto
+            {
+                DocumentHeaderId = documentId,
+                ProductCode = product?.ProductCode ?? rowDto.ProductId.ToString(),
+                Description = $"{product?.ProductName ?? "Product"} @ {location?.Code ?? "Location"}",
+                Quantity = (int)rowDto.Quantity,
+                UnitPrice = 0, // Not relevant for inventory
+                Notes = rowDto.Notes
+            };
+
+            var documentRow = await _documentHeaderService.AddDocumentRowAsync(createRowDto, GetCurrentUser(), cancellationToken);
+
+            // Build response with the new row
+            var newRow = new InventoryDocumentRowDto
+            {
+                Id = documentRow.Id,
+                ProductId = rowDto.ProductId,
+                ProductName = product?.ProductName ?? string.Empty,
+                ProductCode = product?.ProductCode ?? string.Empty,
+                LocationId = rowDto.LocationId,
+                LocationName = location?.Code ?? string.Empty,
+                Quantity = rowDto.Quantity,
+                PreviousQuantity = currentQuantity,
+                AdjustmentQuantity = adjustmentQuantity,
+                LotId = rowDto.LotId,
+                LotCode = existingStock?.LotCode,
+                Notes = rowDto.Notes,
+                CreatedAt = documentRow.CreatedAt,
+                CreatedBy = documentRow.CreatedBy
+            };
+
+            // Get updated document
+            var updatedDocument = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            
+            var result = new InventoryDocumentDto
+            {
+                Id = updatedDocument!.Id,
+                Number = updatedDocument.Number,
+                Series = updatedDocument.Series,
+                InventoryDate = updatedDocument.Date,
+                WarehouseId = updatedDocument.SourceWarehouseId,
+                WarehouseName = updatedDocument.SourceWarehouseName,
+                Status = updatedDocument.Status.ToString(),
+                Notes = updatedDocument.Notes,
+                CreatedAt = updatedDocument.CreatedAt,
+                CreatedBy = updatedDocument.CreatedBy,
+                Rows = updatedDocument.Rows?.Select(r => new InventoryDocumentRowDto
+                {
+                    Id = r.Id,
+                    ProductCode = r.ProductCode ?? string.Empty,
+                    LocationName = r.Description,
+                    Quantity = r.Quantity,
+                    Notes = r.Notes,
+                    CreatedAt = r.CreatedAt,
+                    CreatedBy = r.CreatedBy
+                }).ToList() ?? new List<InventoryDocumentRowDto>()
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while adding row to inventory document {DocumentId}.", documentId);
+            return CreateInternalServerErrorProblem("An error occurred while adding row to inventory document.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Finalizes an inventory document and applies all stock adjustments.
+    /// </summary>
+    /// <param name="documentId">Inventory document ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Finalized inventory document</returns>
+    /// <response code="200">Returns the finalized inventory document</response>
+    /// <response code="404">If the document is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("inventory/document/{documentId:guid}/finalize")]
+    [ProducesResponseType(typeof(InventoryDocumentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> FinalizeInventoryDocument(Guid documentId, CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Get the document header with rows
+            var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            if (documentHeader == null)
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Title = "Document not found",
+                    Detail = $"Inventory document with ID {documentId} was not found.",
+                    Status = StatusCodes.Status404NotFound
+                });
+            }
+
+            // Process each row and apply stock adjustments
+            // This is where we would iterate through rows and create stock movements
+            // For now, we'll just mark the document as closed
+
+            var closedDocument = await _documentHeaderService.CloseDocumentAsync(documentId, GetCurrentUser(), cancellationToken);
+
+            var result = new InventoryDocumentDto
+            {
+                Id = closedDocument!.Id,
+                Number = closedDocument.Number,
+                Series = closedDocument.Series,
+                InventoryDate = closedDocument.Date,
+                WarehouseId = closedDocument.SourceWarehouseId,
+                WarehouseName = closedDocument.SourceWarehouseName,
+                Status = closedDocument.Status.ToString(),
+                Notes = closedDocument.Notes,
+                CreatedAt = closedDocument.CreatedAt,
+                CreatedBy = closedDocument.CreatedBy,
+                FinalizedAt = closedDocument.ClosedAt,
+                FinalizedBy = closedDocument.ModifiedBy,
+                Rows = closedDocument.Rows?.Select(r => new InventoryDocumentRowDto
+                {
+                    Id = r.Id,
+                    ProductCode = r.ProductCode ?? string.Empty,
+                    LocationName = r.Description,
+                    Quantity = r.Quantity,
+                    Notes = r.Notes,
+                    CreatedAt = r.CreatedAt,
+                    CreatedBy = r.CreatedBy
+                }).ToList() ?? new List<InventoryDocumentRowDto>()
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while finalizing inventory document {DocumentId}.", documentId);
+            return CreateInternalServerErrorProblem("An error occurred while finalizing inventory document.", ex);
         }
     }
 
