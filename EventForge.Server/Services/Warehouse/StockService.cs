@@ -515,6 +515,33 @@ public class StockService : IStockService
         }
     }
 
+    public async Task UpdateLastInventoryDateAsync(Guid stockId, DateTime inventoryDate, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Current tenant ID is not available.");
+            }
+
+            var stock = await _context.Stocks
+                .FirstOrDefaultAsync(s => s.Id == stockId && s.TenantId == currentTenantId.Value, cancellationToken);
+
+            if (stock != null)
+            {
+                stock.LastInventoryDate = inventoryDate;
+                stock.ModifiedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating last inventory date for stock: {StockId}", stockId);
+            throw;
+        }
+    }
+
     public async Task<bool> DeleteStockAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
         try

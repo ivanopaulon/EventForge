@@ -22,6 +22,7 @@ public class WarehouseManagementController : BaseApiController
     private readonly ILotService _lotService;
     private readonly IStockService _stockService;
     private readonly ISerialService _serialService;
+    private readonly IStockMovementService _stockMovementService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<WarehouseManagementController> _logger;
 
@@ -31,6 +32,7 @@ public class WarehouseManagementController : BaseApiController
         ILotService lotService,
         IStockService stockService,
         ISerialService serialService,
+        IStockMovementService stockMovementService,
         ITenantContext tenantContext,
         ILogger<WarehouseManagementController> logger)
     {
@@ -39,6 +41,7 @@ public class WarehouseManagementController : BaseApiController
         _lotService = lotService ?? throw new ArgumentNullException(nameof(lotService));
         _stockService = stockService ?? throw new ArgumentNullException(nameof(stockService));
         _serialService = serialService ?? throw new ArgumentNullException(nameof(serialService));
+        _stockMovementService = stockMovementService ?? throw new ArgumentNullException(nameof(stockMovementService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -1041,7 +1044,17 @@ public class WarehouseManagementController : BaseApiController
 
     /// <summary>
     /// Records an inventory entry for a product at a specific location.
-    /// This creates or updates a stock record with the counted quantity.
+    /// 
+    /// WHAT HAPPENS WHEN YOU INSERT AN INVENTORY QUANTITY:
+    /// 1. Retrieves the current stock level (if exists) for the product/location/lot combination
+    /// 2. Calculates the difference between the counted quantity and the current stock
+    /// 3. Creates a StockMovement document (type: Adjustment) to record the inventory adjustment
+    /// 4. Updates the Stock record with the new counted quantity
+    /// 5. Sets the LastInventoryDate to track when the last physical count was performed
+    /// 
+    /// This creates both:
+    /// - A permanent StockMovement record for audit trail and traceability
+    /// - An updated Stock record with the correct quantity
     /// </summary>
     /// <param name="createDto">Inventory entry data</param>
     /// <param name="cancellationToken">Cancellation token</param>
@@ -1065,7 +1078,40 @@ public class WarehouseManagementController : BaseApiController
 
         try
         {
-            // Create or update stock record with inventory count
+            // Get current stock level to calculate adjustment
+            var existingStocks = await _stockService.GetStockAsync(
+                page: 1,
+                pageSize: 1,
+                productId: createDto.ProductId,
+                locationId: createDto.LocationId,
+                lotId: createDto.LotId,
+                cancellationToken: cancellationToken);
+
+            var existingStock = existingStocks.Items.FirstOrDefault();
+            var currentQuantity = existingStock?.Quantity ?? 0;
+            var countedQuantity = createDto.Quantity;
+            var adjustmentQuantity = countedQuantity - currentQuantity;
+
+            // Create a StockMovement document to record the inventory adjustment
+            // This provides full audit trail and traceability
+            if (adjustmentQuantity != 0)
+            {
+                var adjustmentReason = adjustmentQuantity > 0 
+                    ? "Inventory Count - Found Additional Stock" 
+                    : "Inventory Count - Stock Shortage Detected";
+
+                await _stockMovementService.ProcessAdjustmentMovementAsync(
+                    productId: createDto.ProductId,
+                    locationId: createDto.LocationId,
+                    adjustmentQuantity: adjustmentQuantity,
+                    reason: adjustmentReason,
+                    lotId: createDto.LotId,
+                    notes: createDto.Notes,
+                    currentUser: GetCurrentUser(),
+                    cancellationToken: cancellationToken);
+            }
+
+            // Update stock record with counted quantity and set LastInventoryDate
             var createStockDto = new CreateStockDto
             {
                 ProductId = createDto.ProductId,
@@ -1076,6 +1122,9 @@ public class WarehouseManagementController : BaseApiController
             };
 
             var stock = await _stockService.CreateOrUpdateStockAsync(createStockDto, GetCurrentUser(), cancellationToken);
+
+            // Update LastInventoryDate to track when physical count was performed
+            await _stockService.UpdateLastInventoryDateAsync(stock.Id, DateTime.UtcNow, cancellationToken);
 
             // Get location information for response
             var location = await _storageLocationService.GetStorageLocationByIdAsync(createDto.LocationId, cancellationToken);
