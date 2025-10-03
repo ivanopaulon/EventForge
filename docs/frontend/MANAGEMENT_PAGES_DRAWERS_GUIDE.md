@@ -1,5 +1,41 @@
 # EventForge Management Pages & Drawers - Creation Guide
 
+> **⚠️ IMPORTANTE**: Questa guida presuppone che tu stia usando il pattern standard per i servizi client.  
+> **DEVI sempre usare `IHttpClientService`** per le chiamate API.  
+> Per dettagli completi, vedi [`docs/frontend/SERVICE_CREATION_GUIDE.md`](SERVICE_CREATION_GUIDE.md)
+
+## Quick Reference - Service Pattern
+
+### ✅ Pattern CORRETTO per i servizi
+```csharp
+public class MyEntityService : IMyEntityService
+{
+    private readonly IHttpClientService _httpClientService;
+    
+    public MyEntityService(IHttpClientService httpClientService)
+    {
+        _httpClientService = httpClientService;
+    }
+    
+    public async Task<MyEntityDto?> GetByIdAsync(Guid id)
+    {
+        return await _httpClientService.GetAsync<MyEntityDto>($"api/v1/myentities/{id}");
+    }
+}
+```
+
+### ❌ Pattern DEPRECATO (NON USARE)
+```csharp
+// SBAGLIATO - Non usare IHttpClientFactory direttamente nei servizi
+public class MyEntityService
+{
+    private readonly IHttpClientFactory _httpClientFactory;
+    // ...gestione manuale di HTTP response...
+}
+```
+
+---
+
 ## Overview
 This guide provides the standard patterns and best practices for creating management pages and drawer components in EventForge. Following these patterns ensures UI consistency, proper data flow, and maintainability.
 

@@ -13,39 +13,23 @@ namespace EventForge.Client.Services;
 /// </summary>
 public class ProductService : IProductService
 {
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IHttpClientService _httpClientService;
+    private readonly IHttpClientFactory _httpClientFactory; // Keep for image upload only
     private readonly ILogger<ProductService> _logger;
     private const string BaseUrl = "api/v1/product-management/products";
 
-    public ProductService(IHttpClientFactory httpClientFactory, ILogger<ProductService> logger)
+    public ProductService(IHttpClientService httpClientService, IHttpClientFactory httpClientFactory, ILogger<ProductService> logger)
     {
+        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<ProductDto?> GetProductByCodeAsync(string code)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.GetAsync($"{BaseUrl}/by-code/{Uri.EscapeDataString(code)}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<ProductDto>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                return null;
-            }
-
-            _logger.LogError("Failed to retrieve product by code {Code}. Status: {StatusCode}", code, response.StatusCode);
-            return null;
+            return await _httpClientService.GetAsync<ProductDto>($"{BaseUrl}/by-code/{Uri.EscapeDataString(code)}");
         }
         catch (Exception ex)
         {
@@ -56,27 +40,9 @@ public class ProductService : IProductService
 
     public async Task<ProductDto?> GetProductByIdAsync(Guid id)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.GetAsync($"{BaseUrl}/{id}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<ProductDto>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                return null;
-            }
-
-            _logger.LogError("Failed to retrieve product by ID {Id}. Status: {StatusCode}", id, response.StatusCode);
-            return null;
+            return await _httpClientService.GetAsync<ProductDto>($"{BaseUrl}/{id}");
         }
         catch (Exception ex)
         {
@@ -87,22 +53,9 @@ public class ProductService : IProductService
 
     public async Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.GetAsync($"{BaseUrl}?page={page}&pageSize={pageSize}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<PagedResult<ProductDto>>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            _logger.LogError("Failed to retrieve products. Status: {StatusCode}", response.StatusCode);
-            return null;
+            return await _httpClientService.GetAsync<PagedResult<ProductDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
         }
         catch (Exception ex)
         {
@@ -113,22 +66,9 @@ public class ProductService : IProductService
 
     public async Task<ProductDto?> CreateProductAsync(CreateProductDto createDto)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.PostAsJsonAsync(BaseUrl, createDto);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<ProductDto>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            _logger.LogError("Failed to create product. Status: {StatusCode}", response.StatusCode);
-            return null;
+            return await _httpClientService.PostAsync<CreateProductDto, ProductDto>(BaseUrl, createDto);
         }
         catch (Exception ex)
         {
@@ -139,22 +79,9 @@ public class ProductService : IProductService
 
     public async Task<ProductDto?> UpdateProductAsync(Guid id, UpdateProductDto updateDto)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", updateDto);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<ProductDto>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            _logger.LogError("Failed to update product {Id}. Status: {StatusCode}", id, response.StatusCode);
-            return null;
+            return await _httpClientService.PutAsync<UpdateProductDto, ProductDto>($"{BaseUrl}/{id}", updateDto);
         }
         catch (Exception ex)
         {
@@ -165,22 +92,9 @@ public class ProductService : IProductService
 
     public async Task<ProductCodeDto?> CreateProductCodeAsync(CreateProductCodeDto createDto)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.PostAsJsonAsync($"{BaseUrl}/{createDto.ProductId}/codes", createDto);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<ProductCodeDto>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            _logger.LogError("Failed to create product code. Status: {StatusCode}", response.StatusCode);
-            return null;
+            return await _httpClientService.PostAsync<CreateProductCodeDto, ProductCodeDto>($"{BaseUrl}/{createDto.ProductId}/codes", createDto);
         }
         catch (Exception ex)
         {
@@ -191,23 +105,10 @@ public class ProductService : IProductService
 
     public async Task<IEnumerable<UMDto>> GetUnitsOfMeasureAsync()
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.GetAsync("api/v1/product-management/units?page=1&pageSize=100");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                var pagedResult = JsonSerializer.Deserialize<PagedResult<UMDto>>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-                return pagedResult?.Items ?? new List<UMDto>();
-            }
-
-            _logger.LogError("Failed to retrieve units of measure. Status: {StatusCode}", response.StatusCode);
-            return new List<UMDto>();
+            var pagedResult = await _httpClientService.GetAsync<PagedResult<UMDto>>("api/v1/product-management/units?page=1&pageSize=100");
+            return pagedResult?.Items ?? new List<UMDto>();
         }
         catch (Exception ex)
         {
@@ -218,23 +119,10 @@ public class ProductService : IProductService
 
     public async Task<IEnumerable<StationDto>> GetStationsAsync()
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.GetAsync("api/v1/stations?page=1&pageSize=100");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                var pagedResult = JsonSerializer.Deserialize<PagedResult<StationDto>>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-                return pagedResult?.Items ?? new List<StationDto>();
-            }
-
-            _logger.LogError("Failed to retrieve stations. Status: {StatusCode}", response.StatusCode);
-            return new List<StationDto>();
+            var pagedResult = await _httpClientService.GetAsync<PagedResult<StationDto>>("api/v1/stations?page=1&pageSize=100");
+            return pagedResult?.Items ?? new List<StationDto>();
         }
         catch (Exception ex)
         {
@@ -281,22 +169,9 @@ public class ProductService : IProductService
 
     public async Task<IEnumerable<ProductSupplierDto>?> GetProductSuppliersAsync(Guid productId)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.GetAsync($"{BaseUrl}/{productId}/suppliers");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<IEnumerable<ProductSupplierDto>>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            _logger.LogError("Failed to retrieve product suppliers. Status: {StatusCode}", response.StatusCode);
-            return null;
+            return await _httpClientService.GetAsync<IEnumerable<ProductSupplierDto>>($"{BaseUrl}/{productId}/suppliers");
         }
         catch (Exception ex)
         {
@@ -307,22 +182,9 @@ public class ProductService : IProductService
 
     public async Task<ProductSupplierDto?> GetProductSupplierByIdAsync(Guid id)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.GetAsync($"api/v1/product-management/product-suppliers/{id}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<ProductSupplierDto>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            _logger.LogError("Failed to retrieve product supplier. Status: {StatusCode}", response.StatusCode);
-            return null;
+            return await _httpClientService.GetAsync<ProductSupplierDto>($"api/v1/product-management/product-suppliers/{id}");
         }
         catch (Exception ex)
         {
@@ -333,22 +195,9 @@ public class ProductService : IProductService
 
     public async Task<ProductSupplierDto?> CreateProductSupplierAsync(CreateProductSupplierDto createDto)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.PostAsJsonAsync("api/v1/product-management/product-suppliers", createDto);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<ProductSupplierDto>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            _logger.LogError("Failed to create product supplier. Status: {StatusCode}", response.StatusCode);
-            return null;
+            return await _httpClientService.PostAsync<CreateProductSupplierDto, ProductSupplierDto>("api/v1/product-management/product-suppliers", createDto);
         }
         catch (Exception ex)
         {
@@ -359,22 +208,9 @@ public class ProductService : IProductService
 
     public async Task<ProductSupplierDto?> UpdateProductSupplierAsync(Guid id, UpdateProductSupplierDto updateDto)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.PutAsJsonAsync($"api/v1/product-management/product-suppliers/{id}", updateDto);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<ProductSupplierDto>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            _logger.LogError("Failed to update product supplier. Status: {StatusCode}", response.StatusCode);
-            return null;
+            return await _httpClientService.PutAsync<UpdateProductSupplierDto, ProductSupplierDto>($"api/v1/product-management/product-suppliers/{id}", updateDto);
         }
         catch (Exception ex)
         {
@@ -385,18 +221,10 @@ public class ProductService : IProductService
 
     public async Task<bool> DeleteProductSupplierAsync(Guid id)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.DeleteAsync($"api/v1/product-management/product-suppliers/{id}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                return true;
-            }
-
-            _logger.LogError("Failed to delete product supplier. Status: {StatusCode}", response.StatusCode);
-            return false;
+            await _httpClientService.DeleteAsync($"api/v1/product-management/product-suppliers/{id}");
+            return true;
         }
         catch (Exception ex)
         {
