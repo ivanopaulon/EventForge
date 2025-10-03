@@ -1,5 +1,89 @@
 # EventForge Client Services - Creation Guide
 
+## ⚠️ IMPORTANTE - Pattern Standard Aggiornato
+
+> **Data Aggiornamento**: Gennaio 2025  
+> **Versione**: 2.0
+
+### 🎯 Pattern Richiesto: IHttpClientService
+
+**TUTTI i servizi client DEVONO utilizzare `IHttpClientService`** invece di `IHttpClientFactory` direttamente.
+
+#### ✅ Pattern CORRETTO
+```csharp
+public class MyService
+{
+    private readonly IHttpClientService _httpClientService;
+    
+    public MyService(IHttpClientService httpClientService)
+    {
+        _httpClientService = httpClientService;
+    }
+    
+    public async Task<MyDto?> GetDataAsync(Guid id)
+    {
+        return await _httpClientService.GetAsync<MyDto>($"api/v1/myentities/{id}");
+    }
+}
+```
+
+#### ❌ Pattern DEPRECATO (NON USARE)
+```csharp
+// SBAGLIATO - Non usare IHttpClientFactory direttamente
+public class MyService
+{
+    private readonly IHttpClientFactory _httpClientFactory;
+    
+    public MyService(IHttpClientFactory httpClientFactory)
+    {
+        _httpClientFactory = httpClientFactory;
+    }
+    
+    public async Task<MyDto?> GetDataAsync(Guid id)
+    {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        var response = await httpClient.GetAsync($"api/v1/myentities/{id}");
+        // ... gestione manuale della response ...
+    }
+}
+```
+
+### 📋 Servizi Verificati e Corretti
+I seguenti servizi sono stati verificati e utilizzano il pattern corretto:
+
+**✅ Servizi Warehouse/Inventory:**
+- `WarehouseService` - IHttpClientService ✓
+- `StorageLocationService` - IHttpClientService ✓
+- `InventoryService` - IHttpClientService ✓
+- `LotService` - IHttpClientService ✓
+
+**✅ Servizi Product Management:**
+- `ProductService` - IHttpClientService ✓
+- `BrandService` - IHttpClientService ✓
+- `ModelService` - IHttpClientService ✓
+- `UMService` - IHttpClientService ✓
+
+**✅ Servizi Sales:**
+- `SalesService` - IHttpClientService ✓
+- `PaymentMethodService` - IHttpClientService ✓
+- `NoteFlagService` - IHttpClientService ✓
+- `TableManagementService` - IHttpClientService ✓
+
+**✅ Altri Servizi:**
+- `BusinessPartyService` - IHttpClientService ✓
+- `FinancialService` - IHttpClientService ✓
+
+### 🎁 Benefici del Pattern Centralizzato
+
+1. **Gestione Errori Automatica**: Status code checking, ProblemDetails parsing, snackbar notifications
+2. **Autenticazione Trasparente**: Token injection automatico su ogni richiesta
+3. **Logging Strutturato**: Ogni chiamata viene loggata con context appropriato
+4. **Serializzazione Consistente**: JSON options configurati centralmente
+5. **User Feedback**: Messaggi di errore user-friendly in italiano
+6. **Manutenibilità**: Un solo punto di modifica per tutte le richieste HTTP
+
+---
+
 ## Overview
 This guide provides the standard patterns and best practices for creating client-side services in EventForge. Following these patterns ensures consistency, proper error handling, authentication management, and maintainability.
 
