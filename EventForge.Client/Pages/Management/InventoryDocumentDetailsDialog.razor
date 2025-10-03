@@ -1,8 +1,23 @@
 @using EventForge.DTOs.Warehouse
 @using MudBlazor
+@using EventForge.Client.Services
 @inject ITranslationService TranslationService
+@inject IInventoryService InventoryService
+@inject ISnackbar Snackbar
+@inject ILogger<InventoryDocumentDetailsDialog> Logger
+@inject IDialogService DialogService
 
 <MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Class="mr-2" />
+            @TranslationService.GetTranslation("warehouse.documentDetails", "Dettagli Documento")
+            @if (Document != null)
+            {
+                <span class="ml-2">- @Document.Number</span>
+            }
+        </MudText>
+    </TitleContent>
     <DialogContent>
         @if (Document != null)
         {
@@ -153,7 +168,27 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Close" Color="Color.Primary">@TranslationService.GetTranslation("common.close", "Chiudi")</MudButton>
+        @if (Document != null && Document.Status == "Draft")
+        {
+            <MudButton StartIcon="@Icons.Material.Outlined.CheckCircle" 
+                       Color="Color.Success" 
+                       Variant="Variant.Filled"
+                       OnClick="@FinalizeDocument"
+                       Disabled="_isProcessing">
+                @if (_isProcessing)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                    <span class="ml-2">@TranslationService.GetTranslation("common.processing", "Elaborazione...")</span>
+                }
+                else
+                {
+                    @TranslationService.GetTranslation("warehouse.finalizeDocument", "Finalizza Documento")
+                }
+            </MudButton>
+        }
+        <MudButton OnClick="Close" Color="Color.Default">
+            @TranslationService.GetTranslation("common.close", "Chiudi")
+        </MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -164,5 +199,74 @@
     [Parameter]
     public InventoryDocumentDto? Document { get; set; }
 
+    [Parameter]
+    public EventCallback<InventoryDocumentDto> OnFinalize { get; set; }
+
+    private bool _isProcessing = false;
+
     private void Close() => MudDialog?.Close();
+
+    private async Task FinalizeDocument()
+    {
+        if (Document == null || Document.Status != "Draft")
+            return;
+
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslation("warehouse.confirmFinalizeDocument", 
+            "Sei sicuro di voler finalizzare il documento '{0}'? Una volta finalizzato, il documento non potrà più essere modificato e gli aggiustamenti di stock verranno applicati.", 
+            Document.Number);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                _isProcessing = true;
+                StateHasChanged();
+
+                var result = await InventoryService.FinalizeInventoryDocumentAsync(Document.Id);
+                
+                if (result != null)
+                {
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("warehouse.documentFinalized", "Documento finalizzato con successo!"), 
+                        Severity.Success);
+                    
+                    // Update the document with the new status
+                    Document = result;
+                    
+                    // Notify parent component
+                    if (OnFinalize.HasDelegate)
+                    {
+                        await OnFinalize.InvokeAsync(result);
+                    }
+                    
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("warehouse.finalizeDocumentError", "Errore nella finalizzazione del documento"), 
+                        Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error finalizing inventory document {DocumentId}", Document.Id);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.finalizeDocumentError", "Errore nella finalizzazione del documento: {0}", ex.Message), 
+                    Severity.Error);
+            }
+            finally
+            {
+                _isProcessing = false;
+                StateHasChanged();
+            }
+        }
+    }
 }
