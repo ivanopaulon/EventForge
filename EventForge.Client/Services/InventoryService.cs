@@ -1,7 +1,5 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
-using System.Net.Http.Json;
-using System.Text.Json;
 
 namespace EventForge.Client.Services;
 
@@ -10,34 +8,21 @@ namespace EventForge.Client.Services;
 /// </summary>
 public class InventoryService : IInventoryService
 {
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IHttpClientService _httpClientService;
     private readonly ILogger<InventoryService> _logger;
     private const string BaseUrl = "api/v1/warehouse/inventory";
 
-    public InventoryService(IHttpClientFactory httpClientFactory, ILogger<InventoryService> logger)
+    public InventoryService(IHttpClientService httpClientService, ILogger<InventoryService> logger)
     {
-        _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<PagedResult<InventoryEntryDto>?> GetInventoryEntriesAsync(int page = 1, int pageSize = 20)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.GetAsync($"{BaseUrl}?page={page}&pageSize={pageSize}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<PagedResult<InventoryEntryDto>>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            _logger.LogError("Failed to retrieve inventory entries. Status: {StatusCode}", response.StatusCode);
-            return null;
+            return await _httpClientService.GetAsync<PagedResult<InventoryEntryDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
         }
         catch (Exception ex)
         {
@@ -48,22 +33,9 @@ public class InventoryService : IInventoryService
 
     public async Task<InventoryEntryDto?> CreateInventoryEntryAsync(CreateInventoryEntryDto createDto)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.PostAsJsonAsync(BaseUrl, createDto);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<InventoryEntryDto>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            _logger.LogError("Failed to create inventory entry. Status: {StatusCode}", response.StatusCode);
-            return null;
+            return await _httpClientService.PostAsync<CreateInventoryEntryDto, InventoryEntryDto>(BaseUrl, createDto);
         }
         catch (Exception ex)
         {
@@ -74,22 +46,9 @@ public class InventoryService : IInventoryService
 
     public async Task<InventoryDocumentDto?> StartInventoryDocumentAsync(CreateInventoryDocumentDto createDto)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.PostAsJsonAsync($"{BaseUrl}/document/start", createDto);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<InventoryDocumentDto>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            _logger.LogError("Failed to start inventory document. Status: {StatusCode}", response.StatusCode);
-            return null;
+            return await _httpClientService.PostAsync<CreateInventoryDocumentDto, InventoryDocumentDto>($"{BaseUrl}/document/start", createDto);
         }
         catch (Exception ex)
         {
@@ -100,22 +59,9 @@ public class InventoryService : IInventoryService
 
     public async Task<InventoryDocumentDto?> AddInventoryDocumentRowAsync(Guid documentId, AddInventoryDocumentRowDto rowDto)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.PostAsJsonAsync($"{BaseUrl}/document/{documentId}/row", rowDto);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<InventoryDocumentDto>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            _logger.LogError("Failed to add inventory document row. Status: {StatusCode}", response.StatusCode);
-            return null;
+            return await _httpClientService.PostAsync<AddInventoryDocumentRowDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row", rowDto);
         }
         catch (Exception ex)
         {
@@ -126,22 +72,9 @@ public class InventoryService : IInventoryService
 
     public async Task<InventoryDocumentDto?> FinalizeInventoryDocumentAsync(Guid documentId)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.PostAsync($"{BaseUrl}/document/{documentId}/finalize", null);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<InventoryDocumentDto>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            _logger.LogError("Failed to finalize inventory document. Status: {StatusCode}", response.StatusCode);
-            return null;
+            return await _httpClientService.PostAsync<object, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/finalize", new { });
         }
         catch (Exception ex)
         {
@@ -152,22 +85,9 @@ public class InventoryService : IInventoryService
 
     public async Task<InventoryDocumentDto?> GetInventoryDocumentAsync(Guid documentId)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.GetAsync($"{BaseUrl}/document/{documentId}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<InventoryDocumentDto>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            _logger.LogError("Failed to get inventory document. Status: {StatusCode}", response.StatusCode);
-            return null;
+            return await _httpClientService.GetAsync<InventoryDocumentDto>($"{BaseUrl}/document/{documentId}");
         }
         catch (Exception ex)
         {
@@ -178,7 +98,6 @@ public class InventoryService : IInventoryService
 
     public async Task<PagedResult<InventoryDocumentDto>?> GetInventoryDocumentsAsync(int page = 1, int pageSize = 20, string? status = null, DateTime? fromDate = null, DateTime? toDate = null)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
             var queryParams = new List<string>
@@ -203,19 +122,7 @@ public class InventoryService : IInventoryService
             }
 
             var queryString = string.Join("&", queryParams);
-            var response = await httpClient.GetAsync($"{BaseUrl}/documents?{queryString}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<PagedResult<InventoryDocumentDto>>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            _logger.LogError("Failed to retrieve inventory documents. Status: {StatusCode}", response.StatusCode);
-            return null;
+            return await _httpClientService.GetAsync<PagedResult<InventoryDocumentDto>>($"{BaseUrl}/documents?{queryString}");
         }
         catch (Exception ex)
         {
