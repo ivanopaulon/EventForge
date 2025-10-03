@@ -988,31 +988,37 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is string action)
+        if (!result.Canceled && result.Data != null)
         {
-            if (action == "create")
+            // Handle string actions (create, skip)
+            if (result.Data is string action)
             {
-                CreateNewProduct();
+                if (action == "create")
+                {
+                    CreateNewProduct();
+                }
+                else if (action == "skip")
+                {
+                    // Skip this product and continue with inventory
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato: {0}", _scannedBarcode), 
+                        Severity.Info
+                    );
+                    AddOperationLog(
+                        TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato"),
+                        $"Codice: {_scannedBarcode}",
+                        "Info"
+                    );
+                    
+                    // Clear the form and refocus on barcode input
+                    ClearProductForm();
+                }
             }
-            else if (action == "assign")
+            // Handle assignment result from integrated search
+            else
             {
-                await AssignToExistingProduct();
-            }
-            else if (action == "skip")
-            {
-                // Skip this product and continue with inventory
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato: {0}", _scannedBarcode), 
-                    Severity.Info
-                );
-                AddOperationLog(
-                    TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato"),
-                    $"Codice: {_scannedBarcode}",
-                    "Info"
-                );
-                
-                // Clear the form and refocus on barcode input
-                ClearProductForm();
+                // Product was assigned directly from the dialog, search again to load it
+                await SearchBarcode();
             }
         }
     }
@@ -1035,34 +1041,5 @@
     {
         // Product created successfully, search again to load it
         await SearchBarcode();
-    }
-
-    private async Task AssignToExistingProduct()
-    {
-        var parameters = new DialogParameters
-        {
-            { "Barcode", _scannedBarcode }
-        };
-
-        var options = new DialogOptions
-        {
-            CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
-
-        var dialog = await DialogService.ShowAsync<AssignBarcodeDialog>(
-            TranslationService.GetTranslation("products.assignBarcode", "Assegna Codice a Barre"),
-            parameters,
-            options
-        );
-
-        var result = await dialog.Result;
-
-        if (!result.Canceled)
-        {
-            // Barcode assigned successfully, search again to load the product
-            await SearchBarcode();
-        }
     }
 }
