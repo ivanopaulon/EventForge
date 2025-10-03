@@ -85,9 +85,16 @@ public class StorageFacilityService : IStorageFacilityService
             ArgumentNullException.ThrowIfNull(createDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for storage facility operations.");
+            }
+
             var facility = new StorageFacility
             {
                 Id = Guid.NewGuid(),
+                TenantId = currentTenantId.Value,
                 Name = createDto.Name,
                 Code = createDto.Code,
                 Address = createDto.Address,
