@@ -8,6 +8,7 @@
 @inject IProductService ProductService
 @inject IInventoryService InventoryService
 @inject IStorageLocationService StorageLocationService
+@inject IWarehouseService WarehouseService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
@@ -41,6 +42,30 @@
     {
         <MudProgressLinear Indeterminate="true" Class="mb-4" />
     }
+
+    <!-- Storage Facility Selection -->
+    <MudPaper Elevation="2" Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-3">
+            <MudIcon Icon="@Icons.Material.Outlined.Warehouse" Class="mr-2" />
+            @TranslationService.GetTranslation("warehouse.selectStorageFacility", "Seleziona Magazzino")
+        </MudText>
+        
+        <MudSelect T="Guid?"
+                   @bind-Value="_selectedStorageFacilityId"
+                   Label="@TranslationService.GetTranslation("warehouse.storageFacility", "Magazzino")"
+                   Variant="Variant.Outlined"
+                   Required="true"
+                   Adornment="Adornment.Start"
+                   AdornmentIcon="@Icons.Material.Outlined.Business">
+            @if (_storageFacilities != null)
+            {
+                @foreach (var facility in _storageFacilities)
+                {
+                    <MudSelectItem Value="@((Guid?)facility.Id)">@facility.Name - @facility.Code</MudSelectItem>
+                }
+            }
+        </MudSelect>
+    </MudPaper>
 
     <!-- Barcode Scanner Section -->
     <MudPaper Elevation="2" Class="pa-4 mb-4">
@@ -201,7 +226,9 @@
     private bool _productSearched = false;
     private ProductDto? _currentProduct;
     private List<StorageLocationDto> _locations = new();
+    private List<StorageFacilityDto> _storageFacilities = new();
     private Guid? _selectedLocationId;
+    private Guid? _selectedStorageFacilityId;
     private decimal _quantity = 0;
     private string _notes = string.Empty;
     private List<InventoryEntryDto> _recentEntries = new();
@@ -214,7 +241,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadLocations();
+        await Task.WhenAll(
+            LoadStorageFacilities(),
+            LoadLocations()
+        );
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -222,6 +252,34 @@
         if (firstRender && _barcodeInput != null)
         {
             await _barcodeInput.FocusAsync();
+        }
+    }
+
+    private async Task LoadStorageFacilities()
+    {
+        _isLoading = true;
+        try
+        {
+            var result = await WarehouseService.GetStorageFacilitiesAsync(1, 100);
+            if (result?.Items != null)
+            {
+                _storageFacilities = result.Items.ToList();
+                
+                // Auto-select the first facility if only one exists
+                if (_storageFacilities.Count == 1)
+                {
+                    _selectedStorageFacilityId = _storageFacilities[0].Id;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading storage facilities");
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.loadFacilitiesError", "Errore nel caricamento dei magazzini"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
         }
     }
 
