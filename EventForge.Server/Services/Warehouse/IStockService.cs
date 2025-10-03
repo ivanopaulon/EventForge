@@ -75,6 +75,11 @@ public interface IStockService
     Task<IEnumerable<StockDto>> GetOverstockAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Updates the last inventory date for a stock entry.
+    /// </summary>
+    Task UpdateLastInventoryDateAsync(Guid stockId, DateTime inventoryDate, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Deletes a stock entry.
     /// </summary>
     Task<bool> DeleteStockAsync(Guid id, string currentUser, CancellationToken cancellationToken = default);
