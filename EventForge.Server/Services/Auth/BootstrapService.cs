@@ -640,36 +640,112 @@ public class BootstrapService : IBootstrapService
             var defaultPermissions = new[]
             {
                 // User management
-                new Permission { Name = "Users.Users.Create", DisplayName = "Create Users", Category = "Users", Resource = "Users", Action = "Create", IsSystemPermission = true },
-                new Permission { Name = "Users.Users.Read", DisplayName = "View Users", Category = "Users", Resource = "Users", Action = "Read", IsSystemPermission = true },
-                new Permission { Name = "Users.Users.Update", DisplayName = "Update Users", Category = "Users", Resource = "Users", Action = "Update", IsSystemPermission = true },
-                new Permission { Name = "Users.Users.Delete", DisplayName = "Delete Users", Category = "Users", Resource = "Users", Action = "Delete", IsSystemPermission = true },
+                new Permission { Name = "Users.Users.Create", DisplayName = "Create Users", Category = "Users", Resource = "Users", Action = "Create", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Users.Users.Read", DisplayName = "View Users", Category = "Users", Resource = "Users", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Users.Users.Update", DisplayName = "Update Users", Category = "Users", Resource = "Users", Action = "Update", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Users.Users.Delete", DisplayName = "Delete Users", Category = "Users", Resource = "Users", Action = "Delete", IsSystemPermission = true, TenantId = Guid.Empty },
 
                 // Role management
-                new Permission { Name = "Users.Roles.Create", DisplayName = "Create Roles", Category = "Users", Resource = "Roles", Action = "Create", IsSystemPermission = true },
-                new Permission { Name = "Users.Roles.Read", DisplayName = "View Roles", Category = "Users", Resource = "Roles", Action = "Read", IsSystemPermission = true },
-                new Permission { Name = "Users.Roles.Update", DisplayName = "Update Roles", Category = "Users", Resource = "Roles", Action = "Update", IsSystemPermission = true },
-                new Permission { Name = "Users.Roles.Delete", DisplayName = "Delete Roles", Category = "Users", Resource = "Roles", Action = "Delete", IsSystemPermission = true },
+                new Permission { Name = "Users.Roles.Create", DisplayName = "Create Roles", Category = "Users", Resource = "Roles", Action = "Create", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Users.Roles.Read", DisplayName = "View Roles", Category = "Users", Resource = "Roles", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Users.Roles.Update", DisplayName = "Update Roles", Category = "Users", Resource = "Roles", Action = "Update", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Users.Roles.Delete", DisplayName = "Delete Roles", Category = "Users", Resource = "Roles", Action = "Delete", IsSystemPermission = true, TenantId = Guid.Empty },
 
                 // Events
-                new Permission { Name = "Events.Events.Create", DisplayName = "Create Events", Category = "Events", Resource = "Events", Action = "Create", IsSystemPermission = true },
-                new Permission { Name = "Events.Events.Read", DisplayName = "View Events", Category = "Events", Resource = "Events", Action = "Read", IsSystemPermission = true },
-                new Permission { Name = "Events.Events.Update", DisplayName = "Update Events", Category = "Events", Resource = "Events", Action = "Update", IsSystemPermission = true },
-                new Permission { Name = "Events.Events.Delete", DisplayName = "Delete Events", Category = "Events", Resource = "Events", Action = "Delete", IsSystemPermission = true },
+                new Permission { Name = "Events.Events.Create", DisplayName = "Create Events", Category = "Events", Resource = "Events", Action = "Create", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Events.Events.Read", DisplayName = "View Events", Category = "Events", Resource = "Events", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Events.Events.Update", DisplayName = "Update Events", Category = "Events", Resource = "Events", Action = "Update", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Events.Events.Delete", DisplayName = "Delete Events", Category = "Events", Resource = "Events", Action = "Delete", IsSystemPermission = true, TenantId = Guid.Empty },
 
                 // Teams
-                new Permission { Name = "Events.Teams.Create", DisplayName = "Create Teams", Category = "Events", Resource = "Teams", Action = "Create", IsSystemPermission = true },
-                new Permission { Name = "Events.Teams.Read", DisplayName = "View Teams", Category = "Events", Resource = "Teams", Action = "Read", IsSystemPermission = true },
-                new Permission { Name = "Events.Teams.Update", DisplayName = "Update Teams", Category = "Events", Resource = "Teams", Action = "Update", IsSystemPermission = true },
-                new Permission { Name = "Events.Teams.Delete", DisplayName = "Delete Teams", Category = "Events", Resource = "Teams", Action = "Delete", IsSystemPermission = true },
+                new Permission { Name = "Events.Teams.Create", DisplayName = "Create Teams", Category = "Events", Resource = "Teams", Action = "Create", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Events.Teams.Read", DisplayName = "View Teams", Category = "Events", Resource = "Teams", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Events.Teams.Update", DisplayName = "Update Teams", Category = "Events", Resource = "Teams", Action = "Update", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Events.Teams.Delete", DisplayName = "Delete Teams", Category = "Events", Resource = "Teams", Action = "Delete", IsSystemPermission = true, TenantId = Guid.Empty },
+
+                // Products
+                new Permission { Name = "Products.Products.Create", DisplayName = "Create Products", Category = "Products", Resource = "Products", Action = "Create", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Products.Products.Read", DisplayName = "View Products", Category = "Products", Resource = "Products", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Products.Products.Update", DisplayName = "Update Products", Category = "Products", Resource = "Products", Action = "Update", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Products.Products.Delete", DisplayName = "Delete Products", Category = "Products", Resource = "Products", Action = "Delete", IsSystemPermission = true, TenantId = Guid.Empty },
+
+                // Warehouse
+                new Permission { Name = "Products.Warehouse.Create", DisplayName = "Create Warehouse Operations", Category = "Products", Resource = "Warehouse", Action = "Create", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Products.Warehouse.Read", DisplayName = "View Warehouse Operations", Category = "Products", Resource = "Warehouse", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Products.Warehouse.Update", DisplayName = "Update Warehouse Operations", Category = "Products", Resource = "Warehouse", Action = "Update", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Products.Warehouse.Delete", DisplayName = "Delete Warehouse Operations", Category = "Products", Resource = "Warehouse", Action = "Delete", IsSystemPermission = true, TenantId = Guid.Empty },
+
+                // Documents
+                new Permission { Name = "Documents.Documents.Create", DisplayName = "Create Documents", Category = "Documents", Resource = "Documents", Action = "Create", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Documents.Documents.Read", DisplayName = "View Documents", Category = "Documents", Resource = "Documents", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Documents.Documents.Update", DisplayName = "Update Documents", Category = "Documents", Resource = "Documents", Action = "Update", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Documents.Documents.Delete", DisplayName = "Delete Documents", Category = "Documents", Resource = "Documents", Action = "Delete", IsSystemPermission = true, TenantId = Guid.Empty },
+
+                // Financial
+                new Permission { Name = "Financial.Banks.Create", DisplayName = "Create Banks", Category = "Financial", Resource = "Banks", Action = "Create", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Financial.Banks.Read", DisplayName = "View Banks", Category = "Financial", Resource = "Banks", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Financial.Banks.Update", DisplayName = "Update Banks", Category = "Financial", Resource = "Banks", Action = "Update", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Financial.Banks.Delete", DisplayName = "Delete Banks", Category = "Financial", Resource = "Banks", Action = "Delete", IsSystemPermission = true, TenantId = Guid.Empty },
+
+                // Sales
+                new Permission { Name = "Sales.Sales.Create", DisplayName = "Create Sales", Category = "Sales", Resource = "Sales", Action = "Create", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Sales.Sales.Read", DisplayName = "View Sales", Category = "Sales", Resource = "Sales", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Sales.Sales.Update", DisplayName = "Update Sales", Category = "Sales", Resource = "Sales", Action = "Update", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Sales.Sales.Delete", DisplayName = "Delete Sales", Category = "Sales", Resource = "Sales", Action = "Delete", IsSystemPermission = true, TenantId = Guid.Empty },
+
+                // Tables
+                new Permission { Name = "Sales.Tables.Create", DisplayName = "Create Tables", Category = "Sales", Resource = "Tables", Action = "Create", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Sales.Tables.Read", DisplayName = "View Tables", Category = "Sales", Resource = "Tables", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Sales.Tables.Update", DisplayName = "Update Tables", Category = "Sales", Resource = "Tables", Action = "Update", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Sales.Tables.Delete", DisplayName = "Delete Tables", Category = "Sales", Resource = "Tables", Action = "Delete", IsSystemPermission = true, TenantId = Guid.Empty },
+
+                // Payment Methods
+                new Permission { Name = "Sales.PaymentMethods.Create", DisplayName = "Create Payment Methods", Category = "Sales", Resource = "PaymentMethods", Action = "Create", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Sales.PaymentMethods.Read", DisplayName = "View Payment Methods", Category = "Sales", Resource = "PaymentMethods", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Sales.PaymentMethods.Update", DisplayName = "Update Payment Methods", Category = "Sales", Resource = "PaymentMethods", Action = "Update", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Sales.PaymentMethods.Delete", DisplayName = "Delete Payment Methods", Category = "Sales", Resource = "PaymentMethods", Action = "Delete", IsSystemPermission = true, TenantId = Guid.Empty },
+
+                // Notifications
+                new Permission { Name = "Communication.Notifications.Create", DisplayName = "Create Notifications", Category = "Communication", Resource = "Notifications", Action = "Create", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Communication.Notifications.Read", DisplayName = "View Notifications", Category = "Communication", Resource = "Notifications", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Communication.Notifications.Update", DisplayName = "Update Notifications", Category = "Communication", Resource = "Notifications", Action = "Update", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Communication.Notifications.Delete", DisplayName = "Delete Notifications", Category = "Communication", Resource = "Notifications", Action = "Delete", IsSystemPermission = true, TenantId = Guid.Empty },
+
+                // Chat
+                new Permission { Name = "Communication.Chat.Create", DisplayName = "Create Chat Messages", Category = "Communication", Resource = "Chat", Action = "Create", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Communication.Chat.Read", DisplayName = "View Chat Messages", Category = "Communication", Resource = "Chat", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Communication.Chat.Update", DisplayName = "Update Chat Messages", Category = "Communication", Resource = "Chat", Action = "Update", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Communication.Chat.Delete", DisplayName = "Delete Chat Messages", Category = "Communication", Resource = "Chat", Action = "Delete", IsSystemPermission = true, TenantId = Guid.Empty },
+
+                // Retail
+                new Permission { Name = "Retail.Carts.Create", DisplayName = "Create Retail Carts", Category = "Retail", Resource = "Carts", Action = "Create", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Retail.Carts.Read", DisplayName = "View Retail Carts", Category = "Retail", Resource = "Carts", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Retail.Carts.Update", DisplayName = "Update Retail Carts", Category = "Retail", Resource = "Carts", Action = "Update", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Retail.Carts.Delete", DisplayName = "Delete Retail Carts", Category = "Retail", Resource = "Carts", Action = "Delete", IsSystemPermission = true, TenantId = Guid.Empty },
+
+                // Stores
+                new Permission { Name = "Retail.Stores.Create", DisplayName = "Create Stores", Category = "Retail", Resource = "Stores", Action = "Create", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Retail.Stores.Read", DisplayName = "View Stores", Category = "Retail", Resource = "Stores", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Retail.Stores.Update", DisplayName = "Update Stores", Category = "Retail", Resource = "Stores", Action = "Update", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Retail.Stores.Delete", DisplayName = "Delete Stores", Category = "Retail", Resource = "Stores", Action = "Delete", IsSystemPermission = true, TenantId = Guid.Empty },
+
+                // Printing
+                new Permission { Name = "Printing.Print.Create", DisplayName = "Create Print Jobs", Category = "Printing", Resource = "Print", Action = "Create", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Printing.Print.Read", DisplayName = "View Print Jobs", Category = "Printing", Resource = "Print", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty },
+
+                // Entities
+                new Permission { Name = "Entities.Entities.Create", DisplayName = "Create Entities", Category = "Entities", Resource = "Entities", Action = "Create", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Entities.Entities.Read", DisplayName = "View Entities", Category = "Entities", Resource = "Entities", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Entities.Entities.Update", DisplayName = "Update Entities", Category = "Entities", Resource = "Entities", Action = "Update", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Entities.Entities.Delete", DisplayName = "Delete Entities", Category = "Entities", Resource = "Entities", Action = "Delete", IsSystemPermission = true, TenantId = Guid.Empty },
 
                 // Reports
-                new Permission { Name = "Reports.Reports.Read", DisplayName = "View Reports", Category = "Reports", Resource = "Reports", Action = "Read", IsSystemPermission = true },
-                new Permission { Name = "Reports.Audit.Read", DisplayName = "View Audit Logs", Category = "Reports", Resource = "Audit", Action = "Read", IsSystemPermission = true },
+                new Permission { Name = "Reports.Reports.Read", DisplayName = "View Reports", Category = "Reports", Resource = "Reports", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "Reports.Audit.Read", DisplayName = "View Audit Logs", Category = "Reports", Resource = "Audit", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty },
 
                 // System
-                new Permission { Name = "System.Settings.Update", DisplayName = "Update System Settings", Category = "System", Resource = "Settings", Action = "Update", IsSystemPermission = true },
-                new Permission { Name = "System.Logs.Read", DisplayName = "View System Logs", Category = "System", Resource = "Logs", Action = "Read", IsSystemPermission = true }
+                new Permission { Name = "System.Settings.Update", DisplayName = "Update System Settings", Category = "System", Resource = "Settings", Action = "Update", IsSystemPermission = true, TenantId = Guid.Empty },
+                new Permission { Name = "System.Logs.Read", DisplayName = "View System Logs", Category = "System", Resource = "Logs", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty }
             };
 
             // Add permissions if they don't exist
@@ -691,11 +767,11 @@ public class BootstrapService : IBootstrapService
             // Define default roles
             var defaultRoles = new[]
             {
-                new Role { Name = "SuperAdmin", DisplayName = "Super Administrator", Description = "Full unrestricted system access", IsSystemRole = true },
-                new Role { Name = "Admin", DisplayName = "System Administrator", Description = "Full system access", IsSystemRole = true },
-                new Role { Name = "Manager", DisplayName = "Manager", Description = "Management level access", IsSystemRole = true },
-                new Role { Name = "User", DisplayName = "Standard User", Description = "Basic user access", IsSystemRole = true },
-                new Role { Name = "Viewer", DisplayName = "Viewer", Description = "Read-only access", IsSystemRole = true }
+                new Role { Name = "SuperAdmin", DisplayName = "Super Administrator", Description = "Full unrestricted system access", IsSystemRole = true, TenantId = Guid.Empty },
+                new Role { Name = "Admin", DisplayName = "System Administrator", Description = "Full system access", IsSystemRole = true, TenantId = Guid.Empty },
+                new Role { Name = "Manager", DisplayName = "Manager", Description = "Management level access", IsSystemRole = true, TenantId = Guid.Empty },
+                new Role { Name = "User", DisplayName = "Standard User", Description = "Basic user access", IsSystemRole = true, TenantId = Guid.Empty },
+                new Role { Name = "Viewer", DisplayName = "Viewer", Description = "Read-only access", IsSystemRole = true, TenantId = Guid.Empty }
             };
 
             // Add roles if they don't exist
@@ -732,7 +808,8 @@ public class BootstrapService : IBootstrapService
                         GrantedBy = "system",
                         GrantedAt = DateTime.UtcNow,
                         CreatedBy = "system",
-                        CreatedAt = DateTime.UtcNow
+                        CreatedAt = DateTime.UtcNow,
+                        TenantId = Guid.Empty
                     };
 
                     _dbContext.RolePermissions.Add(rolePermission);
