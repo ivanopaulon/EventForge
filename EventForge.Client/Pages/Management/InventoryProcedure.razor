@@ -968,7 +968,8 @@
     {
         var parameters = new DialogParameters
         {
-            { "Barcode", _scannedBarcode }
+            { "Barcode", _scannedBarcode },
+            { "IsInventoryContext", true }
         };
 
         var options = new DialogOptions
@@ -996,6 +997,22 @@
             else if (action == "assign")
             {
                 await AssignToExistingProduct();
+            }
+            else if (action == "skip")
+            {
+                // Skip this product and continue with inventory
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato: {0}", _scannedBarcode), 
+                    Severity.Info
+                );
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato"),
+                    $"Codice: {_scannedBarcode}",
+                    "Info"
+                );
+                
+                // Clear the form and refocus on barcode input
+                ClearProductForm();
             }
         }
     }

@@ -8,24 +8,51 @@
         </MudAlert>
 
         <MudText Typo="Typo.body1" Class="mb-4">
-            @TranslationService.GetTranslation("warehouse.createOrAssignPrompt", "Cosa vuoi fare?")
+            @if (IsInventoryContext)
+            {
+                @TranslationService.GetTranslation("warehouse.inventoryProductNotFoundPrompt", "Il prodotto non esiste. Salta questo codice o assegnalo a un prodotto esistente?")
+            }
+            else
+            {
+                @TranslationService.GetTranslation("warehouse.createOrAssignPrompt", "Cosa vuoi fare?")
+            }
         </MudText>
 
         <MudStack Spacing="3">
-            <MudButton StartIcon="@Icons.Material.Outlined.Add"
-                      Color="Color.Primary"
-                      Variant="Variant.Filled"
-                      FullWidth="true"
-                      OnClick="@(() => SelectAction("create"))">
-                @TranslationService.GetTranslation("warehouse.createNewProduct", "Crea Nuovo Prodotto")
-            </MudButton>
-            <MudButton StartIcon="@Icons.Material.Outlined.Link"
-                      Color="Color.Secondary"
-                      Variant="Variant.Filled"
-                      FullWidth="true"
-                      OnClick="@(() => SelectAction("assign"))">
-                @TranslationService.GetTranslation("warehouse.assignToExisting", "Assegna a Prodotto Esistente")
-            </MudButton>
+            @if (IsInventoryContext)
+            {
+                <MudButton StartIcon="@Icons.Material.Outlined.SkipNext"
+                          Color="Color.Info"
+                          Variant="Variant.Filled"
+                          FullWidth="true"
+                          OnClick="@(() => SelectAction("skip"))">
+                    @TranslationService.GetTranslation("warehouse.skipProduct", "Salta e Continua")
+                </MudButton>
+                <MudButton StartIcon="@Icons.Material.Outlined.Link"
+                          Color="Color.Primary"
+                          Variant="Variant.Filled"
+                          FullWidth="true"
+                          OnClick="@(() => SelectAction("assign"))">
+                    @TranslationService.GetTranslation("warehouse.assignToExisting", "Assegna a Prodotto Esistente")
+                </MudButton>
+            }
+            else
+            {
+                <MudButton StartIcon="@Icons.Material.Outlined.Add"
+                          Color="Color.Primary"
+                          Variant="Variant.Filled"
+                          FullWidth="true"
+                          OnClick="@(() => SelectAction("create"))">
+                    @TranslationService.GetTranslation("warehouse.createNewProduct", "Crea Nuovo Prodotto")
+                </MudButton>
+                <MudButton StartIcon="@Icons.Material.Outlined.Link"
+                          Color="Color.Secondary"
+                          Variant="Variant.Filled"
+                          FullWidth="true"
+                          OnClick="@(() => SelectAction("assign"))">
+                    @TranslationService.GetTranslation("warehouse.assignToExisting", "Assegna a Prodotto Esistente")
+                </MudButton>
+            }
         </MudStack>
     </DialogContent>
     <DialogActions>
@@ -41,6 +68,9 @@
 
     [Parameter]
     public string Barcode { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool IsInventoryContext { get; set; } = false;
 
     private void SelectAction(string action)
     {
