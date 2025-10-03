@@ -71,4 +71,108 @@ public class InventoryService : IInventoryService
             return null;
         }
     }
+
+    public async Task<InventoryDocumentDto?> StartInventoryDocumentAsync(CreateInventoryDocumentDto createDto)
+    {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync($"{BaseUrl}/document/start", createDto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<InventoryDocumentDto>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+
+            _logger.LogError("Failed to start inventory document. Status: {StatusCode}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error starting inventory document");
+            return null;
+        }
+    }
+
+    public async Task<InventoryDocumentDto?> AddInventoryDocumentRowAsync(Guid documentId, AddInventoryDocumentRowDto rowDto)
+    {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync($"{BaseUrl}/document/{documentId}/row", rowDto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<InventoryDocumentDto>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+
+            _logger.LogError("Failed to add inventory document row. Status: {StatusCode}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding inventory document row");
+            return null;
+        }
+    }
+
+    public async Task<InventoryDocumentDto?> FinalizeInventoryDocumentAsync(Guid documentId)
+    {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        try
+        {
+            var response = await httpClient.PostAsync($"{BaseUrl}/document/{documentId}/finalize", null);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<InventoryDocumentDto>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+
+            _logger.LogError("Failed to finalize inventory document. Status: {StatusCode}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error finalizing inventory document");
+            return null;
+        }
+    }
+
+    public async Task<InventoryDocumentDto?> GetInventoryDocumentAsync(Guid documentId)
+    {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        try
+        {
+            var response = await httpClient.GetAsync($"{BaseUrl}/document/{documentId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<InventoryDocumentDto>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+
+            _logger.LogError("Failed to get inventory document. Status: {StatusCode}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting inventory document");
+            return null;
+        }
+    }
 }

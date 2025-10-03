@@ -5,6 +5,7 @@ using EventForge.Server.Services.Warehouse;
 using EventForge.Server.Services.Documents;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using EntityDocumentStatus = EventForge.Server.Data.Entities.Documents.DocumentStatus;
 
 namespace EventForge.Server.Controllers;
 
@@ -1163,6 +1164,72 @@ public class WarehouseManagementController : BaseApiController
     #endregion
 
     #region Inventory Document Management
+
+    /// <summary>
+    /// Gets an inventory document by ID.
+    /// </summary>
+    /// <param name="documentId">Inventory document ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Inventory document</returns>
+    /// <response code="200">Returns the inventory document</response>
+    /// <response code="404">If the document is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("inventory/document/{documentId:guid}")]
+    [ProducesResponseType(typeof(InventoryDocumentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetInventoryDocument(Guid documentId, CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            if (documentHeader == null)
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Title = "Document not found",
+                    Detail = $"Inventory document with ID {documentId} was not found.",
+                    Status = StatusCodes.Status404NotFound
+                });
+            }
+
+            var result = new InventoryDocumentDto
+            {
+                Id = documentHeader.Id,
+                Number = documentHeader.Number,
+                Series = documentHeader.Series,
+                InventoryDate = documentHeader.Date,
+                WarehouseId = documentHeader.SourceWarehouseId,
+                WarehouseName = documentHeader.SourceWarehouseName,
+                Status = documentHeader.Status.ToString(),
+                Notes = documentHeader.Notes,
+                CreatedAt = documentHeader.CreatedAt,
+                CreatedBy = documentHeader.CreatedBy,
+                FinalizedAt = documentHeader.ClosedAt,
+                FinalizedBy = documentHeader.Status.ToString() == "Closed" ? documentHeader.ModifiedBy : null,
+                Rows = documentHeader.Rows?.Select(r => new InventoryDocumentRowDto
+                {
+                    Id = r.Id,
+                    ProductCode = r.ProductCode ?? string.Empty,
+                    LocationName = r.Description,
+                    Quantity = r.Quantity,
+                    Notes = r.Notes,
+                    CreatedAt = r.CreatedAt,
+                    CreatedBy = r.CreatedBy
+                }).ToList() ?? new List<InventoryDocumentRowDto>()
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving inventory document {DocumentId}.", documentId);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving inventory document.", ex);
+        }
+    }
 
     /// <summary>
     /// Starts a new inventory document.
