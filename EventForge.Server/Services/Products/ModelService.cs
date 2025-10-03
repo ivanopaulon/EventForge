@@ -47,7 +47,7 @@ public class ModelService : IModelService
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
-            var modelDtos = models.Select(MapToModelDto);
+            var modelDtos = models.Select(MapToModelDto).ToList();
 
             return new PagedResult<ModelDto>
             {
@@ -86,7 +86,7 @@ public class ModelService : IModelService
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
-            var modelDtos = models.Select(MapToModelDto);
+            var modelDtos = models.Select(MapToModelDto).ToList();
 
             return new PagedResult<ModelDto>
             {
