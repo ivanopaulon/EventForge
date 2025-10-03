@@ -1374,7 +1374,7 @@ public class ProductService : IProductService
             // Validate product exists
             var product = await _context.Products
                 .FirstOrDefaultAsync(p => p.Id == createProductSupplierDto.ProductId && !p.IsDeleted && p.TenantId == currentTenantId.Value, cancellationToken);
-            
+
             if (product == null)
             {
                 throw new InvalidOperationException($"Product with ID {createProductSupplierDto.ProductId} not found.");
@@ -1389,7 +1389,7 @@ public class ProductService : IProductService
             // Validate supplier exists and is a supplier type
             var supplier = await _context.BusinessParties
                 .FirstOrDefaultAsync(bp => bp.Id == createProductSupplierDto.SupplierId && !bp.IsDeleted && bp.TenantId == currentTenantId.Value, cancellationToken);
-            
+
             if (supplier == null)
             {
                 throw new InvalidOperationException($"Supplier with ID {createProductSupplierDto.SupplierId} not found.");
@@ -1488,7 +1488,7 @@ public class ProductService : IProductService
             {
                 var product = await _context.Products
                     .FirstOrDefaultAsync(p => p.Id == updateProductSupplierDto.ProductId && !p.IsDeleted && p.TenantId == currentTenantId.Value, cancellationToken);
-                
+
                 if (product == null)
                 {
                     throw new InvalidOperationException($"Product with ID {updateProductSupplierDto.ProductId} not found.");
@@ -1505,7 +1505,7 @@ public class ProductService : IProductService
             {
                 var supplier = await _context.BusinessParties
                     .FirstOrDefaultAsync(bp => bp.Id == updateProductSupplierDto.SupplierId && !bp.IsDeleted && bp.TenantId == currentTenantId.Value, cancellationToken);
-                
+
                 if (supplier == null)
                 {
                     throw new InvalidOperationException($"Supplier with ID {updateProductSupplierDto.SupplierId} not found.");

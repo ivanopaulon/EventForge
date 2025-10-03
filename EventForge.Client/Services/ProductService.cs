@@ -3,7 +3,6 @@ using EventForge.DTOs.Products;
 using EventForge.DTOs.Station;
 using EventForge.DTOs.UnitOfMeasures;
 using Microsoft.AspNetCore.Components.Forms;
-using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace EventForge.Client.Services;

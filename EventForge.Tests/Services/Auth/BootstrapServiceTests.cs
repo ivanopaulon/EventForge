@@ -380,11 +380,11 @@ public class BootstrapServiceTests
         // Verify SuperAdmin role has all permissions assigned
         Assert.NotEmpty(superAdminRole.RolePermissions);
         Assert.Equal(allPermissions.Count, superAdminRole.RolePermissions.Count);
-        
+
         // Verify each permission is assigned to SuperAdmin role
         foreach (var permission in allPermissions)
         {
-            Assert.Contains(superAdminRole.RolePermissions, 
+            Assert.Contains(superAdminRole.RolePermissions,
                 rp => rp.PermissionId == permission.Id && rp.RoleId == superAdminRole.Id);
         }
 

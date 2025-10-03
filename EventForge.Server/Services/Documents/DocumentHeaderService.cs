@@ -1,6 +1,6 @@
 using EventForge.DTOs.Documents;
-using Microsoft.EntityFrameworkCore;
 using EventForge.Server.Mappers;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Documents;
 
@@ -565,7 +565,7 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             await _auditLogService.TrackEntityChangesAsync(row, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Document row {RowId} added to document {DocumentHeaderId} by {User}.", 
+            _logger.LogInformation("Document row {RowId} added to document {DocumentHeaderId} by {User}.",
                 row.Id, createDto.DocumentHeaderId, currentUser);
 
             return row.ToDto();

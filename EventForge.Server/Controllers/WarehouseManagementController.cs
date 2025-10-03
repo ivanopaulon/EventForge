@@ -1,8 +1,8 @@
-using EventForge.DTOs.Warehouse;
 using EventForge.DTOs.Documents;
+using EventForge.DTOs.Warehouse;
 using EventForge.Server.Filters;
-using EventForge.Server.Services.Warehouse;
 using EventForge.Server.Services.Documents;
+using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using EntityDocumentStatus = EventForge.Server.Data.Entities.Documents.DocumentStatus;
@@ -1102,8 +1102,8 @@ public class WarehouseManagementController : BaseApiController
             // This provides full audit trail and traceability
             if (adjustmentQuantity != 0)
             {
-                var adjustmentReason = adjustmentQuantity > 0 
-                    ? "Inventory Count - Found Additional Stock" 
+                var adjustmentReason = adjustmentQuantity > 0
+                    ? "Inventory Count - Found Additional Stock"
                     : "Inventory Count - Stock Shortage Detected";
 
                 await _stockMovementService.ProcessAdjustmentMovementAsync(
@@ -1200,7 +1200,7 @@ public class WarehouseManagementController : BaseApiController
         {
             // Get or create the inventory document type
             var inventoryDocType = await _documentHeaderService.GetOrCreateInventoryDocumentTypeAsync(
-                _tenantContext.CurrentTenantId!.Value, 
+                _tenantContext.CurrentTenantId!.Value,
                 cancellationToken);
 
             // Build query parameters to filter inventory documents
@@ -1515,7 +1515,7 @@ public class WarehouseManagementController : BaseApiController
 
             // Get updated document
             var updatedDocument = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
-            
+
             // Enrich all rows with product and location data
             var enrichedRows = new List<InventoryDocumentRowDto>();
             if (updatedDocument!.Rows != null)
@@ -1528,12 +1528,12 @@ public class WarehouseManagementController : BaseApiController
                     {
                         productId = parsedProductId;
                     }
-                    
+
                     // Parse location from description - format is "ProductName @ LocationCode"
                     var descriptionParts = row.Description?.Split('@') ?? Array.Empty<string>();
                     var productName = descriptionParts.Length > 0 ? descriptionParts[0].Trim() : string.Empty;
                     var locationName = descriptionParts.Length > 1 ? descriptionParts[1].Trim() : row.Description ?? string.Empty;
-                    
+
                     // For the new row we just added, we have complete data
                     if (row.Id == documentRow.Id)
                     {
@@ -1558,7 +1558,7 @@ public class WarehouseManagementController : BaseApiController
                     }
                 }
             }
-            
+
             var result = new InventoryDocumentDto
             {
                 Id = updatedDocument.Id,
