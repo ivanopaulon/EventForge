@@ -3,6 +3,7 @@
 @using EventForge.DTOs.Common
 @using EventForge.DTOs.Warehouse
 @using EventForge.DTOs.Products
+@using EventForge.Client.Shared.Components
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @inject IProductService ProductService
 @inject IInventoryService InventoryService
@@ -188,6 +189,12 @@
     }
 </MudContainer>
 
+<ProductDrawer @bind-IsOpen="_productDrawerOpen"
+               @bind-Mode="_productDrawerMode"
+               OriginalProduct="_productForDrawer"
+               AllowEdit="false"
+               OnProductCreated="@HandleProductCreated" />
+
 @code {
     private bool _isLoading = false;
     private string _scannedBarcode = string.Empty;
@@ -199,6 +206,11 @@
     private string _notes = string.Empty;
     private List<InventoryEntryDto> _recentEntries = new();
     private MudTextField<string>? _barcodeInput;
+    
+    // ProductDrawer related fields
+    private bool _productDrawerOpen = false;
+    private EntityDrawerMode _productDrawerMode = EntityDrawerMode.Create;
+    private ProductDto? _productForDrawer;
 
     protected override async Task OnInitializedAsync()
     {
@@ -367,7 +379,7 @@
         {
             if (action == "create")
             {
-                await CreateNewProduct();
+                CreateNewProduct();
             }
             else if (action == "assign")
             {
@@ -376,33 +388,24 @@
         }
     }
 
-    private async Task CreateNewProduct()
+    private void CreateNewProduct()
     {
-        var parameters = new DialogParameters
+        // Create a new ProductDto with the scanned barcode as Code
+        _productForDrawer = new ProductDto
         {
-            { "Barcode", _scannedBarcode }
+            Code = _scannedBarcode,
+            Name = string.Empty,
+            Status = ProductStatus.Active
         };
-
-        var options = new DialogOptions
-        {
-            CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
-
-        var dialog = await DialogService.ShowAsync<CreateProductDialog>(
-            TranslationService.GetTranslation("products.createProduct", "Crea Nuovo Prodotto"),
-            parameters,
-            options
-        );
-
-        var result = await dialog.Result;
-
-        if (!result.Canceled && result.Data is ProductDto createdProduct)
-        {
-            // Product created successfully, search again to load it
-            await SearchBarcode();
-        }
+        
+        _productDrawerMode = EntityDrawerMode.Create;
+        _productDrawerOpen = true;
+    }
+    
+    private async Task HandleProductCreated(ProductDto createdProduct)
+    {
+        // Product created successfully, search again to load it
+        await SearchBarcode();
     }
 
     private async Task AssignToExistingProduct()
