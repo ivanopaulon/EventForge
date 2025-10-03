@@ -45,7 +45,7 @@ public class BrandService : IBrandService
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
-            var brandDtos = brands.Select(MapToBrandDto);
+            var brandDtos = brands.Select(MapToBrandDto).ToList();
 
             return new PagedResult<BrandDto>
             {
