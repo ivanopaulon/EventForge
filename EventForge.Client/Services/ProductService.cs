@@ -137,6 +137,32 @@ public class ProductService : IProductService
         }
     }
 
+    public async Task<ProductDto?> UpdateProductAsync(Guid id, UpdateProductDto updateDto)
+    {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        try
+        {
+            var response = await httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", updateDto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<ProductDto>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+
+            _logger.LogError("Failed to update product {Id}. Status: {StatusCode}", id, response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating product {Id}", id);
+            return null;
+        }
+    }
+
     public async Task<ProductCodeDto?> CreateProductCodeAsync(CreateProductCodeDto createDto)
     {
         var httpClient = _httpClientFactory.CreateClient("ApiClient");

@@ -99,6 +99,41 @@ namespace EventForge.DTOs.Products
         public bool IsBundle { get; set; }
 
         /// <summary>
+        /// Brand identifier.
+        /// </summary>
+        public Guid? BrandId { get; set; }
+
+        /// <summary>
+        /// Model identifier.
+        /// </summary>
+        public Guid? ModelId { get; set; }
+
+        /// <summary>
+        /// Preferred supplier identifier.
+        /// </summary>
+        public Guid? PreferredSupplierId { get; set; }
+
+        /// <summary>
+        /// Reorder point - inventory level at which to reorder.
+        /// </summary>
+        public decimal? ReorderPoint { get; set; }
+
+        /// <summary>
+        /// Safety stock level - minimum stock to maintain.
+        /// </summary>
+        public decimal? SafetyStock { get; set; }
+
+        /// <summary>
+        /// Target stock level - desired inventory level.
+        /// </summary>
+        public decimal? TargetStockLevel { get; set; }
+
+        /// <summary>
+        /// Average daily demand for inventory planning.
+        /// </summary>
+        public decimal? AverageDailyDemand { get; set; }
+
+        /// <summary>
         /// Number of product codes associated with the product.
         /// </summary>
         public int CodeCount { get; set; }

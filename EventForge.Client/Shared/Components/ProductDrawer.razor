@@ -2,9 +2,17 @@
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.Common
 @using EventForge.DTOs.Business
+@using EventForge.DTOs.VatRates
+@using EventForge.DTOs.UnitOfMeasures
+@using EventForge.DTOs.Station
 @using EventForge.Client.Shared.Components
 @inject IProductService ProductService
 @inject IBusinessPartyService BusinessPartyService
+@inject IBrandService BrandService
+@inject IModelService ModelService
+@inject IFinancialService FinancialService
+@inject IUMService UMService
+@inject IEntityManagementService EntityManagementService
 @inject ISnackbar Snackbar
 @inject ILogger<ProductDrawer> Logger
 @inject ITranslationService TranslationService
@@ -23,13 +31,22 @@
     
     <FormContent>
         <MudGrid>
+            <!-- Basic Information Section -->
+            <MudItem xs="12">
+                <MudText Typo="Typo.h6" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Info" Class="mr-2" />
+                    @TranslationService.GetTranslation("product.basicInfo", "Informazioni di Base")
+                </MudText>
+                <MudDivider Class="mb-3" />
+            </MudItem>
+            
             <MudItem xs="12" md="6">
                 <MudTextField @bind-Value="_model.Name"
                               Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
                               Variant="Variant.Outlined"
                               Required="true"
                               RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
-                              MaxLength="200"
+                              MaxLength="100"
                               Immediate="true"
                               aria-describedby="name-help" />
                 <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
@@ -44,9 +61,37 @@
                               Required="true"
                               RequiredError="@TranslationService.GetTranslation("validation.codeRequired", "Il codice è obbligatorio")"
                               MaxLength="100"
+                              Disabled="@(Mode == EntityDrawerMode.Edit)"
                               aria-describedby="code-help" />
                 <MudText id="code-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                    @TranslationService.GetTranslation("drawer.helperText.productCode", "Codice identificativo del prodotto")
+                    @TranslationService.GetTranslation("drawer.helperText.productCode", "Codice identificativo del prodotto (immutabile dopo la creazione)")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.ShortDescription"
+                              Label="@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")"
+                              Variant="Variant.Outlined"
+                              MaxLength="50"
+                              aria-describedby="shortDesc-help" />
+                <MudText id="shortDesc-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.shortDescription", "Descrizione breve del prodotto")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="_model.Status"
+                           Label="@($"{TranslationService.GetTranslation("field.status", "Stato")} *")"
+                           Variant="Variant.Outlined"
+                           Required="true"
+                           aria-describedby="status-help">
+                    <MudSelectItem Value="@ProductStatus.Active">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
+                    <MudSelectItem Value="@ProductStatus.Suspended">@TranslationService.GetTranslation("status.suspended", "Sospeso")</MudSelectItem>
+                    <MudSelectItem Value="@ProductStatus.OutOfStock">@TranslationService.GetTranslation("status.outOfStock", "Esaurito")</MudSelectItem>
+                    <MudSelectItem Value="@ProductStatus.Deleted">@TranslationService.GetTranslation("status.deleted", "Eliminato")</MudSelectItem>
+                </MudSelect>
+                <MudText id="status-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.status", "Stato corrente del prodotto")
                 </MudText>
             </MudItem>
             
@@ -55,10 +100,311 @@
                               Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
                               Variant="Variant.Outlined"
                               Lines="3"
-                              MaxLength="1000"
+                              MaxLength="500"
                               aria-describedby="description-help" />
                 <MudText id="description-help" Typo="Typo.caption" Class="mud-input-helper-text">
                     @TranslationService.GetTranslation("drawer.helperText.description", "Descrizione dettagliata del prodotto")
+                </MudText>
+            </MudItem>
+            
+            <!-- Pricing Section -->
+            <MudItem xs="12" Class="mt-4">
+                <MudText Typo="Typo.h6" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Euro" Class="mr-2" />
+                    @TranslationService.GetTranslation("product.pricingInfo", "Informazioni Prezzo")
+                </MudText>
+                <MudDivider Class="mb-3" />
+            </MudItem>
+            
+            <MudItem xs="12" md="4">
+                <MudNumericField @bind-Value="_model.DefaultPrice"
+                                 Label="@TranslationService.GetTranslation("field.defaultPrice", "Prezzo Predefinito")"
+                                 Variant="Variant.Outlined"
+                                 Min="0"
+                                 Format="N2"
+                                 aria-describedby="price-help" />
+                <MudText id="price-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.defaultPrice", "Prezzo predefinito del prodotto")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="4">
+                <MudSelect @bind-Value="_model.VatRateId"
+                           Label="@TranslationService.GetTranslation("field.vatRate", "Aliquota IVA")"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           aria-describedby="vatRate-help">
+                    @if (_vatRates != null)
+                    {
+                        @foreach (var vat in _vatRates)
+                        {
+                            <MudSelectItem Value="@((Guid?)vat.Id)">@($"{vat.Name} ({vat.Percentage}%)")</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+                <MudText id="vatRate-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.vatRate", "Aliquota IVA applicabile")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="4">
+                <MudCheckBox @bind-Value="_model.IsVatIncluded"
+                             Label="@TranslationService.GetTranslation("field.isVatIncluded", "IVA Inclusa")"
+                             Color="Color.Primary"
+                             aria-describedby="vatIncluded-help" />
+                <MudText id="vatIncluded-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.isVatIncluded", "Indica se il prezzo include l'IVA")
+                </MudText>
+            </MudItem>
+            
+            <!-- Units and Classification Section -->
+            <MudItem xs="12" Class="mt-4">
+                <MudText Typo="Typo.h6" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Category" Class="mr-2" />
+                    @TranslationService.GetTranslation("product.classification", "Classificazione e Unità")
+                </MudText>
+                <MudDivider Class="mb-3" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="_model.UnitOfMeasureId"
+                           Label="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           aria-describedby="um-help">
+                    @if (_unitsMeasure != null)
+                    {
+                        @foreach (var um in _unitsMeasure)
+                        {
+                            <MudSelectItem Value="@((Guid?)um.Id)">@($"{um.Name} ({um.Symbol})")</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+                <MudText id="um-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.unitOfMeasure", "Unità di misura predefinita")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="_model.StationId"
+                           Label="@TranslationService.GetTranslation("field.station", "Stazione")"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           aria-describedby="station-help">
+                    @if (_stations != null)
+                    {
+                        @foreach (var station in _stations)
+                        {
+                            <MudSelectItem Value="@((Guid?)station.Id)">@station.Name</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+                <MudText id="station-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.station", "Stazione associata al prodotto")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="4">
+                <MudSelect @bind-Value="_model.CategoryNodeId"
+                           Label="@TranslationService.GetTranslation("field.category", "Categoria")"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           aria-describedby="category-help">
+                    @if (_classificationNodes != null)
+                    {
+                        @foreach (var node in _classificationNodes.Where(n => n.Type == ProductClassificationType.Category))
+                        {
+                            <MudSelectItem Value="@((Guid?)node.Id)">@node.Name</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+                <MudText id="category-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.category", "Categoria principale")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="4">
+                <MudSelect @bind-Value="_model.FamilyNodeId"
+                           Label="@TranslationService.GetTranslation("field.subcategory", "Sottocategoria")"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           aria-describedby="subcategory-help">
+                    @if (_classificationNodes != null)
+                    {
+                        @foreach (var node in _classificationNodes.Where(n => n.Type == ProductClassificationType.Subcategory))
+                        {
+                            <MudSelectItem Value="@((Guid?)node.Id)">@node.Name</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+                <MudText id="subcategory-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.subcategory", "Sottocategoria di prodotti")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="4">
+                <MudSelect @bind-Value="_model.GroupNodeId"
+                           Label="@TranslationService.GetTranslation("field.line", "Linea")"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           aria-describedby="line-help">
+                    @if (_classificationNodes != null)
+                    {
+                        @foreach (var node in _classificationNodes.Where(n => n.Type == ProductClassificationType.Line))
+                        {
+                            <MudSelectItem Value="@((Guid?)node.Id)">@node.Name</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+                <MudText id="line-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.line", "Linea di prodotti")
+                </MudText>
+            </MudItem>
+            
+            <!-- Brand and Model Section -->
+            <MudItem xs="12" Class="mt-4">
+                <MudText Typo="Typo.h6" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.BrandingWatermark" Class="mr-2" />
+                    @TranslationService.GetTranslation("product.brandModel", "Marchio e Modello")
+                </MudText>
+                <MudDivider Class="mb-3" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudSelect T="Guid?" 
+                           Value="_model.BrandId"
+                           ValueChanged="@OnBrandChanged"
+                           Label="@TranslationService.GetTranslation("field.brand", "Marchio")"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           aria-describedby="brand-help">
+                    @if (_brands != null)
+                    {
+                        @foreach (var brand in _brands)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)brand.Id)">@brand.Name</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+                <MudText id="brand-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.brand", "Marchio del prodotto")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="_model.ModelId"
+                           Label="@TranslationService.GetTranslation("field.model", "Modello")"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           Disabled="@(_model.BrandId == null || _models == null || !_models.Any())"
+                           aria-describedby="model-help">
+                    @if (_models != null && _model.BrandId != null)
+                    {
+                        @foreach (var model in _models)
+                        {
+                            <MudSelectItem Value="@((Guid?)model.Id)">@model.Name</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+                <MudText id="model-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.model", "Modello del prodotto (seleziona prima un marchio)")
+                </MudText>
+            </MudItem>
+            
+            <!-- Supplier Section -->
+            <MudItem xs="12" Class="mt-4">
+                <MudText Typo="Typo.h6" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Store" Class="mr-2" />
+                    @TranslationService.GetTranslation("product.supplier", "Fornitore")
+                </MudText>
+                <MudDivider Class="mb-3" />
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudSelect @bind-Value="_model.PreferredSupplierId"
+                           Label="@TranslationService.GetTranslation("field.preferredSupplier", "Fornitore Preferito")"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           aria-describedby="supplier-help">
+                    @if (_businessParties != null)
+                    {
+                        @foreach (var supplier in _businessParties.Where(bp => bp.PartyType == BusinessPartyType.Supplier || bp.PartyType == BusinessPartyType.Both))
+                        {
+                            <MudSelectItem Value="@((Guid?)supplier.Id)">@supplier.Name</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+                <MudText id="supplier-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.preferredSupplier", "Fornitore preferito per questo prodotto")
+                </MudText>
+            </MudItem>
+            
+            <!-- Inventory Section -->
+            <MudItem xs="12" Class="mt-4">
+                <MudText Typo="Typo.h6" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Inventory" Class="mr-2" />
+                    @TranslationService.GetTranslation("product.inventory", "Gestione Inventario")
+                </MudText>
+                <MudDivider Class="mb-3" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudNumericField @bind-Value="_model.ReorderPoint"
+                                 Label="@TranslationService.GetTranslation("field.reorderPoint", "Punto di Riordino")"
+                                 Variant="Variant.Outlined"
+                                 Min="0"
+                                 Format="N2"
+                                 aria-describedby="reorder-help" />
+                <MudText id="reorder-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.reorderPoint", "Livello di inventario al quale riordinare")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudNumericField @bind-Value="_model.SafetyStock"
+                                 Label="@TranslationService.GetTranslation("field.safetyStock", "Stock di Sicurezza")"
+                                 Variant="Variant.Outlined"
+                                 Min="0"
+                                 Format="N2"
+                                 aria-describedby="safety-help" />
+                <MudText id="safety-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.safetyStock", "Stock minimo di sicurezza da mantenere")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudNumericField @bind-Value="_model.TargetStockLevel"
+                                 Label="@TranslationService.GetTranslation("field.targetStockLevel", "Livello Stock Obiettivo")"
+                                 Variant="Variant.Outlined"
+                                 Min="0"
+                                 Format="N2"
+                                 aria-describedby="target-help" />
+                <MudText id="target-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.targetStockLevel", "Livello di inventario desiderato")
+                </MudText>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudNumericField @bind-Value="_model.AverageDailyDemand"
+                                 Label="@TranslationService.GetTranslation("field.averageDailyDemand", "Domanda Media Giornaliera")"
+                                 Variant="Variant.Outlined"
+                                 Min="0"
+                                 Format="N2"
+                                 aria-describedby="demand-help" />
+                <MudText id="demand-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.averageDailyDemand", "Domanda media giornaliera per pianificazione inventario")
+                </MudText>
+            </MudItem>
+            
+            <!-- Bundle Section -->
+            <MudItem xs="12" Class="mt-4">
+                <MudCheckBox @bind-Value="_model.IsBundle"
+                             Label="@TranslationService.GetTranslation("field.isBundle", "È un Bundle")"
+                             Color="Color.Primary"
+                             Disabled="@(Mode == EntityDrawerMode.Edit)"
+                             aria-describedby="bundle-help" />
+                <MudText id="bundle-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.isBundle", "Indica se il prodotto è composto da altri prodotti (immutabile dopo la creazione)")
                 </MudText>
             </MudItem>
             
@@ -169,10 +515,19 @@
 </EntityDrawer>
 
 @code {
-    private ProductDto _model = new() { Name = string.Empty, Code = string.Empty };
+    private ProductDto _model = new() { Name = string.Empty, Code = string.Empty, Status = ProductStatus.Active };
     private string? _customTitle;
     private bool _loadingSuppliers = false;
     private IEnumerable<ProductSupplierDto>? _suppliers;
+    
+    // Dropdown data
+    private IEnumerable<VatRateDto>? _vatRates;
+    private IEnumerable<UMDto>? _unitsMeasure;
+    private IEnumerable<StationDto>? _stations;
+    private IEnumerable<ClassificationNodeDto>? _classificationNodes;
+    private IEnumerable<BrandDto>? _brands;
+    private IEnumerable<ModelDto>? _models;
+    private IEnumerable<BusinessPartyDto>? _businessParties;
 
     /// <summary>
     /// Whether the drawer is open.
@@ -218,29 +573,181 @@
     {
         if (IsOpen && Mode == EntityDrawerMode.Edit && OriginalProduct != null)
         {
-            // Copy properties for editing
+            // Copy ALL properties for editing
             _model = new ProductDto
             {
                 Id = OriginalProduct.Id,
                 Name = OriginalProduct.Name,
                 Code = OriginalProduct.Code,
                 Description = OriginalProduct.Description,
-                ShortDescription = OriginalProduct.ShortDescription
+                ShortDescription = OriginalProduct.ShortDescription,
+                Status = OriginalProduct.Status,
+                DefaultPrice = OriginalProduct.DefaultPrice,
+                IsVatIncluded = OriginalProduct.IsVatIncluded,
+                VatRateId = OriginalProduct.VatRateId,
+                UnitOfMeasureId = OriginalProduct.UnitOfMeasureId,
+                CategoryNodeId = OriginalProduct.CategoryNodeId,
+                FamilyNodeId = OriginalProduct.FamilyNodeId,
+                GroupNodeId = OriginalProduct.GroupNodeId,
+                StationId = OriginalProduct.StationId,
+                IsBundle = OriginalProduct.IsBundle,
+                BrandId = OriginalProduct.BrandId,
+                ModelId = OriginalProduct.ModelId,
+                PreferredSupplierId = OriginalProduct.PreferredSupplierId,
+                ReorderPoint = OriginalProduct.ReorderPoint,
+                SafetyStock = OriginalProduct.SafetyStock,
+                TargetStockLevel = OriginalProduct.TargetStockLevel,
+                AverageDailyDemand = OriginalProduct.AverageDailyDemand
             };
 
-            // Load suppliers
+            // Load dropdown data and suppliers
+            await LoadDropdownDataAsync();
             await LoadSuppliersAsync();
         }
         else if (IsOpen && Mode == EntityDrawerMode.View && OriginalProduct != null)
         {
             _model = OriginalProduct;
+            await LoadDropdownDataAsync();
             await LoadSuppliersAsync();
         }
         else if (IsOpen && Mode == EntityDrawerMode.Create)
         {
-            _model = new ProductDto { Name = string.Empty, Code = string.Empty };
+            _model = new ProductDto { Name = string.Empty, Code = string.Empty, Status = ProductStatus.Active };
             ClearSuppliers();
+            await LoadDropdownDataAsync();
         }
+    }
+
+    private async Task LoadDropdownDataAsync()
+    {
+        try
+        {
+            // Load all dropdown data in parallel for better performance
+            var tasks = new List<Task>
+            {
+                LoadVatRatesAsync(),
+                LoadUnitsOfMeasureAsync(),
+                LoadStationsAsync(),
+                LoadClassificationNodesAsync(),
+                LoadBrandsAsync(),
+                LoadBusinessPartiesAsync()
+            };
+
+            // If editing and a brand is selected, also load models
+            if (_model.BrandId.HasValue)
+            {
+                tasks.Add(LoadModelsForBrandAsync(_model.BrandId.Value));
+            }
+
+            await Task.WhenAll(tasks);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load dropdown data");
+            Snackbar.Add(TranslationService.GetTranslation("messages.loadFailed", "Errore durante il caricamento dei dati"), Severity.Warning);
+        }
+    }
+
+    private async Task LoadVatRatesAsync()
+    {
+        try
+        {
+            _vatRates = await FinancialService.GetVatRatesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load VAT rates");
+        }
+    }
+
+    private async Task LoadUnitsOfMeasureAsync()
+    {
+        try
+        {
+            var result = await UMService.GetUMsAsync(1, 100);
+            _unitsMeasure = result?.Items ?? new List<UMDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load units of measure");
+        }
+    }
+
+    private async Task LoadStationsAsync()
+    {
+        try
+        {
+            _stations = await ProductService.GetStationsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load stations");
+        }
+    }
+
+    private async Task LoadClassificationNodesAsync()
+    {
+        try
+        {
+            _classificationNodes = await EntityManagementService.GetClassificationNodesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load classification nodes");
+        }
+    }
+
+    private async Task LoadBrandsAsync()
+    {
+        try
+        {
+            var result = await BrandService.GetBrandsAsync(1, 100);
+            _brands = result?.Items ?? new List<BrandDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load brands");
+        }
+    }
+
+    private async Task LoadModelsForBrandAsync(Guid brandId)
+    {
+        try
+        {
+            var result = await ModelService.GetModelsByBrandIdAsync(brandId, 1, 100);
+            _models = result?.Items ?? new List<ModelDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load models for brand {BrandId}", brandId);
+        }
+    }
+
+    private async Task LoadBusinessPartiesAsync()
+    {
+        try
+        {
+            var result = await BusinessPartyService.GetBusinessPartiesAsync(1, 1000);
+            _businessParties = result?.Items ?? new List<BusinessPartyDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load business parties");
+        }
+    }
+
+    private async Task OnBrandChanged(Guid? brandId)
+    {
+        _model.BrandId = brandId;
+        _model.ModelId = null; // Clear model when brand changes
+        _models = null;
+
+        if (brandId.HasValue)
+        {
+            await LoadModelsForBrandAsync(brandId.Value);
+        }
+        
+        StateHasChanged();
     }
 
     private async Task LoadSuppliersAsync()
@@ -280,7 +787,24 @@
                     Name = _model.Name,
                     Code = _model.Code,
                     Description = _model.Description,
-                    ShortDescription = _model.ShortDescription
+                    ShortDescription = _model.ShortDescription,
+                    Status = _model.Status,
+                    DefaultPrice = _model.DefaultPrice,
+                    IsVatIncluded = _model.IsVatIncluded,
+                    VatRateId = _model.VatRateId,
+                    UnitOfMeasureId = _model.UnitOfMeasureId,
+                    CategoryNodeId = _model.CategoryNodeId,
+                    FamilyNodeId = _model.FamilyNodeId,
+                    GroupNodeId = _model.GroupNodeId,
+                    StationId = _model.StationId,
+                    IsBundle = _model.IsBundle,
+                    BrandId = _model.BrandId,
+                    ModelId = _model.ModelId,
+                    PreferredSupplierId = _model.PreferredSupplierId,
+                    ReorderPoint = _model.ReorderPoint,
+                    SafetyStock = _model.SafetyStock,
+                    TargetStockLevel = _model.TargetStockLevel,
+                    AverageDailyDemand = _model.AverageDailyDemand
                 };
                 
                 var newProduct = await ProductService.CreateProductAsync(createDto);
@@ -301,9 +825,44 @@
             }
             else if (Mode == EntityDrawerMode.Edit && OriginalProduct != null)
             {
-                // Note: We need UpdateProductDto - for now just show a message
-                Snackbar.Add(TranslationService.GetTranslation("messages.updateNotImplemented", "Aggiornamento prodotto non ancora implementato"), Severity.Info);
-                return;
+                var updateDto = new UpdateProductDto
+                {
+                    Name = _model.Name,
+                    Description = _model.Description,
+                    ShortDescription = _model.ShortDescription,
+                    Status = _model.Status,
+                    DefaultPrice = _model.DefaultPrice,
+                    IsVatIncluded = _model.IsVatIncluded,
+                    VatRateId = _model.VatRateId,
+                    UnitOfMeasureId = _model.UnitOfMeasureId,
+                    CategoryNodeId = _model.CategoryNodeId,
+                    FamilyNodeId = _model.FamilyNodeId,
+                    GroupNodeId = _model.GroupNodeId,
+                    StationId = _model.StationId,
+                    BrandId = _model.BrandId,
+                    ModelId = _model.ModelId,
+                    PreferredSupplierId = _model.PreferredSupplierId,
+                    ReorderPoint = _model.ReorderPoint,
+                    SafetyStock = _model.SafetyStock,
+                    TargetStockLevel = _model.TargetStockLevel,
+                    AverageDailyDemand = _model.AverageDailyDemand
+                };
+                
+                var updatedProduct = await ProductService.UpdateProductAsync(OriginalProduct.Id, updateDto);
+                if (updatedProduct != null)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornamento completato con successo"), Severity.Success);
+                    
+                    if (OnProductUpdated.HasDelegate)
+                    {
+                        await OnProductUpdated.InvokeAsync(updatedProduct);
+                    }
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("messages.updateFailed", "Errore durante l'aggiornamento"), Severity.Error);
+                    return;
+                }
             }
             
             await HandleClose();
@@ -329,9 +888,18 @@
         await IsOpenChanged.InvokeAsync(IsOpen);
         
         // Reset state
-        _model = new ProductDto { Name = string.Empty, Code = string.Empty };
+        _model = new ProductDto { Name = string.Empty, Code = string.Empty, Status = ProductStatus.Active };
         _customTitle = null;
         ClearSuppliers();
+        
+        // Clear dropdown data
+        _vatRates = null;
+        _unitsMeasure = null;
+        _stations = null;
+        _classificationNodes = null;
+        _brands = null;
+        _models = null;
+        _businessParties = null;
     }
 
     #region Supplier Management
