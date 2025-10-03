@@ -1,6 +1,4 @@
 using EventForge.DTOs.Sales;
-using System.Net.Http.Json;
-using System.Text.Json;
 
 namespace EventForge.Client.Services.Sales;
 
@@ -9,25 +7,21 @@ namespace EventForge.Client.Services.Sales;
 /// </summary>
 public class PaymentMethodService : IPaymentMethodService
 {
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IHttpClientService _httpClientService;
     private readonly ILogger<PaymentMethodService> _logger;
     private const string BaseUrl = "api/v1/payment-methods";
 
-    public PaymentMethodService(IHttpClientFactory httpClientFactory, ILogger<PaymentMethodService> logger)
+    public PaymentMethodService(IHttpClientService httpClientService, ILogger<PaymentMethodService> logger)
     {
-        _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<List<PaymentMethodDto>?> GetAllAsync()
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            return await httpClient.GetFromJsonAsync<List<PaymentMethodDto>>(BaseUrl, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            return await _httpClientService.GetAsync<List<PaymentMethodDto>>(BaseUrl);
         }
         catch (Exception ex)
         {
@@ -38,13 +32,9 @@ public class PaymentMethodService : IPaymentMethodService
 
     public async Task<List<PaymentMethodDto>?> GetActiveAsync()
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            return await httpClient.GetFromJsonAsync<List<PaymentMethodDto>>($"{BaseUrl}/active", new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            return await _httpClientService.GetAsync<List<PaymentMethodDto>>($"{BaseUrl}/active");
         }
         catch (Exception ex)
         {
@@ -55,25 +45,9 @@ public class PaymentMethodService : IPaymentMethodService
 
     public async Task<PaymentMethodDto?> GetByIdAsync(Guid id)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.GetAsync($"{BaseUrl}/{id}");
-            if (response.IsSuccessStatusCode)
-            {
-                return await response.Content.ReadFromJsonAsync<PaymentMethodDto>(new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                return null;
-            }
-
-            _logger.LogError("Failed to retrieve payment method {Id}. Status: {StatusCode}", id, response.StatusCode);
-            return null;
+            return await _httpClientService.GetAsync<PaymentMethodDto>($"{BaseUrl}/{id}");
         }
         catch (Exception ex)
         {
@@ -84,20 +58,9 @@ public class PaymentMethodService : IPaymentMethodService
 
     public async Task<PaymentMethodDto?> CreateAsync(CreatePaymentMethodDto createDto)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.PostAsJsonAsync(BaseUrl, createDto);
-            if (response.IsSuccessStatusCode)
-            {
-                return await response.Content.ReadFromJsonAsync<PaymentMethodDto>(new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            _logger.LogError("Failed to create payment method. Status: {StatusCode}", response.StatusCode);
-            return null;
+            return await _httpClientService.PostAsync<CreatePaymentMethodDto, PaymentMethodDto>(BaseUrl, createDto);
         }
         catch (Exception ex)
         {
@@ -108,25 +71,9 @@ public class PaymentMethodService : IPaymentMethodService
 
     public async Task<PaymentMethodDto?> UpdateAsync(Guid id, UpdatePaymentMethodDto updateDto)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", updateDto);
-            if (response.IsSuccessStatusCode)
-            {
-                return await response.Content.ReadFromJsonAsync<PaymentMethodDto>(new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                return null;
-            }
-
-            _logger.LogError("Failed to update payment method {Id}. Status: {StatusCode}", id, response.StatusCode);
-            return null;
+            return await _httpClientService.PutAsync<UpdatePaymentMethodDto, PaymentMethodDto>($"{BaseUrl}/{id}", updateDto);
         }
         catch (Exception ex)
         {
@@ -137,11 +84,10 @@ public class PaymentMethodService : IPaymentMethodService
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
         try
         {
-            var response = await httpClient.DeleteAsync($"{BaseUrl}/{id}");
-            return response.IsSuccessStatusCode;
+            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
+            return true;
         }
         catch (Exception ex)
         {
