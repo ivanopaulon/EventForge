@@ -1516,9 +1516,52 @@ public class WarehouseManagementController : BaseApiController
             // Get updated document
             var updatedDocument = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
             
+            // Enrich all rows with product and location data
+            var enrichedRows = new List<InventoryDocumentRowDto>();
+            if (updatedDocument!.Rows != null)
+            {
+                foreach (var row in updatedDocument.Rows)
+                {
+                    // Try to parse ProductId from ProductCode if it's a GUID
+                    Guid? productId = null;
+                    if (Guid.TryParse(row.ProductCode, out var parsedProductId))
+                    {
+                        productId = parsedProductId;
+                    }
+                    
+                    // Parse location from description - format is "ProductName @ LocationCode"
+                    var descriptionParts = row.Description?.Split('@') ?? Array.Empty<string>();
+                    var productName = descriptionParts.Length > 0 ? descriptionParts[0].Trim() : string.Empty;
+                    var locationName = descriptionParts.Length > 1 ? descriptionParts[1].Trim() : row.Description ?? string.Empty;
+                    
+                    // For the new row we just added, we have complete data
+                    if (row.Id == documentRow.Id)
+                    {
+                        enrichedRows.Add(newRow);
+                    }
+                    else
+                    {
+                        // For existing rows, we need to fetch product/location info or use what we have
+                        enrichedRows.Add(new InventoryDocumentRowDto
+                        {
+                            Id = row.Id,
+                            ProductId = productId ?? Guid.Empty,
+                            ProductCode = row.ProductCode ?? string.Empty,
+                            ProductName = productName,
+                            LocationId = Guid.Empty, // We don't have this from DocumentRow
+                            LocationName = locationName,
+                            Quantity = row.Quantity,
+                            Notes = row.Notes,
+                            CreatedAt = row.CreatedAt,
+                            CreatedBy = row.CreatedBy
+                        });
+                    }
+                }
+            }
+            
             var result = new InventoryDocumentDto
             {
-                Id = updatedDocument!.Id,
+                Id = updatedDocument.Id,
                 Number = updatedDocument.Number,
                 Series = updatedDocument.Series,
                 InventoryDate = updatedDocument.Date,
@@ -1528,16 +1571,7 @@ public class WarehouseManagementController : BaseApiController
                 Notes = updatedDocument.Notes,
                 CreatedAt = updatedDocument.CreatedAt,
                 CreatedBy = updatedDocument.CreatedBy,
-                Rows = updatedDocument.Rows?.Select(r => new InventoryDocumentRowDto
-                {
-                    Id = r.Id,
-                    ProductCode = r.ProductCode ?? string.Empty,
-                    LocationName = r.Description,
-                    Quantity = r.Quantity,
-                    Notes = r.Notes,
-                    CreatedAt = r.CreatedAt,
-                    CreatedBy = r.CreatedBy
-                }).ToList() ?? new List<InventoryDocumentRowDto>()
+                Rows = enrichedRows
             };
 
             return Ok(result);
