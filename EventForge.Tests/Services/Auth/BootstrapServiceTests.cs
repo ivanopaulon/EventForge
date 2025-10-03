@@ -329,4 +329,79 @@ public class BootstrapServiceTests
         Assert.NotNull(updatedLicense);
         Assert.Equal(int.MaxValue, updatedLicense.MaxUsers); // Should be updated
     }
+
+    [Fact]
+    public async Task EnsureAdminBootstrappedAsync_ShouldAssignAllPermissionsToSuperAdminRole()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<EventForgeDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new EventForgeDbContext(options);
+
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string>
+            {
+                ["Bootstrap:SuperAdminPassword"] = "TestPassword123!",
+                ["Bootstrap:AutoCreateAdmin"] = "true"
+            })
+            .Build();
+
+        var logger = new LoggerFactory().CreateLogger<BootstrapService>();
+        var passwordLogger = new LoggerFactory().CreateLogger<PasswordService>();
+        var passwordService = new PasswordService(config, passwordLogger);
+        var bootstrapService = new BootstrapService(context, passwordService, config, logger);
+
+        // Act
+        var result = await bootstrapService.EnsureAdminBootstrappedAsync();
+
+        // Assert
+        Assert.True(result);
+
+        // Verify SuperAdmin role exists
+        var superAdminRole = await context.Roles
+            .Include(r => r.RolePermissions)
+                .ThenInclude(rp => rp.Permission)
+            .FirstOrDefaultAsync(r => r.Name == "SuperAdmin");
+        Assert.NotNull(superAdminRole);
+
+        // Verify Admin role exists
+        var adminRole = await context.Roles
+            .Include(r => r.RolePermissions)
+                .ThenInclude(rp => rp.Permission)
+            .FirstOrDefaultAsync(r => r.Name == "Admin");
+        Assert.NotNull(adminRole);
+
+        // Get all permissions
+        var allPermissions = await context.Permissions.ToListAsync();
+        Assert.NotEmpty(allPermissions);
+
+        // Verify SuperAdmin role has all permissions assigned
+        Assert.NotEmpty(superAdminRole.RolePermissions);
+        Assert.Equal(allPermissions.Count, superAdminRole.RolePermissions.Count);
+        
+        // Verify each permission is assigned to SuperAdmin role
+        foreach (var permission in allPermissions)
+        {
+            Assert.Contains(superAdminRole.RolePermissions, 
+                rp => rp.PermissionId == permission.Id && rp.RoleId == superAdminRole.Id);
+        }
+
+        // Verify Admin role also has all permissions assigned
+        Assert.NotEmpty(adminRole.RolePermissions);
+        Assert.Equal(allPermissions.Count, adminRole.RolePermissions.Count);
+
+        // Verify SuperAdmin user has SuperAdmin role
+        var superAdminUser = await context.Users
+            .Include(u => u.UserRoles)
+            .FirstOrDefaultAsync(u => u.Username == "superadmin");
+        Assert.NotNull(superAdminUser);
+        Assert.Single(superAdminUser.UserRoles);
+        Assert.Equal(superAdminRole.Id, superAdminUser.UserRoles.First().RoleId);
+
+        // Verify all role permissions have correct TenantId (system-level)
+        Assert.All(superAdminRole.RolePermissions, rp => Assert.Equal(Guid.Empty, rp.TenantId));
+        Assert.All(adminRole.RolePermissions, rp => Assert.Equal(Guid.Empty, rp.TenantId));
+    }
 }
