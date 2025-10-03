@@ -2,6 +2,8 @@
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Common
 @using EventForge.DTOs.Warehouse
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Services
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @inject IInventoryService InventoryService
 @inject ISnackbar Snackbar
@@ -43,9 +45,30 @@
         <MudProgressLinear Indeterminate="true" Class="mb-4" />
     }
 
-    <MudPaper Elevation="2" Class="pa-4">
+    <MudCard Elevation="2">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">
+                    <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Class="mr-2" />
+                    @TranslationService.GetTranslation("warehouse.documentsList", "Lista Documenti")
+                </MudText>
+            </CardHeaderContent>
+            <CardHeaderActions>
+                <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
+                                   ShowRefresh="true"
+                                   ShowExport="true"
+                                   ShowCreate="true"
+                                   CreateIcon="@Icons.Material.Outlined.Add"
+                                   CreateTooltip="@TranslationService.GetTranslation("warehouse.newInventory", "Nuova Procedura")"
+                                   IsDisabled="_isLoading"
+                                   OnRefresh="@LoadInventoryDocuments"
+                                   OnExport="@ExportDocuments"
+                                   OnCreate="@CreateNewInventory" />
+            </CardHeaderActions>
+        </MudCardHeader>
+        <MudCardContent>
         <!-- Filter Section -->
-        <MudGrid Class="mb-4">
+        <MudGrid Class="mb-4" Style="background-color: var(--mud-palette-background-grey); padding: 16px; border-radius: 4px;">
             <MudItem xs="12" md="3">
                 <MudSelect T="string" 
                            Label="@TranslationService.GetTranslation("common.status", "Stato")" 
@@ -88,7 +111,7 @@
         </MudGrid>
 
         <!-- Documents Table -->
-        <MudTable Items="_inventoryDocuments" Hover="true" Dense="true" Loading="_isLoading">
+        <MudTable Items="_inventoryDocuments" Hover="true" Dense="true" Loading="_isLoading" Striped="true">
             <HeaderContent>
                 <MudTh>@TranslationService.GetTranslation("document.number", "Numero")</MudTh>
                 <MudTh>@TranslationService.GetTranslation("document.date", "Data")</MudTh>
@@ -97,7 +120,7 @@
                 <MudTh>@TranslationService.GetTranslation("document.totalItems", "Articoli")</MudTh>
                 <MudTh>@TranslationService.GetTranslation("common.createdBy", "Creato Da")</MudTh>
                 <MudTh>@TranslationService.GetTranslation("common.createdAt", "Data Creazione")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                <MudTh Class="text-center">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Number">
@@ -112,11 +135,11 @@
                 <MudTd DataLabel="Status">
                     @if (context.Status == "Draft")
                     {
-                        <MudChip T="string" Color="Color.Warning" Size="Size.Small">@TranslationService.GetTranslation("document.status.draft", "Bozza")</MudChip>
+                        <MudChip T="string" Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Outlined.Edit">@TranslationService.GetTranslation("document.status.draft", "Bozza")</MudChip>
                     }
                     else if (context.Status == "Closed")
                     {
-                        <MudChip T="string" Color="Color.Success" Size="Size.Small">@TranslationService.GetTranslation("document.status.closed", "Chiuso")</MudChip>
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Outlined.CheckCircle">@TranslationService.GetTranslation("document.status.closed", "Chiuso")</MudChip>
                     }
                     else
                     {
@@ -128,16 +151,36 @@
                 </MudTd>
                 <MudTd DataLabel="CreatedBy">@(context.CreatedBy ?? "-")</MudTd>
                 <MudTd DataLabel="CreatedAt">@context.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudTd>
-                <MudTd DataLabel="Actions">
-                    <MudIconButton Icon="@Icons.Material.Outlined.RemoveRedEye" 
-                                   Color="Color.Primary" 
-                                   Size="Size.Small"
-                                   OnClick="@(() => ViewDocumentDetails(context))"
-                                   Title="@TranslationService.GetTranslation("common.view", "Visualizza")" />
+                <MudTd DataLabel="Actions" Class="text-center">
+                    <ActionButtonGroup EntityName="@TranslationService.GetTranslation("warehouse.inventoryDocument", "Documento Inventario")"
+                                      ItemDisplayName="@context.Number"
+                                      ShowView="true"
+                                      ShowEdit="false"
+                                      ShowAuditLog="false"
+                                      ShowToggleStatus="false"
+                                      ShowDelete="false"
+                                      OnView="@(() => ViewDocumentDetails(context))">
+                        <AdditionalActions>
+                            @if (context.Status == "Draft")
+                            {
+                                <MudTooltip Text="@TranslationService.GetTranslation("warehouse.finalizeDocument", "Finalizza Documento")">
+                                    <MudIconButton Icon="@Icons.Material.Outlined.CheckCircle"
+                                                   Color="Color.Success"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => FinalizeDocument(context))"
+                                                   aria-label="@TranslationService.GetTranslation("warehouse.finalizeDocument", "Finalizza Documento")" />
+                                </MudTooltip>
+                            }
+                        </AdditionalActions>
+                    </ActionButtonGroup>
                 </MudTd>
             </RowTemplate>
             <NoRecordsContent>
-                <MudText>@TranslationService.GetTranslation("warehouse.noInventoryDocuments", "Nessun documento di inventario trovato")</MudText>
+                <MudText Align="Align.Center" Class="pa-4">
+                    <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+                    <br />
+                    @TranslationService.GetTranslation("warehouse.noInventoryDocuments", "Nessun documento di inventario trovato")
+                </MudText>
             </NoRecordsContent>
         </MudTable>
 
@@ -152,7 +195,8 @@
                 ShowFirstButton="true" 
                 ShowLastButton="true" />
         }
-    </MudPaper>
+        </MudCardContent>
+    </MudCard>
 </MudContainer>
 
 @code {
@@ -215,7 +259,8 @@
     {
         var parameters = new DialogParameters
         {
-            { "Document", document }
+            { "Document", document },
+            { "OnFinalize", EventCallback.Factory.Create<InventoryDocumentDto>(this, OnDocumentFinalized) }
         };
 
         var options = new DialogOptions 
@@ -229,5 +274,84 @@
             TranslationService.GetTranslation("warehouse.documentDetails", "Dettagli Documento"),
             parameters,
             options);
+    }
+
+    private async Task FinalizeDocument(InventoryDocumentDto document)
+    {
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslation("warehouse.confirmFinalizeDocument", 
+            "Sei sicuro di voler finalizzare il documento '{0}'? Una volta finalizzato, il documento non potrà più essere modificato e gli aggiustamenti di stock verranno applicati.", 
+            document.Number);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                _isLoading = true;
+                var result = await InventoryService.FinalizeInventoryDocumentAsync(document.Id);
+                
+                if (result != null)
+                {
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("warehouse.documentFinalized", "Documento finalizzato con successo!"), 
+                        Severity.Success);
+                    
+                    // Reload the list to reflect the change
+                    await LoadInventoryDocuments();
+                }
+                else
+                {
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("warehouse.finalizeDocumentError", "Errore nella finalizzazione del documento"), 
+                        Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error finalizing inventory document {DocumentId}", document.Id);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.finalizeDocumentError", "Errore nella finalizzazione del documento: {0}", ex.Message), 
+                    Severity.Error);
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
+    }
+
+    private void CreateNewInventory()
+    {
+        NavigationManager.NavigateTo("/warehouse/inventory-procedure");
+    }
+
+    private async Task ExportDocuments()
+    {
+        try
+        {
+            Snackbar.Add(
+                TranslationService.GetTranslation("common.exportNotImplemented", "Funzione di esportazione non ancora implementata"), 
+                Severity.Info);
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error exporting inventory documents");
+            Snackbar.Add(
+                TranslationService.GetTranslation("common.exportError", "Errore nell'esportazione"), 
+                Severity.Error);
+        }
+    }
+
+    private async Task OnDocumentFinalized(InventoryDocumentDto document)
+    {
+        // Reload the list when a document is finalized from the details dialog
+        await LoadInventoryDocuments();
     }
 }
