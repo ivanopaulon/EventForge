@@ -175,4 +175,52 @@ public class InventoryService : IInventoryService
             return null;
         }
     }
+
+    public async Task<PagedResult<InventoryDocumentDto>?> GetInventoryDocumentsAsync(int page = 1, int pageSize = 20, string? status = null, DateTime? fromDate = null, DateTime? toDate = null)
+    {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        try
+        {
+            var queryParams = new List<string>
+            {
+                $"page={page}",
+                $"pageSize={pageSize}"
+            };
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                queryParams.Add($"status={Uri.EscapeDataString(status)}");
+            }
+
+            if (fromDate.HasValue)
+            {
+                queryParams.Add($"fromDate={Uri.EscapeDataString(fromDate.Value.ToString("O"))}");
+            }
+
+            if (toDate.HasValue)
+            {
+                queryParams.Add($"toDate={Uri.EscapeDataString(toDate.Value.ToString("O"))}");
+            }
+
+            var queryString = string.Join("&", queryParams);
+            var response = await httpClient.GetAsync($"{BaseUrl}/documents?{queryString}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<PagedResult<InventoryDocumentDto>>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+
+            _logger.LogError("Failed to retrieve inventory documents. Status: {StatusCode}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving inventory documents");
+            return null;
+        }
+    }
 }

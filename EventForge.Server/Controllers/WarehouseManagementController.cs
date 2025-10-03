@@ -1166,6 +1166,118 @@ public class WarehouseManagementController : BaseApiController
     #region Inventory Document Management
 
     /// <summary>
+    /// Gets all inventory documents with optional pagination and filtering.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="status">Filter by document status (Draft, Closed, etc.)</param>
+    /// <param name="fromDate">Filter documents from this date</param>
+    /// <param name="toDate">Filter documents to this date</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of inventory documents</returns>
+    /// <response code="200">Returns the paginated list of inventory documents</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("inventory/documents")]
+    [ProducesResponseType(typeof(PagedResult<InventoryDocumentDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<InventoryDocumentDto>>> GetInventoryDocuments(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? status = null,
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null,
+        CancellationToken cancellationToken = default)
+    {
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Get or create the inventory document type
+            var inventoryDocType = await _documentHeaderService.GetOrCreateInventoryDocumentTypeAsync(
+                _tenantContext.CurrentTenantId!.Value, 
+                cancellationToken);
+
+            // Build query parameters to filter inventory documents
+            var queryParams = new DocumentHeaderQueryParameters
+            {
+                Page = page,
+                PageSize = pageSize,
+                DocumentTypeId = inventoryDocType.Id,
+                IncludeRows = true,
+                SortBy = "Date",
+                SortDirection = "desc"
+            };
+
+            // Apply optional filters
+            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<EntityDocumentStatus>(status, true, out var parsedStatus))
+            {
+                queryParams.Status = (EventForge.DTOs.Common.DocumentStatus)(int)parsedStatus;
+            }
+
+            if (fromDate.HasValue)
+            {
+                queryParams.FromDate = fromDate.Value;
+            }
+
+            if (toDate.HasValue)
+            {
+                queryParams.ToDate = toDate.Value;
+            }
+
+            // Get documents
+            var documentsResult = await _documentHeaderService.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
+
+            // Convert to InventoryDocumentDto
+            var inventoryDocuments = documentsResult.Items.Select(doc => new InventoryDocumentDto
+            {
+                Id = doc.Id,
+                Number = doc.Number,
+                Series = doc.Series,
+                InventoryDate = doc.Date,
+                WarehouseId = doc.SourceWarehouseId,
+                WarehouseName = doc.SourceWarehouseName,
+                Status = doc.Status.ToString(),
+                Notes = doc.Notes,
+                CreatedAt = doc.CreatedAt,
+                CreatedBy = doc.CreatedBy,
+                FinalizedAt = doc.ClosedAt,
+                FinalizedBy = doc.Status.ToString() == "Closed" ? doc.ModifiedBy : null,
+                Rows = doc.Rows?.Select(r => new InventoryDocumentRowDto
+                {
+                    Id = r.Id,
+                    ProductCode = r.ProductCode ?? string.Empty,
+                    LocationName = r.Description,
+                    Quantity = r.Quantity,
+                    Notes = r.Notes,
+                    CreatedAt = r.CreatedAt,
+                    CreatedBy = r.CreatedBy
+                }).ToList() ?? new List<InventoryDocumentRowDto>()
+            }).ToList();
+
+            var result = new PagedResult<InventoryDocumentDto>
+            {
+                Items = inventoryDocuments,
+                TotalCount = documentsResult.TotalCount,
+                Page = documentsResult.Page,
+                PageSize = documentsResult.PageSize
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving inventory documents.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving inventory documents.", ex);
+        }
+    }
+
+    /// <summary>
     /// Gets an inventory document by ID.
     /// </summary>
     /// <param name="documentId">Inventory document ID</param>

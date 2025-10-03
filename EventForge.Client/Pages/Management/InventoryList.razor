@@ -8,14 +8,35 @@
 @inject ITranslationService TranslationService
 @inject ILogger<InventoryList> Logger
 @inject NavigationManager NavigationManager
+@inject IDialogService DialogService
 
-<PageTitle>@TranslationService.GetTranslation("warehouse.inventoryList", "Elenco Inventario")</PageTitle>
+<PageTitle>@TranslationService.GetTranslation("warehouse.inventoryDocuments", "Documenti di Inventario")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <MudText Typo="Typo.h4" Class="mb-4">
-        <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Class="mr-2" Size="Size.Medium" />
-        @TranslationService.GetTranslation("warehouse.inventoryList", "Elenco Inventario")
-    </MudText>
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" md="8">
+            <MudText Typo="Typo.h4">
+                <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Class="mr-2" Size="Size.Medium" />
+                @TranslationService.GetTranslation("warehouse.inventoryDocuments", "Documenti di Inventario")
+            </MudText>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+                <MudButton StartIcon="@Icons.Material.Outlined.Add" 
+                           Color="Color.Primary" 
+                           Variant="Variant.Filled"
+                           OnClick="@(() => NavigationManager.NavigateTo("/warehouse/inventory-procedure"))">
+                    @TranslationService.GetTranslation("warehouse.newInventory", "Nuova Procedura")
+                </MudButton>
+                <MudButton StartIcon="@Icons.Material.Outlined.Refresh" 
+                           Color="Color.Default" 
+                           Variant="Variant.Outlined"
+                           OnClick="@LoadInventoryDocuments">
+                    @TranslationService.GetTranslation("common.refresh", "Aggiorna")
+                </MudButton>
+            </MudStack>
+        </MudItem>
+    </MudGrid>
 
     @if (_isLoading)
     {
@@ -23,56 +44,100 @@
     }
 
     <MudPaper Elevation="2" Class="pa-4">
-        <!-- Action Buttons -->
+        <!-- Filter Section -->
         <MudGrid Class="mb-4">
-            <MudItem xs="12" md="8">
-                <MudText Typo="Typo.h6">
-                    @TranslationService.GetTranslation("warehouse.totalEntries", "Totale Inserimenti: {0}", _totalCount)
-                </MudText>
+            <MudItem xs="12" md="3">
+                <MudSelect T="string" 
+                           Label="@TranslationService.GetTranslation("common.status", "Stato")" 
+                           @bind-Value="_filterStatus" 
+                           Clearable="true"
+                           OnClearButtonClick="@(() => { _filterStatus = null; LoadInventoryDocuments(); })">
+                    <MudSelectItem Value="@("Draft")">@TranslationService.GetTranslation("document.status.draft", "Bozza")</MudSelectItem>
+                    <MudSelectItem Value="@("Closed")">@TranslationService.GetTranslation("document.status.closed", "Chiuso")</MudSelectItem>
+                </MudSelect>
             </MudItem>
-            <MudItem xs="12" md="4">
-                <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
-                    <MudButton StartIcon="@Icons.Material.Outlined.Add" 
-                               Color="Color.Primary" 
-                               Variant="Variant.Filled"
-                               OnClick="@(() => NavigationManager.NavigateTo("/warehouse/inventory-procedure"))">
-                        @TranslationService.GetTranslation("warehouse.newInventory", "Nuova Procedura")
-                    </MudButton>
-                    <MudButton StartIcon="@Icons.Material.Outlined.Refresh" 
-                               Color="Color.Default" 
-                               Variant="Variant.Outlined"
-                               OnClick="@LoadInventoryEntries">
-                        @TranslationService.GetTranslation("common.refresh", "Aggiorna")
-                    </MudButton>
-                </MudStack>
+            <MudItem xs="12" md="3">
+                <MudDatePicker Label="@TranslationService.GetTranslation("common.fromDate", "Da data")" 
+                              @bind-Date="_filterFromDate" 
+                              Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudDatePicker Label="@TranslationService.GetTranslation("common.toDate", "A data")" 
+                              @bind-Date="_filterToDate" 
+                              Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudButton StartIcon="@Icons.Material.Outlined.FilterAlt" 
+                           Color="Color.Primary" 
+                           Variant="Variant.Outlined"
+                           FullWidth="true"
+                           OnClick="@LoadInventoryDocuments"
+                           Class="mt-3">
+                    @TranslationService.GetTranslation("common.filter", "Filtra")
+                </MudButton>
             </MudItem>
         </MudGrid>
 
-        <!-- Inventory Table -->
-        <MudTable Items="_inventoryEntries" Hover="true" Dense="true" Loading="_isLoading">
+        <!-- Statistics -->
+        <MudGrid Class="mb-4">
+            <MudItem xs="12" md="12">
+                <MudText Typo="Typo.h6">
+                    @TranslationService.GetTranslation("warehouse.totalDocuments", "Totale Documenti: {0}", _totalCount)
+                </MudText>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Documents Table -->
+        <MudTable Items="_inventoryDocuments" Hover="true" Dense="true" Loading="_isLoading">
             <HeaderContent>
-                <MudTh>@TranslationService.GetTranslation("warehouse.product", "Prodotto")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("warehouse.location", "Ubicazione")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("warehouse.quantity", "Quantità")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("warehouse.lot", "Lotto")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("warehouse.notes", "Note")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("warehouse.createdAt", "Data Creazione")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("warehouse.createdBy", "Creato Da")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("document.number", "Numero")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("document.date", "Data")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("document.status", "Stato")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("document.totalItems", "Articoli")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("common.createdBy", "Creato Da")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("common.createdAt", "Data Creazione")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="Product">
-                    <MudText Typo="Typo.body2">@context.ProductName</MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ProductCode</MudText>
+                <MudTd DataLabel="Number">
+                    <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.Number</MudText>
+                    @if (!string.IsNullOrEmpty(context.Series))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Series</MudText>
+                    }
                 </MudTd>
-                <MudTd DataLabel="Location">@context.LocationName</MudTd>
-                <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
-                <MudTd DataLabel="Lot">@(context.LotCode ?? "-")</MudTd>
-                <MudTd DataLabel="Notes">@(context.Notes ?? "-")</MudTd>
-                <MudTd DataLabel="CreatedAt">@context.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudTd>
+                <MudTd DataLabel="Date">@context.InventoryDate.ToLocalTime().ToString("dd/MM/yyyy")</MudTd>
+                <MudTd DataLabel="Warehouse">@(context.WarehouseName ?? "-")</MudTd>
+                <MudTd DataLabel="Status">
+                    @if (context.Status == "Draft")
+                    {
+                        <MudChip T="string" Color="Color.Warning" Size="Size.Small">@TranslationService.GetTranslation("document.status.draft", "Bozza")</MudChip>
+                    }
+                    else if (context.Status == "Closed")
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small">@TranslationService.GetTranslation("document.status.closed", "Chiuso")</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="Color.Default" Size="Size.Small">@context.Status</MudChip>
+                    }
+                </MudTd>
+                <MudTd DataLabel="TotalItems">
+                    <MudText Typo="Typo.body2">@context.TotalItems</MudText>
+                </MudTd>
                 <MudTd DataLabel="CreatedBy">@(context.CreatedBy ?? "-")</MudTd>
+                <MudTd DataLabel="CreatedAt">@context.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudTd>
+                <MudTd DataLabel="Actions">
+                    <MudIconButton Icon="@Icons.Material.Outlined.RemoveRedEye" 
+                                   Color="Color.Primary" 
+                                   Size="Size.Small"
+                                   OnClick="@(() => ViewDocumentDetails(context))"
+                                   Title="@TranslationService.GetTranslation("common.view", "Visualizza")" />
+                </MudTd>
             </RowTemplate>
             <NoRecordsContent>
-                <MudText>@TranslationService.GetTranslation("warehouse.noInventoryEntries", "Nessun inserimento inventario trovato")</MudText>
+                <MudText>@TranslationService.GetTranslation("warehouse.noInventoryDocuments", "Nessun documento di inventario trovato")</MudText>
             </NoRecordsContent>
         </MudTable>
 
@@ -92,25 +157,36 @@
 
 @code {
     private bool _isLoading = false;
-    private List<InventoryEntryDto> _inventoryEntries = new();
+    private List<InventoryDocumentDto> _inventoryDocuments = new();
     private int _currentPage = 1;
     private int _pageSize = 20;
     private long _totalCount = 0;
 
+    // Filters
+    private string? _filterStatus = null;
+    private DateTime? _filterFromDate = null;
+    private DateTime? _filterToDate = null;
+
     protected override async Task OnInitializedAsync()
     {
-        await LoadInventoryEntries();
+        await LoadInventoryDocuments();
     }
 
-    private async Task LoadInventoryEntries()
+    private async Task LoadInventoryDocuments()
     {
         _isLoading = true;
         try
         {
-            var result = await InventoryService.GetInventoryEntriesAsync(_currentPage, _pageSize);
+            var result = await InventoryService.GetInventoryDocumentsAsync(
+                _currentPage, 
+                _pageSize,
+                _filterStatus,
+                _filterFromDate,
+                _filterToDate);
+                
             if (result != null)
             {
-                _inventoryEntries = result.Items.ToList();
+                _inventoryDocuments = result.Items.ToList();
                 _totalCount = result.TotalCount;
             }
             else
@@ -120,7 +196,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading inventory entries");
+            Logger.LogError(ex, "Error loading inventory documents");
             Snackbar.Add(TranslationService.GetTranslation("warehouse.loadInventoryError", "Errore nel caricamento inventario"), Severity.Error);
         }
         finally
@@ -132,6 +208,26 @@
     private async Task OnPageChanged(int page)
     {
         _currentPage = page;
-        await LoadInventoryEntries();
+        await LoadInventoryDocuments();
+    }
+
+    private async Task ViewDocumentDetails(InventoryDocumentDto document)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Document", document }
+        };
+
+        var options = new DialogOptions 
+        { 
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        await DialogService.ShowAsync<InventoryDocumentDetailsDialog>(
+            TranslationService.GetTranslation("warehouse.documentDetails", "Dettagli Documento"),
+            parameters,
+            options);
     }
 }
