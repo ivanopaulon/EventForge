@@ -10,12 +10,14 @@ public class StorageLocationService : IStorageLocationService
 {
     private readonly EventForgeDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<StorageLocationService> _logger;
 
-    public StorageLocationService(EventForgeDbContext context, IAuditLogService auditLogService, ILogger<StorageLocationService> logger)
+    public StorageLocationService(EventForgeDbContext context, IAuditLogService auditLogService, ITenantContext tenantContext, ILogger<StorageLocationService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -231,8 +233,14 @@ public class StorageLocationService : IStorageLocationService
         {
             _logger.LogDebug("Creating storage location: {Code}", createDto.Code);
 
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for storage location operations.");
+            }
+
             var warehouseExists = await _context.StorageFacilities
-                .AnyAsync(sf => sf.Id == createDto.WarehouseId, cancellationToken);
+                .AnyAsync(sf => sf.Id == createDto.WarehouseId && sf.TenantId == currentTenantId.Value, cancellationToken);
 
             if (!warehouseExists)
             {
@@ -241,7 +249,7 @@ public class StorageLocationService : IStorageLocationService
             }
 
             var codeExists = await _context.StorageLocations
-                .AnyAsync(sl => sl.Code == createDto.Code && sl.WarehouseId == createDto.WarehouseId, cancellationToken);
+                .AnyAsync(sl => sl.Code == createDto.Code && sl.WarehouseId == createDto.WarehouseId && sl.TenantId == currentTenantId.Value, cancellationToken);
 
             if (codeExists)
             {
@@ -258,6 +266,7 @@ public class StorageLocationService : IStorageLocationService
             var location = new StorageLocation
             {
                 Id = Guid.NewGuid(),
+                TenantId = currentTenantId.Value,
                 Code = createDto.Code,
                 Description = createDto.Description,
                 WarehouseId = createDto.WarehouseId,
