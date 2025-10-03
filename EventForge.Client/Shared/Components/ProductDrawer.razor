@@ -512,6 +512,292 @@
         </MudGrid>
     </FormContent>
     
+    <ViewContent>
+        <MudGrid>
+            <!-- Basic Information Section -->
+            <MudItem xs="12">
+                <MudText Typo="Typo.h6" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Info" Class="mr-2" />
+                    @TranslationService.GetTranslation("product.basicInfo", "Informazioni di Base")
+                </MudText>
+                <MudDivider Class="mb-3" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalProduct?.Name ?? "")"
+                              Label="@TranslationService.GetTranslation("field.name", "Nome")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalProduct?.Code ?? "")"
+                              Label="@TranslationService.GetTranslation("field.code", "Codice")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalProduct?.ShortDescription ?? "")"
+                              Label="@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudChip T="string" 
+                         Color="@GetStatusColor(OriginalProduct?.Status ?? ProductStatus.Active)" 
+                         Size="Size.Medium">
+                    @GetStatusText(OriginalProduct?.Status ?? ProductStatus.Active)
+                </MudChip>
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudTextField Value="@(OriginalProduct?.Description ?? "")"
+                              Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <!-- Pricing Section -->
+            <MudItem xs="12" Class="mt-4">
+                <MudText Typo="Typo.h6" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Euro" Class="mr-2" />
+                    @TranslationService.GetTranslation("product.pricingInfo", "Informazioni Prezzo")
+                </MudText>
+                <MudDivider Class="mb-3" />
+            </MudItem>
+            
+            <MudItem xs="12" md="4">
+                <MudTextField Value="@(OriginalProduct?.DefaultPrice?.ToString("N2") ?? "-")"
+                              Label="@TranslationService.GetTranslation("field.defaultPrice", "Prezzo Predefinito")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="4">
+                <MudTextField Value="@GetVatRateName(OriginalProduct?.VatRateId)"
+                              Label="@TranslationService.GetTranslation("field.vatRate", "Aliquota IVA")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="4">
+                <MudCheckBox Value="@(OriginalProduct?.IsVatIncluded ?? false)"
+                             Label="@TranslationService.GetTranslation("field.isVatIncluded", "IVA Inclusa")"
+                             ReadOnly="true"
+                             Color="Color.Primary" />
+            </MudItem>
+            
+            <!-- Units and Classification Section -->
+            <MudItem xs="12" Class="mt-4">
+                <MudText Typo="Typo.h6" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Category" Class="mr-2" />
+                    @TranslationService.GetTranslation("product.classification", "Classificazione e Unità")
+                </MudText>
+                <MudDivider Class="mb-3" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@GetUnitOfMeasureName(OriginalProduct?.UnitOfMeasureId)"
+                              Label="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@GetStationName(OriginalProduct?.StationId)"
+                              Label="@TranslationService.GetTranslation("field.station", "Stazione")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="4">
+                <MudTextField Value="@GetClassificationNodeName(OriginalProduct?.CategoryNodeId)"
+                              Label="@TranslationService.GetTranslation("field.category", "Categoria")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="4">
+                <MudTextField Value="@GetClassificationNodeName(OriginalProduct?.FamilyNodeId)"
+                              Label="@TranslationService.GetTranslation("field.subcategory", "Sottocategoria")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="4">
+                <MudTextField Value="@GetClassificationNodeName(OriginalProduct?.GroupNodeId)"
+                              Label="@TranslationService.GetTranslation("field.line", "Linea")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <!-- Brand and Model Section -->
+            <MudItem xs="12" Class="mt-4">
+                <MudText Typo="Typo.h6" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.BrandingWatermark" Class="mr-2" />
+                    @TranslationService.GetTranslation("product.brandModel", "Marchio e Modello")
+                </MudText>
+                <MudDivider Class="mb-3" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@GetBrandName(OriginalProduct?.BrandId)"
+                              Label="@TranslationService.GetTranslation("field.brand", "Marchio")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@GetModelName(OriginalProduct?.ModelId)"
+                              Label="@TranslationService.GetTranslation("field.model", "Modello")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <!-- Supplier Section -->
+            <MudItem xs="12" Class="mt-4">
+                <MudText Typo="Typo.h6" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Store" Class="mr-2" />
+                    @TranslationService.GetTranslation("product.supplier", "Fornitore")
+                </MudText>
+                <MudDivider Class="mb-3" />
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudTextField Value="@GetSupplierName(OriginalProduct?.PreferredSupplierId)"
+                              Label="@TranslationService.GetTranslation("field.preferredSupplier", "Fornitore Preferito")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <!-- Inventory Section -->
+            <MudItem xs="12" Class="mt-4">
+                <MudText Typo="Typo.h6" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Inventory" Class="mr-2" />
+                    @TranslationService.GetTranslation("product.inventory", "Gestione Inventario")
+                </MudText>
+                <MudDivider Class="mb-3" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalProduct?.ReorderPoint?.ToString("N2") ?? "-")"
+                              Label="@TranslationService.GetTranslation("field.reorderPoint", "Punto di Riordino")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalProduct?.SafetyStock?.ToString("N2") ?? "-")"
+                              Label="@TranslationService.GetTranslation("field.safetyStock", "Stock di Sicurezza")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalProduct?.TargetStockLevel?.ToString("N2") ?? "-")"
+                              Label="@TranslationService.GetTranslation("field.targetStockLevel", "Livello Stock Obiettivo")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(OriginalProduct?.AverageDailyDemand?.ToString("N2") ?? "-")"
+                              Label="@TranslationService.GetTranslation("field.averageDailyDemand", "Domanda Media Giornaliera")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true" />
+            </MudItem>
+            
+            <!-- Bundle Section -->
+            <MudItem xs="12" Class="mt-4">
+                <MudCheckBox Value="@(OriginalProduct?.IsBundle ?? false)"
+                             Label="@TranslationService.GetTranslation("field.isBundle", "È un Bundle")"
+                             ReadOnly="true"
+                             Color="Color.Primary" />
+            </MudItem>
+            
+            @if (OriginalProduct != null)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalProduct.Id.ToString()"
+                                  Label="@TranslationService.GetTranslation("field.id", "ID")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true" />
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@OriginalProduct.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                  Label="@TranslationService.GetTranslation("field.createdAt", "Data Creazione")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true" />
+                </MudItem>
+                
+                @if (!string.IsNullOrWhiteSpace(OriginalProduct.CreatedBy))
+                {
+                    <MudItem xs="12">
+                        <MudTextField Value="@OriginalProduct.CreatedBy"
+                                      Label="@TranslationService.GetTranslation("field.createdBy", "Creato Da")"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="true" />
+                    </MudItem>
+                }
+                
+                @* Suppliers Section in View Mode *@
+                @if (_loadingSuppliers)
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                        <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-2">
+                            @TranslationService.GetTranslation("common.loading", "Caricamento...")
+                        </MudText>
+                    </MudItem>
+                }
+                else if (_suppliers?.Any() == true)
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudExpansionPanels>
+                            <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.supplierCount", "Fornitori")} ({_suppliers.Count()})")" IsInitiallyExpanded="false">
+                                <MudTable Items="_suppliers" Hover="true" Dense="true" Striped="true">
+                                    <HeaderContent>
+                                        <MudTh>@TranslationService.GetTranslation("field.supplierName", "Nome Fornitore")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("field.supplierCode", "Codice Fornitore")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("field.unitCost", "Costo Unitario")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("field.leadTime", "Tempi di Consegna")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("field.preferred", "Preferito")</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.supplierName", "Nome Fornitore")">@context.SupplierName</MudTd>
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.supplierCode", "Codice Fornitore")">@context.SupplierProductCode</MudTd>
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.unitCost", "Costo Unitario")">
+                                            @if (context.UnitCost.HasValue)
+                                            {
+                                                <text>@context.UnitCost.Value.ToString("N2") @context.Currency</text>
+                                            }
+                                        </MudTd>
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.leadTime", "Tempi di Consegna")">
+                                            @if (context.LeadTimeDays.HasValue)
+                                            {
+                                                <text>@context.LeadTimeDays @TranslationService.GetTranslation("common.days", "giorni")</text>
+                                            }
+                                        </MudTd>
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.preferred", "Preferito")">
+                                            @if (context.Preferred)
+                                            {
+                                                <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" />
+                                            }
+                                        </MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudItem>
+                }
+            }
+        </MudGrid>
+    </ViewContent>
+    
 </EntityDrawer>
 
 @code {
@@ -985,6 +1271,83 @@
             Logger.LogError(ex, "Failed to delete product supplier {SupplierId}", supplierId);
             Snackbar.Add(TranslationService.GetTranslation("messages.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
         }
+    }
+    
+    #endregion
+    
+    #region Helper Methods for View Mode
+    
+    private string GetStatusText(ProductStatus status)
+    {
+        return status switch
+        {
+            ProductStatus.Active => TranslationService.GetTranslation("status.active", "Attivo"),
+            ProductStatus.Suspended => TranslationService.GetTranslation("status.suspended", "Sospeso"),
+            ProductStatus.OutOfStock => TranslationService.GetTranslation("status.outOfStock", "Esaurito"),
+            ProductStatus.Deleted => TranslationService.GetTranslation("status.deleted", "Eliminato"),
+            _ => "-"
+        };
+    }
+    
+    private Color GetStatusColor(ProductStatus status)
+    {
+        return status switch
+        {
+            ProductStatus.Active => Color.Success,
+            ProductStatus.Suspended => Color.Warning,
+            ProductStatus.OutOfStock => Color.Error,
+            ProductStatus.Deleted => Color.Dark,
+            _ => Color.Default
+        };
+    }
+    
+    private string GetVatRateName(Guid? vatRateId)
+    {
+        if (!vatRateId.HasValue) return "-";
+        var vatRate = _vatRates?.FirstOrDefault(v => v.Id == vatRateId.Value);
+        return vatRate != null ? $"{vatRate.Name} ({vatRate.Percentage}%)" : "-";
+    }
+    
+    private string GetUnitOfMeasureName(Guid? umId)
+    {
+        if (!umId.HasValue) return "-";
+        var um = _unitsMeasure?.FirstOrDefault(u => u.Id == umId.Value);
+        return um != null ? $"{um.Name} ({um.Symbol})" : "-";
+    }
+    
+    private string GetStationName(Guid? stationId)
+    {
+        if (!stationId.HasValue) return "-";
+        var station = _stations?.FirstOrDefault(s => s.Id == stationId.Value);
+        return station?.Name ?? "-";
+    }
+    
+    private string GetClassificationNodeName(Guid? nodeId)
+    {
+        if (!nodeId.HasValue) return "-";
+        var node = _classificationNodes?.FirstOrDefault(n => n.Id == nodeId.Value);
+        return node?.Name ?? "-";
+    }
+    
+    private string GetBrandName(Guid? brandId)
+    {
+        if (!brandId.HasValue) return "-";
+        var brand = _brands?.FirstOrDefault(b => b.Id == brandId.Value);
+        return brand?.Name ?? "-";
+    }
+    
+    private string GetModelName(Guid? modelId)
+    {
+        if (!modelId.HasValue) return "-";
+        var model = _models?.FirstOrDefault(m => m.Id == modelId.Value);
+        return model?.Name ?? "-";
+    }
+    
+    private string GetSupplierName(Guid? supplierId)
+    {
+        if (!supplierId.HasValue) return "-";
+        var supplier = _businessParties?.FirstOrDefault(bp => bp.Id == supplierId.Value);
+        return supplier?.Name ?? "-";
     }
     
     #endregion
