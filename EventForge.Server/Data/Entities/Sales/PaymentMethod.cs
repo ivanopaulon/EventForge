@@ -11,7 +11,7 @@ public class PaymentMethod : AuditableEntity
     /// <summary>
     /// Payment method unique identifier.
     /// </summary>
-    public Guid Id { get; set; }
+    public new Guid Id { get; set; }
 
     /// <summary>
     /// Payment method code (e.g., CASH, CARD, VOUCHER).
@@ -42,7 +42,7 @@ public class PaymentMethod : AuditableEntity
     /// <summary>
     /// Indicates if this payment method is active.
     /// </summary>
-    public bool IsActive { get; set; } = true;
+    public new bool IsActive { get; set; } = true;
 
     /// <summary>
     /// Display order for UI sorting.

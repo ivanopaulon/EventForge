@@ -20,7 +20,7 @@ public class BootstrapServiceTests
         await using var context = new EventForgeDbContext(options);
 
         var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string>
+            .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Bootstrap:SuperAdminPassword"] = "TestPassword123!",
                 ["Bootstrap:DefaultAdminUsername"] = "superadmin",
@@ -128,7 +128,7 @@ public class BootstrapServiceTests
         await context.SaveChangesAsync();
 
         var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string>
+            .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Bootstrap:SuperAdminPassword"] = "TestPassword123!",
                 ["Bootstrap:AutoCreateAdmin"] = "true"
@@ -169,7 +169,7 @@ public class BootstrapServiceTests
         Environment.SetEnvironmentVariable("EVENTFORGE_BOOTSTRAP_SUPERADMIN_PASSWORD", "EnvironmentPassword123!");
 
         var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string>
+            .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Bootstrap:SuperAdminPassword"] = "ConfigPassword123!",
                 ["Bootstrap:AutoCreateAdmin"] = "true"
@@ -211,7 +211,7 @@ public class BootstrapServiceTests
         await using var context = new EventForgeDbContext(options);
 
         var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string>
+            .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Bootstrap:SuperAdminPassword"] = "TestPassword123!",
                 ["Bootstrap:AutoCreateAdmin"] = "true"
@@ -290,7 +290,7 @@ public class BootstrapServiceTests
         await using var context = new EventForgeDbContext(options);
 
         var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string>
+            .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Bootstrap:SuperAdminPassword"] = "TestPassword123!",
                 ["Bootstrap:AutoCreateAdmin"] = "true"
@@ -341,7 +341,7 @@ public class BootstrapServiceTests
         await using var context = new EventForgeDbContext(options);
 
         var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string>
+            .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Bootstrap:SuperAdminPassword"] = "TestPassword123!",
                 ["Bootstrap:AutoCreateAdmin"] = "true"

@@ -89,7 +89,7 @@ public class QzSignerTests
     }
 
     [Fact]
-    public async Task Sign_EnsuresCorrectJsonPropertyOrder()
+    public Task Sign_EnsuresCorrectJsonPropertyOrder()
     {
         // This test verifies that the JSON serialization maintains the required order: call, params, timestamp
         // We'll test this by creating a custom QzSigner that exposes the JSON for verification
@@ -104,6 +104,8 @@ public class QzSignerTests
         // Assert
         var expectedStart = "{\"call\":\"test.call\",\"params\":[\"param1\",2],\"timestamp\":1234567890123}";
         Assert.Equal(expectedStart, json);
+        
+        return Task.CompletedTask;
     }
 
     private static bool IsValidBase64(string base64String)

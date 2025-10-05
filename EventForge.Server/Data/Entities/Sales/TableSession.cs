@@ -11,7 +11,7 @@ public class TableSession : AuditableEntity
     /// <summary>
     /// Table unique identifier.
     /// </summary>
-    public Guid Id { get; set; }
+    public new Guid Id { get; set; }
 
     /// <summary>
     /// Table number or identifier.
@@ -66,7 +66,7 @@ public class TableSession : AuditableEntity
     /// <summary>
     /// Indicates if this table is active.
     /// </summary>
-    public bool IsActive { get; set; } = true;
+    public new bool IsActive { get; set; } = true;
 
     /// <summary>
     /// Reservations for this table.
@@ -113,7 +113,7 @@ public class TableReservation : AuditableEntity
     /// <summary>
     /// Reservation unique identifier.
     /// </summary>
-    public Guid Id { get; set; }
+    public new Guid Id { get; set; }
 
     /// <summary>
     /// Reference to the table.

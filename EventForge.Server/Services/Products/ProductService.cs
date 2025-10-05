@@ -269,6 +269,7 @@ public class ProductService : IProductService
             }
 
             // Store original for audit
+#pragma warning disable CS0618 // ImageUrl is obsolete but kept for backward compatibility in audit trail
             var originalProduct = new Product
             {
                 Id = product.Id,
@@ -278,6 +279,7 @@ public class ProductService : IProductService
                 Code = product.Code,
                 ImageUrl = product.ImageUrl,
                 IsVatIncluded = product.IsVatIncluded,
+#pragma warning restore CS0618
                 DefaultPrice = product.DefaultPrice,
                 VatRateId = product.VatRateId,
                 UnitOfMeasureId = product.UnitOfMeasureId,

@@ -11,7 +11,7 @@ public class SalePayment : AuditableEntity
     /// <summary>
     /// Payment unique identifier.
     /// </summary>
-    public Guid Id { get; set; }
+    public new Guid Id { get; set; }
 
     /// <summary>
     /// Reference to the sale session.

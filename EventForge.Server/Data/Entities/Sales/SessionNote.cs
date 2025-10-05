@@ -11,7 +11,7 @@ public class SessionNote : AuditableEntity
     /// <summary>
     /// Note unique identifier.
     /// </summary>
-    public Guid Id { get; set; }
+    public new Guid Id { get; set; }
 
     /// <summary>
     /// Reference to the sale session.
@@ -58,7 +58,7 @@ public class NoteFlag : AuditableEntity
     /// <summary>
     /// Flag unique identifier.
     /// </summary>
-    public Guid Id { get; set; }
+    public new Guid Id { get; set; }
 
     /// <summary>
     /// Flag code (e.g., URGENT, ALLERGY, SPECIAL_REQUEST).
@@ -95,7 +95,7 @@ public class NoteFlag : AuditableEntity
     /// <summary>
     /// Indicates if this flag is active.
     /// </summary>
-    public bool IsActive { get; set; } = true;
+    public new bool IsActive { get; set; } = true;
 
     /// <summary>
     /// Display order for UI sorting.
