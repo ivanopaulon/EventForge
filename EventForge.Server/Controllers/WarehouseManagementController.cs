@@ -1319,19 +1319,65 @@ public class WarehouseManagementController : BaseApiController
             {
                 foreach (var row in documentHeader.Rows)
                 {
-                    // Parse ProductId from ProductCode if it's a GUID
+                    // Parse metadata from description
+                    // Format: ProductName @ LocationCode | ProductId:GUID | LocationId:GUID
                     Guid? productId = null;
-                    if (Guid.TryParse(row.ProductCode, out var parsedProductId))
+                    Guid? locationId = null;
+                    string productName = string.Empty;
+                    string locationName = string.Empty;
+
+                    if (!string.IsNullOrEmpty(row.Description))
                     {
-                        productId = parsedProductId;
+                        if (row.Description.Contains("ProductId:"))
+                        {
+                            // New format with metadata
+                            var parts = row.Description.Split('|');
+                            
+                            // Parse display part (ProductName @ LocationCode)
+                            if (parts.Length > 0)
+                            {
+                                var displayPart = parts[0].Trim();
+                                var displayParts = displayPart.Split('@');
+                                productName = displayParts.Length > 0 ? displayParts[0].Trim() : string.Empty;
+                                locationName = displayParts.Length > 1 ? displayParts[1].Trim() : string.Empty;
+                            }
+
+                            // Parse metadata
+                            foreach (var part in parts)
+                            {
+                                var trimmedPart = part.Trim();
+                                if (trimmedPart.StartsWith("ProductId:"))
+                                {
+                                    if (Guid.TryParse(trimmedPart.Substring("ProductId:".Length).Trim(), out var parsedProductId))
+                                    {
+                                        productId = parsedProductId;
+                                    }
+                                }
+                                else if (trimmedPart.StartsWith("LocationId:"))
+                                {
+                                    if (Guid.TryParse(trimmedPart.Substring("LocationId:".Length).Trim(), out var parsedLocationId))
+                                    {
+                                        locationId = parsedLocationId;
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Old format - just ProductName @ LocationCode
+                            var descriptionParts = row.Description.Split('@');
+                            productName = descriptionParts.Length > 0 ? descriptionParts[0].Trim() : string.Empty;
+                            locationName = descriptionParts.Length > 1 ? descriptionParts[1].Trim() : row.Description;
+                            
+                            // Try to parse ProductId from ProductCode
+                            if (Guid.TryParse(row.ProductCode, out var parsedProductId))
+                            {
+                                productId = parsedProductId;
+                            }
+                        }
                     }
 
-                    // Parse product name and location from description - format is "ProductName @ LocationCode"
-                    var descriptionParts = row.Description?.Split('@') ?? Array.Empty<string>();
-                    var productName = descriptionParts.Length > 0 ? descriptionParts[0].Trim() : string.Empty;
-                    var locationName = descriptionParts.Length > 1 ? descriptionParts[1].Trim() : row.Description ?? string.Empty;
-
-                    // Try to fetch product and location data for complete information
+                    // Try to fetch product data for complete information
                     ProductDto? product = null;
                     if (productId.HasValue)
                     {
@@ -1345,16 +1391,26 @@ public class WarehouseManagementController : BaseApiController
                         }
                     }
 
-                    // Get current stock level to show adjustment info
+                    // Get current stock level to show adjustment info (only if we have locationId)
                     decimal? previousQuantity = null;
                     decimal? adjustmentQuantity = null;
-                    if (productId.HasValue)
+                    if (productId.HasValue && locationId.HasValue)
                     {
                         try
                         {
-                            // Parse location ID from the row if available
-                            // For now, we'll just show the quantity without adjustment info if we can't determine it
-                            // This is acceptable as adjustments are primarily for the add operation
+                            var stockResult = await _stockService.GetStockAsync(
+                                page: 1,
+                                pageSize: 1,
+                                productId: productId.Value,
+                                locationId: locationId.Value,
+                                lotId: null,
+                                cancellationToken: cancellationToken);
+
+                            previousQuantity = stockResult.Items.FirstOrDefault()?.Quantity;
+                            if (previousQuantity.HasValue)
+                            {
+                                adjustmentQuantity = row.Quantity - previousQuantity.Value;
+                            }
                         }
                         catch
                         {
@@ -1368,7 +1424,7 @@ public class WarehouseManagementController : BaseApiController
                         ProductId = productId ?? Guid.Empty,
                         ProductCode = row.ProductCode ?? string.Empty,
                         ProductName = product?.Name ?? productName,
-                        LocationId = Guid.Empty, // We don't store this in DocumentRow
+                        LocationId = locationId ?? Guid.Empty,
                         LocationName = locationName,
                         Quantity = row.Quantity,
                         PreviousQuantity = previousQuantity,
@@ -1544,12 +1600,13 @@ public class WarehouseManagementController : BaseApiController
             var product = await _productService.GetProductByIdAsync(rowDto.ProductId, cancellationToken);
             var location = await _storageLocationService.GetStorageLocationByIdAsync(rowDto.LocationId, cancellationToken);
 
-            // Create document row
+            // Create document row - store structured data in Description for reliable parsing during finalization
+            // Format: ProductName @ LocationCode | ProductId:GUID | LocationId:GUID
             var createRowDto = new CreateDocumentRowDto
             {
                 DocumentHeaderId = documentId,
                 ProductCode = product?.Code ?? rowDto.ProductId.ToString(),
-                Description = $"{product?.Name ?? "Product"} @ {location?.Code ?? "Location"}",
+                Description = $"{product?.Name ?? "Product"} @ {location?.Code ?? "Location"} | ProductId:{rowDto.ProductId} | LocationId:{rowDto.LocationId}",
                 Quantity = (int)rowDto.Quantity,
                 UnitPrice = 0, // Not relevant for inventory
                 Notes = rowDto.Notes
@@ -1585,17 +1642,63 @@ public class WarehouseManagementController : BaseApiController
             {
                 foreach (var row in updatedDocument.Rows)
                 {
-                    // Try to parse ProductId from ProductCode if it's a GUID
+                    // Try to parse metadata from description
+                    // Format: ProductName @ LocationCode | ProductId:GUID | LocationId:GUID
                     Guid? productId = null;
-                    if (Guid.TryParse(row.ProductCode, out var parsedProductId))
-                    {
-                        productId = parsedProductId;
-                    }
+                    Guid? locationId = null;
+                    string productName = string.Empty;
+                    string locationName = string.Empty;
 
-                    // Parse location from description - format is "ProductName @ LocationCode"
-                    var descriptionParts = row.Description?.Split('@') ?? Array.Empty<string>();
-                    var productName = descriptionParts.Length > 0 ? descriptionParts[0].Trim() : string.Empty;
-                    var locationName = descriptionParts.Length > 1 ? descriptionParts[1].Trim() : row.Description ?? string.Empty;
+                    if (!string.IsNullOrEmpty(row.Description))
+                    {
+                        if (row.Description.Contains("ProductId:"))
+                        {
+                            // New format with metadata
+                            var parts = row.Description.Split('|');
+                            
+                            // Parse display part (ProductName @ LocationCode)
+                            if (parts.Length > 0)
+                            {
+                                var displayPart = parts[0].Trim();
+                                var displayParts = displayPart.Split('@');
+                                productName = displayParts.Length > 0 ? displayParts[0].Trim() : string.Empty;
+                                locationName = displayParts.Length > 1 ? displayParts[1].Trim() : string.Empty;
+                            }
+
+                            // Parse metadata
+                            foreach (var part in parts)
+                            {
+                                var trimmedPart = part.Trim();
+                                if (trimmedPart.StartsWith("ProductId:"))
+                                {
+                                    if (Guid.TryParse(trimmedPart.Substring("ProductId:".Length).Trim(), out var parsedProductId))
+                                    {
+                                        productId = parsedProductId;
+                                    }
+                                }
+                                else if (trimmedPart.StartsWith("LocationId:"))
+                                {
+                                    if (Guid.TryParse(trimmedPart.Substring("LocationId:".Length).Trim(), out var parsedLocationId))
+                                    {
+                                        locationId = parsedLocationId;
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Old format - just ProductName @ LocationCode
+                            var descriptionParts = row.Description.Split('@');
+                            productName = descriptionParts.Length > 0 ? descriptionParts[0].Trim() : string.Empty;
+                            locationName = descriptionParts.Length > 1 ? descriptionParts[1].Trim() : row.Description;
+                            
+                            // Try to parse ProductId from ProductCode
+                            if (Guid.TryParse(row.ProductCode, out var parsedProductId))
+                            {
+                                productId = parsedProductId;
+                            }
+                        }
+                    }
 
                     // For the new row we just added, we have complete data
                     if (row.Id == documentRow.Id)
@@ -1624,7 +1727,7 @@ public class WarehouseManagementController : BaseApiController
                             ProductId = productId ?? Guid.Empty,
                             ProductCode = row.ProductCode ?? string.Empty,
                             ProductName = existingProduct?.Name ?? productName,
-                            LocationId = Guid.Empty, // We don't have this from DocumentRow
+                            LocationId = locationId ?? Guid.Empty,
                             LocationName = locationName,
                             Quantity = row.Quantity,
                             PreviousQuantity = null, // Not available for existing rows
@@ -1703,38 +1806,78 @@ public class WarehouseManagementController : BaseApiController
                 {
                     try
                     {
-                        // Parse ProductId from ProductCode (stored as GUID string)
-                        if (!Guid.TryParse(row.ProductCode, out var productId))
+                        // Parse ProductId and LocationId from Description
+                        // Format: ProductName @ LocationCode | ProductId:GUID | LocationId:GUID
+                        Guid productId = Guid.Empty;
+                        Guid locationId = Guid.Empty;
+
+                        // Try new format first (with metadata)
+                        if (!string.IsNullOrEmpty(row.Description) && row.Description.Contains("ProductId:"))
                         {
-                            _logger.LogWarning("Invalid ProductCode '{ProductCode}' in row {RowId}, skipping", 
-                                row.ProductCode, row.Id);
-                            continue;
+                            var parts = row.Description.Split('|');
+                            foreach (var part in parts)
+                            {
+                                var trimmedPart = part.Trim();
+                                if (trimmedPart.StartsWith("ProductId:"))
+                                {
+                                    if (Guid.TryParse(trimmedPart.Substring("ProductId:".Length).Trim(), out var parsedProductId))
+                                    {
+                                        productId = parsedProductId;
+                                    }
+                                }
+                                else if (trimmedPart.StartsWith("LocationId:"))
+                                {
+                                    if (Guid.TryParse(trimmedPart.Substring("LocationId:".Length).Trim(), out var parsedLocationId))
+                                    {
+                                        locationId = parsedLocationId;
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Fallback: try parsing ProductCode as GUID (old format)
+                            if (!Guid.TryParse(row.ProductCode, out productId))
+                            {
+                                _logger.LogWarning("Invalid ProductCode '{ProductCode}' in row {RowId}, skipping", 
+                                    row.ProductCode, row.Id);
+                                continue;
+                            }
+
+                            // Parse location from description - format is "ProductName @ LocationCode"
+                            var descriptionParts = row.Description?.Split('@') ?? Array.Empty<string>();
+                            if (descriptionParts.Length < 2)
+                            {
+                                _logger.LogWarning("Unable to parse location from description '{Description}' in row {RowId}, skipping",
+                                    row.Description, row.Id);
+                                continue;
+                            }
+
+                            var locationCode = descriptionParts[1].Trim();
+
+                            // Find the storage location by code
+                            var allLocations = await _storageLocationService.GetStorageLocationsAsync(
+                                page: 1, 
+                                pageSize: 1000, 
+                                warehouseId: documentHeader.SourceWarehouseId, 
+                                cancellationToken: cancellationToken);
+                            
+                            var location = allLocations.Items.FirstOrDefault(l => l.Code == locationCode);
+                            
+                            if (location == null)
+                            {
+                                _logger.LogWarning("Storage location '{LocationCode}' not found for row {RowId}, skipping",
+                                    locationCode, row.Id);
+                                continue;
+                            }
+
+                            locationId = location.Id;
                         }
 
-                        // Parse location from description - format is "ProductName @ LocationCode"
-                        var descriptionParts = row.Description?.Split('@') ?? Array.Empty<string>();
-                        if (descriptionParts.Length < 2)
+                        // Validate we have both IDs
+                        if (productId == Guid.Empty || locationId == Guid.Empty)
                         {
-                            _logger.LogWarning("Unable to parse location from description '{Description}' in row {RowId}, skipping",
-                                row.Description, row.Id);
-                            continue;
-                        }
-
-                        var locationCode = descriptionParts[1].Trim();
-
-                        // Find the storage location by code through the service
-                        var allLocations = await _storageLocationService.GetStorageLocationsAsync(
-                            page: 1, 
-                            pageSize: 1000, 
-                            warehouseId: documentHeader.SourceWarehouseId, 
-                            cancellationToken: cancellationToken);
-                        
-                        var location = allLocations.Items.FirstOrDefault(l => l.Code == locationCode);
-                        
-                        if (location == null)
-                        {
-                            _logger.LogWarning("Storage location '{LocationCode}' not found for row {RowId}, skipping",
-                                locationCode, row.Id);
+                            _logger.LogWarning("Unable to extract ProductId or LocationId from row {RowId}, skipping", row.Id);
                             continue;
                         }
 
@@ -1745,7 +1888,7 @@ public class WarehouseManagementController : BaseApiController
                             page: 1,
                             pageSize: 1,
                             productId: productId,
-                            locationId: location.Id,
+                            locationId: locationId,
                             lotId: null,
                             cancellationToken: cancellationToken);
 
@@ -1758,7 +1901,7 @@ public class WarehouseManagementController : BaseApiController
                             // Create stock adjustment movement
                             await _stockMovementService.ProcessAdjustmentMovementAsync(
                                 productId: productId,
-                                locationId: location.Id,
+                                locationId: locationId,
                                 adjustmentQuantity: adjustmentQuantity,
                                 reason: "Inventory Count",
                                 lotId: null,
@@ -1768,13 +1911,13 @@ public class WarehouseManagementController : BaseApiController
 
                             _logger.LogInformation(
                                 "Applied inventory adjustment for product {ProductId} at location {LocationId}: {Adjustment} (from {Current} to {New})",
-                                productId, location.Id, adjustmentQuantity, currentQuantity, newQuantity);
+                                productId, locationId, adjustmentQuantity, currentQuantity, newQuantity);
                         }
                         else
                         {
                             _logger.LogInformation(
                                 "No adjustment needed for product {ProductId} at location {LocationId}: quantity unchanged at {Quantity}",
-                                productId, location.Id, currentQuantity);
+                                productId, locationId, currentQuantity);
                         }
                     }
                     catch (Exception ex)
@@ -1795,17 +1938,63 @@ public class WarehouseManagementController : BaseApiController
             {
                 foreach (var row in closedDocument.Rows)
                 {
-                    // Parse ProductId from ProductCode if it's a GUID
+                    // Parse metadata from description
+                    // Format: ProductName @ LocationCode | ProductId:GUID | LocationId:GUID
                     Guid? productId = null;
-                    if (Guid.TryParse(row.ProductCode, out var parsedProductId))
-                    {
-                        productId = parsedProductId;
-                    }
+                    Guid? locationId = null;
+                    string productName = string.Empty;
+                    string locationName = string.Empty;
 
-                    // Parse location from description - format is "ProductName @ LocationCode"
-                    var descriptionParts = row.Description?.Split('@') ?? Array.Empty<string>();
-                    var productName = descriptionParts.Length > 0 ? descriptionParts[0].Trim() : string.Empty;
-                    var locationName = descriptionParts.Length > 1 ? descriptionParts[1].Trim() : row.Description ?? string.Empty;
+                    if (!string.IsNullOrEmpty(row.Description))
+                    {
+                        if (row.Description.Contains("ProductId:"))
+                        {
+                            // New format with metadata
+                            var parts = row.Description.Split('|');
+                            
+                            // Parse display part (ProductName @ LocationCode)
+                            if (parts.Length > 0)
+                            {
+                                var displayPart = parts[0].Trim();
+                                var displayParts = displayPart.Split('@');
+                                productName = displayParts.Length > 0 ? displayParts[0].Trim() : string.Empty;
+                                locationName = displayParts.Length > 1 ? displayParts[1].Trim() : string.Empty;
+                            }
+
+                            // Parse metadata
+                            foreach (var part in parts)
+                            {
+                                var trimmedPart = part.Trim();
+                                if (trimmedPart.StartsWith("ProductId:"))
+                                {
+                                    if (Guid.TryParse(trimmedPart.Substring("ProductId:".Length).Trim(), out var parsedProductId))
+                                    {
+                                        productId = parsedProductId;
+                                    }
+                                }
+                                else if (trimmedPart.StartsWith("LocationId:"))
+                                {
+                                    if (Guid.TryParse(trimmedPart.Substring("LocationId:".Length).Trim(), out var parsedLocationId))
+                                    {
+                                        locationId = parsedLocationId;
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Old format - just ProductName @ LocationCode
+                            var descriptionParts = row.Description.Split('@');
+                            productName = descriptionParts.Length > 0 ? descriptionParts[0].Trim() : string.Empty;
+                            locationName = descriptionParts.Length > 1 ? descriptionParts[1].Trim() : row.Description;
+                            
+                            // Try to parse ProductId from ProductCode
+                            if (Guid.TryParse(row.ProductCode, out var parsedProductId))
+                            {
+                                productId = parsedProductId;
+                            }
+                        }
+                    }
 
                     // Try to fetch full product details if we have a valid ProductId
                     if (productId.HasValue)
@@ -1831,7 +2020,7 @@ public class WarehouseManagementController : BaseApiController
                         ProductId = productId ?? Guid.Empty,
                         ProductCode = row.ProductCode ?? string.Empty,
                         ProductName = productName,
-                        LocationId = Guid.Empty, // We don't have this from DocumentRow
+                        LocationId = locationId ?? Guid.Empty,
                         LocationName = locationName,
                         Quantity = row.Quantity,
                         Notes = row.Notes,
