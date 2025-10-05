@@ -50,6 +50,18 @@ public class VatRate : AuditableEntity
     public string? Notes { get; set; }
 
     /// <summary>
+    /// Foreign key to the VAT nature (optional, used for Italian tax compliance).
+    /// </summary>
+    [Display(Name = "VAT Nature", Description = "Reference to the VAT nature for Italian tax compliance.")]
+    public Guid? VatNatureId { get; set; }
+
+    /// <summary>
+    /// Navigation property for the VAT nature.
+    /// </summary>
+    [Display(Name = "VAT Nature", Description = "VAT nature for Italian tax compliance.")]
+    public VatNature? VatNature { get; set; }
+
+    /// <summary>
     /// Products associated with this VAT rate.
     /// </summary>
     [Display(Name = "Products", Description = "Products associated with this VAT rate.")]
