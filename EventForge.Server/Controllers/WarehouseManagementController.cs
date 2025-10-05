@@ -2,6 +2,7 @@ using EventForge.DTOs.Documents;
 using EventForge.DTOs.Warehouse;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Documents;
+using EventForge.Server.Services.Products;
 using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -27,6 +28,7 @@ public class WarehouseManagementController : BaseApiController
     private readonly ISerialService _serialService;
     private readonly IStockMovementService _stockMovementService;
     private readonly IDocumentHeaderService _documentHeaderService;
+    private readonly IProductService _productService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<WarehouseManagementController> _logger;
 
@@ -38,6 +40,7 @@ public class WarehouseManagementController : BaseApiController
         ISerialService serialService,
         IStockMovementService stockMovementService,
         IDocumentHeaderService documentHeaderService,
+        IProductService productService,
         ITenantContext tenantContext,
         ILogger<WarehouseManagementController> logger)
     {
@@ -48,6 +51,7 @@ public class WarehouseManagementController : BaseApiController
         _serialService = serialService ?? throw new ArgumentNullException(nameof(serialService));
         _stockMovementService = stockMovementService ?? throw new ArgumentNullException(nameof(stockMovementService));
         _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
+        _productService = productService ?? throw new ArgumentNullException(nameof(productService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -1477,16 +1481,16 @@ public class WarehouseManagementController : BaseApiController
             var currentQuantity = existingStock?.Quantity ?? 0;
             var adjustmentQuantity = rowDto.Quantity - currentQuantity;
 
-            // Get product and location info for the row
-            var product = existingStock != null ? new { existingStock.ProductName, existingStock.ProductCode } : null;
+            // Get product and location info for the row - fetch from ProductService to ensure complete data
+            var product = await _productService.GetProductByIdAsync(rowDto.ProductId, cancellationToken);
             var location = await _storageLocationService.GetStorageLocationByIdAsync(rowDto.LocationId, cancellationToken);
 
             // Create document row
             var createRowDto = new CreateDocumentRowDto
             {
                 DocumentHeaderId = documentId,
-                ProductCode = product?.ProductCode ?? rowDto.ProductId.ToString(),
-                Description = $"{product?.ProductName ?? "Product"} @ {location?.Code ?? "Location"}",
+                ProductCode = product?.Code ?? rowDto.ProductId.ToString(),
+                Description = $"{product?.Name ?? "Product"} @ {location?.Code ?? "Location"}",
                 Quantity = (int)rowDto.Quantity,
                 UnitPrice = 0, // Not relevant for inventory
                 Notes = rowDto.Notes
@@ -1499,8 +1503,8 @@ public class WarehouseManagementController : BaseApiController
             {
                 Id = documentRow.Id,
                 ProductId = rowDto.ProductId,
-                ProductName = product?.ProductName ?? string.Empty,
-                ProductCode = product?.ProductCode ?? string.Empty,
+                ProductName = product?.Name ?? string.Empty,
+                ProductCode = product?.Code ?? string.Empty,
                 LocationId = rowDto.LocationId,
                 LocationName = location?.Code ?? string.Empty,
                 Quantity = rowDto.Quantity,
@@ -1621,9 +1625,61 @@ public class WarehouseManagementController : BaseApiController
 
             var closedDocument = await _documentHeaderService.CloseDocumentAsync(documentId, GetCurrentUser(), cancellationToken);
 
+            // Enrich rows with product and location data
+            var enrichedRows = new List<InventoryDocumentRowDto>();
+            if (closedDocument!.Rows != null)
+            {
+                foreach (var row in closedDocument.Rows)
+                {
+                    // Parse ProductId from ProductCode if it's a GUID
+                    Guid? productId = null;
+                    if (Guid.TryParse(row.ProductCode, out var parsedProductId))
+                    {
+                        productId = parsedProductId;
+                    }
+
+                    // Parse location from description - format is "ProductName @ LocationCode"
+                    var descriptionParts = row.Description?.Split('@') ?? Array.Empty<string>();
+                    var productName = descriptionParts.Length > 0 ? descriptionParts[0].Trim() : string.Empty;
+                    var locationName = descriptionParts.Length > 1 ? descriptionParts[1].Trim() : row.Description ?? string.Empty;
+
+                    // Try to fetch full product details if we have a valid ProductId
+                    if (productId.HasValue)
+                    {
+                        try
+                        {
+                            var product = await _productService.GetProductByIdAsync(productId.Value, cancellationToken);
+                            if (product != null)
+                            {
+                                productName = product.Name;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to fetch product details for {ProductId} during finalization", productId);
+                            // Continue with parsed data
+                        }
+                    }
+
+                    enrichedRows.Add(new InventoryDocumentRowDto
+                    {
+                        Id = row.Id,
+                        ProductId = productId ?? Guid.Empty,
+                        ProductCode = row.ProductCode ?? string.Empty,
+                        ProductName = productName,
+                        LocationId = Guid.Empty, // We don't have this from DocumentRow
+                        LocationName = locationName,
+                        Quantity = row.Quantity,
+                        Notes = row.Notes,
+                        CreatedAt = row.CreatedAt,
+                        CreatedBy = row.CreatedBy
+                    });
+                }
+            }
+
             var result = new InventoryDocumentDto
             {
-                Id = closedDocument!.Id,
+                Id = closedDocument.Id,
                 Number = closedDocument.Number,
                 Series = closedDocument.Series,
                 InventoryDate = closedDocument.Date,
@@ -1635,16 +1691,7 @@ public class WarehouseManagementController : BaseApiController
                 CreatedBy = closedDocument.CreatedBy,
                 FinalizedAt = closedDocument.ClosedAt,
                 FinalizedBy = closedDocument.ModifiedBy,
-                Rows = closedDocument.Rows?.Select(r => new InventoryDocumentRowDto
-                {
-                    Id = r.Id,
-                    ProductCode = r.ProductCode ?? string.Empty,
-                    LocationName = r.Description,
-                    Quantity = r.Quantity,
-                    Notes = r.Notes,
-                    CreatedAt = r.CreatedAt,
-                    CreatedBy = r.CreatedBy
-                }).ToList() ?? new List<InventoryDocumentRowDto>()
+                Rows = enrichedRows
             };
 
             return Ok(result);
