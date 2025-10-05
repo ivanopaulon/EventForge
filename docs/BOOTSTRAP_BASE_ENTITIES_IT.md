@@ -49,7 +49,7 @@ L'entità `VatRate` è stata aggiornata per includere il collegamento alla Natur
 
 ### 3. Unità di Misura
 
-Il sistema precarica 19 unità di misura comunemente utilizzate nella gestione del magazzino:
+Il sistema precarica 20 unità di misura comunemente utilizzate nella gestione del magazzino:
 
 **Unità per Conteggio**:
 - Pezzo (pz) - *impostata come predefinita*
@@ -180,7 +180,7 @@ Durante il bootstrap, nei log dovrebbero apparire questi messaggi:
 [INFO] Seeding VAT rates for tenant {TenantId}...
 [INFO] Seeded 5 VAT rates for tenant {TenantId}
 [INFO] Seeding units of measure for tenant {TenantId}...
-[INFO] Seeded 19 units of measure for tenant {TenantId}
+[INFO] Seeded 20 units of measure for tenant {TenantId}
 [INFO] Seeding default warehouse for tenant {TenantId}...
 [INFO] Created default warehouse 'Magazzino Principale' with default location 'UB-DEF'
 [INFO] Base entities seeded successfully for tenant {TenantId}

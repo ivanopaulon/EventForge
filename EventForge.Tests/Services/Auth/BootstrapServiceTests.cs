@@ -404,4 +404,138 @@ public class BootstrapServiceTests
         Assert.All(superAdminRole.RolePermissions, rp => Assert.Equal(Guid.Empty, rp.TenantId));
         Assert.All(adminRole.RolePermissions, rp => Assert.Equal(Guid.Empty, rp.TenantId));
     }
+
+    [Fact]
+    public async Task EnsureAdminBootstrappedAsync_WithNewTenant_ShouldSeedBaseEntities()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<EventForgeDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new EventForgeDbContext(options);
+
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Bootstrap:SuperAdminPassword"] = "TestPassword123!",
+                ["Bootstrap:DefaultAdminUsername"] = "superadmin",
+                ["Bootstrap:DefaultAdminEmail"] = "superadmin@localhost",
+                ["Bootstrap:AutoCreateAdmin"] = "true"
+            })
+            .Build();
+
+        var logger = new LoggerFactory().CreateLogger<BootstrapService>();
+        var passwordLogger = new LoggerFactory().CreateLogger<PasswordService>();
+        var passwordService = new PasswordService(config, passwordLogger);
+        var bootstrapService = new BootstrapService(context, passwordService, config, logger);
+
+        // Act
+        var result = await bootstrapService.EnsureAdminBootstrappedAsync();
+
+        // Assert
+        Assert.True(result);
+
+        var tenant = await context.Tenants.FirstOrDefaultAsync();
+        Assert.NotNull(tenant);
+
+        // Verify VAT natures were seeded (24 Italian VAT nature codes)
+        var vatNatures = await context.VatNatures.Where(v => v.TenantId == tenant.Id).ToListAsync();
+        Assert.Equal(24, vatNatures.Count);
+        Assert.Contains(vatNatures, v => v.Code == "N1");
+        Assert.Contains(vatNatures, v => v.Code == "N2");
+        Assert.Contains(vatNatures, v => v.Code == "N3");
+        Assert.Contains(vatNatures, v => v.Code == "N6.1");
+        Assert.Contains(vatNatures, v => v.Code == "N7");
+
+        // Verify VAT rates were seeded (5 Italian VAT rates)
+        var vatRates = await context.VatRates.Where(v => v.TenantId == tenant.Id).ToListAsync();
+        Assert.Equal(5, vatRates.Count);
+        Assert.Contains(vatRates, v => v.Percentage == 22m);
+        Assert.Contains(vatRates, v => v.Percentage == 10m);
+        Assert.Contains(vatRates, v => v.Percentage == 5m);
+        Assert.Contains(vatRates, v => v.Percentage == 4m);
+        Assert.Contains(vatRates, v => v.Percentage == 0m);
+
+        // Verify units of measure were seeded (20 units)
+        var ums = await context.UMs.Where(u => u.TenantId == tenant.Id).ToListAsync();
+        Assert.Equal(20, ums.Count);
+        Assert.Contains(ums, u => u.Symbol == "pz" && u.IsDefault);
+        Assert.Contains(ums, u => u.Symbol == "kg");
+        Assert.Contains(ums, u => u.Symbol == "l");
+        Assert.Contains(ums, u => u.Symbol == "pallet");
+
+        // Verify default warehouse was created
+        var warehouses = await context.StorageFacilities.Where(w => w.TenantId == tenant.Id).ToListAsync();
+        Assert.Single(warehouses);
+        var warehouse = warehouses.First();
+        Assert.Equal("Magazzino Principale", warehouse.Name);
+        Assert.Equal("MAG-01", warehouse.Code);
+        Assert.True(warehouse.IsFiscal);
+
+        // Verify default storage location was created
+        var locations = await context.StorageLocations.Where(l => l.TenantId == tenant.Id).ToListAsync();
+        Assert.Single(locations);
+        var location = locations.First();
+        Assert.Equal("UB-DEF", location.Code);
+        Assert.Equal(warehouse.Id, location.WarehouseId);
+    }
+
+    [Fact]
+    public async Task EnsureAdminBootstrappedAsync_RunTwice_ShouldNotDuplicateBaseEntities()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<EventForgeDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new EventForgeDbContext(options);
+
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Bootstrap:SuperAdminPassword"] = "TestPassword123!",
+                ["Bootstrap:DefaultAdminUsername"] = "superadmin",
+                ["Bootstrap:DefaultAdminEmail"] = "superadmin@localhost",
+                ["Bootstrap:AutoCreateAdmin"] = "true"
+            })
+            .Build();
+
+        var logger = new LoggerFactory().CreateLogger<BootstrapService>();
+        var passwordLogger = new LoggerFactory().CreateLogger<PasswordService>();
+        var passwordService = new PasswordService(config, passwordLogger);
+        var bootstrapService = new BootstrapService(context, passwordService, config, logger);
+
+        // Act - Run bootstrap twice
+        var result1 = await bootstrapService.EnsureAdminBootstrappedAsync();
+        
+        // Create a new service instance to simulate restart
+        await using var context2 = new EventForgeDbContext(options);
+        var bootstrapService2 = new BootstrapService(context2, passwordService, config, logger);
+        var result2 = await bootstrapService2.EnsureAdminBootstrappedAsync();
+
+        // Assert
+        Assert.True(result1);
+        Assert.True(result2);
+
+        await using var verifyContext = new EventForgeDbContext(options);
+        var tenant = await verifyContext.Tenants.FirstOrDefaultAsync();
+        Assert.NotNull(tenant);
+
+        // Verify counts are still correct (no duplication)
+        var vatNatureCount = await verifyContext.VatNatures.CountAsync(v => v.TenantId == tenant.Id);
+        Assert.Equal(24, vatNatureCount);
+
+        var vatRateCount = await verifyContext.VatRates.CountAsync(v => v.TenantId == tenant.Id);
+        Assert.Equal(5, vatRateCount);
+
+        var umCount = await verifyContext.UMs.CountAsync(u => u.TenantId == tenant.Id);
+        Assert.Equal(20, umCount);
+
+        var warehouseCount = await verifyContext.StorageFacilities.CountAsync(w => w.TenantId == tenant.Id);
+        Assert.Equal(1, warehouseCount);
+
+        var locationCount = await verifyContext.StorageLocations.CountAsync(l => l.TenantId == tenant.Id);
+        Assert.Equal(1, locationCount);
+    }
 }

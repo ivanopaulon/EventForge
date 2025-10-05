@@ -63,7 +63,7 @@ The system seeds 5 Italian VAT rates as per current legislation (2024-2025):
 
 ### 3. Units of Measure (Unità di Misura)
 
-The system seeds 19 commonly used units of measure for warehouse management.
+The system seeds 20 commonly used units of measure for warehouse management.
 
 #### Seeded Units of Measure
 
@@ -216,7 +216,7 @@ This ensures that:
 [INFO] Seeding VAT rates for tenant {TenantId}...
 [INFO] Seeded 5 VAT rates for tenant {TenantId}
 [INFO] Seeding units of measure for tenant {TenantId}...
-[INFO] Seeded 19 units of measure for tenant {TenantId}
+[INFO] Seeded 20 units of measure for tenant {TenantId}
 [INFO] Seeding default warehouse for tenant {TenantId}...
 [INFO] Created default warehouse 'Magazzino Principale' with default location 'UB-DEF' for tenant {TenantId}
 [INFO] Base entities seeded successfully for tenant {TenantId}
