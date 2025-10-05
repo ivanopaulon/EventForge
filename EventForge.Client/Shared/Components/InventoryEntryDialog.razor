@@ -41,6 +41,14 @@
                 </MudPaper>
             }
 
+            <!-- Keyboard Shortcuts Helper -->
+            <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+                <MudText Typo="Typo.caption">
+                    <MudIcon Icon="@Icons.Material.Outlined.Keyboard" Size="Size.Small" Class="mr-1" />
+                    <strong>Scorciatoie:</strong> Tab/Invio = campo successivo | Invio = Invia | Esc = Annulla
+                </MudText>
+            </MudAlert>
+
             <!-- Entry Form -->
             <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
                 <MudStack Spacing="3">
@@ -51,7 +59,9 @@
                                Required="true"
                                RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
                                Adornment="Adornment.Start"
-                               AdornmentIcon="@Icons.Material.Outlined.LocationOn">
+                               AdornmentIcon="@Icons.Material.Outlined.LocationOn"
+                               @ref="_locationSelect"
+                               @onkeydown="@OnLocationKeyDown">
                         @if (Locations != null)
                         {
                             @foreach (var location in Locations)
@@ -71,7 +81,8 @@
                                     RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
                                     Adornment="Adornment.Start"
                                     AdornmentIcon="@Icons.Material.Outlined.Numbers"
-                                    @ref="_quantityField" />
+                                    @ref="_quantityField"
+                                    @onkeydown="@OnQuantityKeyDown" />
 
                     <MudTextField @bind-Value="_notes"
                                  Label="@TranslationService.GetTranslation("warehouse.notes", "Note")"
@@ -80,7 +91,8 @@
                                  MaxLength="200"
                                  Counter="200"
                                  Adornment="Adornment.Start"
-                                 AdornmentIcon="@Icons.Material.Outlined.Comment" />
+                                 AdornmentIcon="@Icons.Material.Outlined.Comment"
+                                 @onkeydown="@OnNotesKeyDown" />
                 </MudStack>
             </MudForm>
         </MudStack>
@@ -110,17 +122,64 @@
     public List<StorageLocationDto>? Locations { get; set; }
 
     private MudForm? _form;
+    private MudSelect<Guid?>? _locationSelect;
     private MudNumericField<decimal>? _quantityField;
     private bool _isFormValid;
     private Guid? _selectedLocationId;
-    private decimal _quantity = 0;
+    private decimal _quantity = 1; // Default to 1 instead of 0 for faster input
     private string _notes = string.Empty;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && _quantityField != null)
+        if (firstRender)
         {
-            await _quantityField.FocusAsync();
+            // Auto-select location if only one exists
+            if (Locations?.Count == 1)
+            {
+                _selectedLocationId = Locations[0].Id;
+                StateHasChanged();
+                // Focus on quantity field since location is auto-selected
+                if (_quantityField != null)
+                {
+                    await _quantityField.FocusAsync();
+                }
+            }
+            else if (_locationSelect != null)
+            {
+                // Focus on location select if multiple locations
+                await _locationSelect.FocusAsync();
+            }
+        }
+    }
+
+    private async Task OnLocationKeyDown(KeyboardEventArgs e)
+    {
+        // Tab or Enter to move to quantity field
+        if ((e.Key == "Tab" || e.Key == "Enter") && _selectedLocationId.HasValue)
+        {
+            if (_quantityField != null)
+            {
+                await Task.Delay(100); // Small delay to ensure location is set
+                await _quantityField.FocusAsync();
+            }
+        }
+    }
+
+    private async Task OnQuantityKeyDown(KeyboardEventArgs e)
+    {
+        // Enter to submit if form is valid (skip notes)
+        if (e.Key == "Enter" && _isFormValid && !e.ShiftKey)
+        {
+            Submit();
+        }
+    }
+
+    private async Task OnNotesKeyDown(KeyboardEventArgs e)
+    {
+        // Ctrl+Enter to submit from notes field
+        if (e.Key == "Enter" && e.CtrlKey && _isFormValid)
+        {
+            Submit();
         }
     }
 
