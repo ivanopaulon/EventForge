@@ -11,7 +11,7 @@ public class SaleSession : AuditableEntity
     /// <summary>
     /// Session unique identifier.
     /// </summary>
-    public Guid Id { get; set; }
+    public new Guid Id { get; set; }
 
     /// <summary>
     /// Reference to the store user (operator/cashier) who created the session.

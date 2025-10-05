@@ -42,7 +42,10 @@ public class DocumentExportService : IDocumentExportService
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
 
         // Set EPPlus license context to NonCommercial
+        // Note: This API is obsolete in EPPlus 8+, but we're using an earlier version
+#pragma warning disable CS0618 // Type or member is obsolete
         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+#pragma warning restore CS0618
 
         // Set QuestPDF license to Community (for non-commercial use)
         QuestPDF.Settings.License = LicenseType.Community;

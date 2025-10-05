@@ -341,7 +341,7 @@ public class PaymentMethodsController : BaseApiController
     /// </summary>
     /// <param name="message">The error message</param>
     /// <returns>Conflict result with ProblemDetails</returns>
-    private ActionResult CreateConflictProblem(string message)
+    private new ActionResult CreateConflictProblem(string message)
     {
         var problemDetails = new ProblemDetails
         {
@@ -385,7 +385,7 @@ public class PaymentMethodsController : BaseApiController
     /// <summary>
     /// Validates tenant access for the current request.
     /// </summary>
-    private async Task<ActionResult?> ValidateTenantAccessAsync(ITenantContext tenantContext)
+    private new async Task<ActionResult?> ValidateTenantAccessAsync(ITenantContext tenantContext)
     {
         if (!tenantContext.CurrentTenantId.HasValue)
         {

@@ -10,7 +10,7 @@ public class SaleItem : AuditableEntity
     /// <summary>
     /// Item unique identifier.
     /// </summary>
-    public Guid Id { get; set; }
+    public new Guid Id { get; set; }
 
     /// <summary>
     /// Reference to the sale session.

@@ -100,7 +100,7 @@ namespace EventForge.Client.Services
         {
             try
             {
-                await _signalRService.StartConnectionAsync();
+                await _signalRService.StartAuditConnectionAsync();
                 // SignalR subscription will be implemented in future version
                 _logger.LogInformation("Application log subscription requested");
             }
@@ -115,7 +115,7 @@ namespace EventForge.Client.Services
         {
             try
             {
-                await _signalRService.StartConnectionAsync();
+                await _signalRService.StartAuditConnectionAsync();
                 // SignalR subscription will be implemented in future version
                 _logger.LogInformation("Audit log subscription requested");
             }

@@ -85,7 +85,9 @@ public class ProductImageTests
         var product = new Product();
 
         // Act - Check that ImageUrl property exists but is marked obsolete
+#pragma warning disable CS0618 // Testing obsolete property intentionally
         var imageUrlProperty = typeof(Product).GetProperty(nameof(Product.ImageUrl));
+#pragma warning restore CS0618
 
         // Assert
         Assert.NotNull(imageUrlProperty);
