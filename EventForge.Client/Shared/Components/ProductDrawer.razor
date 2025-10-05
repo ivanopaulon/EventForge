@@ -758,7 +758,7 @@
                 {
                     <MudItem xs="12" Class="mt-4">
                         <MudExpansionPanels>
-                            <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.supplierCount", "Fornitori")} ({_suppliers.Count()})")" IsInitiallyExpanded="false">
+                            <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.supplierCount", "Fornitori")} ({_suppliers.Count()})")" Expanded="false">
                                 <MudTable Items="_suppliers" Hover="true" Dense="true" Striped="true">
                                     <HeaderContent>
                                         <MudTh>@TranslationService.GetTranslation("field.supplierName", "Nome Fornitore")</MudTh>

@@ -450,7 +450,7 @@
                     {
                         <MudItem xs="12" Class="mt-4">
                             <MudExpansionPanels>
-                                <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.addressCount", "Indirizzi")} ({_addresses.Count()})")" IsInitiallyExpanded="false">
+                                <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.addressCount", "Indirizzi")} ({_addresses.Count()})")" Expanded="false">
                                     <MudTable Items="_addresses" Hover="true" Dense="true" Striped="true">
                                         <HeaderContent>
                                             <MudTh>@TranslationService.GetTranslation("field.addressType", "Tipo")</MudTh>
@@ -479,7 +479,7 @@
                     {
                         <MudItem xs="12" Class="mt-2">
                             <MudExpansionPanels>
-                                <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.contactCount", "Contatti")} ({_contacts.Count()})")" IsInitiallyExpanded="false">
+                                <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.contactCount", "Contatti")} ({_contacts.Count()})")" Expanded="false">
                                     <MudTable Items="_contacts" Hover="true" Dense="true" Striped="true">
                                         <HeaderContent>
                                             <MudTh>@TranslationService.GetTranslation("field.contactType", "Tipo")</MudTh>
@@ -509,7 +509,7 @@
                     {
                         <MudItem xs="12" Class="mt-2">
                             <MudExpansionPanels>
-                                <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.referenceCount", "Referenti")} ({_references.Count()})")" IsInitiallyExpanded="false">
+                                <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.referenceCount", "Referenti")} ({_references.Count()})")" Expanded="false">
                                     <MudTable Items="_references" Hover="true" Dense="true" Striped="true">
                                         <HeaderContent>
                                             <MudTh>@TranslationService.GetTranslation("field.firstName", "Nome")</MudTh>
