@@ -30,6 +30,7 @@ public class EventForgeDbContext : DbContext
     public DbSet<Printer> Printers { get; set; }
     public DbSet<UM> UMs { get; set; }
     public DbSet<VatRate> VatRates { get; set; }
+    public DbSet<VatNature> VatNatures { get; set; }
 
     // Business
     public DbSet<BusinessParty> BusinessParties { get; set; }

@@ -2245,6 +2245,66 @@ namespace EventForge.Server.Migrations
                     b.ToTable("UMs");
                 });
 
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.VatNature", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("VatNatures");
+                });
+
             modelBuilder.Entity("EventForge.Server.Data.Entities.Common.VatRate", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2308,7 +2368,12 @@ namespace EventForge.Server.Migrations
                     b.Property<DateTime?>("ValidTo")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("VatNatureId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("VatNatureId");
 
                     b.ToTable("VatRates");
                 });
@@ -9466,6 +9531,15 @@ namespace EventForge.Server.Migrations
                         .HasForeignKey("BusinessPartyId");
                 });
 
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.VatRate", b =>
+                {
+                    b.HasOne("EventForge.Server.Data.Entities.Common.VatNature", "VatNature")
+                        .WithMany("VatRates")
+                        .HasForeignKey("VatNatureId");
+
+                    b.Navigation("VatNature");
+                });
+
             modelBuilder.Entity("EventForge.Server.Data.Entities.Configuration.BackupOperation", b =>
                 {
                     b.HasOne("EventForge.Server.Data.Entities.Auth.User", "StartedByUser")
@@ -10720,6 +10794,11 @@ namespace EventForge.Server.Migrations
             modelBuilder.Entity("EventForge.Server.Data.Entities.Common.UM", b =>
                 {
                     b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Common.VatNature", b =>
+                {
+                    b.Navigation("VatRates");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Common.VatRate", b =>
