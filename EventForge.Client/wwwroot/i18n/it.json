@@ -305,7 +305,10 @@
     "confirmDeleteMessage": "Sei sicuro di voler eliminare questo elemento?",
     "addSupplier": "Aggiungi Fornitore",
     "editSupplier": "Modifica Fornitore",
-    "confirmDeleteSupplier": "Sei sicuro di voler eliminare questo fornitore?"
+    "confirmDeleteSupplier": "Sei sicuro di voler eliminare questo fornitore?",
+    "confirmDeleteCode": "Sei sicuro di voler eliminare questo codice?",
+    "confirmDeleteUnit": "Sei sicuro di voler eliminare questa unità di misura?",
+    "confirmDeleteBundleItem": "Sei sicuro di voler eliminare questo componente?"
   },
   "drawer": {
     "aria": {
@@ -710,7 +713,15 @@
     "purpose": "Scopo",
     "isPrimary": "Primario",
     "department": "Dipartimento",
-    "contacts": "Contatti"
+    "contacts": "Contatti",
+    "productCodes": "Codici Alternativi",
+    "productUnits": "Unità di Misura Alternative",
+    "bundleComponents": "Componenti Bundle",
+    "alternativeDescription": "Descrizione Alternativa",
+    "unitType": "Tipo Unità",
+    "conversionFactor": "Fattore di Conversione",
+    "componentProduct": "Prodotto Componente",
+    "quantity": "Quantità"
   },
   "filter": {
     "all": "Tutti"
@@ -925,7 +936,11 @@
     "supplierUpdatedSuccessfully": "Fornitore aggiornato con successo",
     "supplierUpdateFailed": "Errore durante l'aggiornamento del fornitore",
     "updateNotImplemented": "Aggiornamento prodotto non ancora implementato",
-    "initializationError": "Errore durante l'inizializzazione"
+    "initializationError": "Errore durante l'inizializzazione",
+    "noCodes": "Nessun codice alternativo disponibile",
+    "noUnits": "Nessuna unità di misura alternativa disponibile",
+    "noBundleItems": "Nessun componente disponibile",
+    "featureNotImplemented": "Funzionalità non ancora implementata"
   },
   "mobileBadge": {
     "activities": "Attività",
@@ -1910,7 +1925,7 @@
     "toggleTenantSelector": "Mostra/Nascondi selezione tenant",
     "toggleTenantSwitch": "Attiva/disattiva cambio tenant",
     "toggleTrends": "Attiva/disattiva tendenze",
-    "view": "Visualizza dettagli",
+    "view": "Visualizza",
     "viewAudit": "Visualizza dettagli audit",
     "viewAuditHistory": "Visualizza cronologia modifiche",
     "viewAuditLog": "Visualizza log audit",
@@ -1919,9 +1934,7 @@
     "viewItem": "Visualizza {0}",
     "viewLogs": "Visualizza log",
     "viewTenant": "Visualizza dettagli tenant",
-    "viewUser": "Visualizza dettagli utente",
-    "view": "Visualizza",
-    "edit": "Modifica"
+    "viewUser": "Visualizza dettagli utente"
   },
   "userMenu": {
     "ariaLabel": "Menu utente",
