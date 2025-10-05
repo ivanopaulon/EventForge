@@ -51,6 +51,8 @@ var product = await _productService.GetProductByIdAsync(rowDto.ProductId, cancel
 
 ### EventForge.Server/Controllers/WarehouseManagementController.cs
 
+**Modifiche in AddInventoryDocumentRow**
+
 **Linee modificate**: 1-56, 1484-1507
 
 **Cambiamenti principali:**
@@ -79,6 +81,54 @@ var product = await _productService.GetProductByIdAsync(rowDto.ProductId, cancel
 + ProductCode = product?.Code ?? string.Empty,
 ```
 
+**Modifiche in FinalizeInventoryDocument**
+
+**Linee modificate**: 1626-1695
+
+**Cambiamenti principali:**
+```diff
+  var closedDocument = await _documentHeaderService.CloseDocumentAsync(...);
+
++ // Enrich rows with product and location data
++ var enrichedRows = new List<InventoryDocumentRowDto>();
++ foreach (var row in closedDocument.Rows)
++ {
++     // Parse ProductId from ProductCode
++     Guid? productId = null;
++     if (Guid.TryParse(row.ProductCode, out var parsedProductId))
++     {
++         productId = parsedProductId;
++     }
++
++     // Parse product name from description
++     var descriptionParts = row.Description?.Split('@') ?? Array.Empty<string>();
++     var productName = descriptionParts.Length > 0 ? descriptionParts[0].Trim() : string.Empty;
++
++     // Try to fetch full product details if available
++     if (productId.HasValue)
++     {
++         try
++         {
++             var product = await _productService.GetProductByIdAsync(productId.Value, cancellationToken);
++             if (product != null)
++             {
++                 productName = product.Name;
++             }
++         }
++         catch { /* Continue with parsed data */ }
++     }
++
++     enrichedRows.Add(new InventoryDocumentRowDto { ... });
++ }
+
+  var result = new InventoryDocumentDto
+  {
+      // ... altri campi
+-     Rows = closedDocument.Rows?.Select(r => new InventoryDocumentRowDto { ... }).ToList()
++     Rows = enrichedRows
+  };
+```
+
 ## Risultato
 
 ✅ **Le righe vengono ora visualizzate correttamente** nella pagina dopo l'inserimento
@@ -86,6 +136,8 @@ var product = await _productService.GetProductByIdAsync(rowDto.ProductId, cancel
 ✅ **Le informazioni del prodotto sono sempre complete** anche per prodotti senza stock esistente
 
 ✅ **Il componente Blazor `MudTable` riceve dati validi** e può renderizzare correttamente le righe
+
+✅ **I documenti finalizzati mostrano dati completi** quando visualizzati nella lista inventari
 
 ✅ **Tutti i 211 test passano** - nessuna regressione introdotta
 
@@ -112,10 +164,13 @@ var product = await _productService.GetProductByIdAsync(rowDto.ProductId, cancel
 
 ## Note Aggiuntive
 
-La modifica non impatta:
+Le modifiche impattano:
+- **AddInventoryDocumentRow**: Inserimento righe durante la procedura di inventario
+- **FinalizeInventoryDocument**: Visualizzazione del documento finalizzato
+- Entrambi ora utilizzano il ProductService per ottenere dati completi
+
+Non impattano:
 - La logica di calcolo degli aggiustamenti di stock
-- La finalizzazione del documento di inventario
 - Il salvataggio dei dati nel database
 - Le altre operazioni del warehouse management
-
-Il problema era puramente nella **costruzione della risposta API** che veniva restituita al frontend.
+- **ListInventoryDocuments**: Mantiene l'approccio leggero per performance (lista documenti)
