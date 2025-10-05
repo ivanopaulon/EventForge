@@ -297,7 +297,10 @@
     "confirmDelete": "Confirm delete",
     "confirmDeleteEventCategory": "Confirm delete event category",
     "confirmDeleteEventCategoryMessage": "Are you sure you want to delete this event category?",
-    "confirmDeleteMessage": "Are you sure you want to delete this item?"
+    "confirmDeleteMessage": "Are you sure you want to delete this item?",
+    "confirmDeleteCode": "Are you sure you want to delete this code?",
+    "confirmDeleteUnit": "Are you sure you want to delete this unit of measure?",
+    "confirmDeleteBundleItem": "Are you sure you want to delete this component?"
   },
   "drawer": {
     "aria": {
@@ -528,7 +531,15 @@
     "tenant": "Tenant",
     "tenantName": "Tenant name",
     "user": "User",
-    "username": "Username"
+    "username": "Username",
+    "productCodes": "Alternative Codes",
+    "productUnits": "Alternative Units of Measure",
+    "bundleComponents": "Bundle Components",
+    "alternativeDescription": "Alternative Description",
+    "unitType": "Unit Type",
+    "conversionFactor": "Conversion Factor",
+    "componentProduct": "Component Product",
+    "quantity": "Quantity"
   },
   "filter": {
     "all": "All"
@@ -733,7 +744,11 @@
     "loadFailed": "Loading failed",
     "warehouseRequired": "Please select a warehouse",
     "codeRequired": "Code is required",
-    "loadWarehousesError": "Error loading warehouses"
+    "loadWarehousesError": "Error loading warehouses",
+    "noCodes": "No alternative codes available",
+    "noUnits": "No alternative units of measure available",
+    "noBundleItems": "No components available",
+    "featureNotImplemented": "Feature not yet implemented"
   },
   "mobileBadge": {
     "activities": "Activities",

@@ -508,6 +508,209 @@
                         </MudExpansionPanels>
                     </MudItem>
                 }
+                
+                @* Product Codes Section with Actions *@
+                @if (_loadingCodes)
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                        <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-2">
+                            @TranslationService.GetTranslation("common.loading", "Caricamento...")
+                        </MudText>
+                    </MudItem>
+                }
+                else
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudExpansionPanels>
+                            <MudExpansionPanel>
+                                <TitleContent>
+                                    <div class="d-flex justify-space-between align-center" style="width: 100%;">
+                                        <MudText>@($"{TranslationService.GetTranslation("field.productCodes", "Codici Alternativi")} ({_productCodes?.Count() ?? 0})")</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                                      Color="Color.Primary" 
+                                                      Size="Size.Small"
+                                                      OnClick="@(() => OpenAddCodeDialog())"
+                                                      aria-label="@TranslationService.GetTranslation("button.addCode", "Aggiungi codice")" />
+                                    </div>
+                                </TitleContent>
+                                <ChildContent>
+                                    @if (_productCodes?.Any() == true)
+                                    {
+                                        <MudTable Items="_productCodes" Hover="true" Dense="true" Striped="true">
+                                            <HeaderContent>
+                                                <MudTh>@TranslationService.GetTranslation("field.codeType", "Tipo Codice")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.code", "Codice")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.alternativeDescription", "Descrizione")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                                            </HeaderContent>
+                                            <RowTemplate>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.codeType", "Tipo Codice")">@context.CodeType</MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">@context.Code</MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.alternativeDescription", "Descrizione")">@context.AlternativeDescription</MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                                                    <MudChip T="string" Size="Size.Small" Color="@GetCodeStatusColor(context.Status)">@GetCodeStatusText(context.Status)</MudChip>
+                                                </MudTd>
+                                                <MudTd>
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                                                  Color="Color.Primary" 
+                                                                  Size="Size.Small"
+                                                                  OnClick="@(() => OpenEditCodeDialog(context))"
+                                                                  title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                                  Color="Color.Error" 
+                                                                  Size="Size.Small"
+                                                                  OnClick="@(() => DeleteCode(context.Id))"
+                                                                  title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
+                                                </MudTd>
+                                            </RowTemplate>
+                                        </MudTable>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body2" Class="pa-4">@TranslationService.GetTranslation("messages.noCodes", "Nessun codice alternativo disponibile")</MudText>
+                                    }
+                                </ChildContent>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudItem>
+                }
+                
+                @* Product Units Section with Actions *@
+                @if (_loadingUnits)
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                        <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-2">
+                            @TranslationService.GetTranslation("common.loading", "Caricamento...")
+                        </MudText>
+                    </MudItem>
+                }
+                else
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudExpansionPanels>
+                            <MudExpansionPanel>
+                                <TitleContent>
+                                    <div class="d-flex justify-space-between align-center" style="width: 100%;">
+                                        <MudText>@($"{TranslationService.GetTranslation("field.productUnits", "Unità di Misura Alternative")} ({_productUnits?.Count() ?? 0})")</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                                      Color="Color.Primary" 
+                                                      Size="Size.Small"
+                                                      OnClick="@(() => OpenAddUnitDialog())"
+                                                      aria-label="@TranslationService.GetTranslation("button.addUnit", "Aggiungi unità")" />
+                                    </div>
+                                </TitleContent>
+                                <ChildContent>
+                                    @if (_productUnits?.Any() == true)
+                                    {
+                                        <MudTable Items="_productUnits" Hover="true" Dense="true" Striped="true">
+                                            <HeaderContent>
+                                                <MudTh>@TranslationService.GetTranslation("field.unitType", "Tipo Unità")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.conversionFactor", "Fattore di Conversione")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                                            </HeaderContent>
+                                            <RowTemplate>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.unitType", "Tipo Unità")">@context.UnitType</MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")">@GetUnitOfMeasureName(context.UnitOfMeasureId)</MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.conversionFactor", "Fattore di Conversione")">@context.ConversionFactor.ToString("N3")</MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">@context.Description</MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                                                    <MudChip T="string" Size="Size.Small" Color="@GetUnitStatusColor(context.Status)">@GetUnitStatusText(context.Status)</MudChip>
+                                                </MudTd>
+                                                <MudTd>
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                                                  Color="Color.Primary" 
+                                                                  Size="Size.Small"
+                                                                  OnClick="@(() => OpenEditUnitDialog(context))"
+                                                                  title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                                  Color="Color.Error" 
+                                                                  Size="Size.Small"
+                                                                  OnClick="@(() => DeleteUnit(context.Id))"
+                                                                  title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
+                                                </MudTd>
+                                            </RowTemplate>
+                                        </MudTable>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body2" Class="pa-4">@TranslationService.GetTranslation("messages.noUnits", "Nessuna unità di misura alternativa disponibile")</MudText>
+                                    }
+                                </ChildContent>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudItem>
+                }
+                
+                @* Product Bundle Items Section with Actions (only if IsBundle) *@
+                @if (OriginalProduct?.IsBundle == true)
+                {
+                    @if (_loadingBundleItems)
+                    {
+                        <MudItem xs="12" Class="mt-4">
+                            <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                            <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-2">
+                                @TranslationService.GetTranslation("common.loading", "Caricamento...")
+                            </MudText>
+                        </MudItem>
+                    }
+                    else
+                    {
+                        <MudItem xs="12" Class="mt-4">
+                            <MudExpansionPanels>
+                                <MudExpansionPanel>
+                                    <TitleContent>
+                                        <div class="d-flex justify-space-between align-center" style="width: 100%;">
+                                            <MudText>@($"{TranslationService.GetTranslation("field.bundleComponents", "Componenti Bundle")} ({_bundleItems?.Count() ?? 0})")</MudText>
+                                            <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                                          Color="Color.Primary" 
+                                                          Size="Size.Small"
+                                                          OnClick="@(() => OpenAddBundleItemDialog())"
+                                                          aria-label="@TranslationService.GetTranslation("button.addBundleItem", "Aggiungi componente")" />
+                                        </div>
+                                    </TitleContent>
+                                    <ChildContent>
+                                        @if (_bundleItems?.Any() == true)
+                                        {
+                                            <MudTable Items="_bundleItems" Hover="true" Dense="true" Striped="true">
+                                                <HeaderContent>
+                                                    <MudTh>@TranslationService.GetTranslation("field.componentProduct", "Prodotto Componente")</MudTh>
+                                                    <MudTh>@TranslationService.GetTranslation("field.quantity", "Quantità")</MudTh>
+                                                    <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                                                </HeaderContent>
+                                                <RowTemplate>
+                                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.componentProduct", "Prodotto Componente")">@GetProductName(context.ComponentProductId)</MudTd>
+                                                    <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")">@context.Quantity</MudTd>
+                                                    <MudTd>
+                                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                                                      Color="Color.Primary" 
+                                                                      Size="Size.Small"
+                                                                      OnClick="@(() => OpenEditBundleItemDialog(context))"
+                                                                      title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
+                                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                                      Color="Color.Error" 
+                                                                      Size="Size.Small"
+                                                                      OnClick="@(() => DeleteBundleItem(context.Id))"
+                                                                      title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
+                                                    </MudTd>
+                                                </RowTemplate>
+                                            </MudTable>
+                                        }
+                                        else
+                                        {
+                                            <MudText Typo="Typo.body2" Class="pa-4">@TranslationService.GetTranslation("messages.noBundleItems", "Nessun componente disponibile")</MudText>
+                                        }
+                                    </ChildContent>
+                                </MudExpansionPanel>
+                            </MudExpansionPanels>
+                        </MudItem>
+                    }
+                }
             }
         </MudGrid>
     </FormContent>
@@ -794,6 +997,113 @@
                         </MudExpansionPanels>
                     </MudItem>
                 }
+                
+                @* Product Codes Section in View Mode *@
+                @if (_loadingCodes)
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                        <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-2">
+                            @TranslationService.GetTranslation("common.loading", "Caricamento...")
+                        </MudText>
+                    </MudItem>
+                }
+                else if (_productCodes?.Any() == true)
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudExpansionPanels>
+                            <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.productCodes", "Codici Alternativi")} ({_productCodes.Count()})")" IsInitiallyExpanded="false">
+                                <MudTable Items="_productCodes" Hover="true" Dense="true" Striped="true">
+                                    <HeaderContent>
+                                        <MudTh>@TranslationService.GetTranslation("field.codeType", "Tipo Codice")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("field.code", "Codice")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("field.alternativeDescription", "Descrizione")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.codeType", "Tipo Codice")">@context.CodeType</MudTd>
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">@context.Code</MudTd>
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.alternativeDescription", "Descrizione")">@context.AlternativeDescription</MudTd>
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                                            <MudChip T="string" Size="Size.Small" Color="@GetCodeStatusColor(context.Status)">@GetCodeStatusText(context.Status)</MudChip>
+                                        </MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudItem>
+                }
+                
+                @* Product Units Section in View Mode *@
+                @if (_loadingUnits)
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                        <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-2">
+                            @TranslationService.GetTranslation("common.loading", "Caricamento...")
+                        </MudText>
+                    </MudItem>
+                }
+                else if (_productUnits?.Any() == true)
+                {
+                    <MudItem xs="12" Class="mt-4">
+                        <MudExpansionPanels>
+                            <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.productUnits", "Unità di Misura Alternative")} ({_productUnits.Count()})")" IsInitiallyExpanded="false">
+                                <MudTable Items="_productUnits" Hover="true" Dense="true" Striped="true">
+                                    <HeaderContent>
+                                        <MudTh>@TranslationService.GetTranslation("field.unitType", "Tipo Unità")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("field.conversionFactor", "Fattore di Conversione")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.unitType", "Tipo Unità")">@context.UnitType</MudTd>
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")">@GetUnitOfMeasureName(context.UnitOfMeasureId)</MudTd>
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.conversionFactor", "Fattore di Conversione")">@context.ConversionFactor.ToString("N3")</MudTd>
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">@context.Description</MudTd>
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                                            <MudChip T="string" Size="Size.Small" Color="@GetUnitStatusColor(context.Status)">@GetUnitStatusText(context.Status)</MudChip>
+                                        </MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudItem>
+                }
+                
+                @* Product Bundle Items Section in View Mode (only if IsBundle) *@
+                @if (OriginalProduct?.IsBundle == true)
+                {
+                    @if (_loadingBundleItems)
+                    {
+                        <MudItem xs="12" Class="mt-4">
+                            <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                            <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-2">
+                                @TranslationService.GetTranslation("common.loading", "Caricamento...")
+                            </MudText>
+                        </MudItem>
+                    }
+                    else if (_bundleItems?.Any() == true)
+                    {
+                        <MudItem xs="12" Class="mt-4">
+                            <MudExpansionPanels>
+                                <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.bundleComponents", "Componenti Bundle")} ({_bundleItems.Count()})")" IsInitiallyExpanded="false">
+                                    <MudTable Items="_bundleItems" Hover="true" Dense="true" Striped="true">
+                                        <HeaderContent>
+                                            <MudTh>@TranslationService.GetTranslation("field.componentProduct", "Prodotto Componente")</MudTh>
+                                            <MudTh>@TranslationService.GetTranslation("field.quantity", "Quantità")</MudTh>
+                                        </HeaderContent>
+                                        <RowTemplate>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("field.componentProduct", "Prodotto Componente")">@GetProductName(context.ComponentProductId)</MudTd>
+                                            <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")">@context.Quantity</MudTd>
+                                        </RowTemplate>
+                                    </MudTable>
+                                </MudExpansionPanel>
+                            </MudExpansionPanels>
+                        </MudItem>
+                    }
+                }
             }
         </MudGrid>
     </ViewContent>
@@ -805,6 +1115,15 @@
     private string? _customTitle;
     private bool _loadingSuppliers = false;
     private IEnumerable<ProductSupplierDto>? _suppliers;
+    
+    private bool _loadingCodes = false;
+    private IEnumerable<ProductCodeDto>? _productCodes;
+    
+    private bool _loadingUnits = false;
+    private IEnumerable<ProductUnitDto>? _productUnits;
+    
+    private bool _loadingBundleItems = false;
+    private IEnumerable<ProductBundleItemDto>? _bundleItems;
     
     // Dropdown data
     private IEnumerable<VatRateDto>? _vatRates;
@@ -889,17 +1208,26 @@
             // Load dropdown data and suppliers
             await LoadDropdownDataAsync();
             await LoadSuppliersAsync();
+            await LoadCodesAsync();
+            await LoadUnitsAsync();
+            await LoadBundleItemsAsync();
         }
         else if (IsOpen && Mode == EntityDrawerMode.View && OriginalProduct != null)
         {
             _model = OriginalProduct;
             await LoadDropdownDataAsync();
             await LoadSuppliersAsync();
+            await LoadCodesAsync();
+            await LoadUnitsAsync();
+            await LoadBundleItemsAsync();
         }
         else if (IsOpen && Mode == EntityDrawerMode.Create)
         {
             _model = new ProductDto { Name = string.Empty, Code = string.Empty, Status = ProductStatus.Active };
             ClearSuppliers();
+            ClearCodes();
+            ClearUnits();
+            ClearBundleItems();
             await LoadDropdownDataAsync();
         }
     }
@@ -1061,6 +1389,84 @@
         _suppliers = null;
         _loadingSuppliers = false;
     }
+    
+    private async Task LoadCodesAsync()
+    {
+        if (OriginalProduct == null) return;
+
+        _loadingCodes = true;
+        try
+        {
+            _productCodes = await ProductService.GetProductCodesAsync(OriginalProduct.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load codes for product {ProductId}", OriginalProduct.Id);
+            Snackbar.Add(TranslationService.GetTranslation("messages.loadFailed", "Errore durante il caricamento"), Severity.Warning);
+        }
+        finally
+        {
+            _loadingCodes = false;
+        }
+    }
+
+    private void ClearCodes()
+    {
+        _productCodes = null;
+        _loadingCodes = false;
+    }
+    
+    private async Task LoadUnitsAsync()
+    {
+        if (OriginalProduct == null) return;
+
+        _loadingUnits = true;
+        try
+        {
+            _productUnits = await ProductService.GetProductUnitsAsync(OriginalProduct.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load units for product {ProductId}", OriginalProduct.Id);
+            Snackbar.Add(TranslationService.GetTranslation("messages.loadFailed", "Errore durante il caricamento"), Severity.Warning);
+        }
+        finally
+        {
+            _loadingUnits = false;
+        }
+    }
+
+    private void ClearUnits()
+    {
+        _productUnits = null;
+        _loadingUnits = false;
+    }
+    
+    private async Task LoadBundleItemsAsync()
+    {
+        if (OriginalProduct == null || !OriginalProduct.IsBundle) return;
+
+        _loadingBundleItems = true;
+        try
+        {
+            _bundleItems = await ProductService.GetProductBundleItemsAsync(OriginalProduct.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load bundle items for product {ProductId}", OriginalProduct.Id);
+            Snackbar.Add(TranslationService.GetTranslation("messages.loadFailed", "Errore durante il caricamento"), Severity.Warning);
+        }
+        finally
+        {
+            _loadingBundleItems = false;
+        }
+    }
+
+    private void ClearBundleItems()
+    {
+        _bundleItems = null;
+        _loadingBundleItems = false;
+    }
 
     private async Task HandleSave()
     {
@@ -1177,6 +1583,9 @@
         _model = new ProductDto { Name = string.Empty, Code = string.Empty, Status = ProductStatus.Active };
         _customTitle = null;
         ClearSuppliers();
+        ClearCodes();
+        ClearUnits();
+        ClearBundleItems();
         
         // Clear dropdown data
         _vatRates = null;
@@ -1275,6 +1684,171 @@
     
     #endregion
     
+    #region Product Code Management
+    
+    private async Task OpenAddCodeDialog()
+    {
+        if (OriginalProduct == null) return;
+        
+        // TODO: Implement dialog for adding product codes
+        Snackbar.Add(TranslationService.GetTranslation("messages.featureNotImplemented", "Funzionalità non ancora implementata"), Severity.Info);
+    }
+    
+    private async Task OpenEditCodeDialog(ProductCodeDto code)
+    {
+        // TODO: Implement dialog for editing product codes
+        Snackbar.Add(TranslationService.GetTranslation("messages.featureNotImplemented", "Funzionalità non ancora implementata"), Severity.Info);
+    }
+    
+    private async Task DeleteCode(Guid codeId)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                ["ContentText"] = TranslationService.GetTranslation("dialog.confirmDeleteCode", "Sei sicuro di voler eliminare questo codice?"),
+                ["ButtonText"] = TranslationService.GetTranslation("button.delete", "Elimina"),
+                ["Color"] = Color.Error
+            };
+            
+            var dialog = await DialogService.ShowAsync<ConfirmationDialog>(
+                TranslationService.GetTranslation("dialog.confirmDelete", "Conferma eliminazione"),
+                parameters
+            );
+            
+            var result = await dialog.Result;
+            if (result.Canceled) return;
+            
+            var success = await ProductService.DeleteProductCodeAsync(codeId);
+            if (success)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminazione completata con successo"), Severity.Success);
+                await LoadCodesAsync();
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("messages.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to delete product code {CodeId}", codeId);
+            Snackbar.Add(TranslationService.GetTranslation("messages.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
+        }
+    }
+    
+    #endregion
+    
+    #region Product Unit Management
+    
+    private async Task OpenAddUnitDialog()
+    {
+        if (OriginalProduct == null) return;
+        
+        // TODO: Implement dialog for adding product units
+        Snackbar.Add(TranslationService.GetTranslation("messages.featureNotImplemented", "Funzionalità non ancora implementata"), Severity.Info);
+    }
+    
+    private async Task OpenEditUnitDialog(ProductUnitDto unit)
+    {
+        // TODO: Implement dialog for editing product units
+        Snackbar.Add(TranslationService.GetTranslation("messages.featureNotImplemented", "Funzionalità non ancora implementata"), Severity.Info);
+    }
+    
+    private async Task DeleteUnit(Guid unitId)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                ["ContentText"] = TranslationService.GetTranslation("dialog.confirmDeleteUnit", "Sei sicuro di voler eliminare questa unità di misura?"),
+                ["ButtonText"] = TranslationService.GetTranslation("button.delete", "Elimina"),
+                ["Color"] = Color.Error
+            };
+            
+            var dialog = await DialogService.ShowAsync<ConfirmationDialog>(
+                TranslationService.GetTranslation("dialog.confirmDelete", "Conferma eliminazione"),
+                parameters
+            );
+            
+            var result = await dialog.Result;
+            if (result.Canceled) return;
+            
+            var success = await ProductService.DeleteProductUnitAsync(unitId);
+            if (success)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminazione completata con successo"), Severity.Success);
+                await LoadUnitsAsync();
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("messages.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to delete product unit {UnitId}", unitId);
+            Snackbar.Add(TranslationService.GetTranslation("messages.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
+        }
+    }
+    
+    #endregion
+    
+    #region Product Bundle Item Management
+    
+    private async Task OpenAddBundleItemDialog()
+    {
+        if (OriginalProduct == null) return;
+        
+        // TODO: Implement dialog for adding bundle items
+        Snackbar.Add(TranslationService.GetTranslation("messages.featureNotImplemented", "Funzionalità non ancora implementata"), Severity.Info);
+    }
+    
+    private async Task OpenEditBundleItemDialog(ProductBundleItemDto item)
+    {
+        // TODO: Implement dialog for editing bundle items
+        Snackbar.Add(TranslationService.GetTranslation("messages.featureNotImplemented", "Funzionalità non ancora implementata"), Severity.Info);
+    }
+    
+    private async Task DeleteBundleItem(Guid itemId)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                ["ContentText"] = TranslationService.GetTranslation("dialog.confirmDeleteBundleItem", "Sei sicuro di voler eliminare questo componente?"),
+                ["ButtonText"] = TranslationService.GetTranslation("button.delete", "Elimina"),
+                ["Color"] = Color.Error
+            };
+            
+            var dialog = await DialogService.ShowAsync<ConfirmationDialog>(
+                TranslationService.GetTranslation("dialog.confirmDelete", "Conferma eliminazione"),
+                parameters
+            );
+            
+            var result = await dialog.Result;
+            if (result.Canceled) return;
+            
+            var success = await ProductService.DeleteProductBundleItemAsync(itemId);
+            if (success)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminazione completata con successo"), Severity.Success);
+                await LoadBundleItemsAsync();
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("messages.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to delete bundle item {ItemId}", itemId);
+            Snackbar.Add(TranslationService.GetTranslation("messages.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
+        }
+    }
+    
+    #endregion
+    
     #region Helper Methods for View Mode
     
     private string GetStatusText(ProductStatus status)
@@ -1348,6 +1922,57 @@
         if (!supplierId.HasValue) return "-";
         var supplier = _businessParties?.FirstOrDefault(bp => bp.Id == supplierId.Value);
         return supplier?.Name ?? "-";
+    }
+    
+    private string GetCodeStatusText(ProductCodeStatus status)
+    {
+        return status switch
+        {
+            ProductCodeStatus.Active => TranslationService.GetTranslation("status.active", "Attivo"),
+            ProductCodeStatus.Suspended => TranslationService.GetTranslation("status.suspended", "Sospeso"),
+            ProductCodeStatus.Deleted => TranslationService.GetTranslation("status.deleted", "Eliminato"),
+            _ => "-"
+        };
+    }
+    
+    private Color GetCodeStatusColor(ProductCodeStatus status)
+    {
+        return status switch
+        {
+            ProductCodeStatus.Active => Color.Success,
+            ProductCodeStatus.Suspended => Color.Warning,
+            ProductCodeStatus.Deleted => Color.Dark,
+            _ => Color.Default
+        };
+    }
+    
+    private string GetUnitStatusText(ProductUnitStatus status)
+    {
+        return status switch
+        {
+            ProductUnitStatus.Active => TranslationService.GetTranslation("status.active", "Attivo"),
+            ProductUnitStatus.Suspended => TranslationService.GetTranslation("status.suspended", "Sospeso"),
+            ProductUnitStatus.Deleted => TranslationService.GetTranslation("status.deleted", "Eliminato"),
+            _ => "-"
+        };
+    }
+    
+    private Color GetUnitStatusColor(ProductUnitStatus status)
+    {
+        return status switch
+        {
+            ProductUnitStatus.Active => Color.Success,
+            ProductUnitStatus.Suspended => Color.Warning,
+            ProductUnitStatus.Deleted => Color.Dark,
+            _ => Color.Default
+        };
+    }
+    
+    private string GetProductName(Guid productId)
+    {
+        // This would need to load products or use a cache
+        // For now, just return the ID
+        return productId.ToString();
     }
     
     #endregion
