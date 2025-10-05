@@ -1694,9 +1694,99 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // Process each row and apply stock adjustments
-            // This is where we would iterate through rows and create stock movements
-            // For now, we'll just mark the document as closed
+            if (documentHeader.Rows != null && documentHeader.Rows.Any())
+            {
+                _logger.LogInformation("Processing {Count} inventory rows for document {DocumentId}", 
+                    documentHeader.Rows.Count, documentId);
 
+                foreach (var row in documentHeader.Rows)
+                {
+                    try
+                    {
+                        // Parse ProductId from ProductCode (stored as GUID string)
+                        if (!Guid.TryParse(row.ProductCode, out var productId))
+                        {
+                            _logger.LogWarning("Invalid ProductCode '{ProductCode}' in row {RowId}, skipping", 
+                                row.ProductCode, row.Id);
+                            continue;
+                        }
+
+                        // Parse location from description - format is "ProductName @ LocationCode"
+                        var descriptionParts = row.Description?.Split('@') ?? Array.Empty<string>();
+                        if (descriptionParts.Length < 2)
+                        {
+                            _logger.LogWarning("Unable to parse location from description '{Description}' in row {RowId}, skipping",
+                                row.Description, row.Id);
+                            continue;
+                        }
+
+                        var locationCode = descriptionParts[1].Trim();
+
+                        // Find the storage location by code through the service
+                        var allLocations = await _storageLocationService.GetStorageLocationsAsync(
+                            page: 1, 
+                            pageSize: 1000, 
+                            warehouseId: documentHeader.SourceWarehouseId, 
+                            cancellationToken: cancellationToken);
+                        
+                        var location = allLocations.Items.FirstOrDefault(l => l.Code == locationCode);
+                        
+                        if (location == null)
+                        {
+                            _logger.LogWarning("Storage location '{LocationCode}' not found for row {RowId}, skipping",
+                                locationCode, row.Id);
+                            continue;
+                        }
+
+                        var newQuantity = row.Quantity;
+
+                        // Get current stock level
+                        var existingStocks = await _stockService.GetStockAsync(
+                            page: 1,
+                            pageSize: 1,
+                            productId: productId,
+                            locationId: location.Id,
+                            lotId: null,
+                            cancellationToken: cancellationToken);
+
+                        var currentQuantity = existingStocks.Items.FirstOrDefault()?.Quantity ?? 0;
+                        var adjustmentQuantity = newQuantity - currentQuantity;
+
+                        // Only apply adjustment if there's a difference
+                        if (adjustmentQuantity != 0)
+                        {
+                            // Create stock adjustment movement
+                            await _stockMovementService.ProcessAdjustmentMovementAsync(
+                                productId: productId,
+                                locationId: location.Id,
+                                adjustmentQuantity: adjustmentQuantity,
+                                reason: "Inventory Count",
+                                lotId: null,
+                                notes: $"Inventory adjustment from document {documentHeader.Number}. Previous: {currentQuantity}, New: {newQuantity}",
+                                currentUser: GetCurrentUser(),
+                                cancellationToken: cancellationToken);
+
+                            _logger.LogInformation(
+                                "Applied inventory adjustment for product {ProductId} at location {LocationId}: {Adjustment} (from {Current} to {New})",
+                                productId, location.Id, adjustmentQuantity, currentQuantity, newQuantity);
+                        }
+                        else
+                        {
+                            _logger.LogInformation(
+                                "No adjustment needed for product {ProductId} at location {LocationId}: quantity unchanged at {Quantity}",
+                                productId, location.Id, currentQuantity);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error processing inventory row {RowId} in document {DocumentId}", 
+                            row.Id, documentId);
+                        // Continue processing other rows even if one fails
+                    }
+                }
+            }
+
+            // Now close the document
             var closedDocument = await _documentHeaderService.CloseDocumentAsync(documentId, GetCurrentUser(), cancellationToken);
 
             // Enrich rows with product and location data
