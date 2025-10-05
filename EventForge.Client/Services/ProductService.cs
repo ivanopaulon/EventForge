@@ -89,19 +89,6 @@ public class ProductService : IProductService
         }
     }
 
-    public async Task<ProductCodeDto?> CreateProductCodeAsync(CreateProductCodeDto createDto)
-    {
-        try
-        {
-            return await _httpClientService.PostAsync<CreateProductCodeDto, ProductCodeDto>($"{BaseUrl}/{createDto.ProductId}/codes", createDto);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating product code");
-            return null;
-        }
-    }
-
     public async Task<IEnumerable<UMDto>> GetUnitsOfMeasureAsync()
     {
         try
@@ -228,6 +215,210 @@ public class ProductService : IProductService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting product supplier {Id}", id);
+            return false;
+        }
+    }
+
+    // Product Code management
+
+    public async Task<IEnumerable<ProductCodeDto>?> GetProductCodesAsync(Guid productId)
+    {
+        try
+        {
+            return await _httpClientService.GetAsync<IEnumerable<ProductCodeDto>>($"{BaseUrl}/{productId}/codes");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product codes for product {ProductId}", productId);
+            return null;
+        }
+    }
+
+    public async Task<ProductCodeDto?> GetProductCodeByIdAsync(Guid id)
+    {
+        try
+        {
+            return await _httpClientService.GetAsync<ProductCodeDto>($"api/v1/product-management/product-codes/{id}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product code {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<ProductCodeDto?> CreateProductCodeAsync(CreateProductCodeDto createDto)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<CreateProductCodeDto, ProductCodeDto>("api/v1/product-management/product-codes", createDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating product code");
+            return null;
+        }
+    }
+
+    public async Task<ProductCodeDto?> UpdateProductCodeAsync(Guid id, UpdateProductCodeDto updateDto)
+    {
+        try
+        {
+            return await _httpClientService.PutAsync<UpdateProductCodeDto, ProductCodeDto>($"api/v1/product-management/product-codes/{id}", updateDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating product code {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<bool> DeleteProductCodeAsync(Guid id)
+    {
+        try
+        {
+            await _httpClientService.DeleteAsync($"api/v1/product-management/product-codes/{id}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting product code {Id}", id);
+            return false;
+        }
+    }
+
+    // Product Unit management
+
+    public async Task<IEnumerable<ProductUnitDto>?> GetProductUnitsAsync(Guid productId)
+    {
+        try
+        {
+            return await _httpClientService.GetAsync<IEnumerable<ProductUnitDto>>($"{BaseUrl}/{productId}/units");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product units for product {ProductId}", productId);
+            return null;
+        }
+    }
+
+    public async Task<ProductUnitDto?> GetProductUnitByIdAsync(Guid id)
+    {
+        try
+        {
+            return await _httpClientService.GetAsync<ProductUnitDto>($"api/v1/product-management/product-units/{id}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product unit {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<ProductUnitDto?> CreateProductUnitAsync(CreateProductUnitDto createDto)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<CreateProductUnitDto, ProductUnitDto>("api/v1/product-management/product-units", createDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating product unit");
+            return null;
+        }
+    }
+
+    public async Task<ProductUnitDto?> UpdateProductUnitAsync(Guid id, UpdateProductUnitDto updateDto)
+    {
+        try
+        {
+            return await _httpClientService.PutAsync<UpdateProductUnitDto, ProductUnitDto>($"api/v1/product-management/product-units/{id}", updateDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating product unit {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<bool> DeleteProductUnitAsync(Guid id)
+    {
+        try
+        {
+            await _httpClientService.DeleteAsync($"api/v1/product-management/product-units/{id}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting product unit {Id}", id);
+            return false;
+        }
+    }
+
+    // Product Bundle Item management
+
+    public async Task<IEnumerable<ProductBundleItemDto>?> GetProductBundleItemsAsync(Guid bundleProductId)
+    {
+        try
+        {
+            return await _httpClientService.GetAsync<IEnumerable<ProductBundleItemDto>>($"{BaseUrl}/{bundleProductId}/bundle-items");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product bundle items for product {ProductId}", bundleProductId);
+            return null;
+        }
+    }
+
+    public async Task<ProductBundleItemDto?> GetProductBundleItemByIdAsync(Guid id)
+    {
+        try
+        {
+            return await _httpClientService.GetAsync<ProductBundleItemDto>($"api/v1/product-management/product-bundle-items/{id}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product bundle item {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<ProductBundleItemDto?> CreateProductBundleItemAsync(CreateProductBundleItemDto createDto)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<CreateProductBundleItemDto, ProductBundleItemDto>("api/v1/product-management/product-bundle-items", createDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating product bundle item");
+            return null;
+        }
+    }
+
+    public async Task<ProductBundleItemDto?> UpdateProductBundleItemAsync(Guid id, UpdateProductBundleItemDto updateDto)
+    {
+        try
+        {
+            return await _httpClientService.PutAsync<UpdateProductBundleItemDto, ProductBundleItemDto>($"api/v1/product-management/product-bundle-items/{id}", updateDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating product bundle item {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<bool> DeleteProductBundleItemAsync(Guid id)
+    {
+        try
+        {
+            await _httpClientService.DeleteAsync($"api/v1/product-management/product-bundle-items/{id}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting product bundle item {Id}", id);
             return false;
         }
     }
