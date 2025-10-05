@@ -5605,6 +5605,9 @@ namespace EventForge.Server.Migrations
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("ProductUnitId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -5619,6 +5622,8 @@ namespace EventForge.Server.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("ProductUnitId");
 
                     b.ToTable("ProductCodes");
                 });
@@ -10061,7 +10066,14 @@ namespace EventForge.Server.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("EventForge.Server.Data.Entities.Products.ProductUnit", "ProductUnit")
+                        .WithMany()
+                        .HasForeignKey("ProductUnitId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Product");
+
+                    b.Navigation("ProductUnit");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Products.ProductSupplier", b =>

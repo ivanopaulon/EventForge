@@ -421,9 +421,11 @@ public class ProductService : IProductService
             var productCode = new ProductCode
             {
                 ProductId = createProductCodeDto.ProductId,
+                ProductUnitId = createProductCodeDto.ProductUnitId,
                 CodeType = createProductCodeDto.CodeType,
                 Code = createProductCodeDto.Code,
                 AlternativeDescription = createProductCodeDto.AlternativeDescription,
+                Status = (EventForge.Server.Data.Entities.Products.ProductCodeStatus)createProductCodeDto.Status,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow
             };
@@ -479,9 +481,11 @@ public class ProductService : IProductService
             };
 
             // Update properties
+            productCode.ProductUnitId = updateProductCodeDto.ProductUnitId;
             productCode.CodeType = updateProductCodeDto.CodeType;
             productCode.Code = updateProductCodeDto.Code;
             productCode.AlternativeDescription = updateProductCodeDto.AlternativeDescription;
+            productCode.Status = (EventForge.Server.Data.Entities.Products.ProductCodeStatus)updateProductCodeDto.Status;
             productCode.ModifiedBy = currentUser;
             productCode.ModifiedAt = DateTime.UtcNow;
 
@@ -1228,9 +1232,11 @@ public class ProductService : IProductService
         {
             Id = productCode.Id,
             ProductId = productCode.ProductId,
+            ProductUnitId = productCode.ProductUnitId,
             CodeType = productCode.CodeType,
             Code = productCode.Code,
             AlternativeDescription = productCode.AlternativeDescription,
+            Status = (EventForge.DTOs.Common.ProductCodeStatus)productCode.Status,
             CreatedAt = productCode.CreatedAt,
             CreatedBy = productCode.CreatedBy,
             ModifiedAt = productCode.ModifiedAt,

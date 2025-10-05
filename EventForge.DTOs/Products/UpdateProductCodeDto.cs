@@ -1,4 +1,5 @@
 using EventForge.DTOs.Common;
+using System;
 using System.ComponentModel.DataAnnotations;
 namespace EventForge.DTOs.Products
 {
@@ -8,6 +9,12 @@ namespace EventForge.DTOs.Products
     /// </summary>
     public class UpdateProductCodeDto
     {
+        /// <summary>
+        /// Optional product unit identifier (for unit-specific barcodes).
+        /// </summary>
+        [Display(Name = "Product Unit", Description = "Optional product unit associated with this code.")]
+        public Guid? ProductUnitId { get; set; }
+
         /// <summary>
         /// Code type (SKU, EAN, UPC, etc.).
         /// </summary>
