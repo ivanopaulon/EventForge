@@ -541,6 +541,7 @@
                                             <HeaderContent>
                                                 <MudTh>@TranslationService.GetTranslation("field.codeType", "Tipo Codice")</MudTh>
                                                 <MudTh>@TranslationService.GetTranslation("field.code", "Codice")</MudTh>
+                                                <MudTh>@TranslationService.GetTranslation("field.productUnit", "Unità di Misura")</MudTh>
                                                 <MudTh>@TranslationService.GetTranslation("field.alternativeDescription", "Descrizione")</MudTh>
                                                 <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
                                                 <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
@@ -548,6 +549,7 @@
                                             <RowTemplate>
                                                 <MudTd DataLabel="@TranslationService.GetTranslation("field.codeType", "Tipo Codice")">@context.CodeType</MudTd>
                                                 <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">@context.Code</MudTd>
+                                                <MudTd DataLabel="@TranslationService.GetTranslation("field.productUnit", "Unità di Misura")">@GetProductUnitDescription(context.ProductUnitId)</MudTd>
                                                 <MudTd DataLabel="@TranslationService.GetTranslation("field.alternativeDescription", "Descrizione")">@context.AlternativeDescription</MudTd>
                                                 <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
                                                     <MudChip T="string" Size="Size.Small" Color="@GetCodeStatusColor(context.Status)">@GetCodeStatusText(context.Status)</MudChip>
@@ -1017,12 +1019,14 @@
                                     <HeaderContent>
                                         <MudTh>@TranslationService.GetTranslation("field.codeType", "Tipo Codice")</MudTh>
                                         <MudTh>@TranslationService.GetTranslation("field.code", "Codice")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("field.productUnit", "Unità di Misura")</MudTh>
                                         <MudTh>@TranslationService.GetTranslation("field.alternativeDescription", "Descrizione")</MudTh>
                                         <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
                                     </HeaderContent>
                                     <RowTemplate>
                                         <MudTd DataLabel="@TranslationService.GetTranslation("field.codeType", "Tipo Codice")">@context.CodeType</MudTd>
                                         <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">@context.Code</MudTd>
+                                        <MudTd DataLabel="@TranslationService.GetTranslation("field.productUnit", "Unità di Misura")">@GetProductUnitDescription(context.ProductUnitId)</MudTd>
                                         <MudTd DataLabel="@TranslationService.GetTranslation("field.alternativeDescription", "Descrizione")">@context.AlternativeDescription</MudTd>
                                         <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
                                             <MudChip T="string" Size="Size.Small" Color="@GetCodeStatusColor(context.Status)">@GetCodeStatusText(context.Status)</MudChip>
@@ -1887,6 +1891,15 @@
         if (!umId.HasValue) return "-";
         var um = _unitsMeasure?.FirstOrDefault(u => u.Id == umId.Value);
         return um != null ? $"{um.Name} ({um.Symbol})" : "-";
+    }
+    
+    private string GetProductUnitDescription(Guid? productUnitId)
+    {
+        if (!productUnitId.HasValue) return "-";
+        var unit = _productUnits?.FirstOrDefault(u => u.Id == productUnitId.Value);
+        if (unit == null) return "-";
+        var umName = GetUnitOfMeasureName(unit.UnitOfMeasureId);
+        return $"{unit.UnitType} ({umName} x {unit.ConversionFactor:N2})";
     }
     
     private string GetStationName(Guid? stationId)
