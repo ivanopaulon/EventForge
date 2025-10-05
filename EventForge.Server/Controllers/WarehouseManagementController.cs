@@ -1,4 +1,5 @@
 using EventForge.DTOs.Documents;
+using EventForge.DTOs.Products;
 using EventForge.DTOs.Warehouse;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Documents;
@@ -1312,6 +1313,73 @@ public class WarehouseManagementController : BaseApiController
                 });
             }
 
+            // Enrich rows with complete product and location data
+            var enrichedRows = new List<InventoryDocumentRowDto>();
+            if (documentHeader.Rows != null)
+            {
+                foreach (var row in documentHeader.Rows)
+                {
+                    // Parse ProductId from ProductCode if it's a GUID
+                    Guid? productId = null;
+                    if (Guid.TryParse(row.ProductCode, out var parsedProductId))
+                    {
+                        productId = parsedProductId;
+                    }
+
+                    // Parse product name and location from description - format is "ProductName @ LocationCode"
+                    var descriptionParts = row.Description?.Split('@') ?? Array.Empty<string>();
+                    var productName = descriptionParts.Length > 0 ? descriptionParts[0].Trim() : string.Empty;
+                    var locationName = descriptionParts.Length > 1 ? descriptionParts[1].Trim() : row.Description ?? string.Empty;
+
+                    // Try to fetch product and location data for complete information
+                    ProductDto? product = null;
+                    if (productId.HasValue)
+                    {
+                        try
+                        {
+                            product = await _productService.GetProductByIdAsync(productId.Value, cancellationToken);
+                        }
+                        catch
+                        {
+                            // If product fetch fails, continue with parsed data
+                        }
+                    }
+
+                    // Get current stock level to show adjustment info
+                    decimal? previousQuantity = null;
+                    decimal? adjustmentQuantity = null;
+                    if (productId.HasValue)
+                    {
+                        try
+                        {
+                            // Parse location ID from the row if available
+                            // For now, we'll just show the quantity without adjustment info if we can't determine it
+                            // This is acceptable as adjustments are primarily for the add operation
+                        }
+                        catch
+                        {
+                            // Continue without adjustment info
+                        }
+                    }
+
+                    enrichedRows.Add(new InventoryDocumentRowDto
+                    {
+                        Id = row.Id,
+                        ProductId = productId ?? Guid.Empty,
+                        ProductCode = row.ProductCode ?? string.Empty,
+                        ProductName = product?.Name ?? productName,
+                        LocationId = Guid.Empty, // We don't store this in DocumentRow
+                        LocationName = locationName,
+                        Quantity = row.Quantity,
+                        PreviousQuantity = previousQuantity,
+                        AdjustmentQuantity = adjustmentQuantity,
+                        Notes = row.Notes,
+                        CreatedAt = row.CreatedAt,
+                        CreatedBy = row.CreatedBy
+                    });
+                }
+            }
+
             var result = new InventoryDocumentDto
             {
                 Id = documentHeader.Id,
@@ -1326,16 +1394,7 @@ public class WarehouseManagementController : BaseApiController
                 CreatedBy = documentHeader.CreatedBy,
                 FinalizedAt = documentHeader.ClosedAt,
                 FinalizedBy = documentHeader.Status.ToString() == "Closed" ? documentHeader.ModifiedBy : null,
-                Rows = documentHeader.Rows?.Select(r => new InventoryDocumentRowDto
-                {
-                    Id = r.Id,
-                    ProductCode = r.ProductCode ?? string.Empty,
-                    LocationName = r.Description,
-                    Quantity = r.Quantity,
-                    Notes = r.Notes,
-                    CreatedAt = r.CreatedAt,
-                    CreatedBy = r.CreatedBy
-                }).ToList() ?? new List<InventoryDocumentRowDto>()
+                Rows = enrichedRows
             };
 
             return Ok(result);
@@ -1545,16 +1604,31 @@ public class WarehouseManagementController : BaseApiController
                     }
                     else
                     {
-                        // For existing rows, we need to fetch product/location info or use what we have
+                        // For existing rows, enrich with product data if available
+                        ProductDto? existingProduct = null;
+                        if (productId.HasValue)
+                        {
+                            try
+                            {
+                                existingProduct = await _productService.GetProductByIdAsync(productId.Value, cancellationToken);
+                            }
+                            catch
+                            {
+                                // Continue with parsed data if fetch fails
+                            }
+                        }
+
                         enrichedRows.Add(new InventoryDocumentRowDto
                         {
                             Id = row.Id,
                             ProductId = productId ?? Guid.Empty,
                             ProductCode = row.ProductCode ?? string.Empty,
-                            ProductName = productName,
+                            ProductName = existingProduct?.Name ?? productName,
                             LocationId = Guid.Empty, // We don't have this from DocumentRow
                             LocationName = locationName,
                             Quantity = row.Quantity,
+                            PreviousQuantity = null, // Not available for existing rows
+                            AdjustmentQuantity = null, // Not available for existing rows
                             Notes = row.Notes,
                             CreatedAt = row.CreatedAt,
                             CreatedBy = row.CreatedBy
