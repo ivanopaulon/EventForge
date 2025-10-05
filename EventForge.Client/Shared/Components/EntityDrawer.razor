@@ -59,6 +59,7 @@
             {
                 <MudButton Variant="Variant.Filled" 
                            Color="Color.Primary"
+                           Size="Size.Medium"
                            OnClick="@SwitchToEdit"
                            StartIcon="@Icons.Material.Outlined.Edit"
                            aria-label="@TranslationService.GetTranslation("drawer.aria.modificaEntita", "Modifica entità")">
@@ -68,6 +69,7 @@
             
             <MudButton Variant="Variant.Text" 
                        Color="Color.Default"
+                       Size="Size.Medium"
                        OnClick="@HandleClose"
                        StartIcon="@Icons.Material.Filled.Close"
                        aria-label="@TranslationService.GetTranslation("drawer.aria.chiudiDrawer", "Chiudi drawer")">
@@ -78,6 +80,7 @@
         {
             <MudButton Variant="Variant.Text" 
                        Color="Color.Default"
+                       Size="Size.Medium"
                        OnClick="@HandleCancel"
                        StartIcon="@Icons.Material.Filled.Cancel"
                        aria-label="@TranslationService.GetTranslation("drawer.aria.annullaOperazione", "Annulla operazione")">
@@ -86,6 +89,7 @@
             
             <MudButton Variant="Variant.Filled" 
                        Color="Color.Primary"
+                       Size="Size.Medium"
                        OnClick="@HandleSave"
                        StartIcon="@GetSaveIcon()"
                        Disabled="@(!_isFormValid || _isLoading)"

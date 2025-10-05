@@ -15,7 +15,7 @@
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")">
             <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
                            Color="Color.Primary"
-                           Size="@ButtonSize"
+                           Size="@EffectiveButtonSize"
                            OnClick="@OnRefreshAsync"
                            Disabled="@IsDisabled"
                            Class="@ButtonClass"
@@ -29,7 +29,7 @@
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewDetails", "Visualizza dettagli")">
             <MudIconButton Icon="@Icons.Material.Outlined.Visibility"
                            Color="Color.Info"
-                           Size="@ButtonSize"
+                           Size="@EffectiveButtonSize"
                            OnClick="@OnViewAsync"
                            Disabled="@IsDisabled"
                            Class="@ButtonClass"
@@ -43,7 +43,7 @@
         <MudTooltip Text="@(CreateTooltip ?? TranslationService.GetTranslation("tooltip.createNew", "Crea nuovo"))">
             <MudIconButton Icon="@(CreateIcon ?? Icons.Material.Outlined.Add)"
                            Color="Color.Success"
-                           Size="@ButtonSize"
+                           Size="@EffectiveButtonSize"
                            OnClick="@OnCreateAsync"
                            Disabled="@IsDisabled"
                            Class="@ButtonClass"
@@ -57,7 +57,7 @@
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.edit", "Modifica")">
             <MudIconButton Icon="@Icons.Material.Outlined.Edit"
                            Color="Color.Warning"
-                           Size="@ButtonSize"
+                           Size="@EffectiveButtonSize"
                            OnClick="@OnEditAsync"
                            Disabled="@IsDisabled"
                            Class="@ButtonClass"
@@ -71,7 +71,7 @@
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.delete", "Elimina")">
             <MudIconButton Icon="@Icons.Material.Outlined.Delete"
                            Color="Color.Error"
-                           Size="@ButtonSize"
+                           Size="@EffectiveButtonSize"
                            OnClick="@OnDeleteAsync"
                            Disabled="@IsDisabled"
                            Class="@ButtonClass"
@@ -85,7 +85,7 @@
         <MudTooltip Text="@(IsActive ? TranslationService.GetTranslation("tooltip.deactivate", "Disattiva") : TranslationService.GetTranslation("tooltip.activate", "Attiva"))">
             <MudIconButton Icon="@(IsActive ? Icons.Material.Outlined.Block : Icons.Material.Outlined.CheckCircle)"
                            Color="@(IsActive ? Color.Warning : Color.Success)"
-                           Size="@ButtonSize"
+                           Size="@EffectiveButtonSize"
                            OnClick="@OnToggleStatusAsync"
                            Disabled="@IsDisabled"
                            Class="@ButtonClass"
@@ -99,7 +99,7 @@
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.auditLog", "Cronologia modifiche")">
             <MudIconButton Icon="@Icons.Material.Outlined.History"
                            Color="Color.Secondary"
-                           Size="@ButtonSize"
+                           Size="@EffectiveButtonSize"
                            OnClick="@OnAuditLogAsync"
                            Disabled="@IsDisabled"
                            Class="@ButtonClass"
@@ -113,7 +113,7 @@
         <MudTooltip Text="@TranslationService.GetTranslation("tooltip.export", "Esporta")">
             <MudIconButton Icon="@Icons.Material.Outlined.Download"
                            Color="Color.Tertiary"
-                           Size="@ButtonSize"
+                           Size="@EffectiveButtonSize"
                            OnClick="@OnExportAsync"
                            Disabled="@IsDisabled"
                            Class="@ButtonClass"
@@ -129,9 +129,12 @@
 @code {
     // Display Configuration
     [Parameter] public ActionButtonGroupMode Mode { get; set; } = ActionButtonGroupMode.Row;
-    [Parameter] public Size ButtonSize { get; set; } = Size.Small;
+    [Parameter] public Size? ButtonSize { get; set; }
     [Parameter] public string? ButtonClass { get; set; }
     [Parameter] public bool IsDisabled { get; set; } = false;
+
+    // Computed button size based on mode if not explicitly set
+    private Size EffectiveButtonSize => ButtonSize ?? (Mode == ActionButtonGroupMode.Toolbar ? Size.Medium : Size.Small);
 
     // Entity Information
     [Parameter] public string? EntityName { get; set; }

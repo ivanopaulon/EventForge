@@ -11,14 +11,14 @@
 @inject ITranslationService TranslationService
 @inject ILogger<ClassificationNodeManagement> Logger
 
-<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
     @if (_isLoading)
     {
         <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
     }
     else
     {
-        <MudPaper Elevation="2" Class="pa-4 mb-4">
+        <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4">
             <div class="d-flex justify-space-between align-center mb-4">
                 <div>
                     <MudText Typo="Typo.h4">
@@ -33,7 +33,7 @@
 
             <!-- Filters Section -->
             <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
-                <div class="d-flex gap-4 align-center flex-wrap">
+                <div class="d-flex gap-3 align-center flex-wrap">
                     <MudTextField @bind-Value="_searchTerm"
                                   @bind-Value:after="OnSearchChanged"
                                   Label="@TranslationService.GetTranslation("classificationNode.search", "Cerca nodi")"
@@ -113,7 +113,7 @@
                             {
                                 <MudTreeView T="ClassificationNodeDto" 
                                              Hover="true"
-                                             Dense="true">
+                                             Dense="false">
                                     @foreach (var rootNode in _filteredRootNodes)
                                     {
                                         @RenderTreeNode(rootNode)
@@ -152,7 +152,7 @@
                                   LoadingProgressColor="Color.Info"
                                   SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
                                   AllowUnsorted="false"
-                                  Dense="true"
+                                  Dense="false"
                                   Breakpoint="Breakpoint.Sm">
                             <HeaderContent>
                                 <MudTh><MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
