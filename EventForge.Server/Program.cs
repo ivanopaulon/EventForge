@@ -159,6 +159,9 @@ var app = builder.Build();
 // Add middleware early in the pipeline
 app.UseCorrelationId();
 
+// Add startup performance monitoring (logs time to first request)
+app.UseStartupPerformanceMonitoring();
+
 // Configure environment-aware homepage and Swagger behavior
 if (app.Environment.IsDevelopment())
 {
