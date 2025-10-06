@@ -1,0 +1,165 @@
+@using MudBlazor
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.UnitOfMeasures
+@using EventForge.DTOs.Common
+@inject IProductService ProductService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<EditProductUnitDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudSelect T="string" 
+                               @bind-Value="_model.UnitType"
+                               Label="@($"{TranslationService.GetTranslation("field.unitType", "Tipo Unità")} *")"
+                               Variant="Variant.Outlined"
+                               Required="true"
+                               RequiredError="@TranslationService.GetTranslation("validation.unitTypeRequired", "Il tipo è obbligatorio")">
+                        <MudSelectItem Value="@("Base")">@TranslationService.GetTranslation("unitType.base", "Base")</MudSelectItem>
+                        <MudSelectItem Value="@("Pack")">@TranslationService.GetTranslation("unitType.pack", "Confezione")</MudSelectItem>
+                        <MudSelectItem Value="@("Box")">@TranslationService.GetTranslation("unitType.box", "Scatola")</MudSelectItem>
+                        <MudSelectItem Value="@("Pallet")">@TranslationService.GetTranslation("unitType.pallet", "Pallet")</MudSelectItem>
+                        <MudSelectItem Value="@("Container")">@TranslationService.GetTranslation("unitType.container", "Container")</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="Guid" 
+                               @bind-Value="_model.UnitOfMeasureId"
+                               Label="@($"{TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")} *")"
+                               Variant="Variant.Outlined"
+                               Required="true"
+                               RequiredError="@TranslationService.GetTranslation("validation.unitOfMeasureRequired", "L'unità di misura è obbligatoria")">
+                        @foreach (var um in UnitOfMeasures)
+                        {
+                            <MudSelectItem Value="@um.Id">@um.Name (@um.Symbol)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.ConversionFactor"
+                                     Label="@($"{TranslationService.GetTranslation("field.conversionFactor", "Fattore di Conversione")} *")"
+                                     Variant="Variant.Outlined"
+                                     Min="0.001m"
+                                     Step="0.001m"
+                                     Format="N3"
+                                     Required="true"
+                                     RequiredError="@TranslationService.GetTranslation("validation.conversionFactorRequired", "Il fattore di conversione è obbligatorio")"
+                                     HideSpinButtons="false" />
+                    <MudText Typo="Typo.caption" Class="mud-input-helper-text">
+                        @TranslationService.GetTranslation("helperText.conversionFactor", "Quante unità base equivalgono a questa unità")
+                    </MudText>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="ProductUnitStatus" 
+                               @bind-Value="_model.Status"
+                               Label="@($"{TranslationService.GetTranslation("field.status", "Stato")} *")"
+                               Variant="Variant.Outlined"
+                               Required="true">
+                        <MudSelectItem Value="@ProductUnitStatus.Active">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
+                        <MudSelectItem Value="@ProductUnitStatus.Suspended">@TranslationService.GetTranslation("status.suspended", "Sospeso")</MudSelectItem>
+                        <MudSelectItem Value="@ProductUnitStatus.Deleted">@TranslationService.GetTranslation("status.deleted", "Eliminato")</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Description"
+                                  Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                                  Variant="Variant.Outlined"
+                                  Lines="2"
+                                  MaxLength="500" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
+        <MudButton Color="Color.Primary" Disabled="@(!_isValid || _isSaving)" OnClick="Submit">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">@TranslationService.GetTranslation("common.saving", "Salvataggio...")</MudText>
+            }
+            else
+            {
+                @TranslationService.GetTranslation("button.save", "Salva")
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter] public ProductUnitDto Unit { get; set; } = new();
+    [Parameter] public IEnumerable<UMDto> UnitOfMeasures { get; set; } = new List<UMDto>();
+    
+    private MudForm _form = null!;
+    private bool _isValid;
+    private bool _isSaving;
+    
+    private ProductUnitDto _model = new();
+    
+    protected override void OnInitialized()
+    {
+        // Clone the unit for editing
+        _model = new ProductUnitDto
+        {
+            Id = Unit.Id,
+            ProductId = Unit.ProductId,
+            UnitOfMeasureId = Unit.UnitOfMeasureId,
+            ConversionFactor = Unit.ConversionFactor,
+            UnitType = Unit.UnitType,
+            Description = Unit.Description,
+            Status = Unit.Status
+        };
+    }
+    
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+    
+    private async Task Submit()
+    {
+        if (!_isValid) return;
+        
+        try
+        {
+            _isSaving = true;
+            
+            var updateDto = new UpdateProductUnitDto
+            {
+                UnitOfMeasureId = _model.UnitOfMeasureId,
+                ConversionFactor = _model.ConversionFactor,
+                UnitType = _model.UnitType,
+                Description = _model.Description,
+                Status = _model.Status
+            };
+            
+            var updatedUnit = await ProductService.UpdateProductUnitAsync(_model.Id, updateDto);
+            if (updatedUnit != null)
+            {
+                MudDialog.Close(DialogResult.Ok(updatedUnit));
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating product unit");
+            Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio: {0}", ex.Message), Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+}

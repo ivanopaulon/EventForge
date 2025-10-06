@@ -1,0 +1,352 @@
+@page "/financial/vat-natures"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.VatRates
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@attribute [Authorize]
+@inject IAuthService AuthService
+@inject IFinancialService FinancialService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<VatNatureManagement> Logger
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    @if (_isLoading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else
+    {
+        <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4">
+            <div class="d-flex justify-space-between align-center mb-4">
+                <div>
+                    <MudText Typo="Typo.h4">
+                        <MudIcon Icon="@Icons.Material.Outlined.Category" Class="mr-2" />
+                        @TranslationService.GetTranslation("financial.vatNatureManagement", "Gestione Nature IVA")
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+                        @TranslationService.GetTranslation("financial.vatNatureManagementDescription", "Gestisci le nature IVA per la conformità fiscale italiana")
+                    </MudText>
+                </div>
+            </div>
+
+            <!-- Filters Section -->
+            <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
+                <div class="d-flex gap-3 align-center flex-wrap">
+                    <MudTextField @bind-Value="_searchTerm"
+                                  @bind-Value:after="OnSearchChanged"
+                                  Label="@TranslationService.GetTranslation("financial.searchVatNatures", "Cerca nature IVA")"
+                                  Placeholder="@TranslationService.GetTranslation("financial.searchNaturePlaceholder", "Inserisci codice o nome...")"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@Icons.Material.Outlined.Search"
+                                  Clearable="true"
+                                  Style="flex: 2;" />
+                </div>
+            </MudPaper>
+
+            <!-- VAT Natures Data Table -->
+            <MudPaper Elevation="1" Class="border-rounded">
+                <MudCardHeader Class="pa-2">
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">
+                            <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
+                            @TranslationService.GetTranslation("financial.vatNatureList", "Lista Nature IVA")
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                                (@_filteredVatNatures.Count() @TranslationService.GetTranslation("financial.itemsFound", "elementi trovati"))
+                            </MudText>
+                        </MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
+                                           ShowRefresh="true"
+                                           ShowExport="false" 
+                                           ShowCreate="true"
+                                           ShowAuditLog="false"
+                                           CreateIcon="@Icons.Material.Outlined.Add"
+                                           CreateTooltip="@TranslationService.GetTranslation("financial.createNewVatNature", "Crea nuova natura IVA")"
+                                           IsDisabled="_isLoadingVatNatures"
+                                           OnRefresh="@LoadVatNaturesAsync"
+                                           OnCreate="@OpenCreateVatNatureDrawer" />
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent Class="pa-1">
+                    @if (_isLoadingVatNatures)
+                    {
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+                    }
+                    else
+                    {
+                        <MudTable T="VatNatureDto" 
+                                  Items="_filteredVatNatures" 
+                                  Hover="true" 
+                                  Striped="true"
+                                  Loading="_isLoadingVatNatures"
+                                  LoadingProgressColor="Color.Info"
+                                  SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
+                                  AllowUnsorted="false"
+                                  Dense="false"
+                                  Breakpoint="Breakpoint.Sm">
+                            <HeaderContent>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<VatNatureDto, object>(x => x.Code))">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<VatNatureDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
+                                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<VatNatureDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel></MudTh>
+                                <MudTh Class="text-center" Style="min-width: 120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                            </HeaderContent>
+
+                            <RowTemplate>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">
+                                        @context.Code
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                                    <MudText Typo="Typo.body2">@context.Name</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
+                                    <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width: 400px;">
+                                        @(string.IsNullOrEmpty(context.Description) ? "-" : context.Description)
+                                    </MudText>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
+                                    <MudText Typo="Typo.body2">@context.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                                    <ActionButtonGroup EntityName="@context.Name"
+                                                      ItemDisplayName="@context.Name"
+                                                      ShowView="true"
+                                                      ShowEdit="true"
+                                                      ShowAuditLog="false"
+                                                      ShowToggleStatus="false"
+                                                      ShowDelete="true"
+                                                      OnView="@(() => ViewVatNature(context))"
+                                                      OnEdit="@(() => EditVatNature(context))"
+                                                      OnDelete="@(() => DeleteVatNature(context))" />
+                                </MudTd>
+                            </RowTemplate>
+
+                            <NoRecordsContent>
+                                <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Category" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                                    <MudText Typo="Typo.h6" Class="mb-2">
+                                        @(_vatNatures.Any() ? 
+                                            TranslationService.GetTranslation("financial.noVatNaturesMatchFilters", "Nessuna natura IVA corrisponde ai filtri applicati") : 
+                                            TranslationService.GetTranslation("financial.noVatNaturesFound", "Nessuna natura IVA trovata"))
+                                    </MudText>
+                                    @if (_vatNatures.Any())
+                                    {
+                                        <MudButton Variant="Variant.Text" 
+                                                   Color="Color.Primary" 
+                                                   StartIcon="@Icons.Material.Outlined.Clear"
+                                                   OnClick="@ClearFilters">
+                                            @TranslationService.GetTranslation("financial.clearFilters", "Cancella filtri")
+                                        </MudButton>
+                                    }
+                                </div>
+                            </NoRecordsContent>
+                        </MudTable>
+                    }
+                </MudCardContent>
+            </MudPaper>
+        </MudPaper>
+    }
+</MudContainer>
+
+<!-- VAT Nature Management Drawer -->
+<VatNatureDrawer @bind-IsOpen="_vatNatureDrawerOpen" 
+                 @bind-Mode="_vatNatureDrawerMode"
+                 OriginalVatNature="_selectedVatNature"
+                 AllowEdit="true"
+                 OnVatNatureCreated="@OnVatNatureCreated"
+                 OnVatNatureUpdated="@OnVatNatureUpdated" />
+
+@code {
+    // Loading states
+    private bool _isLoading = true;
+    private bool _isLoadingVatNatures = false;
+    
+    // Drawer states
+    private bool _vatNatureDrawerOpen = false;
+    
+    // Drawer management
+    private EntityDrawerMode _vatNatureDrawerMode = EntityDrawerMode.Create;
+    private VatNatureDto? _selectedVatNature;
+    
+    // Filter and search state
+    private string _searchTerm = string.Empty;
+    
+    // Data collections
+    private List<VatNatureDto> _vatNatures = new();
+
+    /// <summary>
+    /// Computed property for filtered VAT natures based on search criteria.
+    /// </summary>
+    private IEnumerable<VatNatureDto> _filteredVatNatures
+    {
+        get
+        {
+            var query = _vatNatures.AsEnumerable();
+            
+            // Apply search filter
+            if (!string.IsNullOrWhiteSpace(_searchTerm))
+            {
+                query = query.Where(vn => 
+                    vn.Code.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                    vn.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                    (vn.Description != null && vn.Description.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)));
+            }
+            
+            return query;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            await LoadVatNaturesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("financial.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading VAT natures page");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Loads VAT nature data.
+    /// </summary>
+    private async Task LoadVatNaturesAsync()
+    {
+        try
+        {
+            _isLoadingVatNatures = true;
+            
+            // TODO: Implement IFinancialService.GetVatNaturesAsync on the backend
+            // var result = await FinancialService.GetVatNaturesAsync(page: 1, pageSize: 100);
+            // _vatNatures = result.Items.OrderBy(vn => vn.Code).ToList();
+            
+            // Temporary: Empty list until backend service is implemented
+            _vatNatures = new List<VatNatureDto>();
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("financial.loadingVatNaturesError", "Errore nel caricamento delle nature IVA: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading VAT natures");
+        }
+        finally
+        {
+            _isLoadingVatNatures = false;
+        }
+    }
+
+    /// <summary>
+    /// Clears all active filters.
+    /// </summary>
+    private async Task ClearFilters()
+    {
+        _searchTerm = string.Empty;
+        await Task.CompletedTask;
+        StateHasChanged();
+    }
+
+    private async Task OnSearchChanged()
+    {
+        await Task.Delay(300); // Debounce
+        StateHasChanged();
+    }
+
+    private async Task OpenCreateVatNatureDrawer()
+    {
+        _vatNatureDrawerMode = EntityDrawerMode.Create;
+        _selectedVatNature = null;
+        _vatNatureDrawerOpen = true;
+        await Task.CompletedTask;
+    }
+
+    private async Task OnVatNatureCreated(VatNatureDto newVatNature)
+    {
+        _vatNatures.Add(newVatNature);
+        _vatNatures = _vatNatures.OrderBy(vn => vn.Code).ToList();
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    private async Task OnVatNatureUpdated(VatNatureDto updatedVatNature)
+    {
+        var index = _vatNatures.FindIndex(vn => vn.Id == updatedVatNature.Id);
+        if (index >= 0)
+        {
+            _vatNatures[index] = updatedVatNature;
+        }
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    private async Task ViewVatNature(VatNatureDto vatNature)
+    {
+        _vatNatureDrawerMode = EntityDrawerMode.View;
+        _selectedVatNature = vatNature;
+        _vatNatureDrawerOpen = true;
+        await Task.CompletedTask;
+    }
+
+    private async Task EditVatNature(VatNatureDto vatNature)
+    {
+        _vatNatureDrawerMode = EntityDrawerMode.Edit;
+        _selectedVatNature = vatNature;
+        _vatNatureDrawerOpen = true;
+        await Task.CompletedTask;
+    }
+
+    private async Task DeleteVatNature(VatNatureDto vatNature)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("financial.deleteVatNatureTitle", "Conferma Eliminazione"),
+            TranslationService.GetTranslation("financial.deleteVatNatureMessage", "Sei sicuro di voler eliminare la natura IVA '{0}'?", vatNature.Name),
+            yesText: TranslationService.GetTranslation("button.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("button.cancel", "Annulla"));
+
+        if (confirmed == true)
+        {
+            try
+            {
+                // TODO: Implement IFinancialService.DeleteVatNatureAsync on the backend
+                // var success = await FinancialService.DeleteVatNatureAsync(vatNature.Id);
+                // if (success)
+                // {
+                //     _vatNatures.Remove(vatNature);
+                //     Snackbar.Add(
+                //         TranslationService.GetTranslation("financial.deleteVatNatureSuccess", "Natura IVA eliminata con successo"), 
+                //         Severity.Success);
+                //     StateHasChanged();
+                // }
+                // else
+                // {
+                //     Snackbar.Add(
+                //         TranslationService.GetTranslation("financial.deleteVatNatureNotFound", "Natura IVA non trovata"), 
+                //         Severity.Warning);
+                // }
+                
+                Snackbar.Add("TODO: Backend service DeleteVatNatureAsync not implemented yet", Severity.Warning);
+                await Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting VAT nature");
+                Snackbar.Add(
+                    TranslationService.GetTranslation("financial.deleteVatNatureError", "Errore nell'eliminazione della natura IVA: {0}", ex.Message), 
+                    Severity.Error);
+            }
+        }
+    }
+}

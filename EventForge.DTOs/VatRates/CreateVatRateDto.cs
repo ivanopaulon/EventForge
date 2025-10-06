@@ -49,5 +49,11 @@ namespace EventForge.DTOs.VatRates
         [MaxLength(200, ErrorMessage = "The notes cannot exceed 200 characters.")]
         [Display(Name = "Notes", Description = "Additional notes about the VAT rate.")]
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// Foreign key to the VAT nature (optional, used for Italian tax compliance).
+        /// </summary>
+        [Display(Name = "VAT Nature", Description = "Reference to the VAT nature for Italian tax compliance.")]
+        public Guid? VatNatureId { get; set; }
     }
 }

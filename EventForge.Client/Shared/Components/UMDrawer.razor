@@ -271,11 +271,15 @@
     
     private async Task HandleCancel()
     {
-        await Task.CompletedTask;
+        // Reset the drawer state and close
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(false);
     }
     
     private async Task HandleClose()
     {
-        await Task.CompletedTask;
+        // Close the drawer
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(false);
     }
 }

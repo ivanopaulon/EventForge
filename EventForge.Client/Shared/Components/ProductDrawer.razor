@@ -1694,14 +1694,46 @@
     {
         if (OriginalProduct == null) return;
         
-        // TODO: Implement dialog for adding product codes
-        Snackbar.Add(TranslationService.GetTranslation("messages.featureNotImplemented", "Funzionalità non ancora implementata"), Severity.Info);
+        var parameters = new DialogParameters
+        {
+            ["ProductId"] = OriginalProduct.Id,
+            ["ProductUnits"] = _productUnits
+        };
+        
+        var dialog = await DialogService.ShowAsync<AddProductCodeDialog>(
+            TranslationService.GetTranslation("dialog.addProductCode", "Aggiungi Codice Alternativo"),
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true }
+        );
+        
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is ProductCodeDto newCode)
+        {
+            await LoadCodesAsync();
+            Snackbar.Add(TranslationService.GetTranslation("messages.codeAdded", "Codice aggiunto con successo"), Severity.Success);
+        }
     }
     
     private async Task OpenEditCodeDialog(ProductCodeDto code)
     {
-        // TODO: Implement dialog for editing product codes
-        Snackbar.Add(TranslationService.GetTranslation("messages.featureNotImplemented", "Funzionalità non ancora implementata"), Severity.Info);
+        var parameters = new DialogParameters
+        {
+            ["Code"] = code,
+            ["ProductUnits"] = _productUnits
+        };
+        
+        var dialog = await DialogService.ShowAsync<EditProductCodeDialog>(
+            TranslationService.GetTranslation("dialog.editProductCode", "Modifica Codice Alternativo"),
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true }
+        );
+        
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadCodesAsync();
+            Snackbar.Add(TranslationService.GetTranslation("messages.codeUpdated", "Codice aggiornato con successo"), Severity.Success);
+        }
     }
     
     private async Task DeleteCode(Guid codeId)
@@ -1749,14 +1781,47 @@
     {
         if (OriginalProduct == null) return;
         
-        // TODO: Implement dialog for adding product units
-        Snackbar.Add(TranslationService.GetTranslation("messages.featureNotImplemented", "Funzionalità non ancora implementata"), Severity.Info);
+        var parameters = new DialogParameters
+        {
+            ["ProductId"] = OriginalProduct.Id,
+            ["UnitOfMeasures"] = _unitsMeasure,
+            ["ExistingUnits"] = _productUnits
+        };
+        
+        var dialog = await DialogService.ShowAsync<AddProductUnitDialog>(
+            TranslationService.GetTranslation("dialog.addProductUnit", "Aggiungi Unità di Misura"),
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true }
+        );
+        
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is ProductUnitDto newUnit)
+        {
+            await LoadUnitsAsync();
+            Snackbar.Add(TranslationService.GetTranslation("messages.unitAdded", "Unità di misura aggiunta con successo"), Severity.Success);
+        }
     }
     
     private async Task OpenEditUnitDialog(ProductUnitDto unit)
     {
-        // TODO: Implement dialog for editing product units
-        Snackbar.Add(TranslationService.GetTranslation("messages.featureNotImplemented", "Funzionalità non ancora implementata"), Severity.Info);
+        var parameters = new DialogParameters
+        {
+            ["Unit"] = unit,
+            ["UnitOfMeasures"] = _unitsMeasure
+        };
+        
+        var dialog = await DialogService.ShowAsync<EditProductUnitDialog>(
+            TranslationService.GetTranslation("dialog.editProductUnit", "Modifica Unità di Misura"),
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true }
+        );
+        
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadUnitsAsync();
+            Snackbar.Add(TranslationService.GetTranslation("messages.unitUpdated", "Unità di misura aggiornata con successo"), Severity.Success);
+        }
     }
     
     private async Task DeleteUnit(Guid unitId)
