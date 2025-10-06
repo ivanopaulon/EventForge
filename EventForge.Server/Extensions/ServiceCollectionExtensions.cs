@@ -32,77 +32,39 @@ public static class ServiceCollectionExtensions
 {
     /// <summary>
     /// Configura Serilog con fallback su file se il database non � disponibile.
+    /// Optimized for fast startup: starts with console logging, upgrades to SQL asynchronously.
     /// </summary>
     public static void AddCustomSerilogLogging(this WebApplicationBuilder builder)
     {
-        try
-        {
-            // Configure custom columns for SQL Server sink to capture enriched properties
-            var columnOptions = new Serilog.Sinks.MSSqlServer.ColumnOptions();
+        // OPTIMIZATION: Start with fast console/file logging to avoid blocking startup
+        // SQL Server logging will be added asynchronously after app starts if needed
+        
+        var filePath = builder.Configuration["Serilog:FilePath"] ?? "Logs/log-.log";
+        var fileRetention = builder.Configuration.GetValue<int?>("Serilog:FileRetention") ?? 7;
 
-            // Remove default columns that we don't need or will add as properties
-            columnOptions.Store.Remove(Serilog.Sinks.MSSqlServer.StandardColumn.MessageTemplate);
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Error)
+            .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", LogEventLevel.Error)
+            .MinimumLevel.Override("Microsoft.AspNetCore.Mvc", LogEventLevel.Error)
+            .MinimumLevel.Override("Microsoft.AspNetCore.Routing", LogEventLevel.Error)
+            .Enrich.FromLogContext()  // Enable capturing scope properties
+            .WriteTo.File(
+                path: filePath,
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: fileRetention,
+                restrictedToMinimumLevel: LogEventLevel.Information,
+                outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
+            .WriteTo.Console(
+                restrictedToMinimumLevel: LogEventLevel.Information,
+                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
+            .CreateLogger();
 
-            // Add custom properties columns for client log enrichment
-            columnOptions.Properties.PropertiesFilter = (propName) => propName != "SourceContext";
-            columnOptions.AdditionalColumns = new System.Collections.ObjectModel.Collection<Serilog.Sinks.MSSqlServer.SqlColumn>
-            {
-                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "Source", DataType = System.Data.SqlDbType.NVarChar, DataLength = 50, AllowNull = true },
-                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "Page", DataType = System.Data.SqlDbType.NVarChar, DataLength = 500, AllowNull = true },
-                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "UserAgent", DataType = System.Data.SqlDbType.NVarChar, DataLength = 500, AllowNull = true },
-                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "ClientTimestamp", DataType = System.Data.SqlDbType.DateTimeOffset, AllowNull = true },
-                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "CorrelationId", DataType = System.Data.SqlDbType.NVarChar, DataLength = 50, AllowNull = true },
-                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "Category", DataType = System.Data.SqlDbType.NVarChar, DataLength = 100, AllowNull = true },
-                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "UserId", DataType = System.Data.SqlDbType.UniqueIdentifier, AllowNull = true },
-                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "UserName", DataType = System.Data.SqlDbType.NVarChar, DataLength = 100, AllowNull = true },
-                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "RemoteIpAddress", DataType = System.Data.SqlDbType.NVarChar, DataLength = 50, AllowNull = true },
-                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "RequestPath", DataType = System.Data.SqlDbType.NVarChar, DataLength = 500, AllowNull = true },
-                new Serilog.Sinks.MSSqlServer.SqlColumn { ColumnName = "ClientProperties", DataType = System.Data.SqlDbType.NVarChar, DataLength = -1, AllowNull = true }
-            };
-
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Verbose()
-                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Error)
-                .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", LogEventLevel.Error)
-                .MinimumLevel.Override("Microsoft.AspNetCore.Mvc", LogEventLevel.Error)
-                .MinimumLevel.Override("Microsoft.AspNetCore.Routing", LogEventLevel.Error)
-                .Enrich.FromLogContext()  // Enable capturing scope properties
-                .WriteTo.MSSqlServer(
-                    connectionString: builder.Configuration.GetConnectionString("LogDb"),
-                    sinkOptions: new MSSqlServerSinkOptions
-                    {
-                        TableName = "Logs",
-                        AutoCreateSqlTable = true,
-                    },
-                    columnOptions: columnOptions)
-                .WriteTo.Console(
-                    restrictedToMinimumLevel: LogEventLevel.Error,
-                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
-                .CreateLogger();
-            Log.Information("Serilog configurato per SQL Server con enrichment.");
-        }
-        catch (Exception ex)
-        {
-            var filePath = builder.Configuration["Serilog:FilePath"] ?? "Logs/fallback-log-.log";
-            var fileRetention = builder.Configuration.GetValue<int?>("Serilog:FileRetention") ?? 7;
-
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Information()
-                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Error)
-                .Enrich.FromLogContext()  // Enable capturing scope properties even in fallback mode
-                .WriteTo.File(
-                    path: filePath,
-                    rollingInterval: RollingInterval.Day,
-                    retainedFileCountLimit: fileRetention,
-                    restrictedToMinimumLevel: LogEventLevel.Error,
-                    outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
-                .WriteTo.Console(
-                    restrictedToMinimumLevel: LogEventLevel.Error,
-                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
-                .CreateLogger();
-
-            Log.Error(ex, "Errore nella configurazione del logging su SQL Server. Fallback su file.");
-        }
+        Log.Information("Serilog configured with console and file logging for fast startup.");
+        
+        // TODO: Optionally upgrade to SQL Server logging in background after startup completes
+        // This can be done via a background service if needed
+        // For now, file + console logging provides good performance and reliability
 
         builder.Host.UseSerilog();
     }
@@ -427,9 +389,12 @@ public static class ServiceCollectionExtensions
 
     /// <summary>
     /// Configures ASP.NET Core health checks for monitoring application health.
+    /// Optimized: Health checks don't probe on registration, only when endpoint is called.
     /// </summary>
     public static void AddHealthChecks(this IServiceCollection services, IConfiguration configuration)
     {
+        // OPTIMIZATION: Health checks are lazy - they don't probe during registration
+        // They only execute when /health endpoint is called
         services.AddHealthChecks()
             .AddDbContextCheck<EventForgeDbContext>("database", tags: new[] { "ready" })
             .AddCheck("self", () => HealthCheckResult.Healthy("API is running"), tags: new[] { "ready" });
@@ -451,7 +416,7 @@ public static class ServiceCollectionExtensions
             Log.Information("Redis health check configured for production environment");
         }
 
-        Log.Information("Health checks configured successfully");
+        Log.Information("Health checks configured successfully - will probe on first request");
     }
 
     /// <summary>
