@@ -34,8 +34,8 @@ public class LogManagementService : ILogManagementService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
 
-        _logDbConnectionString = configuration.GetConnectionString("LogDB")
-            ?? throw new InvalidOperationException("LogDB connection string not found.");
+        _logDbConnectionString = configuration.GetConnectionString("LogDb")
+            ?? throw new InvalidOperationException("LogDb connection string not found.");
     }
 
     private SqlConnection CreateConnection() => new SqlConnection(_logDbConnectionString);

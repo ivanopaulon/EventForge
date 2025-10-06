@@ -32,8 +32,8 @@ public class ApplicationLogService : IApplicationLogService
         IConfiguration configuration,
         ILogger<ApplicationLogService> logger)
     {
-        _logDbConnectionString = configuration.GetConnectionString("LogDB")
-            ?? throw new InvalidOperationException("LogDB connection string not found.");
+        _logDbConnectionString = configuration.GetConnectionString("LogDb")
+            ?? throw new InvalidOperationException("LogDb connection string not found.");
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
