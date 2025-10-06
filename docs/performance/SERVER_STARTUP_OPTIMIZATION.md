@@ -43,7 +43,7 @@
 - Fast-path check: skips migrations if database is up-to-date
 - Application available immediately for requests
 
-#### 2. 🔴 Serilog SQL Server Connection (CRITICO / CRITICAL)
+#### 2. 🔴 Serilog SQL Server Connection (CRITICO / CRITICAL) - ⚠️ RIPRISTINATO
 **Impatto / Impact**: 2-5 secondi
 
 **Problema / Problem**:
@@ -55,16 +55,19 @@
 - Slow timeout if database unavailable
 - Try-catch with fallback slows further
 
-**Soluzione / Solution**: ✅ Implementata
+**Soluzione Originale / Original Solution**: ✅ Implementata
 - Avvio immediato con console + file logging
 - Rimossa connessione SQL Server bloccante
 - Logging funzionale e performante
-- TODO futuro: upgrade opzionale a SQL in background
 
 - Immediate startup with console + file logging
 - Removed blocking SQL Server connection
 - Functional and performant logging
-- Future TODO: optional upgrade to SQL in background
+
+**⚠️ NOTA IMPORTANTE / IMPORTANT NOTE**: 
+SQL Server logging è stato **RIPRISTINATO** su richiesta dell'utente. Tutti i log vengono ora scritti su database SQL Server (LogDb), file e console per mantenere la tracciabilità completa nel database.
+
+SQL Server logging has been **RESTORED** at user's request. All logs are now written to SQL Server database (LogDb), files, and console to maintain complete traceability in the database.
 
 #### 3. 🟡 Health Checks Database Probes (MEDIO / MEDIUM)
 **Impatto / Impact**: 1-3 secondi

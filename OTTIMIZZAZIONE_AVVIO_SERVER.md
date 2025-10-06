@@ -27,15 +27,17 @@ Ridurre drasticamente i tempi di avvio del server EventForge che erano molto ral
 
 **Guadagno**: -10 a -25 secondi
 
-### 2. Connessione SQL Server per Logging ❌ → ✅
+### 2. Connessione SQL Server per Logging ❌ → ✅ → ⚠️ RIPRISTINATO
 **Problema**: Tentativo di connessione SQL Server ad ogni avvio con timeout lento se database non disponibile (2-5 secondi).
 
-**Soluzione**:
+**Soluzione Originale**:
 - Logging diretto su console e file
 - Rimossa connessione SQL bloccante
 - Avvio immediato, logging funzionale
 
 **Guadagno**: -2 a -5 secondi
+
+**⚠️ NOTA IMPORTANTE**: SQL Server logging è stato **RIPRISTINATO** su richiesta dell'utente. Tutti i log vengono ora scritti sia su database SQL Server (LogDb) che su file e console per mantenere la tracciabilità completa nel database.
 
 ### 3. Health Checks Database Probes ⚠️ → ✅
 **Problema**: Connessioni database per health checks durante registrazione.
