@@ -106,11 +106,13 @@
                                 <TitleContent>
                                     <div class="d-flex justify-space-between align-center" style="width: 100%;">
                                         <MudText>@($"{TranslationService.GetTranslation("field.models", "Modelli")} ({_models?.Count() ?? 0})")</MudText>
-                                        <MudIconButton Icon="@Icons.Material.Filled.Add" 
-                                                      Color="Color.Primary" 
-                                                      Size="Size.Small"
-                                                      OnClick="@(() => OpenAddModelDialog())"
-                                                      aria-label="@TranslationService.GetTranslation("button.addModel", "Aggiungi modello")" />
+                                        <div @onclick:stopPropagation="true">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                                          Color="Color.Primary" 
+                                                          Size="Size.Small"
+                                                          OnClick="@(() => OpenAddModelDialog())"
+                                                          aria-label="@TranslationService.GetTranslation("button.addModel", "Aggiungi modello")" />
+                                        </div>
                                     </div>
                                 </TitleContent>
                                 <ChildContent>

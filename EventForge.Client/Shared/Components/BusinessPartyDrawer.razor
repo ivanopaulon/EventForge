@@ -144,11 +144,13 @@
                                 <TitleContent>
                                     <div class="d-flex justify-space-between align-center" style="width: 100%;">
                                         <MudText>@($"{TranslationService.GetTranslation("field.addressCount", "Indirizzi")} ({_addresses?.Count() ?? 0})")</MudText>
-                                        <MudIconButton Icon="@Icons.Material.Filled.Add" 
-                                                      Color="Color.Primary" 
-                                                      Size="Size.Small"
-                                                      OnClick="@(() => OpenAddAddressDialog())"
-                                                      aria-label="@TranslationService.GetTranslation("button.addAddress", "Aggiungi indirizzo")" />
+                                        <div @onclick:stopPropagation="true">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                                          Color="Color.Primary" 
+                                                          Size="Size.Small"
+                                                          OnClick="@(() => OpenAddAddressDialog())"
+                                                          aria-label="@TranslationService.GetTranslation("button.addAddress", "Aggiungi indirizzo")" />
+                                        </div>
                                     </div>
                                 </TitleContent>
                                 <ChildContent>
@@ -198,11 +200,13 @@
                                 <TitleContent>
                                     <div class="d-flex justify-space-between align-center" style="width: 100%;">
                                         <MudText>@($"{TranslationService.GetTranslation("field.contactCount", "Contatti")} ({_contacts?.Count() ?? 0})")</MudText>
-                                        <MudIconButton Icon="@Icons.Material.Filled.Add" 
-                                                      Color="Color.Primary" 
-                                                      Size="Size.Small"
-                                                      OnClick="@(() => OpenAddContactDialog())"
-                                                      aria-label="@TranslationService.GetTranslation("button.addContact", "Aggiungi contatto")" />
+                                        <div @onclick:stopPropagation="true">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                                          Color="Color.Primary" 
+                                                          Size="Size.Small"
+                                                          OnClick="@(() => OpenAddContactDialog())"
+                                                          aria-label="@TranslationService.GetTranslation("button.addContact", "Aggiungi contatto")" />
+                                        </div>
                                     </div>
                                 </TitleContent>
                                 <ChildContent>
@@ -257,11 +261,13 @@
                                 <TitleContent>
                                     <div class="d-flex justify-space-between align-center" style="width: 100%;">
                                         <MudText>@($"{TranslationService.GetTranslation("field.referenceCount", "Referenti")} ({_references?.Count() ?? 0})")</MudText>
-                                        <MudIconButton Icon="@Icons.Material.Filled.Add" 
-                                                      Color="Color.Primary" 
-                                                      Size="Size.Small"
-                                                      OnClick="@(() => OpenAddReferenceDialog())"
-                                                      aria-label="@TranslationService.GetTranslation("button.addReference", "Aggiungi referente")" />
+                                        <div @onclick:stopPropagation="true">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                                          Color="Color.Primary" 
+                                                          Size="Size.Small"
+                                                          OnClick="@(() => OpenAddReferenceDialog())"
+                                                          aria-label="@TranslationService.GetTranslation("button.addReference", "Aggiungi referente")" />
+                                        </div>
                                     </div>
                                 </TitleContent>
                                 <ChildContent>
