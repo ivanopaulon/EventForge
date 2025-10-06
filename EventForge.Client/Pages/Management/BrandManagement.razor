@@ -196,15 +196,17 @@
             _isLoadingBrands = true;
             StateHasChanged();
 
-            var result = await BrandService.GetBrandsAsync(page: 1, pageSize: 1000);
+            // Use a reasonable pageSize (the API may reject very large pageSize values)
+            var result = await BrandService.GetBrandsAsync(page: 1, pageSize: 100);
             _brands = result.Items ?? new List<BrandDto>();
             ApplyFilters();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading brands");
+            // Show more informative message to the user to help debugging
             Snackbar.Add(
-                TranslationService.GetTranslation("brand.loadError", "Errore nel caricamento dei marchi"),
+                $"{TranslationService.GetTranslation("brand.loadError", "Errore nel caricamento dei marchi")}: {ex.Message}",
                 Severity.Error);
         }
         finally

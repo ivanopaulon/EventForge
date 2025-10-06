@@ -387,7 +387,8 @@
             _loadingModels = true;
             StateHasChanged();
             
-            var result = await ModelService.GetModelsByBrandIdAsync(OriginalBrand.Id, page: 1, pageSize: 1000);
+            // Use safe pageSize (API enforces max 100)
+            var result = await ModelService.GetModelsByBrandIdAsync(OriginalBrand.Id, page: 1, pageSize: 100);
             _models = result.Items ?? new List<ModelDto>();
             
             _loadingModels = false;
