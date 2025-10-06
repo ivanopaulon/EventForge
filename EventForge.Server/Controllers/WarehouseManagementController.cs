@@ -1332,7 +1332,7 @@ public class WarehouseManagementController : BaseApiController
                         {
                             // New format with metadata
                             var parts = row.Description.Split('|');
-                            
+
                             // Parse display part (ProductName @ LocationCode)
                             if (parts.Length > 0)
                             {
@@ -1368,7 +1368,7 @@ public class WarehouseManagementController : BaseApiController
                             var descriptionParts = row.Description.Split('@');
                             productName = descriptionParts.Length > 0 ? descriptionParts[0].Trim() : string.Empty;
                             locationName = descriptionParts.Length > 1 ? descriptionParts[1].Trim() : row.Description;
-                            
+
                             // Try to parse ProductId from ProductCode
                             if (Guid.TryParse(row.ProductCode, out var parsedProductId))
                             {
@@ -1655,7 +1655,7 @@ public class WarehouseManagementController : BaseApiController
                         {
                             // New format with metadata
                             var parts = row.Description.Split('|');
-                            
+
                             // Parse display part (ProductName @ LocationCode)
                             if (parts.Length > 0)
                             {
@@ -1691,7 +1691,7 @@ public class WarehouseManagementController : BaseApiController
                             var descriptionParts = row.Description.Split('@');
                             productName = descriptionParts.Length > 0 ? descriptionParts[0].Trim() : string.Empty;
                             locationName = descriptionParts.Length > 1 ? descriptionParts[1].Trim() : row.Description;
-                            
+
                             // Try to parse ProductId from ProductCode
                             if (Guid.TryParse(row.ProductCode, out var parsedProductId))
                             {
@@ -1799,7 +1799,7 @@ public class WarehouseManagementController : BaseApiController
             // Process each row and apply stock adjustments
             if (documentHeader.Rows != null && documentHeader.Rows.Any())
             {
-                _logger.LogInformation("Processing {Count} inventory rows for document {DocumentId}", 
+                _logger.LogInformation("Processing {Count} inventory rows for document {DocumentId}",
                     documentHeader.Rows.Count, documentId);
 
                 foreach (var row in documentHeader.Rows)
@@ -1839,7 +1839,7 @@ public class WarehouseManagementController : BaseApiController
                             // Fallback: try parsing ProductCode as GUID (old format)
                             if (!Guid.TryParse(row.ProductCode, out productId))
                             {
-                                _logger.LogWarning("Invalid ProductCode '{ProductCode}' in row {RowId}, skipping", 
+                                _logger.LogWarning("Invalid ProductCode '{ProductCode}' in row {RowId}, skipping",
                                     row.ProductCode, row.Id);
                                 continue;
                             }
@@ -1857,13 +1857,13 @@ public class WarehouseManagementController : BaseApiController
 
                             // Find the storage location by code
                             var allLocations = await _storageLocationService.GetStorageLocationsAsync(
-                                page: 1, 
-                                pageSize: 1000, 
-                                warehouseId: documentHeader.SourceWarehouseId, 
+                                page: 1,
+                                pageSize: 1000,
+                                warehouseId: documentHeader.SourceWarehouseId,
                                 cancellationToken: cancellationToken);
-                            
+
                             var location = allLocations.Items.FirstOrDefault(l => l.Code == locationCode);
-                            
+
                             if (location == null)
                             {
                                 _logger.LogWarning("Storage location '{LocationCode}' not found for row {RowId}, skipping",
@@ -1922,7 +1922,7 @@ public class WarehouseManagementController : BaseApiController
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Error processing inventory row {RowId} in document {DocumentId}", 
+                        _logger.LogError(ex, "Error processing inventory row {RowId} in document {DocumentId}",
                             row.Id, documentId);
                         // Continue processing other rows even if one fails
                     }
@@ -1951,7 +1951,7 @@ public class WarehouseManagementController : BaseApiController
                         {
                             // New format with metadata
                             var parts = row.Description.Split('|');
-                            
+
                             // Parse display part (ProductName @ LocationCode)
                             if (parts.Length > 0)
                             {
@@ -1987,7 +1987,7 @@ public class WarehouseManagementController : BaseApiController
                             var descriptionParts = row.Description.Split('@');
                             productName = descriptionParts.Length > 0 ? descriptionParts[0].Trim() : string.Empty;
                             locationName = descriptionParts.Length > 1 ? descriptionParts[1].Trim() : row.Description;
-                            
+
                             // Try to parse ProductId from ProductCode
                             if (Guid.TryParse(row.ProductCode, out var parsedProductId))
                             {

@@ -10063,7 +10063,7 @@ namespace EventForge.Server.Migrations
                     b.HasOne("EventForge.Server.Data.Entities.Products.Product", "Product")
                         .WithMany("Codes")
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("EventForge.Server.Data.Entities.Products.ProductUnit", "ProductUnit")

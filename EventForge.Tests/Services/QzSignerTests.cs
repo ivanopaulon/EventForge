@@ -104,7 +104,7 @@ public class QzSignerTests
         // Assert
         var expectedStart = "{\"call\":\"test.call\",\"params\":[\"param1\",2],\"timestamp\":1234567890123}";
         Assert.Equal(expectedStart, json);
-        
+
         return Task.CompletedTask;
     }
 

@@ -687,7 +687,7 @@ public class ProductManagementController : BaseApiController
         {
             var currentUser = GetCurrentUser();
             var productUnit = await _productService.UpdateProductUnitAsync(id, updateProductUnitDto, currentUser, cancellationToken);
-            
+
             if (productUnit == null)
             {
                 return CreateNotFoundProblem($"Product unit with ID {id} was not found.");
@@ -726,7 +726,7 @@ public class ProductManagementController : BaseApiController
         {
             var currentUser = GetCurrentUser();
             var deleted = await _productService.RemoveProductUnitAsync(id, currentUser, cancellationToken);
-            
+
             if (!deleted)
             {
                 return CreateNotFoundProblem($"Product unit with ID {id} was not found.");

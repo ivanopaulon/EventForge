@@ -287,13 +287,14 @@ public class EventForgeDbContext : DbContext
             .WithMany(p => p.Units)
             .HasForeignKey(u => u.ProductId);
 
-        // Product → ProductCode
+        // Product → ProductCode (prevent cascade delete to avoid SQL Server multiple cascade paths)
         modelBuilder.Entity<ProductCode>()
             .HasOne(c => c.Product)
             .WithMany(p => p.Codes)
-            .HasForeignKey(c => c.ProductId);
+            .HasForeignKey(c => c.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
 
-        // ProductCode → ProductUnit (optional relationship for unit-specific barcodes)
+        // ProductCode → ProductUnit (optional FK for unit-specific barcodes)
         modelBuilder.Entity<ProductCode>()
             .HasOne(c => c.ProductUnit)
             .WithMany()

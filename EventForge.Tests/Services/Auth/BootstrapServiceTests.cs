@@ -508,7 +508,7 @@ public class BootstrapServiceTests
 
         // Act - Run bootstrap twice
         var result1 = await bootstrapService.EnsureAdminBootstrappedAsync();
-        
+
         // Create a new service instance to simulate restart
         await using var context2 = new EventForgeDbContext(options);
         var bootstrapService2 = new BootstrapService(context2, passwordService, config, logger);
