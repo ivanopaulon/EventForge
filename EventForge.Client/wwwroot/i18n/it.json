@@ -2161,7 +2161,18 @@
     "warehouseManagement": "Gestione Magazzini",
     "brandManagement": "Gestione Marchi",
     "modelManagement": "Gestione Modelli",
-    "productManagement": "Gestione Prodotti"
+    "productManagement": "Gestione Prodotti",
+    "businessPartners": "Gestione Partner",
+    "financialManagement": "Gestione Finanziaria",
+    "systemManagement": "Gestione Sistema",
+    "facilities": "Magazzini",
+    "products": "Prodotti",
+    "supplierManagement": "Gestione Fornitori",
+    "customerManagement": "Gestione Clienti",
+    "classificationNodeManagement": "Gestione Classificazione",
+    "unitOfMeasureManagement": "Gestione Unità di Misura",
+    "vatNatureManagement": "Gestione Nature IVA",
+    "inventoryDocuments": "Documenti Inventario"
   },
   "tour": {
     "chat": "Tour Chat",
