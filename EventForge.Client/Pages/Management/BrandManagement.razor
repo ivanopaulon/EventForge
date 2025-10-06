@@ -246,14 +246,14 @@
         _brandDrawer.OpenForCreate();
     }
 
-    private void ViewBrand(Guid id)
+    private async Task ViewBrand(Guid id)
     {
-        _brandDrawer.OpenForView(id);
+        await _brandDrawer.OpenForView(id);
     }
 
-    private void EditBrand(Guid id)
+    private async Task EditBrand(Guid id)
     {
-        _brandDrawer.OpenForEdit(id);
+        await _brandDrawer.OpenForEdit(id);
     }
 
     private async Task DeleteBrand(BrandDto brand)
