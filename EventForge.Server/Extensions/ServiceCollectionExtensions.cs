@@ -32,17 +32,33 @@ public static class ServiceCollectionExtensions
 {
     /// <summary>
     /// Configura Serilog con fallback su file se il database non � disponibile.
-    /// Optimized for fast startup: starts with console logging, upgrades to SQL asynchronously.
     /// </summary>
     public static void AddCustomSerilogLogging(this WebApplicationBuilder builder)
     {
-        // OPTIMIZATION: Start with fast console/file logging to avoid blocking startup
-        // SQL Server logging will be added asynchronously after app starts if needed
-        
         var filePath = builder.Configuration["Serilog:FilePath"] ?? "Logs/log-.log";
         var fileRetention = builder.Configuration.GetValue<int?>("Serilog:FileRetention") ?? 7;
+        var logDbConnectionString = builder.Configuration.GetConnectionString("LogDb");
 
-        Log.Logger = new LoggerConfiguration()
+        // Configure column options for enriched properties
+        var columnOptions = new ColumnOptions();
+        
+        // Add custom columns for client log enrichment
+        columnOptions.AdditionalColumns = new System.Collections.ObjectModel.Collection<SqlColumn>
+        {
+            new SqlColumn { ColumnName = "Source", DataType = System.Data.SqlDbType.NVarChar, DataLength = 50, AllowNull = true },
+            new SqlColumn { ColumnName = "Page", DataType = System.Data.SqlDbType.NVarChar, DataLength = 500, AllowNull = true },
+            new SqlColumn { ColumnName = "UserAgent", DataType = System.Data.SqlDbType.NVarChar, DataLength = 500, AllowNull = true },
+            new SqlColumn { ColumnName = "ClientTimestamp", DataType = System.Data.SqlDbType.DateTimeOffset, AllowNull = true },
+            new SqlColumn { ColumnName = "CorrelationId", DataType = System.Data.SqlDbType.NVarChar, DataLength = 50, AllowNull = true },
+            new SqlColumn { ColumnName = "Category", DataType = System.Data.SqlDbType.NVarChar, DataLength = 100, AllowNull = true },
+            new SqlColumn { ColumnName = "UserId", DataType = System.Data.SqlDbType.UniqueIdentifier, AllowNull = true },
+            new SqlColumn { ColumnName = "UserName", DataType = System.Data.SqlDbType.NVarChar, DataLength = 100, AllowNull = true },
+            new SqlColumn { ColumnName = "RemoteIpAddress", DataType = System.Data.SqlDbType.NVarChar, DataLength = 50, AllowNull = true },
+            new SqlColumn { ColumnName = "RequestPath", DataType = System.Data.SqlDbType.NVarChar, DataLength = 500, AllowNull = true },
+            new SqlColumn { ColumnName = "ClientProperties", DataType = System.Data.SqlDbType.NVarChar, DataLength = -1, AllowNull = true }
+        };
+
+        var loggerConfiguration = new LoggerConfiguration()
             .MinimumLevel.Information()
             .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Error)
             .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", LogEventLevel.Error)
@@ -57,14 +73,29 @@ public static class ServiceCollectionExtensions
                 outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
             .WriteTo.Console(
                 restrictedToMinimumLevel: LogEventLevel.Information,
-                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
-            .CreateLogger();
+                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
 
-        Log.Information("Serilog configured with console and file logging for fast startup.");
-        
-        // TODO: Optionally upgrade to SQL Server logging in background after startup completes
-        // This can be done via a background service if needed
-        // For now, file + console logging provides good performance and reliability
+        // Add SQL Server sink if connection string is available
+        if (!string.IsNullOrEmpty(logDbConnectionString))
+        {
+            loggerConfiguration.WriteTo.MSSqlServer(
+                connectionString: logDbConnectionString,
+                sinkOptions: new MSSqlServerSinkOptions
+                {
+                    TableName = "Logs",
+                    AutoCreateSqlTable = true
+                },
+                restrictedToMinimumLevel: LogEventLevel.Information,
+                columnOptions: columnOptions);
+            
+            Log.Logger = loggerConfiguration.CreateLogger();
+            Log.Information("Serilog configurato per SQL Server con enrichment, file e console logging.");
+        }
+        else
+        {
+            Log.Logger = loggerConfiguration.CreateLogger();
+            Log.Warning("LogDb connection string non trovato. SQL Server logging disabilitato. Utilizzo file e console logging.");
+        }
 
         builder.Host.UseSerilog();
     }
