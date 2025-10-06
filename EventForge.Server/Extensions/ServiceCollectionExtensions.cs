@@ -186,6 +186,7 @@ public static class ServiceCollectionExtensions
 
         // Register VAT rate services
         services.AddScoped<IVatRateService, VatRateService>();
+        services.AddScoped<IVatNatureService, VatNatureService>();
 
         // Register product services
         services.AddScoped<IProductService, ProductService>();

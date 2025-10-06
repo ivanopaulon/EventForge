@@ -230,13 +230,8 @@
         {
             _isLoadingVatNatures = true;
             
-            // TODO: Implement IFinancialService.GetVatNaturesAsync on the backend
-            // var result = await FinancialService.GetVatNaturesAsync(page: 1, pageSize: 100);
-            // _vatNatures = result.Items.OrderBy(vn => vn.Code).ToList();
-            
-            // Temporary: Empty list until backend service is implemented
-            _vatNatures = new List<VatNatureDto>();
-            await Task.CompletedTask;
+            var result = await FinancialService.GetVatNaturesAsync();
+            _vatNatures = result.OrderBy(vn => vn.Code).ToList();
         }
         catch (Exception ex)
         {
@@ -320,25 +315,12 @@
         {
             try
             {
-                // TODO: Implement IFinancialService.DeleteVatNatureAsync on the backend
-                // var success = await FinancialService.DeleteVatNatureAsync(vatNature.Id);
-                // if (success)
-                // {
-                //     _vatNatures.Remove(vatNature);
-                //     Snackbar.Add(
-                //         TranslationService.GetTranslation("financial.deleteVatNatureSuccess", "Natura IVA eliminata con successo"), 
-                //         Severity.Success);
-                //     StateHasChanged();
-                // }
-                // else
-                // {
-                //     Snackbar.Add(
-                //         TranslationService.GetTranslation("financial.deleteVatNatureNotFound", "Natura IVA non trovata"), 
-                //         Severity.Warning);
-                // }
-                
-                Snackbar.Add("TODO: Backend service DeleteVatNatureAsync not implemented yet", Severity.Warning);
-                await Task.CompletedTask;
+                await FinancialService.DeleteVatNatureAsync(vatNature.Id);
+                _vatNatures.Remove(vatNature);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("financial.deleteVatNatureSuccess", "Natura IVA eliminata con successo"), 
+                    Severity.Success);
+                StateHasChanged();
             }
             catch (Exception ex)
             {

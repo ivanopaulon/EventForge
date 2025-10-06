@@ -448,13 +448,8 @@
     {
         try
         {
-            // TODO: Implement IFinancialService.GetVatNaturesAsync on the backend
-            // var result = await FinancialService.GetVatNaturesAsync(1, 100);
-            // _vatNatures = result?.Items.ToList() ?? new List<VatNatureDto>();
-            
-            // Temporary: Empty list until backend service is implemented
-            _vatNatures = new List<VatNatureDto>();
-            await Task.CompletedTask;
+            var result = await FinancialService.GetVatNaturesAsync();
+            _vatNatures = result.ToList();
         }
         catch (Exception ex)
         {
