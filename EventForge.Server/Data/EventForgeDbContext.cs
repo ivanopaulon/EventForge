@@ -293,6 +293,13 @@ public class EventForgeDbContext : DbContext
             .WithMany(p => p.Codes)
             .HasForeignKey(c => c.ProductId);
 
+        // ProductCode → ProductUnit (optional relationship for unit-specific barcodes)
+        modelBuilder.Entity<ProductCode>()
+            .HasOne(c => c.ProductUnit)
+            .WithMany()
+            .HasForeignKey(c => c.ProductUnitId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         // ProductBundleItem (BundleProductId, ComponentProductId)
         modelBuilder.Entity<ProductBundleItem>()
             .HasOne(b => b.BundleProduct)

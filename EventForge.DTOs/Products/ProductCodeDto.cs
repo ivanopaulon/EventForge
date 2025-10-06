@@ -19,6 +19,11 @@ namespace EventForge.DTOs.Products
         public Guid ProductId { get; set; }
 
         /// <summary>
+        /// Optional product unit identifier (for unit-specific barcodes).
+        /// </summary>
+        public Guid? ProductUnitId { get; set; }
+
+        /// <summary>
         /// Code type (SKU, EAN, UPC, etc.).
         /// </summary>
         public string CodeType { get; set; } = string.Empty;

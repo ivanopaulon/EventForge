@@ -21,6 +21,17 @@ public class ProductCode : AuditableEntity
     public Product? Product { get; set; }
 
     /// <summary>
+    /// Optional foreign key to the product unit (for unit-specific barcodes).
+    /// </summary>
+    [Display(Name = "Product Unit", Description = "Optional product unit associated with this code.")]
+    public Guid? ProductUnitId { get; set; }
+
+    /// <summary>
+    /// Navigation property for the associated product unit.
+    /// </summary>
+    public ProductUnit? ProductUnit { get; set; }
+
+    /// <summary>
     /// Code type (SKU, EAN, UPC, etc.).
     /// </summary>
     [Required(ErrorMessage = "The code type is required.")]

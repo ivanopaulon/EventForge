@@ -319,7 +319,7 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateProductUnitDto, ProductUnitDto>("api/v1/product-management/product-units", createDto);
+            return await _httpClientService.PostAsync<CreateProductUnitDto, ProductUnitDto>($"{BaseUrl}/{createDto.ProductId}/units", createDto);
         }
         catch (Exception ex)
         {
@@ -332,7 +332,7 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateProductUnitDto, ProductUnitDto>($"api/v1/product-management/product-units/{id}", updateDto);
+            return await _httpClientService.PutAsync<UpdateProductUnitDto, ProductUnitDto>($"api/v1/product-management/products/units/{id}", updateDto);
         }
         catch (Exception ex)
         {
@@ -345,7 +345,7 @@ public class ProductService : IProductService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"api/v1/product-management/product-units/{id}");
+            await _httpClientService.DeleteAsync($"api/v1/product-management/products/units/{id}");
             return true;
         }
         catch (Exception ex)
