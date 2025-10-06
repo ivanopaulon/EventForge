@@ -444,11 +444,13 @@
                                 <TitleContent>
                                     <div class="d-flex justify-space-between align-center" style="width: 100%;">
                                         <MudText>@($"{TranslationService.GetTranslation("field.supplierCount", "Fornitori")} ({_suppliers?.Count() ?? 0})")</MudText>
-                                        <MudIconButton Icon="@Icons.Material.Filled.Add" 
-                                                      Color="Color.Primary" 
-                                                      Size="Size.Small"
-                                                      OnClick="@(() => OpenAddSupplierDialog())"
-                                                      aria-label="@TranslationService.GetTranslation("button.addSupplier", "Aggiungi fornitore")" />
+                                        <div @onclick:stopPropagation="true">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                                          Color="Color.Primary" 
+                                                          Size="Size.Small"
+                                                          OnClick="@(() => OpenAddSupplierDialog())"
+                                                          aria-label="@TranslationService.GetTranslation("button.addSupplier", "Aggiungi fornitore")" />
+                                        </div>
                                     </div>
                                 </TitleContent>
                                 <ChildContent>
@@ -527,11 +529,13 @@
                                 <TitleContent>
                                     <div class="d-flex justify-space-between align-center" style="width: 100%;">
                                         <MudText>@($"{TranslationService.GetTranslation("field.productCodes", "Codici Alternativi")} ({_productCodes?.Count() ?? 0})")</MudText>
-                                        <MudIconButton Icon="@Icons.Material.Filled.Add" 
-                                                      Color="Color.Primary" 
-                                                      Size="Size.Small"
-                                                      OnClick="@(() => OpenAddCodeDialog())"
-                                                      aria-label="@TranslationService.GetTranslation("button.addCode", "Aggiungi codice")" />
+                                        <div @onclick:stopPropagation="true">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                                          Color="Color.Primary" 
+                                                          Size="Size.Small"
+                                                          OnClick="@(() => OpenAddCodeDialog())"
+                                                          aria-label="@TranslationService.GetTranslation("button.addCode", "Aggiungi codice")" />
+                                        </div>
                                     </div>
                                 </TitleContent>
                                 <ChildContent>
@@ -597,11 +601,13 @@
                                 <TitleContent>
                                     <div class="d-flex justify-space-between align-center" style="width: 100%;">
                                         <MudText>@($"{TranslationService.GetTranslation("field.productUnits", "Unità di Misura Alternative")} ({_productUnits?.Count() ?? 0})")</MudText>
-                                        <MudIconButton Icon="@Icons.Material.Filled.Add" 
-                                                      Color="Color.Primary" 
-                                                      Size="Size.Small"
-                                                      OnClick="@(() => OpenAddUnitDialog())"
-                                                      aria-label="@TranslationService.GetTranslation("button.addUnit", "Aggiungi unità")" />
+                                        <div @onclick:stopPropagation="true">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                                          Color="Color.Primary" 
+                                                          Size="Size.Small"
+                                                          OnClick="@(() => OpenAddUnitDialog())"
+                                                          aria-label="@TranslationService.GetTranslation("button.addUnit", "Aggiungi unità")" />
+                                        </div>
                                     </div>
                                 </TitleContent>
                                 <ChildContent>
@@ -669,11 +675,13 @@
                                     <TitleContent>
                                         <div class="d-flex justify-space-between align-center" style="width: 100%;">
                                             <MudText>@($"{TranslationService.GetTranslation("field.bundleComponents", "Componenti Bundle")} ({_bundleItems?.Count() ?? 0})")</MudText>
-                                            <MudIconButton Icon="@Icons.Material.Filled.Add" 
-                                                          Color="Color.Primary" 
-                                                          Size="Size.Small"
-                                                          OnClick="@(() => OpenAddBundleItemDialog())"
-                                                          aria-label="@TranslationService.GetTranslation("button.addBundleItem", "Aggiungi componente")" />
+                                            <div @onclick:stopPropagation="true">
+                                                <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                                              Color="Color.Primary" 
+                                                              Size="Size.Small"
+                                                              OnClick="@(() => OpenAddBundleItemDialog())"
+                                                              aria-label="@TranslationService.GetTranslation("button.addBundleItem", "Aggiungi componente")" />
+                                            </div>
                                         </div>
                                     </TitleContent>
                                     <ChildContent>
