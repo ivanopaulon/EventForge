@@ -10,12 +10,12 @@ Server logs are configured in `ServiceCollectionExtensions.cs` using the `AddCus
 
 ### Configuration Details
 
-- **Primary Sink**: Microsoft SQL Server (LogDb connection string)
+- **Primary Sink**: Microsoft SQL Server (LogDb connection string) ✅ ATTIVO
 - **Fallback Sink**: File logging (if database is unavailable)
+- **Console Output**: Enabled for development debugging
 - **Table Name**: `Logs`
 - **Auto-Create Table**: Yes
 - **Enrichment**: FromLogContext enabled to capture scope properties
-- **Console Output**: Enabled for development debugging
 
 The configuration uses the `LogDb` connection string from `appsettings.json`:
 
@@ -27,6 +27,8 @@ The configuration uses the `LogDb` connection string from `appsettings.json`:
 ```
 
 **Note**: The `Serilog` section in `appsettings.json` is NOT used for configuration. It exists only as a reference. The actual configuration is done programmatically in `ServiceCollectionExtensions.cs`.
+
+**✅ SQL Server Logging Status**: SQL Server logging è **ATTIVO**. I log vengono scritti su database (LogDb), file e console.
 
 ### Database Schema
 
