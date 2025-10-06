@@ -420,6 +420,7 @@
     /// </summary>
     private async Task ViewUMAuditLog(UMDto um)
     {
+        _umDrawerOpen = false; // Close the UM drawer if open
         _selectedUMForAudit = um;
         _auditDrawerOpen = true;
         await Task.CompletedTask;

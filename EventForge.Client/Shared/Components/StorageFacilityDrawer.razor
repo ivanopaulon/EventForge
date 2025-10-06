@@ -174,14 +174,14 @@
                         </MudText>
                     </MudItem>
                 }
-                else
+                else if (Mode == EntityDrawerMode.Edit && _locations != null)
                 {
                     <MudItem xs="12" Class="mt-4">
                         <MudExpansionPanels>
-                            <MudExpansionPanel>
+                            <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("drawer.field.totaleUbicazioni", "Ubicazioni")} ({_locations.Count()})")">
                                 <TitleContent>
                                     <div class="d-flex justify-space-between align-center" style="width: 100%;">
-                                        <MudText>@($"{TranslationService.GetTranslation("drawer.field.totaleUbicazioni", "Ubicazioni")} ({_locations?.Count() ?? 0})")</MudText>
+                                        <MudText>@TranslationService.GetTranslation("drawer.field.totaleUbicazioni", "Ubicazioni") (@_locations.Count())</MudText>
                                         <MudIconButton Icon="@Icons.Material.Filled.Add" 
                                                       Color="Color.Primary" 
                                                       Size="Size.Small"
@@ -190,7 +190,7 @@
                                     </div>
                                 </TitleContent>
                                 <ChildContent>
-                                    @if (_locations?.Any() == true)
+                                    @if (_locations.Any())
                                     {
                                         <MudTable Items="_locations" Hover="true" Dense="true" Striped="true">
                                             <HeaderContent>

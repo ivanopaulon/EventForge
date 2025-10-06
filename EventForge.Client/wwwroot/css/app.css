@@ -239,6 +239,34 @@ code {
     border-radius: var(--radius-sm);
 }
 
+/* ===== TABLE PAGINATION VISIBILITY FIX ===== */
+/* 
+   Ensures table pagination controls are always visible
+   with proper contrast and color
+*/
+.mud-table-pagination {
+    color: var(--text-primary) !important;
+}
+
+.mud-table-pagination .mud-table-pagination-caption,
+.mud-table-pagination .mud-select,
+.mud-table-pagination .mud-icon-button {
+    color: var(--text-primary) !important;
+}
+
+.mud-table-pagination .mud-select-input {
+    color: var(--text-primary) !important;
+}
+
+.mud-table-pagination .mud-icon-button {
+    color: var(--primary) !important;
+}
+
+.mud-table-pagination .mud-icon-button.mud-disabled {
+    color: var(--text-disabled) !important;
+    opacity: 0.5;
+}
+
 /* ===== EVENTFORGE COMPACT TILE STYLES ===== */
 /* 
    Extracted from Login page for consistent compact tile styling
