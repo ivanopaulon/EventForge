@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using EventForge.Server.Data.Entities.Common;
+using EventForge.Server.Data.Entities.Documents;
+using EventForge.Server.Data.Entities.Warehouse;
 
 namespace EventForge.Server.Services.Auth;
 
@@ -905,6 +907,13 @@ public class BootstrapService : IBootstrapService
                 return false;
             }
 
+            // Seed document types
+            if (!await SeedDocumentTypesAsync(tenantId, cancellationToken))
+            {
+                _logger.LogError("Failed to seed document types");
+                return false;
+            }
+
             _logger.LogInformation("Base entities seeded successfully for tenant {TenantId}", tenantId);
             return true;
         }
@@ -1597,6 +1606,206 @@ public class BootstrapService : IBootstrapService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error seeding default warehouse for tenant {TenantId}", tenantId);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Seeds standard document types for the tenant.
+    /// </summary>
+    /// <param name="tenantId">Tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if successful</returns>
+    private async Task<bool> SeedDocumentTypesAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Seeding document types for tenant {TenantId}...", tenantId);
+
+            // Check if document types already exist for this tenant
+            var existingDocTypes = await _dbContext.DocumentTypes
+                .AnyAsync(dt => dt.TenantId == tenantId, cancellationToken);
+
+            if (existingDocTypes)
+            {
+                _logger.LogInformation("Document types already exist for tenant {TenantId}", tenantId);
+                return true;
+            }
+
+            // Get the default warehouse for document type configuration
+            var defaultWarehouse = await _dbContext.StorageFacilities
+                .FirstOrDefaultAsync(w => w.TenantId == tenantId, cancellationToken);
+
+            // Standard document types for Italian businesses
+            var documentTypes = new[]
+            {
+                // Inventory Document
+                new DocumentType
+                {
+                    Code = "INVENTORY",
+                    Name = "Documento di Inventario",
+                    Notes = "Documento per la rilevazione fisica dell'inventario di magazzino",
+                    IsStockIncrease = false, // Inventory adjustments can go either way
+                    DefaultWarehouseId = defaultWarehouse?.Id,
+                    IsFiscal = false,
+                    TenantId = tenantId,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                // Sales Delivery Note
+                new DocumentType
+                {
+                    Code = "DDT_VEND",
+                    Name = "Bolla di Vendita (DDT)",
+                    Notes = "Documento di trasporto per vendita - riduce giacenza magazzino",
+                    IsStockIncrease = false, // Delivery decreases stock
+                    DefaultWarehouseId = defaultWarehouse?.Id,
+                    IsFiscal = true,
+                    TenantId = tenantId,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                // Purchase Delivery Note
+                new DocumentType
+                {
+                    Code = "DDT_ACQ",
+                    Name = "Bolla di Acquisto (DDT)",
+                    Notes = "Documento di trasporto per acquisto - aumenta giacenza magazzino",
+                    IsStockIncrease = true, // Purchase increases stock
+                    DefaultWarehouseId = defaultWarehouse?.Id,
+                    IsFiscal = true,
+                    TenantId = tenantId,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                // Transfer Note
+                new DocumentType
+                {
+                    Code = "DDT_TRASF",
+                    Name = "Bolla di Trasferimento",
+                    Notes = "Documento di trasporto per trasferimento tra magazzini",
+                    IsStockIncrease = false, // Transfer is neutral (reduces source, increases destination)
+                    DefaultWarehouseId = defaultWarehouse?.Id,
+                    IsFiscal = true,
+                    TenantId = tenantId,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                // Sales Invoice
+                new DocumentType
+                {
+                    Code = "FATT_VEND",
+                    Name = "Fattura di Vendita",
+                    Notes = "Fattura di vendita - riduce giacenza magazzino se non già movimentata",
+                    IsStockIncrease = false,
+                    DefaultWarehouseId = defaultWarehouse?.Id,
+                    IsFiscal = true,
+                    TenantId = tenantId,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                // Purchase Invoice
+                new DocumentType
+                {
+                    Code = "FATT_ACQ",
+                    Name = "Fattura di Acquisto",
+                    Notes = "Fattura di acquisto - aumenta giacenza magazzino se non già movimentata",
+                    IsStockIncrease = true,
+                    DefaultWarehouseId = defaultWarehouse?.Id,
+                    IsFiscal = true,
+                    TenantId = tenantId,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                // Sales Receipt
+                new DocumentType
+                {
+                    Code = "SCONTRINO",
+                    Name = "Scontrino di Vendita",
+                    Notes = "Scontrino fiscale per vendita al dettaglio - riduce giacenza magazzino",
+                    IsStockIncrease = false,
+                    DefaultWarehouseId = defaultWarehouse?.Id,
+                    IsFiscal = true,
+                    TenantId = tenantId,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                // Sales Order
+                new DocumentType
+                {
+                    Code = "ORD_VEND",
+                    Name = "Ordine di Vendita",
+                    Notes = "Ordine cliente - non movimenta giacenza fino all'evasione",
+                    IsStockIncrease = false,
+                    DefaultWarehouseId = defaultWarehouse?.Id,
+                    IsFiscal = false,
+                    TenantId = tenantId,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                // Purchase Order
+                new DocumentType
+                {
+                    Code = "ORD_ACQ",
+                    Name = "Ordine di Acquisto",
+                    Notes = "Ordine fornitore - non movimenta giacenza fino al ricevimento",
+                    IsStockIncrease = false,
+                    DefaultWarehouseId = defaultWarehouse?.Id,
+                    IsFiscal = false,
+                    TenantId = tenantId,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                // Quote
+                new DocumentType
+                {
+                    Code = "PREVENTIVO",
+                    Name = "Preventivo",
+                    Notes = "Preventivo/offerta cliente - non movimenta giacenza",
+                    IsStockIncrease = false,
+                    DefaultWarehouseId = defaultWarehouse?.Id,
+                    IsFiscal = false,
+                    TenantId = tenantId,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                // Return Note
+                new DocumentType
+                {
+                    Code = "RESO",
+                    Name = "Reso da Cliente",
+                    Notes = "Documento per resi da cliente - aumenta giacenza magazzino",
+                    IsStockIncrease = true,
+                    DefaultWarehouseId = defaultWarehouse?.Id,
+                    IsFiscal = true,
+                    TenantId = tenantId,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                },
+                // Credit Note
+                new DocumentType
+                {
+                    Code = "NOTA_CRED",
+                    Name = "Nota di Credito",
+                    Notes = "Nota di credito - può aumentare giacenza in caso di reso",
+                    IsStockIncrease = true,
+                    DefaultWarehouseId = defaultWarehouse?.Id,
+                    IsFiscal = true,
+                    TenantId = tenantId,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow
+                }
+            };
+
+            _dbContext.DocumentTypes.AddRange(documentTypes);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Seeded {Count} document types for tenant {TenantId}", documentTypes.Length, tenantId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error seeding document types for tenant {TenantId}", tenantId);
             return false;
         }
     }
