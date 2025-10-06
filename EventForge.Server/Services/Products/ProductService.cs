@@ -144,6 +144,13 @@ public class ProductService : IProductService
                 GroupNodeId = createProductDto.GroupNodeId,
                 StationId = createProductDto.StationId,
                 IsBundle = createProductDto.IsBundle,
+                BrandId = createProductDto.BrandId,
+                ModelId = createProductDto.ModelId,
+                PreferredSupplierId = createProductDto.PreferredSupplierId,
+                ReorderPoint = createProductDto.ReorderPoint,
+                SafetyStock = createProductDto.SafetyStock,
+                TargetStockLevel = createProductDto.TargetStockLevel,
+                AverageDailyDemand = createProductDto.AverageDailyDemand,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow
             };
@@ -206,6 +213,13 @@ public class ProductService : IProductService
                 GroupNodeId = product.GroupNodeId,
                 StationId = product.StationId,
                 IsBundle = product.IsBundle,
+                BrandId = product.BrandId,
+                ModelId = product.ModelId,
+                PreferredSupplierId = product.PreferredSupplierId,
+                ReorderPoint = product.ReorderPoint,
+                SafetyStock = product.SafetyStock,
+                TargetStockLevel = product.TargetStockLevel,
+                AverageDailyDemand = product.AverageDailyDemand,
                 CreatedBy = product.CreatedBy,
                 CreatedAt = product.CreatedAt,
                 ModifiedBy = product.ModifiedBy,
@@ -230,6 +244,13 @@ public class ProductService : IProductService
             product.FamilyNodeId = updateProductDto.FamilyNodeId;
             product.GroupNodeId = updateProductDto.GroupNodeId;
             product.StationId = updateProductDto.StationId;
+            product.BrandId = updateProductDto.BrandId;
+            product.ModelId = updateProductDto.ModelId;
+            product.PreferredSupplierId = updateProductDto.PreferredSupplierId;
+            product.ReorderPoint = updateProductDto.ReorderPoint;
+            product.SafetyStock = updateProductDto.SafetyStock;
+            product.TargetStockLevel = updateProductDto.TargetStockLevel;
+            product.AverageDailyDemand = updateProductDto.AverageDailyDemand;
             product.ModifiedBy = currentUser;
             product.ModifiedAt = DateTime.UtcNow;
 
