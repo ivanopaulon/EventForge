@@ -77,10 +77,25 @@
     color: inherit !important;
 }
 
-/* Table and data grid icons should be white */
-.mud-table .mud-icon-root,
+/* Expansion panel header icons should maintain their colors */
+.mud-expand-panel-header .mud-icon-root {
+    color: inherit !important;
+}
+
+/* Table and data grid icons should be white, except for action buttons */
+.mud-table .mud-icon-root:not(.mud-table-toolbar .mud-icon-root):not(.mud-table tbody .mud-icon-root),
 .mud-data-grid .mud-icon-root {
     color: white !important;
+}
+
+/* Table action buttons (in tbody) should maintain their semantic colors */
+.mud-table tbody .mud-icon-button .mud-icon-root {
+    color: inherit !important;
+}
+
+/* Table toolbar buttons should maintain their colors */
+.mud-table-toolbar .mud-icon-button .mud-icon-root {
+    color: inherit !important;
 }
 
 /* Menu and dropdown icons should be white */
@@ -96,10 +111,11 @@
     color: white !important;
 }
 
-/* Pagination and navigation icons should be white */
+/* Pagination and navigation icons should maintain their colors for better visibility */
 .mud-pagination .mud-icon-root,
+.mud-table-pager .mud-icon-root,
 .mud-breadcrumbs .mud-icon-root {
-    color: white !important;
+    color: inherit !important;
 }
 
 /* Dialog and modal icons should be white */
