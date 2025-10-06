@@ -1,0 +1,148 @@
+@using MudBlazor
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.Common
+@inject IProductService ProductService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<AddProductCodeDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudSelect T="string" 
+                               @bind-Value="_model.CodeType"
+                               Label="@($"{TranslationService.GetTranslation("field.codeType", "Tipo Codice")} *")"
+                               Variant="Variant.Outlined"
+                               Required="true"
+                               RequiredError="@TranslationService.GetTranslation("validation.codeTypeRequired", "Il tipo è obbligatorio")">
+                        <MudSelectItem Value="@("SKU")">SKU</MudSelectItem>
+                        <MudSelectItem Value="@("EAN")">EAN</MudSelectItem>
+                        <MudSelectItem Value="@("UPC")">UPC</MudSelectItem>
+                        <MudSelectItem Value="@("ISBN")">ISBN</MudSelectItem>
+                        <MudSelectItem Value="@("GTIN")">GTIN</MudSelectItem>
+                        <MudSelectItem Value="@("Barcode")">@TranslationService.GetTranslation("codeType.barcode", "Codice a Barre")</MudSelectItem>
+                        <MudSelectItem Value="@("Internal")">@TranslationService.GetTranslation("codeType.internal", "Codice Interno")</MudSelectItem>
+                        <MudSelectItem Value="@("Supplier")">@TranslationService.GetTranslation("codeType.supplier", "Codice Fornitore")</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.Code"
+                                  Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="@TranslationService.GetTranslation("validation.codeRequired", "Il codice è obbligatorio")"
+                                  MaxLength="100"
+                                  Immediate="true" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudSelect T="Guid?" 
+                               @bind-Value="_model.ProductUnitId"
+                               Label="@TranslationService.GetTranslation("field.productUnit", "Unità di Misura (Opzionale)")"
+                               Variant="Variant.Outlined"
+                               Clearable="true">
+                        @foreach (var unit in ProductUnits)
+                        {
+                            <MudSelectItem Value="@((Guid?)unit.Id)">@unit.UnitType (@unit.ConversionFactor.ToString("N3"))</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudText Typo="Typo.caption" Class="mud-input-helper-text">
+                        @TranslationService.GetTranslation("helperText.productUnitCode", "Assegna questo codice a un'unità di misura specifica (es. codice a barre della confezione)")
+                    </MudText>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.AlternativeDescription"
+                                  Label="@TranslationService.GetTranslation("field.alternativeDescription", "Descrizione Alternativa")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="200" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="ProductCodeStatus" 
+                               @bind-Value="_model.Status"
+                               Label="@($"{TranslationService.GetTranslation("field.status", "Stato")} *")"
+                               Variant="Variant.Outlined"
+                               Required="true">
+                        <MudSelectItem Value="@ProductCodeStatus.Active">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
+                        <MudSelectItem Value="@ProductCodeStatus.Suspended">@TranslationService.GetTranslation("status.suspended", "Sospeso")</MudSelectItem>
+                        <MudSelectItem Value="@ProductCodeStatus.Deleted">@TranslationService.GetTranslation("status.deleted", "Eliminato")</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
+        <MudButton Color="Color.Primary" Disabled="@(!_isValid || _isSaving)" OnClick="Submit">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">@TranslationService.GetTranslation("common.saving", "Salvataggio...")</MudText>
+            }
+            else
+            {
+                @TranslationService.GetTranslation("button.save", "Salva")
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter] public Guid ProductId { get; set; }
+    [Parameter] public IEnumerable<ProductUnitDto> ProductUnits { get; set; } = new List<ProductUnitDto>();
+    
+    private MudForm _form = null!;
+    private bool _isValid;
+    private bool _isSaving;
+    
+    private ProductCodeDto _model = new()
+    {
+        CodeType = "SKU",
+        Status = ProductCodeStatus.Active
+    };
+    
+    protected override void OnInitialized()
+    {
+        _model.ProductId = ProductId;
+    }
+    
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+    
+    private async Task Submit()
+    {
+        if (!_isValid) return;
+        
+        try
+        {
+            _isSaving = true;
+            
+            var newCode = await ProductService.CreateProductCodeAsync(_model);
+            if (newCode != null)
+            {
+                MudDialog.Close(DialogResult.Ok(newCode));
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating product code");
+            Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio: {0}", ex.Message), Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+}
