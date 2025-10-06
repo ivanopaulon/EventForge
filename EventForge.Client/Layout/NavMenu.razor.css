@@ -2,7 +2,39 @@
    ========================
    
    Updated to use EventForge custom theme variables for consistent navigation styling.
+   Navigation drawer width optimized for Italian language labels to prevent text wrapping.
 */
+
+/* Navigation Drawer Width - optimized for long labels (Material Design compliant)
+   Default MudDrawer width is 240px, increased to 280px to accommodate Italian labels
+   Reference: https://m3.material.io/components/navigation-drawer/specs
+   Best practice: 256-320px for standard navigation drawers
+*/
+::deep .mud-drawer {
+    width: 280px !important;
+}
+
+/* Responsive navigation drawer widths */
+@media (max-width: 640px) {
+    /* Mobile: Maintain appropriate width for touch targets */
+    ::deep .mud-drawer {
+        width: 280px !important;
+    }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+    /* Tablet: Slightly narrower but still comfortable */
+    ::deep .mud-drawer {
+        width: 280px !important;
+    }
+}
+
+@media (min-width: 1025px) {
+    /* Desktop: Full width for comfortable reading */
+    ::deep .mud-drawer {
+        width: 280px !important;
+    }
+}
 
 .navbar-toggler {
     background-color: var(--sidebar-hover-bg);
@@ -55,10 +87,20 @@
     .nav-item ::deep a {
         color: var(--sidebar-text);
         border-radius: 4px;
-        height: 3rem;
+        min-height: 3rem;
         display: flex;
         align-items: center;
-        line-height: 3rem;
+        line-height: 1.4;
+        padding: 0.5rem 1rem;
+        white-space: normal;
+        word-wrap: break-word;
+    }
+    
+    /* Ensure nav link text wraps gracefully if needed */
+    .nav-item ::deep a .mud-nav-link-text {
+        overflow-wrap: break-word;
+        word-break: break-word;
+        hyphens: auto;
     }
 
 .nav-item ::deep a.active {
@@ -86,4 +128,25 @@
         height: calc(100vh - 3.5rem);
         overflow-y: auto;
     }
+}
+
+/* MudNavMenu full width inside drawer */
+::deep .mud-drawer .mud-navmenu {
+    width: 100%;
+}
+
+/* Ensure proper spacing for nav groups */
+::deep .mud-nav-group {
+    width: 100%;
+}
+
+/* Optimize nav link padding for better text display */
+::deep .mud-nav-link {
+    padding: 0.5rem 1rem !important;
+    min-height: 48px;
+}
+
+/* Icon spacing in nav links */
+::deep .mud-nav-link .mud-icon-root {
+    margin-right: 0.75rem;
 }
