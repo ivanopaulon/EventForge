@@ -44,6 +44,21 @@ namespace EventForge.DTOs.VatRates
         public string? Notes { get; set; }
 
         /// <summary>
+        /// Foreign key to the VAT nature (optional, used for Italian tax compliance).
+        /// </summary>
+        public Guid? VatNatureId { get; set; }
+
+        /// <summary>
+        /// VAT nature code (e.g., "N1", "N2") for display purposes.
+        /// </summary>
+        public string? VatNatureCode { get; set; }
+
+        /// <summary>
+        /// VAT nature name for display purposes.
+        /// </summary>
+        public string? VatNatureName { get; set; }
+
+        /// <summary>
         /// Indicates if the VAT rate is active.
         /// </summary>
         public bool IsActive { get; set; }

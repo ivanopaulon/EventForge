@@ -84,6 +84,23 @@
                 </MudText>
             </MudItem>
             
+            <MudItem xs="12" md="6">
+                <MudSelect T="Guid?" 
+                           @bind-Value="_model.VatNatureId"
+                           Label="@TranslationService.GetTranslation("drawer.field.naturaIva")"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           aria-describedby="vatNature-help">
+                    @foreach (var nature in _vatNatures)
+                    {
+                        <MudSelectItem Value="@((Guid?)nature.Id)">@nature.Code - @nature.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudText id="vatNature-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                    @TranslationService.GetTranslation("drawer.helperText.naturaIva", "Natura IVA per conformità fiscale italiana (opzionale)")
+                </MudText>
+            </MudItem>
+            
             <MudItem xs="12">
                 <MudTextField @bind-Value="_model.Notes"
                               Label="@TranslationService.GetTranslation("drawer.field.note")"
@@ -166,6 +183,17 @@
                 </MudItem>
             }
             
+            @if (OriginalVatRate?.VatNatureCode != null)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@($"{OriginalVatRate.VatNatureCode} - {OriginalVatRate.VatNatureName}")"
+                                  Label="@TranslationService.GetTranslation("drawer.field.naturaIva", "Natura IVA")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  aria-label="@TranslationService.GetTranslation("drawer.field.naturaIva")" />
+                </MudItem>
+            }
+            
             @if (!string.IsNullOrWhiteSpace(OriginalVatRate?.Notes))
             {
                 <MudItem xs="12">
@@ -217,6 +245,7 @@
     private string? _customTitle;
     private DateTime? _validFrom;
     private DateTime? _validTo;
+    private List<VatNatureDto> _vatNatures = new();
 
     /// <summary>
     /// Whether the drawer is open.
@@ -258,6 +287,11 @@
     /// </summary>
     [Parameter] public EventCallback<VatRateDto> OnVatRateUpdated { get; set; }
 
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadVatNaturesAsync();
+    }
+
     protected override async Task OnParametersSetAsync()
     {
         if (Mode == EntityDrawerMode.Edit && OriginalVatRate != null)
@@ -272,6 +306,7 @@
                 ValidFrom = OriginalVatRate.ValidFrom,
                 ValidTo = OriginalVatRate.ValidTo,
                 Notes = OriginalVatRate.Notes,
+                VatNatureId = OriginalVatRate.VatNatureId,
                 CreatedAt = OriginalVatRate.CreatedAt,
                 ModifiedAt = OriginalVatRate.ModifiedAt,
                 CreatedBy = OriginalVatRate.CreatedBy,
@@ -316,7 +351,8 @@
                     Status = _model.Status,
                     ValidFrom = _model.ValidFrom,
                     ValidTo = _model.ValidTo,
-                    Notes = _model.Notes
+                    Notes = _model.Notes,
+                    VatNatureId = _model.VatNatureId
                 };
                 
                 var newVatRate = await FinancialService.CreateVatRateAsync(createDto);
@@ -336,7 +372,8 @@
                     Status = _model.Status,
                     ValidFrom = _model.ValidFrom,
                     ValidTo = _model.ValidTo,
-                    Notes = _model.Notes
+                    Notes = _model.Notes,
+                    VatNatureId = _model.VatNatureId
                 };
                 
                 var updatedVatRate = await FinancialService.UpdateVatRateAsync(OriginalVatRate.Id, updateDto);
@@ -405,5 +442,19 @@
             VatRateStatus.Deleted => TranslationService.GetTranslation("drawer.status.eliminato", "Eliminato"),
             _ => status.ToString()
         };
+    }
+
+    private async Task LoadVatNaturesAsync()
+    {
+        try
+        {
+            var result = await FinancialService.GetVatNaturesAsync(1, 100);
+            _vatNatures = result?.Items.ToList() ?? new List<VatNatureDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load VAT natures");
+            _vatNatures = new List<VatNatureDto>();
+        }
     }
 }
