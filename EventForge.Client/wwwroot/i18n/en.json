@@ -1923,7 +1923,22 @@
     "tenantSwitch": "Switch Tenant",
     "translationManagement": "Translation Management",
     "tutorialCenter": "Tutorial Center",
-    "userManagement": "User Management"
+    "userManagement": "User Management",
+    "businessPartners": "Business Partners",
+    "financialManagement": "Financial Management",
+    "systemManagement": "System Management",
+    "facilities": "Warehouses",
+    "products": "Products",
+    "supplierManagement": "Supplier Management",
+    "customerManagement": "Customer Management",
+    "classificationNodeManagement": "Classification Management",
+    "unitOfMeasureManagement": "Unit of Measure Management",
+    "vatNatureManagement": "VAT Nature Management",
+    "inventoryDocuments": "Inventory Documents",
+    "warehouseManagement": "Warehouse Management",
+    "productManagement": "Product Management",
+    "vatRateManagement": "VAT Rate Management",
+    "brandManagement": "Brand Management"
   },
   "tour": {
     "chat": "Chat Tour",
