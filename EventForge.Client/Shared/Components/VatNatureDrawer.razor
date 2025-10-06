@@ -234,13 +234,16 @@
                     Description = _model.Description
                 };
                 
-                var newVatNature = await FinancialService.CreateVatNatureAsync(createDto);
-                Snackbar.Add(TranslationService.GetTranslation("messages.createSuccessful", "Creazione completata con successo"), Severity.Success);
+                // TODO: Implement IFinancialService.CreateVatNatureAsync on the backend
+                // var newVatNature = await FinancialService.CreateVatNatureAsync(createDto);
+                // Snackbar.Add(TranslationService.GetTranslation("messages.createSuccessful", "Creazione completata con successo"), Severity.Success);
                 
-                if (OnVatNatureCreated.HasDelegate)
-                {
-                    await OnVatNatureCreated.InvokeAsync(newVatNature);
-                }
+                // if (OnVatNatureCreated.HasDelegate)
+                // {
+                //     await OnVatNatureCreated.InvokeAsync(newVatNature);
+                // }
+                
+                Snackbar.Add("TODO: Backend service CreateVatNatureAsync not implemented yet", Severity.Warning);
             }
             else if (Mode == EntityDrawerMode.Edit && OriginalVatNature != null)
             {
@@ -251,13 +254,16 @@
                     Description = _model.Description
                 };
                 
-                var updatedVatNature = await FinancialService.UpdateVatNatureAsync(OriginalVatNature.Id, updateDto);
-                Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornamento completato con successo"), Severity.Success);
+                // TODO: Implement IFinancialService.UpdateVatNatureAsync on the backend
+                // var updatedVatNature = await FinancialService.UpdateVatNatureAsync(OriginalVatNature.Id, updateDto);
+                // Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornamento completato con successo"), Severity.Success);
                 
-                if (OnVatNatureUpdated.HasDelegate)
-                {
-                    await OnVatNatureUpdated.InvokeAsync(updatedVatNature);
-                }
+                // if (OnVatNatureUpdated.HasDelegate)
+                // {
+                //     await OnVatNatureUpdated.InvokeAsync(updatedVatNature);
+                // }
+                
+                Snackbar.Add("TODO: Backend service UpdateVatNatureAsync not implemented yet", Severity.Warning);
             }
             
             await HandleClose();

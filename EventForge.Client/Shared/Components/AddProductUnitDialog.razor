@@ -94,7 +94,7 @@
 </MudDialog>
 
 @code {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
     
     [Parameter] public Guid ProductId { get; set; }
     [Parameter] public IEnumerable<UMDto> UnitOfMeasures { get; set; } = new List<UMDto>();
@@ -135,7 +135,17 @@
         {
             _isSaving = true;
             
-            var newUnit = await ProductService.CreateProductUnitAsync(_model);
+            var createDto = new CreateProductUnitDto
+            {
+                ProductId = _model.ProductId,
+                UnitOfMeasureId = _model.UnitOfMeasureId,
+                ConversionFactor = _model.ConversionFactor,
+                UnitType = _model.UnitType,
+                Description = _model.Description,
+                Status = _model.Status
+            };
+            
+            var newUnit = await ProductService.CreateProductUnitAsync(createDto);
             if (newUnit != null)
             {
                 MudDialog.Close(DialogResult.Ok(newUnit));

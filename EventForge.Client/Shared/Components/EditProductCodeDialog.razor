@@ -92,7 +92,7 @@
 </MudDialog>
 
 @code {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
     
     [Parameter] public ProductCodeDto Code { get; set; } = new();
     [Parameter] public IEnumerable<ProductUnitDto> ProductUnits { get; set; } = new List<ProductUnitDto>();
@@ -131,10 +131,19 @@
         {
             _isSaving = true;
             
-            var success = await ProductService.UpdateProductCodeAsync(_model.Id, _model);
-            if (success)
+            var updateDto = new UpdateProductCodeDto
             {
-                MudDialog.Close(DialogResult.Ok(true));
+                ProductUnitId = _model.ProductUnitId,
+                CodeType = _model.CodeType,
+                Code = _model.Code,
+                AlternativeDescription = _model.AlternativeDescription,
+                Status = _model.Status
+            };
+            
+            var updatedCode = await ProductService.UpdateProductCodeAsync(_model.Id, updateDto);
+            if (updatedCode != null)
+            {
+                MudDialog.Close(DialogResult.Ok(updatedCode));
             }
             else
             {

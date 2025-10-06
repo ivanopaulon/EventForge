@@ -1784,7 +1784,7 @@
         var parameters = new DialogParameters
         {
             ["ProductId"] = OriginalProduct.Id,
-            ["UnitOfMeasures"] = _unitOfMeasures,
+            ["UnitOfMeasures"] = _unitsMeasure,
             ["ExistingUnits"] = _productUnits
         };
         
@@ -1807,7 +1807,7 @@
         var parameters = new DialogParameters
         {
             ["Unit"] = unit,
-            ["UnitOfMeasures"] = _unitOfMeasures
+            ["UnitOfMeasures"] = _unitsMeasure
         };
         
         var dialog = await DialogService.ShowAsync<EditProductUnitDialog>(
