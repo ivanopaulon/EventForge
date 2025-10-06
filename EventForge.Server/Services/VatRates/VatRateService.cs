@@ -33,6 +33,7 @@ public class VatRateService : IVatRateService
             }
 
             var query = _context.VatRates
+                .Include(v => v.VatNature)
                 .WhereActiveTenant(currentTenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);
@@ -64,6 +65,7 @@ public class VatRateService : IVatRateService
         try
         {
             var vatRate = await _context.VatRates
+                .Include(v => v.VatNature)
                 .Where(v => v.Id == id && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -98,6 +100,7 @@ public class VatRateService : IVatRateService
                 ValidFrom = createVatRateDto.ValidFrom,
                 ValidTo = createVatRateDto.ValidTo,
                 Notes = createVatRateDto.Notes,
+                VatNatureId = createVatRateDto.VatNatureId,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUser
             };
@@ -143,6 +146,7 @@ public class VatRateService : IVatRateService
             vatRate.ValidFrom = updateVatRateDto.ValidFrom;
             vatRate.ValidTo = updateVatRateDto.ValidTo;
             vatRate.Notes = updateVatRateDto.Notes;
+            vatRate.VatNatureId = updateVatRateDto.VatNatureId;
             vatRate.ModifiedAt = DateTime.UtcNow;
             vatRate.ModifiedBy = currentUser;
 
@@ -224,6 +228,9 @@ public class VatRateService : IVatRateService
             ValidFrom = vatRate.ValidFrom,
             ValidTo = vatRate.ValidTo,
             Notes = vatRate.Notes,
+            VatNatureId = vatRate.VatNatureId,
+            VatNatureCode = vatRate.VatNature?.Code,
+            VatNatureName = vatRate.VatNature?.Name,
             IsActive = vatRate.IsActive,
             CreatedAt = vatRate.CreatedAt,
             CreatedBy = vatRate.CreatedBy,

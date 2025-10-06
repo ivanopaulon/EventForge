@@ -21,6 +21,13 @@ namespace EventForge.Client.Services
         Task<VatRateDto> UpdateVatRateAsync(Guid id, UpdateVatRateDto updateDto);
         Task DeleteVatRateAsync(Guid id);
 
+        // VAT Nature Management
+        Task<IEnumerable<VatNatureDto>> GetVatNaturesAsync();
+        Task<VatNatureDto?> GetVatNatureAsync(Guid id);
+        Task<VatNatureDto> CreateVatNatureAsync(CreateVatNatureDto createDto);
+        Task<VatNatureDto> UpdateVatNatureAsync(Guid id, UpdateVatNatureDto updateDto);
+        Task DeleteVatNatureAsync(Guid id);
+
         // Payment Term Management
         Task<IEnumerable<PaymentTermDto>> GetPaymentTermsAsync();
         Task<PaymentTermDto?> GetPaymentTermAsync(Guid id);
@@ -124,6 +131,38 @@ namespace EventForge.Client.Services
         public async Task DeleteVatRateAsync(Guid id)
         {
             await _httpClientService.DeleteAsync($"api/v1/financial/vat-rates/{id}");
+        }
+
+        #endregion
+
+        #region VAT Nature Management
+
+        public async Task<IEnumerable<VatNatureDto>> GetVatNaturesAsync()
+        {
+            var pagedResult = await _httpClientService.GetAsync<PagedResult<VatNatureDto>>("api/v1/financial/vat-natures");
+            return pagedResult?.Items ?? new List<VatNatureDto>();
+        }
+
+        public async Task<VatNatureDto?> GetVatNatureAsync(Guid id)
+        {
+            return await _httpClientService.GetAsync<VatNatureDto>($"api/v1/financial/vat-natures/{id}");
+        }
+
+        public async Task<VatNatureDto> CreateVatNatureAsync(CreateVatNatureDto createDto)
+        {
+            return await _httpClientService.PostAsync<CreateVatNatureDto, VatNatureDto>("api/v1/financial/vat-natures", createDto) ??
+                   throw new InvalidOperationException("Failed to create VAT nature");
+        }
+
+        public async Task<VatNatureDto> UpdateVatNatureAsync(Guid id, UpdateVatNatureDto updateDto)
+        {
+            return await _httpClientService.PutAsync<UpdateVatNatureDto, VatNatureDto>($"api/v1/financial/vat-natures/{id}", updateDto) ??
+                   throw new InvalidOperationException("Failed to update VAT nature");
+        }
+
+        public async Task DeleteVatNatureAsync(Guid id)
+        {
+            await _httpClientService.DeleteAsync($"api/v1/financial/vat-natures/{id}");
         }
 
         #endregion

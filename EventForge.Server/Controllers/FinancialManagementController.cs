@@ -22,6 +22,7 @@ public class FinancialManagementController : BaseApiController
     private readonly IBankService _bankService;
     private readonly IPaymentTermService _paymentTermService;
     private readonly IVatRateService _vatRateService;
+    private readonly IVatNatureService _vatNatureService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<FinancialManagementController> _logger;
 
@@ -29,12 +30,14 @@ public class FinancialManagementController : BaseApiController
         IBankService bankService,
         IPaymentTermService paymentTermService,
         IVatRateService vatRateService,
+        IVatNatureService vatNatureService,
         ITenantContext tenantContext,
         ILogger<FinancialManagementController> logger)
     {
         _bankService = bankService ?? throw new ArgumentNullException(nameof(bankService));
         _paymentTermService = paymentTermService ?? throw new ArgumentNullException(nameof(paymentTermService));
         _vatRateService = vatRateService ?? throw new ArgumentNullException(nameof(vatRateService));
+        _vatNatureService = vatNatureService ?? throw new ArgumentNullException(nameof(vatNatureService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -628,6 +631,204 @@ public class FinancialManagementController : BaseApiController
         {
             _logger.LogError(ex, "An error occurred while deleting the VAT rate.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the VAT rate.", ex);
+        }
+    }
+
+    #endregion
+
+    #region VAT Natures Management
+
+    /// <summary>
+    /// Gets all VAT natures with optional pagination.
+    /// </summary>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of VAT natures</returns>
+    /// <response code="200">Returns the paginated list of VAT natures</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("vat-natures")]
+    [ProducesResponseType(typeof(PagedResult<VatNatureDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<VatNatureDto>>> GetVatNatures(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 100,
+        CancellationToken cancellationToken = default)
+    {
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _vatNatureService.GetVatNaturesAsync(page, pageSize, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving VAT natures.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving VAT natures.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a VAT nature by ID.
+    /// </summary>
+    /// <param name="id">VAT nature ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>VAT nature information</returns>
+    /// <response code="200">Returns the VAT nature</response>
+    /// <response code="404">If the VAT nature is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("vat-natures/{id:guid}")]
+    [ProducesResponseType(typeof(VatNatureDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<VatNatureDto>> GetVatNature(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var vatNature = await _vatNatureService.GetVatNatureByIdAsync(id, cancellationToken);
+            if (vatNature == null)
+            {
+                return CreateNotFoundProblem($"VAT nature with ID {id} not found.");
+            }
+
+            return Ok(vatNature);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving the VAT nature.");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the VAT nature.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new VAT nature.
+    /// </summary>
+    /// <param name="createVatNatureDto">VAT nature creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created VAT nature information</returns>
+    /// <response code="201">VAT nature created successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("vat-natures")]
+    [ProducesResponseType(typeof(VatNatureDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<VatNatureDto>> CreateVatNature(
+        [FromBody] CreateVatNatureDto createVatNatureDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _vatNatureService.CreateVatNatureAsync(createVatNatureDto, GetCurrentUser(), cancellationToken);
+            return CreatedAtAction(nameof(GetVatNature), new { id = result.Id }, result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while creating the VAT nature.");
+            return CreateInternalServerErrorProblem("An error occurred while creating the VAT nature.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing VAT nature.
+    /// </summary>
+    /// <param name="id">VAT nature ID</param>
+    /// <param name="updateVatNatureDto">VAT nature update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated VAT nature information</returns>
+    /// <response code="200">VAT nature updated successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="404">If the VAT nature is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPut("vat-natures/{id:guid}")]
+    [ProducesResponseType(typeof(VatNatureDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<VatNatureDto>> UpdateVatNature(
+        Guid id,
+        [FromBody] UpdateVatNatureDto updateVatNatureDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _vatNatureService.UpdateVatNatureAsync(id, updateVatNatureDto, GetCurrentUser(), cancellationToken);
+            if (result == null)
+            {
+                return CreateNotFoundProblem($"VAT nature with ID {id} not found.");
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while updating the VAT nature.");
+            return CreateInternalServerErrorProblem("An error occurred while updating the VAT nature.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a VAT nature.
+    /// </summary>
+    /// <param name="id">VAT nature ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content on success</returns>
+    /// <response code="204">VAT nature deleted successfully</response>
+    /// <response code="404">If the VAT nature is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("vat-natures/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> DeleteVatNature(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var result = await _vatNatureService.DeleteVatNatureAsync(id, GetCurrentUser(), cancellationToken);
+            if (!result)
+            {
+                return CreateNotFoundProblem($"VAT nature with ID {id} not found.");
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while deleting the VAT nature.");
+            return CreateInternalServerErrorProblem("An error occurred while deleting the VAT nature.", ex);
         }
     }
 
