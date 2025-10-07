@@ -203,6 +203,8 @@ public class EventForgeDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        #region Global Query Filters
+
         // Configure global query filters for soft delete and tenant isolation
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
@@ -223,6 +225,10 @@ public class EventForgeDbContext : DbContext
                 // For now, we'll add tenant filtering manually in services/repositories
             }
         }
+
+        #endregion
+
+        #region Decimal Precision Configuration
 
         // DocumentHeader - importi e prezzi
         _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.AmountPaid).HasPrecision(18, 6);
@@ -275,6 +281,10 @@ public class EventForgeDbContext : DbContext
         // Sales - SalePayment amounts
         _ = modelBuilder.Entity<SalePayment>().Property(x => x.Amount).HasPrecision(18, 6);
 
+        #endregion
+
+        #region Document Entity Relationships
+
         // DocumentHeader → BusinessParty
         _ = modelBuilder.Entity<DocumentHeader>()
             .HasOne(d => d.BusinessParty)
@@ -299,6 +309,10 @@ public class EventForgeDbContext : DbContext
             .HasForeignKey("DetailedDocumentId")
             .OnDelete(DeleteBehavior.Restrict);
 
+        #endregion
+
+        #region Event & Team Entity Relationships
+
         // Event → Team
         _ = modelBuilder.Entity<Team>()
             .HasOne(t => t.Event)
@@ -316,6 +330,10 @@ public class EventForgeDbContext : DbContext
             .HasOne(m => m.Team)
             .WithMany(t => t.Members)
             .HasForeignKey(m => m.TeamId);
+
+        #endregion
+
+        #region Product & Price List Entity Relationships
 
         // PriceList → PriceListEntry
         _ = modelBuilder.Entity<PriceListEntry>()
@@ -354,6 +372,10 @@ public class EventForgeDbContext : DbContext
             .WithMany(p => p.IncludedInBundles)
             .HasForeignKey(b => b.ComponentProductId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        #endregion
+
+        #region Store & Station Entity Relationships
 
         // StoreUserGroup ↔ StoreUserPrivilege (many-to-many)
         _ = modelBuilder.Entity<StoreUserGroup>()
@@ -408,11 +430,19 @@ public class EventForgeDbContext : DbContext
             .WithMany(s => s.Printers)
             .HasForeignKey(p => p.StationId);
 
+        #endregion
+
+        #region Warehouse Entity Relationships
+
         // StorageFacility → StorageLocation
         _ = modelBuilder.Entity<StorageLocation>()
             .HasOne(l => l.Warehouse)
             .WithMany(f => f.Locations)
             .HasForeignKey(l => l.WarehouseId);
+
+        #endregion
+
+        #region Promotion Entity Relationships
 
         // Promotion → PromotionRule
         _ = modelBuilder.Entity<PromotionRule>()
@@ -432,13 +462,19 @@ public class EventForgeDbContext : DbContext
             .WithMany()
             .HasForeignKey(rp => rp.ProductId);
 
+        #endregion
+
+        #region Polymorphic Relationships (Managed at Application Level)
+
         // Reference → Contact (polymorphic, managed at application/query level)
         // Address, Contact, Reference: polimorphic, no classic FK
 
         // Bank → Address, Contact, Reference (polymorphic, managed at application/query level)
         // BusinessParty → Address, Contact, Reference (polymorphic, managed at application/query level)
 
-        // Authentication & Authorization relationships
+        #endregion
+
+        #region Authentication & Authorization Entity Relationships
 
         // User constraints - updated for tenant-aware uniqueness
         _ = modelBuilder.Entity<User>()
@@ -561,6 +597,10 @@ public class EventForgeDbContext : DbContext
             .HasForeignKey(at => at.TargetUserId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        #endregion
+
+        #region Notification Entity Relationships
+
         // Notification relationships
         _ = modelBuilder.Entity<NotificationRecipient>()
             .HasOne(nr => nr.Notification)
@@ -574,6 +614,10 @@ public class EventForgeDbContext : DbContext
         _ = modelBuilder.Entity<NotificationRecipient>()
             .HasIndex(nr => nr.UserId)
             .HasDatabaseName("IX_NotificationRecipients_UserId");
+
+        #endregion
+
+        #region Chat Entity Relationships
 
         // Chat relationships
         _ = modelBuilder.Entity<ChatMember>()
@@ -627,13 +671,6 @@ public class EventForgeDbContext : DbContext
             .HasIndex(mrr => mrr.UserId)
             .HasDatabaseName("IX_MessageReadReceipts_UserId");
 
-        // Configuration & System Management relationships
-        // BackupOperation references User but doesn't use FK constraint to avoid cascade cycles
-        // Using index only for performance while preserving referential flexibility
-        _ = modelBuilder.Entity<BackupOperation>()
-            .HasIndex(bo => bo.StartedByUserId)
-            .HasDatabaseName("IX_BackupOperations_StartedByUserId");
-
         // Unique constraints for chat and notification entities
         _ = modelBuilder.Entity<NotificationRecipient>()
             .HasIndex(nr => new { nr.NotificationId, nr.UserId })
@@ -647,7 +684,19 @@ public class EventForgeDbContext : DbContext
             .HasIndex(mrr => new { mrr.MessageId, mrr.UserId })
             .IsUnique();
 
-        // Licensing System relationships
+        #endregion
+
+        #region System Configuration Entity Relationships
+
+        // BackupOperation references User but doesn't use FK constraint to avoid cascade cycles
+        // Using index only for performance while preserving referential flexibility
+        _ = modelBuilder.Entity<BackupOperation>()
+            .HasIndex(bo => bo.StartedByUserId)
+            .HasDatabaseName("IX_BackupOperations_StartedByUserId");
+
+        #endregion
+
+        #region Licensing System Entity Relationships
 
         // License constraints
         _ = modelBuilder.Entity<License>()
@@ -703,6 +752,10 @@ public class EventForgeDbContext : DbContext
             .IsUnique()
             .HasFilter("[IsAssignmentActive] = 1");
 
+        #endregion
+
+        #region Logging Configuration
+
         // LogEntry configuration for Serilog logs table
         _ = modelBuilder.Entity<LogEntry>(entity =>
         {
@@ -715,6 +768,10 @@ public class EventForgeDbContext : DbContext
             _ = entity.Property(e => e.MachineName).HasMaxLength(100);
             _ = entity.Property(e => e.UserName).HasMaxLength(100);
         });
+
+        #endregion
+
+        #region Document Workflow & Versioning Relationships
 
         _ = modelBuilder.Entity<DocumentHeader>()
             .HasOne(dh => dh.CurrentWorkflowExecution)
@@ -789,6 +846,10 @@ public class EventForgeDbContext : DbContext
         _ = modelBuilder.Entity<DocumentSchedule>()
             .HasIndex(ds => ds.NextExecutionDate)
             .HasDatabaseName("IX_DocumentSchedules_NextExecutionDate");
+
+        #endregion
+
+        #region Team Extensions & Document References
 
         // Team Extensions Relationships
 
@@ -866,6 +927,10 @@ public class EventForgeDbContext : DbContext
         _ = modelBuilder.Entity<DocumentReference>()
             .HasIndex(d => new { d.OwnerId, d.OwnerType, d.Type })
             .HasDatabaseName("IX_DocumentReferences_Owner_Type");
+
+        #endregion
+
+        #region Brand & Model Relationships
 
         // Brand, Model, ProductSupplier configurations
 
@@ -962,7 +1027,9 @@ public class EventForgeDbContext : DbContext
             .HasIndex(p => p.ImageDocumentId)
             .HasDatabaseName("IX_Product_ImageDocumentId");
 
-        // Sales Entity Relationships
+        #endregion
+
+        #region Sales Entity Relationships
 
         // SaleSession → SaleItems (one-to-many)
         _ = modelBuilder.Entity<SaleItem>()
@@ -1076,6 +1143,8 @@ public class EventForgeDbContext : DbContext
             .HasIndex(ts => ts.TableNumber)
             .IsUnique()
             .HasDatabaseName("IX_TableSessions_TableNumber_Unique");
+
+        #endregion
     }
 
     /// <summary>
