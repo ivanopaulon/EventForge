@@ -167,10 +167,10 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
             // Calculate next execution date
             entity.NextExecutionDate = CalculateNextExecutionDate(entity);
 
-            _context.DocumentRecurrences.Add(entity);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.DocumentRecurrences.Add(entity);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "Insert", currentUser, null, cancellationToken);
 
             // Reload with includes
             await _context.Entry(entity)
@@ -218,9 +218,9 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
                 entity.NextExecutionDate = CalculateNextExecutionDate(entity);
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "Update", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "Update", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Document recurrence {RecurrenceId} updated by {User}.", id, currentUser);
 
@@ -254,9 +254,9 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "SoftDelete", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "SoftDelete", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Document recurrence {RecurrenceId} soft deleted by {User}.", id, currentUser);
 
@@ -289,9 +289,9 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "StatusUpdate", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "StatusUpdate", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Document recurrence {RecurrenceId} enabled status updated to {Status} by {User}.", id, isEnabled, currentUser);
 
@@ -338,7 +338,7 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
                 entity.Status = RecurrenceStatus.Failed;
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Document recurrence {RecurrenceId} execution tracking updated - Success: {Success}.", id, success);
 

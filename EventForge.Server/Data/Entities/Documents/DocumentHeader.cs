@@ -338,7 +338,7 @@ public class DocumentHeader : AuditableEntity
     {
         get
         {
-            var total = Rows?.Sum(r => r.UnitPrice * r.Quantity * (1 - r.LineDiscount / 100m)) ?? 0m;
+            var total = Rows?.Sum(r => r.UnitPrice * r.Quantity * (1 - (r.LineDiscount / 100m))) ?? 0m;
             total -= TotalDiscountAmount;
             if (TotalDiscount > 0)
                 total -= total * (TotalDiscount / 100m);

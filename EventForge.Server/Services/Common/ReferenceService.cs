@@ -138,10 +138,10 @@ public class ReferenceService : IReferenceService
             entity.CreatedAt = DateTime.UtcNow;
             entity.CreatedBy = currentUser;
 
-            _context.References.Add(entity);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.References.Add(entity);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(entity, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(entity, "Insert", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Reference {ReferenceId} created by {User}.", entity.Id, currentUser);
 
@@ -185,9 +185,9 @@ public class ReferenceService : IReferenceService
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, originalEntity, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, originalEntity, cancellationToken);
 
             _logger.LogInformation("Reference {ReferenceId} updated by {User}.", id, currentUser);
 
@@ -230,9 +230,9 @@ public class ReferenceService : IReferenceService
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, originalEntity, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, originalEntity, cancellationToken);
 
             _logger.LogInformation("Reference {ReferenceId} deleted by {User}.", id, currentUser);
 

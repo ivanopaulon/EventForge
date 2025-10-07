@@ -41,7 +41,7 @@ public static class ServiceCollectionExtensions
 
         // Configure column options for enriched properties
         var columnOptions = new ColumnOptions();
-        
+
         // Add custom columns for client log enrichment
         columnOptions.AdditionalColumns = new System.Collections.ObjectModel.Collection<SqlColumn>
         {
@@ -81,7 +81,7 @@ public static class ServiceCollectionExtensions
         {
             try
             {
-                loggerConfiguration.WriteTo.MSSqlServer(
+                _ = loggerConfiguration.WriteTo.MSSqlServer(
                     connectionString: logDbConnectionString,
                     sinkOptions: new MSSqlServerSinkOptions
                     {
@@ -90,7 +90,7 @@ public static class ServiceCollectionExtensions
                     },
                     restrictedToMinimumLevel: LogEventLevel.Information,
                     columnOptions: columnOptions);
-                
+
                 Log.Logger = loggerConfiguration.CreateLogger();
                 Log.Information("Serilog configurato per SQL Server con enrichment, file e console logging.");
             }
@@ -107,7 +107,7 @@ public static class ServiceCollectionExtensions
             Log.Warning("LogDb connection string non trovato. SQL Server logging disabilitato. Utilizzo file e console logging.");
         }
 
-        builder.Host.UseSerilog();
+        _ = builder.Host.UseSerilog();
     }
 
     /// <summary>
@@ -120,13 +120,13 @@ public static class ServiceCollectionExtensions
         var httpClientUri = new Uri($"{httpClientBase}:{httpClientPort}/");
 
         // Configure resilient HTTP client
-        services.AddHttpClient("Default", client =>
+        _ = services.AddHttpClient("Default", client =>
         {
             client.BaseAddress = httpClientUri;
             client.Timeout = TimeSpan.FromSeconds(30); // Explicit timeout
         });
 
-        services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("Default"));
+        _ = services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("Default"));
     }
 
     /// <summary>
@@ -137,17 +137,17 @@ public static class ServiceCollectionExtensions
         Log.Information("Configurazione DbContext: utilizzando SQL Server");
 
         // Register HTTP context accessor first for audit tracking
-        services.AddHttpContextAccessor();
+        _ = services.AddHttpContextAccessor();
 
         // Register performance monitoring
-        services.AddSingleton<IPerformanceMonitoringService, PerformanceMonitoringService>();
-        services.AddScoped<QueryPerformanceInterceptor>();
+        _ = services.AddSingleton<IPerformanceMonitoringService, PerformanceMonitoringService>();
+        _ = services.AddScoped<QueryPerformanceInterceptor>();
 
         try
         {
-            services.AddDbContext<EventForgeDbContext>((serviceProvider, options) =>
+            _ = services.AddDbContext<EventForgeDbContext>((serviceProvider, options) =>
             {
-                options.UseSqlServer(configuration.GetConnectionString("SqlServer"))
+                _ = options.UseSqlServer(configuration.GetConnectionString("SqlServer"))
                        .AddInterceptors(serviceProvider.GetRequiredService<QueryPerformanceInterceptor>());
             });
             Log.Information("DbContext configurato per SQL Server.");
@@ -159,103 +159,103 @@ public static class ServiceCollectionExtensions
         }
 
         // Register audit services
-        services.AddScoped<IAuditLogService, AuditLogService>();
+        _ = services.AddScoped<IAuditLogService, AuditLogService>();
 
         // Register application log services
-        services.AddScoped<IApplicationLogService, ApplicationLogService>();
+        _ = services.AddScoped<IApplicationLogService, ApplicationLogService>();
 
         // Register unified log management service
-        services.AddScoped<ILogManagementService, LogManagementService>();
+        _ = services.AddScoped<ILogManagementService, LogManagementService>();
 
         // Register notification and chat services - Step 3 SignalR Implementation
-        services.AddScoped<INotificationService, NotificationService>();
-        services.AddScoped<IChatService, ChatService>();
+        _ = services.AddScoped<INotificationService, NotificationService>();
+        _ = services.AddScoped<IChatService, ChatService>();
 
         // Register team services
-        services.AddScoped<ITeamService, TeamService>();
+        _ = services.AddScoped<ITeamService, TeamService>();
 
         // Register event services
-        services.AddScoped<IEventService, EventService>();
+        _ = services.AddScoped<IEventService, EventService>();
 
         // Register bank services
-        services.AddScoped<IBankService, BankService>();
+        _ = services.AddScoped<IBankService, BankService>();
 
         // Register unit of measure services
-        services.AddScoped<IUMService, UMService>();
-        services.AddScoped<IUnitConversionService, UnitConversionService>();
+        _ = services.AddScoped<IUMService, UMService>();
+        _ = services.AddScoped<IUnitConversionService, UnitConversionService>();
 
         // Register VAT rate services
-        services.AddScoped<IVatRateService, VatRateService>();
-        services.AddScoped<IVatNatureService, VatNatureService>();
+        _ = services.AddScoped<IVatRateService, VatRateService>();
+        _ = services.AddScoped<IVatNatureService, VatNatureService>();
 
         // Register product services
-        services.AddScoped<IProductService, ProductService>();
-        services.AddScoped<IBrandService, BrandService>();
-        services.AddScoped<IModelService, ModelService>();
+        _ = services.AddScoped<IProductService, ProductService>();
+        _ = services.AddScoped<IBrandService, BrandService>();
+        _ = services.AddScoped<IModelService, ModelService>();
 
         // Register price list services
-        services.AddScoped<IPriceListService, PriceListService>();
+        _ = services.AddScoped<IPriceListService, PriceListService>();
 
         // Register payment term services
-        services.AddScoped<IPaymentTermService, PaymentTermService>();
+        _ = services.AddScoped<IPaymentTermService, PaymentTermService>();
 
         // Register sales services
-        services.AddScoped<IPaymentMethodService, PaymentMethodService>();
-        services.AddScoped<ISaleSessionService, SaleSessionService>();
-        services.AddScoped<INoteFlagService, NoteFlagService>();
-        services.AddScoped<ITableManagementService, TableManagementService>();
+        _ = services.AddScoped<IPaymentMethodService, PaymentMethodService>();
+        _ = services.AddScoped<ISaleSessionService, SaleSessionService>();
+        _ = services.AddScoped<INoteFlagService, NoteFlagService>();
+        _ = services.AddScoped<ITableManagementService, TableManagementService>();
 
         // Register store user services
-        services.AddScoped<IStoreUserService, StoreUserService>();
+        _ = services.AddScoped<IStoreUserService, StoreUserService>();
 
         // Register station services
-        services.AddScoped<IStationService, StationService>();
+        _ = services.AddScoped<IStationService, StationService>();
 
         // Register business party services
-        services.AddScoped<IBusinessPartyService, BusinessPartyService>();
+        _ = services.AddScoped<IBusinessPartyService, BusinessPartyService>();
 
         // Register common services
-        services.AddScoped<IAddressService, AddressService>();
-        services.AddScoped<IContactService, ContactService>();
-        services.AddScoped<IClassificationNodeService, ClassificationNodeService>();
-        services.AddScoped<IReferenceService, ReferenceService>();
+        _ = services.AddScoped<IAddressService, AddressService>();
+        _ = services.AddScoped<IContactService, ContactService>();
+        _ = services.AddScoped<IClassificationNodeService, ClassificationNodeService>();
+        _ = services.AddScoped<IReferenceService, ReferenceService>();
 
         // Register warehouse services
-        services.AddScoped<IStorageFacilityService, StorageFacilityService>();
-        services.AddScoped<IStorageLocationService, StorageLocationService>();
-        services.AddScoped<ILotService, LotService>();
-        services.AddScoped<IStockService, StockService>();
-        services.AddScoped<ISerialService, SerialService>();
-        services.AddScoped<IStockMovementService, StockMovementService>();
-        services.AddScoped<IStockAlertService, StockAlertService>();
+        _ = services.AddScoped<IStorageFacilityService, StorageFacilityService>();
+        _ = services.AddScoped<IStorageLocationService, StorageLocationService>();
+        _ = services.AddScoped<ILotService, LotService>();
+        _ = services.AddScoped<IStockService, StockService>();
+        _ = services.AddScoped<ISerialService, SerialService>();
+        _ = services.AddScoped<IStockMovementService, StockMovementService>();
+        _ = services.AddScoped<IStockAlertService, StockAlertService>();
 
         // Register promotion services
-        services.AddScoped<IPromotionService, PromotionService>();
+        _ = services.AddScoped<IPromotionService, PromotionService>();
 
         // Register retail cart session services
-        services.AddScoped<IRetailCartSessionService, RetailCartSessionService>();
+        _ = services.AddScoped<IRetailCartSessionService, RetailCartSessionService>();
 
         // Register document services  
-        services.AddScoped<IDocumentTypeService, DocumentTypeService>();
-        services.AddScoped<IDocumentHeaderService, DocumentHeaderService>();
-        services.AddScoped<IDocumentAttachmentService, DocumentAttachmentService>();
-        services.AddScoped<IDocumentCommentService, DocumentCommentService>();
-        services.AddScoped<IDocumentTemplateService, DocumentTemplateService>();
-        services.AddScoped<IDocumentWorkflowService, DocumentWorkflowService>();
-        services.AddScoped<IDocumentRecurrenceService, DocumentRecurrenceService>();
+        _ = services.AddScoped<IDocumentTypeService, DocumentTypeService>();
+        _ = services.AddScoped<IDocumentHeaderService, DocumentHeaderService>();
+        _ = services.AddScoped<IDocumentAttachmentService, DocumentAttachmentService>();
+        _ = services.AddScoped<IDocumentCommentService, DocumentCommentService>();
+        _ = services.AddScoped<IDocumentTemplateService, DocumentTemplateService>();
+        _ = services.AddScoped<IDocumentWorkflowService, DocumentWorkflowService>();
+        _ = services.AddScoped<IDocumentRecurrenceService, DocumentRecurrenceService>();
 
         // Register document analytics and supporting services
-        services.AddScoped<IDocumentAnalyticsService, DocumentAnalyticsService>();
-        services.AddScoped<IFileStorageService, LocalFileStorageService>();
-        services.AddScoped<IAntivirusScanService, StubAntivirusScanService>();
+        _ = services.AddScoped<IDocumentAnalyticsService, DocumentAnalyticsService>();
+        _ = services.AddScoped<IFileStorageService, LocalFileStorageService>();
+        _ = services.AddScoped<IAntivirusScanService, StubAntivirusScanService>();
 
         // Register document export and management services
-        services.AddScoped<IDocumentExportService, DocumentExportService>();
-        services.AddScoped<IDocumentRetentionService, DocumentRetentionService>();
-        services.AddScoped<IDocumentAccessLogService, DocumentAccessLogService>();
+        _ = services.AddScoped<IDocumentExportService, DocumentExportService>();
+        _ = services.AddScoped<IDocumentRetentionService, DocumentRetentionService>();
+        _ = services.AddScoped<IDocumentAccessLogService, DocumentAccessLogService>();
 
         // Register document facade for unified API access
-        services.AddScoped<IDocumentFacade, DocumentFacade>();
+        _ = services.AddScoped<IDocumentFacade, DocumentFacade>();
 
         // TODO: Complete implementation for:
         // - Document services: DocumentRow, DocumentSummaryLink (create implementations)
@@ -269,35 +269,35 @@ public static class ServiceCollectionExtensions
     public static void AddAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
         // Register authentication services
-        services.AddScoped<IPasswordService, PasswordService>();
-        services.AddScoped<IJwtTokenService, JwtTokenService>();
-        services.AddScoped<IAuthenticationService, AuthenticationService>();
-        services.AddScoped<IBootstrapService, BootstrapService>();
+        _ = services.AddScoped<IPasswordService, PasswordService>();
+        _ = services.AddScoped<IJwtTokenService, JwtTokenService>();
+        _ = services.AddScoped<IAuthenticationService, AuthenticationService>();
+        _ = services.AddScoped<IBootstrapService, BootstrapService>();
 
         // Register tenant services
-        services.AddScoped<ITenantContext, TenantContext>();
-        services.AddScoped<ITenantService, TenantService>();
+        _ = services.AddScoped<ITenantContext, TenantContext>();
+        _ = services.AddScoped<ITenantService, TenantService>();
 
         // Register SuperAdmin services
-        services.AddScoped<IConfigurationService, ConfigurationService>();
-        services.AddScoped<IBackupService, BackupService>();
+        _ = services.AddScoped<IConfigurationService, ConfigurationService>();
+        _ = services.AddScoped<IBackupService, BackupService>();
 
         // Register licensing services
-        services.AddScoped<ILicenseService, LicenseService>();
+        _ = services.AddScoped<ILicenseService, LicenseService>();
 
         // Register printing services
-        services.AddScoped<EventForge.Server.Services.Interfaces.IQzPrintingService, QzPrintingService>();
-        services.AddScoped<QzDigitalSignatureService>();
+        _ = services.AddScoped<EventForge.Server.Services.Interfaces.IQzPrintingService, QzPrintingService>();
+        _ = services.AddScoped<QzDigitalSignatureService>();
 
         // Register new QZ Tray services with environment variable support
-        services.AddScoped<EventForge.Server.Services.QzSigner>();
-        services.AddScoped<EventForge.Server.Services.QzWebSocketClient>();
+        _ = services.AddScoped<EventForge.Server.Services.QzSigner>();
+        _ = services.AddScoped<EventForge.Server.Services.QzWebSocketClient>();
 
         // Register barcode services
-        services.AddScoped<EventForge.Server.Services.Interfaces.IBarcodeService, BarcodeService>();
+        _ = services.AddScoped<EventForge.Server.Services.Interfaces.IBarcodeService, BarcodeService>();
 
         // Register hosted service for database migration and bootstrap
-        services.AddHostedService<BootstrapHostedService>();
+        _ = services.AddHostedService<BootstrapHostedService>();
 
         // Configure session and distributed cache for tenant context
         // Use Redis in production environment, memory cache in development
@@ -305,7 +305,7 @@ public static class ServiceCollectionExtensions
         if (!string.IsNullOrEmpty(redisConnectionString) && !Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")?.Equals("Development", StringComparison.OrdinalIgnoreCase) == true)
         {
             // Production: Use Redis for distributed caching and sessions
-            services.AddStackExchangeRedisCache(options =>
+            _ = services.AddStackExchangeRedisCache(options =>
             {
                 options.Configuration = redisConnectionString;
                 options.InstanceName = "EventForge";
@@ -315,11 +315,11 @@ public static class ServiceCollectionExtensions
         else
         {
             // Development: Use in-memory distributed cache
-            services.AddDistributedMemoryCache();
+            _ = services.AddDistributedMemoryCache();
             Log.Information("In-memory distributed cache configured for development environment");
         }
 
-        services.AddSession(options =>
+        _ = services.AddSession(options =>
         {
             options.IdleTimeout = TimeSpan.FromHours(8); // Session timeout
             options.Cookie.HttpOnly = true;
@@ -346,7 +346,7 @@ public static class ServiceCollectionExtensions
         var key = Encoding.UTF8.GetBytes(jwtOptions.SecretKey);
 
         // Configure JWT authentication
-        services.AddAuthentication(options =>
+        _ = services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -408,7 +408,7 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static void AddAuthorization(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddAuthorizationBuilder()
+        _ = services.AddAuthorizationBuilder()
             .AddPolicy("RequireUser", policy =>
                 policy.RequireAuthenticatedUser())
             .AddPolicy("RequireAdmin", policy =>
@@ -437,7 +437,7 @@ public static class ServiceCollectionExtensions
     {
         // OPTIMIZATION: Health checks are lazy - they don't probe during registration
         // They only execute when /health endpoint is called
-        services.AddHealthChecks()
+        _ = services.AddHealthChecks()
             .AddDbContextCheck<EventForgeDbContext>("database", tags: new[] { "ready" })
             .AddCheck("self", () => HealthCheckResult.Healthy("API is running"), tags: new[] { "ready" });
 
@@ -445,7 +445,7 @@ public static class ServiceCollectionExtensions
         var connectionString = configuration.GetConnectionString("SqlServer");
         if (!string.IsNullOrEmpty(connectionString))
         {
-            services.AddHealthChecks()
+            _ = services.AddHealthChecks()
                 .AddSqlServer(connectionString, tags: new[] { "ready" });
         }
 
@@ -453,7 +453,7 @@ public static class ServiceCollectionExtensions
         var redisConnectionString = configuration.GetConnectionString("Redis");
         if (!string.IsNullOrEmpty(redisConnectionString) && !Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")?.Equals("Development", StringComparison.OrdinalIgnoreCase) == true)
         {
-            services.AddHealthChecks()
+            _ = services.AddHealthChecks()
                 .AddRedis(redisConnectionString, "redis", tags: new[] { "ready" });
             Log.Information("Redis health check configured for production environment");
         }

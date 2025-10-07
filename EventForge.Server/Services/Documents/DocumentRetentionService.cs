@@ -85,8 +85,8 @@ public class DocumentRetentionService : IDocumentRetentionService
             ModifiedAt = DateTime.UtcNow
         };
 
-        _context.Set<DocumentRetentionPolicy>().Add(policy);
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = _context.Set<DocumentRetentionPolicy>().Add(policy);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation(
             "Created retention policy {PolicyId} for document type {DocumentTypeId} by {User}",
@@ -135,7 +135,7 @@ public class DocumentRetentionService : IDocumentRetentionService
         policy.ModifiedBy = currentUser;
         policy.ModifiedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation(
             "Updated retention policy {PolicyId} by {User}",
@@ -157,8 +157,8 @@ public class DocumentRetentionService : IDocumentRetentionService
             return false;
         }
 
-        _context.Set<DocumentRetentionPolicy>().Remove(policy);
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = _context.Set<DocumentRetentionPolicy>().Remove(policy);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation(
             "Deleted retention policy {PolicyId} by {User}",
@@ -221,7 +221,7 @@ public class DocumentRetentionService : IDocumentRetentionService
 
             if (!dryRun && result.PoliciesApplied > 0)
             {
-                await _context.SaveChangesAsync(cancellationToken);
+                _ = await _context.SaveChangesAsync(cancellationToken);
             }
 
             stopwatch.Stop();

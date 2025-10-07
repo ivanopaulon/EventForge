@@ -154,7 +154,7 @@ public class DocumentRow : AuditableEntity
     /// </summary>
     [NotMapped]
     [Display(Name = "Line Total", Description = "Total for the row after discount.")]
-    public decimal LineTotal => Math.Round((UnitPrice * Quantity) * (1 - LineDiscount / 100), 2);
+    public decimal LineTotal => Math.Round(UnitPrice * Quantity * (1 - (LineDiscount / 100)), 2);
 
     /// <summary>
     /// VAT total for the row (not mapped).
@@ -168,7 +168,7 @@ public class DocumentRow : AuditableEntity
     /// </summary>
     [NotMapped]
     [Display(Name = "Discount Total", Description = "Total discount applied to the row.")]
-    public decimal DiscountTotal => Math.Round((UnitPrice * Quantity) * (LineDiscount / 100), 2);
+    public decimal DiscountTotal => Math.Round(UnitPrice * Quantity * (LineDiscount / 100), 2);
 
     /// <summary>
     /// Gets or sets the collection of summary links that include this document row.

@@ -152,10 +152,10 @@ public class DocumentWorkflowService : IDocumentWorkflowService
             entity.CreatedAt = DateTime.UtcNow;
             entity.CreatedBy = currentUser;
 
-            _context.DocumentWorkflows.Add(entity);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.DocumentWorkflows.Add(entity);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync<DocumentWorkflow>(entity, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync<DocumentWorkflow>(entity, "Insert", currentUser, null, cancellationToken);
 
             // Reload with includes
             await _context.Entry(entity)
@@ -199,9 +199,9 @@ public class DocumentWorkflowService : IDocumentWorkflowService
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync<DocumentWorkflow>(entity, "Update", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync<DocumentWorkflow>(entity, "Update", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Document workflow {WorkflowId} updated by {User}.", id, currentUser);
 
@@ -235,9 +235,9 @@ public class DocumentWorkflowService : IDocumentWorkflowService
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync<DocumentWorkflow>(entity, "SoftDelete", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync<DocumentWorkflow>(entity, "SoftDelete", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Document workflow {WorkflowId} soft deleted by {User}.", id, currentUser);
 
@@ -270,9 +270,9 @@ public class DocumentWorkflowService : IDocumentWorkflowService
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync<DocumentWorkflow>(entity, "StatusUpdate", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync<DocumentWorkflow>(entity, "StatusUpdate", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Document workflow {WorkflowId} status updated to {Status} by {User}.", id, isActive, currentUser);
 

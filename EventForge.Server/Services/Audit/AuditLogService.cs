@@ -54,8 +54,8 @@ public class AuditLogService : IAuditLogService
                 ChangedAt = DateTime.UtcNow
             };
 
-            _context.EntityChangeLogs.Add(changeLog);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.EntityChangeLogs.Add(changeLog);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(
                 "Audit log created: {OperationType} on {EntityName} [{EntityId}] property {PropertyName} by {ChangedBy}",
@@ -230,7 +230,7 @@ public class AuditLogService : IAuditLogService
         if (changeLogs.Count > 0)
         {
             _context.EntityChangeLogs.AddRange(changeLogs);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
         }
 
         return changeLogs;
@@ -365,10 +365,10 @@ public class AuditLogService : IAuditLogService
         };
 
         return entityType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.CanRead &&
+            .Where(p => (p.CanRead &&
                        !auditProperties.Contains(p.Name) &&
                        !p.PropertyType.IsSubclassOf(typeof(AuditableEntity)) &&
-                       !typeof(System.Collections.IEnumerable).IsAssignableFrom(p.PropertyType) ||
+                       !typeof(System.Collections.IEnumerable).IsAssignableFrom(p.PropertyType)) ||
                        p.PropertyType == typeof(string))
             .ToArray();
     }

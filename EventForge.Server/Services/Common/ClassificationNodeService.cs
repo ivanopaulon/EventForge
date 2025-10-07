@@ -243,10 +243,10 @@ public class ClassificationNodeService : IClassificationNodeService
                 CreatedBy = currentUser
             };
 
-            _context.ClassificationNodes.Add(node);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.ClassificationNodes.Add(node);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(node, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(node, "Insert", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Created classification node: {Id} - {Name}", node.Id, node.Name);
 
@@ -351,9 +351,9 @@ public class ClassificationNodeService : IClassificationNodeService
             node.ModifiedAt = DateTime.UtcNow;
             node.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(node, "Update", currentUser, originalNode, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(node, "Update", currentUser, originalNode, cancellationToken);
 
             _logger.LogInformation("Updated classification node: {Id} - {Name}", node.Id, node.Name);
 
@@ -431,9 +431,9 @@ public class ClassificationNodeService : IClassificationNodeService
             node.ModifiedAt = DateTime.UtcNow;
             node.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(node, "Delete", currentUser, originalNode, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(node, "Delete", currentUser, originalNode, cancellationToken);
 
             _logger.LogInformation("Deleted classification node: {Id}", id);
             return true;

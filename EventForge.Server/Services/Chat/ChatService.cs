@@ -129,12 +129,12 @@ public class ChatService : IChatService
             }
 
             // Save to database
-            _context.ChatThreads.Add(chatThread);
+            _ = _context.ChatThreads.Add(chatThread);
             _context.ChatMembers.AddRange(members);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Log audit trail for chat creation
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 entityName: "ChatThread",
                 entityId: chatId,
                 propertyName: "Create",
@@ -251,7 +251,7 @@ public class ChatService : IChatService
         Guid userId,
         CancellationToken cancellationToken = default)
     {
-        await _auditLogService.LogEntityChangeAsync(
+        _ = await _auditLogService.LogEntityChangeAsync(
             entityName: "ChatThread",
             entityId: chatId,
             propertyName: "Update",
@@ -289,7 +289,7 @@ public class ChatService : IChatService
         bool softDelete = true,
         CancellationToken cancellationToken = default)
     {
-        await _auditLogService.LogEntityChangeAsync(
+        _ = await _auditLogService.LogEntityChangeAsync(
             entityName: "ChatThread",
             entityId: chatId,
             propertyName: softDelete ? "SoftDelete" : "HardDelete",
@@ -371,13 +371,13 @@ public class ChatService : IChatService
             message.TenantId = chat.TenantId;
 
             // Save message to database
-            _context.ChatMessages.Add(message);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.ChatMessages.Add(message);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Update status to sent
             message.Status = MessageStatus.Sent;
             message.ModifiedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Create attachments if provided
             var attachmentDtos = new List<MessageAttachmentDto>();
@@ -397,7 +397,7 @@ public class ChatService : IChatService
                 }).ToList();
 
                 _context.MessageAttachments.AddRange(attachments);
-                await _context.SaveChangesAsync(cancellationToken);
+                _ = await _context.SaveChangesAsync(cancellationToken);
 
                 attachmentDtos = attachments.Select(att => new MessageAttachmentDto
                 {
@@ -410,7 +410,7 @@ public class ChatService : IChatService
             }
 
             // Log audit trail for message sending
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 entityName: "ChatMessage",
                 entityId: messageId,
                 propertyName: "Send",
@@ -513,7 +513,7 @@ public class ChatService : IChatService
         EditMessageDto editDto,
         CancellationToken cancellationToken = default)
     {
-        await _auditLogService.LogEntityChangeAsync(
+        _ = await _auditLogService.LogEntityChangeAsync(
             entityName: "ChatMessage",
             entityId: editDto.MessageId,
             propertyName: "Content",
@@ -554,7 +554,7 @@ public class ChatService : IChatService
         bool softDelete = true,
         CancellationToken cancellationToken = default)
     {
-        await _auditLogService.LogEntityChangeAsync(
+        _ = await _auditLogService.LogEntityChangeAsync(
             entityName: "ChatMessage",
             entityId: messageId,
             propertyName: softDelete ? "SoftDelete" : "HardDelete",
@@ -592,7 +592,7 @@ public class ChatService : IChatService
         Dictionary<string, object>? metadata = null,
         CancellationToken cancellationToken = default)
     {
-        await _auditLogService.LogEntityChangeAsync(
+        _ = await _auditLogService.LogEntityChangeAsync(
             entityName: "ChatMessage",
             entityId: messageId,
             propertyName: "Status",
@@ -628,7 +628,7 @@ public class ChatService : IChatService
     {
         var readTimestamp = readAt ?? DateTime.UtcNow;
 
-        await _auditLogService.LogEntityChangeAsync(
+        _ = await _auditLogService.LogEntityChangeAsync(
             entityName: "MessageReadReceipt",
             entityId: messageId,
             propertyName: "ReadAt",
@@ -691,7 +691,7 @@ public class ChatService : IChatService
         {
             try
             {
-                await MarkMessageAsReadAsync(messageId, userId, null, cancellationToken);
+                _ = await MarkMessageAsReadAsync(messageId, userId, null, cancellationToken);
                 processedIds.Add(messageId);
                 successCount++;
             }
@@ -741,7 +741,7 @@ public class ChatService : IChatService
             // - File optimization and compression
             // - Metadata extraction
 
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 entityName: "MessageAttachment",
                 entityId: attachmentId,
                 propertyName: "Upload",
@@ -884,7 +884,7 @@ public class ChatService : IChatService
         string? reason = null,
         CancellationToken cancellationToken = default)
     {
-        await _auditLogService.LogEntityChangeAsync(
+        _ = await _auditLogService.LogEntityChangeAsync(
             entityName: "MessageAttachment",
             entityId: attachmentId,
             propertyName: "Delete",
@@ -936,7 +936,7 @@ public class ChatService : IChatService
         {
             try
             {
-                await _auditLogService.LogEntityChangeAsync(
+                _ = await _auditLogService.LogEntityChangeAsync(
                     entityName: "ChatMember",
                     entityId: chatId,
                     propertyName: "AddMember",
@@ -1002,7 +1002,7 @@ public class ChatService : IChatService
         {
             try
             {
-                await _auditLogService.LogEntityChangeAsync(
+                _ = await _auditLogService.LogEntityChangeAsync(
                     entityName: "ChatMember",
                     entityId: chatId,
                     propertyName: "RemoveMember",
@@ -1066,7 +1066,7 @@ public class ChatService : IChatService
         {
             try
             {
-                await _auditLogService.LogEntityChangeAsync(
+                _ = await _auditLogService.LogEntityChangeAsync(
                     entityName: "ChatMember",
                     entityId: chatId,
                     propertyName: "Role",
@@ -1215,7 +1215,7 @@ public class ChatService : IChatService
         ChatRateLimitPolicyDto rateLimitPolicy,
         CancellationToken cancellationToken = default)
     {
-        await _auditLogService.LogEntityChangeAsync(
+        _ = await _auditLogService.LogEntityChangeAsync(
             entityName: "ChatRateLimitPolicy",
             entityId: tenantId,
             propertyName: "Update",
@@ -1277,7 +1277,7 @@ public class ChatService : IChatService
         ChatModerationActionDto moderationAction,
         CancellationToken cancellationToken = default)
     {
-        await _auditLogService.LogEntityChangeAsync(
+        _ = await _auditLogService.LogEntityChangeAsync(
             entityName: "ChatModeration",
             entityId: moderationAction.ChatId,
             propertyName: "ModerateAction",
@@ -1398,7 +1398,7 @@ public class ChatService : IChatService
         ChatLocalizationPreferencesDto preferences,
         CancellationToken cancellationToken = default)
     {
-        await _auditLogService.LogEntityChangeAsync(
+        _ = await _auditLogService.LogEntityChangeAsync(
             entityName: "ChatLocalizationPreferences",
             entityId: userId,
             propertyName: "Update",

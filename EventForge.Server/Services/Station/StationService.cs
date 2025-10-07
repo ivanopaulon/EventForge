@@ -129,10 +129,10 @@ public class StationService : IStationService
                 ModifiedBy = currentUser
             };
 
-            _context.Stations.Add(station);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.Stations.Add(station);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(station, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(station, "Insert", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Station {StationName} created with ID {StationId} by {User}",
                 station.Name, station.Id, currentUser);
@@ -186,9 +186,9 @@ public class StationService : IStationService
             station.ModifiedAt = DateTime.UtcNow;
             station.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(station, "Update", currentUser, originalStation, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(station, "Update", currentUser, originalStation, cancellationToken);
 
             _logger.LogInformation("Station {StationId} updated by {User}", id, currentUser);
 
@@ -242,9 +242,9 @@ public class StationService : IStationService
             station.ModifiedAt = DateTime.UtcNow;
             station.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(station, "Delete", currentUser, originalStation, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(station, "Delete", currentUser, originalStation, cancellationToken);
 
             _logger.LogInformation("Station {StationId} deleted by {User}", id, currentUser);
 
@@ -381,10 +381,10 @@ public class StationService : IStationService
                 ModifiedBy = currentUser
             };
 
-            _context.Printers.Add(printer);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.Printers.Add(printer);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(printer, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(printer, "Insert", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Printer {PrinterName} created with ID {PrinterId} by {User}",
                 printer.Name, printer.Id, currentUser);
@@ -444,9 +444,9 @@ public class StationService : IStationService
             printer.ModifiedAt = DateTime.UtcNow;
             printer.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(printer, "Update", currentUser, originalPrinter, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(printer, "Update", currentUser, originalPrinter, cancellationToken);
 
             _logger.LogInformation("Printer {PrinterId} updated by {User}", id, currentUser);
 
@@ -502,9 +502,9 @@ public class StationService : IStationService
             printer.ModifiedAt = DateTime.UtcNow;
             printer.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(printer, "Delete", currentUser, originalPrinter, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(printer, "Delete", currentUser, originalPrinter, cancellationToken);
 
             _logger.LogInformation("Printer {PrinterId} deleted by {User}", id, currentUser);
 

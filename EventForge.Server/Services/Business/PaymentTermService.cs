@@ -109,11 +109,11 @@ public class PaymentTermService : IPaymentTermService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.PaymentTerms.Add(paymentTerm);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.PaymentTerms.Add(paymentTerm);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the created payment term
-            await _auditLogService.TrackEntityChangesAsync(paymentTerm, "Create", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(paymentTerm, "Create", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Payment term created with ID {PaymentTermId} by user {User}.", paymentTerm.Id, currentUser);
 
@@ -162,10 +162,10 @@ public class PaymentTermService : IPaymentTermService
             paymentTerm.ModifiedBy = currentUser;
             paymentTerm.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the updated payment term
-            await _auditLogService.TrackEntityChangesAsync(paymentTerm, "Update", currentUser, originalPaymentTerm, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(paymentTerm, "Update", currentUser, originalPaymentTerm, cancellationToken);
 
             _logger.LogInformation("Payment term {PaymentTermId} updated by user {User}.", id, currentUser);
 
@@ -210,10 +210,10 @@ public class PaymentTermService : IPaymentTermService
             paymentTerm.DeletedBy = currentUser;
             paymentTerm.DeletedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the deleted payment term
-            await _auditLogService.TrackEntityChangesAsync(paymentTerm, "Delete", currentUser, originalPaymentTerm, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(paymentTerm, "Delete", currentUser, originalPaymentTerm, cancellationToken);
 
             _logger.LogInformation("Payment term {PaymentTermId} deleted by user {User}.", id, currentUser);
 

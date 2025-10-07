@@ -284,10 +284,10 @@ public class StorageLocationService : IStorageLocationService
                 CreatedBy = currentUser
             };
 
-            _context.StorageLocations.Add(location);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.StorageLocations.Add(location);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(location, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(location, "Insert", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Created storage location: {Id} - {Code}", location.Id, location.Code);
 
@@ -382,9 +382,9 @@ public class StorageLocationService : IStorageLocationService
             location.ModifiedAt = DateTime.UtcNow;
             location.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(location, "Update", currentUser, originalLocation, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(location, "Update", currentUser, originalLocation, cancellationToken);
 
             _logger.LogInformation("Updated storage location: {Id} - {Code}", location.Id, location.Code);
 
@@ -428,9 +428,9 @@ public class StorageLocationService : IStorageLocationService
             location.ModifiedAt = DateTime.UtcNow;
             location.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(location, "Delete", currentUser, originalLocation, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(location, "Delete", currentUser, originalLocation, cancellationToken);
 
             _logger.LogInformation("Deleted storage location: {Id}", id);
             return true;
@@ -475,9 +475,9 @@ public class StorageLocationService : IStorageLocationService
             location.ModifiedAt = DateTime.UtcNow;
             location.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(location, "UpdateOccupancy", currentUser, originalLocation, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(location, "UpdateOccupancy", currentUser, originalLocation, cancellationToken);
 
             _logger.LogInformation("Updated occupancy for storage location: {Id} to {Occupancy}", id, newOccupancy);
 

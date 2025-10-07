@@ -30,9 +30,9 @@ public class StartupPerformanceMiddleware
                 {
                     _startupStopwatch.Stop();
                     var startupTime = _startupStopwatch.Elapsed;
-                    
-                    _logger.LogInformation("🚀 APPLICATION STARTUP COMPLETE - Time to first request: {StartupTimeMs}ms ({StartupTimeSec:F2}s)", 
-                        startupTime.TotalMilliseconds, 
+
+                    _logger.LogInformation("🚀 APPLICATION STARTUP COMPLETE - Time to first request: {StartupTimeMs}ms ({StartupTimeSec:F2}s)",
+                        startupTime.TotalMilliseconds,
                         startupTime.TotalSeconds);
 
                     // Log performance categorization

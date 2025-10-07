@@ -145,10 +145,10 @@ public class DocumentAttachmentService : IDocumentAttachmentService
                 TenantId = _tenantContext.CurrentTenantId ?? Guid.Empty
             };
 
-            _context.DocumentAttachments.Add(attachment);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.DocumentAttachments.Add(attachment);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 "DocumentAttachment",
                 attachment.Id,
                 "CREATE",
@@ -198,9 +198,9 @@ public class DocumentAttachmentService : IDocumentAttachmentService
             attachment.ModifiedAt = DateTime.UtcNow;
             attachment.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 "DocumentAttachment",
                 attachment.Id,
                 "UPDATE",
@@ -262,10 +262,10 @@ public class DocumentAttachmentService : IDocumentAttachmentService
                 TenantId = _tenantContext.CurrentTenantId ?? Guid.Empty
             };
 
-            _context.DocumentAttachments.Add(newVersion);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.DocumentAttachments.Add(newVersion);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 "DocumentAttachment",
                 newVersion.Id,
                 "CREATE_VERSION",
@@ -304,9 +304,9 @@ public class DocumentAttachmentService : IDocumentAttachmentService
             attachment.DeletedAt = DateTime.UtcNow;
             attachment.DeletedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 "DocumentAttachment",
                 attachment.Id,
                 "DELETE",
@@ -354,7 +354,7 @@ public class DocumentAttachmentService : IDocumentAttachmentService
 
             // Get all versions starting from root
             var versions = await _context.DocumentAttachments
-                .Where(a => a.Id == rootAttachment.Id || a.PreviousVersionId == rootAttachment.Id && !a.IsDeleted)
+                .Where(a => a.Id == rootAttachment.Id || (a.PreviousVersionId == rootAttachment.Id && !a.IsDeleted))
                 .OrderBy(a => a.Version)
                 .ToListAsync(cancellationToken);
 
@@ -389,9 +389,9 @@ public class DocumentAttachmentService : IDocumentAttachmentService
             attachment.ModifiedAt = DateTime.UtcNow;
             attachment.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 "DocumentAttachment",
                 attachment.Id,
                 "SIGN",

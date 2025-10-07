@@ -138,7 +138,7 @@ public class QzPrintingService : IQzPrintingService
             }
             finally
             {
-                _semaphore.Release();
+                _ = _semaphore.Release();
             }
 
             using var client = new ClientWebSocket();
@@ -174,7 +174,7 @@ public class QzPrintingService : IQzPrintingService
             }
             finally
             {
-                _semaphore.Release();
+                _ = _semaphore.Release();
             }
 
             return new SubmitPrintJobResponseDto
@@ -201,7 +201,7 @@ public class QzPrintingService : IQzPrintingService
             }
             finally
             {
-                _semaphore.Release();
+                _ = _semaphore.Release();
             }
 
             return new SubmitPrintJobResponseDto
@@ -223,7 +223,7 @@ public class QzPrintingService : IQzPrintingService
         }
         finally
         {
-            _semaphore.Release();
+            _ = _semaphore.Release();
         }
     }
 
@@ -244,7 +244,7 @@ public class QzPrintingService : IQzPrintingService
         }
         finally
         {
-            _semaphore.Release();
+            _ = _semaphore.Release();
         }
     }
 

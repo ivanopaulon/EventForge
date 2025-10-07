@@ -129,10 +129,10 @@ public class ContactService : IContactService
                 IsActive = true
             };
 
-            _context.Contacts.Add(contact);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.Contacts.Add(contact);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(contact, "Create", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(contact, "Create", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Contact {ContactId} created by {User}.", contact.Id, currentUser);
 
@@ -171,9 +171,9 @@ public class ContactService : IContactService
             contact.ModifiedAt = DateTime.UtcNow;
             contact.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(contact, "Update", currentUser, originalContact, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(contact, "Update", currentUser, originalContact, cancellationToken);
 
             _logger.LogInformation("Contact {ContactId} updated by {User}.", contact.Id, currentUser);
 
@@ -211,9 +211,9 @@ public class ContactService : IContactService
             contact.ModifiedAt = DateTime.UtcNow;
             contact.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(contact, "Delete", currentUser, originalContact, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(contact, "Delete", currentUser, originalContact, cancellationToken);
 
             _logger.LogInformation("Contact {ContactId} deleted by {User}.", contact.Id, currentUser);
 

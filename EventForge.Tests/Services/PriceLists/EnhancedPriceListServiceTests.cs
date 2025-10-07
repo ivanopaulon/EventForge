@@ -205,7 +205,7 @@ public class EnhancedPriceListServiceTests
         Assert.Equal(nonExistentPriceListId, result.PriceListId);
         Assert.False(result.IsSuccessful);
         Assert.Equal(1, result.FailureCount);
-        Assert.Single(result.Errors);
+        _ = Assert.Single(result.Errors);
         Assert.Equal("PRICELIST_NOT_FOUND", result.Errors.First().ErrorCode);
     }
 
@@ -270,7 +270,7 @@ public class EnhancedPriceListServiceTests
         Assert.Equal(eventId, result.EventId);
         Assert.False(result.IsValid);
         Assert.Equal(0, result.TotalPriceListsValidated);
-        Assert.Single(result.Issues);
+        _ = Assert.Single(result.Issues);
         Assert.Equal(PrecedenceIssueType.NoPriceListsFound, result.Issues.First().IssueType);
         Assert.Equal(ValidationSeverity.Critical, result.Issues.First().Severity);
     }

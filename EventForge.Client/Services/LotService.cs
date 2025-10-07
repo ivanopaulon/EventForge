@@ -134,7 +134,7 @@ public class LotService : ILotService
             if (!string.IsNullOrEmpty(notes))
                 queryParams += $"&notes={Uri.EscapeDataString(notes)}";
 
-            await _httpClientService.PatchAsync<object, object>($"{BaseUrl}/{id}/quality-status?{queryParams}", new { });
+            _ = await _httpClientService.PatchAsync<object, object>($"{BaseUrl}/{id}/quality-status?{queryParams}", new { });
             return true;
         }
         catch (Exception ex)

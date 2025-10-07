@@ -132,7 +132,7 @@ public class LicenseService : ILicenseService
                 return false;
 
             tenantLicense.ApiCallsThisMonth++;
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
 
             return true;
         }
@@ -236,7 +236,7 @@ public class LicenseService : ILicenseService
         {
             tenantLicense.ApiCallsThisMonth = 0;
             tenantLicense.ApiCallsResetAt = new DateTime(currentDate.Year, currentDate.Month, 1);
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
         }
     }
 }

@@ -333,12 +333,12 @@ public class SerialService : ISerialService
             }
 
             var newSerial = createDto.ToEntity(currentTenantId.Value, currentUser);
-            _context.Serials.Add(newSerial);
+            _ = _context.Serials.Add(newSerial);
 
-            await _auditLogService.LogEntityChangeAsync("Serial", newSerial.Id, "Created", "Create", null,
+            _ = await _auditLogService.LogEntityChangeAsync("Serial", newSerial.Id, "Created", "Create", null,
                 $"Created serial number {createDto.SerialNumber} for product {createDto.ProductId}", currentUser);
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Reload with includes for DTO mapping
             var serialForDto = await _context.Serials
@@ -397,8 +397,8 @@ public class SerialService : ISerialService
 
             serial.UpdateFromDto(updateDto, currentUser);
 
-            await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Updated", "Update", null, "Updated serial information", currentUser);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Updated", "Update", null, "Updated serial information", currentUser);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             return serial.ToSerialDto();
         }
@@ -441,15 +441,15 @@ public class SerialService : ISerialService
             serial.ModifiedBy = currentUser;
             serial.ModifiedAt = DateTime.UtcNow;
 
-            await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Status", "StatusUpdate", oldStatus,
+            _ = await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Status", "StatusUpdate", oldStatus,
                 status, currentUser);
             // Add notes separately if provided
             if (!string.IsNullOrEmpty(notes))
             {
-                await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Notes", "Update", null,
+                _ = await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Notes", "Update", null,
                     $"Status change notes: {notes}", currentUser);
             }
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             return true;
         }
@@ -488,9 +488,9 @@ public class SerialService : ISerialService
             serial.ModifiedBy = currentUser;
             serial.ModifiedAt = DateTime.UtcNow;
 
-            await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Location", "Move", oldLocationId?.ToString(),
+            _ = await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Location", "Move", oldLocationId?.ToString(),
                 newLocationId.ToString(), currentUser);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             return true;
         }
@@ -525,9 +525,9 @@ public class SerialService : ISerialService
             serial.ModifiedBy = currentUser;
             serial.ModifiedAt = DateTime.UtcNow;
 
-            await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Owner", "Sell", null,
+            _ = await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Owner", "Sell", null,
                 customerId.ToString(), currentUser);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             return true;
         }
@@ -566,9 +566,9 @@ public class SerialService : ISerialService
             serial.ModifiedBy = currentUser;
             serial.ModifiedAt = DateTime.UtcNow;
 
-            await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Owner", "Return", serial.OwnerId?.ToString(),
+            _ = await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Owner", "Return", serial.OwnerId?.ToString(),
                 null, currentUser);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             return true;
         }
@@ -624,10 +624,10 @@ public class SerialService : ISerialService
                 return false;
             }
 
-            _context.Serials.Remove(serial);
-            await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Deleted", "Delete", null,
+            _ = _context.Serials.Remove(serial);
+            _ = await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Deleted", "Delete", null,
                 $"Deleted serial number {serial.SerialNumber}", currentUser);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             return true;
         }

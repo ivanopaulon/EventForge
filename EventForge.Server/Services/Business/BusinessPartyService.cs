@@ -166,10 +166,10 @@ public class BusinessPartyService : IBusinessPartyService
                 ModifiedBy = currentUser
             };
 
-            _context.BusinessParties.Add(businessParty);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.BusinessParties.Add(businessParty);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(businessParty, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(businessParty, "Insert", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Business party {BusinessPartyName} created with ID {BusinessPartyId} by {User}",
                 businessParty.Name, businessParty.Id, currentUser);
@@ -218,9 +218,9 @@ public class BusinessPartyService : IBusinessPartyService
             businessParty.ModifiedAt = DateTime.UtcNow;
             businessParty.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(businessParty, "Update", currentUser, originalBusinessParty, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(businessParty, "Update", currentUser, originalBusinessParty, cancellationToken);
 
             _logger.LogInformation("Business party {BusinessPartyId} updated by {User}", id, currentUser);
 
@@ -273,9 +273,9 @@ public class BusinessPartyService : IBusinessPartyService
             businessParty.ModifiedAt = DateTime.UtcNow;
             businessParty.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(businessParty, "Delete", currentUser, originalBusinessParty, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(businessParty, "Delete", currentUser, originalBusinessParty, cancellationToken);
 
             _logger.LogInformation("Business party {BusinessPartyId} deleted by {User}", id, currentUser);
 
@@ -411,10 +411,10 @@ public class BusinessPartyService : IBusinessPartyService
                 ModifiedBy = currentUser
             };
 
-            _context.BusinessPartyAccountings.Add(businessPartyAccounting);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.BusinessPartyAccountings.Add(businessPartyAccounting);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Insert", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Business party accounting created with ID {BusinessPartyAccountingId} by {User}",
                 businessPartyAccounting.Id, currentUser);
@@ -467,9 +467,9 @@ public class BusinessPartyService : IBusinessPartyService
             businessPartyAccounting.ModifiedAt = DateTime.UtcNow;
             businessPartyAccounting.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Update", currentUser, originalBusinessPartyAccounting, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Update", currentUser, originalBusinessPartyAccounting, cancellationToken);
 
             _logger.LogInformation("Business party accounting {BusinessPartyAccountingId} updated by {User}", id, currentUser);
 
@@ -518,9 +518,9 @@ public class BusinessPartyService : IBusinessPartyService
             businessPartyAccounting.ModifiedAt = DateTime.UtcNow;
             businessPartyAccounting.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Delete", currentUser, originalBusinessPartyAccounting, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Delete", currentUser, originalBusinessPartyAccounting, cancellationToken);
 
             _logger.LogInformation("Business party accounting {BusinessPartyAccountingId} deleted by {User}", id, currentUser);
 

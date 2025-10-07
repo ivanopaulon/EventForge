@@ -51,7 +51,7 @@ namespace EventForge.Client.Services
             try
             {
                 var response = await httpClient.PostAsJsonAsync(BaseUrl, createDto);
-                response.EnsureSuccessStatusCode();
+                _ = response.EnsureSuccessStatusCode();
                 var result = await response.Content.ReadFromJsonAsync<LicenseDto>();
                 return result!;
             }
@@ -68,7 +68,7 @@ namespace EventForge.Client.Services
             try
             {
                 var response = await httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", updateDto);
-                response.EnsureSuccessStatusCode();
+                _ = response.EnsureSuccessStatusCode();
                 var result = await response.Content.ReadFromJsonAsync<LicenseDto>();
                 return result!;
             }
@@ -85,7 +85,7 @@ namespace EventForge.Client.Services
             try
             {
                 var response = await httpClient.DeleteAsync($"{BaseUrl}/{id}");
-                response.EnsureSuccessStatusCode();
+                _ = response.EnsureSuccessStatusCode();
             }
             catch (Exception ex)
             {
@@ -130,7 +130,7 @@ namespace EventForge.Client.Services
             try
             {
                 var response = await httpClient.PostAsJsonAsync($"{BaseUrl}/assign", assignDto);
-                response.EnsureSuccessStatusCode();
+                _ = response.EnsureSuccessStatusCode();
                 var result = await response.Content.ReadFromJsonAsync<TenantLicenseDto>();
                 return result!;
             }
@@ -147,7 +147,7 @@ namespace EventForge.Client.Services
             try
             {
                 var response = await httpClient.DeleteAsync($"{BaseUrl}/tenant/{tenantId}");
-                response.EnsureSuccessStatusCode();
+                _ = response.EnsureSuccessStatusCode();
             }
             catch (Exception ex)
             {

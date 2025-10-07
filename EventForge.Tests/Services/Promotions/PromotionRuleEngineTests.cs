@@ -41,7 +41,7 @@ namespace EventForge.Tests.Services.Promotions
             _memoryCache = new MemoryCache(new MemoryCacheOptions());
 
             // Setup tenant context
-            _mockTenantContext.Setup(x => x.CurrentTenantId).Returns(_tenantId);
+            _ = _mockTenantContext.Setup(x => x.CurrentTenantId).Returns(_tenantId);
 
             // Create service
             _promotionService = new PromotionService(
@@ -61,8 +61,8 @@ namespace EventForge.Tests.Services.Promotions
             var rule = CreatePromotionRule(promotion, PromotionRuleType.Discount, discountPercentage: 10m);
             promotion.Rules.Add(rule);
 
-            await _context.Promotions.AddAsync(promotion);
-            await _context.SaveChangesAsync();
+            _ = await _context.Promotions.AddAsync(promotion);
+            _ = await _context.SaveChangesAsync();
 
             var applyDto = new ApplyPromotionRulesDto
             {
@@ -87,7 +87,7 @@ namespace EventForge.Tests.Services.Promotions
             Assert.Equal(20.00m, result.OriginalTotal);
             Assert.Equal(18.00m, result.FinalTotal); // 20 - (20 * 0.10)
             Assert.Equal(2.00m, result.TotalDiscountAmount);
-            Assert.Single(result.AppliedPromotions);
+            _ = Assert.Single(result.AppliedPromotions);
             Assert.Equal("10% Off All Items", result.AppliedPromotions.First().PromotionName);
         }
 
@@ -104,8 +104,8 @@ namespace EventForge.Tests.Services.Promotions
             rule.CategoryIds = new List<Guid> { categoryId };
             promotion.Rules.Add(rule);
 
-            await _context.Promotions.AddAsync(promotion);
-            await _context.SaveChangesAsync();
+            _ = await _context.Promotions.AddAsync(promotion);
+            _ = await _context.SaveChangesAsync();
 
             var applyDto = new ApplyPromotionRulesDto
             {
@@ -143,7 +143,7 @@ namespace EventForge.Tests.Services.Promotions
             // Check that only the laptop got the discount
             var laptopItem = result.CartItems.First(i => i.ProductName == "Laptop");
             Assert.Equal(85.00m, laptopItem.FinalLineTotal); // 100 - 15
-            Assert.Single(laptopItem.AppliedPromotions);
+            _ = Assert.Single(laptopItem.AppliedPromotions);
 
             var bookItem = result.CartItems.First(i => i.ProductName == "Book");
             Assert.Equal(30.00m, bookItem.FinalLineTotal); // No discount
@@ -160,8 +160,8 @@ namespace EventForge.Tests.Services.Promotions
                 discountAmount: 10m);
             promotion.Rules.Add(rule);
 
-            await _context.Promotions.AddAsync(promotion);
-            await _context.SaveChangesAsync();
+            _ = await _context.Promotions.AddAsync(promotion);
+            _ = await _context.SaveChangesAsync();
 
             // Test below minimum
             var applyDtoBelow = new ApplyPromotionRulesDto
@@ -208,7 +208,7 @@ namespace EventForge.Tests.Services.Promotions
             // Assert - Above minimum
             Assert.True(resultAbove.Success);
             Assert.Equal(50.00m, resultAbove.FinalTotal); // 60 - 10
-            Assert.Single(resultAbove.AppliedPromotions);
+            _ = Assert.Single(resultAbove.AppliedPromotions);
         }
 
         [Fact]
@@ -222,8 +222,8 @@ namespace EventForge.Tests.Services.Promotions
             rule.FreeQuantity = 1;
             promotion.Rules.Add(rule);
 
-            await _context.Promotions.AddAsync(promotion);
-            await _context.SaveChangesAsync();
+            _ = await _context.Promotions.AddAsync(promotion);
+            _ = await _context.SaveChangesAsync();
 
             var applyDto = new ApplyPromotionRulesDto
             {
@@ -248,7 +248,7 @@ namespace EventForge.Tests.Services.Promotions
             Assert.Equal(75.00m, result.OriginalTotal); // 15 * 5
             Assert.Equal(45.00m, result.FinalTotal); // 75 - (2 * 15) for 2 free items
             Assert.Equal(30.00m, result.TotalDiscountAmount);
-            Assert.Single(result.AppliedPromotions);
+            _ = Assert.Single(result.AppliedPromotions);
         }
 
         [Fact]
@@ -261,8 +261,8 @@ namespace EventForge.Tests.Services.Promotions
             rule.FixedPrice = 12.00m;
             promotion.Rules.Add(rule);
 
-            await _context.Promotions.AddAsync(promotion);
-            await _context.SaveChangesAsync();
+            _ = await _context.Promotions.AddAsync(promotion);
+            _ = await _context.SaveChangesAsync();
 
             // Test with higher price (beneficial)
             var applyDtoHigher = new ApplyPromotionRulesDto
@@ -303,7 +303,7 @@ namespace EventForge.Tests.Services.Promotions
             // Assert - Higher price (should apply)
             Assert.True(resultHigher.Success);
             Assert.Equal(12.00m, resultHigher.FinalTotal);
-            Assert.Single(resultHigher.AppliedPromotions);
+            _ = Assert.Single(resultHigher.AppliedPromotions);
 
             // Assert - Lower price (should not apply)
             Assert.True(resultLower.Success);
@@ -328,8 +328,8 @@ namespace EventForge.Tests.Services.Promotions
             };
             promotion.Rules.Add(rule);
 
-            await _context.Promotions.AddAsync(promotion);
-            await _context.SaveChangesAsync();
+            _ = await _context.Promotions.AddAsync(promotion);
+            _ = await _context.SaveChangesAsync();
 
             var applyDto = new ApplyPromotionRulesDto
             {
@@ -361,7 +361,7 @@ namespace EventForge.Tests.Services.Promotions
             Assert.Equal(70.00m, result.OriginalTotal); // 30 + 40
             Assert.Equal(60.00m, result.FinalTotal); // Bundle price
             Assert.Equal(10.00m, result.TotalDiscountAmount);
-            Assert.Single(result.AppliedPromotions);
+            _ = Assert.Single(result.AppliedPromotions);
         }
 
         [Fact]
@@ -374,8 +374,8 @@ namespace EventForge.Tests.Services.Promotions
             var rule = CreatePromotionRule(promotion, PromotionRuleType.Coupon, discountPercentage: 20m);
             promotion.Rules.Add(rule);
 
-            await _context.Promotions.AddAsync(promotion);
-            await _context.SaveChangesAsync();
+            _ = await _context.Promotions.AddAsync(promotion);
+            _ = await _context.SaveChangesAsync();
 
             var baseDto = new ApplyPromotionRulesDto
             {
@@ -416,7 +416,7 @@ namespace EventForge.Tests.Services.Promotions
             // Assert - With coupon
             Assert.True(resultWithCoupon.Success);
             Assert.Equal(40.00m, resultWithCoupon.FinalTotal); // 50 - 10
-            Assert.Single(resultWithCoupon.AppliedPromotions);
+            _ = Assert.Single(resultWithCoupon.AppliedPromotions);
         }
 
         [Fact]
@@ -429,8 +429,8 @@ namespace EventForge.Tests.Services.Promotions
             rule.ValidDays = new List<DayOfWeek> { DayOfWeek.Monday };
             promotion.Rules.Add(rule);
 
-            await _context.Promotions.AddAsync(promotion);
-            await _context.SaveChangesAsync();
+            _ = await _context.Promotions.AddAsync(promotion);
+            _ = await _context.SaveChangesAsync();
 
             var baseDto = new ApplyPromotionRulesDto
             {
@@ -466,7 +466,7 @@ namespace EventForge.Tests.Services.Promotions
             // Assert - Monday (should apply)
             Assert.True(mondayResult.Success);
             Assert.Equal(85.00m, mondayResult.FinalTotal); // 100 - 15
-            Assert.Single(mondayResult.AppliedPromotions);
+            _ = Assert.Single(mondayResult.AppliedPromotions);
 
             // Assert - Tuesday (should not apply)
             Assert.True(tuesdayResult.Success);
@@ -491,7 +491,7 @@ namespace EventForge.Tests.Services.Promotions
             regularPromotion.Rules.Add(regularRule);
 
             await _context.Promotions.AddRangeAsync(exclusivePromotion, regularPromotion);
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
 
             var applyDto = new ApplyPromotionRulesDto
             {
@@ -514,7 +514,7 @@ namespace EventForge.Tests.Services.Promotions
             // Assert
             Assert.True(result.Success);
             Assert.Equal(70.00m, result.FinalTotal); // Only exclusive discount applied (100 - 30)
-            Assert.Single(result.AppliedPromotions);
+            _ = Assert.Single(result.AppliedPromotions);
             Assert.Equal("Exclusive 30% Off", result.AppliedPromotions.First().PromotionName);
             Assert.Contains("stopping further applications", result.Messages.FirstOrDefault() ?? "");
         }
@@ -541,7 +541,7 @@ namespace EventForge.Tests.Services.Promotions
             combinablePromotion.Rules.Add(combinableRule);
 
             await _context.Promotions.AddRangeAsync(nonCombinablePromotion, combinablePromotion);
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
 
             var applyDto = new ApplyPromotionRulesDto
             {
@@ -574,13 +574,13 @@ namespace EventForge.Tests.Services.Promotions
             // Product A should only have the non-combinable discount (25%)
             var productAItem = result.CartItems.First(i => i.ProductName == "Product A");
             Assert.Equal(75.00m, productAItem.FinalLineTotal); // 100 - 25
-            Assert.Single(productAItem.AppliedPromotions);
+            _ = Assert.Single(productAItem.AppliedPromotions);
             Assert.Equal("Non-Combinable 25% Off A", productAItem.AppliedPromotions.First().PromotionName);
 
             // Product B should only have the combinable discount (10%)
             var productBItem = result.CartItems.First(i => i.ProductName == "Product B");
             Assert.Equal(45.00m, productBItem.FinalLineTotal); // 50 - 5
-            Assert.Single(productBItem.AppliedPromotions);
+            _ = Assert.Single(productBItem.AppliedPromotions);
             Assert.Equal("Combinable 10% Off All", productBItem.AppliedPromotions.First().PromotionName);
         }
 
@@ -593,8 +593,8 @@ namespace EventForge.Tests.Services.Promotions
             var rule = CreatePromotionRule(promotion, PromotionRuleType.Discount, discountPercentage: 33.333m);
             promotion.Rules.Add(rule);
 
-            await _context.Promotions.AddAsync(promotion);
-            await _context.SaveChangesAsync();
+            _ = await _context.Promotions.AddAsync(promotion);
+            _ = await _context.SaveChangesAsync();
 
             var applyDto = new ApplyPromotionRulesDto
             {

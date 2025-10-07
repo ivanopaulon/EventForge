@@ -84,7 +84,7 @@ public class BootstrapService : IBootstrapService
             _logger.LogInformation("Starting bootstrap process...");
 
             // Ensure database is created
-            await _dbContext.Database.EnsureCreatedAsync(cancellationToken);
+            _ = await _dbContext.Database.EnsureCreatedAsync(cancellationToken);
 
             // Always seed/update default roles and permissions
             if (!await SeedDefaultRolesAndPermissionsAsync(cancellationToken))
@@ -190,8 +190,8 @@ public class BootstrapService : IBootstrapService
                 TenantId = Guid.Empty // System-level entity
             };
 
-            _dbContext.Tenants.Add(defaultTenant);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = _dbContext.Tenants.Add(defaultTenant);
+            _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Default tenant created: {TenantName} (Code: {TenantCode})", defaultTenant.Name, defaultTenant.Code);
             return defaultTenant;
@@ -242,8 +242,8 @@ public class BootstrapService : IBootstrapService
                 PasswordChangedAt = DateTime.UtcNow
             };
 
-            _dbContext.Users.Add(superAdminUser);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = _dbContext.Users.Add(superAdminUser);
+            _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
             // Assign SuperAdmin role
             var superAdminRole = await _dbContext.Roles
@@ -262,8 +262,8 @@ public class BootstrapService : IBootstrapService
                     TenantId = tenantId
                 };
 
-                _dbContext.UserRoles.Add(userRole);
-                await _dbContext.SaveChangesAsync(cancellationToken);
+                _ = _dbContext.UserRoles.Add(userRole);
+                _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
                 _logger.LogInformation("SuperAdmin role assigned to user: {Username}", superAdminUser.Username);
             }
@@ -364,7 +364,7 @@ public class BootstrapService : IBootstrapService
                 {
                     existingLicense.ModifiedBy = "system";
                     existingLicense.ModifiedAt = DateTime.UtcNow;
-                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    _ = await _dbContext.SaveChangesAsync(cancellationToken);
                     _logger.LogInformation("SuperAdmin license updated with new configuration");
                 }
                 else
@@ -393,8 +393,8 @@ public class BootstrapService : IBootstrapService
                 TenantId = Guid.Empty // System-level entity
             };
 
-            _dbContext.Licenses.Add(superAdminLicense);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = _dbContext.Licenses.Add(superAdminLicense);
+            _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("SuperAdmin license created: {LicenseName}", superAdminLicense.Name);
 
@@ -494,7 +494,7 @@ public class BootstrapService : IBootstrapService
                         TenantId = Guid.Empty
                     };
 
-                    _dbContext.LicenseFeatures.Add(newFeature);
+                    _ = _dbContext.LicenseFeatures.Add(newFeature);
                     featuresAdded++;
                     _logger.LogInformation("Adding new SuperAdmin license feature: {FeatureName}", expected.Name);
                 }
@@ -551,7 +551,7 @@ public class BootstrapService : IBootstrapService
 
             if (featuresAdded > 0 || featuresUpdated > 0 || obsoleteFeatures.Count > 0)
             {
-                await _dbContext.SaveChangesAsync(cancellationToken);
+                _ = await _dbContext.SaveChangesAsync(cancellationToken);
                 _logger.LogInformation("SuperAdmin license features synchronized: {Added} added, {Updated} updated, {Deactivated} deactivated",
                     featuresAdded, featuresUpdated, obsoleteFeatures.Count);
             }
@@ -591,8 +591,8 @@ public class BootstrapService : IBootstrapService
                 TenantId = Guid.Empty // System-level entity
             };
 
-            _dbContext.TenantLicenses.Add(tenantLicense);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = _dbContext.TenantLicenses.Add(tenantLicense);
+            _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Basic license assigned to tenant: {TenantId}", tenantId);
             return true;
@@ -626,8 +626,8 @@ public class BootstrapService : IBootstrapService
                 TenantId = Guid.Empty // System-level entity
             };
 
-            _dbContext.AdminTenants.Add(adminTenant);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = _dbContext.AdminTenants.Add(adminTenant);
+            _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("AdminTenant record created for user {UserId} to manage tenant {TenantId}", userId, tenantId);
             return true;
@@ -765,11 +765,11 @@ public class BootstrapService : IBootstrapService
                 {
                     permission.CreatedBy = "system";
                     permission.CreatedAt = DateTime.UtcNow;
-                    _dbContext.Permissions.Add(permission);
+                    _ = _dbContext.Permissions.Add(permission);
                 }
             }
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
             // Define default roles
             var defaultRoles = new[]
@@ -791,11 +791,11 @@ public class BootstrapService : IBootstrapService
                 {
                     role.CreatedBy = "system";
                     role.CreatedAt = DateTime.UtcNow;
-                    _dbContext.Roles.Add(role);
+                    _ = _dbContext.Roles.Add(role);
                 }
             }
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
             // Get all permissions once for assigning to roles
             var allPermissions = await _dbContext.Permissions.ToListAsync(cancellationToken);
@@ -820,7 +820,7 @@ public class BootstrapService : IBootstrapService
                         TenantId = Guid.Empty
                     };
 
-                    _dbContext.RolePermissions.Add(rolePermission);
+                    _ = _dbContext.RolePermissions.Add(rolePermission);
                 }
 
                 _logger.LogInformation("Assigned {Count} permissions to Admin role", allPermissions.Count);
@@ -846,13 +846,13 @@ public class BootstrapService : IBootstrapService
                         TenantId = Guid.Empty
                     };
 
-                    _dbContext.RolePermissions.Add(rolePermission);
+                    _ = _dbContext.RolePermissions.Add(rolePermission);
                 }
 
                 _logger.LogInformation("Assigned {Count} permissions to SuperAdmin role", allPermissions.Count);
             }
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Default roles and permissions seeded successfully");
             return true;
@@ -1189,7 +1189,7 @@ public class BootstrapService : IBootstrapService
             };
 
             _dbContext.VatNatures.AddRange(vatNatures);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Seeded {Count} VAT natures for tenant {TenantId}", vatNatures.Length, tenantId);
             return true;
@@ -1284,7 +1284,7 @@ public class BootstrapService : IBootstrapService
             };
 
             _dbContext.VatRates.AddRange(vatRates);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Seeded {Count} VAT rates for tenant {TenantId}", vatRates.Length, tenantId);
             return true;
@@ -1529,7 +1529,7 @@ public class BootstrapService : IBootstrapService
             };
 
             _dbContext.UMs.AddRange(unitsOfMeasure);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Seeded {Count} units of measure for tenant {TenantId}", unitsOfMeasure.Length, tenantId);
             return true;
@@ -1577,8 +1577,8 @@ public class BootstrapService : IBootstrapService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _dbContext.StorageFacilities.Add(defaultWarehouse);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = _dbContext.StorageFacilities.Add(defaultWarehouse);
+            _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
             // Create default storage location
             var defaultLocation = new StorageLocation
@@ -1592,8 +1592,8 @@ public class BootstrapService : IBootstrapService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _dbContext.StorageLocations.Add(defaultLocation);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = _dbContext.StorageLocations.Add(defaultLocation);
+            _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Created default warehouse '{WarehouseName}' with default location '{LocationCode}' for tenant {TenantId}",
                 defaultWarehouse.Name, defaultLocation.Code, tenantId);
@@ -1795,7 +1795,7 @@ public class BootstrapService : IBootstrapService
             };
 
             _dbContext.DocumentTypes.AddRange(documentTypes);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Seeded {Count} document types for tenant {TenantId}", documentTypes.Length, tenantId);
             return true;

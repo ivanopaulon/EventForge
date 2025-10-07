@@ -45,7 +45,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
                     CreatedAt = DateTime.UtcNow
                 };
 
-                _context.DocumentAnalytics.Add(analytics);
+                _ = _context.DocumentAnalytics.Add(analytics);
             }
 
             // Calculate analytics from document data
@@ -54,9 +54,9 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
             analytics.ModifiedBy = currentUser;
             analytics.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 "DocumentAnalytics",
                 analytics.Id,
                 "Analytics",
@@ -170,7 +170,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
                     CreatedBy = currentUser,
                     CreatedAt = DateTime.UtcNow
                 };
-                _context.DocumentAnalytics.Add(analytics);
+                _ = _context.DocumentAnalytics.Add(analytics);
             }
 
             // Update analytics based on event type
@@ -179,7 +179,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
             analytics.ModifiedBy = currentUser;
             analytics.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Analytics updated for workflow event {EventType} on document {DocumentHeaderId}",
                 eventType, documentHeaderId);

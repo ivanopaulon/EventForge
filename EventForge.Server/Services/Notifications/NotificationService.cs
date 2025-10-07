@@ -104,17 +104,17 @@ public class NotificationService : INotificationService
             }).ToList();
 
             // Save to database
-            _context.Notifications.Add(notification);
+            _ = _context.Notifications.Add(notification);
             _context.NotificationRecipients.AddRange(recipients);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Update status to sent
             notification.Status = NotificationStatus.Sent;
             notification.ModifiedAt = DateTime.UtcNow; // Use ModifiedAt instead of UpdatedAt
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Log audit trail for notification creation
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 entityName: "Notification",
                 entityId: notificationId,
                 propertyName: "Create",
@@ -425,7 +425,7 @@ public class NotificationService : INotificationService
             var notification = notificationRecipient.Notification;
 
             // Log audit trail for notification access
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 entityName: "NotificationRecipient",
                 entityId: notificationId,
                 propertyName: "Access",
@@ -516,10 +516,10 @@ public class NotificationService : INotificationService
                 notificationRecipient.ReadAt = now;
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Log audit trail
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 entityName: "NotificationRecipient",
                 entityId: notificationId,
                 propertyName: "Status",
@@ -609,10 +609,10 @@ public class NotificationService : INotificationService
                 notificationRecipient.SilencedUntil = expiresAt.Value;
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Log audit trail
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 entityName: "NotificationRecipient",
                 entityId: notificationId,
                 propertyName: "Status",
@@ -691,10 +691,10 @@ public class NotificationService : INotificationService
                 notificationRecipient.Notification.ModifiedAt = now; // Use ModifiedAt instead of UpdatedAt
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Log audit trail
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 entityName: "NotificationRecipient",
                 entityId: notificationId,
                 propertyName: "Status",
@@ -833,7 +833,7 @@ public class NotificationService : INotificationService
         NotificationPreferencesDto preferences,
         CancellationToken cancellationToken = default)
     {
-        await _auditLogService.LogEntityChangeAsync(
+        _ = await _auditLogService.LogEntityChangeAsync(
             entityName: "NotificationPreferences",
             entityId: preferences.UserId,
             propertyName: "Update",
@@ -1018,7 +1018,7 @@ public class NotificationService : INotificationService
         RateLimitPolicyDto rateLimitPolicy,
         CancellationToken cancellationToken = default)
     {
-        await _auditLogService.LogEntityChangeAsync(
+        _ = await _auditLogService.LogEntityChangeAsync(
             entityName: "RateLimitPolicy",
             entityId: tenantId,
             propertyName: "Update",
@@ -1081,7 +1081,7 @@ public class NotificationService : INotificationService
         Guid adminUserId,
         CancellationToken cancellationToken = default)
     {
-        await _auditLogService.LogEntityChangeAsync(
+        _ = await _auditLogService.LogEntityChangeAsync(
             entityName: "SystemNotification",
             entityId: Guid.NewGuid(),
             propertyName: "Send",

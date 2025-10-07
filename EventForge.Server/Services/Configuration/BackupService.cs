@@ -51,8 +51,8 @@ public class BackupService : IBackupService
             CreatedBy = _tenantContext.CurrentUserId.ToString()
         };
 
-        _context.BackupOperations.Add(backup);
-        await _context.SaveChangesAsync();
+        _ = _context.BackupOperations.Add(backup);
+        _ = await _context.SaveChangesAsync();
 
         // Start backup process in background
         _ = Task.Run(async () => await PerformBackupAsync(backup.Id));
@@ -115,7 +115,7 @@ public class BackupService : IBackupService
         backup.ModifiedAt = DateTime.UtcNow;
         backup.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
 
-        await _context.SaveChangesAsync();
+        _ = await _context.SaveChangesAsync();
 
         // Notify clients
         await NotifyBackupStatusChange(backup);
@@ -166,8 +166,8 @@ public class BackupService : IBackupService
         }
 
         // Delete database record
-        _context.BackupOperations.Remove(backup);
-        await _context.SaveChangesAsync();
+        _ = _context.BackupOperations.Remove(backup);
+        _ = await _context.SaveChangesAsync();
     }
 
     private async Task PerformBackupAsync(Guid backupId)
@@ -180,12 +180,12 @@ public class BackupService : IBackupService
             backup.Status = "In Progress";
             backup.ProgressPercentage = 0;
             backup.CurrentOperation = "Preparing backup";
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
             await NotifyBackupStatusChange(backup);
 
             // Create backup directory
             var backupDir = Path.Combine(_environment.ContentRootPath, "Backups");
-            Directory.CreateDirectory(backupDir);
+            _ = Directory.CreateDirectory(backupDir);
 
             var fileName = $"EventForge_Backup_{backup.StartedAt:yyyyMMdd_HHmmss}.zip";
             var filePath = Path.Combine(backupDir, fileName);
@@ -198,7 +198,7 @@ public class BackupService : IBackupService
                 {
                     backup.CurrentOperation = "Backing up configuration";
                     backup.ProgressPercentage = 10;
-                    await _context.SaveChangesAsync();
+                    _ = await _context.SaveChangesAsync();
                     await NotifyBackupStatusChange(backup);
 
                     await BackupConfiguration(archive);
@@ -209,7 +209,7 @@ public class BackupService : IBackupService
                 {
                     backup.CurrentOperation = "Backing up user data";
                     backup.ProgressPercentage = 40;
-                    await _context.SaveChangesAsync();
+                    _ = await _context.SaveChangesAsync();
                     await NotifyBackupStatusChange(backup);
 
                     await BackupUserData(archive);
@@ -220,7 +220,7 @@ public class BackupService : IBackupService
                 {
                     backup.CurrentOperation = "Backing up audit logs";
                     backup.ProgressPercentage = 70;
-                    await _context.SaveChangesAsync();
+                    _ = await _context.SaveChangesAsync();
                     await NotifyBackupStatusChange(backup);
 
                     await BackupAuditLogs(archive);
@@ -228,7 +228,7 @@ public class BackupService : IBackupService
 
                 backup.CurrentOperation = "Finalizing backup";
                 backup.ProgressPercentage = 90;
-                await _context.SaveChangesAsync();
+                _ = await _context.SaveChangesAsync();
                 await NotifyBackupStatusChange(backup);
             }
 
@@ -244,7 +244,7 @@ public class BackupService : IBackupService
             backup.ModifiedAt = DateTime.UtcNow;
             backup.ModifiedBy = "System";
 
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
             await NotifyBackupStatusChange(backup);
 
             _logger.LogInformation("Backup completed successfully: {BackupId}, File: {FilePath}, Size: {Size} bytes",
@@ -258,7 +258,7 @@ public class BackupService : IBackupService
             backup.ModifiedAt = DateTime.UtcNow;
             backup.ModifiedBy = "System";
 
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
             await NotifyBackupStatusChange(backup);
 
             _logger.LogError(ex, "Backup failed: {BackupId}", backupId);

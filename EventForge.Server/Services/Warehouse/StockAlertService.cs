@@ -199,8 +199,8 @@ public class StockAlertService : IStockAlertService
             CreatedBy = currentUser
         };
 
-        _context.StockAlerts.Add(alert);
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = _context.StockAlerts.Add(alert);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
 
         return (await GetAlertByIdAsync(alert.Id, cancellationToken))!;
@@ -224,7 +224,7 @@ public class StockAlertService : IStockAlertService
             alert.ResolutionNotes = notes;
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
 
         return true;
@@ -245,7 +245,7 @@ public class StockAlertService : IStockAlertService
         alert.ModifiedAt = DateTime.UtcNow;
         alert.ModifiedBy = resolvedBy;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
 
         return true;
@@ -264,7 +264,7 @@ public class StockAlertService : IStockAlertService
         alert.ModifiedAt = DateTime.UtcNow;
         alert.ModifiedBy = dismissedBy;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
 
         return true;
@@ -318,7 +318,7 @@ public class StockAlertService : IStockAlertService
         if (alerts.Any())
         {
             _context.StockAlerts.AddRange(alerts);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
         }
 
         return alerts.Select(a => a.ToStockAlertDto());
@@ -372,7 +372,7 @@ public class StockAlertService : IStockAlertService
         if (alerts.Any())
         {
             _context.StockAlerts.AddRange(alerts);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
         }
 
         return alerts.Select(a => a.ToStockAlertDto());
@@ -437,7 +437,7 @@ public class StockAlertService : IStockAlertService
         if (alerts.Any())
         {
             _context.StockAlerts.AddRange(alerts);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
         }
 
         return alerts.Select(a => a.ToStockAlertDto());
@@ -494,7 +494,7 @@ public class StockAlertService : IStockAlertService
         alert.LastNotificationDate = DateTime.UtcNow;
         alert.NotificationCount++;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Email notification sent for alert {AlertId} to {Emails}", alertId, alert.NotificationEmails);
 
@@ -547,7 +547,7 @@ public class StockAlertService : IStockAlertService
             .ToListAsync(cancellationToken);
 
         _context.StockAlerts.RemoveRange(oldAlerts);
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Cleaned up {Count} old resolved alerts", oldAlerts.Count);
 

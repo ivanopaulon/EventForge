@@ -149,7 +149,7 @@ public class OptimizedSignalRService : IAsyncDisposable
         }
         finally
         {
-            lockSemaphore.Release();
+            _ = lockSemaphore.Release();
         }
     }
 
@@ -184,7 +184,7 @@ public class OptimizedSignalRService : IAsyncDisposable
             .ConfigureLogging(logging =>
             {
                 // Reduce logging overhead in production
-                logging.SetMinimumLevel(LogLevel.Warning);
+                _ = logging.SetMinimumLevel(LogLevel.Warning);
             })
             // Note: MessagePack protocol can be added for better performance in production
             // .AddMessagePackProtocol()
@@ -214,12 +214,12 @@ public class OptimizedSignalRService : IAsyncDisposable
 
     private void RegisterAuditEventHandlers(HubConnection connection)
     {
-        connection.On<object>("AuditLogUpdated", data =>
+        _ = connection.On<object>("AuditLogUpdated", data =>
         {
             EnqueueEvent("audit_log", data);
         });
 
-        connection.On<object>("UserStatusChanged", data =>
+        _ = connection.On<object>("UserStatusChanged", data =>
         {
             EnqueueEvent("user_status", data);
         });
@@ -227,12 +227,12 @@ public class OptimizedSignalRService : IAsyncDisposable
 
     private void RegisterNotificationEventHandlers(HubConnection connection)
     {
-        connection.On<NotificationResponseDto>("NotificationReceived", notification =>
+        _ = connection.On<NotificationResponseDto>("NotificationReceived", notification =>
         {
             EnqueueEvent("notification", notification);
         });
 
-        connection.On<NotificationResponseDto>("SystemNotificationReceived", notification =>
+        _ = connection.On<NotificationResponseDto>("SystemNotificationReceived", notification =>
         {
             EnqueueEvent("system_notification", notification);
         });
@@ -240,13 +240,13 @@ public class OptimizedSignalRService : IAsyncDisposable
 
     private void RegisterChatEventHandlers(HubConnection connection)
     {
-        connection.On<ChatMessageDto>("MessageReceived", message =>
+        _ = connection.On<ChatMessageDto>("MessageReceived", message =>
         {
             EnqueueEvent("chat_message", message);
         });
 
         // Typing indicators are not batched for responsiveness
-        connection.On<TypingIndicatorDto>("TypingIndicator", indicator =>
+        _ = connection.On<TypingIndicatorDto>("TypingIndicator", indicator =>
         {
             TypingIndicator?.Invoke(indicator);
         });
@@ -358,7 +358,7 @@ public class OptimizedSignalRService : IAsyncDisposable
     /// </summary>
     private async Task HandleConnectionClosedAsync(string connectionKey, Exception? error)
     {
-        _connections.TryRemove(connectionKey, out _);
+        _ = _connections.TryRemove(connectionKey, out _);
 
         // Clear relevant cache on disconnection
         switch (connectionKey)
@@ -504,7 +504,7 @@ public class OptimizedSignalRService : IAsyncDisposable
     {
         try
         {
-            await _performanceService.DebounceAsync(
+            _ = await _performanceService.DebounceAsync(
                 $"{DebounceKeys.TYPING_INDICATOR}_{chatId}",
                 async () =>
                 {

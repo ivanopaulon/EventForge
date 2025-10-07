@@ -130,13 +130,13 @@ public class PromotionService : IPromotionService
                 IsActive = true
             };
 
-            _context.Promotions.Add(promotion);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.Promotions.Add(promotion);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Invalidate cache after creating promotion
             InvalidatePromotionCache();
 
-            await _auditLogService.TrackEntityChangesAsync(promotion, "Create", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(promotion, "Create", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Promotion {PromotionId} created by {User}.", promotion.Id, currentUser);
 
@@ -189,12 +189,12 @@ public class PromotionService : IPromotionService
             promotion.ModifiedAt = DateTime.UtcNow;
             promotion.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Invalidate cache after updating promotion
             InvalidatePromotionCache();
 
-            await _auditLogService.TrackEntityChangesAsync(promotion, "Update", currentUser, originalPromotion, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(promotion, "Update", currentUser, originalPromotion, cancellationToken);
 
             _logger.LogInformation("Promotion {PromotionId} updated by {User}.", promotion.Id, currentUser);
 
@@ -240,12 +240,12 @@ public class PromotionService : IPromotionService
             promotion.ModifiedAt = DateTime.UtcNow;
             promotion.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Invalidate cache after deleting promotion
             InvalidatePromotionCache();
 
-            await _auditLogService.TrackEntityChangesAsync(promotion, "Delete", currentUser, originalPromotion, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(promotion, "Delete", currentUser, originalPromotion, cancellationToken);
 
             _logger.LogInformation("Promotion {PromotionId} deleted by {User}.", promotion.Id, currentUser);
 
@@ -343,7 +343,7 @@ public class PromotionService : IPromotionService
                 CategoryIds = item.CategoryIds,
                 ExistingLineDiscount = item.ExistingLineDiscount,
                 OriginalLineTotal = item.UnitPrice * item.Quantity,
-                FinalLineTotal = RoundCurrency(item.UnitPrice * item.Quantity * (1 - item.ExistingLineDiscount / 100m)),
+                FinalLineTotal = RoundCurrency(item.UnitPrice * item.Quantity * (1 - (item.ExistingLineDiscount / 100m))),
                 PromotionDiscount = 0m,
                 EffectiveDiscountPercentage = item.ExistingLineDiscount,
                 AppliedPromotions = new List<AppliedPromotionDto>()
@@ -482,7 +482,7 @@ public class PromotionService : IPromotionService
             Priority = CacheItemPriority.Normal
         };
 
-        _cache.Set(cacheKey, promotions, cacheOptions);
+        _ = _cache.Set(cacheKey, promotions, cacheOptions);
         _logger.LogDebug("Cached {Count} promotions", promotions.Count);
 
         return promotions;
@@ -683,7 +683,7 @@ public class PromotionService : IPromotionService
                 {
                     foreach (var item in cartItems.Where(c => c.AppliedPromotions.Any(ap => ap.PromotionId == promotion.Id)))
                     {
-                        lockedLines.Add(item.ProductId);
+                        _ = lockedLines.Add(item.ProductId);
                     }
                 }
             }

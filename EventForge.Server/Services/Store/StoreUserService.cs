@@ -133,10 +133,10 @@ public class StoreUserService : IStoreUserService
                 ModifiedBy = currentUser
             };
 
-            _context.StoreUsers.Add(storeUser);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.StoreUsers.Add(storeUser);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(storeUser, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(storeUser, "Insert", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Store user {StoreUserName} created with ID {StoreUserId} by {User}",
                 storeUser.Name, storeUser.Id, currentUser);
@@ -193,9 +193,9 @@ public class StoreUserService : IStoreUserService
             storeUser.ModifiedAt = DateTime.UtcNow;
             storeUser.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(storeUser, "Update", currentUser, originalStoreUser, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(storeUser, "Update", currentUser, originalStoreUser, cancellationToken);
 
             _logger.LogInformation("Store user {StoreUserId} updated by {User}", id, currentUser);
 
@@ -245,9 +245,9 @@ public class StoreUserService : IStoreUserService
             storeUser.ModifiedAt = DateTime.UtcNow;
             storeUser.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(storeUser, "Delete", currentUser, originalStoreUser, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(storeUser, "Delete", currentUser, originalStoreUser, cancellationToken);
 
             _logger.LogInformation("Store user {StoreUserId} deleted by {User}", id, currentUser);
 
@@ -352,10 +352,10 @@ public class StoreUserService : IStoreUserService
                 ModifiedBy = currentUser
             };
 
-            _context.StoreUserGroups.Add(storeUserGroup);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.StoreUserGroups.Add(storeUserGroup);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(storeUserGroup, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(storeUserGroup, "Insert", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Store user group {StoreUserGroupName} created with ID {StoreUserGroupId} by {User}",
                 storeUserGroup.Name, storeUserGroup.Id, currentUser);
@@ -403,9 +403,9 @@ public class StoreUserService : IStoreUserService
             storeUserGroup.ModifiedAt = DateTime.UtcNow;
             storeUserGroup.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(storeUserGroup, "Update", currentUser, originalStoreUserGroup, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(storeUserGroup, "Update", currentUser, originalStoreUserGroup, cancellationToken);
 
             _logger.LogInformation("Store user group {StoreUserGroupId} updated by {User}", id, currentUser);
 
@@ -454,9 +454,9 @@ public class StoreUserService : IStoreUserService
             storeUserGroup.ModifiedAt = DateTime.UtcNow;
             storeUserGroup.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(storeUserGroup, "Delete", currentUser, originalStoreUserGroup, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(storeUserGroup, "Delete", currentUser, originalStoreUserGroup, cancellationToken);
 
             _logger.LogInformation("Store user group {StoreUserGroupId} deleted by {User}", id, currentUser);
 
@@ -588,10 +588,10 @@ public class StoreUserService : IStoreUserService
                 ModifiedBy = currentUser
             };
 
-            _context.StoreUserPrivileges.Add(storeUserPrivilege);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.StoreUserPrivileges.Add(storeUserPrivilege);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(storeUserPrivilege, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(storeUserPrivilege, "Insert", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Store user privilege {StoreUserPrivilegeName} created with ID {StoreUserPrivilegeId} by {User}",
                 storeUserPrivilege.Name, storeUserPrivilege.Id, currentUser);
@@ -643,9 +643,9 @@ public class StoreUserService : IStoreUserService
             storeUserPrivilege.ModifiedAt = DateTime.UtcNow;
             storeUserPrivilege.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(storeUserPrivilege, "Update", currentUser, originalStoreUserPrivilege, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(storeUserPrivilege, "Update", currentUser, originalStoreUserPrivilege, cancellationToken);
 
             _logger.LogInformation("Store user privilege {StoreUserPrivilegeId} updated by {User}", id, currentUser);
 
@@ -692,9 +692,9 @@ public class StoreUserService : IStoreUserService
             storeUserPrivilege.ModifiedAt = DateTime.UtcNow;
             storeUserPrivilege.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(storeUserPrivilege, "Delete", currentUser, originalStoreUserPrivilege, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(storeUserPrivilege, "Delete", currentUser, originalStoreUserPrivilege, cancellationToken);
 
             _logger.LogInformation("Store user privilege {StoreUserPrivilegeId} deleted by {User}", id, currentUser);
 
@@ -843,7 +843,7 @@ public class StoreUserService : IStoreUserService
 
             // Save to wwwroot/images/storeusers
             var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "storeusers");
-            Directory.CreateDirectory(uploadsFolder);
+            _ = Directory.CreateDirectory(uploadsFolder);
 
             var filePath = Path.Combine(uploadsFolder, fileName);
             var storageKey = $"/images/storeusers/{fileName}";
@@ -886,19 +886,19 @@ public class StoreUserService : IStoreUserService
                         File.Delete(oldFilePath);
                     }
 
-                    _context.DocumentReferences.Remove(oldDocument);
+                    _ = _context.DocumentReferences.Remove(oldDocument);
                 }
             }
 
-            _context.DocumentReferences.Add(documentReference);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.DocumentReferences.Add(documentReference);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Update store user with new DocumentReference ID
             storeUser.PhotoDocumentId = documentReference.Id;
             storeUser.ModifiedAt = DateTime.UtcNow;
             storeUser.ModifiedBy = "System";
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Store user {StoreUserId} photo uploaded successfully as DocumentReference {DocumentId}.", storeUserId, documentReference.Id);
 
@@ -970,14 +970,14 @@ public class StoreUserService : IStoreUserService
             }
 
             // Remove DocumentReference
-            _context.DocumentReferences.Remove(storeUser.PhotoDocument);
+            _ = _context.DocumentReferences.Remove(storeUser.PhotoDocument);
 
             // Update store user
             storeUser.PhotoDocumentId = null;
             storeUser.ModifiedAt = DateTime.UtcNow;
             storeUser.ModifiedBy = "System";
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Store user {StoreUserId} photo deleted successfully.", storeUserId);
             return true;
@@ -1015,7 +1015,7 @@ public class StoreUserService : IStoreUserService
 
             // Save to wwwroot/images/storegroups
             var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "storegroups");
-            Directory.CreateDirectory(uploadsFolder);
+            _ = Directory.CreateDirectory(uploadsFolder);
 
             var filePath = Path.Combine(uploadsFolder, fileName);
             var storageKey = $"/images/storegroups/{fileName}";
@@ -1058,19 +1058,19 @@ public class StoreUserService : IStoreUserService
                         File.Delete(oldFilePath);
                     }
 
-                    _context.DocumentReferences.Remove(oldDocument);
+                    _ = _context.DocumentReferences.Remove(oldDocument);
                 }
             }
 
-            _context.DocumentReferences.Add(documentReference);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.DocumentReferences.Add(documentReference);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Update group with new DocumentReference ID
             group.LogoDocumentId = documentReference.Id;
             group.ModifiedAt = DateTime.UtcNow;
             group.ModifiedBy = "System";
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Store user group {GroupId} logo uploaded successfully as DocumentReference {DocumentId}.", groupId, documentReference.Id);
 
@@ -1147,14 +1147,14 @@ public class StoreUserService : IStoreUserService
             }
 
             // Remove DocumentReference
-            _context.DocumentReferences.Remove(group.LogoDocument);
+            _ = _context.DocumentReferences.Remove(group.LogoDocument);
 
             // Update group
             group.LogoDocumentId = null;
             group.ModifiedAt = DateTime.UtcNow;
             group.ModifiedBy = "System";
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Store user group {GroupId} logo deleted successfully.", groupId);
             return true;
@@ -1192,7 +1192,7 @@ public class StoreUserService : IStoreUserService
 
             // Save to wwwroot/images/storepos
             var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "storepos");
-            Directory.CreateDirectory(uploadsFolder);
+            _ = Directory.CreateDirectory(uploadsFolder);
 
             var filePath = Path.Combine(uploadsFolder, fileName);
             var storageKey = $"/images/storepos/{fileName}";
@@ -1235,19 +1235,19 @@ public class StoreUserService : IStoreUserService
                         File.Delete(oldFilePath);
                     }
 
-                    _context.DocumentReferences.Remove(oldDocument);
+                    _ = _context.DocumentReferences.Remove(oldDocument);
                 }
             }
 
-            _context.DocumentReferences.Add(documentReference);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.DocumentReferences.Add(documentReference);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Update store POS with new DocumentReference ID
             storePos.ImageDocumentId = documentReference.Id;
             storePos.ModifiedAt = DateTime.UtcNow;
             storePos.ModifiedBy = "System";
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Store POS {StorePosId} image uploaded successfully as DocumentReference {DocumentId}.", storePosId, documentReference.Id);
 
@@ -1319,14 +1319,14 @@ public class StoreUserService : IStoreUserService
             }
 
             // Remove DocumentReference
-            _context.DocumentReferences.Remove(storePos.ImageDocument);
+            _ = _context.DocumentReferences.Remove(storePos.ImageDocument);
 
             // Update store POS
             storePos.ImageDocumentId = null;
             storePos.ModifiedAt = DateTime.UtcNow;
             storePos.ModifiedBy = "System";
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Store POS {StorePosId} image deleted successfully.", storePosId);
             return true;

@@ -82,7 +82,7 @@ public class ProductImageTests
     public void Product_ImageUrl_ShouldBeMarkedObsolete()
     {
         // Arrange
-        var product = new Product();
+        _ = new Product();
 
         // Act - Check that ImageUrl property exists but is marked obsolete
 #pragma warning disable CS0618 // Testing obsolete property intentionally

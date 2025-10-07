@@ -101,7 +101,7 @@ public class LogManagementService : ILogManagementService
             var stats = await _applicationLogService.GetLogStatisticsByLevelAsync(fromDate, toDate, cancellationToken);
 
             // Cache for 5 minutes
-            _cache.Set(cacheKey, stats, _cacheExpiration);
+            _ = _cache.Set(cacheKey, stats, _cacheExpiration);
 
             return stats;
         }
@@ -326,7 +326,7 @@ public class LogManagementService : ILogManagementService
             var config = await _applicationLogService.GetMonitoringConfigAsync(cancellationToken);
 
             // Cache for 5 minutes
-            _cache.Set(CACHE_KEY_MONITORING_CONFIG, config, _cacheExpiration);
+            _ = _cache.Set(CACHE_KEY_MONITORING_CONFIG, config, _cacheExpiration);
 
             return config;
         }
@@ -381,7 +381,7 @@ public class LogManagementService : ILogManagementService
             var levelsList = levels.ToList();
 
             // Cache for 10 minutes since log levels don't change frequently
-            _cache.Set(CACHE_KEY_LOG_LEVELS, levelsList, TimeSpan.FromMinutes(10));
+            _ = _cache.Set(CACHE_KEY_LOG_LEVELS, levelsList, TimeSpan.FromMinutes(10));
 
             return levelsList;
         }
@@ -468,7 +468,7 @@ public class LogManagementService : ILogManagementService
 
             // Test cache functionality
             var testKey = $"health_test_{Guid.NewGuid()}";
-            _cache.Set(testKey, "test", TimeSpan.FromMinutes(1));
+            _ = _cache.Set(testKey, "test", TimeSpan.FromMinutes(1));
             var cacheWorks = _cache.TryGetValue(testKey, out _);
             _cache.Remove(testKey);
 

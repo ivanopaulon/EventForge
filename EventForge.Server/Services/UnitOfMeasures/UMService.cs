@@ -112,10 +112,10 @@ public class UMService : IUMService
                 CreatedBy = currentUser
             };
 
-            _context.UMs.Add(um);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.UMs.Add(um);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(um, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(um, "Insert", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Unit of measure {UMId} created by {User}.", um.Id, currentUser);
 
@@ -155,9 +155,9 @@ public class UMService : IUMService
             um.ModifiedAt = DateTime.UtcNow;
             um.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(um, "Update", currentUser, originalUM, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(um, "Update", currentUser, originalUM, cancellationToken);
 
             _logger.LogInformation("Unit of measure {UMId} updated by {User}.", um.Id, currentUser);
 
@@ -193,9 +193,9 @@ public class UMService : IUMService
             um.ModifiedAt = DateTime.UtcNow;
             um.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(um, "Delete", currentUser, originalUM, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(um, "Delete", currentUser, originalUM, cancellationToken);
 
             _logger.LogInformation("Unit of measure {UMId} deleted by {User}.", um.Id, currentUser);
 

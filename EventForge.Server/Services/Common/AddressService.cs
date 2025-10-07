@@ -131,10 +131,10 @@ public class AddressService : IAddressService
                 IsActive = true
             };
 
-            _context.Addresses.Add(address);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.Addresses.Add(address);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(address, "Create", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(address, "Create", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Address {AddressId} created by {User}.", address.Id, currentUser);
 
@@ -177,9 +177,9 @@ public class AddressService : IAddressService
             address.ModifiedAt = DateTime.UtcNow;
             address.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(address, "Update", currentUser, originalAddress, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(address, "Update", currentUser, originalAddress, cancellationToken);
 
             _logger.LogInformation("Address {AddressId} updated by {User}.", address.Id, currentUser);
 
@@ -217,9 +217,9 @@ public class AddressService : IAddressService
             address.ModifiedAt = DateTime.UtcNow;
             address.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(address, "Delete", currentUser, originalAddress, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(address, "Delete", currentUser, originalAddress, cancellationToken);
 
             _logger.LogInformation("Address {AddressId} deleted by {User}.", address.Id, currentUser);
 

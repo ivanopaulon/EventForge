@@ -1111,7 +1111,7 @@ public class WarehouseManagementController : BaseApiController
                     ? "Inventory Count - Found Additional Stock"
                     : "Inventory Count - Stock Shortage Detected";
 
-                await _stockMovementService.ProcessAdjustmentMovementAsync(
+                _ = await _stockMovementService.ProcessAdjustmentMovementAsync(
                     productId: createDto.ProductId,
                     locationId: createDto.LocationId,
                     adjustmentQuantity: adjustmentQuantity,
@@ -1899,7 +1899,7 @@ public class WarehouseManagementController : BaseApiController
                         if (adjustmentQuantity != 0)
                         {
                             // Create stock adjustment movement
-                            await _stockMovementService.ProcessAdjustmentMovementAsync(
+                            _ = await _stockMovementService.ProcessAdjustmentMovementAsync(
                                 productId: productId,
                                 locationId: locationId,
                                 adjustmentQuantity: adjustmentQuantity,

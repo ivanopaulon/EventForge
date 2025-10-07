@@ -269,7 +269,7 @@ public class StockService : IStockService
                 existingStock.ModifiedBy = currentUser;
                 existingStock.ModifiedAt = DateTime.UtcNow;
 
-                await _auditLogService.LogEntityChangeAsync("Stock", existingStock.Id, "Updated", "Update", null,
+                _ = await _auditLogService.LogEntityChangeAsync("Stock", existingStock.Id, "Updated", "Update", null,
                     $"Updated stock for product {createDto.ProductId} at location {createDto.StorageLocationId}", currentUser);
             }
             else
@@ -295,14 +295,14 @@ public class StockService : IStockService
                     IsActive = true
                 };
 
-                _context.Stocks.Add(newStock);
+                _ = _context.Stocks.Add(newStock);
                 existingStock = newStock;
 
-                await _auditLogService.LogEntityChangeAsync("Stock", newStock.Id, "Created", "Create", null,
+                _ = await _auditLogService.LogEntityChangeAsync("Stock", newStock.Id, "Created", "Create", null,
                     $"Created stock for product {createDto.ProductId} at location {createDto.StorageLocationId}", currentUser);
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Reload with includes for DTO mapping
             var stockForDto = await _context.Stocks
@@ -365,8 +365,8 @@ public class StockService : IStockService
             stock.ModifiedBy = currentUser;
             stock.ModifiedAt = DateTime.UtcNow;
 
-            await _auditLogService.LogEntityChangeAsync("Stock", stock.Id, "StockLevels", "Update", null, "Updated stock levels", currentUser);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _auditLogService.LogEntityChangeAsync("Stock", stock.Id, "StockLevels", "Update", null, "Updated stock levels", currentUser);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             return stock.ToStockDto();
         }
@@ -402,9 +402,9 @@ public class StockService : IStockService
             stock.ModifiedBy = currentUser;
             stock.ModifiedAt = DateTime.UtcNow;
 
-            await _auditLogService.LogEntityChangeAsync("Stock", stock.Id, "Reserved", "Reserve", null,
+            _ = await _auditLogService.LogEntityChangeAsync("Stock", stock.Id, "Reserved", "Reserve", null,
                 $"Reserved {quantity} units", currentUser ?? "System");
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             return true;
         }
@@ -441,9 +441,9 @@ public class StockService : IStockService
             stock.ModifiedBy = currentUser;
             stock.ModifiedAt = DateTime.UtcNow;
 
-            await _auditLogService.LogEntityChangeAsync("Stock", stock.Id, "Released", "Release", null,
+            _ = await _auditLogService.LogEntityChangeAsync("Stock", stock.Id, "Released", "Release", null,
                 $"Released {quantity} reserved units", currentUser ?? "System");
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             return true;
         }
@@ -532,7 +532,7 @@ public class StockService : IStockService
             {
                 stock.LastInventoryDate = inventoryDate;
                 stock.ModifiedAt = DateTime.UtcNow;
-                await _context.SaveChangesAsync(cancellationToken);
+                _ = await _context.SaveChangesAsync(cancellationToken);
             }
         }
         catch (Exception ex)
@@ -560,9 +560,9 @@ public class StockService : IStockService
                 return false;
             }
 
-            _context.Stocks.Remove(stock);
-            await _auditLogService.LogEntityChangeAsync("Stock", stock.Id, "Deleted", "Delete", null, "Deleted stock entry", currentUser);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.Stocks.Remove(stock);
+            _ = await _auditLogService.LogEntityChangeAsync("Stock", stock.Id, "Deleted", "Delete", null, "Deleted stock entry", currentUser);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             return true;
         }

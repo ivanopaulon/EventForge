@@ -85,7 +85,7 @@ public class QzSignerTests
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(() => signer.Sign(null!, parameters, timestamp));
+        _ = await Assert.ThrowsAsync<ArgumentNullException>(() => signer.Sign(null!, parameters, timestamp));
     }
 
     [Fact]
@@ -112,7 +112,7 @@ public class QzSignerTests
     {
         try
         {
-            Convert.FromBase64String(base64String);
+            _ = Convert.FromBase64String(base64String);
             return true;
         }
         catch

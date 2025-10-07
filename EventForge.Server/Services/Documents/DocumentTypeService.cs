@@ -106,10 +106,10 @@ public class DocumentTypeService : IDocumentTypeService
             entity.CreatedAt = DateTime.UtcNow;
             entity.CreatedBy = currentUser;
 
-            _context.DocumentTypes.Add(entity);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.DocumentTypes.Add(entity);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(entity, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(entity, "Insert", currentUser, null, cancellationToken);
 
             // Reload with includes
             await _context.Entry(entity)
@@ -166,9 +166,9 @@ public class DocumentTypeService : IDocumentTypeService
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, originalEntity, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, originalEntity, cancellationToken);
 
             _logger.LogInformation("Document type {DocumentTypeId} updated by {User}.", id, currentUser);
 
@@ -218,9 +218,9 @@ public class DocumentTypeService : IDocumentTypeService
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, originalEntity, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, originalEntity, cancellationToken);
 
             _logger.LogInformation("Document type {DocumentTypeId} deleted by {User}.", id, currentUser);
 

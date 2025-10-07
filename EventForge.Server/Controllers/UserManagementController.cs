@@ -186,10 +186,10 @@ public class UserManagementController : BaseApiController
             user.ModifiedAt = DateTime.UtcNow;
             user.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
 
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
 
             // Log the status change
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 nameof(User),
                 user.Id,
                 "IsActive",
@@ -213,8 +213,8 @@ public class UserManagementController : BaseApiController
                 CreatedBy = user.ModifiedBy
             };
 
-            _context.AuditTrails.Add(auditTrail);
-            await _context.SaveChangesAsync();
+            _ = _context.AuditTrails.Add(auditTrail);
+            _ = await _context.SaveChangesAsync();
 
             // Notify clients
             await _hubContext.Clients.Group("AuditLogUpdates")
@@ -297,10 +297,10 @@ public class UserManagementController : BaseApiController
             user.ModifiedAt = DateTime.UtcNow;
             user.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
 
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
 
             // Log the role change
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 nameof(User),
                 user.Id,
                 "Roles",
@@ -324,8 +324,8 @@ public class UserManagementController : BaseApiController
                 CreatedBy = user.ModifiedBy
             };
 
-            _context.AuditTrails.Add(auditTrail);
-            await _context.SaveChangesAsync();
+            _ = _context.AuditTrails.Add(auditTrail);
+            _ = await _context.SaveChangesAsync();
 
             // Notify clients
             await _hubContext.Clients.Group("AuditLogUpdates")
@@ -384,10 +384,10 @@ public class UserManagementController : BaseApiController
             user.ModifiedAt = DateTime.UtcNow;
             user.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
 
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
 
             // Log the password reset
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 nameof(User),
                 user.Id,
                 "PasswordReset",
@@ -411,8 +411,8 @@ public class UserManagementController : BaseApiController
                 CreatedBy = user.ModifiedBy
             };
 
-            _context.AuditTrails.Add(auditTrail);
-            await _context.SaveChangesAsync();
+            _ = _context.AuditTrails.Add(auditTrail);
+            _ = await _context.SaveChangesAsync();
 
             // Notify clients
             await _hubContext.Clients.Group("AuditLogUpdates")
@@ -456,10 +456,10 @@ public class UserManagementController : BaseApiController
             user.ModifiedAt = DateTime.UtcNow;
             user.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
 
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
 
             // Log the password change requirement
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 nameof(User),
                 user.Id,
                 "MustChangePassword",
@@ -483,8 +483,8 @@ public class UserManagementController : BaseApiController
                 CreatedBy = user.ModifiedBy
             };
 
-            _context.AuditTrails.Add(auditTrail);
-            await _context.SaveChangesAsync();
+            _ = _context.AuditTrails.Add(auditTrail);
+            _ = await _context.SaveChangesAsync();
 
             // Notify clients
             await _hubContext.Clients.Group("AuditLogUpdates")
@@ -807,7 +807,7 @@ public class UserManagementController : BaseApiController
                         user.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
 
                         // Log the action
-                        await _auditLogService.LogEntityChangeAsync(
+                        _ = await _auditLogService.LogEntityChangeAsync(
                             nameof(User),
                             user.Id,
                             actionDto.Action,
@@ -840,7 +840,7 @@ public class UserManagementController : BaseApiController
                 }
             }
 
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
 
             // Create bulk audit trail entry
             var auditTrail = new AuditTrail
@@ -854,8 +854,8 @@ public class UserManagementController : BaseApiController
                 CreatedBy = _tenantContext.CurrentUserId?.ToString() ?? "System"
             };
 
-            _context.AuditTrails.Add(auditTrail);
-            await _context.SaveChangesAsync();
+            _ = _context.AuditTrails.Add(auditTrail);
+            _ = await _context.SaveChangesAsync();
 
             // Notify clients
             await _hubContext.Clients.Group("AuditLogUpdates")
@@ -948,36 +948,36 @@ public class UserManagementController : BaseApiController
                 }
             }
 
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
 
             // Log the changes
             if (oldEmail != user.Email)
             {
-                await _auditLogService.LogEntityChangeAsync(
+                _ = await _auditLogService.LogEntityChangeAsync(
                     nameof(User), user.Id, "Email", "Update", oldEmail, user.Email, user.ModifiedBy, $"User '{user.Username}'");
             }
 
             if (oldFirstName != user.FirstName)
             {
-                await _auditLogService.LogEntityChangeAsync(
+                _ = await _auditLogService.LogEntityChangeAsync(
                     nameof(User), user.Id, "FirstName", "Update", oldFirstName, user.FirstName, user.ModifiedBy, $"User '{user.Username}'");
             }
 
             if (oldLastName != user.LastName)
             {
-                await _auditLogService.LogEntityChangeAsync(
+                _ = await _auditLogService.LogEntityChangeAsync(
                     nameof(User), user.Id, "LastName", "Update", oldLastName, user.LastName, user.ModifiedBy, $"User '{user.Username}'");
             }
 
             if (oldIsActive != user.IsActive)
             {
-                await _auditLogService.LogEntityChangeAsync(
+                _ = await _auditLogService.LogEntityChangeAsync(
                     nameof(User), user.Id, "IsActive", "Update", oldIsActive.ToString(), user.IsActive.ToString(), user.ModifiedBy, $"User '{user.Username}'");
             }
 
             if (!oldRoles.SequenceEqual(updateDto.Roles))
             {
-                await _auditLogService.LogEntityChangeAsync(
+                _ = await _auditLogService.LogEntityChangeAsync(
                     nameof(User), user.Id, "Roles", "Update",
                     string.Join(", ", oldRoles), string.Join(", ", updateDto.Roles),
                     user.ModifiedBy, $"User '{user.Username}'");
@@ -996,8 +996,8 @@ public class UserManagementController : BaseApiController
                 CreatedBy = user.ModifiedBy
             };
 
-            _context.AuditTrails.Add(auditTrail);
-            await _context.SaveChangesAsync();
+            _ = _context.AuditTrails.Add(auditTrail);
+            _ = await _context.SaveChangesAsync();
 
             // Notify clients
             await _hubContext.Clients.Group("AuditLogUpdates")
@@ -1051,10 +1051,10 @@ public class UserManagementController : BaseApiController
             user.ModifiedAt = DateTime.UtcNow;
             user.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
 
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
 
             // Log the deletion
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 nameof(User),
                 user.Id,
                 "SoftDeleted",
@@ -1078,8 +1078,8 @@ public class UserManagementController : BaseApiController
                 CreatedBy = user.ModifiedBy
             };
 
-            _context.AuditTrails.Add(auditTrail);
-            await _context.SaveChangesAsync();
+            _ = _context.AuditTrails.Add(auditTrail);
+            _ = await _context.SaveChangesAsync();
 
             // Notify clients
             await _hubContext.Clients.Group("AuditLogUpdates")
@@ -1138,7 +1138,7 @@ public class UserManagementController : BaseApiController
             // Hash the temporary password (implementation depends on your password service)
             // user.PasswordHash = _passwordService.HashPassword(tempPassword);
 
-            _context.Users.Add(user);
+            _ = _context.Users.Add(user);
 
             // Add roles if specified
             if (createDto.Roles.Any())
@@ -1159,10 +1159,10 @@ public class UserManagementController : BaseApiController
                 }
             }
 
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
 
             // Log user creation
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 nameof(User),
                 user.Id,
                 "UserCreated",
@@ -1243,7 +1243,7 @@ public class UserManagementController : BaseApiController
             // Hash the temporary password (implementation depends on your password service)
             // user.PasswordHash = _passwordService.HashPassword(tempPassword);
 
-            _context.Users.Add(user);
+            _ = _context.Users.Add(user);
 
             // Add roles if specified
             if (createDto.Roles.Any())
@@ -1264,10 +1264,10 @@ public class UserManagementController : BaseApiController
                 }
             }
 
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
 
             // Log user creation
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 nameof(User),
                 user.Id,
                 "UserCreated",

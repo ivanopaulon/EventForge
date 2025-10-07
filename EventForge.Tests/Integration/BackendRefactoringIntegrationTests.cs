@@ -19,7 +19,7 @@ public class BackendRefactoringIntegrationTests : IClassFixture<WebApplicationFa
         // Arrange
         var client = _factory.WithWebHostBuilder(builder =>
         {
-            builder.UseSetting("ASPNETCORE_ENVIRONMENT", "Development");
+            _ = builder.UseSetting("ASPNETCORE_ENVIRONMENT", "Development");
         }).CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false
@@ -38,7 +38,7 @@ public class BackendRefactoringIntegrationTests : IClassFixture<WebApplicationFa
         // Arrange
         var client = _factory.WithWebHostBuilder(builder =>
         {
-            builder.UseSetting("ASPNETCORE_ENVIRONMENT", "Production");
+            _ = builder.UseSetting("ASPNETCORE_ENVIRONMENT", "Production");
         }).CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false
@@ -58,7 +58,7 @@ public class BackendRefactoringIntegrationTests : IClassFixture<WebApplicationFa
         // Arrange - Development
         var devClient = _factory.WithWebHostBuilder(builder =>
         {
-            builder.UseSetting("ASPNETCORE_ENVIRONMENT", "Development");
+            _ = builder.UseSetting("ASPNETCORE_ENVIRONMENT", "Development");
         }).CreateClient();
 
         // Act & Assert - Development should have Swagger at root
@@ -68,7 +68,7 @@ public class BackendRefactoringIntegrationTests : IClassFixture<WebApplicationFa
         // Arrange - Production
         var prodClient = _factory.WithWebHostBuilder(builder =>
         {
-            builder.UseSetting("ASPNETCORE_ENVIRONMENT", "Production");
+            _ = builder.UseSetting("ASPNETCORE_ENVIRONMENT", "Production");
         }).CreateClient();
 
         // Act & Assert - Production should have Swagger at /swagger

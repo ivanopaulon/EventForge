@@ -369,11 +369,11 @@ public class TenantContext : ITenantContext
             PerformedAt = DateTime.UtcNow
         };
 
-        _context.AuditTrails.Add(auditTrail);
+        _ = _context.AuditTrails.Add(auditTrail);
 
         try
         {
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
         }
         catch (Exception ex)
         {

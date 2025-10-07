@@ -133,7 +133,7 @@ namespace EventForge.DTOs.PriceLists
         /// Percentage difference from the product's default price.
         /// </summary>
         public decimal? PriceDifferencePercentage => ProductDefaultPrice.HasValue && ProductDefaultPrice.Value != 0
-            ? (decimal?)Math.Round(((Price - ProductDefaultPrice.Value) / ProductDefaultPrice.Value) * 100, 2)
+            ? (decimal?)Math.Round((Price - ProductDefaultPrice.Value) / ProductDefaultPrice.Value * 100, 2)
             : null;
     }
 }

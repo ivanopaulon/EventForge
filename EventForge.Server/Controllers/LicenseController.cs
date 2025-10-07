@@ -196,8 +196,8 @@ public class LicenseController : BaseApiController
                 TenantId = Guid.Empty // System-level entity
             };
 
-            _context.Licenses.Add(license);
-            await _context.SaveChangesAsync();
+            _ = _context.Licenses.Add(license);
+            _ = await _context.SaveChangesAsync();
 
             var licenseDto = new LicenseDto
             {
@@ -267,7 +267,7 @@ public class LicenseController : BaseApiController
             license.MaxApiCallsPerMonth = updateLicenseDto.MaxApiCallsPerMonth;
             license.TierLevel = updateLicenseDto.TierLevel;
 
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
 
             var licenseDto = new LicenseDto
             {
@@ -327,7 +327,7 @@ public class LicenseController : BaseApiController
             license.IsDeleted = true;
             license.DeletedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
 
             return NoContent();
         }
@@ -473,8 +473,8 @@ public class LicenseController : BaseApiController
                 TenantId = Guid.Empty // System-level entity
             };
 
-            _context.TenantLicenses.Add(tenantLicense);
-            await _context.SaveChangesAsync();
+            _ = _context.TenantLicenses.Add(tenantLicense);
+            _ = await _context.SaveChangesAsync();
 
             var tenantLicenseDto = new TenantLicenseDto
             {

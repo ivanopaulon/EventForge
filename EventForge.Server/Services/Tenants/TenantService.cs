@@ -71,8 +71,8 @@ public class TenantService : ITenantService
 
             tenant.TenantId = tenant.Id;
 
-            _context.Tenants.Add(tenant);
-            await _context.SaveChangesAsync();
+            _ = _context.Tenants.Add(tenant);
+            _ = await _context.SaveChangesAsync();
 
             // Admin users are not automatically created during tenant creation
             // to avoid FK constraint violations. Admin users should be assigned
@@ -96,8 +96,8 @@ public class TenantService : ITenantService
                         WasSuccessful = true,
                         PerformedAt = DateTime.UtcNow
                     };
-                    _context.AuditTrails.Add(auditTrail);
-                    await _context.SaveChangesAsync();
+                    _ = _context.AuditTrails.Add(auditTrail);
+                    _ = await _context.SaveChangesAsync();
                 }
             }
             catch (Exception ex)
@@ -171,8 +171,8 @@ public class TenantService : ITenantService
             };
 
             tenant.TenantId = tenant.Id;
-            _context.Tenants.Add(tenant);
-            await _context.SaveChangesAsync();
+            _ = _context.Tenants.Add(tenant);
+            _ = await _context.SaveChangesAsync();
 
             // Check if username already exists in the tenant
             var existingUser = await _context.Users
@@ -214,8 +214,8 @@ public class TenantService : ITenantService
                 PasswordChangedAt = DateTime.UtcNow
             };
 
-            _context.Users.Add(adminUser);
-            await _context.SaveChangesAsync();
+            _ = _context.Users.Add(adminUser);
+            _ = await _context.SaveChangesAsync();
 
             // Assign SuperAdmin role to the user
             var superAdminRole = await _context.Roles
@@ -233,8 +233,8 @@ public class TenantService : ITenantService
                     CreatedAt = DateTime.UtcNow
                 };
 
-                _context.UserRoles.Add(userRole);
-                await _context.SaveChangesAsync();
+                _ = _context.UserRoles.Add(userRole);
+                _ = await _context.SaveChangesAsync();
             }
 
             await transaction.CommitAsync();
@@ -255,8 +255,8 @@ public class TenantService : ITenantService
                         WasSuccessful = true,
                         PerformedAt = DateTime.UtcNow
                     };
-                    _context.AuditTrails.Add(auditTrail);
-                    await _context.SaveChangesAsync();
+                    _ = _context.AuditTrails.Add(auditTrail);
+                    _ = await _context.SaveChangesAsync();
                 }
             }
             catch (Exception ex)
@@ -421,7 +421,7 @@ public class TenantService : ITenantService
             tenant.SubscriptionExpiresAt = updateDto.SubscriptionExpiresAt;
             tenant.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
 
             // Audit log
             try
@@ -439,8 +439,8 @@ public class TenantService : ITenantService
                         WasSuccessful = true,
                         PerformedAt = DateTime.UtcNow
                     };
-                    _context.AuditTrails.Add(auditTrail);
-                    await _context.SaveChangesAsync();
+                    _ = _context.AuditTrails.Add(auditTrail);
+                    _ = await _context.SaveChangesAsync();
                 }
             }
             catch (Exception ex)
@@ -496,7 +496,7 @@ public class TenantService : ITenantService
             tenant.IsActive = isEnabled;
             tenant.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
 
             // Audit log
             var currentUserId = _tenantContext.CurrentUserId;
@@ -512,8 +512,8 @@ public class TenantService : ITenantService
                     WasSuccessful = true,
                     PerformedAt = DateTime.UtcNow
                 };
-                _context.AuditTrails.Add(auditTrail);
-                await _context.SaveChangesAsync();
+                _ = _context.AuditTrails.Add(auditTrail);
+                _ = await _context.SaveChangesAsync();
             }
         }
         catch (Exception ex)
@@ -567,8 +567,8 @@ public class TenantService : ITenantService
                 GrantedAt = DateTime.UtcNow
             };
 
-            _context.AdminTenants.Add(adminTenant);
-            await _context.SaveChangesAsync();
+            _ = _context.AdminTenants.Add(adminTenant);
+            _ = await _context.SaveChangesAsync();
 
             // Audit log
             var currentUserId = _tenantContext.CurrentUserId;
@@ -585,8 +585,8 @@ public class TenantService : ITenantService
                     WasSuccessful = true,
                     PerformedAt = DateTime.UtcNow
                 };
-                _context.AuditTrails.Add(auditTrail);
-                await _context.SaveChangesAsync();
+                _ = _context.AuditTrails.Add(auditTrail);
+                _ = await _context.SaveChangesAsync();
             }
 
             return new AdminTenantResponseDto
@@ -644,8 +644,8 @@ public class TenantService : ITenantService
                 ModifiedBy = adminTenant.ModifiedBy
             };
 
-            _context.AdminTenants.Remove(adminTenant);
-            await _context.SaveChangesAsync();
+            _ = _context.AdminTenants.Remove(adminTenant);
+            _ = await _context.SaveChangesAsync();
 
             // Audit log
             var currentUserId = _tenantContext.CurrentUserId;
@@ -662,8 +662,8 @@ public class TenantService : ITenantService
                     WasSuccessful = true,
                     PerformedAt = DateTime.UtcNow
                 };
-                _context.AuditTrails.Add(auditTrail);
-                await _context.SaveChangesAsync();
+                _ = _context.AuditTrails.Add(auditTrail);
+                _ = await _context.SaveChangesAsync();
             }
         }
         catch (Exception ex)
@@ -755,7 +755,7 @@ public class TenantService : ITenantService
             user.MustChangePassword = true;
             user.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
 
             // Audit log
             var currentUserId = _tenantContext.CurrentUserId;
@@ -771,8 +771,8 @@ public class TenantService : ITenantService
                     WasSuccessful = true,
                     PerformedAt = DateTime.UtcNow
                 };
-                _context.AuditTrails.Add(auditTrail);
-                await _context.SaveChangesAsync();
+                _ = _context.AuditTrails.Add(auditTrail);
+                _ = await _context.SaveChangesAsync();
             }
         }
         catch (Exception ex)
@@ -1075,7 +1075,7 @@ public class TenantService : ITenantService
         tenant.ModifiedAt = DateTime.UtcNow;
         tenant.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
 
-        await _context.SaveChangesAsync();
+        _ = await _context.SaveChangesAsync();
 
         // Create audit trail entry
         var auditTrail = new AuditTrail
@@ -1090,8 +1090,8 @@ public class TenantService : ITenantService
             CreatedBy = tenant.ModifiedBy
         };
 
-        _context.AuditTrails.Add(auditTrail);
-        await _context.SaveChangesAsync();
+        _ = _context.AuditTrails.Add(auditTrail);
+        _ = await _context.SaveChangesAsync();
 
         return await GetTenantLimitsAsync(tenantId) ?? throw new InvalidOperationException("Failed to retrieve updated limits.");
     }
@@ -1180,7 +1180,7 @@ public class TenantService : ITenantService
         tenant.IsActive = false;
         tenant.ModifiedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
+        _ = await _context.SaveChangesAsync();
 
         // Audit log
         var currentUserId = _tenantContext.CurrentUserId;
@@ -1196,8 +1196,8 @@ public class TenantService : ITenantService
                 WasSuccessful = true,
                 PerformedAt = DateTime.UtcNow
             };
-            _context.AuditTrails.Add(auditTrail);
-            await _context.SaveChangesAsync();
+            _ = _context.AuditTrails.Add(auditTrail);
+            _ = await _context.SaveChangesAsync();
         }
     }
 }

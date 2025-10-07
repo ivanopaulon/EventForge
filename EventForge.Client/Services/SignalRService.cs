@@ -233,31 +233,31 @@ public class SignalRService : IAsyncDisposable
     {
         if (_auditHubConnection == null) return;
 
-        _auditHubConnection.On<object>("AuditLogUpdated", (data) =>
+        _ = _auditHubConnection.On<object>("AuditLogUpdated", (data) =>
         {
             _logger.LogInformation("Audit log updated: {Data}", data);
             AuditLogUpdated?.Invoke(data);
         });
 
-        _auditHubConnection.On<object>("UserStatusChanged", (data) =>
+        _ = _auditHubConnection.On<object>("UserStatusChanged", (data) =>
         {
             _logger.LogInformation("User status changed: {Data}", data);
             UserStatusChanged?.Invoke(data);
         });
 
-        _auditHubConnection.On<object>("UserRolesChanged", (data) =>
+        _ = _auditHubConnection.On<object>("UserRolesChanged", (data) =>
         {
             _logger.LogInformation("User roles changed: {Data}", data);
             UserRolesChanged?.Invoke(data);
         });
 
-        _auditHubConnection.On<object>("PasswordChangeForced", (data) =>
+        _ = _auditHubConnection.On<object>("PasswordChangeForced", (data) =>
         {
             _logger.LogInformation("Password change forced: {Data}", data);
             PasswordChangeForced?.Invoke(data);
         });
 
-        _auditHubConnection.On<object>("BackupStatusChanged", (data) =>
+        _ = _auditHubConnection.On<object>("BackupStatusChanged", (data) =>
         {
             _logger.LogInformation("Backup status changed: {Data}", data);
             BackupStatusChanged?.Invoke(data);
@@ -486,54 +486,54 @@ public class SignalRService : IAsyncDisposable
     {
         if (_notificationHubConnection == null) return;
 
-        _notificationHubConnection.On<NotificationResponseDto>("NotificationReceived", (notification) =>
+        _ = _notificationHubConnection.On<NotificationResponseDto>("NotificationReceived", (notification) =>
         {
             _logger.LogInformation("Notification received: {NotificationId}", notification.Id);
             NotificationReceived?.Invoke(notification);
         });
 
-        _notificationHubConnection.On<NotificationResponseDto>("SystemNotificationReceived", (notification) =>
+        _ = _notificationHubConnection.On<NotificationResponseDto>("SystemNotificationReceived", (notification) =>
         {
             _logger.LogInformation("System notification received: {NotificationId}", notification.Id);
             SystemNotificationReceived?.Invoke(notification);
         });
 
-        _notificationHubConnection.On<Guid>("NotificationAcknowledged", (notificationId) =>
+        _ = _notificationHubConnection.On<Guid>("NotificationAcknowledged", (notificationId) =>
         {
             NotificationAcknowledged?.Invoke(notificationId);
         });
 
-        _notificationHubConnection.On<Guid>("NotificationSilenced", (notificationId) =>
+        _ = _notificationHubConnection.On<Guid>("NotificationSilenced", (notificationId) =>
         {
             NotificationSilenced?.Invoke(notificationId);
         });
 
-        _notificationHubConnection.On<Guid>("NotificationArchived", (notificationId) =>
+        _ = _notificationHubConnection.On<Guid>("NotificationArchived", (notificationId) =>
         {
             NotificationArchived?.Invoke(notificationId);
         });
 
-        _notificationHubConnection.On<UpdateNotificationStatusDto>("NotificationStatusUpdated", (update) =>
+        _ = _notificationHubConnection.On<UpdateNotificationStatusDto>("NotificationStatusUpdated", (update) =>
         {
             NotificationStatusUpdated?.Invoke(update);
         });
 
-        _notificationHubConnection.On<BulkNotificationActionDto>("NotificationsBulkUpdated", (bulkAction) =>
+        _ = _notificationHubConnection.On<BulkNotificationActionDto>("NotificationsBulkUpdated", (bulkAction) =>
         {
             NotificationsBulkUpdated?.Invoke(bulkAction);
         });
 
-        _notificationHubConnection.On<NotificationStatsDto>("NotificationStatsReceived", (stats) =>
+        _ = _notificationHubConnection.On<NotificationStatsDto>("NotificationStatsReceived", (stats) =>
         {
             NotificationStatsReceived?.Invoke(stats);
         });
 
-        _notificationHubConnection.On<List<NotificationTypes>>("SubscriptionConfirmed", (types) =>
+        _ = _notificationHubConnection.On<List<NotificationTypes>>("SubscriptionConfirmed", (types) =>
         {
             NotificationSubscriptionConfirmed?.Invoke(types);
         });
 
-        _notificationHubConnection.On<string>("LocaleUpdated", (locale) =>
+        _ = _notificationHubConnection.On<string>("LocaleUpdated", (locale) =>
         {
             NotificationLocaleUpdated?.Invoke(locale);
         });
@@ -876,84 +876,84 @@ public class SignalRService : IAsyncDisposable
     {
         if (_chatHubConnection == null) return;
 
-        _chatHubConnection.On<ChatResponseDto>("ChatCreated", (chat) =>
+        _ = _chatHubConnection.On<ChatResponseDto>("ChatCreated", (chat) =>
         {
             _logger.LogInformation("Chat created: {ChatId}", chat.Id);
             ChatCreated?.Invoke(chat);
         });
 
-        _chatHubConnection.On<ChatMessageDto>("MessageReceived", (message) =>
+        _ = _chatHubConnection.On<ChatMessageDto>("MessageReceived", (message) =>
         {
             _logger.LogInformation("Message received: {MessageId} in chat {ChatId}", message.Id, message.ChatId);
             MessageReceived?.Invoke(message);
         });
 
-        _chatHubConnection.On<EditMessageDto>("MessageEdited", (editDto) =>
+        _ = _chatHubConnection.On<EditMessageDto>("MessageEdited", (editDto) =>
         {
             MessageEdited?.Invoke(editDto);
         });
 
-        _chatHubConnection.On<object>("MessageDeleted", (data) =>
+        _ = _chatHubConnection.On<object>("MessageDeleted", (data) =>
         {
             MessageDeleted?.Invoke(data);
         });
 
-        _chatHubConnection.On<object>("MessageRead", (data) =>
+        _ = _chatHubConnection.On<object>("MessageRead", (data) =>
         {
             MessageRead?.Invoke(data);
         });
 
-        _chatHubConnection.On<TypingIndicatorDto>("TypingIndicator", (indicator) =>
+        _ = _chatHubConnection.On<TypingIndicatorDto>("TypingIndicator", (indicator) =>
         {
             TypingIndicator?.Invoke(indicator);
         });
 
-        _chatHubConnection.On<object>("UserJoinedChat", (data) =>
+        _ = _chatHubConnection.On<object>("UserJoinedChat", (data) =>
         {
             UserJoinedChat?.Invoke(data);
         });
 
-        _chatHubConnection.On<object>("UserLeftChat", (data) =>
+        _ = _chatHubConnection.On<object>("UserLeftChat", (data) =>
         {
             UserLeftChat?.Invoke(data);
         });
 
-        _chatHubConnection.On<object>("AddedToChat", (data) =>
+        _ = _chatHubConnection.On<object>("AddedToChat", (data) =>
         {
             AddedToChat?.Invoke(data);
         });
 
-        _chatHubConnection.On<object>("RemovedFromChat", (data) =>
+        _ = _chatHubConnection.On<object>("RemovedFromChat", (data) =>
         {
             RemovedFromChat?.Invoke(data);
         });
 
-        _chatHubConnection.On<UpdateChatMembersDto>("ChatMembersUpdated", (update) =>
+        _ = _chatHubConnection.On<UpdateChatMembersDto>("ChatMembersUpdated", (update) =>
         {
             ChatMembersUpdated?.Invoke(update);
         });
 
-        _chatHubConnection.On<object>("ChatUpdated", (data) =>
+        _ = _chatHubConnection.On<object>("ChatUpdated", (data) =>
         {
             ChatUpdated?.Invoke(data);
         });
 
-        _chatHubConnection.On<ChatModerationActionDto>("ChatModerated", (moderation) =>
+        _ = _chatHubConnection.On<ChatModerationActionDto>("ChatModerated", (moderation) =>
         {
             ChatModerated?.Invoke(moderation);
         });
 
-        _chatHubConnection.On<ChatModerationActionDto>("ChatDeleted", (deletion) =>
+        _ = _chatHubConnection.On<ChatModerationActionDto>("ChatDeleted", (deletion) =>
         {
             ChatDeleted?.Invoke(deletion);
         });
 
-        _chatHubConnection.On<ChatStatsDto>("ChatStatsReceived", (stats) =>
+        _ = _chatHubConnection.On<ChatStatsDto>("ChatStatsReceived", (stats) =>
         {
             ChatStatsReceived?.Invoke(stats);
         });
 
-        _chatHubConnection.On<string>("ChatLocaleUpdated", (locale) =>
+        _ = _chatHubConnection.On<string>("ChatLocaleUpdated", (locale) =>
         {
             ChatLocaleUpdated?.Invoke(locale);
         });
@@ -1132,54 +1132,54 @@ public class SignalRService : IAsyncDisposable
     {
         if (_documentCollaborationHubConnection == null) return;
 
-        _documentCollaborationHubConnection.On<DocumentCommentDto>("CommentCreated", (comment) =>
+        _ = _documentCollaborationHubConnection.On<DocumentCommentDto>("CommentCreated", (comment) =>
         {
             _logger.LogInformation("Comment created: {CommentId}", comment.Id);
             CommentCreated?.Invoke(comment);
         });
 
-        _documentCollaborationHubConnection.On<DocumentCommentDto>("CommentUpdated", (comment) =>
+        _ = _documentCollaborationHubConnection.On<DocumentCommentDto>("CommentUpdated", (comment) =>
         {
             _logger.LogInformation("Comment updated: {CommentId}", comment.Id);
             CommentUpdated?.Invoke(comment);
         });
 
-        _documentCollaborationHubConnection.On<object>("CommentDeleted", (data) =>
+        _ = _documentCollaborationHubConnection.On<object>("CommentDeleted", (data) =>
         {
             CommentDeleted?.Invoke(data);
         });
 
-        _documentCollaborationHubConnection.On<object>("CommentResolved", (data) =>
+        _ = _documentCollaborationHubConnection.On<object>("CommentResolved", (data) =>
         {
             CommentResolved?.Invoke(data);
         });
 
-        _documentCollaborationHubConnection.On<object>("CommentReopened", (data) =>
+        _ = _documentCollaborationHubConnection.On<object>("CommentReopened", (data) =>
         {
             CommentReopened?.Invoke(data);
         });
 
-        _documentCollaborationHubConnection.On<object>("TaskAssigned", (data) =>
+        _ = _documentCollaborationHubConnection.On<object>("TaskAssigned", (data) =>
         {
             TaskAssigned?.Invoke(data);
         });
 
-        _documentCollaborationHubConnection.On<object>("UserMentioned", (data) =>
+        _ = _documentCollaborationHubConnection.On<object>("UserMentioned", (data) =>
         {
             UserMentioned?.Invoke(data);
         });
 
-        _documentCollaborationHubConnection.On<object>("UserJoinedDocument", (data) =>
+        _ = _documentCollaborationHubConnection.On<object>("UserJoinedDocument", (data) =>
         {
             UserJoinedDocument?.Invoke(data);
         });
 
-        _documentCollaborationHubConnection.On<object>("UserLeftDocument", (data) =>
+        _ = _documentCollaborationHubConnection.On<object>("UserLeftDocument", (data) =>
         {
             UserLeftDocument?.Invoke(data);
         });
 
-        _documentCollaborationHubConnection.On<object>("TypingIndicator", (data) =>
+        _ = _documentCollaborationHubConnection.On<object>("TypingIndicator", (data) =>
         {
             DocumentTypingIndicator?.Invoke(data);
         });

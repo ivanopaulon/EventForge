@@ -164,10 +164,10 @@ public class DocumentTemplateService : IDocumentTemplateService
             entity.CreatedAt = DateTime.UtcNow;
             entity.CreatedBy = currentUser;
 
-            _context.DocumentTemplates.Add(entity);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.DocumentTemplates.Add(entity);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync<DocumentTemplate>(entity, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync<DocumentTemplate>(entity, "Insert", currentUser, null, cancellationToken);
 
             // Reload with includes
             await _context.Entry(entity)
@@ -209,9 +209,9 @@ public class DocumentTemplateService : IDocumentTemplateService
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync<DocumentTemplate>(entity, "Update", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync<DocumentTemplate>(entity, "Update", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Document template {TemplateId} updated by {User}.", id, currentUser);
 
@@ -245,9 +245,9 @@ public class DocumentTemplateService : IDocumentTemplateService
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync<DocumentTemplate>(entity, "SoftDelete", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync<DocumentTemplate>(entity, "SoftDelete", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Document template {TemplateId} soft deleted by {User}.", id, currentUser);
 
@@ -281,7 +281,7 @@ public class DocumentTemplateService : IDocumentTemplateService
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Document template {TemplateId} usage updated by {User}.", id, currentUser);
 

@@ -242,7 +242,7 @@ public class TenantSwitchController : BaseApiController
                     CreatedBy = currentUser.Username
                 };
 
-                _context.AuditTrails.Add(auditTrail);
+                _ = _context.AuditTrails.Add(auditTrail);
             }
 
             // In a real implementation, you would update session state or token claims here
@@ -250,7 +250,7 @@ public class TenantSwitchController : BaseApiController
             _logger.LogInformation("SuperAdmin {Username} switched to tenant {TenantName}",
                 currentUser.Username, targetTenant.Name);
 
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
 
             // Notify other SuperAdmin sessions
             await _hubContext.Clients.Group("SuperAdminUpdates")
@@ -344,14 +344,14 @@ public class TenantSwitchController : BaseApiController
                     CreatedBy = currentUser.Username
                 };
 
-                _context.AuditTrails.Add(auditTrail);
+                _ = _context.AuditTrails.Add(auditTrail);
             }
 
             // In a real implementation, you would update session state or token claims here
             _logger.LogInformation("SuperAdmin {SuperAdminUsername} started impersonating user {TargetUsername}",
                 currentUser.Username, targetUser.Username);
 
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
 
             // Notify other SuperAdmin sessions
             await _hubContext.Clients.Group("SuperAdminUpdates")
@@ -434,11 +434,11 @@ public class TenantSwitchController : BaseApiController
                 CreatedBy = currentUser.Username
             };
 
-            _context.AuditTrails.Add(auditTrail);
+            _ = _context.AuditTrails.Add(auditTrail);
 
             _logger.LogInformation("SuperAdmin {Username} ended impersonation", currentUser.Username);
 
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
 
             // Notify other SuperAdmin sessions
             await _hubContext.Clients.Group("SuperAdminUpdates")

@@ -43,7 +43,7 @@ public class BootstrapHostedService : IHostedService
                 if (!pendingMigrations.Any())
                 {
                     _logger.LogInformation("Database is up to date. No migrations to apply.");
-                    
+
                     // Fast-path check: Does admin already exist?
                     var adminExists = await dbContext.Users.AnyAsync(u => u.Username == "superadmin", cancellationToken);
                     if (adminExists)

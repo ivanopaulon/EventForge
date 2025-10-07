@@ -113,7 +113,7 @@ public class BootstrapServiceTests
         await using var context = new EventForgeDbContext(options);
 
         // Add an existing tenant
-        context.Tenants.Add(new EventForge.Server.Data.Entities.Auth.Tenant
+        _ = context.Tenants.Add(new EventForge.Server.Data.Entities.Auth.Tenant
         {
             Name = "ExistingTenant",
             Code = "existing",
@@ -125,7 +125,7 @@ public class BootstrapServiceTests
             CreatedAt = DateTime.UtcNow,
             TenantId = Guid.Empty
         });
-        await context.SaveChangesAsync();
+        _ = await context.SaveChangesAsync();
 
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -238,15 +238,15 @@ public class BootstrapServiceTests
         license.MaxUsers = 100; // Changed from int.MaxValue
         license.MaxApiCallsPerMonth = 1000; // Changed from int.MaxValue
         license.TierLevel = 1; // Changed from 5
-        await context.SaveChangesAsync();
+        _ = await context.SaveChangesAsync();
 
         // Also remove a feature to test synchronization
         var featureToRemove = await context.LicenseFeatures
             .FirstOrDefaultAsync(f => f.LicenseId == license.Id && f.Name == "AdvancedSecurity");
         if (featureToRemove != null)
         {
-            context.LicenseFeatures.Remove(featureToRemove);
-            await context.SaveChangesAsync();
+            _ = context.LicenseFeatures.Remove(featureToRemove);
+            _ = await context.SaveChangesAsync();
         }
 
         // Act - Second run: should update the license and restore the feature
@@ -262,7 +262,7 @@ public class BootstrapServiceTests
         Assert.Equal(int.MaxValue, updatedLicense.MaxUsers); // Updated
         Assert.Equal(int.MaxValue, updatedLicense.MaxApiCallsPerMonth); // Updated
         Assert.Equal(5, updatedLicense.TierLevel); // Updated
-        Assert.NotNull(updatedLicense.ModifiedAt); // Modified timestamp set
+        _ = Assert.NotNull(updatedLicense.ModifiedAt); // Modified timestamp set
         Assert.Equal("system", updatedLicense.ModifiedBy);
 
         // Assert - Verify the removed feature was restored
@@ -303,7 +303,7 @@ public class BootstrapServiceTests
         var bootstrapService = new BootstrapService(context, passwordService, config, logger);
 
         // First run to create everything
-        await bootstrapService.EnsureAdminBootstrappedAsync();
+        _ = await bootstrapService.EnsureAdminBootstrappedAsync();
 
         var initialTenantCount = await context.Tenants.CountAsync();
         var initialUserCount = await context.Users.CountAsync();
@@ -312,7 +312,7 @@ public class BootstrapServiceTests
         var license = await context.Licenses.FirstOrDefaultAsync(l => l.Name == "superadmin");
         Assert.NotNull(license);
         license.MaxUsers = 50;
-        await context.SaveChangesAsync();
+        _ = await context.SaveChangesAsync();
 
         // Act - Second run with existing tenants
         var result = await bootstrapService.EnsureAdminBootstrappedAsync();
@@ -397,7 +397,7 @@ public class BootstrapServiceTests
             .Include(u => u.UserRoles)
             .FirstOrDefaultAsync(u => u.Username == "superadmin");
         Assert.NotNull(superAdminUser);
-        Assert.Single(superAdminUser.UserRoles);
+        _ = Assert.Single(superAdminUser.UserRoles);
         Assert.Equal(superAdminRole.Id, superAdminUser.UserRoles.First().RoleId);
 
         // Verify all role permissions have correct TenantId (system-level)
@@ -467,7 +467,7 @@ public class BootstrapServiceTests
 
         // Verify default warehouse was created
         var warehouses = await context.StorageFacilities.Where(w => w.TenantId == tenant.Id).ToListAsync();
-        Assert.Single(warehouses);
+        _ = Assert.Single(warehouses);
         var warehouse = warehouses.First();
         Assert.Equal("Magazzino Principale", warehouse.Name);
         Assert.Equal("MAG-01", warehouse.Code);
@@ -475,7 +475,7 @@ public class BootstrapServiceTests
 
         // Verify default storage location was created
         var locations = await context.StorageLocations.Where(l => l.TenantId == tenant.Id).ToListAsync();
-        Assert.Single(locations);
+        _ = Assert.Single(locations);
         var location = locations.First();
         Assert.Equal("UB-DEF", location.Code);
         Assert.Equal(warehouse.Id, location.WarehouseId);

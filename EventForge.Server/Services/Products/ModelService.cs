@@ -162,10 +162,10 @@ public class ModelService : IModelService
                 CreatedBy = currentUser
             };
 
-            _context.Models.Add(model);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.Models.Add(model);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(model, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(model, "Insert", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Model {ModelId} created by {User}.", model.Id, currentUser);
 
@@ -226,9 +226,9 @@ public class ModelService : IModelService
             model.ModifiedAt = DateTime.UtcNow;
             model.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(model, "Update", currentUser, originalModel, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(model, "Update", currentUser, originalModel, cancellationToken);
 
             _logger.LogInformation("Model {ModelId} updated by {User}.", model.Id, currentUser);
 
@@ -275,9 +275,9 @@ public class ModelService : IModelService
             model.ModifiedAt = DateTime.UtcNow;
             model.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(model, "Delete", currentUser, originalModel, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(model, "Delete", currentUser, originalModel, cancellationToken);
 
             _logger.LogInformation("Model {ModelId} deleted by {User}.", model.Id, currentUser);
 

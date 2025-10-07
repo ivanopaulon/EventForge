@@ -118,7 +118,7 @@ public class DocumentHeaderService : IDocumentHeaderService
             documentHeader.CreatedBy = currentUser;
             documentHeader.CreatedAt = DateTime.UtcNow;
 
-            _context.DocumentHeaders.Add(documentHeader);
+            _ = _context.DocumentHeaders.Add(documentHeader);
 
             if (createDto.Rows?.Any() == true)
             {
@@ -132,9 +132,9 @@ public class DocumentHeaderService : IDocumentHeaderService
                 }
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(documentHeader, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(documentHeader, "Insert", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Document header {DocumentHeaderId} created by {User}.", documentHeader.Id, currentUser);
 
@@ -178,9 +178,9 @@ public class DocumentHeaderService : IDocumentHeaderService
             documentHeader.ModifiedBy = currentUser;
             documentHeader.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(documentHeader, "Update", currentUser, originalHeader, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(documentHeader, "Update", currentUser, originalHeader, cancellationToken);
 
             _logger.LogInformation("Document header {DocumentHeaderId} updated by {User}.", id, currentUser);
 
@@ -232,9 +232,9 @@ public class DocumentHeaderService : IDocumentHeaderService
                 row.ModifiedAt = DateTime.UtcNow;
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(documentHeader, "Delete", currentUser, originalHeader, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(documentHeader, "Delete", currentUser, originalHeader, cancellationToken);
 
             _logger.LogInformation("Document header {DocumentHeaderId} deleted by {User}.", id, currentUser);
 
@@ -263,8 +263,8 @@ public class DocumentHeaderService : IDocumentHeaderService
                 return null;
             }
 
-            var netTotal = documentHeader.Rows.Sum(r => r.UnitPrice * r.Quantity * (1 - r.LineDiscount / 100m));
-            var vatTotal = documentHeader.Rows.Sum(r => (r.UnitPrice * r.Quantity * (1 - r.LineDiscount / 100m)) * (r.VatRate / 100m));
+            var netTotal = documentHeader.Rows.Sum(r => r.UnitPrice * r.Quantity * (1 - (r.LineDiscount / 100m)));
+            var vatTotal = documentHeader.Rows.Sum(r => r.UnitPrice * r.Quantity * (1 - (r.LineDiscount / 100m)) * (r.VatRate / 100m));
 
             if (documentHeader.TotalDiscount > 0)
                 netTotal -= netTotal * (documentHeader.TotalDiscount / 100m);
@@ -275,7 +275,7 @@ public class DocumentHeaderService : IDocumentHeaderService
             documentHeader.VatAmount = vatTotal;
             documentHeader.TotalGrossAmount = documentHeader.TotalNetAmount + documentHeader.VatAmount;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Calculated totals for document header {DocumentHeaderId}.", id);
 
@@ -320,9 +320,9 @@ public class DocumentHeaderService : IDocumentHeaderService
             documentHeader.ModifiedBy = currentUser;
             documentHeader.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(documentHeader, "Approve", currentUser, originalHeader, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(documentHeader, "Approve", currentUser, originalHeader, cancellationToken);
 
             _logger.LogInformation("Document header {DocumentHeaderId} approved by {User}.", id, currentUser);
 
@@ -366,9 +366,9 @@ public class DocumentHeaderService : IDocumentHeaderService
             documentHeader.ModifiedBy = currentUser;
             documentHeader.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(documentHeader, "Close", currentUser, originalHeader, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(documentHeader, "Close", currentUser, originalHeader, cancellationToken);
 
             _logger.LogInformation("Document header {DocumentHeaderId} closed by {User}.", id, currentUser);
 
@@ -481,8 +481,8 @@ public class DocumentHeaderService : IDocumentHeaderService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.DocumentTypes.Add(newType);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.DocumentTypes.Add(newType);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Created inventory document type for tenant {TenantId}.", tenantId);
 
@@ -526,8 +526,8 @@ public class DocumentHeaderService : IDocumentHeaderService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.BusinessParties.Add(newParty);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.BusinessParties.Add(newParty);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Created system business party for tenant {TenantId}.", tenantId);
 
@@ -560,10 +560,10 @@ public class DocumentHeaderService : IDocumentHeaderService
             row.CreatedBy = currentUser;
             row.CreatedAt = DateTime.UtcNow;
 
-            _context.DocumentRows.Add(row);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.DocumentRows.Add(row);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(row, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(row, "Insert", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Document row {RowId} added to document {DocumentHeaderId} by {User}.",
                 row.Id, createDto.DocumentHeaderId, currentUser);

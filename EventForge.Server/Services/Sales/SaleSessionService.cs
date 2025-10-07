@@ -57,10 +57,10 @@ public class SaleSessionService : ISaleSessionService
                 ModifiedAt = DateTime.UtcNow
             };
 
-            _context.SaleSessions.Add(session);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.SaleSessions.Add(session);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Create", null, "Open", currentUser, "Sale Session", cancellationToken);
+            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Create", null, "Open", currentUser, "Sale Session", cancellationToken);
 
             _logger.LogInformation("Created sale session {SessionId} for operator {OperatorId} at POS {PosId}", session.Id, createDto.OperatorId, createDto.PosId);
 
@@ -135,9 +135,9 @@ public class SaleSessionService : ISaleSessionService
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Update", null, session.Status.ToString(), currentUser, "Sale Session", cancellationToken);
+            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Update", null, session.Status.ToString(), currentUser, "Sale Session", cancellationToken);
 
             _logger.LogInformation("Updated sale session {SessionId}", sessionId);
 
@@ -172,9 +172,9 @@ public class SaleSessionService : ISaleSessionService
             session.DeletedAt = DateTime.UtcNow;
             session.DeletedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "IsDeleted", "Delete", "false", "true", currentUser, "Sale Session", cancellationToken);
+            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "IsDeleted", "Delete", "false", "true", currentUser, "Sale Session", cancellationToken);
 
             _logger.LogInformation("Deleted sale session {SessionId}", sessionId);
 
@@ -252,12 +252,12 @@ public class SaleSessionService : ISaleSessionService
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Recalculate totals
             await RecalculateTotalsAsync(session, cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Items", "AddItem", null, $"Added {product.Name}", currentUser, "Sale Session", cancellationToken);
+            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Items", "AddItem", null, $"Added {product.Name}", currentUser, "Sale Session", cancellationToken);
 
             _logger.LogInformation("Added item {ProductId} to sale session {SessionId}", addItemDto.ProductId, sessionId);
 
@@ -312,12 +312,12 @@ public class SaleSessionService : ISaleSessionService
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Recalculate totals
             await RecalculateTotalsAsync(session, cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Items", "UpdateItem", item.Quantity.ToString(), updateItemDto.Quantity.ToString(), currentUser, "Sale Session", cancellationToken);
+            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Items", "UpdateItem", item.Quantity.ToString(), updateItemDto.Quantity.ToString(), currentUser, "Sale Session", cancellationToken);
 
             _logger.LogInformation("Updated item {ItemId} in sale session {SessionId}", itemId, sessionId);
 
@@ -364,12 +364,12 @@ public class SaleSessionService : ISaleSessionService
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Recalculate totals
             await RecalculateTotalsAsync(session, cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Items", "RemoveItem", item.ProductName, "Removed", currentUser, "Sale Session", cancellationToken);
+            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Items", "RemoveItem", item.ProductName, "Removed", currentUser, "Sale Session", cancellationToken);
 
             _logger.LogInformation("Removed item {ItemId} from sale session {SessionId}", itemId, sessionId);
 
@@ -422,9 +422,9 @@ public class SaleSessionService : ISaleSessionService
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Payments", "AddPayment", null, $"Payment: {addPaymentDto.Amount}", currentUser, "Sale Session", cancellationToken);
+            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Payments", "AddPayment", null, $"Payment: {addPaymentDto.Amount}", currentUser, "Sale Session", cancellationToken);
 
             _logger.LogInformation("Added payment of {Amount} to sale session {SessionId}", addPaymentDto.Amount, sessionId);
 
@@ -471,9 +471,9 @@ public class SaleSessionService : ISaleSessionService
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Payments", "RemovePayment", payment.Amount.ToString(), "Removed", currentUser, "Sale Session", cancellationToken);
+            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Payments", "RemovePayment", payment.Amount.ToString(), "Removed", currentUser, "Sale Session", cancellationToken);
 
             _logger.LogInformation("Removed payment {PaymentId} from sale session {SessionId}", paymentId, sessionId);
 
@@ -525,9 +525,9 @@ public class SaleSessionService : ISaleSessionService
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Notes", "AddNote", null, "Note added", currentUser, "Sale Session", cancellationToken);
+            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Notes", "AddNote", null, "Note added", currentUser, "Sale Session", cancellationToken);
 
             _logger.LogInformation("Added note to sale session {SessionId}", sessionId);
 
@@ -607,9 +607,9 @@ public class SaleSessionService : ISaleSessionService
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Close", "Open", "Closed", currentUser, "Sale Session", cancellationToken);
+            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Close", "Open", "Closed", currentUser, "Sale Session", cancellationToken);
 
             _logger.LogInformation("Closed sale session {SessionId}", sessionId);
 
@@ -702,7 +702,7 @@ public class SaleSessionService : ISaleSessionService
 
         session.ModifiedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
     }
 
     private async Task<SaleSessionDto> MapToDtoAsync(SaleSession session, CancellationToken cancellationToken)

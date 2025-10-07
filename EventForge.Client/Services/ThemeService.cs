@@ -78,11 +78,10 @@ public class ThemeService : IThemeService
 {
     private readonly IJSRuntime _jsRuntime;
     private const string ThemeKey = "eventforge-theme";
-    private string _currentTheme = "light";
     private readonly Dictionary<string, ThemeInfo> _themes;
 
-    public bool IsDarkMode => _currentTheme == "dark";
-    public string CurrentTheme => _currentTheme;
+    public bool IsDarkMode => CurrentTheme == "dark";
+    public string CurrentTheme { get; private set; } = "light";
     public IReadOnlyList<ThemeInfo> AvailableThemes => _themes.Values.ToList();
 
     public event Action? OnThemeChanged;
@@ -163,19 +162,19 @@ public class ThemeService : IThemeService
             // Handle backward compatibility with old boolean values
             if (storedTheme == "dark" || storedTheme == "true")
             {
-                _currentTheme = "dark";
+                CurrentTheme = "dark";
             }
             else if (storedTheme == "light" || storedTheme == "false" || string.IsNullOrEmpty(storedTheme))
             {
-                _currentTheme = "light";
+                CurrentTheme = "light";
             }
             else if (_themes.ContainsKey(storedTheme))
             {
-                _currentTheme = storedTheme;
+                CurrentTheme = storedTheme;
             }
             else
             {
-                _currentTheme = "light"; // Default fallback
+                CurrentTheme = "light"; // Default fallback
             }
 
             // Apply theme to document
@@ -184,14 +183,14 @@ public class ThemeService : IThemeService
         catch
         {
             // Default to light mode if unable to read from localStorage
-            _currentTheme = "light";
+            CurrentTheme = "light";
         }
     }
 
     public async Task ToggleThemeAsync()
     {
         // Backward compatibility: toggle between light and dark
-        await SetThemeAsync(_currentTheme == "dark" ? "light" : "dark");
+        await SetThemeAsync(CurrentTheme == "dark" ? "light" : "dark");
     }
 
     public async Task SetThemeAsync(bool isDarkMode)
@@ -208,7 +207,7 @@ public class ThemeService : IThemeService
             themeKey = "light";
         }
 
-        _currentTheme = themeKey;
+        CurrentTheme = themeKey;
 
         try
         {
@@ -236,7 +235,7 @@ public class ThemeService : IThemeService
     {
         try
         {
-            await _jsRuntime.InvokeVoidAsync("eval", $"document.documentElement.setAttribute('data-theme', '{_currentTheme}')");
+            await _jsRuntime.InvokeVoidAsync("eval", $"document.documentElement.setAttribute('data-theme', '{CurrentTheme}')");
         }
         catch (Exception ex)
         {

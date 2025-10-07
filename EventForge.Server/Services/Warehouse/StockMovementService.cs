@@ -249,14 +249,14 @@ public class StockMovementService : IStockMovementService
             CreatedBy = currentUser
         };
 
-        _context.StockMovements.Add(movement);
+        _ = _context.StockMovements.Add(movement);
 
         // Update stock levels
         await UpdateStockLevelsForMovementAsync(movement, cancellationToken);
 
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
-        await _auditLogService.LogEntityChangeAsync("StockMovement", movement.Id, "Created", "Create",
+        _ = await _auditLogService.LogEntityChangeAsync("StockMovement", movement.Id, "Created", "Create",
             null, $"Created stock movement: {movement.MovementType}", currentUser);
 
         return (await GetMovementByIdAsync(movement.Id, cancellationToken))!;
@@ -300,9 +300,9 @@ public class StockMovementService : IStockMovementService
         }
 
         _context.StockMovements.AddRange(movements);
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
-        await _auditLogService.LogEntityChangeAsync("StockMovement", Guid.Empty, "BatchCreated", "BatchCreate",
+        _ = await _auditLogService.LogEntityChangeAsync("StockMovement", Guid.Empty, "BatchCreated", "BatchCreate",
             null, $"Created {movements.Count} stock movements", currentUser);
 
         return movements.Select(m => m.ToStockMovementDto());
@@ -575,9 +575,9 @@ public class StockMovementService : IStockMovementService
         movement.ModifiedBy = currentUser;
 
         await UpdateStockLevelsForMovementAsync(movement, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
-        await _auditLogService.LogEntityChangeAsync("StockMovement", movement.Id, "Status", "Execute",
+        _ = await _auditLogService.LogEntityChangeAsync("StockMovement", movement.Id, "Status", "Execute",
             "Planned", "Completed", currentUser);
 
         return (await GetMovementByIdAsync(movement.Id, cancellationToken))!;
@@ -631,7 +631,7 @@ public class StockMovementService : IStockMovementService
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = movement.UserId ?? "System"
                 };
-                _context.Stocks.Add(stock);
+                _ = _context.Stocks.Add(stock);
             }
             else
             {

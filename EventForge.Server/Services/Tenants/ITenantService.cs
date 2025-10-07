@@ -1,7 +1,4 @@
 namespace EventForge.Server.Services.Tenants;
-
-using EventForge.DTOs.Common;
-
 /// <summary>
 /// Interface for tenant management operations.
 /// </summary>

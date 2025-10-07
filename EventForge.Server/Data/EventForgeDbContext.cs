@@ -174,7 +174,7 @@ public class EventForgeDbContext : DbContext
                 var filter = method?.Invoke(null, new object[] { });
                 if (filter != null)
                 {
-                    modelBuilder.Entity(entityType.ClrType).HasQueryFilter((System.Linq.Expressions.LambdaExpression)filter);
+                    _ = modelBuilder.Entity(entityType.ClrType).HasQueryFilter((System.Linq.Expressions.LambdaExpression)filter);
                 }
 
                 // TODO: Add tenant filtering when ITenantContext is implemented
@@ -183,209 +183,209 @@ public class EventForgeDbContext : DbContext
         }
 
         // DocumentHeader - importi e prezzi
-        modelBuilder.Entity<DocumentHeader>().Property(x => x.AmountPaid).HasPrecision(18, 6);
-        modelBuilder.Entity<DocumentHeader>().Property(x => x.BaseCurrencyAmount).HasPrecision(18, 6);
-        modelBuilder.Entity<DocumentHeader>().Property(x => x.ExchangeRate).HasPrecision(18, 6);
-        modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalDiscount).HasPrecision(18, 6);
-        modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalDiscountAmount).HasPrecision(18, 6);
-        modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalGrossAmount).HasPrecision(18, 6);
-        modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalNetAmount).HasPrecision(18, 6);
-        modelBuilder.Entity<DocumentHeader>().Property(x => x.VatAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.AmountPaid).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.BaseCurrencyAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.ExchangeRate).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalDiscount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalDiscountAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalGrossAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalNetAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.VatAmount).HasPrecision(18, 6);
 
         // DocumentRow - prezzi e quantità
-        modelBuilder.Entity<DocumentRow>().Property(x => x.UnitPrice).HasPrecision(18, 6);
-        modelBuilder.Entity<DocumentRow>().Property(x => x.Quantity).HasPrecision(18, 6);
-        modelBuilder.Entity<DocumentRow>().Property(x => x.LineDiscount).HasPrecision(5, 2); // percentuale
-        modelBuilder.Entity<DocumentRow>().Property(x => x.VatRate).HasPrecision(5, 2); // percentuale
+        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.UnitPrice).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.Quantity).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.LineDiscount).HasPrecision(5, 2); // percentuale
+        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.VatRate).HasPrecision(5, 2); // percentuale
 
         // PriceListEntry - prezzi
-        modelBuilder.Entity<PriceListEntry>().Property(x => x.Price).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<PriceListEntry>().Property(x => x.Price).HasPrecision(18, 6);
 
         // Product - prezzi
-        modelBuilder.Entity<Product>().Property(x => x.DefaultPrice).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<Product>().Property(x => x.DefaultPrice).HasPrecision(18, 6);
 
         // Promotion - importi
-        modelBuilder.Entity<Promotion>().Property(x => x.MinOrderAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<Promotion>().Property(x => x.MinOrderAmount).HasPrecision(18, 6);
 
         // PromotionRule - importi e percentuali
-        modelBuilder.Entity<PromotionRule>().Property(x => x.DiscountAmount).HasPrecision(18, 6);
-        modelBuilder.Entity<PromotionRule>().Property(x => x.DiscountPercentage).HasPrecision(5, 2);
-        modelBuilder.Entity<PromotionRule>().Property(x => x.FixedPrice).HasPrecision(18, 6);
-        modelBuilder.Entity<PromotionRule>().Property(x => x.MinOrderAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<PromotionRule>().Property(x => x.DiscountAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<PromotionRule>().Property(x => x.DiscountPercentage).HasPrecision(5, 2);
+        _ = modelBuilder.Entity<PromotionRule>().Property(x => x.FixedPrice).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<PromotionRule>().Property(x => x.MinOrderAmount).HasPrecision(18, 6);
 
         // VatRate - percentuale
-        modelBuilder.Entity<VatRate>().Property(x => x.Percentage).HasPrecision(5, 2);
+        _ = modelBuilder.Entity<VatRate>().Property(x => x.Percentage).HasPrecision(5, 2);
 
         // Sales - SaleSession amounts
-        modelBuilder.Entity<SaleSession>().Property(x => x.OriginalTotal).HasPrecision(18, 6);
-        modelBuilder.Entity<SaleSession>().Property(x => x.DiscountAmount).HasPrecision(18, 6);
-        modelBuilder.Entity<SaleSession>().Property(x => x.FinalTotal).HasPrecision(18, 6);
-        modelBuilder.Entity<SaleSession>().Property(x => x.TaxAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<SaleSession>().Property(x => x.OriginalTotal).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<SaleSession>().Property(x => x.DiscountAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<SaleSession>().Property(x => x.FinalTotal).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<SaleSession>().Property(x => x.TaxAmount).HasPrecision(18, 6);
 
         // Sales - SaleItem amounts and quantities
-        modelBuilder.Entity<SaleItem>().Property(x => x.UnitPrice).HasPrecision(18, 6);
-        modelBuilder.Entity<SaleItem>().Property(x => x.Quantity).HasPrecision(18, 6);
-        modelBuilder.Entity<SaleItem>().Property(x => x.DiscountPercent).HasPrecision(5, 2);
-        modelBuilder.Entity<SaleItem>().Property(x => x.TaxRate).HasPrecision(5, 2);
-        modelBuilder.Entity<SaleItem>().Property(x => x.TaxAmount).HasPrecision(18, 6);
-        modelBuilder.Entity<SaleItem>().Property(x => x.TotalAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<SaleItem>().Property(x => x.UnitPrice).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<SaleItem>().Property(x => x.Quantity).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<SaleItem>().Property(x => x.DiscountPercent).HasPrecision(5, 2);
+        _ = modelBuilder.Entity<SaleItem>().Property(x => x.TaxRate).HasPrecision(5, 2);
+        _ = modelBuilder.Entity<SaleItem>().Property(x => x.TaxAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<SaleItem>().Property(x => x.TotalAmount).HasPrecision(18, 6);
 
         // Sales - SalePayment amounts
-        modelBuilder.Entity<SalePayment>().Property(x => x.Amount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<SalePayment>().Property(x => x.Amount).HasPrecision(18, 6);
 
         // DocumentHeader → BusinessParty
-        modelBuilder.Entity<DocumentHeader>()
+        _ = modelBuilder.Entity<DocumentHeader>()
             .HasOne(d => d.BusinessParty)
             .WithMany()
             .HasForeignKey(d => d.BusinessPartyId);
 
         // DocumentHeader → Address (BusinessPartyAddress)
-        modelBuilder.Entity<DocumentHeader>()
+        _ = modelBuilder.Entity<DocumentHeader>()
             .HasOne(d => d.BusinessPartyAddress)
             .WithMany()
             .HasForeignKey(d => d.BusinessPartyAddressId);
 
         // DocumentSummaryLink → DocumentHeader (Summary and Detailed)
-        modelBuilder.Entity<DocumentSummaryLink>()
+        _ = modelBuilder.Entity<DocumentSummaryLink>()
             .HasOne(l => l.SummaryDocument)
             .WithMany(h => h.SummaryDocuments)
             .HasForeignKey(l => l.SummaryDocumentId)
             .OnDelete(DeleteBehavior.Restrict);
-        modelBuilder.Entity<DocumentSummaryLink>()
+        _ = modelBuilder.Entity<DocumentSummaryLink>()
             .HasOne(l => l.DetailedDocument)
             .WithMany(h => h.IncludedInSummaries)
             .HasForeignKey("DetailedDocumentId")
             .OnDelete(DeleteBehavior.Restrict);
 
         // Event → Team
-        modelBuilder.Entity<Team>()
+        _ = modelBuilder.Entity<Team>()
             .HasOne(t => t.Event)
             .WithMany(e => e.Teams)
             .HasForeignKey(t => t.EventId);
 
         // Event → PriceList
-        modelBuilder.Entity<PriceList>()
+        _ = modelBuilder.Entity<PriceList>()
             .HasOne(p => p.Event)
             .WithMany(e => e.PriceLists)
             .HasForeignKey(p => p.EventId);
 
         // Team → TeamMember
-        modelBuilder.Entity<TeamMember>()
+        _ = modelBuilder.Entity<TeamMember>()
             .HasOne(m => m.Team)
             .WithMany(t => t.Members)
             .HasForeignKey(m => m.TeamId);
 
         // PriceList → PriceListEntry
-        modelBuilder.Entity<PriceListEntry>()
+        _ = modelBuilder.Entity<PriceListEntry>()
             .HasOne(e => e.PriceList)
             .WithMany(l => l.ProductPrices)
             .HasForeignKey(e => e.PriceListId);
 
         // Product → ProductUnit
-        modelBuilder.Entity<ProductUnit>()
+        _ = modelBuilder.Entity<ProductUnit>()
             .HasOne(u => u.Product)
             .WithMany(p => p.Units)
             .HasForeignKey(u => u.ProductId);
 
         // Product → ProductCode (prevent cascade delete to avoid SQL Server multiple cascade paths)
-        modelBuilder.Entity<ProductCode>()
+        _ = modelBuilder.Entity<ProductCode>()
             .HasOne(c => c.Product)
             .WithMany(p => p.Codes)
             .HasForeignKey(c => c.ProductId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // ProductCode → ProductUnit (optional FK for unit-specific barcodes)
-        modelBuilder.Entity<ProductCode>()
+        _ = modelBuilder.Entity<ProductCode>()
             .HasOne(c => c.ProductUnit)
             .WithMany()
             .HasForeignKey(c => c.ProductUnitId)
             .OnDelete(DeleteBehavior.SetNull);
 
         // ProductBundleItem (BundleProductId, ComponentProductId)
-        modelBuilder.Entity<ProductBundleItem>()
+        _ = modelBuilder.Entity<ProductBundleItem>()
             .HasOne(b => b.BundleProduct)
             .WithMany(p => p.BundleItems)
             .HasForeignKey(b => b.BundleProductId)
             .OnDelete(DeleteBehavior.Restrict);
-        modelBuilder.Entity<ProductBundleItem>()
+        _ = modelBuilder.Entity<ProductBundleItem>()
             .HasOne(b => b.ComponentProduct)
             .WithMany(p => p.IncludedInBundles)
             .HasForeignKey(b => b.ComponentProductId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // StoreUserGroup ↔ StoreUserPrivilege (many-to-many)
-        modelBuilder.Entity<StoreUserGroup>()
+        _ = modelBuilder.Entity<StoreUserGroup>()
             .HasMany(g => g.Privileges)
             .WithMany(p => p.Groups);
 
         // StoreUserGroup → StoreUser
-        modelBuilder.Entity<StoreUser>()
+        _ = modelBuilder.Entity<StoreUser>()
             .HasOne(u => u.CashierGroup)
             .WithMany(g => g.Cashiers)
             .HasForeignKey(u => u.CashierGroupId);
 
         // StoreUser → DocumentReference relationship (for user photos) - Issue #315
-        modelBuilder.Entity<StoreUser>()
+        _ = modelBuilder.Entity<StoreUser>()
             .HasOne(u => u.PhotoDocument)
             .WithMany()
             .HasForeignKey(u => u.PhotoDocumentId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // StoreUser photo document index
-        modelBuilder.Entity<StoreUser>()
+        _ = modelBuilder.Entity<StoreUser>()
             .HasIndex(u => u.PhotoDocumentId)
             .HasDatabaseName("IX_StoreUser_PhotoDocumentId");
 
         // StoreUserGroup → DocumentReference relationship (for group logos) - Issue #315
-        modelBuilder.Entity<StoreUserGroup>()
+        _ = modelBuilder.Entity<StoreUserGroup>()
             .HasOne(g => g.LogoDocument)
             .WithMany()
             .HasForeignKey(g => g.LogoDocumentId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // StoreUserGroup logo document index
-        modelBuilder.Entity<StoreUserGroup>()
+        _ = modelBuilder.Entity<StoreUserGroup>()
             .HasIndex(g => g.LogoDocumentId)
             .HasDatabaseName("IX_StoreUserGroup_LogoDocumentId");
 
         // StorePos → DocumentReference relationship (for POS images) - Issue #315
-        modelBuilder.Entity<StorePos>()
+        _ = modelBuilder.Entity<StorePos>()
             .HasOne(p => p.ImageDocument)
             .WithMany()
             .HasForeignKey(p => p.ImageDocumentId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // StorePos image document index
-        modelBuilder.Entity<StorePos>()
+        _ = modelBuilder.Entity<StorePos>()
             .HasIndex(p => p.ImageDocumentId)
             .HasDatabaseName("IX_StorePos_ImageDocumentId");
 
         // Station → Printer
-        modelBuilder.Entity<Printer>()
+        _ = modelBuilder.Entity<Printer>()
             .HasOne(p => p.Station)
             .WithMany(s => s.Printers)
             .HasForeignKey(p => p.StationId);
 
         // StorageFacility → StorageLocation
-        modelBuilder.Entity<StorageLocation>()
+        _ = modelBuilder.Entity<StorageLocation>()
             .HasOne(l => l.Warehouse)
             .WithMany(f => f.Locations)
             .HasForeignKey(l => l.WarehouseId);
 
         // Promotion → PromotionRule
-        modelBuilder.Entity<PromotionRule>()
+        _ = modelBuilder.Entity<PromotionRule>()
             .HasOne(r => r.Promotion)
             .WithMany(p => p.Rules)
             .HasForeignKey(r => r.PromotionId);
 
         // PromotionRule → PromotionRuleProduct
-        modelBuilder.Entity<PromotionRuleProduct>()
+        _ = modelBuilder.Entity<PromotionRuleProduct>()
             .HasOne(rp => rp.PromotionRule)
             .WithMany(r => r.Products)
             .HasForeignKey(rp => rp.PromotionRuleId);
 
         // PromotionRuleProduct → Product
-        modelBuilder.Entity<PromotionRuleProduct>()
+        _ = modelBuilder.Entity<PromotionRuleProduct>()
             .HasOne(rp => rp.Product)
             .WithMany()
             .HasForeignKey(rp => rp.ProductId);
@@ -399,27 +399,27 @@ public class EventForgeDbContext : DbContext
         // Authentication & Authorization relationships
 
         // User constraints - updated for tenant-aware uniqueness
-        modelBuilder.Entity<User>()
+        _ = modelBuilder.Entity<User>()
             .HasIndex(u => new { u.Username, u.TenantId })
             .IsUnique();
-        modelBuilder.Entity<User>()
+        _ = modelBuilder.Entity<User>()
             .HasIndex(u => new { u.Email, u.TenantId })
             .IsUnique();
 
         // User -> Tenant relationship
-        modelBuilder.Entity<User>()
+        _ = modelBuilder.Entity<User>()
             .HasOne(u => u.Tenant)
             .WithMany()
             .HasForeignKey(u => u.TenantId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Role constraints
-        modelBuilder.Entity<Role>()
+        _ = modelBuilder.Entity<Role>()
             .HasIndex(r => r.Name)
             .IsUnique();
 
         // Permission constraints
-        modelBuilder.Entity<Permission>()
+        _ = modelBuilder.Entity<Permission>()
             .HasIndex(p => new { p.Category, p.Resource, p.Action })
             .IsUnique();
 
@@ -428,13 +428,13 @@ public class EventForgeDbContext : DbContext
 
         // UserRole relationships - using Cascade for UserRole deletion is safe
         // because UserRole is a junction table and doesn't create cycles
-        modelBuilder.Entity<UserRole>()
+        _ = modelBuilder.Entity<UserRole>()
             .HasOne(ur => ur.User)
             .WithMany(u => u.UserRoles)
             .HasForeignKey(ur => ur.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<UserRole>()
+        _ = modelBuilder.Entity<UserRole>()
             .HasOne(ur => ur.Role)
             .WithMany(r => r.UserRoles)
             .HasForeignKey(ur => ur.RoleId)
@@ -442,13 +442,13 @@ public class EventForgeDbContext : DbContext
 
         // RolePermission relationships - using Cascade for RolePermission deletion is safe
         // because RolePermission is a junction table and doesn't create cycles
-        modelBuilder.Entity<RolePermission>()
+        _ = modelBuilder.Entity<RolePermission>()
             .HasOne(rp => rp.Role)
             .WithMany(r => r.RolePermissions)
             .HasForeignKey(rp => rp.RoleId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<RolePermission>()
+        _ = modelBuilder.Entity<RolePermission>()
             .HasOne(rp => rp.Permission)
             .WithMany(p => p.RolePermissions)
             .HasForeignKey(rp => rp.PermissionId)
@@ -456,7 +456,7 @@ public class EventForgeDbContext : DbContext
 
         // LoginAudit relationships - using SetNull to preserve audit history 
         // even if the user is deleted (which should be rare due to soft delete)
-        modelBuilder.Entity<LoginAudit>()
+        _ = modelBuilder.Entity<LoginAudit>()
             .HasOne(la => la.User)
             .WithMany(u => u.LoginAudits)
             .HasForeignKey(la => la.UserId)
@@ -465,62 +465,62 @@ public class EventForgeDbContext : DbContext
         // Multi-tenancy entity configurations
 
         // Tenant constraints
-        modelBuilder.Entity<Tenant>()
+        _ = modelBuilder.Entity<Tenant>()
             .HasIndex(t => t.Name)
             .IsUnique();
 
-        modelBuilder.Entity<Tenant>()
+        _ = modelBuilder.Entity<Tenant>()
             .HasIndex(t => t.Code)
             .IsUnique();
 
         // AdminTenant relationships - manages which users can administer which tenants
         // Cascade delete on User to remove admin privileges when user is deleted
         // Restrict delete on Tenant to prevent accidental tenant deletion if admins exist
-        modelBuilder.Entity<AdminTenant>()
+        _ = modelBuilder.Entity<AdminTenant>()
             .HasOne(at => at.User)
             .WithMany(u => u.AdminTenants)
             .HasForeignKey(at => at.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<AdminTenant>()
+        _ = modelBuilder.Entity<AdminTenant>()
             .HasOne(at => at.ManagedTenant)
             .WithMany(t => t.AdminTenants)
             .HasForeignKey(at => at.ManagedTenantId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // AdminTenant composite index for uniqueness
-        modelBuilder.Entity<AdminTenant>()
+        _ = modelBuilder.Entity<AdminTenant>()
             .HasIndex(at => new { at.UserId, at.ManagedTenantId })
             .IsUnique();
 
         // AuditTrail relationships - preserve audit history integrity
         // All audit relationships use Restrict to prevent loss of audit history
-        modelBuilder.Entity<AuditTrail>()
+        _ = modelBuilder.Entity<AuditTrail>()
             .HasOne(at => at.PerformedByUser)
             .WithMany(u => u.PerformedAuditTrails)
             .HasForeignKey(at => at.PerformedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        modelBuilder.Entity<AuditTrail>()
+        _ = modelBuilder.Entity<AuditTrail>()
             .HasOne(at => at.SourceTenant)
             .WithMany()
             .HasForeignKey(at => at.SourceTenantId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        modelBuilder.Entity<AuditTrail>()
+        _ = modelBuilder.Entity<AuditTrail>()
             .HasOne(at => at.TargetTenant)
             .WithMany()
             .HasForeignKey(at => at.TargetTenantId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        modelBuilder.Entity<AuditTrail>()
+        _ = modelBuilder.Entity<AuditTrail>()
             .HasOne(at => at.TargetUser)
             .WithMany(u => u.TargetedAuditTrails)
             .HasForeignKey(at => at.TargetUserId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Notification relationships
-        modelBuilder.Entity<NotificationRecipient>()
+        _ = modelBuilder.Entity<NotificationRecipient>()
             .HasOne(nr => nr.Notification)
             .WithMany(n => n.Recipients)
             .HasForeignKey(nr => nr.NotificationId)
@@ -529,12 +529,12 @@ public class EventForgeDbContext : DbContext
         // Note: NotificationRecipient.UserId references User but no FK is configured
         // This is intentional to avoid cascade delete cycles since User entities
         // should not be deleted when notifications are deleted
-        modelBuilder.Entity<NotificationRecipient>()
+        _ = modelBuilder.Entity<NotificationRecipient>()
             .HasIndex(nr => nr.UserId)
             .HasDatabaseName("IX_NotificationRecipients_UserId");
 
         // Chat relationships
-        modelBuilder.Entity<ChatMember>()
+        _ = modelBuilder.Entity<ChatMember>()
             .HasOne(cm => cm.ChatThread)
             .WithMany(ct => ct.Members)
             .HasForeignKey(cm => cm.ChatThreadId)
@@ -542,11 +542,11 @@ public class EventForgeDbContext : DbContext
 
         // Note: ChatMember.UserId references User but no FK is configured
         // This is intentional to avoid cascade delete cycles with User entity
-        modelBuilder.Entity<ChatMember>()
+        _ = modelBuilder.Entity<ChatMember>()
             .HasIndex(cm => cm.UserId)
             .HasDatabaseName("IX_ChatMembers_UserId");
 
-        modelBuilder.Entity<ChatMessage>()
+        _ = modelBuilder.Entity<ChatMessage>()
             .HasOne(cm => cm.ChatThread)
             .WithMany(ct => ct.Messages)
             .HasForeignKey(cm => cm.ChatThreadId)
@@ -554,26 +554,26 @@ public class EventForgeDbContext : DbContext
 
         // Note: ChatMessage.SenderId references User but no FK is configured
         // This is intentional to avoid cascade delete cycles with User entity
-        modelBuilder.Entity<ChatMessage>()
+        _ = modelBuilder.Entity<ChatMessage>()
             .HasIndex(cm => cm.SenderId)
             .HasDatabaseName("IX_ChatMessages_SenderId");
 
         // Self-referential relationship for message replies
         // Using SetNull to prevent cascade delete cycles when parent messages are deleted
         // This ensures that when a message is deleted, its replies remain but lose the reference
-        modelBuilder.Entity<ChatMessage>()
+        _ = modelBuilder.Entity<ChatMessage>()
             .HasOne(cm => cm.ReplyToMessage)
             .WithMany(m => m.Replies)
             .HasForeignKey(cm => cm.ReplyToMessageId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        modelBuilder.Entity<MessageAttachment>()
+        _ = modelBuilder.Entity<MessageAttachment>()
             .HasOne(ma => ma.Message)
             .WithMany(m => m.Attachments)
             .HasForeignKey(ma => ma.MessageId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<MessageReadReceipt>()
+        _ = modelBuilder.Entity<MessageReadReceipt>()
             .HasOne(mrr => mrr.Message)
             .WithMany(m => m.ReadReceipts)
             .HasForeignKey(mrr => mrr.MessageId)
@@ -581,191 +581,191 @@ public class EventForgeDbContext : DbContext
 
         // Note: MessageReadReceipt.UserId references User but no FK is configured
         // This is intentional to avoid cascade delete cycles with User entity
-        modelBuilder.Entity<MessageReadReceipt>()
+        _ = modelBuilder.Entity<MessageReadReceipt>()
             .HasIndex(mrr => mrr.UserId)
             .HasDatabaseName("IX_MessageReadReceipts_UserId");
 
         // Configuration & System Management relationships
         // BackupOperation references User but doesn't use FK constraint to avoid cascade cycles
         // Using index only for performance while preserving referential flexibility
-        modelBuilder.Entity<BackupOperation>()
+        _ = modelBuilder.Entity<BackupOperation>()
             .HasIndex(bo => bo.StartedByUserId)
             .HasDatabaseName("IX_BackupOperations_StartedByUserId");
 
         // Unique constraints for chat and notification entities
-        modelBuilder.Entity<NotificationRecipient>()
+        _ = modelBuilder.Entity<NotificationRecipient>()
             .HasIndex(nr => new { nr.NotificationId, nr.UserId })
             .IsUnique();
 
-        modelBuilder.Entity<ChatMember>()
+        _ = modelBuilder.Entity<ChatMember>()
             .HasIndex(cm => new { cm.ChatThreadId, cm.UserId })
             .IsUnique();
 
-        modelBuilder.Entity<MessageReadReceipt>()
+        _ = modelBuilder.Entity<MessageReadReceipt>()
             .HasIndex(mrr => new { mrr.MessageId, mrr.UserId })
             .IsUnique();
 
         // Licensing System relationships
 
         // License constraints
-        modelBuilder.Entity<License>()
+        _ = modelBuilder.Entity<License>()
             .HasIndex(l => l.Name)
             .IsUnique();
 
         // LicenseFeature relationships
-        modelBuilder.Entity<LicenseFeature>()
+        _ = modelBuilder.Entity<LicenseFeature>()
             .HasOne(lf => lf.License)
             .WithMany(l => l.LicenseFeatures)
             .HasForeignKey(lf => lf.LicenseId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // LicenseFeature constraints
-        modelBuilder.Entity<LicenseFeature>()
+        _ = modelBuilder.Entity<LicenseFeature>()
             .HasIndex(lf => new { lf.LicenseId, lf.Name })
             .IsUnique();
 
         // LicenseFeaturePermission relationships
-        modelBuilder.Entity<LicenseFeaturePermission>()
+        _ = modelBuilder.Entity<LicenseFeaturePermission>()
             .HasOne(lfp => lfp.LicenseFeature)
             .WithMany(lf => lf.LicenseFeaturePermissions)
             .HasForeignKey(lfp => lfp.LicenseFeatureId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<LicenseFeaturePermission>()
+        _ = modelBuilder.Entity<LicenseFeaturePermission>()
             .HasOne(lfp => lfp.Permission)
             .WithMany(p => p.LicenseFeaturePermissions)
             .HasForeignKey(lfp => lfp.PermissionId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // LicenseFeaturePermission constraints
-        modelBuilder.Entity<LicenseFeaturePermission>()
+        _ = modelBuilder.Entity<LicenseFeaturePermission>()
             .HasIndex(lfp => new { lfp.LicenseFeatureId, lfp.PermissionId })
             .IsUnique();
 
         // TenantLicense relationships
-        modelBuilder.Entity<TenantLicense>()
+        _ = modelBuilder.Entity<TenantLicense>()
             .HasOne(tl => tl.Tenant)
             .WithMany(t => t.TenantLicenses)
             .HasForeignKey(tl => tl.TargetTenantId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<TenantLicense>()
+        _ = modelBuilder.Entity<TenantLicense>()
             .HasOne(tl => tl.License)
             .WithMany(l => l.TenantLicenses)
             .HasForeignKey(tl => tl.LicenseId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // TenantLicense constraints - only one active license per tenant
-        modelBuilder.Entity<TenantLicense>()
+        _ = modelBuilder.Entity<TenantLicense>()
             .HasIndex(tl => new { tl.TargetTenantId, tl.IsAssignmentActive })
             .IsUnique()
             .HasFilter("[IsAssignmentActive] = 1");
 
         // LogEntry configuration for Serilog logs table
-        modelBuilder.Entity<LogEntry>(entity =>
+        _ = modelBuilder.Entity<LogEntry>(entity =>
         {
-            entity.ToTable("Logs");
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.TimeStamp).IsRequired();
-            entity.Property(e => e.Level).HasMaxLength(50).IsRequired();
-            entity.Property(e => e.Message).IsRequired();
-            entity.Property(e => e.Exception);
-            entity.Property(e => e.MachineName).HasMaxLength(100);
-            entity.Property(e => e.UserName).HasMaxLength(100);
+            _ = entity.ToTable("Logs");
+            _ = entity.HasKey(e => e.Id);
+            _ = entity.Property(e => e.TimeStamp).IsRequired();
+            _ = entity.Property(e => e.Level).HasMaxLength(50).IsRequired();
+            _ = entity.Property(e => e.Message).IsRequired();
+            _ = entity.Property(e => e.Exception);
+            _ = entity.Property(e => e.MachineName).HasMaxLength(100);
+            _ = entity.Property(e => e.UserName).HasMaxLength(100);
         });
 
-        modelBuilder.Entity<DocumentHeader>()
+        _ = modelBuilder.Entity<DocumentHeader>()
             .HasOne(dh => dh.CurrentWorkflowExecution)
             .WithMany() // nessuna inverse navigation
             .HasForeignKey(dh => dh.CurrentWorkflowExecutionId)
             .OnDelete(DeleteBehavior.SetNull);
 
         // Indice sulla FK per performance
-        modelBuilder.Entity<DocumentHeader>()
+        _ = modelBuilder.Entity<DocumentHeader>()
             .HasIndex(dh => dh.CurrentWorkflowExecutionId)
             .HasDatabaseName("IX_DocumentHeaders_CurrentWorkflowExecutionId");
 
         // DocumentWorkflowExecution → DocumentHeader (storico esecuzioni di un documento)
-        modelBuilder.Entity<DocumentWorkflowExecution>()
+        _ = modelBuilder.Entity<DocumentWorkflowExecution>()
             .HasOne(dwe => dwe.DocumentHeader)
             .WithMany() // oppure .WithMany(dh => dh.WorkflowExecutions) se esiste la collection
             .HasForeignKey(dwe => dwe.DocumentHeaderId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Indice utile per join su storico
-        modelBuilder.Entity<DocumentWorkflowExecution>()
+        _ = modelBuilder.Entity<DocumentWorkflowExecution>()
             .HasIndex(dwe => dwe.DocumentHeaderId)
             .HasDatabaseName("IX_DocumentWorkflowExecutions_DocumentHeaderId");
 
         // DocumentVersion configurations
-        modelBuilder.Entity<DocumentVersion>()
+        _ = modelBuilder.Entity<DocumentVersion>()
             .HasOne(dv => dv.DocumentHeader)
             .WithMany(dh => dh.Versions)
             .HasForeignKey(dv => dv.DocumentHeaderId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<DocumentVersion>()
+        _ = modelBuilder.Entity<DocumentVersion>()
             .HasIndex(dv => dv.DocumentHeaderId)
             .HasDatabaseName("IX_DocumentVersions_DocumentHeaderId");
 
-        modelBuilder.Entity<DocumentVersion>()
+        _ = modelBuilder.Entity<DocumentVersion>()
             .HasIndex(dv => dv.VersionNumber)
             .HasDatabaseName("IX_DocumentVersions_VersionNumber");
 
         // DocumentReminder configurations
-        modelBuilder.Entity<DocumentReminder>()
+        _ = modelBuilder.Entity<DocumentReminder>()
             .HasOne(dr => dr.DocumentHeader)
             .WithMany(dh => dh.Reminders)
             .HasForeignKey(dr => dr.DocumentHeaderId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<DocumentReminder>()
+        _ = modelBuilder.Entity<DocumentReminder>()
             .HasIndex(dr => dr.DocumentHeaderId)
             .HasDatabaseName("IX_DocumentReminders_DocumentHeaderId");
 
-        modelBuilder.Entity<DocumentReminder>()
+        _ = modelBuilder.Entity<DocumentReminder>()
             .HasIndex(dr => dr.TargetDate)
             .HasDatabaseName("IX_DocumentReminders_TargetDate");
 
         // DocumentSchedule configurations
-        modelBuilder.Entity<DocumentSchedule>()
+        _ = modelBuilder.Entity<DocumentSchedule>()
             .HasOne(ds => ds.DocumentHeader)
             .WithMany(dh => dh.Schedules)
             .HasForeignKey(ds => ds.DocumentHeaderId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        modelBuilder.Entity<DocumentSchedule>()
+        _ = modelBuilder.Entity<DocumentSchedule>()
             .HasOne(ds => ds.DocumentType)
             .WithMany()
             .HasForeignKey(ds => ds.DocumentTypeId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        modelBuilder.Entity<DocumentSchedule>()
+        _ = modelBuilder.Entity<DocumentSchedule>()
             .HasIndex(ds => ds.DocumentHeaderId)
             .HasDatabaseName("IX_DocumentSchedules_DocumentHeaderId");
 
-        modelBuilder.Entity<DocumentSchedule>()
+        _ = modelBuilder.Entity<DocumentSchedule>()
             .HasIndex(ds => ds.NextExecutionDate)
             .HasDatabaseName("IX_DocumentSchedules_NextExecutionDate");
 
         // Team Extensions Relationships
 
         // Team → Coach Contact
-        modelBuilder.Entity<Team>()
+        _ = modelBuilder.Entity<Team>()
             .HasOne(t => t.CoachContact)
             .WithMany()
             .HasForeignKey(t => t.CoachContactId)
             .OnDelete(DeleteBehavior.SetNull);
 
         // Team → Team Logo Document
-        modelBuilder.Entity<Team>()
+        _ = modelBuilder.Entity<Team>()
             .HasOne(t => t.TeamLogoDocument)
             .WithMany()
             .HasForeignKey(t => t.TeamLogoDocumentId)
             .OnDelete(DeleteBehavior.SetNull);
 
         // TeamMember → Photo Document
-        modelBuilder.Entity<TeamMember>()
+        _ = modelBuilder.Entity<TeamMember>()
             .HasOne(m => m.PhotoDocument)
             .WithMany()
             .HasForeignKey(m => m.PhotoDocumentId)
@@ -774,33 +774,33 @@ public class EventForgeDbContext : DbContext
         // DocumentReference relationships
         // DocumentReference uses a polymorphic relationship pattern with OwnerId/OwnerType
         // We'll handle the relationships through service layer queries rather than navigation properties
-        modelBuilder.Entity<DocumentReference>()
+        _ = modelBuilder.Entity<DocumentReference>()
             .Ignore(d => d.Team)
             .Ignore(d => d.TeamMember);
 
         // MembershipCard → TeamMember
-        modelBuilder.Entity<MembershipCard>()
+        _ = modelBuilder.Entity<MembershipCard>()
             .HasOne(mc => mc.TeamMember)
             .WithMany(m => m.MembershipCards)
             .HasForeignKey(mc => mc.TeamMemberId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // MembershipCard → DocumentReference
-        modelBuilder.Entity<MembershipCard>()
+        _ = modelBuilder.Entity<MembershipCard>()
             .HasOne(mc => mc.DocumentReference)
             .WithMany()
             .HasForeignKey(mc => mc.DocumentReferenceId)
             .OnDelete(DeleteBehavior.SetNull);
 
         // InsurancePolicy → TeamMember
-        modelBuilder.Entity<InsurancePolicy>()
+        _ = modelBuilder.Entity<InsurancePolicy>()
             .HasOne(ip => ip.TeamMember)
             .WithMany(m => m.InsurancePolicies)
             .HasForeignKey(ip => ip.TeamMemberId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // InsurancePolicy → DocumentReference
-        modelBuilder.Entity<InsurancePolicy>()
+        _ = modelBuilder.Entity<InsurancePolicy>()
             .HasOne(ip => ip.DocumentReference)
             .WithMany()
             .HasForeignKey(ip => ip.DocumentReferenceId)
@@ -809,114 +809,114 @@ public class EventForgeDbContext : DbContext
         // Unique constraints and indexes
 
         // Jersey number uniqueness within team
-        modelBuilder.Entity<TeamMember>()
+        _ = modelBuilder.Entity<TeamMember>()
             .HasIndex(m => new { m.TeamId, m.JerseyNumber })
             .IsUnique()
             .HasFilter("[JerseyNumber] IS NOT NULL")
             .HasDatabaseName("IX_TeamMembers_TeamId_JerseyNumber_Unique");
 
         // Contact purpose index for efficient queries
-        modelBuilder.Entity<Contact>()
+        _ = modelBuilder.Entity<Contact>()
             .HasIndex(c => new { c.OwnerId, c.OwnerType, c.Purpose })
             .HasDatabaseName("IX_Contacts_Owner_Purpose");
 
         // DocumentReference type and owner index
-        modelBuilder.Entity<DocumentReference>()
+        _ = modelBuilder.Entity<DocumentReference>()
             .HasIndex(d => new { d.OwnerId, d.OwnerType, d.Type })
             .HasDatabaseName("IX_DocumentReferences_Owner_Type");
 
         // Brand, Model, ProductSupplier configurations
 
         // Brand index
-        modelBuilder.Entity<Brand>()
+        _ = modelBuilder.Entity<Brand>()
             .HasIndex(b => b.Name)
             .HasDatabaseName("IX_Brand_Name");
 
         // Model → Brand relationship
-        modelBuilder.Entity<Model>()
+        _ = modelBuilder.Entity<Model>()
             .HasOne(m => m.Brand)
             .WithMany(b => b.Models)
             .HasForeignKey(m => m.BrandId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Model index
-        modelBuilder.Entity<Model>()
+        _ = modelBuilder.Entity<Model>()
             .HasIndex(m => new { m.BrandId, m.Name })
             .HasDatabaseName("IX_Model_BrandId_Name");
 
         // Product → Brand relationship
-        modelBuilder.Entity<Product>()
+        _ = modelBuilder.Entity<Product>()
             .HasOne(p => p.Brand)
             .WithMany(b => b.Products)
             .HasForeignKey(p => p.BrandId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Product → Model relationship
-        modelBuilder.Entity<Product>()
+        _ = modelBuilder.Entity<Product>()
             .HasOne(p => p.Model)
             .WithMany(m => m.Products)
             .HasForeignKey(p => p.ModelId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Product indexes for Brand and Model
-        modelBuilder.Entity<Product>()
+        _ = modelBuilder.Entity<Product>()
             .HasIndex(p => p.BrandId)
             .HasDatabaseName("IX_Product_BrandId");
 
-        modelBuilder.Entity<Product>()
+        _ = modelBuilder.Entity<Product>()
             .HasIndex(p => p.ModelId)
             .HasDatabaseName("IX_Product_ModelId");
 
-        modelBuilder.Entity<Product>()
+        _ = modelBuilder.Entity<Product>()
             .HasIndex(p => p.PreferredSupplierId)
             .HasDatabaseName("IX_Product_PreferredSupplierId");
 
         // ProductSupplier → Product relationship
-        modelBuilder.Entity<ProductSupplier>()
+        _ = modelBuilder.Entity<ProductSupplier>()
             .HasOne(ps => ps.Product)
             .WithMany(p => p.Suppliers)
             .HasForeignKey(ps => ps.ProductId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // ProductSupplier → BusinessParty (Supplier) relationship
-        modelBuilder.Entity<ProductSupplier>()
+        _ = modelBuilder.Entity<ProductSupplier>()
             .HasOne(ps => ps.Supplier)
             .WithMany()
             .HasForeignKey(ps => ps.SupplierId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // ProductSupplier indexes
-        modelBuilder.Entity<ProductSupplier>()
+        _ = modelBuilder.Entity<ProductSupplier>()
             .HasIndex(ps => ps.ProductId)
             .HasDatabaseName("IX_ProductSupplier_ProductId");
 
-        modelBuilder.Entity<ProductSupplier>()
+        _ = modelBuilder.Entity<ProductSupplier>()
             .HasIndex(ps => ps.SupplierId)
             .HasDatabaseName("IX_ProductSupplier_SupplierId");
 
-        modelBuilder.Entity<ProductSupplier>()
+        _ = modelBuilder.Entity<ProductSupplier>()
             .HasIndex(ps => new { ps.ProductId, ps.Preferred })
             .HasDatabaseName("IX_ProductSupplier_ProductId_Preferred");
 
         // ProductSupplier decimal precision
-        modelBuilder.Entity<ProductSupplier>().Property(ps => ps.UnitCost).HasPrecision(18, 6);
-        modelBuilder.Entity<ProductSupplier>().Property(ps => ps.LastPurchasePrice).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<ProductSupplier>().Property(ps => ps.UnitCost).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<ProductSupplier>().Property(ps => ps.LastPurchasePrice).HasPrecision(18, 6);
 
         // Product reorder parameters decimal precision
-        modelBuilder.Entity<Product>().Property(p => p.ReorderPoint).HasPrecision(18, 6);
-        modelBuilder.Entity<Product>().Property(p => p.SafetyStock).HasPrecision(18, 6);
-        modelBuilder.Entity<Product>().Property(p => p.TargetStockLevel).HasPrecision(18, 6);
-        modelBuilder.Entity<Product>().Property(p => p.AverageDailyDemand).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<Product>().Property(p => p.ReorderPoint).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<Product>().Property(p => p.SafetyStock).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<Product>().Property(p => p.TargetStockLevel).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<Product>().Property(p => p.AverageDailyDemand).HasPrecision(18, 6);
 
         // Product → DocumentReference relationship (for product images)
-        modelBuilder.Entity<Product>()
+        _ = modelBuilder.Entity<Product>()
             .HasOne(p => p.ImageDocument)
             .WithMany()
             .HasForeignKey(p => p.ImageDocumentId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Product image document index
-        modelBuilder.Entity<Product>()
+        _ = modelBuilder.Entity<Product>()
             .HasIndex(p => p.ImageDocumentId)
             .HasDatabaseName("IX_Product_ImageDocumentId");
     }
@@ -1000,7 +1000,7 @@ public class EventForgeDbContext : DbContext
         if (auditEntries.Any())
         {
             EntityChangeLogs.AddRange(auditEntries);
-            await base.SaveChangesAsync(cancellationToken);
+            _ = await base.SaveChangesAsync(cancellationToken);
         }
 
         return result;

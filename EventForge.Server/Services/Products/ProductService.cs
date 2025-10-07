@@ -155,11 +155,11 @@ public class ProductService : IProductService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.Products.Add(product);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.Products.Add(product);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the created product
-            await _auditLogService.TrackEntityChangesAsync(product, "Create", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(product, "Create", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Product created with ID {ProductId} by user {User}.", product.Id, currentUser);
 
@@ -254,10 +254,10 @@ public class ProductService : IProductService
             product.ModifiedBy = currentUser;
             product.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the updated product
-            await _auditLogService.TrackEntityChangesAsync(product, "Update", currentUser, originalProduct, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(product, "Update", currentUser, originalProduct, cancellationToken);
 
             _logger.LogInformation("Product {ProductId} updated by user {User}.", id, currentUser);
 
@@ -347,10 +347,10 @@ public class ProductService : IProductService
                 bundleItem.DeletedAt = DateTime.UtcNow;
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the deleted product
-            await _auditLogService.TrackEntityChangesAsync(product, "Delete", currentUser, originalProduct, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(product, "Delete", currentUser, originalProduct, cancellationToken);
 
             _logger.LogInformation("Product {ProductId} deleted by user {User}.", id, currentUser);
 
@@ -451,11 +451,11 @@ public class ProductService : IProductService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.ProductCodes.Add(productCode);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.ProductCodes.Add(productCode);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the created product code
-            await _auditLogService.TrackEntityChangesAsync(productCode, "Create", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(productCode, "Create", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Product code created with ID {ProductCodeId} for product {ProductId} by user {User}.",
                 productCode.Id, createProductCodeDto.ProductId, currentUser);
@@ -510,10 +510,10 @@ public class ProductService : IProductService
             productCode.ModifiedBy = currentUser;
             productCode.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the updated product code
-            await _auditLogService.TrackEntityChangesAsync(productCode, "Update", currentUser, originalProductCode, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(productCode, "Update", currentUser, originalProductCode, cancellationToken);
 
             _logger.LogInformation("Product code {ProductCodeId} updated by user {User}.", id, currentUser);
 
@@ -564,10 +564,10 @@ public class ProductService : IProductService
             productCode.DeletedBy = currentUser;
             productCode.DeletedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the deleted product code
-            await _auditLogService.TrackEntityChangesAsync(productCode, "Delete", currentUser, originalProductCode, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(productCode, "Delete", currentUser, originalProductCode, cancellationToken);
 
             _logger.LogInformation("Product code {ProductCodeId} deleted by user {User}.", id, currentUser);
 
@@ -642,11 +642,11 @@ public class ProductService : IProductService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.ProductUnits.Add(productUnit);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.ProductUnits.Add(productUnit);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the created product unit
-            await _auditLogService.TrackEntityChangesAsync(productUnit, "Create", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(productUnit, "Create", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Product unit created with ID {ProductUnitId} for product {ProductId} by user {User}.",
                 productUnit.Id, createProductUnitDto.ProductId, currentUser);
@@ -701,10 +701,10 @@ public class ProductService : IProductService
             productUnit.ModifiedBy = currentUser;
             productUnit.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the updated product unit
-            await _auditLogService.TrackEntityChangesAsync(productUnit, "Update", currentUser, originalProductUnit, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(productUnit, "Update", currentUser, originalProductUnit, cancellationToken);
 
             _logger.LogInformation("Product unit {ProductUnitId} updated by user {User}.", id, currentUser);
 
@@ -756,10 +756,10 @@ public class ProductService : IProductService
             productUnit.DeletedBy = currentUser;
             productUnit.DeletedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the deleted product unit
-            await _auditLogService.TrackEntityChangesAsync(productUnit, "Delete", currentUser, originalProductUnit, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(productUnit, "Delete", currentUser, originalProductUnit, cancellationToken);
 
             _logger.LogInformation("Product unit {ProductUnitId} deleted by user {User}.", id, currentUser);
 
@@ -837,11 +837,11 @@ public class ProductService : IProductService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.ProductBundleItems.Add(bundleItem);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.ProductBundleItems.Add(bundleItem);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the created bundle item
-            await _auditLogService.TrackEntityChangesAsync(bundleItem, "Create", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(bundleItem, "Create", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Bundle item created with ID {BundleItemId} for bundle {BundleProductId} by user {User}.",
                 bundleItem.Id, createProductBundleItemDto.BundleProductId, currentUser);
@@ -898,10 +898,10 @@ public class ProductService : IProductService
             bundleItem.ModifiedBy = currentUser;
             bundleItem.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the updated bundle item
-            await _auditLogService.TrackEntityChangesAsync(bundleItem, "Update", currentUser, originalBundleItem, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(bundleItem, "Update", currentUser, originalBundleItem, cancellationToken);
 
             _logger.LogInformation("Bundle item {BundleItemId} updated by user {User}.", id, currentUser);
 
@@ -951,10 +951,10 @@ public class ProductService : IProductService
             bundleItem.DeletedBy = currentUser;
             bundleItem.DeletedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the deleted bundle item
-            await _auditLogService.TrackEntityChangesAsync(bundleItem, "Delete", currentUser, originalBundleItem, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(bundleItem, "Delete", currentUser, originalBundleItem, cancellationToken);
 
             _logger.LogInformation("Bundle item {BundleItemId} deleted by user {User}.", id, currentUser);
 
@@ -990,7 +990,7 @@ public class ProductService : IProductService
             product.ModifiedAt = DateTime.UtcNow;
             product.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Product {ProductId} image updated successfully by user {User}.", productId, currentUser);
             return MapToProductDto(product);
@@ -1031,7 +1031,7 @@ public class ProductService : IProductService
 
             // Save to wwwroot/images/products (in production, use cloud storage)
             var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "products");
-            Directory.CreateDirectory(uploadsFolder);
+            _ = Directory.CreateDirectory(uploadsFolder);
 
             var filePath = Path.Combine(uploadsFolder, fileName);
             var storageKey = $"/images/products/{fileName}";
@@ -1074,19 +1074,19 @@ public class ProductService : IProductService
                         File.Delete(oldFilePath);
                     }
 
-                    _context.DocumentReferences.Remove(oldDocument);
+                    _ = _context.DocumentReferences.Remove(oldDocument);
                 }
             }
 
-            _context.DocumentReferences.Add(documentReference);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.DocumentReferences.Add(documentReference);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Update product with new DocumentReference ID
             product.ImageDocumentId = documentReference.Id;
             product.ModifiedAt = DateTime.UtcNow;
             product.ModifiedBy = "System";
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Product {ProductId} image uploaded successfully as DocumentReference {DocumentId}.", productId, documentReference.Id);
 
@@ -1158,14 +1158,14 @@ public class ProductService : IProductService
             }
 
             // Remove DocumentReference
-            _context.DocumentReferences.Remove(product.ImageDocument);
+            _ = _context.DocumentReferences.Remove(product.ImageDocument);
 
             // Update product
             product.ImageDocumentId = null;
             product.ModifiedAt = DateTime.UtcNow;
             product.ModifiedBy = "System";
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Product {ProductId} image deleted successfully.", productId);
             return true;
@@ -1464,10 +1464,10 @@ public class ProductService : IProductService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.ProductSuppliers.Add(productSupplier);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.ProductSuppliers.Add(productSupplier);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 "ProductSupplier",
                 productSupplier.Id,
                 "SupplierId",
@@ -1577,9 +1577,9 @@ public class ProductService : IProductService
             productSupplier.ModifiedBy = currentUser;
             productSupplier.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 "ProductSupplier",
                 productSupplier.Id,
                 "ProductSupplier",
@@ -1622,9 +1622,9 @@ public class ProductService : IProductService
             productSupplier.ModifiedBy = currentUser;
             productSupplier.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 "ProductSupplier",
                 productSupplier.Id,
                 "IsDeleted",

@@ -152,10 +152,10 @@ public class DocumentCommentService : IDocumentCommentService
                 TenantId = _tenantContext.CurrentTenantId ?? Guid.Empty
             };
 
-            _context.DocumentComments.Add(comment);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.DocumentComments.Add(comment);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 "DocumentComment",
                 comment.Id,
                 "CREATE",
@@ -213,9 +213,9 @@ public class DocumentCommentService : IDocumentCommentService
             comment.ModifiedAt = DateTime.UtcNow;
             comment.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 "DocumentComment",
                 comment.Id,
                 "UPDATE",
@@ -253,9 +253,9 @@ public class DocumentCommentService : IDocumentCommentService
             comment.DeletedAt = DateTime.UtcNow;
             comment.DeletedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 "DocumentComment",
                 comment.Id,
                 "DELETE",
@@ -303,9 +303,9 @@ public class DocumentCommentService : IDocumentCommentService
                     : comment.Metadata;
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 "DocumentComment",
                 comment.Id,
                 "RESOLVE",
@@ -344,7 +344,7 @@ public class DocumentCommentService : IDocumentCommentService
         comment.ModifiedAt = DateTime.UtcNow;
         comment.ModifiedBy = currentUser;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
         return MapToDto(comment);
     }
 
@@ -464,7 +464,7 @@ public class DocumentCommentService : IDocumentCommentService
         comment.ModifiedAt = DateTime.UtcNow;
         comment.ModifiedBy = currentUser;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
         return MapToDto(comment);
     }
 

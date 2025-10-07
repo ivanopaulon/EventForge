@@ -52,11 +52,8 @@ public class TenantContextService : ITenantContextService
     private readonly ILogger<TenantContextService> _logger;
     private const string TENANT_STORAGE_KEY = "eventforge_current_tenant";
 
-    private Guid? _currentTenantId;
-    private TenantResponseDto? _currentTenant;
-
-    public Guid? CurrentTenantId => _currentTenantId;
-    public TenantResponseDto? CurrentTenant => _currentTenant;
+    public Guid? CurrentTenantId { get; private set; }
+    public TenantResponseDto? CurrentTenant { get; private set; }
     public event EventHandler<Guid?>? TenantChanged;
 
     public TenantContextService(IJSRuntime jsRuntime, ILogger<TenantContextService> logger)
@@ -75,7 +72,7 @@ public class TenantContextService : ITenantContextService
             var savedTenantId = await GetSavedTenantAsync();
             if (savedTenantId.HasValue)
             {
-                _currentTenantId = savedTenantId;
+                CurrentTenantId = savedTenantId;
                 _logger.LogDebug("Loaded saved tenant context: {TenantId}", savedTenantId);
             }
         }
@@ -94,9 +91,9 @@ public class TenantContextService : ITenantContextService
     {
         try
         {
-            var previousTenantId = _currentTenantId;
-            _currentTenantId = tenantId;
-            _currentTenant = tenant;
+            var previousTenantId = CurrentTenantId;
+            CurrentTenantId = tenantId;
+            CurrentTenant = tenant;
 
             // Persist to browser storage
             if (tenantId.HasValue)

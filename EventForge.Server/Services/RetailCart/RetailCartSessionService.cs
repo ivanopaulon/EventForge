@@ -111,7 +111,7 @@ namespace EventForge.Server.Services.RetailCart
             var item = session.Items.FirstOrDefault(i => i.Id == itemId);
             if (item != null)
             {
-                session.Items.Remove(item);
+                _ = session.Items.Remove(item);
                 session.UpdatedAt = DateTime.UtcNow;
 
                 _logger.LogDebug("Removed item {ItemId} from cart session {SessionId}", itemId, sessionId);
@@ -131,7 +131,7 @@ namespace EventForge.Server.Services.RetailCart
             {
                 if (updateDto.Quantity <= 0)
                 {
-                    session.Items.Remove(item);
+                    _ = session.Items.Remove(item);
                     _logger.LogDebug("Removed item {ItemId} from cart session {SessionId} (quantity set to {Quantity})",
                         itemId, sessionId, updateDto.Quantity);
                 }

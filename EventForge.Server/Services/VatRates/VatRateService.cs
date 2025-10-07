@@ -105,10 +105,10 @@ public class VatRateService : IVatRateService
                 CreatedBy = currentUser
             };
 
-            _context.VatRates.Add(vatRate);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.VatRates.Add(vatRate);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(vatRate, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(vatRate, "Insert", currentUser, null, cancellationToken);
 
             _logger.LogInformation("VAT rate {VatRateId} created by {User}.", vatRate.Id, currentUser);
 
@@ -150,9 +150,9 @@ public class VatRateService : IVatRateService
             vatRate.ModifiedAt = DateTime.UtcNow;
             vatRate.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(vatRate, "Update", currentUser, originalVatRate, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(vatRate, "Update", currentUser, originalVatRate, cancellationToken);
 
             _logger.LogInformation("VAT rate {VatRateId} updated by {User}.", vatRate.Id, currentUser);
 
@@ -188,9 +188,9 @@ public class VatRateService : IVatRateService
             vatRate.ModifiedAt = DateTime.UtcNow;
             vatRate.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(vatRate, "Delete", currentUser, originalVatRate, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(vatRate, "Delete", currentUser, originalVatRate, cancellationToken);
 
             _logger.LogInformation("VAT rate {VatRateId} deleted by {User}.", vatRate.Id, currentUser);
 

@@ -135,8 +135,8 @@ public class AuthenticationService : IAuthenticationService
             {
                 loginAudit.Success = false;
                 loginAudit.FailureReason = "Invalid tenant code";
-                await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
-                await _dbContext.SaveChangesAsync(cancellationToken);
+                _ = await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
+                _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
                 _logger.LogWarning("Login attempt failed: Invalid tenant code {TenantCode} from {IpAddress}", request.TenantCode, ipAddress);
                 return null;
@@ -155,8 +155,8 @@ public class AuthenticationService : IAuthenticationService
             {
                 loginAudit.Success = false;
                 loginAudit.FailureReason = "Invalid username";
-                await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
-                await _dbContext.SaveChangesAsync(cancellationToken);
+                _ = await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
+                _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
                 _logger.LogWarning("Login attempt failed: Invalid username {Username} for tenant {TenantCode} from {IpAddress}",
                     request.Username, request.TenantCode, ipAddress);
@@ -170,8 +170,8 @@ public class AuthenticationService : IAuthenticationService
             {
                 loginAudit.Success = false;
                 loginAudit.FailureReason = "Account locked";
-                await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
-                await _dbContext.SaveChangesAsync(cancellationToken);
+                _ = await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
+                _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
                 _logger.LogWarning("Login attempt failed: Account locked for user {Username}", request.Username);
                 return null;
@@ -194,8 +194,8 @@ public class AuthenticationService : IAuthenticationService
 
                 loginAudit.Success = false;
                 loginAudit.FailureReason = "Invalid password";
-                await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
-                await _dbContext.SaveChangesAsync(cancellationToken);
+                _ = await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
+                _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
                 _logger.LogWarning("Login attempt failed: Invalid password for user {Username}", request.Username);
                 return null;
@@ -226,8 +226,8 @@ public class AuthenticationService : IAuthenticationService
 
             loginAudit.Success = true;
             loginAudit.SessionId = Guid.NewGuid().ToString();
-            await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
+            _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
             var userDto = UserMapper.ToDto(user, roles, permissions);
             var tenantDto = TenantMapper.ToDto(user.Tenant);
@@ -252,8 +252,8 @@ public class AuthenticationService : IAuthenticationService
             loginAudit.FailureReason = "Internal error";
             try
             {
-                await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
-                await _dbContext.SaveChangesAsync(cancellationToken);
+                _ = await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
+                _ = await _dbContext.SaveChangesAsync(cancellationToken);
             }
             catch (Exception saveEx)
             {
@@ -303,7 +303,7 @@ public class AuthenticationService : IAuthenticationService
             user.PasswordChangedAt = DateTime.UtcNow;
             user.MustChangePassword = false;
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Password changed successfully for user {Username}", user.Username);
             return true;
@@ -382,7 +382,7 @@ public class AuthenticationService : IAuthenticationService
             user.FailedLoginAttempts = 0;
             user.LockedUntil = null;
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Account unlocked for user {Username}", user.Username);
             return true;

@@ -77,11 +77,11 @@ public class ConfigurationService : IConfigurationService
             CreatedBy = _tenantContext.CurrentUserId?.ToString() ?? "System"
         };
 
-        _context.SystemConfigurations.Add(configuration);
-        await _context.SaveChangesAsync();
+        _ = _context.SystemConfigurations.Add(configuration);
+        _ = await _context.SaveChangesAsync();
 
         // Log the creation
-        await _auditLogService.LogEntityChangeAsync(
+        _ = await _auditLogService.LogEntityChangeAsync(
             nameof(SystemConfiguration),
             configuration.Id,
             "Configuration",
@@ -119,10 +119,10 @@ public class ConfigurationService : IConfigurationService
         configuration.ModifiedAt = DateTime.UtcNow;
         configuration.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
 
-        await _context.SaveChangesAsync();
+        _ = await _context.SaveChangesAsync();
 
         // Log the update
-        await _auditLogService.LogEntityChangeAsync(
+        _ = await _auditLogService.LogEntityChangeAsync(
             nameof(SystemConfiguration),
             configuration.Id,
             "Value",
@@ -151,11 +151,11 @@ public class ConfigurationService : IConfigurationService
             throw new InvalidOperationException($"Configuration '{key}' is read-only and cannot be deleted.");
         }
 
-        _context.SystemConfigurations.Remove(configuration);
-        await _context.SaveChangesAsync();
+        _ = _context.SystemConfigurations.Remove(configuration);
+        _ = await _context.SaveChangesAsync();
 
         // Log the deletion
-        await _auditLogService.LogEntityChangeAsync(
+        _ = await _auditLogService.LogEntityChangeAsync(
             nameof(SystemConfiguration),
             configuration.Id,
             "Configuration",
@@ -195,7 +195,7 @@ public class ConfigurationService : IConfigurationService
                 Description = reason,
                 Category = "General"
             };
-            await CreateConfigurationAsync(createDto);
+            _ = await CreateConfigurationAsync(createDto);
         }
         else
         {
@@ -205,7 +205,7 @@ public class ConfigurationService : IConfigurationService
                 Value = value,
                 Description = reason ?? configuration.Description
             };
-            await UpdateConfigurationAsync(key, updateDto);
+            _ = await UpdateConfigurationAsync(key, updateDto);
         }
     }
 

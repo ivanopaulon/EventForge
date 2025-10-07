@@ -172,10 +172,10 @@ public class PaymentMethodService : IPaymentMethodService
                 CreatedBy = currentUser
             };
 
-            _context.PaymentMethods.Add(paymentMethod);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.PaymentMethods.Add(paymentMethod);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 entityName: "PaymentMethod",
                 entityId: paymentMethod.Id,
                 propertyName: "All",
@@ -230,9 +230,9 @@ public class PaymentMethodService : IPaymentMethodService
             paymentMethod.ModifiedAt = DateTime.UtcNow;
             paymentMethod.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 entityName: "PaymentMethod",
                 entityId: paymentMethod.Id,
                 propertyName: "All",
@@ -280,9 +280,9 @@ public class PaymentMethodService : IPaymentMethodService
             paymentMethod.DeletedAt = DateTime.UtcNow;
             paymentMethod.DeletedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 entityName: "PaymentMethod",
                 entityId: paymentMethod.Id,
                 propertyName: "IsDeleted",

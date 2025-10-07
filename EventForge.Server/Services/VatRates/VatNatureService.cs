@@ -99,10 +99,10 @@ public class VatNatureService : IVatNatureService
                 CreatedBy = currentUser
             };
 
-            _context.VatNatures.Add(vatNature);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.VatNatures.Add(vatNature);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(vatNature, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(vatNature, "Insert", currentUser, null, cancellationToken);
 
             _logger.LogInformation("VAT nature {VatNatureId} created by {User}.", vatNature.Id, currentUser);
 
@@ -141,9 +141,9 @@ public class VatNatureService : IVatNatureService
             vatNature.ModifiedAt = DateTime.UtcNow;
             vatNature.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(vatNature, "Update", currentUser, originalVatNature, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(vatNature, "Update", currentUser, originalVatNature, cancellationToken);
 
             _logger.LogInformation("VAT nature {VatNatureId} updated by {User}.", vatNature.Id, currentUser);
 
@@ -179,9 +179,9 @@ public class VatNatureService : IVatNatureService
             vatNature.ModifiedAt = DateTime.UtcNow;
             vatNature.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(vatNature, "Delete", currentUser, originalVatNature, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(vatNature, "Delete", currentUser, originalVatNature, cancellationToken);
 
             _logger.LogInformation("VAT nature {VatNatureId} deleted by {User}.", vatNature.Id, currentUser);
 

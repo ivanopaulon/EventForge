@@ -95,8 +95,8 @@ public class TableManagementService : ITableManagementService
             CreatedAt = DateTime.UtcNow
         };
 
-        _context.Set<TableSession>().Add(table);
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = _context.Set<TableSession>().Add(table);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Created table {TableId} with number {TableNumber}", table.Id, table.TableNumber);
 
@@ -139,7 +139,7 @@ public class TableManagementService : ITableManagementService
 
         table.ModifiedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Updated table {TableId}", tableId);
 
@@ -169,7 +169,7 @@ public class TableManagementService : ITableManagementService
         table.CurrentSaleSessionId = dto.SaleSessionId;
         table.ModifiedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Updated table {TableId} status to {Status}", tableId, newStatus);
 
@@ -193,7 +193,7 @@ public class TableManagementService : ITableManagementService
         table.IsDeleted = true;
         table.DeletedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Deleted table {TableId}", tableId);
 
@@ -263,8 +263,8 @@ public class TableManagementService : ITableManagementService
             CreatedAt = DateTime.UtcNow
         };
 
-        _context.Set<TableReservation>().Add(reservation);
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = _context.Set<TableReservation>().Add(reservation);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Created reservation {ReservationId}", reservation.Id);
 
@@ -306,7 +306,7 @@ public class TableManagementService : ITableManagementService
 
         reservation.ModifiedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Updated reservation {ReservationId}", reservationId);
 
@@ -332,7 +332,7 @@ public class TableManagementService : ITableManagementService
         reservation.ConfirmedAt = DateTime.UtcNow;
         reservation.ModifiedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Confirmed reservation {ReservationId}", reservationId);
 
@@ -358,7 +358,7 @@ public class TableManagementService : ITableManagementService
         reservation.ArrivedAt = DateTime.UtcNow;
         reservation.ModifiedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Marked reservation {ReservationId} as arrived", reservationId);
 
@@ -382,7 +382,7 @@ public class TableManagementService : ITableManagementService
         reservation.Status = ReservationStatus.Cancelled;
         reservation.ModifiedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Cancelled reservation {ReservationId}", reservationId);
 
@@ -407,7 +407,7 @@ public class TableManagementService : ITableManagementService
         reservation.Status = ReservationStatus.NoShow;
         reservation.ModifiedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Marked reservation {ReservationId} as no-show", reservationId);
 

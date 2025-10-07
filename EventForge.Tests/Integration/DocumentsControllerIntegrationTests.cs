@@ -25,21 +25,21 @@ public class DocumentsControllerIntegrationTests : IClassFixture<WebApplicationF
         // Arrange
         var client = _factory.WithWebHostBuilder(builder =>
         {
-            builder.ConfigureServices(services =>
+            _ = builder.ConfigureServices(services =>
             {
                 // Use in-memory database for testing
                 var descriptor = services.SingleOrDefault(
                     d => d.ServiceType == typeof(DbContextOptions<EventForgeDbContext>));
                 if (descriptor != null)
-                    services.Remove(descriptor);
+                    _ = services.Remove(descriptor);
 
-                services.AddDbContext<EventForgeDbContext>(options =>
+                _ = services.AddDbContext<EventForgeDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase("TestDb_DocumentsController");
+                    _ = options.UseInMemoryDatabase("TestDb_DocumentsController");
                 });
 
                 // Override JWT secret for testing
-                services.Configure<JwtOptions>(options =>
+                _ = services.Configure<JwtOptions>(options =>
                 {
                     options.SecretKey = "TestSecretKeyThatIsAtLeast32CharsLong!!";
                 });
@@ -60,21 +60,21 @@ public class DocumentsControllerIntegrationTests : IClassFixture<WebApplicationF
         // Arrange
         var client = _factory.WithWebHostBuilder(builder =>
         {
-            builder.ConfigureServices(services =>
+            _ = builder.ConfigureServices(services =>
             {
                 // Use in-memory database for testing
                 var descriptor = services.SingleOrDefault(
                     d => d.ServiceType == typeof(DbContextOptions<EventForgeDbContext>));
                 if (descriptor != null)
-                    services.Remove(descriptor);
+                    _ = services.Remove(descriptor);
 
-                services.AddDbContext<EventForgeDbContext>(options =>
+                _ = services.AddDbContext<EventForgeDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase("TestDb_DocumentsMain");
+                    _ = options.UseInMemoryDatabase("TestDb_DocumentsMain");
                 });
 
                 // Override JWT secret for testing
-                services.Configure<JwtOptions>(options =>
+                _ = services.Configure<JwtOptions>(options =>
                 {
                     options.SecretKey = "TestSecretKeyThatIsAtLeast32CharsLong!!";
                 });
@@ -96,21 +96,21 @@ public class DocumentsControllerIntegrationTests : IClassFixture<WebApplicationF
         // Arrange
         var client = _factory.WithWebHostBuilder(builder =>
         {
-            builder.ConfigureServices(services =>
+            _ = builder.ConfigureServices(services =>
             {
                 // Use in-memory database for testing
                 var descriptor = services.SingleOrDefault(
                     d => d.ServiceType == typeof(DbContextOptions<EventForgeDbContext>));
                 if (descriptor != null)
-                    services.Remove(descriptor);
+                    _ = services.Remove(descriptor);
 
-                services.AddDbContext<EventForgeDbContext>(options =>
+                _ = services.AddDbContext<EventForgeDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase("TestDb_DocumentTypes");
+                    _ = options.UseInMemoryDatabase("TestDb_DocumentTypes");
                 });
 
                 // Override JWT secret for testing
-                services.Configure<JwtOptions>(options =>
+                _ = services.Configure<JwtOptions>(options =>
                 {
                     options.SecretKey = "TestSecretKeyThatIsAtLeast32CharsLong!!";
                 });

@@ -188,7 +188,7 @@ public class DocumentExportService : IDocumentExportService
             // Log export access
             foreach (var doc in documents)
             {
-                await _accessLogService.LogAccessAsync(
+                _ = await _accessLogService.LogAccessAsync(
                     doc.Id,
                     currentUser,
                     currentUser,
@@ -230,7 +230,7 @@ public class DocumentExportService : IDocumentExportService
         Guid exportId,
         CancellationToken cancellationToken = default)
     {
-        _exportCache.TryGetValue(exportId, out var result);
+        _ = _exportCache.TryGetValue(exportId, out var result);
         return Task.FromResult(result);
     }
 
@@ -250,7 +250,7 @@ public class DocumentExportService : IDocumentExportService
             // Generate PDF using QuestPDF
             var pdfBytes = Document.Create(container =>
             {
-                container.Page(page =>
+                _ = container.Page(page =>
                 {
                     page.Size(PageSizes.A4);
                     page.Margin(2, Unit.Centimetre);
@@ -258,7 +258,7 @@ public class DocumentExportService : IDocumentExportService
                     page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Arial"));
 
                     // Header
-                    page.Header()
+                    _ = page.Header()
                         .AlignCenter()
                         .Text("Document Export Report")
                         .FontSize(20)
@@ -275,11 +275,11 @@ public class DocumentExportService : IDocumentExportService
                             // Export metadata
                             column.Item().Row(row =>
                             {
-                                row.RelativeItem().Text($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC").FontSize(9);
-                                row.RelativeItem().AlignRight().Text($"Total Documents: {documentsList.Count}").FontSize(9).Bold();
+                                _ = row.RelativeItem().Text($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC").FontSize(9);
+                                _ = row.RelativeItem().AlignRight().Text($"Total Documents: {documentsList.Count}").FontSize(9).Bold();
                             });
 
-                            column.Item().PaddingTop(10).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+                            _ = column.Item().PaddingTop(10).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
 
                             // Documents table
                             column.Item().PaddingTop(10).Table(table =>
@@ -297,11 +297,11 @@ public class DocumentExportService : IDocumentExportService
                                 // Header row
                                 table.Header(header =>
                                 {
-                                    header.Cell().Element(CellStyle).Text("Number").Bold();
-                                    header.Cell().Element(CellStyle).Text("Date").Bold();
-                                    header.Cell().Element(CellStyle).Text("Customer").Bold();
-                                    header.Cell().Element(CellStyle).AlignRight().Text("Total").Bold();
-                                    header.Cell().Element(CellStyle).Text("Status").Bold();
+                                    _ = header.Cell().Element(CellStyle).Text("Number").Bold();
+                                    _ = header.Cell().Element(CellStyle).Text("Date").Bold();
+                                    _ = header.Cell().Element(CellStyle).Text("Customer").Bold();
+                                    _ = header.Cell().Element(CellStyle).AlignRight().Text("Total").Bold();
+                                    _ = header.Cell().Element(CellStyle).Text("Status").Bold();
 
                                     static IContainer CellStyle(IContainer container)
                                     {
@@ -316,11 +316,11 @@ public class DocumentExportService : IDocumentExportService
                                 // Data rows
                                 foreach (var doc in documentsList)
                                 {
-                                    table.Cell().Element(DataCellStyle).Text($"{doc.Series}{doc.Number}");
-                                    table.Cell().Element(DataCellStyle).Text(doc.Date.ToString("yyyy-MM-dd"));
-                                    table.Cell().Element(DataCellStyle).Text(doc.CustomerName ?? "N/A");
-                                    table.Cell().Element(DataCellStyle).AlignRight().Text($"{doc.TotalGrossAmount:C}");
-                                    table.Cell().Element(DataCellStyle).Text(doc.Status.ToString());
+                                    _ = table.Cell().Element(DataCellStyle).Text($"{doc.Series}{doc.Number}");
+                                    _ = table.Cell().Element(DataCellStyle).Text(doc.Date.ToString("yyyy-MM-dd"));
+                                    _ = table.Cell().Element(DataCellStyle).Text(doc.CustomerName ?? "N/A");
+                                    _ = table.Cell().Element(DataCellStyle).AlignRight().Text($"{doc.TotalGrossAmount:C}");
+                                    _ = table.Cell().Element(DataCellStyle).Text(doc.Status.ToString());
 
                                     static IContainer DataCellStyle(IContainer container)
                                     {
@@ -339,10 +339,10 @@ public class DocumentExportService : IDocumentExportService
                         .Text(text =>
                         {
                             text.DefaultTextStyle(x => x.FontSize(9));
-                            text.Span("Page ");
-                            text.CurrentPageNumber();
-                            text.Span(" of ");
-                            text.TotalPages();
+                            _ = text.Span("Page ");
+                            _ = text.CurrentPageNumber();
+                            _ = text.Span(" of ");
+                            _ = text.TotalPages();
                         });
                 });
             }).GeneratePdf();
@@ -498,45 +498,45 @@ public class DocumentExportService : IDocumentExportService
         CancellationToken cancellationToken = default)
     {
         var html = new StringBuilder();
-        html.AppendLine("<!DOCTYPE html>");
-        html.AppendLine("<html>");
-        html.AppendLine("<head>");
-        html.AppendLine("<meta charset='utf-8' />");
-        html.AppendLine("<title>Document Export</title>");
-        html.AppendLine("<style>");
-        html.AppendLine("body { font-family: Arial, sans-serif; margin: 20px; }");
-        html.AppendLine("table { border-collapse: collapse; width: 100%; margin-top: 20px; }");
-        html.AppendLine("th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }");
-        html.AppendLine("th { background-color: #4CAF50; color: white; }");
-        html.AppendLine("tr:nth-child(even) { background-color: #f2f2f2; }");
-        html.AppendLine("</style>");
-        html.AppendLine("</head>");
-        html.AppendLine("<body>");
-        html.AppendLine("<h1>Document Export</h1>");
-        html.AppendLine($"<p>Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC</p>");
-        html.AppendLine("<table>");
-        html.AppendLine("<tr>");
-        html.AppendLine("<th>Number</th>");
-        html.AppendLine("<th>Date</th>");
-        html.AppendLine("<th>Customer</th>");
-        html.AppendLine("<th>Total</th>");
-        html.AppendLine("<th>Status</th>");
-        html.AppendLine("</tr>");
+        _ = html.AppendLine("<!DOCTYPE html>");
+        _ = html.AppendLine("<html>");
+        _ = html.AppendLine("<head>");
+        _ = html.AppendLine("<meta charset='utf-8' />");
+        _ = html.AppendLine("<title>Document Export</title>");
+        _ = html.AppendLine("<style>");
+        _ = html.AppendLine("body { font-family: Arial, sans-serif; margin: 20px; }");
+        _ = html.AppendLine("table { border-collapse: collapse; width: 100%; margin-top: 20px; }");
+        _ = html.AppendLine("th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }");
+        _ = html.AppendLine("th { background-color: #4CAF50; color: white; }");
+        _ = html.AppendLine("tr:nth-child(even) { background-color: #f2f2f2; }");
+        _ = html.AppendLine("</style>");
+        _ = html.AppendLine("</head>");
+        _ = html.AppendLine("<body>");
+        _ = html.AppendLine("<h1>Document Export</h1>");
+        _ = html.AppendLine($"<p>Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC</p>");
+        _ = html.AppendLine("<table>");
+        _ = html.AppendLine("<tr>");
+        _ = html.AppendLine("<th>Number</th>");
+        _ = html.AppendLine("<th>Date</th>");
+        _ = html.AppendLine("<th>Customer</th>");
+        _ = html.AppendLine("<th>Total</th>");
+        _ = html.AppendLine("<th>Status</th>");
+        _ = html.AppendLine("</tr>");
 
         foreach (var doc in documents)
         {
-            html.AppendLine("<tr>");
-            html.AppendLine($"<td>{doc.Series}{doc.Number}</td>");
-            html.AppendLine($"<td>{doc.Date:yyyy-MM-dd}</td>");
-            html.AppendLine($"<td>{doc.CustomerName ?? "N/A"}</td>");
-            html.AppendLine($"<td>{doc.TotalGrossAmount:C}</td>");
-            html.AppendLine($"<td>{doc.Status}</td>");
-            html.AppendLine("</tr>");
+            _ = html.AppendLine("<tr>");
+            _ = html.AppendLine($"<td>{doc.Series}{doc.Number}</td>");
+            _ = html.AppendLine($"<td>{doc.Date:yyyy-MM-dd}</td>");
+            _ = html.AppendLine($"<td>{doc.CustomerName ?? "N/A"}</td>");
+            _ = html.AppendLine($"<td>{doc.TotalGrossAmount:C}</td>");
+            _ = html.AppendLine($"<td>{doc.Status}</td>");
+            _ = html.AppendLine("</tr>");
         }
 
-        html.AppendLine("</table>");
-        html.AppendLine("</body>");
-        html.AppendLine("</html>");
+        _ = html.AppendLine("</table>");
+        _ = html.AppendLine("</body>");
+        _ = html.AppendLine("</html>");
 
         return Task.FromResult(html.ToString());
     }
@@ -549,12 +549,12 @@ public class DocumentExportService : IDocumentExportService
         var csv = new StringBuilder();
 
         // Header
-        csv.AppendLine("\"Number\",\"Date\",\"Customer\",\"Net Total\",\"VAT\",\"Gross Total\",\"Currency\",\"Status\",\"Payment Status\"");
+        _ = csv.AppendLine("\"Number\",\"Date\",\"Customer\",\"Net Total\",\"VAT\",\"Gross Total\",\"Currency\",\"Status\",\"Payment Status\"");
 
         // Data rows
         foreach (var doc in documents)
         {
-            csv.AppendLine($"\"{doc.Series}{doc.Number}\",\"{doc.Date:yyyy-MM-dd}\",\"{doc.CustomerName ?? ""}\",{doc.TotalNetAmount},{doc.VatAmount},{doc.TotalGrossAmount},\"{doc.Currency}\",\"{doc.Status}\",\"{doc.PaymentStatus}\"");
+            _ = csv.AppendLine($"\"{doc.Series}{doc.Number}\",\"{doc.Date:yyyy-MM-dd}\",\"{doc.CustomerName ?? ""}\",{doc.TotalNetAmount},{doc.VatAmount},{doc.TotalGrossAmount},\"{doc.Currency}\",\"{doc.Status}\",\"{doc.PaymentStatus}\"");
         }
 
         return Task.FromResult(csv.ToString());

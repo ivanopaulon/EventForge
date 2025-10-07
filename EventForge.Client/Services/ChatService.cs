@@ -206,7 +206,7 @@ public class ChatService : IChatService
     {
         try
         {
-            await _httpClientService.PatchAsync<object, object>($"api/v1/chat/{chatId}/read", new { }, cancellationToken);
+            _ = await _httpClientService.PatchAsync<object, object>($"api/v1/chat/{chatId}/read", new { }, cancellationToken);
             return true;
         }
         catch (Exception ex)
@@ -249,7 +249,7 @@ public class ChatService : IChatService
         try
         {
             // Use debouncing to reduce network traffic for typing indicators
-            await _performanceService.DebounceAsync(
+            _ = await _performanceService.DebounceAsync(
                 $"{DebounceKeys.TYPING_INDICATOR}_{chatId}",
                 async () =>
                 {
@@ -381,7 +381,7 @@ public class ChatService : IChatService
     {
         try
         {
-            await _httpClientService.PostAsync<MessageReactionActionDto, object>($"api/v1/chat/messages/{reactionDto.MessageId}/reactions", reactionDto, cancellationToken);
+            _ = await _httpClientService.PostAsync<MessageReactionActionDto, object>($"api/v1/chat/messages/{reactionDto.MessageId}/reactions", reactionDto, cancellationToken);
             return true;
         }
         catch (Exception ex)

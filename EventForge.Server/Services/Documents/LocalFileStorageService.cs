@@ -21,7 +21,7 @@ public class LocalFileStorageService : IFileStorageService
         _baseStoragePath = _configuration["FileStorage:BasePath"] ?? "App_Data/Files";
 
         // Ensure base storage directory exists
-        Directory.CreateDirectory(_baseStoragePath);
+        _ = Directory.CreateDirectory(_baseStoragePath);
     }
 
     public async Task<FileStorageResult> SaveFileAsync(
@@ -38,7 +38,7 @@ public class LocalFileStorageService : IFileStorageService
         {
             // Create tenant-specific directory
             var tenantPath = Path.Combine(_baseStoragePath, tenantId.ToString());
-            Directory.CreateDirectory(tenantPath);
+            _ = Directory.CreateDirectory(tenantPath);
 
             // Generate unique file name to avoid conflicts
             var fileExtension = Path.GetExtension(fileName);

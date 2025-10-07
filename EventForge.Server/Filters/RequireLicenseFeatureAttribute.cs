@@ -166,7 +166,7 @@ public class RequireLicenseFeatureAttribute : Attribute, IAsyncAuthorizationFilt
 
                 // Increment API call counter
                 tenantLicense.ApiCallsThisMonth++;
-                await dbContext.SaveChangesAsync();
+                _ = await dbContext.SaveChangesAsync();
             }
 
             // Check if user has required permissions for the feature

@@ -151,10 +151,10 @@ public class EventService : IEventService
 
             eventEntity.CheckInvariants();
 
-            _context.Events.Add(eventEntity);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.Events.Add(eventEntity);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(eventEntity, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(eventEntity, "Insert", currentUser, null, cancellationToken);
 
             var createdEvent = await _context.Events
                 .Include(e => e.Teams)
@@ -220,7 +220,7 @@ public class EventService : IEventService
 
             try
             {
-                await _context.SaveChangesAsync(cancellationToken);
+                _ = await _context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
@@ -228,7 +228,7 @@ public class EventService : IEventService
                 throw new InvalidOperationException("L'evento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            await _auditLogService.TrackEntityChangesAsync(eventEntity, "Update", currentUser, originalEvent, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(eventEntity, "Update", currentUser, originalEvent, cancellationToken);
 
             _logger.LogInformation("Evento {EventId} aggiornato da {User}.", id, currentUser);
 
@@ -292,7 +292,7 @@ public class EventService : IEventService
                 team.DeletedBy = currentUser;
                 team.DeletedAt = DateTime.UtcNow;
 
-                await _auditLogService.TrackEntityChangesAsync(team, "Delete", currentUser, originalTeam, cancellationToken);
+                _ = await _auditLogService.TrackEntityChangesAsync(team, "Delete", currentUser, originalTeam, cancellationToken);
 
                 var members = await _context.TeamMembers
                     .Where(m => m.TeamId == team.Id && !m.IsDeleted)
@@ -308,13 +308,13 @@ public class EventService : IEventService
                     member.DeletedBy = currentUser;
                     member.DeletedAt = DateTime.UtcNow;
 
-                    await _auditLogService.TrackEntityChangesAsync(member, "Delete", currentUser, originalMember, cancellationToken);
+                    _ = await _auditLogService.TrackEntityChangesAsync(member, "Delete", currentUser, originalMember, cancellationToken);
                 }
             }
 
             try
             {
-                await _context.SaveChangesAsync(cancellationToken);
+                _ = await _context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
@@ -322,7 +322,7 @@ public class EventService : IEventService
                 throw new InvalidOperationException("L'evento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            await _auditLogService.TrackEntityChangesAsync(eventEntity, "Delete", currentUser, originalEvent, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(eventEntity, "Delete", currentUser, originalEvent, cancellationToken);
 
             _logger.LogInformation("Evento {EventId} cancellato da {User}.", id, currentUser);
 

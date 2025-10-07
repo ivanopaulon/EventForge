@@ -41,7 +41,7 @@ public static class LicensingSeedData
             };
 
             context.Permissions.AddRange(basicPermissions);
-            await context.SaveChangesAsync();
+            _ = await context.SaveChangesAsync();
             permissions = basicPermissions.ToList();
         }
 
@@ -94,7 +94,7 @@ public static class LicensingSeedData
         };
 
         context.Licenses.AddRange(basicLicense, standardLicense, premiumLicense, enterpriseLicense);
-        await context.SaveChangesAsync();
+        _ = await context.SaveChangesAsync();
 
         // Create License Features
         await CreateLicenseFeatures(context, basicLicense, permissions, "basic");
@@ -102,7 +102,7 @@ public static class LicensingSeedData
         await CreateLicenseFeatures(context, premiumLicense, permissions, "premium");
         await CreateLicenseFeatures(context, enterpriseLicense, permissions, "enterprise");
 
-        await context.SaveChangesAsync();
+        _ = await context.SaveChangesAsync();
     }
 
     private static async Task CreateLicenseFeatures(EventForgeDbContext context, License license, List<Permission> permissions, string tier)
@@ -213,7 +213,7 @@ public static class LicensingSeedData
         }
 
         context.LicenseFeatures.AddRange(features);
-        await context.SaveChangesAsync();
+        _ = await context.SaveChangesAsync();
 
         // Create License Feature Permissions mappings
         foreach (var feature in features)
@@ -222,7 +222,7 @@ public static class LicensingSeedData
 
             foreach (var permission in featurePermissions)
             {
-                context.LicenseFeaturePermissions.Add(new LicenseFeaturePermission
+                _ = context.LicenseFeaturePermissions.Add(new LicenseFeaturePermission
                 {
                     LicenseFeatureId = feature.Id,
                     PermissionId = permission.Id,
@@ -296,7 +296,7 @@ public static class LicensingSeedData
             TenantId = Guid.Empty // System-level entity
         };
 
-        context.TenantLicenses.Add(tenantLicense);
-        await context.SaveChangesAsync();
+        _ = context.TenantLicenses.Add(tenantLicense);
+        _ = await context.SaveChangesAsync();
     }
 }

@@ -338,7 +338,7 @@ public class ProductManagementController : BaseApiController
 
             // For now, save to wwwroot/images/products (in a real implementation, use cloud storage)
             var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "products");
-            Directory.CreateDirectory(uploadsFolder);
+            _ = Directory.CreateDirectory(uploadsFolder);
 
             var filePath = Path.Combine(uploadsFolder, fileName);
 

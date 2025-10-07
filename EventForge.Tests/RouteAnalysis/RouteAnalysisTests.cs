@@ -196,95 +196,95 @@ public class RouteAnalysisTests
         var report = new StringBuilder();
 
         // Header del report
-        report.AppendLine("EVENTFORGE - ROUTE CONFLICT ANALYSIS REPORT");
-        report.AppendLine("==========================================");
-        report.AppendLine($"Data Generazione: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-        report.AppendLine($"Controller Analizzati: {_routes.GroupBy(r => r.Controller).Count()}");
-        report.AppendLine($"Route Totali: {_routes.Count}");
-        report.AppendLine($"Conflitti Rilevati: {_conflicts.Count}");
-        report.AppendLine();
+        _ = report.AppendLine("EVENTFORGE - ROUTE CONFLICT ANALYSIS REPORT");
+        _ = report.AppendLine("==========================================");
+        _ = report.AppendLine($"Data Generazione: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+        _ = report.AppendLine($"Controller Analizzati: {_routes.GroupBy(r => r.Controller).Count()}");
+        _ = report.AppendLine($"Route Totali: {_routes.Count}");
+        _ = report.AppendLine($"Conflitti Rilevati: {_conflicts.Count}");
+        _ = report.AppendLine();
 
         // Sezione mapping completo delle route
-        report.AppendLine("📋 MAPPING COMPLETO DELLE ROUTE");
-        report.AppendLine("==============================");
-        report.AppendLine();
+        _ = report.AppendLine("📋 MAPPING COMPLETO DELLE ROUTE");
+        _ = report.AppendLine("==============================");
+        _ = report.AppendLine();
 
         var groupedByController = _routes.GroupBy(r => r.Controller).OrderBy(g => g.Key);
 
         foreach (var controllerGroup in groupedByController)
         {
-            report.AppendLine($"Controller: {controllerGroup.Key}");
-            report.AppendLine(new string('-', 50));
+            _ = report.AppendLine($"Controller: {controllerGroup.Key}");
+            _ = report.AppendLine(new string('-', 50));
 
             foreach (var route in controllerGroup.OrderBy(r => r.HttpMethod).ThenBy(r => r.RouteTemplate))
             {
-                report.AppendLine($"  {route.HttpMethod,-7} {route.RouteTemplate,-40} -> {route.Method}()");
+                _ = report.AppendLine($"  {route.HttpMethod,-7} {route.RouteTemplate,-40} -> {route.Method}()");
             }
-            report.AppendLine();
+            _ = report.AppendLine();
         }
 
         // Sezione conflitti
         if (_conflicts.Any())
         {
-            report.AppendLine("⚠️  CONFLITTI RILEVATI");
-            report.AppendLine("=====================");
-            report.AppendLine();
+            _ = report.AppendLine("⚠️  CONFLITTI RILEVATI");
+            _ = report.AppendLine("=====================");
+            _ = report.AppendLine();
 
             foreach (var conflict in _conflicts.OrderBy(c => c.HttpMethod).ThenBy(c => c.RoutePattern))
             {
-                report.AppendLine($"🚨 CONFLITTO: {conflict.HttpMethod} {conflict.RoutePattern}");
-                report.AppendLine(new string('-', 60));
+                _ = report.AppendLine($"🚨 CONFLITTO: {conflict.HttpMethod} {conflict.RoutePattern}");
+                _ = report.AppendLine(new string('-', 60));
 
                 foreach (var route in conflict.ConflictingRoutes)
                 {
-                    report.AppendLine($"   Controller: {route.Controller}");
-                    report.AppendLine($"   Metodo: {route.Method}()");
-                    report.AppendLine($"   File: {Path.GetFileName(route.FilePath)}");
-                    report.AppendLine();
+                    _ = report.AppendLine($"   Controller: {route.Controller}");
+                    _ = report.AppendLine($"   Metodo: {route.Method}()");
+                    _ = report.AppendLine($"   File: {Path.GetFileName(route.FilePath)}");
+                    _ = report.AppendLine();
                 }
 
-                report.AppendLine("💡 SOLUZIONI SUGGERITE:");
-                report.AppendLine("   1. Rinominare uno dei metodi con un percorso più specifico");
-                report.AppendLine("   2. Aggiungere un prefisso alla route (es. 'details', 'summary')");
-                report.AppendLine("   3. Utilizzare parametri di route più specifici");
-                report.AppendLine("   4. Considerare l'uso di query parameters invece di route parameters");
-                report.AppendLine();
-                report.AppendLine(new string('=', 70));
-                report.AppendLine();
+                _ = report.AppendLine("💡 SOLUZIONI SUGGERITE:");
+                _ = report.AppendLine("   1. Rinominare uno dei metodi con un percorso più specifico");
+                _ = report.AppendLine("   2. Aggiungere un prefisso alla route (es. 'details', 'summary')");
+                _ = report.AppendLine("   3. Utilizzare parametri di route più specifici");
+                _ = report.AppendLine("   4. Considerare l'uso di query parameters invece di route parameters");
+                _ = report.AppendLine();
+                _ = report.AppendLine(new string('=', 70));
+                _ = report.AppendLine();
             }
         }
         else
         {
-            report.AppendLine("✅ NESSUN CONFLITTO RILEVATO");
-            report.AppendLine("============================");
-            report.AppendLine("Tutte le route sono uniche e non presentano conflitti.");
-            report.AppendLine();
+            _ = report.AppendLine("✅ NESSUN CONFLITTO RILEVATO");
+            _ = report.AppendLine("============================");
+            _ = report.AppendLine("Tutte le route sono uniche e non presentano conflitti.");
+            _ = report.AppendLine();
         }
 
         // Sezione statistiche
-        report.AppendLine("📊 STATISTICHE");
-        report.AppendLine("===============");
-        report.AppendLine();
+        _ = report.AppendLine("📊 STATISTICHE");
+        _ = report.AppendLine("===============");
+        _ = report.AppendLine();
 
         var methodStats = _routes.GroupBy(r => r.HttpMethod)
             .Select(g => new { Method = g.Key, Count = g.Count() })
             .OrderByDescending(s => s.Count);
 
-        report.AppendLine("Distribuzione per HTTP Method:");
+        _ = report.AppendLine("Distribuzione per HTTP Method:");
         foreach (var stat in methodStats)
         {
-            report.AppendLine($"  {stat.Method}: {stat.Count} route");
+            _ = report.AppendLine($"  {stat.Method}: {stat.Count} route");
         }
-        report.AppendLine();
+        _ = report.AppendLine();
 
         var controllerStats = _routes.GroupBy(r => r.Controller)
             .Select(g => new { Controller = g.Key, Count = g.Count() })
             .OrderByDescending(s => s.Count);
 
-        report.AppendLine("Route per Controller:");
+        _ = report.AppendLine("Route per Controller:");
         foreach (var stat in controllerStats.Take(10))
         {
-            report.AppendLine($"  {stat.Controller}: {stat.Count} route");
+            _ = report.AppendLine($"  {stat.Controller}: {stat.Count} route");
         }
 
         await File.WriteAllTextAsync(outputPath, report.ToString());

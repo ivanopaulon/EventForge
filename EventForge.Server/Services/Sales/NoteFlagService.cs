@@ -134,10 +134,10 @@ public class NoteFlagService : INoteFlagService
                 ModifiedAt = DateTime.UtcNow
             };
 
-            _context.NoteFlags.Add(noteFlag);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.NoteFlags.Add(noteFlag);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync("NoteFlag", noteFlag.Id, "Code", "Create", null, createDto.Code, currentUser, "Note Flag", cancellationToken);
+            _ = await _auditLogService.LogEntityChangeAsync("NoteFlag", noteFlag.Id, "Code", "Create", null, createDto.Code, currentUser, "Note Flag", cancellationToken);
 
             _logger.LogInformation("Created note flag {NoteFlagId} with code {Code}", noteFlag.Id, createDto.Code);
 
@@ -177,9 +177,9 @@ public class NoteFlagService : INoteFlagService
             noteFlag.ModifiedBy = currentUser;
             noteFlag.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync("NoteFlag", noteFlag.Id, "Name", "Update", null, updateDto.Name, currentUser, "Note Flag", cancellationToken);
+            _ = await _auditLogService.LogEntityChangeAsync("NoteFlag", noteFlag.Id, "Name", "Update", null, updateDto.Name, currentUser, "Note Flag", cancellationToken);
 
             _logger.LogInformation("Updated note flag {NoteFlagId}", id);
 
@@ -214,9 +214,9 @@ public class NoteFlagService : INoteFlagService
             noteFlag.DeletedAt = DateTime.UtcNow;
             noteFlag.DeletedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync("NoteFlag", noteFlag.Id, "IsDeleted", "Delete", "false", "true", currentUser, "Note Flag", cancellationToken);
+            _ = await _auditLogService.LogEntityChangeAsync("NoteFlag", noteFlag.Id, "IsDeleted", "Delete", "false", "true", currentUser, "Note Flag", cancellationToken);
 
             _logger.LogInformation("Deleted note flag {NoteFlagId}", id);
 

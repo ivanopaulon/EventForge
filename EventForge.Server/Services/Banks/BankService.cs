@@ -101,10 +101,10 @@ public class BankService : IBankService
                 CreatedBy = currentUser
             };
 
-            _context.Banks.Add(bank);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.Banks.Add(bank);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(bank, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(bank, "Insert", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Bank {BankId} created by {User}.", bank.Id, currentUser);
 
@@ -148,9 +148,9 @@ public class BankService : IBankService
             bank.ModifiedAt = DateTime.UtcNow;
             bank.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(bank, "Update", currentUser, originalBank, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(bank, "Update", currentUser, originalBank, cancellationToken);
 
             _logger.LogInformation("Bank {BankId} updated by {User}.", bank.Id, currentUser);
 
@@ -186,9 +186,9 @@ public class BankService : IBankService
             bank.ModifiedAt = DateTime.UtcNow;
             bank.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(bank, "Delete", currentUser, originalBank, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(bank, "Delete", currentUser, originalBank, cancellationToken);
 
             _logger.LogInformation("Bank {BankId} deleted by {User}.", bank.Id, currentUser);
 

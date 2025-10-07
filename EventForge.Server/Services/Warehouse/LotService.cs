@@ -227,11 +227,11 @@ public class LotService : ILotService
 
             var lot = LotMapper.ToEntity(createDto, currentTenantId.Value, currentUser);
 
-            _context.Lots.Add(lot);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.Lots.Add(lot);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Log audit event
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 "Lot",
                 lot.Id,
                 "Create",
@@ -283,10 +283,10 @@ public class LotService : ILotService
             var originalCode = lot.Code;
             LotMapper.UpdateEntity(lot, updateDto, currentUser);
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Log audit event
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 "Lot",
                 lot.Id,
                 "Update",
@@ -338,10 +338,10 @@ public class LotService : ILotService
             lot.DeletedAt = DateTime.UtcNow;
             lot.DeletedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Log audit event
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 "Lot",
                 lot.Id,
                 "Delete",
@@ -393,10 +393,10 @@ public class LotService : ILotService
                 lot.Notes = notes;
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Log audit event
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 "Lot",
                 lot.Id,
                 "QualityStatus",
@@ -440,10 +440,10 @@ public class LotService : ILotService
             lot.ModifiedBy = currentUser;
             lot.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Log audit event
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 "Lot",
                 lot.Id,
                 "Status",
@@ -485,10 +485,10 @@ public class LotService : ILotService
             lot.ModifiedBy = currentUser;
             lot.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Log audit event
-            await _auditLogService.LogEntityChangeAsync(
+            _ = await _auditLogService.LogEntityChangeAsync(
                 "Lot",
                 lot.Id,
                 "Status",

@@ -141,10 +141,10 @@ public class PriceListService : IPriceListService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.PriceLists.Add(priceList);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.PriceLists.Add(priceList);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(priceList, "Create", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(priceList, "Create", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Price list created with ID {PriceListId} by user {User}.", priceList.Id, currentUser);
 
@@ -194,9 +194,9 @@ public class PriceListService : IPriceListService
             priceList.ModifiedBy = currentUser;
             priceList.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(priceList, "Update", currentUser, originalPriceList, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(priceList, "Update", currentUser, originalPriceList, cancellationToken);
 
             _logger.LogInformation("Price list {PriceListId} updated by user {User}.", id, currentUser);
 
@@ -247,9 +247,9 @@ public class PriceListService : IPriceListService
                 entry.DeletedAt = DateTime.UtcNow;
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(priceList, "Delete", currentUser, originalPriceList, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(priceList, "Delete", currentUser, originalPriceList, cancellationToken);
 
             _logger.LogInformation("Price list {PriceListId} deleted by user {User}.", id, currentUser);
 
@@ -330,10 +330,10 @@ public class PriceListService : IPriceListService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.PriceListEntries.Add(entry);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.PriceListEntries.Add(entry);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(entry, "Create", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(entry, "Create", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Price list entry created with ID {EntryId} for price list {PriceListId} by user {User}.",
                 entry.Id, createPriceListEntryDto.PriceListId, currentUser);
@@ -385,9 +385,9 @@ public class PriceListService : IPriceListService
             entry.ModifiedBy = currentUser;
             entry.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(entry, "Update", currentUser, originalEntry, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(entry, "Update", currentUser, originalEntry, cancellationToken);
 
             _logger.LogInformation("Price list entry {EntryId} updated by user {User}.", id, currentUser);
 
@@ -429,9 +429,9 @@ public class PriceListService : IPriceListService
             entry.DeletedBy = currentUser;
             entry.DeletedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(entry, "Delete", currentUser, originalEntry, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(entry, "Delete", currentUser, originalEntry, cancellationToken);
 
             _logger.LogInformation("Price list entry {EntryId} deleted by user {User}.", id, currentUser);
 
@@ -914,7 +914,7 @@ public class PriceListService : IPriceListService
                             CreatedBy = currentUser
                         };
 
-                        _context.PriceListEntries.Add(newEntry);
+                        _ = _context.PriceListEntries.Add(newEntry);
                         result.CreatedCount++;
                         result.SuccessCount++;
                     }
@@ -936,9 +936,9 @@ public class PriceListService : IPriceListService
             // Save all changes
             if (result.SuccessCount > 0)
             {
-                await _context.SaveChangesAsync(cancellationToken);
+                _ = await _context.SaveChangesAsync(cancellationToken);
 
-                await _auditLogService.LogEntityChangeAsync(
+                _ = await _auditLogService.LogEntityChangeAsync(
                     "PriceList",
                     priceListId,
                     "BulkImport",

@@ -102,7 +102,7 @@ public class PerformanceOptimizationService : IPerformanceOptimizationService, I
                 };
             }
 
-            _cache.Set(key, result, cacheOptions);
+            _ = _cache.Set(key, result, cacheOptions);
             _logger.LogDebug("Cached result for key: {Key}", key);
 
             return result;
@@ -114,7 +114,7 @@ public class PerformanceOptimizationService : IPerformanceOptimizationService, I
         }
         finally
         {
-            semaphore.Release();
+            _ = semaphore.Release();
         }
     }
 
@@ -184,7 +184,7 @@ public class PerformanceOptimizationService : IPerformanceOptimizationService, I
         finally
         {
             // Clean up
-            _debounceCancellations.TryRemove(key, out _);
+            _ = _debounceCancellations.TryRemove(key, out _);
             newCts.Dispose();
         }
     }
@@ -196,7 +196,7 @@ public class PerformanceOptimizationService : IPerformanceOptimizationService, I
     {
         try
         {
-            await GetCachedDataAsync(key, factory, expiration);
+            _ = await GetCachedDataAsync(key, factory, expiration);
             _logger.LogDebug("Preloaded data for key: {Key}", key);
         }
         catch (Exception ex)
@@ -219,7 +219,7 @@ public class PerformanceOptimizationService : IPerformanceOptimizationService, I
                 Size = _defaultCacheOptions.Size,
                 AbsoluteExpirationRelativeToNow = expiration
             };
-            _cache.Set(key, value, options);
+            _ = _cache.Set(key, value, options);
         }
     }
 

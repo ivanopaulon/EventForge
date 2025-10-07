@@ -278,7 +278,7 @@ public class HttpClientService : IHttpClientService
 
         // Add correlation ID for request tracking
         var correlationId = Guid.NewGuid().ToString();
-        httpClient.DefaultRequestHeaders.TryAddWithoutValidation("X-Correlation-ID", correlationId);
+        _ = httpClient.DefaultRequestHeaders.TryAddWithoutValidation("X-Correlation-ID", correlationId);
 
         return httpClient;
     }
@@ -358,7 +358,7 @@ public class HttpClientService : IHttpClientService
         {
             if (_snackbar != null)
             {
-                _snackbar.Add(errorMessage, Severity.Error, config =>
+                _ = _snackbar.Add(errorMessage, Severity.Error, config =>
                 {
                     config.VisibleStateDuration = 5000;
                     config.ShowCloseIcon = true;

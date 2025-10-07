@@ -110,10 +110,10 @@ public class BrandService : IBrandService
                 CreatedBy = currentUser
             };
 
-            _context.Brands.Add(brand);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.Brands.Add(brand);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(brand, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(brand, "Insert", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Brand {BrandId} created by {User}.", brand.Id, currentUser);
 
@@ -159,9 +159,9 @@ public class BrandService : IBrandService
             brand.ModifiedAt = DateTime.UtcNow;
             brand.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(brand, "Update", currentUser, originalBrand, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(brand, "Update", currentUser, originalBrand, cancellationToken);
 
             _logger.LogInformation("Brand {BrandId} updated by {User}.", brand.Id, currentUser);
 
@@ -203,9 +203,9 @@ public class BrandService : IBrandService
             brand.ModifiedAt = DateTime.UtcNow;
             brand.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(brand, "Delete", currentUser, originalBrand, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(brand, "Delete", currentUser, originalBrand, cancellationToken);
 
             _logger.LogInformation("Brand {BrandId} deleted by {User}.", brand.Id, currentUser);
 

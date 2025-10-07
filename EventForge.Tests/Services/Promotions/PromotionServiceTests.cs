@@ -40,7 +40,7 @@ namespace EventForge.Tests.Services.Promotions
             _memoryCache = new MemoryCache(new MemoryCacheOptions());
 
             // Setup tenant context
-            _mockTenantContext.Setup(x => x.CurrentTenantId).Returns(_tenantId);
+            _ = _mockTenantContext.Setup(x => x.CurrentTenantId).Returns(_tenantId);
 
             // Create service
             _promotionService = new PromotionService(
@@ -152,7 +152,7 @@ namespace EventForge.Tests.Services.Promotions
             Assert.Equal(20.00m, result.OriginalTotal);
             Assert.Equal(20.00m, result.FinalTotal);
             Assert.Equal(0m, result.TotalDiscountAmount);
-            Assert.Single(result.CartItems);
+            _ = Assert.Single(result.CartItems);
 
             var cartItem = result.CartItems.First();
             Assert.Equal(productId, cartItem.ProductId);
@@ -231,8 +231,8 @@ namespace EventForge.Tests.Services.Promotions
                 }
             };
 
-            _context.Promotions.Add(promotion);
-            await _context.SaveChangesAsync();
+            _ = _context.Promotions.Add(promotion);
+            _ = await _context.SaveChangesAsync();
 
             var applyDto = new ApplyPromotionRulesDto
             {
@@ -264,7 +264,7 @@ namespace EventForge.Tests.Services.Promotions
             Assert.Equal(18.00m, cartItem.FinalLineTotal);
             Assert.Equal(2.00m, cartItem.PromotionDiscount);
             Assert.Equal(10m, cartItem.EffectiveDiscountPercentage);
-            Assert.Single(cartItem.AppliedPromotions);
+            _ = Assert.Single(cartItem.AppliedPromotions);
 
             var appliedPromotion = cartItem.AppliedPromotions.First();
             Assert.Equal(promotionId, appliedPromotion.PromotionId);

@@ -158,11 +158,11 @@ public class TeamService : ITeamService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.Teams.Add(team);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.Teams.Add(team);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log
-            await _auditLogService.TrackEntityChangesAsync(team, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(team, "Insert", currentUser, null, cancellationToken);
 
             var createdTeam = await _context.Teams
                 .Include(t => t.Event)
@@ -210,10 +210,10 @@ public class TeamService : ITeamService
             team.ModifiedBy = currentUser;
             team.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log
-            await _auditLogService.TrackEntityChangesAsync(team, "Update", currentUser, originalTeam, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(team, "Update", currentUser, originalTeam, cancellationToken);
 
             return MapToTeamDto(team);
         }
@@ -260,13 +260,13 @@ public class TeamService : ITeamService
                 member.DeletedAt = DateTime.UtcNow;
 
                 // Audit log per ogni membro eliminato
-                await _auditLogService.TrackEntityChangesAsync(member, "Delete", currentUser, null, cancellationToken);
+                _ = await _auditLogService.TrackEntityChangesAsync(member, "Delete", currentUser, null, cancellationToken);
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log per il team eliminato
-            await _auditLogService.TrackEntityChangesAsync(team, "Delete", currentUser, originalTeam, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(team, "Delete", currentUser, originalTeam, cancellationToken);
 
             return true;
         }
@@ -330,11 +330,11 @@ public class TeamService : ITeamService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.TeamMembers.Add(member);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.TeamMembers.Add(member);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log
-            await _auditLogService.TrackEntityChangesAsync(member, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(member, "Insert", currentUser, null, cancellationToken);
 
             var createdMember = await _context.TeamMembers
                 .Include(m => m.Team)
@@ -380,10 +380,10 @@ public class TeamService : ITeamService
             member.ModifiedBy = currentUser;
             member.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log
-            await _auditLogService.TrackEntityChangesAsync(member, "Update", currentUser, originalMember, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(member, "Update", currentUser, originalMember, cancellationToken);
 
             return MapToTeamMemberDto(member);
         }
@@ -419,10 +419,10 @@ public class TeamService : ITeamService
             member.DeletedBy = currentUser;
             member.DeletedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             // Audit log
-            await _auditLogService.TrackEntityChangesAsync(member, "Delete", currentUser, originalMember, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(member, "Delete", currentUser, originalMember, cancellationToken);
 
             return true;
         }
@@ -510,10 +510,10 @@ public class TeamService : ITeamService
                 TenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context is required")
             };
 
-            _context.DocumentReferences.Add(document);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.DocumentReferences.Add(document);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(document, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(document, "Insert", currentUser, null, cancellationToken);
 
             return MapToDocumentReferenceDto(document);
         }
@@ -557,9 +557,9 @@ public class TeamService : ITeamService
             document.ModifiedBy = currentUser;
             document.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(document, "Update", currentUser, originalDocument, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(document, "Update", currentUser, originalDocument, cancellationToken);
 
             return MapToDocumentReferenceDto(document);
         }
@@ -595,9 +595,9 @@ public class TeamService : ITeamService
             document.DeletedBy = currentUser;
             document.DeletedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(document, "Delete", currentUser, originalDocument, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(document, "Delete", currentUser, originalDocument, cancellationToken);
 
             return true;
         }
@@ -670,10 +670,10 @@ public class TeamService : ITeamService
                 TenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context is required")
             };
 
-            _context.MembershipCards.Add(card);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.MembershipCards.Add(card);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(card, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(card, "Insert", currentUser, null, cancellationToken);
 
             var createdCard = await _context.MembershipCards
                 .Include(mc => mc.DocumentReference)
@@ -723,9 +723,9 @@ public class TeamService : ITeamService
             card.ModifiedBy = currentUser;
             card.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(card, "Update", currentUser, originalCard, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(card, "Update", currentUser, originalCard, cancellationToken);
 
             return MapToMembershipCardDto(card);
         }
@@ -761,9 +761,9 @@ public class TeamService : ITeamService
             card.DeletedBy = currentUser;
             card.DeletedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(card, "Delete", currentUser, originalCard, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(card, "Delete", currentUser, originalCard, cancellationToken);
 
             return true;
         }
@@ -838,10 +838,10 @@ public class TeamService : ITeamService
                 TenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context is required")
             };
 
-            _context.InsurancePolicies.Add(policy);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.InsurancePolicies.Add(policy);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(policy, "Insert", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(policy, "Insert", currentUser, null, cancellationToken);
 
             var createdPolicy = await _context.InsurancePolicies
                 .Include(ip => ip.DocumentReference)
@@ -893,9 +893,9 @@ public class TeamService : ITeamService
             policy.ModifiedBy = currentUser;
             policy.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(policy, "Update", currentUser, originalPolicy, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(policy, "Update", currentUser, originalPolicy, cancellationToken);
 
             return MapToInsurancePolicyDto(policy);
         }
@@ -931,9 +931,9 @@ public class TeamService : ITeamService
             policy.DeletedBy = currentUser;
             policy.DeletedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(policy, "Delete", currentUser, originalPolicy, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(policy, "Delete", currentUser, originalPolicy, cancellationToken);
 
             return true;
         }

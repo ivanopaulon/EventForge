@@ -116,7 +116,7 @@ public class NotificationService : INotificationService
     {
         try
         {
-            await _httpClientService.PatchAsync<object, object>($"api/v1/notifications/{id}/read", new { }, cancellationToken);
+            _ = await _httpClientService.PatchAsync<object, object>($"api/v1/notifications/{id}/read", new { }, cancellationToken);
             return true;
         }
         catch (Exception ex)
@@ -144,7 +144,7 @@ public class NotificationService : INotificationService
     {
         try
         {
-            await _httpClientService.PatchAsync<object, object>($"api/v1/notifications/{id}/archive", new { }, cancellationToken);
+            _ = await _httpClientService.PatchAsync<object, object>($"api/v1/notifications/{id}/archive", new { }, cancellationToken);
             return true;
         }
         catch (Exception ex)
@@ -172,7 +172,7 @@ public class NotificationService : INotificationService
     {
         try
         {
-            await _httpClientService.PatchAsync<object, object>($"api/v1/notifications/{id}/silence", new { }, cancellationToken);
+            _ = await _httpClientService.PatchAsync<object, object>($"api/v1/notifications/{id}/silence", new { }, cancellationToken);
             return true;
         }
         catch (Exception ex)

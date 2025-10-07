@@ -50,8 +50,8 @@ public class DocumentAccessLogService : IDocumentAccessLogService
                 SessionId = sessionId
             };
 
-            _context.Set<DocumentAccessLog>().Add(logEntry);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.Set<DocumentAccessLog>().Add(logEntry);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogDebug(
                 "Logged document access: Document={DocumentId}, User={UserId}, Type={AccessType}, Result={Result}",
@@ -199,7 +199,7 @@ public class DocumentAccessLogService : IDocumentAccessLogService
             oldLogs.Count, cutoffDate);
 
         _context.Set<DocumentAccessLog>().RemoveRange(oldLogs);
-        await _context.SaveChangesAsync(cancellationToken);
+        _ = await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation(
             "Deleted {Count} old access log entries",

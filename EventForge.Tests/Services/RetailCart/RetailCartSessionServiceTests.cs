@@ -31,10 +31,10 @@ namespace EventForge.Tests.Services.RetailCart
             _memoryCache = new MemoryCache(new MemoryCacheOptions());
 
             // Setup tenant context
-            _mockTenantContext.Setup(x => x.CurrentTenantId).Returns(_tenantId);
+            _ = _mockTenantContext.Setup(x => x.CurrentTenantId).Returns(_tenantId);
 
             // Setup default promotion service response (no promotions)
-            _mockPromotionService.Setup(x => x.ApplyPromotionRulesAsync(It.IsAny<ApplyPromotionRulesDto>(), default))
+            _ = _mockPromotionService.Setup(x => x.ApplyPromotionRulesAsync(It.IsAny<ApplyPromotionRulesDto>(), default))
                 .ReturnsAsync((ApplyPromotionRulesDto dto, System.Threading.CancellationToken ct) =>
                     new PromotionApplicationResultDto
                     {
@@ -129,7 +129,7 @@ namespace EventForge.Tests.Services.RetailCart
 
             // Assert
             Assert.NotNull(result);
-            Assert.Single(result.Items);
+            _ = Assert.Single(result.Items);
 
             var item = result.Items.First();
             Assert.Equal(productId, item.ProductId);
@@ -159,7 +159,7 @@ namespace EventForge.Tests.Services.RetailCart
             };
 
             // Add item first time
-            await _cartSessionService.AddItemAsync(session.Id, addItemDto);
+            _ = await _cartSessionService.AddItemAsync(session.Id, addItemDto);
 
             // Add same item again
             addItemDto.Quantity = 2;
@@ -169,7 +169,7 @@ namespace EventForge.Tests.Services.RetailCart
 
             // Assert
             Assert.NotNull(result);
-            Assert.Single(result.Items);
+            _ = Assert.Single(result.Items);
 
             var item = result.Items.First();
             Assert.Equal(3, item.Quantity); // 1 + 2
@@ -209,7 +209,7 @@ namespace EventForge.Tests.Services.RetailCart
 
             // Assert
             Assert.NotNull(result);
-            Assert.Single(result.Items);
+            _ = Assert.Single(result.Items);
 
             var item = result.Items.First();
             Assert.Equal(5, item.Quantity);
@@ -247,7 +247,7 @@ namespace EventForge.Tests.Services.RetailCart
             };
 
             // Setup promotion service to return a discount
-            _mockPromotionService.Setup(x => x.ApplyPromotionRulesAsync(It.IsAny<ApplyPromotionRulesDto>(), default))
+            _ = _mockPromotionService.Setup(x => x.ApplyPromotionRulesAsync(It.IsAny<ApplyPromotionRulesDto>(), default))
                 .ReturnsAsync((ApplyPromotionRulesDto dto, System.Threading.CancellationToken ct) =>
                     new PromotionApplicationResultDto
                     {
@@ -294,7 +294,7 @@ namespace EventForge.Tests.Services.RetailCart
             Assert.Contains("WELCOME", result.CouponCodes);
             Assert.Equal(9.00m, result.FinalTotal);
             Assert.Equal(1.00m, result.TotalDiscountAmount);
-            Assert.Single(result.AppliedPromotions);
+            _ = Assert.Single(result.AppliedPromotions);
 
             // Verify promotion service was called with coupons
             _mockPromotionService.Verify(x => x.ApplyPromotionRulesAsync(
@@ -312,7 +312,7 @@ namespace EventForge.Tests.Services.RetailCart
             var session = await CreateTestSessionWithItem();
 
             // Add coupons first
-            await _cartSessionService.ApplyCouponsAsync(session.Id, new ApplyCouponsDto
+            _ = await _cartSessionService.ApplyCouponsAsync(session.Id, new ApplyCouponsDto
             {
                 CouponCodes = new List<string> { "TEST" }
             });
@@ -356,7 +356,7 @@ namespace EventForge.Tests.Services.RetailCart
 
             // Change tenant context
             var otherTenantId = Guid.NewGuid();
-            _mockTenantContext.Setup(x => x.CurrentTenantId).Returns(otherTenantId);
+            _ = _mockTenantContext.Setup(x => x.CurrentTenantId).Returns(otherTenantId);
 
             // Act
             var result = await _cartSessionService.GetSessionAsync(session.Id);
@@ -372,7 +372,7 @@ namespace EventForge.Tests.Services.RetailCart
             var session = await CreateTestSessionWithItem();
 
             // Setup promotion service to throw exception
-            _mockPromotionService.Setup(x => x.ApplyPromotionRulesAsync(It.IsAny<ApplyPromotionRulesDto>(), default))
+            _ = _mockPromotionService.Setup(x => x.ApplyPromotionRulesAsync(It.IsAny<ApplyPromotionRulesDto>(), default))
                 .ThrowsAsync(new InvalidOperationException("Promotion service unavailable"));
 
             // Act

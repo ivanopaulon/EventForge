@@ -111,10 +111,10 @@ public class StorageFacilityService : IStorageFacilityService
                 IsActive = true
             };
 
-            _context.StorageFacilities.Add(facility);
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = _context.StorageFacilities.Add(facility);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(facility, "Create", currentUser, null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(facility, "Create", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Storage facility {FacilityId} created by {User}.", facility.Id, currentUser);
 
@@ -160,9 +160,9 @@ public class StorageFacilityService : IStorageFacilityService
             facility.ModifiedAt = DateTime.UtcNow;
             facility.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(facility, "Update", currentUser, originalFacility, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(facility, "Update", currentUser, originalFacility, cancellationToken);
 
             _logger.LogInformation("Storage facility {FacilityId} updated by {User}.", facility.Id, currentUser);
 
@@ -200,9 +200,9 @@ public class StorageFacilityService : IStorageFacilityService
             facility.ModifiedAt = DateTime.UtcNow;
             facility.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _ = await _context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.TrackEntityChangesAsync(facility, "Delete", currentUser, originalFacility, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(facility, "Delete", currentUser, originalFacility, cancellationToken);
 
             _logger.LogInformation("Storage facility {FacilityId} deleted by {User}.", facility.Id, currentUser);
 

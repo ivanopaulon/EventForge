@@ -195,7 +195,7 @@ namespace EventForge.Client.Services
             }
             finally
             {
-                _flushSemaphore.Release();
+                _ = _flushSemaphore.Release();
             }
         }
 
@@ -353,7 +353,7 @@ namespace EventForge.Client.Services
                     Console.WriteLine($"[CLIENT LOG] Response content: {content}");
                 }
 
-                response.EnsureSuccessStatusCode();
+                _ = response.EnsureSuccessStatusCode();
             }
             catch (HttpRequestException ex)
             {
@@ -394,7 +394,7 @@ namespace EventForge.Client.Services
                     Console.WriteLine($"[CLIENT LOG] Response content: {content}");
                 }
 
-                response.EnsureSuccessStatusCode();
+                _ = response.EnsureSuccessStatusCode();
             }
             catch (HttpRequestException ex)
             {

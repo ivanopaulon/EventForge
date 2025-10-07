@@ -146,7 +146,7 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy
+        _ = policy
             .WithOrigins("https://localhost:7241", "https://localhost:5000", "https://localhost:7009") // aggiungi qui le porte del client Blazor se diverse
             .AllowAnyHeader()
             .AllowAnyMethod()
@@ -166,8 +166,8 @@ app.UseStartupPerformanceMonitoring();
 if (app.Environment.IsDevelopment())
 {
     // Development: Enable Swagger and set as homepage
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
+    _ = app.UseSwagger();
+    _ = app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "EventForge API v1.0.0");
         c.RoutePrefix = string.Empty; // Set Swagger as the homepage
@@ -178,8 +178,8 @@ if (app.Environment.IsDevelopment())
 else
 {
     // Production: Enable Swagger but redirect homepage to logs viewer
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
+    _ = app.UseSwagger();
+    _ = app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "EventForge API v1.0.0");
         c.RoutePrefix = "swagger"; // Swagger available at /swagger
@@ -192,12 +192,12 @@ else
 if (!app.Environment.IsDevelopment())
 {
     // Use our custom ProblemDetails middleware instead
-    app.UseProblemDetails();
-    app.UseHsts();
+    _ = app.UseProblemDetails();
+    _ = app.UseHsts();
 }
 else
 {
-    app.UseProblemDetails(); // Use our middleware in all environments
+    _ = app.UseProblemDetails(); // Use our middleware in all environments
 }
 
 app.UseHttpsRedirection();

@@ -41,7 +41,7 @@ namespace EventForge.Client.Shared
                     // Show user-friendly notification
                     if (snackbar != null)
                     {
-                        snackbar.Add(
+                        _ = snackbar.Add(
                             "Si è verificato un errore nell'applicazione. L'errore è stato registrato.",
                             Severity.Error,
                             config =>

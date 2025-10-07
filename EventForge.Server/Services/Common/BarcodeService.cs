@@ -205,11 +205,11 @@ public class BarcodeService : IBarcodeService
 
             var text = $"BARCODE: {data}";
             var textBounds = new SKRect();
-            font.MeasureText(text, out var textBounds2);
+            _ = font.MeasureText(text, out var textBounds2);
             textBounds = textBounds2;
 
             var x = (width - textBounds.Width) / 2;
-            var y = (height - textBounds.Height) / 2 + textBounds.Height;
+            var y = ((height - textBounds.Height) / 2) + textBounds.Height;
 
             canvas.DrawText(text, x, y, SKTextAlign.Left, font, paint);
 

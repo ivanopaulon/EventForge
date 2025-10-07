@@ -29,7 +29,7 @@ public class LogManagementServiceTests
 
         // Create a simple configuration with the required connection string
         var configBuilder = new ConfigurationBuilder();
-        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        _ = configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["ConnectionStrings:LogDB"] = "Data Source=test;Initial Catalog=test;Integrated Security=true;"
         });
@@ -56,7 +56,7 @@ public class LogManagementServiceTests
             PageSize = 10
         };
 
-        _mockApplicationLogService.Setup(s => s.GetPagedLogsAsync(queryParameters, It.IsAny<CancellationToken>()))
+        _ = _mockApplicationLogService.Setup(s => s.GetPagedLogsAsync(queryParameters, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResult);
 
         // Act
@@ -120,7 +120,7 @@ public class LogManagementServiceTests
             PageSize = 10
         };
 
-        _mockAuditLogService.Setup(s => s.SearchAuditTrailAsync(searchDto, It.IsAny<CancellationToken>()))
+        _ = _mockAuditLogService.Setup(s => s.SearchAuditTrailAsync(searchDto, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResult);
 
         // Act
@@ -157,7 +157,7 @@ public class LogManagementServiceTests
     public async Task ProcessClientLogAsync_ShouldThrow_WithNullLog()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(() => _service.ProcessClientLogAsync(null!, "TestUser"));
+        _ = await Assert.ThrowsAsync<ArgumentNullException>(() => _service.ProcessClientLogAsync(null!, "TestUser"));
     }
 
     [Fact]
