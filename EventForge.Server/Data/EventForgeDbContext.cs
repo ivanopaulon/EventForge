@@ -21,7 +21,8 @@ public class EventForgeDbContext : DbContext
         _httpContextAccessor = httpContextAccessor;
     }
 
-    // Common
+    #region Common Entities
+
     public DbSet<Address> Addresses { get; set; }
     public DbSet<Bank> Banks { get; set; }
     public DbSet<Contact> Contacts { get; set; }
@@ -32,12 +33,18 @@ public class EventForgeDbContext : DbContext
     public DbSet<VatRate> VatRates { get; set; }
     public DbSet<VatNature> VatNatures { get; set; }
 
-    // Business
+    #endregion
+
+    #region Business Entities
+
     public DbSet<BusinessParty> BusinessParties { get; set; }
     public DbSet<BusinessPartyAccounting> BusinessPartyAccountings { get; set; }
     public DbSet<PaymentTerm> PaymentTerms { get; set; }
 
-    // Documents
+    #endregion
+
+    #region Document Entities
+
     public DbSet<DocumentType> DocumentTypes { get; set; }
     public DbSet<DocumentHeader> DocumentHeaders { get; set; }
     public DbSet<DocumentRow> DocumentRows { get; set; }
@@ -54,16 +61,22 @@ public class EventForgeDbContext : DbContext
     public DbSet<DocumentSchedule> DocumentSchedules { get; set; }
     public DbSet<DocumentRetentionPolicy> DocumentRetentionPolicies { get; set; }
     public DbSet<DocumentAccessLog> DocumentAccessLogs { get; set; }
+    public DbSet<DocumentReference> DocumentReferences { get; set; }
 
-    // Events & Teams
+    #endregion
+
+    #region Event & Team Entities
+
     public DbSet<Event> Events { get; set; }
     public DbSet<Team> Teams { get; set; }
     public DbSet<TeamMember> TeamMembers { get; set; }
-    public DbSet<DocumentReference> DocumentReferences { get; set; }
     public DbSet<MembershipCard> MembershipCards { get; set; }
     public DbSet<InsurancePolicy> InsurancePolicies { get; set; }
 
-    // Products
+    #endregion
+
+    #region Product Entities
+
     public DbSet<Product> Products { get; set; }
     public DbSet<ProductCode> ProductCodes { get; set; }
     public DbSet<ProductUnit> ProductUnits { get; set; }
@@ -72,20 +85,22 @@ public class EventForgeDbContext : DbContext
     public DbSet<Model> Models { get; set; }
     public DbSet<ProductSupplier> ProductSuppliers { get; set; }
 
-    // Price Lists
+    #endregion
+
+    #region Price List & Promotion Entities
+
     public DbSet<PriceList> PriceLists { get; set; }
     public DbSet<PriceListEntry> PriceListEntries { get; set; }
-
-    // Promotions
     public DbSet<Promotion> Promotions { get; set; }
     public DbSet<PromotionRule> PromotionRules { get; set; }
     public DbSet<PromotionRuleProduct> PromotionRuleProducts { get; set; }
 
-    // Warehouse
+    #endregion
+
+    #region Warehouse & Stock Entities
+
     public DbSet<StorageFacility> StorageFacilities { get; set; }
     public DbSet<StorageLocation> StorageLocations { get; set; }
-
-    // Traceability and Stock Management
     public DbSet<Lot> Lots { get; set; }
     public DbSet<Serial> Serials { get; set; }
     public DbSet<Stock> Stocks { get; set; }
@@ -99,20 +114,26 @@ public class EventForgeDbContext : DbContext
     public DbSet<ProjectOrder> ProjectOrders { get; set; }
     public DbSet<ProjectMaterialAllocation> ProjectMaterialAllocations { get; set; }
 
-    // Station Monitor
+    #endregion
+
+    #region Station Monitor Entities
+
     public DbSet<Station> Stations { get; set; }
     public DbSet<StationOrderQueueItem> StationOrderQueueItems { get; set; }
 
-    // Store
+    #endregion
+
+    #region Store Entities
+
     public DbSet<StorePos> StorePoses { get; set; }
     public DbSet<StoreUser> StoreUsers { get; set; }
     public DbSet<StoreUserGroup> StoreUserGroups { get; set; }
     public DbSet<StoreUserPrivilege> StoreUserPrivileges { get; set; }
 
-    // Audit
-    public DbSet<EntityChangeLog> EntityChangeLogs { get; set; }
+    #endregion
 
-    // Authentication & Authorization
+    #region Authentication & Authorization Entities
+
     public DbSet<User> Users { get; set; }
     public DbSet<Role> Roles { get; set; }
     public DbSet<Permission> Permissions { get; set; }
@@ -123,28 +144,43 @@ public class EventForgeDbContext : DbContext
     public DbSet<AdminTenant> AdminTenants { get; set; }
     public DbSet<AuditTrail> AuditTrails { get; set; }
 
-    // Licensing System
+    #endregion
+
+    #region Licensing Entities
+
     public DbSet<License> Licenses { get; set; }
     public DbSet<LicenseFeature> LicenseFeatures { get; set; }
     public DbSet<LicenseFeaturePermission> LicenseFeaturePermissions { get; set; }
     public DbSet<TenantLicense> TenantLicenses { get; set; }
 
-    // Configuration & System Management
+    #endregion
+
+    #region System Configuration Entities
+
     public DbSet<SystemConfiguration> SystemConfigurations { get; set; }
     public DbSet<BackupOperation> BackupOperations { get; set; }
 
-    // Notifications
+    #endregion
+
+    #region Notification Entities
+
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<NotificationRecipient> NotificationRecipients { get; set; }
 
-    // Chat
+    #endregion
+
+    #region Chat Entities
+
     public DbSet<ChatThread> ChatThreads { get; set; }
     public DbSet<ChatMember> ChatMembers { get; set; }
     public DbSet<ChatMessage> ChatMessages { get; set; }
     public DbSet<MessageAttachment> MessageAttachments { get; set; }
     public DbSet<MessageReadReceipt> MessageReadReceipts { get; set; }
 
-    // Sales
+    #endregion
+
+    #region Sales Entities
+
     public DbSet<SaleSession> SaleSessions { get; set; }
     public DbSet<SaleItem> SaleItems { get; set; }
     public DbSet<SalePayment> SalePayments { get; set; }
@@ -154,8 +190,14 @@ public class EventForgeDbContext : DbContext
     public DbSet<TableSession> TableSessions { get; set; }
     public DbSet<TableReservation> TableReservations { get; set; }
 
-    // Logging
+    #endregion
+
+    #region Audit & Logging Entities
+
+    public DbSet<EntityChangeLog> EntityChangeLogs { get; set; }
     public DbSet<LogEntry> LogEntries { get; set; }
+
+    #endregion
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -919,6 +961,121 @@ public class EventForgeDbContext : DbContext
         _ = modelBuilder.Entity<Product>()
             .HasIndex(p => p.ImageDocumentId)
             .HasDatabaseName("IX_Product_ImageDocumentId");
+
+        // Sales Entity Relationships
+
+        // SaleSession → SaleItems (one-to-many)
+        _ = modelBuilder.Entity<SaleItem>()
+            .HasOne(si => si.SaleSession)
+            .WithMany(ss => ss.Items)
+            .HasForeignKey(si => si.SaleSessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // SaleSession → SalePayments (one-to-many)
+        _ = modelBuilder.Entity<SalePayment>()
+            .HasOne(sp => sp.SaleSession)
+            .WithMany(ss => ss.Payments)
+            .HasForeignKey(sp => sp.SaleSessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // SaleSession → SessionNotes (one-to-many)
+        _ = modelBuilder.Entity<SessionNote>()
+            .HasOne(sn => sn.SaleSession)
+            .WithMany(ss => ss.Notes)
+            .HasForeignKey(sn => sn.SaleSessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // SalePayment → PaymentMethod (many-to-one)
+        _ = modelBuilder.Entity<SalePayment>()
+            .HasOne(sp => sp.PaymentMethod)
+            .WithMany()
+            .HasForeignKey(sp => sp.PaymentMethodId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // SessionNote → NoteFlag (many-to-one)
+        _ = modelBuilder.Entity<SessionNote>()
+            .HasOne(sn => sn.NoteFlag)
+            .WithMany()
+            .HasForeignKey(sn => sn.NoteFlagId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // TableSession → TableReservations (one-to-many)
+        _ = modelBuilder.Entity<TableReservation>()
+            .HasOne(tr => tr.Table)
+            .WithMany(ts => ts.Reservations)
+            .HasForeignKey(tr => tr.TableId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // SaleSession → TableSession (many-to-one, optional)
+        _ = modelBuilder.Entity<SaleSession>()
+            .HasOne(ss => ss.TableSession)
+            .WithMany()
+            .HasForeignKey(ss => ss.TableId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Sales entity indexes for performance
+
+        _ = modelBuilder.Entity<SaleItem>()
+            .HasIndex(si => si.SaleSessionId)
+            .HasDatabaseName("IX_SaleItems_SaleSessionId");
+
+        _ = modelBuilder.Entity<SaleItem>()
+            .HasIndex(si => si.ProductId)
+            .HasDatabaseName("IX_SaleItems_ProductId");
+
+        _ = modelBuilder.Entity<SalePayment>()
+            .HasIndex(sp => sp.SaleSessionId)
+            .HasDatabaseName("IX_SalePayments_SaleSessionId");
+
+        _ = modelBuilder.Entity<SalePayment>()
+            .HasIndex(sp => sp.PaymentMethodId)
+            .HasDatabaseName("IX_SalePayments_PaymentMethodId");
+
+        _ = modelBuilder.Entity<SessionNote>()
+            .HasIndex(sn => sn.SaleSessionId)
+            .HasDatabaseName("IX_SessionNotes_SaleSessionId");
+
+        _ = modelBuilder.Entity<SessionNote>()
+            .HasIndex(sn => sn.NoteFlagId)
+            .HasDatabaseName("IX_SessionNotes_NoteFlagId");
+
+        _ = modelBuilder.Entity<TableReservation>()
+            .HasIndex(tr => tr.TableId)
+            .HasDatabaseName("IX_TableReservations_TableId");
+
+        _ = modelBuilder.Entity<TableReservation>()
+            .HasIndex(tr => tr.ReservationDateTime)
+            .HasDatabaseName("IX_TableReservations_ReservationDateTime");
+
+        _ = modelBuilder.Entity<SaleSession>()
+            .HasIndex(ss => ss.TableId)
+            .HasDatabaseName("IX_SaleSessions_TableId");
+
+        _ = modelBuilder.Entity<SaleSession>()
+            .HasIndex(ss => ss.Status)
+            .HasDatabaseName("IX_SaleSessions_Status");
+
+        _ = modelBuilder.Entity<SaleSession>()
+            .HasIndex(ss => ss.CreatedAt)
+            .HasDatabaseName("IX_SaleSessions_CreatedAt");
+
+        // PaymentMethod unique constraint
+        _ = modelBuilder.Entity<Entities.Sales.PaymentMethod>()
+            .HasIndex(pm => pm.Code)
+            .IsUnique()
+            .HasDatabaseName("IX_PaymentMethods_Code_Unique");
+
+        // NoteFlag unique constraint
+        _ = modelBuilder.Entity<NoteFlag>()
+            .HasIndex(nf => nf.Code)
+            .IsUnique()
+            .HasDatabaseName("IX_NoteFlags_Code_Unique");
+
+        // TableSession unique constraint on table number
+        _ = modelBuilder.Entity<TableSession>()
+            .HasIndex(ts => ts.TableNumber)
+            .IsUnique()
+            .HasDatabaseName("IX_TableSessions_TableNumber_Unique");
     }
 
     /// <summary>
