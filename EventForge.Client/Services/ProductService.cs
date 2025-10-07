@@ -251,7 +251,7 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateProductCodeDto, ProductCodeDto>("api/v1/product-management/product-codes", createDto);
+            return await _httpClientService.PostAsync<CreateProductCodeDto, ProductCodeDto>($"{BaseUrl}/{createDto.ProductId}/codes", createDto);
         }
         catch (Exception ex)
         {
