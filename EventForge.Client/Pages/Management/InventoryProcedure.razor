@@ -1067,7 +1067,62 @@
     
     private async Task HandleProductCreated(ProductDto createdProduct)
     {
-        // Product created successfully, search again to load it
-        await SearchBarcode();
+        // Product created successfully, re-open ProductNotFoundDialog with the product pre-selected
+        await ShowProductNotFoundDialogWithProduct(createdProduct);
+    }
+    
+    private async Task ShowProductNotFoundDialogWithProduct(ProductDto preSelectedProduct)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Barcode", _scannedBarcode },
+            { "IsInventoryContext", true },
+            { "PreSelectedProduct", preSelectedProduct }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ProductNotFoundDialog>(
+            TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato"),
+            parameters,
+            options
+        );
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data != null)
+        {
+            // Handle string actions (skip only, since create was already done)
+            if (result.Data is string action)
+            {
+                if (action == "skip")
+                {
+                    // Skip this product and continue with inventory
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato: {0}", _scannedBarcode), 
+                        Severity.Info
+                    );
+                    AddOperationLog(
+                        TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato"),
+                        $"Codice: {_scannedBarcode}",
+                        "Info"
+                    );
+                    
+                    // Clear the form and refocus on barcode input
+                    ClearProductForm();
+                }
+            }
+            // Handle assignment result from integrated search
+            else
+            {
+                // Product was assigned directly from the dialog, search again to load it
+                await SearchBarcode();
+            }
+        }
     }
 }

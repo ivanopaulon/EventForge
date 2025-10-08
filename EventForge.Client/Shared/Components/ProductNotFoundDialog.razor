@@ -183,6 +183,9 @@
     [Parameter]
     public bool IsInventoryContext { get; set; } = false;
 
+    [Parameter]
+    public ProductDto? PreSelectedProduct { get; set; }
+
     private bool _isLoading = false;
     private bool _isFormValid = false;
     private MudForm? _form;
@@ -197,6 +200,12 @@
         _createCodeDto.Status = ProductCodeStatus.Active;
 
         await LoadProducts();
+        
+        // If a product was pre-selected (e.g., after creation), set it
+        if (PreSelectedProduct != null)
+        {
+            _selectedProduct = PreSelectedProduct;
+        }
     }
 
     private async Task LoadProducts()
