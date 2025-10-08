@@ -557,6 +557,7 @@ public class DocumentHeaderService : IDocumentHeaderService
             }
 
             var row = createDto.ToEntity();
+            row.TenantId = documentHeader.TenantId; // Set TenantId from document header
             row.CreatedBy = currentUser;
             row.CreatedAt = DateTime.UtcNow;
 

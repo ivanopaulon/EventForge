@@ -32,6 +32,16 @@ namespace EventForge.DTOs.Documents
         public string? ProductCode { get; set; }
 
         /// <summary>
+        /// Product identifier (for traceability and inventory operations).
+        /// </summary>
+        public Guid? ProductId { get; set; }
+
+        /// <summary>
+        /// Storage location identifier (for inventory operations).
+        /// </summary>
+        public Guid? LocationId { get; set; }
+
+        /// <summary>
         /// Product or service description.
         /// </summary>
         [Required(ErrorMessage = "Description is required.")]

@@ -131,17 +131,32 @@ public static class MappingExtensions
             RowType = (EventForge.DTOs.Common.DocumentRowType)entity.RowType,
             ParentRowId = entity.ParentRowId,
             ProductCode = entity.ProductCode,
+            ProductId = entity.ProductId,
+            LocationId = entity.LocationId,
             Description = entity.Description,
             UnitOfMeasure = entity.UnitOfMeasure,
             UnitPrice = entity.UnitPrice,
             Quantity = entity.Quantity,
             LineDiscount = entity.LineDiscount,
             VatRate = entity.VatRate,
+            VatDescription = entity.VatDescription,
+            IsGift = entity.IsGift,
+            IsManual = entity.IsManual,
+            SourceWarehouseId = entity.SourceWarehouseId,
+            SourceWarehouseName = entity.SourceWarehouse?.Name,
+            DestinationWarehouseId = entity.DestinationWarehouseId,
+            DestinationWarehouseName = entity.DestinationWarehouse?.Name,
             Notes = entity.Notes,
+            SortOrder = entity.SortOrder,
+            StationId = entity.StationId,
+            StationName = entity.Station?.Name,
             CreatedAt = entity.CreatedAt,
             CreatedBy = entity.CreatedBy,
             ModifiedAt = entity.ModifiedAt,
-            ModifiedBy = entity.ModifiedBy
+            ModifiedBy = entity.ModifiedBy,
+            LineTotal = entity.LineTotal,
+            VatTotal = entity.VatTotal,
+            DiscountTotal = entity.DiscountTotal
         };
     }
 
@@ -157,13 +172,22 @@ public static class MappingExtensions
             RowType = (EventForge.Server.Data.Entities.Documents.DocumentRowType)dto.RowType,
             ParentRowId = dto.ParentRowId,
             ProductCode = dto.ProductCode,
+            ProductId = dto.ProductId,
+            LocationId = dto.LocationId,
             Description = dto.Description,
             UnitOfMeasure = dto.UnitOfMeasure,
             UnitPrice = dto.UnitPrice,
             Quantity = dto.Quantity,
             LineDiscount = dto.LineDiscount,
             VatRate = dto.VatRate,
-            Notes = dto.Notes
+            VatDescription = dto.VatDescription,
+            IsGift = dto.IsGift,
+            IsManual = dto.IsManual,
+            SourceWarehouseId = dto.SourceWarehouseId,
+            DestinationWarehouseId = dto.DestinationWarehouseId,
+            Notes = dto.Notes,
+            SortOrder = dto.SortOrder,
+            StationId = dto.StationId
         };
     }
 }
