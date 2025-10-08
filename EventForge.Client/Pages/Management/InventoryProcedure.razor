@@ -527,7 +527,7 @@
                 // Try to load the inventory document from the server
                 document = await InventoryService.GetInventoryDocumentAsync(sessionState.DocumentId);
                 
-                if (document != null && document.Status == "InProgress")
+                if (document != null && document.Status == "Draft")
                 {
                     warehouseId = sessionState.WarehouseId;
                     sessionStartTime = sessionState.SessionStartTime;
