@@ -76,11 +76,18 @@ public static class ServiceCollectionExtensions
                 outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
 
         // Add SQL Server sink if connection string is available
-        // Use try-catch to ensure application starts even if database is unavailable
+        // Test connection first before adding the sink to avoid partial configuration
         if (!string.IsNullOrEmpty(logDbConnectionString))
         {
             try
             {
+                // Test the connection first
+                using (var connection = new Microsoft.Data.SqlClient.SqlConnection(logDbConnectionString))
+                {
+                    connection.Open();
+                }
+
+                // Connection successful - add SQL Server sink
                 _ = loggerConfiguration.WriteTo.MSSqlServer(
                     connectionString: logDbConnectionString,
                     sinkOptions: new MSSqlServerSinkOptions
@@ -97,6 +104,7 @@ public static class ServiceCollectionExtensions
             catch (Exception ex)
             {
                 // If SQL Server connection fails, fall back to file and console logging only
+                // Don't add SQL Server sink to configuration
                 Log.Logger = loggerConfiguration.CreateLogger();
                 Log.Warning(ex, "Impossibile connettersi al database per il logging. SQL Server logging disabilitato. Utilizzo file e console logging.");
             }
