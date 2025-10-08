@@ -71,7 +71,8 @@ public static class MappingExtensions
             CreatedAt = entity.CreatedAt,
             CreatedBy = entity.CreatedBy,
             ModifiedAt = entity.ModifiedAt,
-            ModifiedBy = entity.ModifiedBy
+            ModifiedBy = entity.ModifiedBy,
+            Rows = entity.Rows?.Select(r => r.ToDto()).ToList()
         };
     }
 
