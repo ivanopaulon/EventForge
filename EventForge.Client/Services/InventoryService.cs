@@ -130,4 +130,19 @@ public class InventoryService : IInventoryService
             return null;
         }
     }
+
+    public async Task<InventoryDocumentDto?> GetMostRecentOpenInventoryDocumentAsync()
+    {
+        try
+        {
+            // Query for InProgress documents, sorted by date descending, get only the first one
+            var result = await GetInventoryDocumentsAsync(page: 1, pageSize: 1, status: "InProgress");
+            return result?.Items?.FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting most recent open inventory document");
+            return null;
+        }
+    }
 }
