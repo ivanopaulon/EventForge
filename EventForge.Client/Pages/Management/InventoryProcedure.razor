@@ -577,7 +577,7 @@
                 
                 AddOperationLog(
                     TranslationService.GetTranslation("warehouse.sessionRestored", "Sessione di inventario ripristinata"),
-                    $"{sourceMessage} - Documento #{_currentDocument.Number} - {_currentDocument.TotalItems} articoli",
+                    $"{sourceMessage} - Documento #{_currentDocument.Number} - {_currentDocument.TotalItems} articoli - {document.Rows?.Count ?? 0} righe",
                     "Success"
                 );
                 
@@ -586,7 +586,10 @@
                     Severity.Info
                 );
                 
-                Logger.LogInformation("Inventory session restored from {Source}: Document {DocumentId}", restorationSource, document.Id);
+                Logger.LogInformation("Inventory session restored from {Source}: Document {DocumentId} with {RowCount} rows", restorationSource, document.Id, document.Rows?.Count ?? 0);
+                
+                // Force UI update to ensure rows are displayed
+                StateHasChanged();
             }
         }
         catch (Exception ex)
