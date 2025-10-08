@@ -705,7 +705,7 @@ public class SaleSessionService : ISaleSessionService
         _ = await _context.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task<SaleSessionDto> MapToDtoAsync(SaleSession session, CancellationToken cancellationToken)
+    private Task<SaleSessionDto> MapToDtoAsync(SaleSession session, CancellationToken cancellationToken)
     {
         var dto = new SaleSessionDto
         {
@@ -731,7 +731,7 @@ public class SaleSessionService : ISaleSessionService
             Notes = session.Notes.Select(MapNoteToDto).ToList()
         };
 
-        return dto;
+        return Task.FromResult(dto);
     }
 
     private SaleItemDto MapItemToDto(SaleItem item)

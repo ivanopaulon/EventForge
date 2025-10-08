@@ -373,7 +373,6 @@
 @code {
     private bool _isLoading = false;
     private string _scannedBarcode = string.Empty;
-    private bool _productSearched = false;
     private ProductDto? _currentProduct;
     private List<StorageLocationDto> _locations = new();
     private List<StorageFacilityDto> _storageFacilities = new();
@@ -655,7 +654,6 @@
             return;
 
         _isLoading = true;
-        _productSearched = false;
         _currentProduct = null;
 
         try
@@ -667,7 +665,6 @@
             );
 
             _currentProduct = await ProductService.GetProductByCodeAsync(_scannedBarcode);
-            _productSearched = true;
 
             if (_currentProduct != null)
             {
@@ -820,7 +817,6 @@
     private void ClearProductForm()
     {
         _scannedBarcode = string.Empty;
-        _productSearched = false;
         _currentProduct = null;
         _selectedLocationId = null;
         _quantity = 0;

@@ -398,7 +398,7 @@
             MentionSuggestions = filteredMembers;
             ShowMentionSuggestions = filteredMembers.Any();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Log error and hide suggestions
             ShowMentionSuggestions = false;

@@ -179,15 +179,15 @@
         }
     }
 
-    private async Task<IEnumerable<ProductDto>> SearchProducts(string value, CancellationToken token)
+    private Task<IEnumerable<ProductDto>> SearchProducts(string value, CancellationToken token)
     {
         if (string.IsNullOrWhiteSpace(value))
-            return _allProducts;
+            return Task.FromResult<IEnumerable<ProductDto>>(_allProducts);
 
-        return _allProducts
+        return Task.FromResult<IEnumerable<ProductDto>>(_allProducts
             .Where(p => p.Name.Contains(value, StringComparison.OrdinalIgnoreCase) ||
                        p.Code.Contains(value, StringComparison.OrdinalIgnoreCase))
-            .ToList();
+            .ToList());
     }
 
     private async Task AssignBarcodeToProduct()

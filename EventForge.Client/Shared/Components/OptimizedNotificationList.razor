@@ -169,7 +169,6 @@
     private string _searchText = string.Empty;
     private string _filter = "all";
     private List<NotificationResponseDto> FilteredNotifications = new();
-    private Timer? _searchDebounceTimer;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     
     private int _totalCount => Notifications?.Count ?? 0;
@@ -384,7 +383,6 @@
 
     public void Dispose()
     {
-        _searchDebounceTimer?.Dispose();
         _cancellationTokenSource?.Cancel();
         _cancellationTokenSource?.Dispose();
     }

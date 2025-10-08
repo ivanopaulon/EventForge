@@ -284,8 +284,6 @@
 
 @code {
     private UserManagementDto _model = new();
-    private string _password = "";
-    private string _confirmPassword = "";
     private string? _customTitle;
     
     private List<TenantResponseDto> _tenants = new();
@@ -383,8 +381,6 @@
         {
             // Reset for create mode and pre-select tenant from context
             _model = new UserManagementDto();
-            _password = "";
-            _confirmPassword = "";
             InitializeRoles();
             _selectedRoles["User"] = true; // Default role
             
@@ -487,8 +483,6 @@
         
         // Reset state more thoroughly like TenantDrawer
         _model = new UserManagementDto();
-        _password = "";
-        _confirmPassword = "";
         InitializeRoles();
         _customTitle = null;
     }
