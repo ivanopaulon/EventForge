@@ -1,0 +1,109 @@
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.UnitOfMeasures
+@using EventForge.DTOs.Station
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+@inject IBrandService BrandService
+@inject IModelService ModelService
+@inject IUMService UMService
+@inject IEntityManagementService EntityManagementService
+
+<MudGrid>
+    <MudItem xs="12">
+        <MudText Typo="Typo.h6" Class="mb-3">
+            <MudIcon Icon="@Icons.Material.Outlined.Category" Class="mr-2" />
+            @TranslationService.GetTranslation("product.classificationInfo", "Classificazione")
+        </MudText>
+        <MudDivider Class="mb-4" />
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudSelect @bind-Value="Product.BrandId"
+                   Label="@TranslationService.GetTranslation("field.brand", "Marchio")"
+                   Variant="Variant.Outlined"
+                   ReadOnly="@(!IsEditMode)"
+                   Clearable="true">
+            @if (_brands != null)
+            {
+                @foreach (var brand in _brands)
+                {
+                    <MudSelectItem Value="@brand.Id">@brand.Name</MudSelectItem>
+                }
+            }
+        </MudSelect>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudSelect @bind-Value="Product.ModelId"
+                   Label="@TranslationService.GetTranslation("field.model", "Modello")"
+                   Variant="Variant.Outlined"
+                   ReadOnly="@(!IsEditMode)"
+                   Clearable="true">
+            @if (_models != null)
+            {
+                @foreach (var model in _models)
+                {
+                    <MudSelectItem Value="@model.Id">@model.Name</MudSelectItem>
+                }
+            }
+        </MudSelect>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudSelect @bind-Value="Product.UnitOfMeasureId"
+                   Label="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")"
+                   Variant="Variant.Outlined"
+                   ReadOnly="@(!IsEditMode)"
+                   Clearable="true">
+            @if (_unitsOfMeasure != null)
+            {
+                @foreach (var um in _unitsOfMeasure)
+                {
+                    <MudSelectItem Value="@um.Id">@um.Name (@um.Symbol)</MudSelectItem>
+                }
+            }
+        </MudSelect>
+    </MudItem>
+
+
+
+
+</MudGrid>
+
+@code {
+    [Parameter, EditorRequired]
+    public ProductDto Product { get; set; } = default!;
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
+    private IEnumerable<BrandDto>? _brands;
+    private IEnumerable<ModelDto>? _models;
+    private IEnumerable<UMDto>? _unitsOfMeasure;
+    private IEnumerable<StationDto>? _stations;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            var brandsTask = BrandService.GetBrandsAsync(1, 1000);
+            var modelsTask = ModelService.GetModelsAsync(1, 1000);
+            var umTask = UMService.GetUMsAsync(1, 1000);
+
+            await Task.WhenAll(brandsTask, modelsTask, umTask);
+
+            _brands = (await brandsTask)?.Items;
+            _models = (await modelsTask)?.Items;
+            _unitsOfMeasure = (await umTask)?.Items;
+        }
+        catch (Exception)
+        {
+            // Handle error silently or log
+        }
+    }
+}

@@ -1,0 +1,114 @@
+@using EventForge.DTOs.Products
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+
+<MudGrid>
+    <!-- Basic Information -->
+    <MudItem xs="12">
+        <MudText Typo="Typo.h6" Class="mb-3">
+            <MudIcon Icon="@Icons.Material.Outlined.Info" Class="mr-2" />
+            @TranslationService.GetTranslation("product.basicInfo", "Informazioni di Base")
+        </MudText>
+        <MudDivider Class="mb-4" />
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudTextField @bind-Value="Product.Name"
+                      Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                      Variant="Variant.Outlined"
+                      ReadOnly="@(!IsEditMode)"
+                      MaxLength="100" />
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudTextField @bind-Value="Product.Code"
+                      Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
+                      Variant="Variant.Outlined"
+                      ReadOnly="true"
+                      HelperText="@TranslationService.GetTranslation("product.codeImmutable", "Il codice è immutabile")"
+                      MaxLength="100" />
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudTextField @bind-Value="Product.ShortDescription"
+                      Label="@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")"
+                      Variant="Variant.Outlined"
+                      ReadOnly="@(!IsEditMode)"
+                      MaxLength="50" />
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudSelect @bind-Value="Product.Status"
+                   Label="@($"{TranslationService.GetTranslation("field.status", "Stato")} *")"
+                   Variant="Variant.Outlined"
+                   ReadOnly="@(!IsEditMode)">
+            <MudSelectItem Value="@ProductStatus.Active">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
+            <MudSelectItem Value="@ProductStatus.Suspended">@TranslationService.GetTranslation("status.suspended", "Sospeso")</MudSelectItem>
+            <MudSelectItem Value="@ProductStatus.OutOfStock">@TranslationService.GetTranslation("status.outOfStock", "Esaurito")</MudSelectItem>
+            <MudSelectItem Value="@ProductStatus.Deleted">@TranslationService.GetTranslation("status.deleted", "Eliminato")</MudSelectItem>
+        </MudSelect>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudTextField @bind-Value="Product.Description"
+                      Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                      Variant="Variant.Outlined"
+                      Lines="5"
+                      ReadOnly="@(!IsEditMode)" />
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudSwitch @bind-Value="Product.IsBundle"
+                   Label="@TranslationService.GetTranslation("product.isBundle", "È un Bundle")"
+                   Color="Color.Primary"
+                   ReadOnly="@(!IsEditMode)" />
+    </MudItem>
+
+    <!-- Metadata -->
+    <MudItem xs="12">
+        <MudText Typo="Typo.h6" Class="mb-3 mt-4">
+            <MudIcon Icon="@Icons.Material.Outlined.CalendarToday" Class="mr-2" />
+            @TranslationService.GetTranslation("common.metadata", "Metadati")
+        </MudText>
+        <MudDivider Class="mb-4" />
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudTextField Value="@Product.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                      Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
+                      Variant="Variant.Outlined"
+                      ReadOnly="true" />
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudTextField Value="@Product.CreatedBy"
+                      Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
+                      Variant="Variant.Outlined"
+                      ReadOnly="true" />
+    </MudItem>
+
+    @if (Product.ModifiedAt.HasValue)
+    {
+        <MudItem xs="12" md="6">
+            <MudTextField Value="@Product.ModifiedAt.Value.ToString("dd/MM/yyyy HH:mm")"
+                          Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
+                          Variant="Variant.Outlined"
+                          ReadOnly="true" />
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudTextField Value="@Product.ModifiedBy"
+                          Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
+                          Variant="Variant.Outlined"
+                          ReadOnly="true" />
+        </MudItem>
+    }
+</MudGrid>
+
+@code {
+    [Parameter, EditorRequired]
+    public ProductDto Product { get; set; } = default!;
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+}

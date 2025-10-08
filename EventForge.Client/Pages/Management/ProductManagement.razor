@@ -109,6 +109,12 @@
                                 </MudTd>
                                 <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">@context.CreatedAt.ToString("dd/MM/yyyy")</MudTd>
                                 <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Style="text-align: right;">
+                                    <MudTooltip Text="@TranslationService.GetTranslation("product.viewDetail", "Visualizza dettagli")">
+                                        <MudIconButton Icon="@Icons.Material.Outlined.OpenInNew" 
+                                                       Size="Size.Small" 
+                                                       Color="Color.Info"
+                                                       OnClick="@(() => NavigationManager.NavigateTo($"/product-management/products/{context.Id}"))" />
+                                    </MudTooltip>
                                     <ActionButtonGroup EntityName="@TranslationService.GetTranslation("entity.product", "Prodotto")"
                                                       ItemDisplayName="@context.Name"
                                                       ShowView="true"

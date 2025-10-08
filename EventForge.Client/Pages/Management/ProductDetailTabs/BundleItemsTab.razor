@@ -1,0 +1,128 @@
+@using EventForge.DTOs.Products
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+@inject IProductService ProductService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ILogger<BundleItemsTab> Logger
+
+<MudGrid>
+    <MudItem xs="12" Class="d-flex justify-space-between align-center mb-2">
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.Inventory" Class="mr-2" />
+            @TranslationService.GetTranslation("product.bundleComponents", "Componenti Bundle")
+            <MudChip T="string" Size="Size.Small" Class="ml-2">@(_bundleItems?.Count() ?? 0)</MudChip>
+        </MudText>
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Primary" 
+                   StartIcon="@Icons.Material.Outlined.Add"
+                   OnClick="@OpenCreateDialog"
+                   Size="Size.Small">
+            @TranslationService.GetTranslation("common.add", "Aggiungi")
+        </MudButton>
+    </MudItem>
+
+    <MudItem xs="12">
+        @if (_isLoading)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+        }
+        else if (_bundleItems == null || !_bundleItems.Any())
+        {
+            <MudAlert Severity="Severity.Info">
+                @TranslationService.GetTranslation("product.noBundleItems", "Nessun componente configurato per questo bundle")
+            </MudAlert>
+        }
+        else
+        {
+            <MudTable Items="_bundleItems" Hover="true" Striped="true" Dense="true">
+                <HeaderContent>
+                    <MudTh>@TranslationService.GetTranslation("field.componentProduct", "Prodotto Componente")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("field.quantity", "Quantità")</MudTh>
+                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.componentProduct", "Prodotto Componente")">@context.ComponentProductId</MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")">@context.Quantity</MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
+                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
+                                       Size="Size.Small" 
+                                       Color="Color.Primary"
+                                       OnClick="@(() => OpenEditDialog(context))" />
+                        <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
+                                       Size="Size.Small" 
+                                       Color="Color.Error"
+                                       OnClick="@(() => DeleteBundleItemAsync(context))" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid ProductId { get; set; }
+
+    private IEnumerable<ProductBundleItemDto>? _bundleItems;
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBundleItemsAsync();
+    }
+
+    private async Task LoadBundleItemsAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _bundleItems = await ProductService.GetProductBundleItemsAsync(ProductId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading bundle items for product {ProductId}", ProductId);
+            Snackbar.Add(TranslationService.GetTranslation("product.loadBundleItemsError", "Errore nel caricamento dei componenti"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void OpenCreateDialog()
+    {
+        // TODO: Implement create dialog
+        Snackbar.Add("Funzionalità in fase di implementazione", Severity.Info);
+    }
+
+    private void OpenEditDialog(ProductBundleItemDto item)
+    {
+        // TODO: Implement edit dialog
+        Snackbar.Add("Funzionalità in fase di implementazione", Severity.Info);
+    }
+
+    private async Task DeleteBundleItemAsync(ProductBundleItemDto item)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("common.confirm", "Conferma"),
+            TranslationService.GetTranslation("product.confirmDeleteBundleItem", "Sei sicuro di voler eliminare questo componente?"),
+            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+            noText: TranslationService.GetTranslation("common.no", "No"));
+
+        if (confirmed == true)
+        {
+            try
+            {
+                await ProductService.DeleteProductBundleItemAsync(item.Id);
+                Snackbar.Add(TranslationService.GetTranslation("product.bundleItemDeleted", "Componente eliminato con successo"), Severity.Success);
+                await LoadBundleItemsAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting bundle item {ItemId}", item.Id);
+                Snackbar.Add(TranslationService.GetTranslation("product.deleteBundleItemError", "Errore nell'eliminazione del componente"), Severity.Error);
+            }
+        }
+    }
+}
