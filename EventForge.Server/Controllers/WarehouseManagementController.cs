@@ -1,12 +1,14 @@
 using EventForge.DTOs.Documents;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.Warehouse;
+using EventForge.Server.Data;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Products;
 using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using EntityDocumentStatus = EventForge.Server.Data.Entities.Documents.DocumentStatus;
 
 namespace EventForge.Server.Controllers;
@@ -32,6 +34,7 @@ public class WarehouseManagementController : BaseApiController
     private readonly IProductService _productService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<WarehouseManagementController> _logger;
+    private readonly EventForgeDbContext _context;
 
     public WarehouseManagementController(
         IStorageFacilityService storageFacilityService,
@@ -43,7 +46,8 @@ public class WarehouseManagementController : BaseApiController
         IDocumentHeaderService documentHeaderService,
         IProductService productService,
         ITenantContext tenantContext,
-        ILogger<WarehouseManagementController> logger)
+        ILogger<WarehouseManagementController> logger,
+        EventForgeDbContext context)
     {
         _storageFacilityService = storageFacilityService ?? throw new ArgumentNullException(nameof(storageFacilityService));
         _storageLocationService = storageLocationService ?? throw new ArgumentNullException(nameof(storageLocationService));
@@ -55,13 +59,14 @@ public class WarehouseManagementController : BaseApiController
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _context = context ?? throw new ArgumentNullException(nameof(context));
     }
 
     #region Helper Methods
 
     /// <summary>
     /// Enriches inventory document rows with complete product and location data.
-    /// Parses metadata from description field and fetches full details from services.
+    /// Uses proper ProductId and LocationId fields instead of parsing metadata.
     /// </summary>
     private async Task<List<InventoryDocumentRowDto>> EnrichInventoryDocumentRowsAsync(
         IEnumerable<DocumentRowDto> rows,
@@ -71,63 +76,11 @@ public class WarehouseManagementController : BaseApiController
         
         foreach (var row in rows)
         {
-            // Parse metadata from description
-            // Format: ProductName @ LocationCode | ProductId:GUID | LocationId:GUID
-            Guid? productId = null;
-            Guid? locationId = null;
-            string productName = string.Empty;
+            // Use ProductId and LocationId directly from the row
+            Guid? productId = row.ProductId;
+            Guid? locationId = row.LocationId;
+            string productName = row.Description; // Now contains clean product name
             string locationName = string.Empty;
-
-            if (!string.IsNullOrEmpty(row.Description))
-            {
-                if (row.Description.Contains("ProductId:"))
-                {
-                    // New format with metadata
-                    var parts = row.Description.Split('|');
-
-                    // Parse display part (ProductName @ LocationCode)
-                    if (parts.Length > 0)
-                    {
-                        var displayPart = parts[0].Trim();
-                        var displayParts = displayPart.Split('@');
-                        productName = displayParts.Length > 0 ? displayParts[0].Trim() : string.Empty;
-                        locationName = displayParts.Length > 1 ? displayParts[1].Trim() : string.Empty;
-                    }
-
-                    // Parse metadata
-                    foreach (var part in parts)
-                    {
-                        var trimmedPart = part.Trim();
-                        if (trimmedPart.StartsWith("ProductId:"))
-                        {
-                            if (Guid.TryParse(trimmedPart.Substring("ProductId:".Length).Trim(), out var parsedProductId))
-                            {
-                                productId = parsedProductId;
-                            }
-                        }
-                        else if (trimmedPart.StartsWith("LocationId:"))
-                        {
-                            if (Guid.TryParse(trimmedPart.Substring("LocationId:".Length).Trim(), out var parsedLocationId))
-                            {
-                                locationId = parsedLocationId;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    // Old format - just ProductName @ LocationCode
-                    var descriptionParts = row.Description.Split('@');
-                    productName = descriptionParts.Length > 0 ? descriptionParts[0].Trim() : string.Empty;
-                    locationName = descriptionParts.Length > 1 ? descriptionParts[1].Trim() : row.Description;
-
-                    // Try to parse ProductId from ProductCode
-                    if (Guid.TryParse(row.ProductCode, out var parsedProductId))
-                    {
-                        productId = parsedProductId;
-                    }
-                }
-            }
 
             // Try to fetch product data for complete information
             ProductDto? product = null;
@@ -139,11 +92,25 @@ public class WarehouseManagementController : BaseApiController
                 }
                 catch
                 {
-                    // If product fetch fails, continue with parsed data
+                    // If product fetch fails, use data from row
                 }
             }
 
-            // Get current stock level to show adjustment info (only if we have locationId)
+            // Try to fetch location data for complete information
+            if (locationId.HasValue)
+            {
+                try
+                {
+                    var location = await _storageLocationService.GetStorageLocationByIdAsync(locationId.Value, cancellationToken);
+                    locationName = location?.Code ?? string.Empty;
+                }
+                catch
+                {
+                    // If location fetch fails, leave empty
+                }
+            }
+
+            // Get current stock level to show adjustment info (only if we have productId and locationId)
             decimal? previousQuantity = null;
             decimal? adjustmentQuantity = null;
             if (productId.HasValue && locationId.HasValue)
@@ -1617,15 +1584,79 @@ public class WarehouseManagementController : BaseApiController
             var product = await _productService.GetProductByIdAsync(rowDto.ProductId, cancellationToken);
             var location = await _storageLocationService.GetStorageLocationByIdAsync(rowDto.LocationId, cancellationToken);
 
-            // Create document row - store structured data in Description for reliable parsing during finalization
-            // Format: ProductName @ LocationCode | ProductId:GUID | LocationId:GUID
+            if (product == null)
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Title = "Product not found",
+                    Detail = $"Product with ID {rowDto.ProductId} was not found.",
+                    Status = StatusCodes.Status404NotFound
+                });
+            }
+
+            if (location == null)
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Title = "Location not found",
+                    Detail = $"Location with ID {rowDto.LocationId} was not found.",
+                    Status = StatusCodes.Status404NotFound
+                });
+            }
+
+            // Get unit of measure symbol if available
+            string? unitOfMeasure = null;
+            if (product.UnitOfMeasureId.HasValue)
+            {
+                try
+                {
+                    // Fetch unit of measure details from the database context
+                    var um = await _context.UMs
+                        .FirstOrDefaultAsync(u => u.Id == product.UnitOfMeasureId.Value && !u.IsDeleted, cancellationToken);
+                    unitOfMeasure = um?.Symbol;
+                }
+                catch
+                {
+                    // Continue without unit of measure if fetch fails
+                }
+            }
+
+            // Get VAT rate if available
+            decimal vatRate = 0m;
+            string? vatDescription = null;
+            if (product.VatRateId.HasValue)
+            {
+                try
+                {
+                    // Fetch VAT rate details from the database context
+                    var vat = await _context.VatRates
+                        .FirstOrDefaultAsync(v => v.Id == product.VatRateId.Value && !v.IsDeleted, cancellationToken);
+                    if (vat != null)
+                    {
+                        vatRate = vat.Percentage;
+                        vatDescription = $"VAT {vat.Percentage}%";
+                    }
+                }
+                catch
+                {
+                    // Continue without VAT rate if fetch fails
+                }
+            }
+
+            // Create document row with clean description and proper field population
             var createRowDto = new CreateDocumentRowDto
             {
                 DocumentHeaderId = documentId,
-                ProductCode = product?.Code ?? rowDto.ProductId.ToString(),
-                Description = $"{product?.Name ?? "Product"} @ {location?.Code ?? "Location"} | ProductId:{rowDto.ProductId} | LocationId:{rowDto.LocationId}",
+                ProductCode = product.Code,
+                ProductId = rowDto.ProductId,
+                LocationId = rowDto.LocationId,
+                Description = product.Name, // Clean product name only
+                UnitOfMeasure = unitOfMeasure,
                 Quantity = (int)rowDto.Quantity,
-                UnitPrice = 0, // Not relevant for inventory
+                UnitPrice = 0, // Purchase price - skipped for now per requirements
+                VatRate = vatRate,
+                VatDescription = vatDescription,
+                SourceWarehouseId = location.WarehouseId, // Track the warehouse/location
                 Notes = rowDto.Notes
             };
 
@@ -1653,113 +1684,14 @@ public class WarehouseManagementController : BaseApiController
             // Get updated document
             var updatedDocument = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
 
-            // Enrich all rows with product and location data
-            var enrichedRows = new List<InventoryDocumentRowDto>();
-            if (updatedDocument!.Rows != null)
-            {
-                foreach (var row in updatedDocument.Rows)
-                {
-                    // Try to parse metadata from description
-                    // Format: ProductName @ LocationCode | ProductId:GUID | LocationId:GUID
-                    Guid? productId = null;
-                    Guid? locationId = null;
-                    string productName = string.Empty;
-                    string locationName = string.Empty;
-
-                    if (!string.IsNullOrEmpty(row.Description))
-                    {
-                        if (row.Description.Contains("ProductId:"))
-                        {
-                            // New format with metadata
-                            var parts = row.Description.Split('|');
-
-                            // Parse display part (ProductName @ LocationCode)
-                            if (parts.Length > 0)
-                            {
-                                var displayPart = parts[0].Trim();
-                                var displayParts = displayPart.Split('@');
-                                productName = displayParts.Length > 0 ? displayParts[0].Trim() : string.Empty;
-                                locationName = displayParts.Length > 1 ? displayParts[1].Trim() : string.Empty;
-                            }
-
-                            // Parse metadata
-                            foreach (var part in parts)
-                            {
-                                var trimmedPart = part.Trim();
-                                if (trimmedPart.StartsWith("ProductId:"))
-                                {
-                                    if (Guid.TryParse(trimmedPart.Substring("ProductId:".Length).Trim(), out var parsedProductId))
-                                    {
-                                        productId = parsedProductId;
-                                    }
-                                }
-                                else if (trimmedPart.StartsWith("LocationId:"))
-                                {
-                                    if (Guid.TryParse(trimmedPart.Substring("LocationId:".Length).Trim(), out var parsedLocationId))
-                                    {
-                                        locationId = parsedLocationId;
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            // Old format - just ProductName @ LocationCode
-                            var descriptionParts = row.Description.Split('@');
-                            productName = descriptionParts.Length > 0 ? descriptionParts[0].Trim() : string.Empty;
-                            locationName = descriptionParts.Length > 1 ? descriptionParts[1].Trim() : row.Description;
-
-                            // Try to parse ProductId from ProductCode
-                            if (Guid.TryParse(row.ProductCode, out var parsedProductId))
-                            {
-                                productId = parsedProductId;
-                            }
-                        }
-                    }
-
-                    // For the new row we just added, we have complete data
-                    if (row.Id == documentRow.Id)
-                    {
-                        enrichedRows.Add(newRow);
-                    }
-                    else
-                    {
-                        // For existing rows, enrich with product data if available
-                        ProductDto? existingProduct = null;
-                        if (productId.HasValue)
-                        {
-                            try
-                            {
-                                existingProduct = await _productService.GetProductByIdAsync(productId.Value, cancellationToken);
-                            }
-                            catch
-                            {
-                                // Continue with parsed data if fetch fails
-                            }
-                        }
-
-                        enrichedRows.Add(new InventoryDocumentRowDto
-                        {
-                            Id = row.Id,
-                            ProductId = productId ?? Guid.Empty,
-                            ProductCode = row.ProductCode ?? string.Empty,
-                            ProductName = existingProduct?.Name ?? productName,
-                            LocationId = locationId ?? Guid.Empty,
-                            LocationName = locationName,
-                            Quantity = row.Quantity,
-                            PreviousQuantity = null, // Not available for existing rows
-                            AdjustmentQuantity = null, // Not available for existing rows
-                            Notes = row.Notes,
-                            CreatedAt = row.CreatedAt,
-                            CreatedBy = row.CreatedBy
-                        });
-                    }
-                }
-            }
+            // Enrich all rows with product and location data using the helper method
+            var enrichedRows = updatedDocument?.Rows != null && updatedDocument.Rows.Any()
+                ? await EnrichInventoryDocumentRowsAsync(updatedDocument.Rows, cancellationToken)
+                : new List<InventoryDocumentRowDto>();
 
             var result = new InventoryDocumentDto
             {
-                Id = updatedDocument.Id,
+                Id = updatedDocument!.Id,
                 Number = updatedDocument.Number,
                 Series = updatedDocument.Series,
                 InventoryDate = updatedDocument.Date,
@@ -1823,78 +1755,14 @@ public class WarehouseManagementController : BaseApiController
                 {
                     try
                     {
-                        // Parse ProductId and LocationId from Description
-                        // Format: ProductName @ LocationCode | ProductId:GUID | LocationId:GUID
-                        Guid productId = Guid.Empty;
-                        Guid locationId = Guid.Empty;
-
-                        // Try new format first (with metadata)
-                        if (!string.IsNullOrEmpty(row.Description) && row.Description.Contains("ProductId:"))
-                        {
-                            var parts = row.Description.Split('|');
-                            foreach (var part in parts)
-                            {
-                                var trimmedPart = part.Trim();
-                                if (trimmedPart.StartsWith("ProductId:"))
-                                {
-                                    if (Guid.TryParse(trimmedPart.Substring("ProductId:".Length).Trim(), out var parsedProductId))
-                                    {
-                                        productId = parsedProductId;
-                                    }
-                                }
-                                else if (trimmedPart.StartsWith("LocationId:"))
-                                {
-                                    if (Guid.TryParse(trimmedPart.Substring("LocationId:".Length).Trim(), out var parsedLocationId))
-                                    {
-                                        locationId = parsedLocationId;
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            // Fallback: try parsing ProductCode as GUID (old format)
-                            if (!Guid.TryParse(row.ProductCode, out productId))
-                            {
-                                _logger.LogWarning("Invalid ProductCode '{ProductCode}' in row {RowId}, skipping",
-                                    row.ProductCode, row.Id);
-                                continue;
-                            }
-
-                            // Parse location from description - format is "ProductName @ LocationCode"
-                            var descriptionParts = row.Description?.Split('@') ?? Array.Empty<string>();
-                            if (descriptionParts.Length < 2)
-                            {
-                                _logger.LogWarning("Unable to parse location from description '{Description}' in row {RowId}, skipping",
-                                    row.Description, row.Id);
-                                continue;
-                            }
-
-                            var locationCode = descriptionParts[1].Trim();
-
-                            // Find the storage location by code
-                            var allLocations = await _storageLocationService.GetStorageLocationsAsync(
-                                page: 1,
-                                pageSize: 1000,
-                                warehouseId: documentHeader.SourceWarehouseId,
-                                cancellationToken: cancellationToken);
-
-                            var location = allLocations.Items.FirstOrDefault(l => l.Code == locationCode);
-
-                            if (location == null)
-                            {
-                                _logger.LogWarning("Storage location '{LocationCode}' not found for row {RowId}, skipping",
-                                    locationCode, row.Id);
-                                continue;
-                            }
-
-                            locationId = location.Id;
-                        }
+                        // Use ProductId and LocationId directly from the row
+                        Guid productId = row.ProductId ?? Guid.Empty;
+                        Guid locationId = row.LocationId ?? Guid.Empty;
 
                         // Validate we have both IDs
                         if (productId == Guid.Empty || locationId == Guid.Empty)
                         {
-                            _logger.LogWarning("Unable to extract ProductId or LocationId from row {RowId}, skipping", row.Id);
+                            _logger.LogWarning("Row {RowId} missing ProductId or LocationId, skipping", row.Id);
                             continue;
                         }
 

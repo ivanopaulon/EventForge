@@ -42,6 +42,28 @@ public class DocumentRow : AuditableEntity
     public string? ProductCode { get; set; }
 
     /// <summary>
+    /// Product identifier (for traceability and inventory operations).
+    /// </summary>
+    [Display(Name = "Product ID", Description = "Product identifier for traceability.")]
+    public Guid? ProductId { get; set; }
+
+    /// <summary>
+    /// Navigation property for the product.
+    /// </summary>
+    public Product? Product { get; set; }
+
+    /// <summary>
+    /// Storage location identifier (for inventory operations).
+    /// </summary>
+    [Display(Name = "Location ID", Description = "Storage location identifier for inventory operations.")]
+    public Guid? LocationId { get; set; }
+
+    /// <summary>
+    /// Navigation property for the storage location.
+    /// </summary>
+    public StorageLocation? Location { get; set; }
+
+    /// <summary>
     /// Product or service description.
     /// </summary>
     [Required(ErrorMessage = "Description is required.")]
