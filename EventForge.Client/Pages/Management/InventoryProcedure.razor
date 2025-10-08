@@ -521,25 +521,25 @@
             string restorationSource = "localStorage";
 
             // Step 1: Try to restore from localStorage
-            var sessionState = await InventorySessionService.LoadSessionAsync();
-            if (sessionState != null)
-            {
-                // Try to load the inventory document from the server
-                document = await InventoryService.GetInventoryDocumentAsync(sessionState.DocumentId);
+            // var sessionState = await InventorySessionService.LoadSessionAsync();
+            // if (sessionState != null)
+            // {
+            //     // Try to load the inventory document from the server
+            //     document = await InventoryService.GetInventoryDocumentAsync(sessionState.DocumentId);
                 
-                if (document != null && document.Status == "Draft")
-                {
-                    warehouseId = sessionState.WarehouseId;
-                    sessionStartTime = sessionState.SessionStartTime;
-                }
-                else
-                {
-                    // Document not found or already finalized, clear the invalid session
-                    await InventorySessionService.ClearSessionAsync();
-                    document = null;
-                    Logger.LogInformation("Inventory session in localStorage is invalid (document not found or finalized)");
-                }
-            }
+            //     if (document != null && document.Status == "Draft")
+            //     {
+            //         warehouseId = sessionState.WarehouseId;
+            //         sessionStartTime = sessionState.SessionStartTime;
+            //     }
+            //     else
+            //     {
+            //         // Document not found or already finalized, clear the invalid session
+            //         await InventorySessionService.ClearSessionAsync();
+            //         document = null;
+            //         Logger.LogInformation("Inventory session in localStorage is invalid (document not found or finalized)");
+            //     }
+            // }
 
             // Step 2: If localStorage restoration failed, try to get the most recent open document from server
             if (document == null)
@@ -619,6 +619,7 @@
         
         // Try to restore active inventory session
         await RestoreInventorySessionAsync();
+        StateHasChanged();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
