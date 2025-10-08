@@ -15,6 +15,7 @@
 @inject ILogger<InventoryProcedure> Logger
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject IInventorySessionService InventorySessionService
 
 <PageTitle>@TranslationService.GetTranslation("warehouse.inventoryProcedure", "Procedura Inventario")</PageTitle>
 
@@ -510,12 +511,61 @@
         }
     }
 
+    private async Task RestoreInventorySessionAsync()
+    {
+        try
+        {
+            var sessionState = await InventorySessionService.LoadSessionAsync();
+            if (sessionState != null)
+            {
+                // Try to load the inventory document from the server
+                var document = await InventoryService.GetInventoryDocumentAsync(sessionState.DocumentId);
+                
+                if (document != null && document.Status == "InProgress")
+                {
+                    // Restore the session
+                    _currentDocument = document;
+                    _selectedStorageFacilityId = sessionState.WarehouseId;
+                    _sessionStartTime = sessionState.SessionStartTime;
+                    
+                    AddOperationLog(
+                        TranslationService.GetTranslation("warehouse.sessionRestored", "Sessione di inventario ripristinata"),
+                        $"Documento #{_currentDocument.Number} - {_currentDocument.TotalItems} articoli",
+                        "Success"
+                    );
+                    
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("warehouse.sessionRestored", "Sessione di inventario ripristinata"), 
+                        Severity.Info
+                    );
+                    
+                    Logger.LogInformation("Inventory session restored: Document {DocumentId}", sessionState.DocumentId);
+                }
+                else
+                {
+                    // Document not found or already finalized, clear the session
+                    await InventorySessionService.ClearSessionAsync();
+                    Logger.LogInformation("Inventory session cleared: Document not found or finalized");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error restoring inventory session");
+            // Clear invalid session
+            await InventorySessionService.ClearSessionAsync();
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await Task.WhenAll(
             LoadStorageFacilities(),
             LoadLocations()
         );
+        
+        // Try to restore active inventory session
+        await RestoreInventorySessionAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -599,6 +649,15 @@
                 _operationLog.Clear();
                 
                 var facilityName = _storageFacilities.FirstOrDefault(f => f.Id == _selectedStorageFacilityId)?.Name ?? "N/A";
+                
+                // Save session state to localStorage
+                await InventorySessionService.SaveSessionAsync(new InventorySessionState
+                {
+                    DocumentId = _currentDocument.Id,
+                    DocumentNumber = _currentDocument.Number,
+                    WarehouseId = _selectedStorageFacilityId,
+                    SessionStartTime = _sessionStartTime
+                });
                 
                 AddOperationLog(
                     TranslationService.GetTranslation("warehouse.sessionStarted", "Sessione di inventario avviata"),
@@ -868,6 +927,9 @@
 
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.inventoryFinalized", "Inventario finalizzato con successo"), Severity.Success);
                 
+                // Clear session state from localStorage
+                await InventorySessionService.ClearSessionAsync();
+                
                 // Reset the session
                 _currentDocument = null;
                 ClearProductForm();
@@ -920,6 +982,9 @@
             $"Documento #{_currentDocument.Number} - {_currentDocument.TotalItems} articoli scartati",
             "Warning"
         );
+
+        // Clear session state from localStorage
+        await InventorySessionService.ClearSessionAsync();
 
         // Simply reset the document without finalizing
         _currentDocument = null;
