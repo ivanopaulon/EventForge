@@ -102,10 +102,55 @@ public class BootstrapService : IBootstrapService
             }
 
             // Check if any tenants exist
-            var existingTenants = await _dbContext.Tenants.AnyAsync(cancellationToken);
-            if (existingTenants)
+            var existingTenants = await _dbContext.Tenants.ToListAsync(cancellationToken);
+            if (existingTenants.Any())
             {
-                _logger.LogInformation("Tenants already exist. Bootstrap data update completed.");
+                _logger.LogInformation("Tenants already exist. Checking if base entities need to be seeded...");
+                
+                // Check each tenant to see if it needs base entities seeded
+                foreach (var tenant in existingTenants)
+                {
+                    // Skip system-level tenant (Guid.Empty is used for system entities)
+                    if (tenant.Id == Guid.Empty)
+                    {
+                        continue;
+                    }
+
+                    // Check if this tenant has base entities
+                    var hasVatNatures = await _dbContext.VatNatures
+                        .AnyAsync(v => v.TenantId == tenant.Id, cancellationToken);
+                    var hasVatRates = await _dbContext.VatRates
+                        .AnyAsync(v => v.TenantId == tenant.Id, cancellationToken);
+                    var hasUnitsMeasure = await _dbContext.UMs
+                        .AnyAsync(u => u.TenantId == tenant.Id, cancellationToken);
+                    var hasWarehouses = await _dbContext.StorageFacilities
+                        .AnyAsync(w => w.TenantId == tenant.Id, cancellationToken);
+
+                    // If any base entities are missing, seed them
+                    if (!hasVatNatures || !hasVatRates || !hasUnitsMeasure || !hasWarehouses)
+                    {
+                        _logger.LogWarning("Tenant {TenantId} ({TenantName}) is missing base entities. Seeding now...", 
+                            tenant.Id, tenant.Name);
+                        
+                        if (!await SeedTenantBaseEntitiesAsync(tenant.Id, cancellationToken))
+                        {
+                            _logger.LogError("Failed to seed base entities for tenant {TenantId}", tenant.Id);
+                            // Continue with other tenants instead of failing completely
+                        }
+                        else
+                        {
+                            _logger.LogInformation("Successfully seeded base entities for tenant {TenantId} ({TenantName})", 
+                                tenant.Id, tenant.Name);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Tenant {TenantId} ({TenantName}) already has base entities seeded", 
+                            tenant.Id, tenant.Name);
+                    }
+                }
+                
+                _logger.LogInformation("Bootstrap data update completed.");
                 return true;
             }
 
