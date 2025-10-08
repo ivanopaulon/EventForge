@@ -257,6 +257,7 @@
                         <MudTh>@TranslationService.GetTranslation("warehouse.adjustment", "Aggiustamento")</MudTh>
                         <MudTh>@TranslationService.GetTranslation("warehouse.notes", "Note")</MudTh>
                         <MudTh>@TranslationService.GetTranslation("warehouse.time", "Ora")</MudTh>
+                        <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Product">
@@ -299,6 +300,22 @@
                         </MudTd>
                         <MudTd DataLabel="Time">
                             <MudText Typo="Typo.caption">@context.CreatedAt.ToLocalTime().ToString("HH:mm:ss")</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Actions">
+                            <MudStack Row="true" Spacing="1">
+                                <MudTooltip Text="@TranslationService.GetTranslation("common.edit", "Modifica")">
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
+                                                   Size="Size.Small" 
+                                                   Color="Color.Primary"
+                                                   OnClick="@(() => EditInventoryRow(context))" />
+                                </MudTooltip>
+                                <MudTooltip Text="@TranslationService.GetTranslation("common.delete", "Elimina")">
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
+                                                   Size="Size.Small" 
+                                                   Color="Color.Error"
+                                                   OnClick="@(() => DeleteInventoryRow(context))" />
+                                </MudTooltip>
+                            </MudStack>
                         </MudTd>
                     </RowTemplate>
                 </MudTable>
@@ -527,7 +544,7 @@
                 // Try to load the inventory document from the server
                 document = await InventoryService.GetInventoryDocumentAsync(sessionState.DocumentId);
                 
-                if (document != null && document.Status == "Draft")
+                if (document != null && document.Status == "Open")
                 {
                     warehouseId = sessionState.WarehouseId;
                     sessionStartTime = sessionState.SessionStartTime;
@@ -1177,6 +1194,147 @@
                 // Product was assigned directly from the dialog, search again to load it
                 await SearchBarcode();
             }
+        }
+    }
+
+    private async Task EditInventoryRow(InventoryDocumentRowDto row)
+    {
+        if (_currentDocument == null)
+            return;
+
+        var parameters = new DialogParameters
+        {
+            { "Quantity", row.Quantity },
+            { "Notes", row.Notes ?? string.Empty },
+            { "ProductName", row.ProductName }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<EditInventoryRowDialog>(
+            TranslationService.GetTranslation("warehouse.editRow", "Modifica Riga Inventario"),
+            parameters,
+            options
+        );
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is EditInventoryRowDialog.EditInventoryRowResult editResult)
+        {
+            _isLoading = true;
+            try
+            {
+                var updateDto = new UpdateInventoryDocumentRowDto
+                {
+                    Quantity = editResult.Quantity,
+                    Notes = editResult.Notes
+                };
+
+                var updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(_currentDocument.Id, row.Id, updateDto);
+
+                if (updatedDocument != null)
+                {
+                    _currentDocument = updatedDocument;
+                    
+                    AddOperationLog(
+                        TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata"),
+                        $"{row.ProductName} - Nuova quantità: {editResult.Quantity}",
+                        "Success"
+                    );
+
+                    Snackbar.Add(TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata con successo"), Severity.Success);
+                    
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"), Severity.Error);
+                    AddOperationLog(
+                        TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"),
+                        "",
+                        "Error"
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error updating inventory row {RowId}", row.Id);
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"), Severity.Error);
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"),
+                    ex.Message,
+                    "Error"
+                );
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
+    }
+
+    private async Task DeleteInventoryRow(InventoryDocumentRowDto row)
+    {
+        if (_currentDocument == null)
+            return;
+
+        var confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("warehouse.confirmDelete", "Conferma Eliminazione"),
+            TranslationService.GetTranslation("warehouse.deleteRowMessage", "Confermi di voler eliminare la riga per il prodotto '{0}'?", row.ProductName),
+            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+            cancelText: TranslationService.GetTranslation("common.no", "No")
+        );
+
+        if (confirmed != true)
+            return;
+
+        _isLoading = true;
+        try
+        {
+            var updatedDocument = await InventoryService.DeleteInventoryDocumentRowAsync(_currentDocument.Id, row.Id);
+
+            if (updatedDocument != null)
+            {
+                _currentDocument = updatedDocument;
+                
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.rowDeleted", "Riga eliminata"),
+                    $"{row.ProductName} - Quantità: {row.Quantity}",
+                    "Success"
+                );
+
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.rowDeleted", "Riga eliminata con successo"), Severity.Success);
+                
+                StateHasChanged();
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.deleteError", "Errore nell'eliminazione della riga"), Severity.Error);
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.deleteError", "Errore nell'eliminazione della riga"),
+                    "",
+                    "Error"
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting inventory row {RowId}", row.Id);
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.deleteError", "Errore nell'eliminazione della riga"), Severity.Error);
+            AddOperationLog(
+                TranslationService.GetTranslation("warehouse.deleteError", "Errore nell'eliminazione della riga"),
+                ex.Message,
+                "Error"
+            );
+        }
+        finally
+        {
+            _isLoading = false;
         }
     }
 }

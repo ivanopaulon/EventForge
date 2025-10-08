@@ -1714,6 +1714,209 @@ public class WarehouseManagementController : BaseApiController
     }
 
     /// <summary>
+    /// Updates an existing row in an inventory document.
+    /// </summary>
+    /// <param name="documentId">Inventory document ID</param>
+    /// <param name="rowId">Row ID to update</param>
+    /// <param name="rowDto">Updated row data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated inventory document</returns>
+    /// <response code="200">Returns the updated inventory document</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="404">If the document or row is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPut("inventory/document/{documentId:guid}/row/{rowId:guid}")]
+    [ProducesResponseType(typeof(InventoryDocumentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UpdateInventoryDocumentRow(Guid documentId, Guid rowId, [FromBody] UpdateInventoryDocumentRowDto rowDto, CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Get the document header
+            var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            if (documentHeader == null)
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Title = "Document not found",
+                    Detail = $"Inventory document with ID {documentId} was not found.",
+                    Status = StatusCodes.Status404NotFound
+                });
+            }
+
+            // Check if document is still open
+            if ((int)documentHeader.Status != (int)EntityDocumentStatus.Open)
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Document not editable",
+                    Detail = "Cannot modify rows in a closed or cancelled inventory document.",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            // Find the row in the database
+            var rowEntity = await _context.DocumentRows
+                .FirstOrDefaultAsync(r => r.Id == rowId && !r.IsDeleted, cancellationToken);
+            
+            if (rowEntity == null)
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Title = "Row not found",
+                    Detail = $"Row with ID {rowId} was not found in document {documentId}.",
+                    Status = StatusCodes.Status404NotFound
+                });
+            }
+
+            // Update the row quantity and notes
+            rowEntity.Quantity = (int)rowDto.Quantity;
+            rowEntity.Notes = rowDto.Notes;
+            rowEntity.ModifiedAt = DateTime.UtcNow;
+            rowEntity.ModifiedBy = GetCurrentUser();
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // Get updated document
+            var updatedDocument = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+
+            // Enrich all rows with product and location data
+            var enrichedRows = updatedDocument?.Rows != null && updatedDocument.Rows.Any()
+                ? await EnrichInventoryDocumentRowsAsync(updatedDocument.Rows, cancellationToken)
+                : new List<InventoryDocumentRowDto>();
+
+            var result = new InventoryDocumentDto
+            {
+                Id = updatedDocument!.Id,
+                Number = updatedDocument.Number,
+                Series = updatedDocument.Series,
+                InventoryDate = updatedDocument.Date,
+                WarehouseId = updatedDocument.SourceWarehouseId,
+                WarehouseName = updatedDocument.SourceWarehouseName,
+                Status = updatedDocument.Status.ToString(),
+                Notes = updatedDocument.Notes,
+                CreatedAt = updatedDocument.CreatedAt,
+                CreatedBy = updatedDocument.CreatedBy,
+                Rows = enrichedRows
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while updating row {RowId} in inventory document {DocumentId}.", rowId, documentId);
+            return CreateInternalServerErrorProblem("An error occurred while updating row in inventory document.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a row from an inventory document.
+    /// </summary>
+    /// <param name="documentId">Inventory document ID</param>
+    /// <param name="rowId">Row ID to delete</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated inventory document</returns>
+    /// <response code="200">Returns the updated inventory document</response>
+    /// <response code="404">If the document or row is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpDelete("inventory/document/{documentId:guid}/row/{rowId:guid}")]
+    [ProducesResponseType(typeof(InventoryDocumentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteInventoryDocumentRow(Guid documentId, Guid rowId, CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Get the document header
+            var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            if (documentHeader == null)
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Title = "Document not found",
+                    Detail = $"Inventory document with ID {documentId} was not found.",
+                    Status = StatusCodes.Status404NotFound
+                });
+            }
+
+            // Check if document is still open
+            if ((int)documentHeader.Status != (int)EntityDocumentStatus.Open)
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Document not editable",
+                    Detail = "Cannot delete rows from a closed or cancelled inventory document.",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            // Find the row in the database
+            var rowEntity = await _context.DocumentRows
+                .FirstOrDefaultAsync(r => r.Id == rowId && !r.IsDeleted, cancellationToken);
+                
+            if (rowEntity == null)
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Title = "Row not found",
+                    Detail = $"Row with ID {rowId} was not found in document {documentId}.",
+                    Status = StatusCodes.Status404NotFound
+                });
+            }
+
+            // Soft delete the row
+            rowEntity.IsDeleted = true;
+            rowEntity.DeletedAt = DateTime.UtcNow;
+            rowEntity.DeletedBy = GetCurrentUser();
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // Get updated document
+            var updatedDocument = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+
+            // Enrich all rows with product and location data
+            var enrichedRows = updatedDocument?.Rows != null && updatedDocument.Rows.Any()
+                ? await EnrichInventoryDocumentRowsAsync(updatedDocument.Rows, cancellationToken)
+                : new List<InventoryDocumentRowDto>();
+
+            var result = new InventoryDocumentDto
+            {
+                Id = updatedDocument!.Id,
+                Number = updatedDocument.Number,
+                Series = updatedDocument.Series,
+                InventoryDate = updatedDocument.Date,
+                WarehouseId = updatedDocument.SourceWarehouseId,
+                WarehouseName = updatedDocument.SourceWarehouseName,
+                Status = updatedDocument.Status.ToString(),
+                Notes = updatedDocument.Notes,
+                CreatedAt = updatedDocument.CreatedAt,
+                CreatedBy = updatedDocument.CreatedBy,
+                Rows = enrichedRows
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while deleting row {RowId} from inventory document {DocumentId}.", rowId, documentId);
+            return CreateInternalServerErrorProblem("An error occurred while deleting row from inventory document.", ex);
+        }
+    }
+
+    /// <summary>
     /// Finalizes an inventory document and applies all stock adjustments.
     /// </summary>
     /// <param name="documentId">Inventory document ID</param>
