@@ -17,4 +17,5 @@ public interface IInventoryService
     Task<InventoryDocumentDto?> FinalizeInventoryDocumentAsync(Guid documentId);
     Task<InventoryDocumentDto?> GetInventoryDocumentAsync(Guid documentId);
     Task<PagedResult<InventoryDocumentDto>?> GetInventoryDocumentsAsync(int page = 1, int pageSize = 20, string? status = null, DateTime? fromDate = null, DateTime? toDate = null);
+    Task<InventoryDocumentDto?> GetMostRecentOpenInventoryDocumentAsync();
 }

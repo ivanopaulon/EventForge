@@ -515,45 +515,95 @@
     {
         try
         {
+            InventoryDocumentDto? document = null;
+            Guid? warehouseId = null;
+            DateTime? sessionStartTime = null;
+            string restorationSource = "localStorage";
+
+            // Step 1: Try to restore from localStorage
             var sessionState = await InventorySessionService.LoadSessionAsync();
             if (sessionState != null)
             {
                 // Try to load the inventory document from the server
-                var document = await InventoryService.GetInventoryDocumentAsync(sessionState.DocumentId);
+                document = await InventoryService.GetInventoryDocumentAsync(sessionState.DocumentId);
                 
                 if (document != null && document.Status == "InProgress")
                 {
-                    // Restore the session
-                    _currentDocument = document;
-                    _selectedStorageFacilityId = sessionState.WarehouseId;
-                    _sessionStartTime = sessionState.SessionStartTime;
-                    
-                    AddOperationLog(
-                        TranslationService.GetTranslation("warehouse.sessionRestored", "Sessione di inventario ripristinata"),
-                        $"Documento #{_currentDocument.Number} - {_currentDocument.TotalItems} articoli",
-                        "Success"
-                    );
-                    
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("warehouse.sessionRestored", "Sessione di inventario ripristinata"), 
-                        Severity.Info
-                    );
-                    
-                    Logger.LogInformation("Inventory session restored: Document {DocumentId}", sessionState.DocumentId);
+                    warehouseId = sessionState.WarehouseId;
+                    sessionStartTime = sessionState.SessionStartTime;
                 }
                 else
                 {
-                    // Document not found or already finalized, clear the session
+                    // Document not found or already finalized, clear the invalid session
                     await InventorySessionService.ClearSessionAsync();
-                    Logger.LogInformation("Inventory session cleared: Document not found or finalized");
+                    document = null;
+                    Logger.LogInformation("Inventory session in localStorage is invalid (document not found or finalized)");
                 }
+            }
+
+            // Step 2: If localStorage restoration failed, try to get the most recent open document from server
+            if (document == null)
+            {
+                document = await InventoryService.GetMostRecentOpenInventoryDocumentAsync();
+                if (document != null)
+                {
+                    warehouseId = document.WarehouseId;
+                    sessionStartTime = document.CreatedAt;
+                    restorationSource = "server";
+                    
+                    // Save this session to localStorage for future use
+                    await InventorySessionService.SaveSessionAsync(new InventorySessionState
+                    {
+                        DocumentId = document.Id,
+                        DocumentNumber = document.Number,
+                        WarehouseId = warehouseId,
+                        SessionStartTime = sessionStartTime ?? DateTime.UtcNow
+                    });
+                    
+                    Logger.LogInformation("Inventory session restored from most recent open document: {DocumentId}", document.Id);
+                }
+            }
+
+            // Step 3: If we have a valid document to restore, apply it
+            if (document != null)
+            {
+                _currentDocument = document;
+                _selectedStorageFacilityId = warehouseId;
+                _sessionStartTime = sessionStartTime ?? DateTime.UtcNow;
+                
+                string sourceMessage = restorationSource == "localStorage" 
+                    ? TranslationService.GetTranslation("warehouse.sessionRestoredFromCache", "Sessione ripristinata dalla cache")
+                    : TranslationService.GetTranslation("warehouse.sessionRestoredFromServer", "Sessione ripristinata dal server (documento più recente aperto)");
+                
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.sessionRestored", "Sessione di inventario ripristinata"),
+                    $"{sourceMessage} - Documento #{_currentDocument.Number} - {_currentDocument.TotalItems} articoli",
+                    "Success"
+                );
+                
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.sessionRestored", "Sessione di inventario ripristinata"), 
+                    Severity.Info
+                );
+                
+                Logger.LogInformation("Inventory session restored from {Source}: Document {DocumentId}", restorationSource, document.Id);
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error restoring inventory session");
-            // Clear invalid session
-            await InventorySessionService.ClearSessionAsync();
+            // Clear invalid session only if it exists in localStorage
+            try
+            {
+                if (await InventorySessionService.HasActiveSessionAsync())
+                {
+                    await InventorySessionService.ClearSessionAsync();
+                }
+            }
+            catch (Exception clearEx)
+            {
+                Logger.LogError(clearEx, "Error clearing invalid session");
+            }
         }
     }
 
