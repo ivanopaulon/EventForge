@@ -538,4 +538,88 @@ public class BootstrapServiceTests
         var locationCount = await verifyContext.StorageLocations.CountAsync(l => l.TenantId == tenant.Id);
         Assert.Equal(1, locationCount);
     }
+
+    [Fact]
+    public async Task EnsureAdminBootstrappedAsync_WithTenantButMissingBaseEntities_ShouldSeedBaseEntities()
+    {
+        // Arrange - Simulate a recreated database with tenant but no base entities
+        var options = new DbContextOptionsBuilder<EventForgeDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new EventForgeDbContext(options);
+
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Bootstrap:SuperAdminPassword"] = "TestPassword123!",
+                ["Bootstrap:DefaultAdminUsername"] = "superadmin",
+                ["Bootstrap:DefaultAdminEmail"] = "superadmin@localhost",
+                ["Bootstrap:AutoCreateAdmin"] = "true"
+            })
+            .Build();
+
+        var logger = new LoggerFactory().CreateLogger<BootstrapService>();
+        var passwordLogger = new LoggerFactory().CreateLogger<PasswordService>();
+        var passwordService = new PasswordService(config, passwordLogger);
+
+        // First, run complete bootstrap to create tenant and base entities
+        var bootstrapService1 = new BootstrapService(context, passwordService, config, logger);
+        var firstResult = await bootstrapService1.EnsureAdminBootstrappedAsync();
+        Assert.True(firstResult);
+
+        // Get tenant ID for verification
+        var tenant = await context.Tenants.FirstOrDefaultAsync();
+        Assert.NotNull(tenant);
+        var tenantId = tenant.Id;
+
+        // Verify base entities exist
+        Assert.True(await context.VatNatures.AnyAsync(v => v.TenantId == tenantId));
+        Assert.True(await context.VatRates.AnyAsync(v => v.TenantId == tenantId));
+        Assert.True(await context.UMs.AnyAsync(u => u.TenantId == tenantId));
+        Assert.True(await context.StorageFacilities.AnyAsync(w => w.TenantId == tenantId));
+
+        // Simulate database recreation: Remove all base entities but keep tenant and user
+        context.VatNatures.RemoveRange(context.VatNatures.Where(v => v.TenantId == tenantId));
+        context.VatRates.RemoveRange(context.VatRates.Where(v => v.TenantId == tenantId));
+        context.UMs.RemoveRange(context.UMs.Where(u => u.TenantId == tenantId));
+        context.StorageLocations.RemoveRange(context.StorageLocations.Where(l => l.TenantId == tenantId));
+        context.StorageFacilities.RemoveRange(context.StorageFacilities.Where(w => w.TenantId == tenantId));
+        context.DocumentTypes.RemoveRange(context.DocumentTypes.Where(d => d.TenantId == tenantId));
+        await context.SaveChangesAsync();
+
+        // Verify base entities are gone
+        Assert.False(await context.VatNatures.AnyAsync(v => v.TenantId == tenantId));
+        Assert.False(await context.VatRates.AnyAsync(v => v.TenantId == tenantId));
+        Assert.False(await context.UMs.AnyAsync(u => u.TenantId == tenantId));
+        Assert.False(await context.StorageFacilities.AnyAsync(w => w.TenantId == tenantId));
+
+        // Act - Run bootstrap again, which should detect missing base entities and seed them
+        var bootstrapService2 = new BootstrapService(context, passwordService, config, logger);
+        var secondResult = await bootstrapService2.EnsureAdminBootstrappedAsync();
+
+        // Assert
+        Assert.True(secondResult);
+
+        // Verify base entities were re-seeded
+        await using var verifyContext = new EventForgeDbContext(options);
+        
+        var vatNatureCount = await verifyContext.VatNatures.CountAsync(v => v.TenantId == tenantId);
+        Assert.Equal(24, vatNatureCount);
+
+        var vatRateCount = await verifyContext.VatRates.CountAsync(v => v.TenantId == tenantId);
+        Assert.Equal(5, vatRateCount);
+
+        var umCount = await verifyContext.UMs.CountAsync(u => u.TenantId == tenantId);
+        Assert.Equal(20, umCount);
+
+        var warehouseCount = await verifyContext.StorageFacilities.CountAsync(w => w.TenantId == tenantId);
+        Assert.Equal(1, warehouseCount);
+
+        var locationCount = await verifyContext.StorageLocations.CountAsync(l => l.TenantId == tenantId);
+        Assert.Equal(1, locationCount);
+
+        var docTypeCount = await verifyContext.DocumentTypes.CountAsync(d => d.TenantId == tenantId);
+        Assert.Equal(12, docTypeCount);
+    }
 }

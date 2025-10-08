@@ -44,12 +44,32 @@ public class BootstrapHostedService : IHostedService
                 {
                     _logger.LogInformation("Database is up to date. No migrations to apply.");
 
-                    // Fast-path check: Does admin already exist?
+                    // Fast-path check: Does admin already exist AND does a tenant with base entities exist?
                     var adminExists = await dbContext.Users.AnyAsync(u => u.Username == "superadmin", cancellationToken);
                     if (adminExists)
                     {
-                        _logger.LogInformation("Bootstrap already complete. Skipping bootstrap process for faster startup.");
-                        return;
+                        // Verify that at least one tenant has base entities seeded
+                        var tenantWithBaseEntities = await dbContext.Tenants
+                            .Where(t => t.Id != Guid.Empty)
+                            .AnyAsync(cancellationToken);
+
+                        if (tenantWithBaseEntities)
+                        {
+                            // Check if base entities exist for any tenant
+                            var hasVatRates = await dbContext.VatRates.AnyAsync(cancellationToken);
+                            var hasUnitsMeasure = await dbContext.UMs.AnyAsync(cancellationToken);
+                            var hasWarehouses = await dbContext.StorageFacilities.AnyAsync(cancellationToken);
+
+                            if (hasVatRates && hasUnitsMeasure && hasWarehouses)
+                            {
+                                _logger.LogInformation("Bootstrap already complete. Skipping bootstrap process for faster startup.");
+                                return;
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Superadmin exists but base entities are missing. Running bootstrap to seed base entities...");
+                            }
+                        }
                     }
                 }
                 else
