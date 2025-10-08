@@ -1,0 +1,71 @@
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.VatRates
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+@inject IFinancialService FinancialService
+
+<MudGrid>
+    <MudItem xs="12">
+        <MudText Typo="Typo.h6" Class="mb-3">
+            <MudIcon Icon="@Icons.Material.Outlined.AttachMoney" Class="mr-2" />
+            @TranslationService.GetTranslation("product.pricingInfo", "Informazioni Prezzi")
+        </MudText>
+        <MudDivider Class="mb-4" />
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudNumericField @bind-Value="Product.DefaultPrice"
+                         Label="@TranslationService.GetTranslation("field.defaultPrice", "Prezzo Predefinito")"
+                         Variant="Variant.Outlined"
+                         ReadOnly="@(!IsEditMode)"
+                         Min="0"
+                         Format="N2"
+                         Adornment="Adornment.Start"
+                         AdornmentText="€" />
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudSwitch @bind-Value="Product.IsVatIncluded"
+                   Label="@TranslationService.GetTranslation("product.isVatIncluded", "IVA Inclusa")"
+                   Color="Color.Primary"
+                   ReadOnly="@(!IsEditMode)" />
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudSelect @bind-Value="Product.VatRateId"
+                   Label="@TranslationService.GetTranslation("field.vatRate", "Aliquota IVA")"
+                   Variant="Variant.Outlined"
+                   ReadOnly="@(!IsEditMode)"
+                   Clearable="true">
+            @if (_vatRates != null)
+            {
+                @foreach (var vat in _vatRates)
+                {
+                    <MudSelectItem Value="@vat.Id">@vat.Name (@vat.Percentage%)</MudSelectItem>
+                }
+            }
+        </MudSelect>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter, EditorRequired]
+    public ProductDto Product { get; set; } = default!;
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
+    private IEnumerable<VatRateDto>? _vatRates;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _vatRates = await FinancialService.GetVatRatesAsync();
+        }
+        catch (Exception)
+        {
+            // Handle error silently or log
+        }
+    }
+}

@@ -1,0 +1,296 @@
+@page "/product-management/products/{ProductId:guid}"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.Common
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.VatRates
+@using EventForge.DTOs.UnitOfMeasures
+@using EventForge.DTOs.Station
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Pages.Management.ProductDetailTabs
+@attribute [Authorize]
+@inject IProductService ProductService
+@inject IBusinessPartyService BusinessPartyService
+@inject IBrandService BrandService
+@inject IModelService ModelService
+@inject IFinancialService FinancialService
+@inject IUMService UMService
+@inject IEntityManagementService EntityManagementService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<ProductDetail> Logger
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    @if (_isLoading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else if (_product == null)
+    {
+        <MudAlert Severity="Severity.Error">
+            @TranslationService.GetTranslation("product.notFound", "Prodotto non trovato")
+        </MudAlert>
+    }
+    else
+    {
+        <!-- Page Header -->
+        <MudPaper Elevation="2" Class="pa-4 mb-4">
+            <div class="d-flex justify-space-between align-center">
+                <div>
+                    <div class="d-flex align-center gap-2 mb-2">
+                        <MudIconButton Icon="@Icons.Material.Outlined.ArrowBack" 
+                                       Color="Color.Default"
+                                       OnClick="@(() => NavigationManager.NavigateTo("/product-management/products"))"
+                                       Size="Size.Small" />
+                        <MudText Typo="Typo.h4">
+                            <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Class="mr-2" />
+                            @_product.Name
+                        </MudText>
+                        <MudChip T="string" Size="Size.Small" Color="GetStatusColor(_product.Status)">
+                            @GetStatusText(_product.Status)
+                        </MudChip>
+                    </div>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("field.code", "Codice"): @_product.Code
+                    </MudText>
+                </div>
+                <div class="d-flex gap-2">
+                    <MudButton Variant="Variant.Outlined" 
+                               Color="Color.Primary" 
+                               StartIcon="@Icons.Material.Outlined.Edit"
+                               OnClick="@(() => _isEditMode = !_isEditMode)">
+                        @(_isEditMode ? TranslationService.GetTranslation("common.cancel", "Annulla") : TranslationService.GetTranslation("common.edit", "Modifica"))
+                    </MudButton>
+                    @if (_isEditMode)
+                    {
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Primary" 
+                                   StartIcon="@Icons.Material.Outlined.Save"
+                                   OnClick="SaveProductAsync"
+                                   Disabled="_isSaving">
+                            @TranslationService.GetTranslation("common.save", "Salva")
+                        </MudButton>
+                    }
+                </div>
+            </div>
+        </MudPaper>
+
+        <!-- Tabs Section -->
+        <MudPaper Elevation="2" Class="pa-2">
+            <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" @bind-ActivePanelIndex="_activeTab" Color="Color.Primary">
+                
+                <!-- Tab 1: General Information -->
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.generalInfo", "Informazioni Generali")" 
+                             Icon="@Icons.Material.Outlined.Info">
+                    <GeneralInfoTab Product="@_product" IsEditMode="@_isEditMode" />
+                </MudTabPanel>
+
+                <!-- Tab 2: Pricing & Financial -->
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.pricingFinancial", "Prezzi e Finanza")" 
+                             Icon="@Icons.Material.Outlined.AttachMoney">
+                    <PricingFinancialTab Product="@_product" IsEditMode="@_isEditMode" />
+                </MudTabPanel>
+
+                <!-- Tab 3: Classification -->
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.classification", "Classificazione")" 
+                             Icon="@Icons.Material.Outlined.Category">
+                    <ClassificationTab Product="@_product" IsEditMode="@_isEditMode" />
+                </MudTabPanel>
+
+                <!-- Tab 4: Alternative Codes -->
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.alternativeCodes", "Codici Alternativi")" 
+                             Icon="@Icons.Material.Outlined.QrCode2"
+                             BadgeData="@_productCodes?.Count()"
+                             BadgeDot="@(_productCodes?.Any() ?? false)">
+                    <ProductCodesTab ProductId="@ProductId" />
+                </MudTabPanel>
+
+                <!-- Tab 5: Alternative Units -->
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.alternativeUnits", "Unità Alternative")" 
+                             Icon="@Icons.Material.Outlined.Straighten"
+                             BadgeData="@_productUnits?.Count()"
+                             BadgeDot="@(_productUnits?.Any() ?? false)">
+                    <ProductUnitsTab ProductId="@ProductId" />
+                </MudTabPanel>
+
+                <!-- Tab 6: Suppliers -->
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.suppliers", "Fornitori")" 
+                             Icon="@Icons.Material.Outlined.LocalShipping"
+                             BadgeData="@_productSuppliers?.Count()"
+                             BadgeDot="@(_productSuppliers?.Any() ?? false)">
+                    <ProductSuppliersTab ProductId="@ProductId" />
+                </MudTabPanel>
+
+                <!-- Tab 7: Bundle Components (only if IsBundle) -->
+                @if (_product.IsBundle)
+                {
+                    <MudTabPanel Text="@TranslationService.GetTranslation("product.bundleComponents", "Componenti Bundle")" 
+                                 Icon="@Icons.Material.Outlined.Inventory"
+                                 BadgeData="@_bundleItems?.Count()"
+                                 BadgeDot="@(_bundleItems?.Any() ?? false)">
+                        <BundleItemsTab ProductId="@ProductId" />
+                    </MudTabPanel>
+                }
+
+                <!-- Tab 8: Stock & Inventory -->
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.stockInventory", "Magazzino e Inventario")" 
+                             Icon="@Icons.Material.Outlined.Warehouse">
+                    <StockInventoryTab Product="@_product" IsEditMode="@_isEditMode" />
+                </MudTabPanel>
+
+            </MudTabs>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    [Parameter]
+    public Guid ProductId { get; set; }
+
+    private ProductDto? _product;
+    private bool _isLoading = true;
+    private bool _isEditMode = false;
+    private bool _isSaving = false;
+    private int _activeTab = 0;
+
+    // Related entities counts for badges
+    private IEnumerable<ProductCodeDto>? _productCodes;
+    private IEnumerable<ProductUnitDto>? _productUnits;
+    private IEnumerable<ProductSupplierDto>? _productSuppliers;
+    private IEnumerable<ProductBundleItemDto>? _bundleItems;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProductAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_product?.Id != ProductId)
+        {
+            await LoadProductAsync();
+        }
+    }
+
+    private async Task LoadProductAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _product = await ProductService.GetProductByIdAsync(ProductId);
+            
+            if (_product != null)
+            {
+                // Load related entities for badge counts
+                await LoadRelatedEntitiesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading product {ProductId}", ProductId);
+            Snackbar.Add(TranslationService.GetTranslation("product.loadError", "Errore nel caricamento del prodotto"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadRelatedEntitiesAsync()
+    {
+        try
+        {
+            var codesTask = ProductService.GetProductCodesAsync(ProductId);
+            var unitsTask = ProductService.GetProductUnitsAsync(ProductId);
+            var suppliersTask = ProductService.GetProductSuppliersAsync(ProductId);
+            
+            await Task.WhenAll(codesTask, unitsTask, suppliersTask);
+
+            _productCodes = await codesTask;
+            _productUnits = await unitsTask;
+            _productSuppliers = await suppliersTask;
+
+            if (_product?.IsBundle == true)
+            {
+                _bundleItems = await ProductService.GetProductBundleItemsAsync(ProductId);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading related entities for product {ProductId}", ProductId);
+        }
+    }
+
+    private async Task SaveProductAsync()
+    {
+        if (_product == null) return;
+
+        _isSaving = true;
+        try
+        {
+            var updateDto = new UpdateProductDto
+            {
+                Name = _product.Name,
+                ShortDescription = _product.ShortDescription,
+                Description = _product.Description,
+                Status = _product.Status,
+                IsVatIncluded = _product.IsVatIncluded,
+                DefaultPrice = _product.DefaultPrice,
+                VatRateId = _product.VatRateId,
+                UnitOfMeasureId = _product.UnitOfMeasureId,
+                CategoryNodeId = _product.CategoryNodeId,
+                FamilyNodeId = _product.FamilyNodeId,
+                GroupNodeId = _product.GroupNodeId,
+                StationId = _product.StationId,
+                BrandId = _product.BrandId,
+                ModelId = _product.ModelId,
+                PreferredSupplierId = _product.PreferredSupplierId,
+                ReorderPoint = _product.ReorderPoint,
+                SafetyStock = _product.SafetyStock,
+                TargetStockLevel = _product.TargetStockLevel,
+                AverageDailyDemand = _product.AverageDailyDemand,
+                ImageDocumentId = _product.ImageDocumentId
+            };
+
+            await ProductService.UpdateProductAsync(ProductId, updateDto);
+            Snackbar.Add(TranslationService.GetTranslation("product.saveSuccess", "Prodotto salvato con successo"), Severity.Success);
+            _isEditMode = false;
+            await LoadProductAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving product {ProductId}", ProductId);
+            Snackbar.Add(TranslationService.GetTranslation("product.saveError", "Errore nel salvataggio del prodotto"), Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private Color GetStatusColor(ProductStatus status)
+    {
+        return status switch
+        {
+            ProductStatus.Active => Color.Success,
+            ProductStatus.Suspended => Color.Warning,
+            ProductStatus.OutOfStock => Color.Error,
+            ProductStatus.Deleted => Color.Dark,
+            _ => Color.Default
+        };
+    }
+
+    private string GetStatusText(ProductStatus status)
+    {
+        return status switch
+        {
+            ProductStatus.Active => TranslationService.GetTranslation("status.active", "Attivo"),
+            ProductStatus.Suspended => TranslationService.GetTranslation("status.suspended", "Sospeso"),
+            ProductStatus.OutOfStock => TranslationService.GetTranslation("status.outOfStock", "Esaurito"),
+            ProductStatus.Deleted => TranslationService.GetTranslation("status.deleted", "Eliminato"),
+            _ => status.ToString()
+        };
+    }
+}

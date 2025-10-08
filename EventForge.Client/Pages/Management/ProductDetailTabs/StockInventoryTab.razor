@@ -1,0 +1,61 @@
+@using EventForge.DTOs.Products
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+
+<MudGrid>
+    <MudItem xs="12">
+        <MudText Typo="Typo.h6" Class="mb-3">
+            <MudIcon Icon="@Icons.Material.Outlined.Warehouse" Class="mr-2" />
+            @TranslationService.GetTranslation("product.stockInfo", "Informazioni Magazzino")
+        </MudText>
+        <MudDivider Class="mb-4" />
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudNumericField @bind-Value="Product.ReorderPoint"
+                         Label="@TranslationService.GetTranslation("field.reorderPoint", "Punto di Riordino")"
+                         Variant="Variant.Outlined"
+                         ReadOnly="@(!IsEditMode)"
+                         Min="0"
+                         Format="N2"
+                         HelperText="@TranslationService.GetTranslation("product.reorderPointHelp", "Livello di inventario al quale riordinare")" />
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudNumericField @bind-Value="Product.SafetyStock"
+                         Label="@TranslationService.GetTranslation("field.safetyStock", "Scorta di Sicurezza")"
+                         Variant="Variant.Outlined"
+                         ReadOnly="@(!IsEditMode)"
+                         Min="0"
+                         Format="N2"
+                         HelperText="@TranslationService.GetTranslation("product.safetyStockHelp", "Stock minimo da mantenere")" />
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudNumericField @bind-Value="Product.TargetStockLevel"
+                         Label="@TranslationService.GetTranslation("field.targetStockLevel", "Livello Stock Obiettivo")"
+                         Variant="Variant.Outlined"
+                         ReadOnly="@(!IsEditMode)"
+                         Min="0"
+                         Format="N2"
+                         HelperText="@TranslationService.GetTranslation("product.targetStockHelp", "Livello di inventario desiderato")" />
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudNumericField @bind-Value="Product.AverageDailyDemand"
+                         Label="@TranslationService.GetTranslation("field.averageDailyDemand", "Domanda Media Giornaliera")"
+                         Variant="Variant.Outlined"
+                         ReadOnly="@(!IsEditMode)"
+                         Min="0"
+                         Format="N2"
+                         HelperText="@TranslationService.GetTranslation("product.avgDailyDemandHelp", "Domanda media giornaliera per pianificazione inventario")" />
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter, EditorRequired]
+    public ProductDto Product { get; set; } = default!;
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+}
