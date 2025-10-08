@@ -973,9 +973,9 @@ public class PriceListService : IPriceListService
             // Get price list entries with related product information
             var query = _context.PriceListEntries
                 .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
-                .Include(ple => ple.Product)
+                .Include(ple => ple.Product!)
                 .ThenInclude(p => p.CategoryNode)
-                .Include(ple => ple.Product)
+                .Include(ple => ple.Product!)
                 .ThenInclude(p => p.Units.Where(pu => pu.UnitType == "Base" && !pu.IsDeleted))
                 .ThenInclude(pu => pu.UnitOfMeasure)
                 .AsQueryable();

@@ -299,7 +299,7 @@ else
                                     <MudTh Style="width: 50px;">
                                         <MudCheckBox T="bool" 
                                                      Checked="@(_selectedUsers.Count == _filteredUsers.Count() && _filteredUsers.Any())"
-                                                     CheckedChanged="@ToggleSelectAll"
+                                                     CheckedChanged="@((bool? value) => ToggleSelectAll(value ?? false))"
                                                      TriState="true"
                                                      aria-label="@TranslationService.GetTranslation("tooltip.selectAll", "Seleziona/Deseleziona tutti")" />
                                     </MudTh>

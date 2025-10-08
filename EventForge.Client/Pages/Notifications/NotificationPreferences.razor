@@ -326,7 +326,7 @@
         }
     }
 
-    private async Task LoadPreferences()
+    private Task LoadPreferences()
     {
         try
         {
@@ -371,22 +371,26 @@
         {
             Snackbar.Add($"Errore nel caricamento: {ex.Message}", Severity.Error);
         }
+        return Task.CompletedTask;
     }
 
-    private async Task OnPreferenceChanged()
+    private Task OnPreferenceChanged()
     {
         // Auto-save or mark as dirty
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
-    private async Task OnDisplaySettingChanged()
+    private Task OnDisplaySettingChanged()
     {
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
-    private async Task OnPrivacySettingChanged()
+    private Task OnPrivacySettingChanged()
     {
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
     private async Task OnTypeToggle(NotificationTypes type, bool enabled)
@@ -428,7 +432,7 @@
         }
     }
 
-    private async Task ResetToDefaults()
+    private Task ResetToDefaults()
     {
         try
         {
@@ -467,12 +471,14 @@
         {
             Snackbar.Add($"Errore nel ripristino: {ex.Message}", Severity.Error);
         }
+        return Task.CompletedTask;
     }
 
-    private async Task PreviewSettings()
+    private Task PreviewSettings()
     {
         // TODO: Show preview modal with sample notifications
         Snackbar.Add(TranslationService.GetTranslation("notificationPreferences.previewFeatureComingSoon", "Funzione anteprima in arrivo"), Severity.Info);
+        return Task.CompletedTask;
     }
 
     private string GetNotificationTypeLabel(NotificationTypes type)

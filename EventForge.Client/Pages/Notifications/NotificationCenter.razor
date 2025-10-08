@@ -852,7 +852,7 @@
         StateHasChanged();
     }
 
-    private async Task GenerateNotificationGroups()
+    private Task GenerateNotificationGroups()
     {
         try
         {
@@ -880,6 +880,7 @@
         {
             Snackbar.Add($"Errore nel raggruppamento: {ex.Message}", Severity.Error);
         }
+        return Task.CompletedTask;
     }
 
     private string GetGroupTitle(string groupId, NotificationTypes fallbackType)
@@ -901,10 +902,11 @@
     }
 
     // Group event handlers
-    private async Task OnGroupToggle(NotificationGroupDto group)
+    private Task OnGroupToggle(NotificationGroupDto group)
     {
         // Group toggle is handled by the component itself
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
     private async Task OnGroupMarkAsRead(NotificationGroupDto group)
@@ -992,7 +994,7 @@
         await ShowNotificationDetailsAsync(notification);
     }
 
-    private async Task OnNotificationActionExecuted(NotificationActionDto action)
+    private Task OnNotificationActionExecuted(NotificationActionDto action)
     {
         try
         {
@@ -1007,6 +1009,7 @@
         {
             Snackbar.Add($"Errore nell'esecuzione dell'azione: {ex.Message}", Severity.Error);
         }
+        return Task.CompletedTask;
     }
 
     #endregion

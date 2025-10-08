@@ -34,7 +34,6 @@ public class QzSigningDemoRequest
 public class PrintingController : BaseApiController
 {
     private readonly IQzPrintingService _qzPrintingService;
-    private readonly ITenantContext _tenantContext;
     private readonly QzDigitalSignatureService _signatureService;
     private readonly QzSigner _qzSigner;
     private readonly QzWebSocketClient _qzWebSocketClient;
@@ -53,8 +52,7 @@ public class PrintingController : BaseApiController
         QzDigitalSignatureService signatureService,
         QzSigner qzSigner,
         QzWebSocketClient qzWebSocketClient,
-        ILogger<PrintingController> logger,
-        ITenantContext tenantContext)
+        ILogger<PrintingController> logger)
     {
         _qzPrintingService = qzPrintingService;
         _signatureService = signatureService;
