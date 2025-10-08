@@ -855,11 +855,12 @@
     /// <summary>
     /// Edit a message
     /// </summary>
-    private async Task EditMessage(ChatMessageDto message)
+    private Task EditMessage(ChatMessageDto message)
     {
         // TODO: Implement message editing dialog
         // For now, show a placeholder
         Snackbar.Add("Message editing coming soon!", Severity.Info);
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -895,19 +896,21 @@
     /// <summary>
     /// Share a message
     /// </summary>
-    private async Task ShareMessage(ChatMessageDto message)
+    private Task ShareMessage(ChatMessageDto message)
     {
         // TODO: Implement message sharing
         Snackbar.Add("Message sharing coming soon!", Severity.Info);
+        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Report a message
     /// </summary>
-    private async Task ReportMessage(ChatMessageDto message)
+    private Task ReportMessage(ChatMessageDto message)
     {
         // TODO: Implement message reporting
         Snackbar.Add("Message reporting coming soon!", Severity.Info);
+        return Task.CompletedTask;
     }
 
     /// <summary>
