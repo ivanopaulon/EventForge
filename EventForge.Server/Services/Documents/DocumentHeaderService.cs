@@ -8,15 +8,18 @@ public class DocumentHeaderService : IDocumentHeaderService
 {
     private readonly EventForgeDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<DocumentHeaderService> _logger;
 
     public DocumentHeaderService(
         EventForgeDbContext context,
         IAuditLogService auditLogService,
+        ITenantContext tenantContext,
         ILogger<DocumentHeaderService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -114,7 +117,15 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
+            var tenantId = _tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                _logger.LogWarning("Cannot create document header without a tenant context.");
+                throw new InvalidOperationException("Tenant context is required.");
+            }
+
             var documentHeader = createDto.ToEntity();
+            documentHeader.TenantId = tenantId.Value;
             documentHeader.CreatedBy = currentUser;
             documentHeader.CreatedAt = DateTime.UtcNow;
 
@@ -126,6 +137,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                 {
                     var row = rowDto.ToEntity();
                     row.DocumentHeaderId = documentHeader.Id;
+                    row.TenantId = tenantId.Value;
                     row.CreatedBy = currentUser;
                     row.CreatedAt = DateTime.UtcNow;
                     documentHeader.Rows.Add(row);
