@@ -115,15 +115,6 @@
                                                        Color="Color.Info"
                                                        OnClick="@(() => NavigationManager.NavigateTo($"/product-management/products/{context.Id}"))" />
                                     </MudTooltip>
-                                    <ActionButtonGroup EntityName="@TranslationService.GetTranslation("entity.product", "Prodotto")"
-                                                      ItemDisplayName="@context.Name"
-                                                      ShowView="true"
-                                                      ShowEdit="true"
-                                                      ShowAuditLog="false"
-                                                      ShowToggleStatus="false"
-                                                      ShowDelete="false"
-                                                      OnView="@(() => OpenViewProductDrawer(context))"
-                                                      OnEdit="@(() => OpenEditProductDrawer(context))" />
                                 </MudTd>
                             </RowTemplate>
                             <NoRecordsContent>
@@ -224,20 +215,6 @@
     {
         _selectedProduct = null;
         _productDrawerMode = EntityDrawerMode.Create;
-        _productDrawerOpen = true;
-    }
-
-    private void OpenEditProductDrawer(ProductDto product)
-    {
-        _selectedProduct = product;
-        _productDrawerMode = EntityDrawerMode.Edit;
-        _productDrawerOpen = true;
-    }
-
-    private void OpenViewProductDrawer(ProductDto product)
-    {
-        _selectedProduct = product;
-        _productDrawerMode = EntityDrawerMode.View;
         _productDrawerOpen = true;
     }
 
