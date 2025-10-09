@@ -208,9 +208,9 @@
             
             await Task.WhenAll(codesTask, unitsTask, suppliersTask);
 
-            _productCodes = await codesTask;
-            _productUnits = await unitsTask;
-            _productSuppliers = await suppliersTask;
+            _productCodes = codesTask.Result;
+            _productUnits = unitsTask.Result;
+            _productSuppliers = suppliersTask.Result;
 
             if (_product?.IsBundle == true)
             {
