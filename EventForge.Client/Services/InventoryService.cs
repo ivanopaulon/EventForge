@@ -70,6 +70,33 @@ public class InventoryService : IInventoryService
         }
     }
 
+    public async Task<InventoryDocumentDto?> UpdateInventoryDocumentRowAsync(Guid documentId, Guid rowId, UpdateInventoryDocumentRowDto rowDto)
+    {
+        try
+        {
+            return await _httpClientService.PutAsync<UpdateInventoryDocumentRowDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row/{rowId}", rowDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating inventory document row");
+            return null;
+        }
+    }
+
+    public async Task<InventoryDocumentDto?> DeleteInventoryDocumentRowAsync(Guid documentId, Guid rowId)
+    {
+        try
+        {
+            // Delete returns the updated document in our case
+            return await _httpClientService.DeleteAsync<InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row/{rowId}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting inventory document row");
+            return null;
+        }
+    }
+
     public async Task<InventoryDocumentDto?> FinalizeInventoryDocumentAsync(Guid documentId)
     {
         try
@@ -135,8 +162,8 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            // Query for InProgress documents, sorted by date descending, get only the first one
-            var result = await GetInventoryDocumentsAsync(page: 1, pageSize: 1, status: "InProgress");
+            // Query for Open documents, sorted by date descending, get only the first one
+            var result = await GetInventoryDocumentsAsync(page: 1, pageSize: 1, status: "Open");
             return result?.Items?.FirstOrDefault();
         }
         catch (Exception ex)

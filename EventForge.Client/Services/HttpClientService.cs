@@ -53,6 +53,11 @@ public interface IHttpClientService
     Task DeleteAsync(string endpoint, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Performs a DELETE request and returns a response.
+    /// </summary>
+    Task<TResponse?> DeleteAsync<TResponse>(string endpoint, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Performs a PATCH request with JSON payload.
     /// </summary>
     Task<TResponse?> PatchAsync<TRequest, TResponse>(string endpoint, TRequest data, CancellationToken cancellationToken = default);
@@ -232,6 +237,24 @@ public class HttpClientService : IHttpClientService
 
             var response = await httpClient.DeleteAsync(endpoint, cancellationToken);
             await EnsureSuccessStatusCodeAsync(response, endpoint);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "DELETE request failed for endpoint {Endpoint}", endpoint);
+            throw;
+        }
+    }
+
+    public async Task<TResponse?> DeleteAsync<TResponse>(string endpoint, CancellationToken cancellationToken = default)
+    {
+        var httpClient = await GetConfiguredHttpClientAsync();
+
+        try
+        {
+            _logger.LogDebug("DELETE request to {Endpoint}", endpoint);
+
+            var response = await httpClient.DeleteAsync(endpoint, cancellationToken);
+            return await HandleResponseAsync<TResponse>(response, endpoint);
         }
         catch (Exception ex)
         {

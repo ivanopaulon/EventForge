@@ -1,0 +1,101 @@
+@inject ITranslationService TranslationService
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <!-- Product Information Display -->
+            @if (!string.IsNullOrEmpty(ProductName))
+            {
+                <MudPaper Elevation="0" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @TranslationService.GetTranslation("warehouse.productName", "Nome Prodotto")
+                        </MudText>
+                        <MudText Typo="Typo.body1" Style="font-weight: 600;">
+                            @ProductName
+                        </MudText>
+                    </div>
+                </MudPaper>
+            }
+
+            <!-- Edit Form -->
+            <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
+                <MudStack Spacing="3">
+                    <MudNumericField @bind-Value="_quantity"
+                                    Label="@TranslationService.GetTranslation("warehouse.quantity", "Quantità")"
+                                    Variant="Variant.Outlined"
+                                    Min="0"
+                                    Required="true"
+                                    RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                                    Adornment="Adornment.Start"
+                                    AdornmentIcon="@Icons.Material.Outlined.Numbers" />
+
+                    <MudTextField @bind-Value="_notes"
+                                 Label="@TranslationService.GetTranslation("warehouse.notes", "Note")"
+                                 Variant="Variant.Outlined"
+                                 Lines="2"
+                                 MaxLength="200"
+                                 Counter="200"
+                                 Adornment="Adornment.Start"
+                                 AdornmentIcon="@Icons.Material.Outlined.Comment" />
+                </MudStack>
+            </MudForm>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" 
+                   Color="Color.Default" 
+                   Variant="Variant.Text">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton OnClick="Submit" 
+                   Color="Color.Primary" 
+                   Variant="Variant.Filled"
+                   Disabled="@(!_isFormValid)">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public decimal Quantity { get; set; }
+    [Parameter] public string? Notes { get; set; }
+    [Parameter] public string? ProductName { get; set; }
+
+    private MudForm? _form;
+    private bool _isFormValid;
+    private decimal _quantity;
+    private string? _notes;
+
+    protected override void OnInitialized()
+    {
+        _quantity = Quantity;
+        _notes = Notes;
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private void Submit()
+    {
+        if (_isFormValid)
+        {
+            var result = new EditInventoryRowResult
+            {
+                Quantity = _quantity,
+                Notes = _notes
+            };
+            MudDialog.Close(DialogResult.Ok(result));
+        }
+    }
+
+    public class EditInventoryRowResult
+    {
+        public decimal Quantity { get; set; }
+        public string? Notes { get; set; }
+    }
+}
