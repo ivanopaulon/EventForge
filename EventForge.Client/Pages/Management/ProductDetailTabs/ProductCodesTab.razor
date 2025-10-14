@@ -1,5 +1,6 @@
 @using EventForge.DTOs.Products
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components
 @inject ITranslationService TranslationService
 @inject IProductService ProductService
 @inject IDialogService DialogService
@@ -94,16 +95,58 @@
         }
     }
 
-    private void OpenCreateDialog()
+    private async Task OpenCreateDialog()
     {
-        // TODO: Implement create dialog
-        Snackbar.Add("Funzionalità in fase di implementazione", Severity.Info);
+        var parameters = new DialogParameters
+        {
+            { "ProductId", ProductId },
+            { "ProductUnits", _productCodes?.Any() == true ? await ProductService.GetProductUnitsAsync(ProductId) : new List<ProductUnitDto>() }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<AddProductCodeDialog>(
+            TranslationService.GetTranslation("product.addCode", "Aggiungi Codice Alternativo"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadCodesAsync();
+        }
     }
 
-    private void OpenEditDialog(ProductCodeDto code)
+    private async Task OpenEditDialog(ProductCodeDto code)
     {
-        // TODO: Implement edit dialog
-        Snackbar.Add("Funzionalità in fase di implementazione", Severity.Info);
+        var parameters = new DialogParameters
+        {
+            { "ProductCode", code },
+            { "ProductUnits", await ProductService.GetProductUnitsAsync(ProductId) }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<EditProductCodeDialog>(
+            TranslationService.GetTranslation("product.editCode", "Modifica Codice Alternativo"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadCodesAsync();
+        }
     }
 
     private async Task DeleteCodeAsync(ProductCodeDto code)

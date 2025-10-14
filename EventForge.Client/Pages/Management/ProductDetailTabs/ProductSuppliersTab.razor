@@ -1,5 +1,6 @@
 @using EventForge.DTOs.Products
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components
 @inject ITranslationService TranslationService
 @inject IProductService ProductService
 @inject IDialogService DialogService
@@ -101,16 +102,56 @@
         }
     }
 
-    private void OpenCreateDialog()
+    private async Task OpenCreateDialog()
     {
-        // TODO: Implement create dialog
-        Snackbar.Add("Funzionalità in fase di implementazione", Severity.Info);
+        var parameters = new DialogParameters
+        {
+            { "ProductId", ProductId }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<AddProductSupplierDialog>(
+            TranslationService.GetTranslation("product.addSupplier", "Aggiungi Fornitore"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadSuppliersAsync();
+        }
     }
 
-    private void OpenEditDialog(ProductSupplierDto supplier)
+    private async Task OpenEditDialog(ProductSupplierDto supplier)
     {
-        // TODO: Implement edit dialog
-        Snackbar.Add("Funzionalità in fase di implementazione", Severity.Info);
+        var parameters = new DialogParameters
+        {
+            { "ProductSupplier", supplier }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<EditProductSupplierDialog>(
+            TranslationService.GetTranslation("product.editSupplier", "Modifica Fornitore"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadSuppliersAsync();
+        }
     }
 
     private async Task DeleteSupplierAsync(ProductSupplierDto supplier)

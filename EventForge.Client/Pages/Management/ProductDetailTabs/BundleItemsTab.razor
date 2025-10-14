@@ -1,5 +1,6 @@
 @using EventForge.DTOs.Products
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components
 @inject ITranslationService TranslationService
 @inject IProductService ProductService
 @inject IDialogService DialogService
@@ -90,16 +91,57 @@
         }
     }
 
-    private void OpenCreateDialog()
+    private async Task OpenCreateDialog()
     {
-        // TODO: Implement create dialog
-        Snackbar.Add("Funzionalità in fase di implementazione", Severity.Info);
+        var parameters = new DialogParameters
+        {
+            { "BundleProductId", ProductId }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<AddBundleItemDialog>(
+            TranslationService.GetTranslation("product.addBundleItem", "Aggiungi Componente Bundle"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadBundleItemsAsync();
+        }
     }
 
-    private void OpenEditDialog(ProductBundleItemDto item)
+    private async Task OpenEditDialog(ProductBundleItemDto item)
     {
-        // TODO: Implement edit dialog
-        Snackbar.Add("Funzionalità in fase di implementazione", Severity.Info);
+        var parameters = new DialogParameters
+        {
+            { "BundleItem", item },
+            { "BundleProductId", ProductId }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<EditBundleItemDialog>(
+            TranslationService.GetTranslation("product.editBundleItem", "Modifica Componente Bundle"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadBundleItemsAsync();
+        }
     }
 
     private async Task DeleteBundleItemAsync(ProductBundleItemDto item)

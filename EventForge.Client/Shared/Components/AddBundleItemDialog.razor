@@ -1,0 +1,155 @@
+@using MudBlazor
+@using EventForge.DTOs.Products
+@inject IProductService ProductService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<AddBundleItemDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudAutocomplete T="ProductDto"
+                                     @bind-Value="_selectedProduct"
+                                     SearchFunc="@SearchProducts"
+                                     Label="@($"{TranslationService.GetTranslation("field.componentProduct", "Prodotto Componente")} *")"
+                                     Variant="Variant.Outlined"
+                                     ToStringFunc="@(p => p != null ? $"{p.Name} ({p.Code})" : string.Empty)"
+                                     Required="true"
+                                     RequiredError="@TranslationService.GetTranslation("validation.componentProductRequired", "Il prodotto componente è obbligatorio")" />
+                    <MudText Typo="Typo.caption" Class="mud-input-helper-text">
+                        @TranslationService.GetTranslation("helperText.componentProduct", "Seleziona il prodotto da includere nel bundle")
+                    </MudText>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudNumericField @bind-Value="_model.Quantity"
+                                     Label="@($"{TranslationService.GetTranslation("field.quantity", "Quantità")} *")"
+                                     Variant="Variant.Outlined"
+                                     Min="1"
+                                     Max="10000"
+                                     Required="true"
+                                     RequiredError="@TranslationService.GetTranslation("validation.quantityRequired", "La quantità è obbligatoria")"
+                                     HideSpinButtons="false" />
+                    <MudText Typo="Typo.caption" Class="mud-input-helper-text">
+                        @TranslationService.GetTranslation("helperText.bundleQuantity", "Quante unità di questo prodotto sono incluse nel bundle")
+                    </MudText>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
+        <MudButton Color="Color.Primary" Disabled="@(!_isValid || _selectedProduct == null || _isSaving)" OnClick="Submit">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">@TranslationService.GetTranslation("common.saving", "Salvataggio...")</MudText>
+            }
+            else
+            {
+                @TranslationService.GetTranslation("button.save", "Salva")
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter] public Guid BundleProductId { get; set; }
+    
+    private MudForm _form = null!;
+    private bool _isValid;
+    private bool _isSaving;
+    private bool _isLoadingProducts;
+    
+    private CreateProductBundleItemDto _model = new()
+    {
+        Quantity = 1
+    };
+    
+    private ProductDto? _selectedProduct;
+    private IEnumerable<ProductDto> _availableProducts = new List<ProductDto>();
+    
+    protected override async Task OnInitializedAsync()
+    {
+        _model.BundleProductId = BundleProductId;
+        await LoadAvailableProductsAsync();
+    }
+    
+    private async Task LoadAvailableProductsAsync()
+    {
+        _isLoadingProducts = true;
+        try
+        {
+            // Load all active products (excluding the bundle itself)
+            var result = await ProductService.GetProductsAsync();
+            if (result != null && result.Items != null)
+            {
+                _availableProducts = result.Items
+                    .Where(p => p.Id != BundleProductId && p.Status == ProductStatus.Active)
+                    .OrderBy(p => p.Name);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading available products");
+            Snackbar.Add(TranslationService.GetTranslation("product.loadProductsError", "Errore nel caricamento dei prodotti"), Severity.Error);
+        }
+        finally
+        {
+            _isLoadingProducts = false;
+        }
+    }
+    
+    private async Task<IEnumerable<ProductDto>> SearchProducts(string value, CancellationToken token)
+    {
+        await Task.Delay(50, token);
+        
+        if (string.IsNullOrWhiteSpace(value))
+            return _availableProducts;
+
+        return _availableProducts.Where(p => 
+            p.Name.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+            p.Code.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+    
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+    
+    private async Task Submit()
+    {
+        if (!_isValid || _selectedProduct == null) return;
+        
+        try
+        {
+            _isSaving = true;
+            
+            _model.ComponentProductId = _selectedProduct.Id;
+            
+            var newItem = await ProductService.CreateProductBundleItemAsync(_model);
+            if (newItem != null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("product.bundleItemAdded", "Componente aggiunto con successo"), Severity.Success);
+                MudDialog.Close(DialogResult.Ok(newItem));
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating bundle item");
+            Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio: {0}", ex.Message), Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+}

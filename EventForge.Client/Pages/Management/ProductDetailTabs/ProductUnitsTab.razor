@@ -1,7 +1,10 @@
 @using EventForge.DTOs.Products
+@using EventForge.DTOs.UnitOfMeasures
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components
 @inject ITranslationService TranslationService
 @inject IProductService ProductService
+@inject IUMService UMService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject ILogger<ProductUnitsTab> Logger
@@ -96,16 +99,68 @@
         }
     }
 
-    private void OpenCreateDialog()
+    private async Task OpenCreateDialog()
     {
-        // TODO: Implement create dialog
-        Snackbar.Add("Funzionalità in fase di implementazione", Severity.Info);
+        // Load unit of measures for the dialog
+        var unitOfMeasuresResult = await UMService.GetUMsAsync(page: 1, pageSize: 1000);
+        var unitOfMeasures = unitOfMeasuresResult?.Items ?? new List<UMDto>();
+        
+        var parameters = new DialogParameters
+        {
+            { "ProductId", ProductId },
+            { "UnitOfMeasures", unitOfMeasures },
+            { "ExistingUnits", _productUnits ?? new List<ProductUnitDto>() }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<AddProductUnitDialog>(
+            TranslationService.GetTranslation("product.addUnit", "Aggiungi Unità Alternativa"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadUnitsAsync();
+        }
     }
 
-    private void OpenEditDialog(ProductUnitDto unit)
+    private async Task OpenEditDialog(ProductUnitDto unit)
     {
-        // TODO: Implement edit dialog
-        Snackbar.Add("Funzionalità in fase di implementazione", Severity.Info);
+        // Load unit of measures for the dialog
+        var unitOfMeasuresResult = await UMService.GetUMsAsync(page: 1, pageSize: 1000);
+        var unitOfMeasures = unitOfMeasuresResult?.Items ?? new List<UMDto>();
+        
+        var parameters = new DialogParameters
+        {
+            { "ProductUnit", unit },
+            { "UnitOfMeasures", unitOfMeasures },
+            { "ExistingUnits", _productUnits ?? new List<ProductUnitDto>() }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<EditProductUnitDialog>(
+            TranslationService.GetTranslation("product.editUnit", "Modifica Unità Alternativa"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadUnitsAsync();
+        }
     }
 
     private async Task DeleteUnitAsync(ProductUnitDto unit)
