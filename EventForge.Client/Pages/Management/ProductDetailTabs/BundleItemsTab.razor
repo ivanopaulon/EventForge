@@ -108,22 +108,29 @@
             
             if (_bundleItems == null) return;
             
-            // Load product details for each component
-            foreach (var item in _bundleItems)
+            // Load product details in parallel for better performance
+            var loadTasks = _bundleItems.Select(async item =>
             {
                 try
                 {
                     var product = await ProductService.GetProductByIdAsync(item.ComponentProductId);
                     if (product != null)
                     {
-                        _productNames[item.ComponentProductId] = $"{product.Name} ({product.Code})";
+                        return (item.ComponentProductId, Name: $"{product.Name} ({product.Code})");
                     }
                 }
                 catch (Exception ex)
                 {
                     Logger.LogWarning(ex, "Error loading product name for {ProductId}", item.ComponentProductId);
-                    _productNames[item.ComponentProductId] = item.ComponentProductId.ToString();
                 }
+                return (item.ComponentProductId, Name: item.ComponentProductId.ToString());
+            });
+            
+            var results = await Task.WhenAll(loadTasks);
+            
+            foreach (var (productId, name) in results)
+            {
+                _productNames[productId] = name;
             }
         }
         catch (Exception ex)
@@ -197,9 +204,11 @@
     private async Task DeleteBundleItemAsync(ProductBundleItemDto item)
     {
         var productName = GetProductName(item.ComponentProductId);
+        var message = $"{TranslationService.GetTranslation("product.confirmDeleteBundleItem", "Sei sicuro di voler eliminare questo componente?")} ({productName})";
+        
         var confirmed = await DialogService.ShowMessageBox(
             TranslationService.GetTranslation("common.confirm", "Conferma"),
-            TranslationService.GetTranslation("product.confirmDeleteBundleItem", "Sei sicuro di voler eliminare {0} dal bundle?", productName),
+            message,
             yesText: TranslationService.GetTranslation("common.yes", "Sì"),
             noText: TranslationService.GetTranslation("common.no", "No"));
 
