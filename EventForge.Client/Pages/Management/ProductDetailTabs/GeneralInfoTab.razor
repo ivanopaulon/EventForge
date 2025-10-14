@@ -1,6 +1,10 @@
 @using EventForge.DTOs.Products
 @using EventForge.Client.Services
+@using Microsoft.AspNetCore.Components.Forms
 @inject ITranslationService TranslationService
+@inject IProductService ProductService
+@inject ISnackbar Snackbar
+@inject ILogger<GeneralInfoTab> Logger
 
 <MudGrid>
     <!-- Basic Information -->
@@ -64,6 +68,76 @@
                    ReadOnly="@(!IsEditMode)" />
     </MudItem>
 
+    <!-- Product Image Section -->
+    <MudItem xs="12">
+        <MudText Typo="Typo.h6" Class="mb-3 mt-4">
+            <MudIcon Icon="@Icons.Material.Outlined.Image" Class="mr-2" />
+            @TranslationService.GetTranslation("product.productImage", "Immagine Prodotto")
+        </MudText>
+        <MudDivider Class="mb-4" />
+    </MudItem>
+
+    @if (Product.ImageDocumentId.HasValue && !string.IsNullOrEmpty(Product.ThumbnailUrl))
+    {
+        <MudItem xs="12" md="6">
+            <MudCard>
+                <MudCardMedia Image="@Product.ThumbnailUrl" Height="200" />
+                <MudCardActions>
+                    @if (IsEditMode)
+                    {
+                        <MudButton OnClick="RemoveImage" 
+                                   Color="Color.Error" 
+                                   StartIcon="@Icons.Material.Filled.Delete"
+                                   Size="Size.Small">
+                            @TranslationService.GetTranslation("common.remove", "Rimuovi")
+                        </MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+    }
+
+    @if (IsEditMode)
+    {
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.subtitle2" Class="mb-2">
+                @TranslationService.GetTranslation("product.uploadNewImage", "Carica Nuova Immagine")
+            </MudText>
+            <MudFileUpload T="IBrowserFile" Accept="image/*" @bind-Files="_selectedImage" MaximumFileCount="1">
+                <ActivatorContent>
+                    <MudButton HtmlTag="label"
+                              Variant="Variant.Filled"
+                              Color="Color.Primary"
+                              StartIcon="@Icons.Material.Filled.CloudUpload"
+                              Disabled="_isUploadingImage">
+                        @TranslationService.GetTranslation("product.selectImage", "Seleziona Immagine")
+                    </MudButton>
+                </ActivatorContent>
+            </MudFileUpload>
+            @if (_selectedImage != null)
+            {
+                <MudChip T="string" Color="Color.Info" Icon="@Icons.Material.Filled.Image" OnClose="ClearImage" Class="mt-2">
+                    @_selectedImage.Name
+                </MudChip>
+                <MudButton OnClick="UploadImage" 
+                           Color="Color.Success" 
+                           StartIcon="@Icons.Material.Filled.Upload"
+                           Disabled="_isUploadingImage"
+                           Size="Size.Small"
+                           Class="ml-2">
+                    @TranslationService.GetTranslation("common.upload", "Carica")
+                </MudButton>
+            }
+            @if (_isUploadingImage)
+            {
+                <MudProgressLinear Indeterminate="true" Class="mt-2" />
+            }
+            <MudText Typo="Typo.caption" Class="mt-2 mud-text-secondary">
+                @TranslationService.GetTranslation("product.imageHelp", "Formati supportati: JPEG, PNG, GIF, WebP. Dimensione massima: 5MB")
+            </MudText>
+        </MudItem>
+    }
+
     <!-- Metadata -->
     <MudItem xs="12">
         <MudText Typo="Typo.h6" Class="mb-3 mt-4">
@@ -111,4 +185,73 @@
 
     [Parameter]
     public bool IsEditMode { get; set; }
+
+    [Parameter]
+    public EventCallback OnProductUpdated { get; set; }
+
+    private IBrowserFile? _selectedImage;
+    private bool _isUploadingImage = false;
+
+    private void ClearImage()
+    {
+        _selectedImage = null;
+    }
+
+    private void RemoveImage()
+    {
+        Product.ImageDocumentId = null;
+        Product.ThumbnailUrl = null;
+    }
+
+    private async Task UploadImage()
+    {
+        if (_selectedImage == null || Product.Id == Guid.Empty)
+        {
+            return;
+        }
+
+        _isUploadingImage = true;
+        try
+        {
+            Logger.LogInformation("Uploading image for product {ProductId}", Product.Id);
+            
+            var updatedProduct = await ProductService.UploadProductImageDocumentAsync(Product.Id, _selectedImage);
+            
+            if (updatedProduct != null)
+            {
+                Product.ImageDocumentId = updatedProduct.ImageDocumentId;
+                Product.ThumbnailUrl = updatedProduct.ThumbnailUrl;
+                
+                Snackbar.Add(
+                    TranslationService.GetTranslation("product.imageUploadSuccess", "Immagine caricata con successo"),
+                    Severity.Success
+                );
+                
+                _selectedImage = null;
+                
+                // Notify parent that product was updated
+                await OnProductUpdated.InvokeAsync();
+            }
+            else
+            {
+                Logger.LogWarning("Image upload returned null for product {ProductId}", Product.Id);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("product.imageUploadError", "Errore nel caricamento dell'immagine"),
+                    Severity.Error
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error uploading image for product {ProductId}", Product.Id);
+            Snackbar.Add(
+                TranslationService.GetTranslation("product.imageUploadError", "Errore nel caricamento dell'immagine"),
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isUploadingImage = false;
+        }
+    }
 }

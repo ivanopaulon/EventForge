@@ -19,6 +19,7 @@ public interface IProductService
     Task<IEnumerable<UMDto>> GetUnitsOfMeasureAsync();
     Task<IEnumerable<StationDto>> GetStationsAsync();
     Task<string?> UploadProductImageAsync(IBrowserFile file);
+    Task<ProductDto?> UploadProductImageDocumentAsync(Guid productId, IBrowserFile file);
 
     // Product Supplier management
     Task<IEnumerable<ProductSupplierDto>?> GetProductSuppliersAsync(Guid productId);

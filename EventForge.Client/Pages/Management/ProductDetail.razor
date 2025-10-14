@@ -84,7 +84,7 @@
                 <!-- Tab 1: General Information -->
                 <MudTabPanel Text="@TranslationService.GetTranslation("product.generalInfo", "Informazioni Generali")" 
                              Icon="@Icons.Material.Outlined.Info">
-                    <GeneralInfoTab Product="@_product" IsEditMode="@_isEditMode" />
+                    <GeneralInfoTab Product="@_product" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductUpdated" />
                 </MudTabPanel>
 
                 <!-- Tab 2: Pricing & Financial -->
@@ -292,5 +292,11 @@
             ProductStatus.Deleted => TranslationService.GetTranslation("status.deleted", "Eliminato"),
             _ => status.ToString()
         };
+    }
+
+    private async Task HandleProductUpdated()
+    {
+        // Reload the product data to get the updated image information
+        await LoadProductAsync();
     }
 }
