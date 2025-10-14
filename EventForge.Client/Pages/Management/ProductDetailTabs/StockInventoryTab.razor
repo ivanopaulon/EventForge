@@ -1,6 +1,11 @@
 @using EventForge.DTOs.Products
+@using EventForge.DTOs.Documents
+@using EventForge.DTOs.Common
 @using EventForge.Client.Services
 @inject ITranslationService TranslationService
+@inject IDocumentHeaderService DocumentHeaderService
+@inject NavigationManager NavigationManager
+@inject ILogger<StockInventoryTab> Logger
 
 <MudGrid>
     <MudItem xs="12">
@@ -50,6 +55,123 @@
                          Format="N2"
                          HelperText="@TranslationService.GetTranslation("product.avgDailyDemandHelp", "Domanda media giornaliera per pianificazione inventario")" />
     </MudItem>
+
+    <!-- Document History Section -->
+    <MudItem xs="12" Class="mt-6">
+        <MudDivider Class="my-4" />
+        <MudText Typo="Typo.h6" Class="mb-3">
+            <MudIcon Icon="@Icons.Material.Outlined.Description" Class="mr-2" />
+            @TranslationService.GetTranslation("product.documentHistory", "Storico Documenti")
+        </MudText>
+    </MudItem>
+
+    <!-- Filters -->
+    <MudItem xs="12">
+        <MudPaper Elevation="0" Class="pa-4 mb-4" Style="background-color: var(--mud-palette-background-grey);">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" md="3">
+                    <MudDatePicker @bind-Date="_fromDate"
+                                   Label="@TranslationService.GetTranslation("filter.fromDate", "Da Data")"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   DateFormat="dd/MM/yyyy" />
+                </MudItem>
+                <MudItem xs="12" md="3">
+                    <MudDatePicker @bind-Date="_toDate"
+                                   Label="@TranslationService.GetTranslation("filter.toDate", "A Data")"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   DateFormat="dd/MM/yyyy" />
+                </MudItem>
+                <MudItem xs="12" md="3">
+                    <MudTextField @bind-Value="_customerNameFilter"
+                                  Label="@TranslationService.GetTranslation("filter.customerSupplier", "Cliente/Fornitore")"
+                                  Variant="Variant.Outlined"
+                                  Clearable="true" />
+                </MudItem>
+                <MudItem xs="12" md="3" Class="d-flex align-end">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Outlined.FilterAlt"
+                               OnClick="LoadDocumentsAsync"
+                               FullWidth="true">
+                        @TranslationService.GetTranslation("common.filter", "Filtra")
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+
+    <!-- Documents Table -->
+    <MudItem xs="12">
+        @if (_isLoadingDocuments)
+        {
+            <div class="d-flex justify-center pa-4">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else if (_documents?.Items?.Any() == true)
+        {
+            <MudTable Items="@_documents.Items"
+                      Hover="true"
+                      Striped="true"
+                      Dense="true"
+                      Class="mb-4">
+                <HeaderContent>
+                    <MudTh>@TranslationService.GetTranslation("field.number", "Numero")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("field.date", "Data")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("field.type", "Tipo")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("field.businessParty", "Cliente/Fornitore")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
+                    <MudTh Class="text-right">@TranslationService.GetTranslation("field.total", "Totale")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.number", "Numero")">
+                        @context.Number
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.date", "Data")">
+                        @context.Date.ToString("dd/MM/yyyy")
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.type", "Tipo")">
+                        @context.DocumentTypeName
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.businessParty", "Cliente/Fornitore")">
+                        @(context.BusinessPartyName ?? context.CustomerName ?? "-")
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                        <MudChip T="string" Size="Size.Small" Color="GetStatusColor(context.Status)">
+                            @GetStatusText(context.Status)
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.total", "Totale")" Class="text-right">
+                        @context.TotalGrossAmount.ToString("C2")
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <!-- Pagination -->
+            <div class="d-flex justify-space-between align-center">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    @TranslationService.GetTranslation("pagination.showing", "Mostrando") 
+                    @((_documents.Page - 1) * _documents.PageSize + 1) - 
+                    @Math.Min(_documents.Page * _documents.PageSize, _documents.TotalCount) 
+                    @TranslationService.GetTranslation("pagination.of", "di") 
+                    @_documents.TotalCount
+                </MudText>
+                <MudPagination Count="@((int)((_documents.TotalCount + _documents.PageSize - 1) / _documents.PageSize))"
+                               Selected="@_currentPage"
+                               SelectedChanged="OnPageChangedAsync"
+                               ShowFirstButton="true"
+                               ShowLastButton="true" />
+            </div>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-4">
+                @TranslationService.GetTranslation("product.noDocumentsFound", "Nessun documento trovato per questo prodotto")
+            </MudAlert>
+        }
+    </MudItem>
 </MudGrid>
 
 @code {
@@ -58,4 +180,78 @@
 
     [Parameter]
     public bool IsEditMode { get; set; }
+
+    private bool _isLoadingDocuments = false;
+    private PagedResult<DocumentHeaderDto>? _documents;
+    private int _currentPage = 1;
+    private const int PageSize = 10;
+
+    // Filters
+    private DateTime? _fromDate;
+    private DateTime? _toDate;
+    private string? _customerNameFilter;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDocumentsAsync();
+    }
+
+    private async Task LoadDocumentsAsync()
+    {
+        _isLoadingDocuments = true;
+        try
+        {
+            var queryParameters = new DocumentHeaderQueryParameters
+            {
+                Page = _currentPage,
+                PageSize = PageSize,
+                ProductId = Product.Id,
+                FromDate = _fromDate,
+                ToDate = _toDate,
+                CustomerName = _customerNameFilter,
+                SortBy = "Date",
+                SortDirection = "desc"
+            };
+
+            _documents = await DocumentHeaderService.GetPagedDocumentHeadersAsync(queryParameters);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading documents for product {ProductId}", Product.Id);
+        }
+        finally
+        {
+            _isLoadingDocuments = false;
+        }
+    }
+
+    private async Task OnPageChangedAsync(int page)
+    {
+        _currentPage = page;
+        await LoadDocumentsAsync();
+    }
+
+    private Color GetStatusColor(DocumentStatus status)
+    {
+        return status switch
+        {
+            DocumentStatus.Draft => Color.Default,
+            DocumentStatus.Approved => Color.Success,
+            DocumentStatus.Rejected => Color.Error,
+            DocumentStatus.Cancelled => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private string GetStatusText(DocumentStatus status)
+    {
+        return status switch
+        {
+            DocumentStatus.Draft => TranslationService.GetTranslation("status.draft", "Bozza"),
+            DocumentStatus.Approved => TranslationService.GetTranslation("status.approved", "Approvato"),
+            DocumentStatus.Rejected => TranslationService.GetTranslation("status.rejected", "Rifiutato"),
+            DocumentStatus.Cancelled => TranslationService.GetTranslation("status.cancelled", "Annullato"),
+            _ => status.ToString()
+        };
+    }
 }

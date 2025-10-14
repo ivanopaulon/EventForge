@@ -461,6 +461,9 @@ public class DocumentHeaderService : IDocumentHeaderService
         if (parameters.IsProforma.HasValue)
             query = query.Where(dh => dh.IsProforma == parameters.IsProforma.Value);
 
+        if (parameters.ProductId.HasValue)
+            query = query.Where(dh => dh.Rows.Any(r => !r.IsDeleted && r.ProductId == parameters.ProductId.Value));
+
         return query;
     }
 

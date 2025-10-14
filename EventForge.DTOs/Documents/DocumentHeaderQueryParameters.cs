@@ -102,6 +102,11 @@ namespace EventForge.DTOs.Documents
         public bool? IsProforma { get; set; }
 
         /// <summary>
+        /// Filter by product ID (documents containing this product).
+        /// </summary>
+        public Guid? ProductId { get; set; }
+
+        /// <summary>
         /// Sort field (default: Date).
         /// </summary>
         public string SortBy { get; set; } = "Date";
