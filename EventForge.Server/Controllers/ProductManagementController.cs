@@ -2000,6 +2000,77 @@ public class ProductManagementController : BaseApiController
         }
     }
 
+    /// <summary>
+    /// Gets all products with their association status for a specific supplier.
+    /// </summary>
+    /// <param name="supplierId">Supplier ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of products with association status</returns>
+    /// <response code="200">Returns the list of products with association status</response>
+    /// <response code="400">If the request is invalid</response>
+    /// <response code="401">If the user is not authenticated</response>
+    /// <response code="500">If an error occurs while retrieving the products</response>
+    [HttpGet("suppliers/{supplierId:guid}/products")]
+    [ProducesResponseType(typeof(IEnumerable<ProductWithAssociationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<ProductWithAssociationDto>>> GetProductsWithSupplierAssociation(
+        Guid supplierId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var products = await _productService.GetProductsWithSupplierAssociationAsync(supplierId, cancellationToken);
+            return Ok(products);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving products for supplier {SupplierId}.", supplierId);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the products.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Bulk updates product-supplier associations.
+    /// </summary>
+    /// <param name="supplierId">Supplier ID</param>
+    /// <param name="productIds">List of product IDs to associate</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Number of associations created</returns>
+    /// <response code="200">Returns the number of associations created</response>
+    /// <response code="400">If the request is invalid</response>
+    /// <response code="401">If the user is not authenticated</response>
+    /// <response code="500">If an error occurs while updating associations</response>
+    [HttpPost("suppliers/{supplierId:guid}/products/bulk-update")]
+    [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<int>> BulkUpdateProductSupplierAssociations(
+        Guid supplierId,
+        [FromBody] IEnumerable<Guid> productIds,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var count = await _productService.BulkUpdateProductSupplierAssociationsAsync(supplierId, productIds, currentUser, cancellationToken);
+            return Ok(count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while bulk updating product-supplier associations for supplier {SupplierId}.", supplierId);
+            return CreateInternalServerErrorProblem("An error occurred while updating the associations.", ex);
+        }
+    }
+
     #endregion
 }
 

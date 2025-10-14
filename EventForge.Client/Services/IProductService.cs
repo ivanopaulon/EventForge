@@ -27,6 +27,8 @@ public interface IProductService
     Task<ProductSupplierDto?> CreateProductSupplierAsync(CreateProductSupplierDto createDto);
     Task<ProductSupplierDto?> UpdateProductSupplierAsync(Guid id, UpdateProductSupplierDto updateDto);
     Task<bool> DeleteProductSupplierAsync(Guid id);
+    Task<IEnumerable<ProductWithAssociationDto>?> GetProductsWithSupplierAssociationAsync(Guid supplierId);
+    Task<int> BulkUpdateProductSupplierAssociationsAsync(Guid supplierId, IEnumerable<Guid> productIds);
 
     // Product Code management
     Task<IEnumerable<ProductCodeDto>?> GetProductCodesAsync(Guid productId);

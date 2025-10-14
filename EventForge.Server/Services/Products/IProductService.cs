@@ -296,4 +296,22 @@ public interface IProductService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if removed, false if not found</returns>
     Task<bool> RemoveProductSupplierAsync(Guid id, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all products with their association status for a specific supplier.
+    /// </summary>
+    /// <param name="supplierId">Supplier ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of products with association status</returns>
+    Task<IEnumerable<ProductWithAssociationDto>> GetProductsWithSupplierAssociationAsync(Guid supplierId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Bulk updates product-supplier associations.
+    /// </summary>
+    /// <param name="supplierId">Supplier ID</param>
+    /// <param name="productIds">List of product IDs to associate</param>
+    /// <param name="currentUser">Current user name</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Number of associations created</returns>
+    Task<int> BulkUpdateProductSupplierAssociationsAsync(Guid supplierId, IEnumerable<Guid> productIds, string currentUser, CancellationToken cancellationToken = default);
 }
