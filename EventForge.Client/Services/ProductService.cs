@@ -151,6 +151,40 @@ public class ProductService : IProductService
         }
     }
 
+    public async Task<ProductDto?> UploadProductImageDocumentAsync(Guid productId, IBrowserFile file)
+    {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        try
+        {
+            const long maxFileSize = 5 * 1024 * 1024; // 5MB
+
+            using var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(file.OpenReadStream(maxFileSize));
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.Name);
+
+            var response = await httpClient.PostAsync($"api/v1/product-management/products/{productId}/image", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<ProductDto>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                return result;
+            }
+
+            _logger.LogError("Failed to upload product image document. Status: {StatusCode}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading product image document for product {ProductId}", productId);
+            return null;
+        }
+    }
+
     // Product Supplier management
 
     public async Task<IEnumerable<ProductSupplierDto>?> GetProductSuppliersAsync(Guid productId)
