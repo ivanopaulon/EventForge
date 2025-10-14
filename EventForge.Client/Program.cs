@@ -87,6 +87,9 @@ builder.Services.AddScoped<IUMService, UMService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<IModelService, ModelService>();
 
+// Add document management services
+builder.Services.AddScoped<IDocumentHeaderService, DocumentHeaderService>();
+
 // Add SuperAdmin services
 builder.Services.AddScoped<ISuperAdminService, SuperAdminService>();
 builder.Services.AddScoped<ILogsService, LogsService>();
