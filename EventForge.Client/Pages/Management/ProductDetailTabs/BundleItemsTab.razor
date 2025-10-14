@@ -43,7 +43,9 @@
                     <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.componentProduct", "Prodotto Componente")">@context.ComponentProductId</MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.componentProduct", "Prodotto Componente")">
+                        @GetProductName(context.ComponentProductId)
+                    </MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")">@context.Quantity</MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
                         <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
@@ -66,6 +68,7 @@
     public Guid ProductId { get; set; }
 
     private IEnumerable<ProductBundleItemDto>? _bundleItems;
+    private Dictionary<Guid, string> _productNames = new();
     private bool _isLoading = true;
 
     protected override async Task OnInitializedAsync()
@@ -79,6 +82,12 @@
         try
         {
             _bundleItems = await ProductService.GetProductBundleItemsAsync(ProductId);
+            
+            // Load product names for display
+            if (_bundleItems != null && _bundleItems.Any())
+            {
+                await LoadProductNamesAsync();
+            }
         }
         catch (Exception ex)
         {
@@ -89,6 +98,47 @@
         {
             _isLoading = false;
         }
+    }
+    
+    private async Task LoadProductNamesAsync()
+    {
+        try
+        {
+            _productNames.Clear();
+            
+            if (_bundleItems == null) return;
+            
+            // Load product details for each component
+            foreach (var item in _bundleItems)
+            {
+                try
+                {
+                    var product = await ProductService.GetProductByIdAsync(item.ComponentProductId);
+                    if (product != null)
+                    {
+                        _productNames[item.ComponentProductId] = $"{product.Name} ({product.Code})";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Error loading product name for {ProductId}", item.ComponentProductId);
+                    _productNames[item.ComponentProductId] = item.ComponentProductId.ToString();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading product names");
+        }
+    }
+    
+    private string GetProductName(Guid productId)
+    {
+        if (_productNames.TryGetValue(productId, out var name))
+        {
+            return name;
+        }
+        return productId.ToString();
     }
 
     private async Task OpenCreateDialog()
@@ -146,9 +196,10 @@
 
     private async Task DeleteBundleItemAsync(ProductBundleItemDto item)
     {
+        var productName = GetProductName(item.ComponentProductId);
         var confirmed = await DialogService.ShowMessageBox(
             TranslationService.GetTranslation("common.confirm", "Conferma"),
-            TranslationService.GetTranslation("product.confirmDeleteBundleItem", "Sei sicuro di voler eliminare questo componente?"),
+            TranslationService.GetTranslation("product.confirmDeleteBundleItem", "Sei sicuro di voler eliminare {0} dal bundle?", productName),
             yesText: TranslationService.GetTranslation("common.yes", "Sì"),
             noText: TranslationService.GetTranslation("common.no", "No"));
 
