@@ -33,11 +33,22 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             var totalCount = await query.CountAsync(cancellationToken);
 
+            // Include related entities
+            query = query.Include(dh => dh.DocumentType)
+                         .Include(dh => dh.BusinessParty)
+                         .Include(dh => dh.SourceWarehouse)
+                         .Include(dh => dh.DestinationWarehouse);
+
+            // Include Rows if requested
+            if (queryParameters.IncludeRows)
+            {
+                query = query.Include(dh => dh.Rows.Where(r => !r.IsDeleted));
+            }
+
             var items = await query
                 .OrderByDescending(dh => dh.Date)
                 .Skip(queryParameters.Skip)
                 .Take(queryParameters.PageSize)
-                .Include(dh => dh.DocumentType)
                 .Select(dh => dh.ToDto())
                 .ToListAsync(cancellationToken);
 

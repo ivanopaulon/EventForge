@@ -1,9 +1,11 @@
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.Documents
 @using EventForge.DTOs.Common
+@using EventForge.DTOs.Warehouse
 @using EventForge.Client.Services
 @inject ITranslationService TranslationService
 @inject IDocumentHeaderService DocumentHeaderService
+@inject IStockService StockService
 @inject NavigationManager NavigationManager
 @inject ILogger<StockInventoryTab> Logger
 
@@ -54,6 +56,97 @@
                          Min="0"
                          Format="N2"
                          HelperText="@TranslationService.GetTranslation("product.avgDailyDemandHelp", "Domanda media giornaliera per pianificazione inventario")" />
+    </MudItem>
+
+    <!-- Stock Levels Section -->
+    <MudItem xs="12" Class="mt-6">
+        <MudDivider Class="my-4" />
+        <MudText Typo="Typo.h6" Class="mb-3">
+            <MudIcon Icon="@Icons.Material.Outlined.Inventory" Class="mr-2" />
+            @TranslationService.GetTranslation("product.stockLevels", "Giacenze a Magazzino")
+        </MudText>
+    </MudItem>
+
+    <MudItem xs="12">
+        @if (_isLoadingStock)
+        {
+            <div class="d-flex justify-center pa-4">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else if (_stockLevels?.Any() == true)
+        {
+            <MudTable Items="@_stockLevels"
+                      Hover="true"
+                      Striped="true"
+                      Dense="true"
+                      Class="mb-4">
+                <HeaderContent>
+                    <MudTh>@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("warehouse.location", "Ubicazione")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("warehouse.lot", "Lotto")</MudTh>
+                    <MudTh Class="text-right">@TranslationService.GetTranslation("warehouse.quantity", "Quantità")</MudTh>
+                    <MudTh Class="text-right">@TranslationService.GetTranslation("warehouse.reserved", "Riservata")</MudTh>
+                    <MudTh Class="text-right">@TranslationService.GetTranslation("warehouse.available", "Disponibile")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("warehouse.lastMovement", "Ultimo Movimento")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")">
+                        @(context.WarehouseName ?? "-")
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.location", "Ubicazione")">
+                        @(context.StorageLocationCode ?? "-")
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.lot", "Lotto")">
+                        @(context.LotCode ?? "-")
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.quantity", "Quantità")" Class="text-right">
+                        <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.Quantity.ToString("N2")</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.reserved", "Riservata")" Class="text-right">
+                        @context.ReservedQuantity.ToString("N2")
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.available", "Disponibile")" Class="text-right">
+                        <MudChip T="string" Size="Size.Small" 
+                                 Color="@(context.AvailableQuantity > 0 ? Color.Success : Color.Default)">
+                            @context.AvailableQuantity.ToString("N2")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.lastMovement", "Ultimo Movimento")">
+                        @(context.LastMovementDate?.ToString("dd/MM/yyyy") ?? "-")
+                    </MudTd>
+                </RowTemplate>
+                <FooterContent>
+                    <MudTh colspan="3">
+                        <MudText Typo="Typo.body1" Style="font-weight: 600;">
+                            @TranslationService.GetTranslation("warehouse.total", "Totale")
+                        </MudText>
+                    </MudTh>
+                    <MudTh Class="text-right">
+                        <MudText Typo="Typo.body1" Style="font-weight: 600;">
+                            @_stockLevels.Sum(s => s.Quantity).ToString("N2")
+                        </MudText>
+                    </MudTh>
+                    <MudTh Class="text-right">
+                        <MudText Typo="Typo.body1" Style="font-weight: 600;">
+                            @_stockLevels.Sum(s => s.ReservedQuantity).ToString("N2")
+                        </MudText>
+                    </MudTh>
+                    <MudTh Class="text-right">
+                        <MudText Typo="Typo.body1" Style="font-weight: 600;">
+                            @_stockLevels.Sum(s => s.AvailableQuantity).ToString("N2")
+                        </MudText>
+                    </MudTh>
+                    <MudTh></MudTh>
+                </FooterContent>
+            </MudTable>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-4">
+                @TranslationService.GetTranslation("product.noStockFound", "Nessuna giacenza trovata per questo prodotto")
+            </MudAlert>
+        }
     </MudItem>
 
     <!-- Document History Section -->
@@ -182,7 +275,9 @@
     public bool IsEditMode { get; set; }
 
     private bool _isLoadingDocuments = false;
+    private bool _isLoadingStock = false;
     private PagedResult<DocumentHeaderDto>? _documents;
+    private IEnumerable<StockDto> _stockLevels = Enumerable.Empty<StockDto>();
     private int _currentPage = 1;
     private const int PageSize = 10;
 
@@ -193,7 +288,24 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadDocumentsAsync();
+        await Task.WhenAll(LoadDocumentsAsync(), LoadStockLevelsAsync());
+    }
+
+    private async Task LoadStockLevelsAsync()
+    {
+        _isLoadingStock = true;
+        try
+        {
+            _stockLevels = await StockService.GetStockByProductIdAsync(Product.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading stock levels for product {ProductId}", Product.Id);
+        }
+        finally
+        {
+            _isLoadingStock = false;
+        }
     }
 
     private async Task LoadDocumentsAsync()
