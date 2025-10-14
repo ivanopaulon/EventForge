@@ -1,5 +1,6 @@
 @using EventForge.DTOs.Products
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components
 @inject ITranslationService TranslationService
 @inject IProductService ProductService
 @inject IDialogService DialogService
@@ -42,7 +43,9 @@
                     <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.componentProduct", "Prodotto Componente")">@context.ComponentProductId</MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.componentProduct", "Prodotto Componente")">
+                        @GetProductName(context.ComponentProductId)
+                    </MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")">@context.Quantity</MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
                         <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
@@ -65,6 +68,7 @@
     public Guid ProductId { get; set; }
 
     private IEnumerable<ProductBundleItemDto>? _bundleItems;
+    private Dictionary<Guid, string> _productNames = new();
     private bool _isLoading = true;
 
     protected override async Task OnInitializedAsync()
@@ -78,6 +82,12 @@
         try
         {
             _bundleItems = await ProductService.GetProductBundleItemsAsync(ProductId);
+            
+            // Load product names for display
+            if (_bundleItems != null && _bundleItems.Any())
+            {
+                await LoadProductNamesAsync();
+            }
         }
         catch (Exception ex)
         {
@@ -89,24 +99,116 @@
             _isLoading = false;
         }
     }
-
-    private void OpenCreateDialog()
+    
+    private async Task LoadProductNamesAsync()
     {
-        // TODO: Implement create dialog
-        Snackbar.Add("Funzionalità in fase di implementazione", Severity.Info);
+        try
+        {
+            _productNames.Clear();
+            
+            if (_bundleItems == null) return;
+            
+            // Load product details in parallel for better performance
+            var loadTasks = _bundleItems.Select(async item =>
+            {
+                try
+                {
+                    var product = await ProductService.GetProductByIdAsync(item.ComponentProductId);
+                    if (product != null)
+                    {
+                        return (item.ComponentProductId, Name: $"{product.Name} ({product.Code})");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Error loading product name for {ProductId}", item.ComponentProductId);
+                }
+                return (item.ComponentProductId, Name: item.ComponentProductId.ToString());
+            });
+            
+            var results = await Task.WhenAll(loadTasks);
+            
+            foreach (var (productId, name) in results)
+            {
+                _productNames[productId] = name;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading product names");
+        }
+    }
+    
+    private string GetProductName(Guid productId)
+    {
+        if (_productNames.TryGetValue(productId, out var name))
+        {
+            return name;
+        }
+        return productId.ToString();
     }
 
-    private void OpenEditDialog(ProductBundleItemDto item)
+    private async Task OpenCreateDialog()
     {
-        // TODO: Implement edit dialog
-        Snackbar.Add("Funzionalità in fase di implementazione", Severity.Info);
+        var parameters = new DialogParameters
+        {
+            { "BundleProductId", ProductId }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<AddBundleItemDialog>(
+            TranslationService.GetTranslation("product.addBundleItem", "Aggiungi Componente Bundle"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadBundleItemsAsync();
+        }
+    }
+
+    private async Task OpenEditDialog(ProductBundleItemDto item)
+    {
+        var parameters = new DialogParameters
+        {
+            { "BundleItem", item },
+            { "BundleProductId", ProductId }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<EditBundleItemDialog>(
+            TranslationService.GetTranslation("product.editBundleItem", "Modifica Componente Bundle"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadBundleItemsAsync();
+        }
     }
 
     private async Task DeleteBundleItemAsync(ProductBundleItemDto item)
     {
+        var productName = GetProductName(item.ComponentProductId);
+        var message = $"{TranslationService.GetTranslation("product.confirmDeleteBundleItem", "Sei sicuro di voler eliminare questo componente?")} ({productName})";
+        
         var confirmed = await DialogService.ShowMessageBox(
             TranslationService.GetTranslation("common.confirm", "Conferma"),
-            TranslationService.GetTranslation("product.confirmDeleteBundleItem", "Sei sicuro di voler eliminare questo componente?"),
+            message,
             yesText: TranslationService.GetTranslation("common.yes", "Sì"),
             noText: TranslationService.GetTranslation("common.no", "No"));
 
