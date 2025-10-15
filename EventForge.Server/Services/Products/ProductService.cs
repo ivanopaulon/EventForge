@@ -1669,4 +1669,90 @@ public class ProductService : IProductService
             CreatedBy = productSupplier.CreatedBy
         };
     }
+
+    public async Task<IEnumerable<ProductWithAssociationDto>> GetProductsWithSupplierAssociationAsync(Guid supplierId, CancellationToken cancellationToken = default)
+    {
+        // Get all products
+        var products = await _context.Products
+            .Where(p => !p.IsDeleted)
+            .OrderBy(p => p.Name)
+            .ToListAsync(cancellationToken);
+
+        // Get all existing associations for this supplier
+        var associations = await _context.ProductSuppliers
+            .Where(ps => ps.SupplierId == supplierId && !ps.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        // Create a dictionary for quick lookup
+        var associationDict = associations.ToDictionary(a => a.ProductId);
+
+        // Map to DTOs
+        return products.Select(p =>
+        {
+            var hasAssociation = associationDict.TryGetValue(p.Id, out var association);
+            return new ProductWithAssociationDto
+            {
+                ProductId = p.Id,
+                Code = p.Code,
+                Name = p.Name,
+                Description = p.ShortDescription,
+                IsAssociated = hasAssociation,
+                ProductSupplierId = hasAssociation ? association.Id : null,
+                UnitCost = hasAssociation ? association.UnitCost : null,
+                SupplierProductCode = hasAssociation ? association.SupplierProductCode : null,
+                Preferred = hasAssociation && association.Preferred
+            };
+        }).ToList();
+    }
+
+    public async Task<int> BulkUpdateProductSupplierAssociationsAsync(Guid supplierId, IEnumerable<Guid> productIds, string currentUser, CancellationToken cancellationToken = default)
+    {
+        var productIdList = productIds.ToList();
+        var now = DateTime.UtcNow;
+
+        // Get existing associations for this supplier
+        var existingAssociations = await _context.ProductSuppliers
+            .Where(ps => ps.SupplierId == supplierId && !ps.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        var existingProductIds = existingAssociations.Select(a => a.ProductId).ToHashSet();
+
+        // Determine which associations to add
+        var productIdsToAdd = productIdList.Except(existingProductIds).ToList();
+
+        // Determine which associations to remove (soft delete)
+        var associationsToRemove = existingAssociations
+            .Where(a => !productIdList.Contains(a.ProductId))
+            .ToList();
+
+        // Add new associations
+        foreach (var productId in productIdsToAdd)
+        {
+            var newAssociation = new ProductSupplier
+            {
+                Id = Guid.NewGuid(),
+                ProductId = productId,
+                SupplierId = supplierId,
+                Preferred = false,
+                CreatedAt = now,
+                CreatedBy = currentUser,
+                ModifiedAt = now,
+                ModifiedBy = currentUser,
+                IsDeleted = false
+            };
+            _context.ProductSuppliers.Add(newAssociation);
+        }
+
+        // Soft delete removed associations
+        foreach (var association in associationsToRemove)
+        {
+            association.IsDeleted = true;
+            association.ModifiedAt = now;
+            association.ModifiedBy = currentUser;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return productIdsToAdd.Count;
+    }
 }

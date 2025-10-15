@@ -253,6 +253,33 @@ public class ProductService : IProductService
         }
     }
 
+    public async Task<IEnumerable<ProductWithAssociationDto>?> GetProductsWithSupplierAssociationAsync(Guid supplierId)
+    {
+        try
+        {
+            return await _httpClientService.GetAsync<IEnumerable<ProductWithAssociationDto>>($"api/v1/product-management/suppliers/{supplierId}/products");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting products with supplier association for supplier {SupplierId}", supplierId);
+            return null;
+        }
+    }
+
+    public async Task<int> BulkUpdateProductSupplierAssociationsAsync(Guid supplierId, IEnumerable<Guid> productIds)
+    {
+        try
+        {
+            var result = await _httpClientService.PostAsync<IEnumerable<Guid>, int>($"api/v1/product-management/suppliers/{supplierId}/products/bulk-update", productIds);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error bulk updating product supplier associations for supplier {SupplierId}", supplierId);
+            return 0;
+        }
+    }
+
     // Product Code management
 
     public async Task<IEnumerable<ProductCodeDto>?> GetProductCodesAsync(Guid productId)
