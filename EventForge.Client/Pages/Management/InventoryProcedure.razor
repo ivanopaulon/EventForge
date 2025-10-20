@@ -166,7 +166,7 @@
                     {
                         @foreach (var facility in _storageFacilities)
                         {
-                            <MudSelectItem Value="@((Guid?)facility.Id)">@facility.Name - @facility.Code</MudSelectItem>
+                            <MudSelectItem T="Guid?" Value="@((Guid?)facility.Id)">@facility.Name - @facility.Code</MudSelectItem>
                         }
                     }
                 </MudSelect>

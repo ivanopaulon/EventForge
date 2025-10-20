@@ -71,8 +71,9 @@ public class StockService : IStockService
     {
         try
         {
-            var result = await GetStockAsync(page: 1, pageSize: 100, productId: productId);
-            return result?.Items ?? Enumerable.Empty<StockDto>();
+            // Usa il nuovo endpoint dedicato creato nel server
+            var stocks = await _httpClientService.GetAsync<IEnumerable<StockDto>>($"{BaseUrl}/product/{productId}");
+            return stocks ?? Enumerable.Empty<StockDto>();
         }
         catch (Exception ex)
         {

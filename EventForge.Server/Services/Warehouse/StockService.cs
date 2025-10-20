@@ -113,7 +113,7 @@ public class StockService : IStockService
                 .Include(s => s.StorageLocation)
                     .ThenInclude(sl => sl!.Warehouse)
                 .Include(s => s.Lot)
-                .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value, cancellationToken);
+                .FirstOrDefaultAsync(s => s.ProductId == id && s.TenantId == currentTenantId.Value, cancellationToken);
 
             return stock?.ToStockDto();
         }

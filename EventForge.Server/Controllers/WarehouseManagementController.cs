@@ -933,6 +933,32 @@ public class WarehouseManagementController : BaseApiController
         }
     }
 
+    /// <summary>
+    /// Gets stock entries for a specific product across all locations.
+    /// </summary>
+    /// <param name="productId">Product ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of stock entries for the product</returns>
+    [HttpGet("stock/product/{productId:guid}")]
+    [ProducesResponseType(typeof(IEnumerable<StockDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetStockByProductId(Guid productId, CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var stocks = await _stockService.GetStockByProductIdAsync(productId, cancellationToken);
+            return Ok(stocks);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving stock entries for product {ProductId}.", productId);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving stock entries for the product.", ex);
+        }
+    }
+
     #endregion
 
     #region Serial Management
@@ -987,6 +1013,9 @@ public class WarehouseManagementController : BaseApiController
     /// <param name="id">Serial ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Serial details</returns>
+    /// <response code="200">Returns the serial details</response>
+    /// <response code="404">If the serial is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("serials/{id:guid}")]
     [ProducesResponseType(typeof(SerialDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -1962,6 +1991,11 @@ public class WarehouseManagementController : BaseApiController
                         Guid productId = row.ProductId ?? Guid.Empty;
                         Guid locationId = row.LocationId ?? Guid.Empty;
 
+                        // DocumentRowDto does not contain LotId in current DTO.
+                        // Preserve compilation and behaviour by treating lot as unknown here.
+                        // If lot information is required, extend DocumentRowDto to include LotId at source.
+                        Guid? lotId = null;
+
                         // Validate we have both IDs
                         if (productId == Guid.Empty || locationId == Guid.Empty)
                         {
@@ -1977,7 +2011,7 @@ public class WarehouseManagementController : BaseApiController
                             pageSize: 1,
                             productId: productId,
                             locationId: locationId,
-                            lotId: null,
+                            lotId: lotId,
                             cancellationToken: cancellationToken);
 
                         var currentQuantity = existingStocks.Items.FirstOrDefault()?.Quantity ?? 0;
@@ -1986,13 +2020,13 @@ public class WarehouseManagementController : BaseApiController
                         // Only apply adjustment if there's a difference
                         if (adjustmentQuantity != 0)
                         {
-                            // Create stock adjustment movement
+                            // 1) Create stock adjustment movement (keeps audit trail)
                             _ = await _stockMovementService.ProcessAdjustmentMovementAsync(
                                 productId: productId,
                                 locationId: locationId,
                                 adjustmentQuantity: adjustmentQuantity,
                                 reason: "Inventory Count",
-                                lotId: null,
+                                lotId: lotId,
                                 notes: $"Inventory adjustment from document {documentHeader.Number}. Previous: {currentQuantity}, New: {newQuantity}",
                                 currentUser: GetCurrentUser(),
                                 cancellationToken: cancellationToken);
@@ -2000,6 +2034,34 @@ public class WarehouseManagementController : BaseApiController
                             _logger.LogInformation(
                                 "Applied inventory adjustment for product {ProductId} at location {LocationId}: {Adjustment} (from {Current} to {New})",
                                 productId, locationId, adjustmentQuantity, currentQuantity, newQuantity);
+
+                            // 2) Ensure the Stocks table is updated to reflect the counted quantity
+                            try
+                            {
+                                var createStockDto = new CreateStockDto
+                                {
+                                    ProductId = productId,
+                                    StorageLocationId = locationId,
+                                    LotId = lotId,
+                                    Quantity = newQuantity,
+                                    Notes = $"Adjusted by inventory document {documentHeader.Number}"
+                                    // Other fields (ReservedQuantity, MinimumLevel etc.) can be left null or set if known
+                            };
+
+                                // This call will create or update a Stock record
+                                var updatedStock = await _stockService.CreateOrUpdateStockAsync(createStockDto, GetCurrentUser(), cancellationToken);
+
+                                // Optionally update LastInventoryDate
+                                if (updatedStock != null)
+                                {
+                                    await _stockService.UpdateLastInventoryDateAsync(updatedStock.Id, DateTime.UtcNow, cancellationToken);
+                                }
+                            }
+                            catch (Exception stockEx)
+                            {
+                                // Log and continue: movement exists, but Stocks update failed
+                                _logger.LogError(stockEx, "Failed updating Stocks table for product {ProductId} at location {LocationId} after creating movement", productId, locationId);
+                            }
                         }
                         else
                         {
