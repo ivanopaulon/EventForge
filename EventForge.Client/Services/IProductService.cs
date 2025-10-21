@@ -16,6 +16,10 @@ public interface IProductService
     Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20);
     Task<ProductDto?> CreateProductAsync(CreateProductDto createDto);
     Task<ProductDto?> UpdateProductAsync(Guid id, UpdateProductDto updateDto);
+
+    // Added: delete product (returns true on success)
+    Task<bool> DeleteProductAsync(Guid id);
+
     Task<IEnumerable<UMDto>> GetUnitsOfMeasureAsync();
     Task<IEnumerable<StationDto>> GetStationsAsync();
     Task<string?> UploadProductImageAsync(IBrowserFile file);

@@ -2,11 +2,13 @@
 @using EventForge.DTOs.UnitOfMeasures
 @using EventForge.DTOs.Station
 @using EventForge.Client.Services
+@using MudBlazor
 @inject ITranslationService TranslationService
 @inject IBrandService BrandService
 @inject IModelService ModelService
 @inject IUMService UMService
 @inject IEntityManagementService EntityManagementService
+@inject ILogger<ClassificationTab> Logger
 
 <MudGrid>
     <MudItem xs="12">
@@ -18,56 +20,85 @@
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudSelect @bind-Value="Product.BrandId"
+        <MudSelect T="Guid?"
+                   @bind-Value="Product.BrandId"
                    Label="@TranslationService.GetTranslation("field.brand", "Marchio")"
                    Variant="Variant.Outlined"
                    ReadOnly="@(!IsEditMode)"
-                   Clearable="true">
+                   Clearable="true"
+                   @bind-Value:after="NotifyUpdated">
             @if (_brands != null)
             {
                 @foreach (var brand in _brands)
                 {
-                    <MudSelectItem Value="@brand.Id">@brand.Name</MudSelectItem>
+                    <MudSelectItem T="Guid?" Value="@((Guid?)brand.Id)">@brand.Name</MudSelectItem>
                 }
             }
         </MudSelect>
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudSelect @bind-Value="Product.ModelId"
+        <MudSelect T="Guid?"
+                   @bind-Value="Product.ModelId"
                    Label="@TranslationService.GetTranslation("field.model", "Modello")"
                    Variant="Variant.Outlined"
                    ReadOnly="@(!IsEditMode)"
-                   Clearable="true">
+                   Clearable="true"
+                   @bind-Value:after="NotifyUpdated">
             @if (_models != null)
             {
                 @foreach (var model in _models)
                 {
-                    <MudSelectItem Value="@model.Id">@model.Name</MudSelectItem>
+                    <MudSelectItem T="Guid?" Value="@((Guid?)model.Id)">@model.Name</MudSelectItem>
                 }
             }
         </MudSelect>
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudSelect @bind-Value="Product.UnitOfMeasureId"
+        <MudSelect T="Guid?"
+                   @bind-Value="Product.UnitOfMeasureId"
                    Label="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")"
                    Variant="Variant.Outlined"
                    ReadOnly="@(!IsEditMode)"
-                   Clearable="true">
+                   Clearable="true"
+                   @bind-Value:after="NotifyUpdated">
             @if (_unitsOfMeasure != null)
             {
                 @foreach (var um in _unitsOfMeasure)
                 {
-                    <MudSelectItem Value="@um.Id">@um.Name (@um.Symbol)</MudSelectItem>
+                    <MudSelectItem T="Guid?" Value="@((Guid?)um.Id)">@um.Name (@um.Symbol)</MudSelectItem>
                 }
             }
         </MudSelect>
     </MudItem>
 
+    <MudItem xs="12" md="4">
+        <MudTextField @bind-Value="_categoryText"
+                      Label="@TranslationService.GetTranslation("product.category", "Categoria (GUID)")"
+                      Variant="Variant.Outlined"
+                      Immediate="true"
+                      ReadOnly="@(!IsEditMode)"
+                      @bind-Value:after="OnCategoryChanged" />
+    </MudItem>
 
+    <MudItem xs="12" md="4">
+        <MudTextField @bind-Value="_familyText"
+                      Label="@TranslationService.GetTranslation("product.family", "Famiglia (GUID)")"
+                      Variant="Variant.Outlined"
+                      Immediate="true"
+                      ReadOnly="@(!IsEditMode)"
+                      @bind-Value:after="OnFamilyChanged" />
+    </MudItem>
 
-
+    <MudItem xs="12" md="4">
+        <MudTextField @bind-Value="_groupText"
+                      Label="@TranslationService.GetTranslation("product.group", "Gruppo (GUID)")"
+                      Variant="Variant.Outlined"
+                      Immediate="true"
+                      ReadOnly="@(!IsEditMode)"
+                      @bind-Value:after="OnGroupChanged" />
+    </MudItem>
 </MudGrid>
 
 @code {
@@ -77,14 +108,33 @@
     [Parameter]
     public bool IsEditMode { get; set; }
 
+    [Parameter]
+    public EventCallback OnProductUpdated { get; set; }
+
     private IEnumerable<BrandDto>? _brands;
     private IEnumerable<ModelDto>? _models;
     private IEnumerable<UMDto>? _unitsOfMeasure;
     private IEnumerable<StationDto>? _stations;
 
+    // local edit buffers for GUID text fields (to avoid binding to read-only computed props)
+    private string? _categoryText;
+    private string? _familyText;
+    private string? _groupText;
+
     protected override async Task OnInitializedAsync()
     {
         await LoadDataAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        // populate local buffers from Product when parameters change
+        if (Product != null)
+        {
+            _categoryText = Product.CategoryNodeId?.ToString();
+            _familyText = Product.FamilyNodeId?.ToString();
+            _groupText = Product.GroupNodeId?.ToString();
+        }
     }
 
     private async Task LoadDataAsync()
@@ -93,7 +143,7 @@
         {
             var brandsTask = BrandService.GetBrandsAsync(1, 100);
             var modelsTask = ModelService.GetModelsAsync(1, 100);
-            var umTask = UMService.GetUMsAsync(1, 1000);
+            var umTask = UMService.GetUMsAsync(1, 100);
 
             await Task.WhenAll(brandsTask, modelsTask, umTask);
 
@@ -101,9 +151,92 @@
             _models = (await modelsTask)?.Items;
             _unitsOfMeasure = (await umTask)?.Items;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Handle error silently or log
+            Logger.LogWarning(ex, "Error loading classification lookups");
+        }
+    }
+
+    private async Task OnCategoryChanged()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_categoryText))
+                Product.CategoryNodeId = null;
+            else if (Guid.TryParse(_categoryText, out var g))
+                Product.CategoryNodeId = g;
+            else
+            {
+                // invalid GUID — keep previous value and optionally inform user
+                Logger.LogWarning("Invalid GUID entered for Category: {Value}", _categoryText);
+                Product.CategoryNodeId = null;
+            }
+
+            if (OnProductUpdated.HasDelegate)
+                await OnProductUpdated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnCategoryChanged");
+        }
+    }
+
+    private async Task OnFamilyChanged()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_familyText))
+                Product.FamilyNodeId = null;
+            else if (Guid.TryParse(_familyText, out var g))
+                Product.FamilyNodeId = g;
+            else
+            {
+                Logger.LogWarning("Invalid GUID entered for Family: {Value}", _familyText);
+                Product.FamilyNodeId = null;
+            }
+
+            if (OnProductUpdated.HasDelegate)
+                await OnProductUpdated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnFamilyChanged");
+        }
+    }
+
+    private async Task OnGroupChanged()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_groupText))
+                Product.GroupNodeId = null;
+            else if (Guid.TryParse(_groupText, out var g))
+                Product.GroupNodeId = g;
+            else
+            {
+                Logger.LogWarning("Invalid GUID entered for Group: {Value}", _groupText);
+                Product.GroupNodeId = null;
+            }
+
+            if (OnProductUpdated.HasDelegate)
+                await OnProductUpdated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnGroupChanged");
+        }
+    }
+
+    private async Task NotifyUpdated()
+    {
+        try
+        {
+            if (OnProductUpdated.HasDelegate)
+                await OnProductUpdated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error invoking OnProductUpdated from ClassificationTab");
         }
     }
 }

@@ -7,140 +7,173 @@
 @inject ILogger<GeneralInfoTab> Logger
 
 <MudGrid>
-    <!-- Basic Information -->
-    <MudItem xs="12">
+    <!-- Left column: basic fields -->
+    <MudItem xs="12" md="8">
+        <MudGrid>
+            <MudItem xs="12">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Outlined.Info" Class="mr-2" />
+                    @TranslationService.GetTranslation("product.basicInfo", "Informazioni di Base")
+                </MudText>
+                <MudDivider Class="mb-4" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="Product.Name"
+                              Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="@(!IsEditMode)"
+                              MaxLength="100"
+                              @bind-Value:after="NotifyUpdated" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="Product.Code"
+                              Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              HelperText="@TranslationService.GetTranslation("product.codeImmutable", "Il codice è immutabile")"
+                              MaxLength="100" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="Product.ShortDescription"
+                              Label="@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="@(!IsEditMode)"
+                              MaxLength="50"
+                              @bind-Value:after="NotifyUpdated" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect T="ProductStatus"
+                           @bind-Value="Product.Status"
+                           Label="@($"{TranslationService.GetTranslation("field.status", "Stato")} *")"
+                           Variant="Variant.Outlined"
+                           ReadOnly="@(!IsEditMode)"
+                           @bind-Value:after="NotifyUpdated">
+                    <MudSelectItem T="ProductStatus" Value="@ProductStatus.Active">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
+                    <MudSelectItem T="ProductStatus" Value="@ProductStatus.Suspended">@TranslationService.GetTranslation("status.suspended", "Sospeso")</MudSelectItem>
+                    <MudSelectItem T="ProductStatus" Value="@ProductStatus.OutOfStock">@TranslationService.GetTranslation("status.outOfStock", "Esaurito")</MudSelectItem>
+                    <MudSelectItem T="ProductStatus" Value="@ProductStatus.Deleted">@TranslationService.GetTranslation("status.deleted", "Eliminato")</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="Product.Description"
+                              Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                              Variant="Variant.Outlined"
+                              Lines="5"
+                              ReadOnly="@(!IsEditMode)"
+                              @bind-Value:after="NotifyUpdated" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudSwitch T="bool"
+                           @bind-Checked="Product.IsBundle"
+                           @bind-Checked:after="OnBundleChanged"
+                           Label="@TranslationService.GetTranslation("product.isBundle", "È un Bundle")"
+                           Color="Color.Primary"
+                           ReadOnly="@(!IsEditMode)" />
+            </MudItem>
+        </MudGrid>
+    </MudItem>
+
+    <!-- Right column: image preview + upload controls -->
+    <MudItem xs="12" md="4">
         <MudText Typo="Typo.h6" Class="mb-3">
-            <MudIcon Icon="@Icons.Material.Outlined.Info" Class="mr-2" />
-            @TranslationService.GetTranslation("product.basicInfo", "Informazioni di Base")
-        </MudText>
-        <MudDivider Class="mb-4" />
-    </MudItem>
-
-    <MudItem xs="12" md="6">
-        <MudTextField @bind-Value="Product.Name"
-                      Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
-                      Variant="Variant.Outlined"
-                      ReadOnly="@(!IsEditMode)"
-                      MaxLength="100" />
-    </MudItem>
-
-    <MudItem xs="12" md="6">
-        <MudTextField @bind-Value="Product.Code"
-                      Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
-                      Variant="Variant.Outlined"
-                      ReadOnly="true"
-                      HelperText="@TranslationService.GetTranslation("product.codeImmutable", "Il codice è immutabile")"
-                      MaxLength="100" />
-    </MudItem>
-
-    <MudItem xs="12" md="6">
-        <MudTextField @bind-Value="Product.ShortDescription"
-                      Label="@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")"
-                      Variant="Variant.Outlined"
-                      ReadOnly="@(!IsEditMode)"
-                      MaxLength="50" />
-    </MudItem>
-
-    <MudItem xs="12" md="6">
-        <MudSelect @bind-Value="Product.Status"
-                   Label="@($"{TranslationService.GetTranslation("field.status", "Stato")} *")"
-                   Variant="Variant.Outlined"
-                   ReadOnly="@(!IsEditMode)">
-            <MudSelectItem Value="@ProductStatus.Active">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
-            <MudSelectItem Value="@ProductStatus.Suspended">@TranslationService.GetTranslation("status.suspended", "Sospeso")</MudSelectItem>
-            <MudSelectItem Value="@ProductStatus.OutOfStock">@TranslationService.GetTranslation("status.outOfStock", "Esaurito")</MudSelectItem>
-            <MudSelectItem Value="@ProductStatus.Deleted">@TranslationService.GetTranslation("status.deleted", "Eliminato")</MudSelectItem>
-        </MudSelect>
-    </MudItem>
-
-    <MudItem xs="12">
-        <MudTextField @bind-Value="Product.Description"
-                      Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
-                      Variant="Variant.Outlined"
-                      Lines="5"
-                      ReadOnly="@(!IsEditMode)" />
-    </MudItem>
-
-    <MudItem xs="12" md="6">
-        <MudSwitch @bind-Value="Product.IsBundle"
-                   Label="@TranslationService.GetTranslation("product.isBundle", "È un Bundle")"
-                   Color="Color.Primary"
-                   ReadOnly="@(!IsEditMode)" />
-    </MudItem>
-
-    <!-- Product Image Section -->
-    <MudItem xs="12">
-        <MudText Typo="Typo.h6" Class="mb-3 mt-4">
             <MudIcon Icon="@Icons.Material.Outlined.Image" Class="mr-2" />
             @TranslationService.GetTranslation("product.productImage", "Immagine Prodotto")
         </MudText>
-        <MudDivider Class="mb-4" />
-    </MudItem>
 
-    @if (Product.ImageDocumentId.HasValue && !string.IsNullOrEmpty(Product.ThumbnailUrl))
-    {
-        <MudItem xs="12" md="6">
-            <MudCard>
-                <MudCardMedia Image="@Product.ThumbnailUrl" Height="200" />
-                <MudCardActions>
+        <MudCard>
+            @if (!string.IsNullOrEmpty(Product.ThumbnailUrl))
+            {
+                <MudCardMedia Image="@Product.ThumbnailUrl" Height="180" />
+            }
+            else
+            {
+                <div style="height:180px; display:flex; align-items:center; justify-content:center; background-color:rgba(0,0,0,0.03);">
+                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("product.noImage", "Nessuna immagine")
+                    </MudText>
+                </div>
+            }
+
+            <MudCardContent>
+                <div class="d-flex flex-column">
                     @if (IsEditMode)
                     {
-                        <MudButton OnClick="RemoveImage" 
-                                   Color="Color.Error" 
-                                   StartIcon="@Icons.Material.Filled.Delete"
-                                   Size="Size.Small">
-                            @TranslationService.GetTranslation("common.remove", "Rimuovi")
-                        </MudButton>
+                        <div class="d-flex gap-2 align-center">
+                            <MudFileUpload T="IBrowserFile"
+                                           Accept="image/*"
+                                           @bind-Files="_selectedImage"
+                                           MaximumFileCount="1">
+                                <ActivatorContent>
+                                    <MudButton HtmlTag="label"
+                                              Variant="Variant.Filled"
+                                              Color="Color.Primary"
+                                              StartIcon="@Icons.Material.Filled.CloudUpload"
+                                              Size="Size.Medium"
+                                              Disabled="_isUploadingImage">
+                                        @TranslationService.GetTranslation("product.selectImage", "Seleziona Immagine")
+                                    </MudButton>
+                                </ActivatorContent>
+                            </MudFileUpload>
+
+                            <MudButton OnClick="@UploadImage"
+                                       Variant="Variant.Filled"
+                                       Color="Color.Success"
+                                       StartIcon="@Icons.Material.Filled.Upload"
+                                       Disabled="_isUploadingImage || SelectedFile == null"
+                                       Size="Size.Medium">
+                                @TranslationService.GetTranslation("common.upload", "Carica")
+                            </MudButton>
+
+                            @if (Product.ImageDocumentId.HasValue)
+                            {
+                                <MudButton OnClick="@RemoveImage"
+                                           Variant="Variant.Filled"
+                                           Color="Color.Error"
+                                           StartIcon="@Icons.Material.Filled.Delete"
+                                           Disabled="_isUploadingImage"
+                                           Size="Size.Medium">
+                                    @TranslationService.GetTranslation("common.remove", "Rimuovi")
+                                </MudButton>
+                            }
+                        </div>
+
+                        @if (SelectedFile != null)
+                        {
+                            <MudChip T="string" Color="Color.Info" Icon="@Icons.Material.Filled.Image" OnClose="@ClearImage" Class="mt-2">
+                                @SelectedFile.Name
+                            </MudChip>
+                            <MudText Typo="Typo.caption" Class="mt-1 mud-text-secondary">@FormatFileSize(SelectedFile.Size)</MudText>
+                        }
+
+                        @if (_isUploadingImage)
+                        {
+                            <MudProgressLinear Indeterminate="true" Class="mt-2" />
+                        }
                     }
-                </MudCardActions>
-            </MudCard>
-        </MudItem>
-    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            @TranslationService.GetTranslation("product.imageViewOnly", "Solo visualizzazione immagine (modalità lettura)")
+                        </MudText>
+                    }
+                </div>
+            </MudCardContent>
+        </MudCard>
 
-    @if (IsEditMode)
-    {
-        <MudItem xs="12" md="6">
-            <MudText Typo="Typo.subtitle2" Class="mb-2">
-                @TranslationService.GetTranslation("product.uploadNewImage", "Carica Nuova Immagine")
-            </MudText>
-            <MudFileUpload T="IBrowserFile" Accept="image/*" @bind-Files="_selectedImage" MaximumFileCount="1">
-                <ActivatorContent>
-                    <MudButton HtmlTag="label"
-                              Variant="Variant.Filled"
-                              Color="Color.Primary"
-                              StartIcon="@Icons.Material.Filled.CloudUpload"
-                              Disabled="_isUploadingImage">
-                        @TranslationService.GetTranslation("product.selectImage", "Seleziona Immagine")
-                    </MudButton>
-                </ActivatorContent>
-            </MudFileUpload>
-            @if (_selectedImage != null)
-            {
-                <MudChip T="string" Color="Color.Info" Icon="@Icons.Material.Filled.Image" OnClose="ClearImage" Class="mt-2">
-                    @_selectedImage.Name
-                </MudChip>
-                <MudButton OnClick="UploadImage" 
-                           Color="Color.Success" 
-                           StartIcon="@Icons.Material.Filled.Upload"
-                           Disabled="_isUploadingImage"
-                           Size="Size.Small"
-                           Class="ml-2">
-                    @TranslationService.GetTranslation("common.upload", "Carica")
-                </MudButton>
-            }
-            @if (_isUploadingImage)
-            {
-                <MudProgressLinear Indeterminate="true" Class="mt-2" />
-            }
-            <MudText Typo="Typo.caption" Class="mt-2 mud-text-secondary">
-                @TranslationService.GetTranslation("product.imageHelp", "Formati supportati: JPEG, PNG, GIF, WebP. Dimensione massima: 5MB")
-            </MudText>
-        </MudItem>
-    }
+        <MudText Typo="Typo.caption" Class="mt-2 mud-text-secondary">
+            @TranslationService.GetTranslation("product.imageHelp", "Formati supportati: JPEG, PNG, GIF, WebP. Dimensione massima: 5MB")
+        </MudText>
+    </MudItem>
 
-    <!-- Metadata -->
-    <MudItem xs="12">
-        <MudText Typo="Typo.h6" Class="mb-3 mt-4">
+    <!-- Metadata moved below as before -->
+    <MudItem xs="12" Class="mt-4">
+        <MudText Typo="Typo.h6" Class="mb-3">
             <MudIcon Icon="@Icons.Material.Outlined.CalendarToday" Class="mr-2" />
             @TranslationService.GetTranslation("common.metadata", "Metadati")
         </MudText>
@@ -189,24 +222,49 @@
     [Parameter]
     public EventCallback OnProductUpdated { get; set; }
 
+    // Child calls this to indicate a persisted change (so parent updates snapshot)
+    [Parameter]
+    public EventCallback OnProductUpdatedPersisted { get; set; }
+
+    // Use single IBrowserFile as MudFileUpload expects a single file binding in this project
     private IBrowserFile? _selectedImage;
     private bool _isUploadingImage = false;
 
-    private void ClearImage()
+    // helper to get selected file
+    private IBrowserFile? SelectedFile => _selectedImage;
+
+    // ClearImage returns Task so it can be used as EventCallback target
+    private Task ClearImage()
     {
         _selectedImage = null;
+        return Task.CompletedTask;
     }
 
-    private void RemoveImage()
+    private async Task RemoveImage()
     {
         Product.ImageDocumentId = null;
         Product.ThumbnailUrl = null;
+        await NotifyUpdated();
     }
 
     private async Task UploadImage()
     {
-        if (_selectedImage == null || Product.Id == Guid.Empty)
+        var file = SelectedFile;
+        if (file == null || Product.Id == Guid.Empty)
+            return;
+
+        const long maxBytes = 5 * 1024 * 1024;
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+
+        if (file.Size > maxBytes)
         {
+            Snackbar.Add(TranslationService.GetTranslation("product.imageTooLarge", "Immagine troppo grande (max 5MB)"), Severity.Error);
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(file.ContentType) && !allowedTypes.Contains(file.ContentType))
+        {
+            Snackbar.Add(TranslationService.GetTranslation("product.imageTypeNotAllowed", "Formato immagine non supportato"), Severity.Error);
             return;
         }
 
@@ -214,44 +272,62 @@
         try
         {
             Logger.LogInformation("Uploading image for product {ProductId}", Product.Id);
-            
-            var updatedProduct = await ProductService.UploadProductImageDocumentAsync(Product.Id, _selectedImage);
-            
+
+            var updatedProduct = await ProductService.UploadProductImageDocumentAsync(Product.Id, file);
+
             if (updatedProduct != null)
             {
                 Product.ImageDocumentId = updatedProduct.ImageDocumentId;
                 Product.ThumbnailUrl = updatedProduct.ThumbnailUrl;
-                
-                Snackbar.Add(
-                    TranslationService.GetTranslation("product.imageUploadSuccess", "Immagine caricata con successo"),
-                    Severity.Success
-                );
-                
+
+                Snackbar.Add(TranslationService.GetTranslation("product.imageUploadSuccess", "Immagine caricata con successo"), Severity.Success);
+
                 _selectedImage = null;
-                
-                // Notify parent that product was updated
-                await OnProductUpdated.InvokeAsync();
+
+                if (OnProductUpdatedPersisted.HasDelegate)
+                    await OnProductUpdatedPersisted.InvokeAsync();
+                else
+                    await NotifyUpdated();
             }
             else
             {
                 Logger.LogWarning("Image upload returned null for product {ProductId}", Product.Id);
-                Snackbar.Add(
-                    TranslationService.GetTranslation("product.imageUploadError", "Errore nel caricamento dell'immagine"),
-                    Severity.Error
-                );
+                Snackbar.Add(TranslationService.GetTranslation("product.imageUploadError", "Errore nel caricamento dell'immagine"), Severity.Error);
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error uploading image for product {ProductId}", Product.Id);
-            Snackbar.Add(
-                TranslationService.GetTranslation("product.imageUploadError", "Errore nel caricamento dell'immagine"),
-                Severity.Error
-            );
+            Snackbar.Add(TranslationService.GetTranslation("product.imageUploadError", "Errore nel caricamento dell'immagine"), Severity.Error);
         }
         finally
         {
             _isUploadingImage = false;
         }
+    }
+
+    private async Task OnBundleChanged()
+    {
+        await NotifyUpdated();
+    }
+
+    private async Task NotifyUpdated()
+    {
+        try
+        {
+            if (OnProductUpdated.HasDelegate)
+                await OnProductUpdated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error invoking OnProductUpdated from GeneralInfoTab");
+        }
+    }
+
+    private static string FormatFileSize(long bytes)
+    {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return (bytes / 1024.0).ToString("N1") + " KB";
+        return (bytes / (1024.0 * 1024.0)).ToString("N2") + " MB";
     }
 }

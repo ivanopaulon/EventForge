@@ -76,6 +76,10 @@
     [Parameter, EditorRequired]
     public Guid ProductId { get; set; }
 
+    // Notifications for parent
+    [Parameter] public EventCallback OnProductUpdated { get; set; }
+    [Parameter] public EventCallback OnProductUpdatedPersisted { get; set; }
+
     private IEnumerable<ProductSupplierDto>? _productSuppliers;
     private bool _isLoading = true;
 
@@ -125,6 +129,7 @@
         if (!result.Canceled)
         {
             await LoadSuppliersAsync();
+            await NotifyPersisted();
         }
     }
 
@@ -151,6 +156,7 @@
         if (!result.Canceled)
         {
             await LoadSuppliersAsync();
+            await NotifyPersisted();
         }
     }
 
@@ -169,12 +175,41 @@
                 await ProductService.DeleteProductSupplierAsync(supplier.Id);
                 Snackbar.Add(TranslationService.GetTranslation("product.supplierDeleted", "Fornitore eliminato con successo"), Severity.Success);
                 await LoadSuppliersAsync();
+                await NotifyPersisted();
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error deleting product supplier {SupplierId}", supplier.Id);
                 Snackbar.Add(TranslationService.GetTranslation("product.deleteSupplierError", "Errore nell'eliminazione del fornitore"), Severity.Error);
             }
+        }
+    }
+
+    private async Task NotifyUpdated()
+    {
+        try
+        {
+            if (OnProductUpdated.HasDelegate)
+                await OnProductUpdated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error invoking OnProductUpdated from ProductSuppliersTab");
+        }
+    }
+
+    private async Task NotifyPersisted()
+    {
+        try
+        {
+            if (OnProductUpdatedPersisted.HasDelegate)
+                await OnProductUpdatedPersisted.InvokeAsync();
+            else if (OnProductUpdated.HasDelegate)
+                await OnProductUpdated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error invoking OnProductUpdatedPersisted from ProductSuppliersTab");
         }
     }
 }

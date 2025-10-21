@@ -25,7 +25,8 @@
                          ReadOnly="@(!IsEditMode)"
                          Min="0"
                          Format="N2"
-                         HelperText="@TranslationService.GetTranslation("product.reorderPointHelp", "Livello di inventario al quale riordinare")" />
+                         HelperText="@TranslationService.GetTranslation("product.reorderPointHelp", "Livello di inventario al quale riordinare")"
+                         @bind-Value:after="NotifyUpdated" />
     </MudItem>
 
     <MudItem xs="12" md="6">
@@ -35,7 +36,8 @@
                          ReadOnly="@(!IsEditMode)"
                          Min="0"
                          Format="N2"
-                         HelperText="@TranslationService.GetTranslation("product.safetyStockHelp", "Stock minimo da mantenere")" />
+                         HelperText="@TranslationService.GetTranslation("product.safetyStockHelp", "Stock minimo da mantenere")"
+                         @bind-Value:after="NotifyUpdated" />
     </MudItem>
 
     <MudItem xs="12" md="6">
@@ -45,7 +47,8 @@
                          ReadOnly="@(!IsEditMode)"
                          Min="0"
                          Format="N2"
-                         HelperText="@TranslationService.GetTranslation("product.targetStockHelp", "Livello di inventario desiderato")" />
+                         HelperText="@TranslationService.GetTranslation("product.targetStockHelp", "Livello di inventario desiderato")"
+                         @bind-Value:after="NotifyUpdated" />
     </MudItem>
 
     <MudItem xs="12" md="6">
@@ -55,7 +58,8 @@
                          ReadOnly="@(!IsEditMode)"
                          Min="0"
                          Format="N2"
-                         HelperText="@TranslationService.GetTranslation("product.avgDailyDemandHelp", "Domanda media giornaliera per pianificazione inventario")" />
+                         HelperText="@TranslationService.GetTranslation("product.avgDailyDemandHelp", "Domanda media giornaliera per pianificazione inventario")"
+                         @bind-Value:after="NotifyUpdated" />
     </MudItem>
 
     <!-- Stock Levels Section -->
@@ -274,6 +278,9 @@
     [Parameter]
     public bool IsEditMode { get; set; }
 
+    [Parameter]
+    public EventCallback OnProductUpdated { get; set; }
+
     private bool _isLoadingDocuments = false;
     private bool _isLoadingStock = false;
     private PagedResult<DocumentHeaderDto>? _documents;
@@ -365,5 +372,18 @@
             DocumentStatus.Cancelled => TranslationService.GetTranslation("status.cancelled", "Annullato"),
             _ => status.ToString()
         };
+    }
+
+    private async Task NotifyUpdated()
+    {
+        try
+        {
+            if (OnProductUpdated.HasDelegate)
+                await OnProductUpdated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error invoking OnProductUpdated from StockInventoryTab");
+        }
     }
 }

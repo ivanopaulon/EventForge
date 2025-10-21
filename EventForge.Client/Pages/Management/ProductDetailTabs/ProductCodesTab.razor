@@ -69,6 +69,10 @@
     [Parameter, EditorRequired]
     public Guid ProductId { get; set; }
 
+    // Notifications for parent
+    [Parameter] public EventCallback OnProductUpdated { get; set; }
+    [Parameter] public EventCallback OnProductUpdatedPersisted { get; set; }
+
     private IEnumerable<ProductCodeDto>? _productCodes;
     private bool _isLoading = true;
 
@@ -119,6 +123,7 @@
         if (!result.Canceled)
         {
             await LoadCodesAsync();
+            await NotifyPersisted();
         }
     }
 
@@ -146,6 +151,7 @@
         if (!result.Canceled)
         {
             await LoadCodesAsync();
+            await NotifyPersisted();
         }
     }
 
@@ -164,12 +170,41 @@
                 await ProductService.DeleteProductCodeAsync(code.Id);
                 Snackbar.Add(TranslationService.GetTranslation("product.codeDeleted", "Codice eliminato con successo"), Severity.Success);
                 await LoadCodesAsync();
+                await NotifyPersisted();
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error deleting product code {CodeId}", code.Id);
                 Snackbar.Add(TranslationService.GetTranslation("product.deleteCodeError", "Errore nell'eliminazione del codice"), Severity.Error);
             }
+        }
+    }
+
+    private async Task NotifyUpdated()
+    {
+        try
+        {
+            if (OnProductUpdated.HasDelegate)
+                await OnProductUpdated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error invoking OnProductUpdated from ProductCodesTab");
+        }
+    }
+
+    private async Task NotifyPersisted()
+    {
+        try
+        {
+            if (OnProductUpdatedPersisted.HasDelegate)
+                await OnProductUpdatedPersisted.InvokeAsync();
+            else if (OnProductUpdated.HasDelegate)
+                await OnProductUpdated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error invoking OnProductUpdatedPersisted from ProductCodesTab");
         }
     }
 }

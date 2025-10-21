@@ -3,6 +3,7 @@
 @using EventForge.Client.Services
 @inject ITranslationService TranslationService
 @inject IFinancialService FinancialService
+@inject ILogger<PricingFinancialTab> Logger
 
 <MudGrid>
     <MudItem xs="12">
@@ -21,11 +22,14 @@
                          Min="0"
                          Format="N2"
                          Adornment="Adornment.Start"
-                         AdornmentText="€" />
+                         AdornmentText="€"
+                         @bind-Value:after="NotifyUpdated" />
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudSwitch @bind-Value="Product.IsVatIncluded"
+        <MudSwitch T="bool"
+                   @bind-Checked="Product.IsVatIncluded"
+                   @bind-Checked:after="OnVatIncludedChanged"
                    Label="@TranslationService.GetTranslation("product.isVatIncluded", "IVA Inclusa")"
                    Color="Color.Primary"
                    ReadOnly="@(!IsEditMode)" />
@@ -37,7 +41,8 @@
                    Label="@TranslationService.GetTranslation("field.vatRate", "Aliquota IVA")"
                    Variant="Variant.Outlined"
                    ReadOnly="@(!IsEditMode)"
-                   Clearable="true">
+                   Clearable="true"
+                   @bind-Value:after="NotifyUpdated">
             @if (_vatRates != null)
             {
                 @foreach (var vat in _vatRates)
@@ -56,6 +61,9 @@
     [Parameter]
     public bool IsEditMode { get; set; }
 
+    [Parameter]
+    public EventCallback OnProductUpdated { get; set; }
+
     private IEnumerable<VatRateDto>? _vatRates;
 
     protected override async Task OnInitializedAsync()
@@ -64,9 +72,28 @@
         {
             _vatRates = await FinancialService.GetVatRatesAsync();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Handle error silently or log
+            Logger.LogWarning(ex, "Unable to load VAT rates");
+        }
+    }
+
+    // Nota: chiamato come @bind-Checked:after, deve essere parameterless
+    private async Task OnVatIncludedChanged()
+    {
+        await NotifyUpdated();
+    }
+
+    private async Task NotifyUpdated()
+    {
+        try
+        {
+            if (OnProductUpdated.HasDelegate)
+                await OnProductUpdated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error invoking OnProductUpdated from PricingFinancialTab");
         }
     }
 }

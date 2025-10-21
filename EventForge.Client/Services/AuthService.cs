@@ -204,6 +204,7 @@ namespace EventForge.Client.Services
         /// Recupera i tenant disponibili per il login. Metodo leggero, con caching client-side per ridurre round-trip.
         /// Endpoint server previsto: GET /api/v1/auth/tenants
         /// </summary>
+        // Modifica: implementazione più robusta di GetAvailableTenantsAsync con timeout, retry e logging
         public async Task<IEnumerable<TenantResponseDto>> GetAvailableTenantsAsync()
         {
             try
@@ -212,15 +213,80 @@ namespace EventForge.Client.Services
                     return _cachedTenants;
 
                 var httpClient = _httpClientFactory.CreateClient("ApiClient");
-                // Usa l'endpoint pubblico appena creato
-                var tenants = await httpClient.GetFromJsonAsync<IEnumerable<TenantResponseDto>>("api/v1/tenants/available");
+                var endpoint = "api/v1/tenants/available";
+                const int timeoutSeconds = 10;
+                const int maxAttempts = 2;
 
-                _cachedTenants = tenants?.ToList() ?? new List<TenantResponseDto>();
-                return _cachedTenants;
+                for (int attempt = 1; attempt <= maxAttempts; attempt++)
+                {
+                    var sw = System.Diagnostics.Stopwatch.StartNew();
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+                    try
+                    {
+                        _logger.LogDebug("Attempt {Attempt} - GET {Endpoint} (BaseAddress: {BaseAddress})", attempt, endpoint, httpClient.BaseAddress);
+                        var response = await httpClient.GetAsync(endpoint, cts.Token);
+
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            _logger.LogWarning("GET {Endpoint} returned status {StatusCode} on attempt {Attempt}", endpoint, response.StatusCode, attempt);
+                            // If server returned non-success, no point in retrying for 4xx (but we allow one retry for transient 5xx)
+                            if ((int)response.StatusCode >= 500 && attempt < maxAttempts)
+                            {
+                                await Task.Delay(500);
+                                continue;
+                            }
+
+                            return Enumerable.Empty<TenantResponseDto>();
+                        }
+
+                        var tenants = await response.Content.ReadFromJsonAsync<IEnumerable<TenantResponseDto>>(cancellationToken: cts.Token);
+                        _cachedTenants = tenants?.ToList() ?? new List<TenantResponseDto>();
+
+                        sw.Stop();
+                        _logger.LogInformation("Loaded {Count} tenants from {Endpoint} in {ElapsedMs}ms (attempt {Attempt})", _cachedTenants.Count, endpoint, sw.ElapsedMilliseconds, attempt);
+
+                        return _cachedTenants;
+                    }
+                    catch (TaskCanceledException tex)
+                    {
+                        sw.Stop();
+                        if (cts.IsCancellationRequested)
+                        {
+                            _logger.LogWarning(tex, "Timeout ({Timeout}s) while loading tenants from {Endpoint} on attempt {Attempt}", timeoutSeconds, endpoint, attempt);
+                        }
+                        else
+                        {
+                            _logger.LogWarning(tex, "Request cancelled while loading tenants from {Endpoint} on attempt {Attempt}", endpoint, attempt);
+                        }
+
+                        if (attempt < maxAttempts)
+                        {
+                            // small backoff before retry
+                            await Task.Delay(500);
+                            continue;
+                        }
+
+                        return Enumerable.Empty<TenantResponseDto>();
+                    }
+                    catch (Exception ex)
+                    {
+                        sw.Stop();
+                        _logger.LogWarning(ex, "Failed to load available tenants from {Endpoint} on attempt {Attempt}", endpoint, attempt);
+                        if (attempt < maxAttempts)
+                        {
+                            await Task.Delay(500);
+                            continue;
+                        }
+
+                        return Enumerable.Empty<TenantResponseDto>();
+                    }
+                }
+
+                return Enumerable.Empty<TenantResponseDto>();
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to load available tenants");
+                _logger.LogWarning(ex, "Unexpected error in GetAvailableTenantsAsync");
                 return Enumerable.Empty<TenantResponseDto>();
             }
         }

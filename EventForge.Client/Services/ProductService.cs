@@ -89,6 +89,20 @@ public class ProductService : IProductService
         }
     }
 
+    public async Task<bool> DeleteProductAsync(Guid id)
+    {
+        try
+        {
+            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting product {Id}", id);
+            return false;
+        }
+    }
+
     public async Task<IEnumerable<UMDto>> GetUnitsOfMeasureAsync()
     {
         try

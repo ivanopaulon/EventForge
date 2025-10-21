@@ -73,6 +73,10 @@
     [Parameter, EditorRequired]
     public Guid ProductId { get; set; }
 
+    // Notifications for parent
+    [Parameter] public EventCallback OnProductUpdated { get; set; }
+    [Parameter] public EventCallback OnProductUpdatedPersisted { get; set; }
+
     private IEnumerable<ProductUnitDto>? _productUnits;
     private bool _isLoading = true;
 
@@ -128,6 +132,7 @@
         if (!result.Canceled)
         {
             await LoadUnitsAsync();
+            await NotifyPersisted();
         }
     }
 
@@ -160,6 +165,7 @@
         if (!result.Canceled)
         {
             await LoadUnitsAsync();
+            await NotifyPersisted();
         }
     }
 
@@ -178,12 +184,41 @@
                 await ProductService.DeleteProductUnitAsync(unit.Id);
                 Snackbar.Add(TranslationService.GetTranslation("product.unitDeleted", "Unità eliminata con successo"), Severity.Success);
                 await LoadUnitsAsync();
+                await NotifyPersisted();
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error deleting product unit {UnitId}", unit.Id);
                 Snackbar.Add(TranslationService.GetTranslation("product.deleteUnitError", "Errore nell'eliminazione dell'unità"), Severity.Error);
             }
+        }
+    }
+
+    private async Task NotifyUpdated()
+    {
+        try
+        {
+            if (OnProductUpdated.HasDelegate)
+                await OnProductUpdated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error invoking OnProductUpdated from ProductUnitsTab");
+        }
+    }
+
+    private async Task NotifyPersisted()
+    {
+        try
+        {
+            if (OnProductUpdatedPersisted.HasDelegate)
+                await OnProductUpdatedPersisted.InvokeAsync();
+            else if (OnProductUpdated.HasDelegate)
+                await OnProductUpdated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error invoking OnProductUpdatedPersisted from ProductUnitsTab");
         }
     }
 }

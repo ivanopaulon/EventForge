@@ -67,6 +67,10 @@
     [Parameter, EditorRequired]
     public Guid ProductId { get; set; }
 
+    // Notifications for parent
+    [Parameter] public EventCallback OnProductUpdated { get; set; }
+    [Parameter] public EventCallback OnProductUpdatedPersisted { get; set; }
+
     private IEnumerable<ProductBundleItemDto>? _bundleItems;
     private Dictionary<Guid, string> _productNames = new();
     private bool _isLoading = true;
@@ -171,6 +175,7 @@
         if (!result.Canceled)
         {
             await LoadBundleItemsAsync();
+            await NotifyPersisted();
         }
     }
 
@@ -198,6 +203,7 @@
         if (!result.Canceled)
         {
             await LoadBundleItemsAsync();
+            await NotifyPersisted();
         }
     }
 
@@ -219,12 +225,41 @@
                 await ProductService.DeleteProductBundleItemAsync(item.Id);
                 Snackbar.Add(TranslationService.GetTranslation("product.bundleItemDeleted", "Componente eliminato con successo"), Severity.Success);
                 await LoadBundleItemsAsync();
+                await NotifyPersisted();
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error deleting bundle item {ItemId}", item.Id);
                 Snackbar.Add(TranslationService.GetTranslation("product.deleteBundleItemError", "Errore nell'eliminazione del componente"), Severity.Error);
             }
+        }
+    }
+
+    private async Task NotifyUpdated()
+    {
+        try
+        {
+            if (OnProductUpdated.HasDelegate)
+                await OnProductUpdated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error invoking OnProductUpdated from BundleItemsTab");
+        }
+    }
+
+    private async Task NotifyPersisted()
+    {
+        try
+        {
+            if (OnProductUpdatedPersisted.HasDelegate)
+                await OnProductUpdatedPersisted.InvokeAsync();
+            else if (OnProductUpdated.HasDelegate)
+                await OnProductUpdated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error invoking OnProductUpdatedPersisted from BundleItemsTab");
         }
     }
 }

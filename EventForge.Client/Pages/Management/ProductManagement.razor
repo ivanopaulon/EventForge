@@ -6,6 +6,7 @@
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IProductService ProductService
+@inject IStockService StockService
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -94,29 +95,53 @@
                                 <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => x.Name)">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
                                 <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
                                 <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => x.DefaultPrice ?? 0)">@TranslationService.GetTranslation("field.price", "Prezzo")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => x.CreatedAt)">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => GetAvailableQuantityForSort(x.Id))">@TranslationService.GetTranslation("warehouse.available", "Giacenza")</MudTableSortLabel></MudTh>
                                 <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
                             </HeaderContent>
                             <RowTemplate>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">@context.Code</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">@context.Name</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">@context.ShortDescription</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.price", "Prezzo")">
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")" Style="width:12%;">@context.Code</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")" Style="width:28%;">
+                                    <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:320px;">@context.Name</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")" Style="width:30%;">
+                                    <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:420px;">@(string.IsNullOrWhiteSpace(context.ShortDescription) ? "-" : context.ShortDescription)</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.price", "Prezzo")" Style="text-align: right; width:10%;">
                                     @if (context.DefaultPrice.HasValue)
                                     {
-                                        @context.DefaultPrice.Value.ToString("C2")
+                                        <MudText Typo="Typo.body2" Style="font-weight:600;">@context.DefaultPrice.Value.ToString("C2")</MudText>
                                     }
                                 </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">@context.CreatedAt.ToString("dd/MM/yyyy")</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Style="text-align: right;">
+                                <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.available", "Giacenza")" Style="text-align: right; width:10%;">
+                                    @if (_isLoadingStocks)
+                                    {
+                                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                                    }
+                                    else
+                                    {
+                                        @if (_productAvailableQuantities.TryGetValue(context.Id, out var avail))
+                                        {
+                                            <MudText Typo="Typo.body2" Style="font-weight:600;">@avail.ToString("N2")</MudText>
+                                        }
+                                        else
+                                        {
+                                            <span>-</span>
+                                        }
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Style="text-align: right; width:10%;">
                                     <ActionButtonGroup EntityName="@TranslationService.GetTranslation("entity.product", "Prodotto")"
                                                        ItemDisplayName="@context.Name"
-                                                       ShowView="true"
+                                                       ShowView="false"
                                                        ShowEdit="true"
-                                                       ShowAuditLog="false"
-                                                       ShowDelete="false"
-                                                       OnView="@(() => ViewProduct(context.Id))"
-                                                       OnEdit="@(() => EditProduct(context.Id))" />
+                                                       ShowAuditLog="true"
+                                                       ShowToggleStatus="true"
+                                                       ShowDelete="true"
+                                                       IsActive="@(context.Status != ProductStatus.Deleted)"
+                                                       OnEdit="@(() => EditProduct(context.Id))"
+                                                       OnAuditLog="@(() => ViewProductAuditLog(context))"
+                                                       OnToggleStatus="@(() => ToggleProductStatus(context))"
+                                                       OnDelete="@(() => DeleteProduct(context))" />
                                 </MudTd>
                             </RowTemplate>
                             <NoRecordsContent>
@@ -140,9 +165,15 @@
                OnProductCreated="@HandleProductCreated"
                OnProductUpdated="@HandleProductUpdated" />
 
+<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+                    EntityType="Product"
+                    EntityId="@_selectedProductForAudit?.Id"
+                    EntityName="@_selectedProductForAudit?.Name" />
+
 @code {
     private bool _isLoading = true;
     private bool _isLoadingProducts = false;
+    private bool _isLoadingStocks = false;
     private string _searchTerm = string.Empty;
     
     private IEnumerable<ProductDto> _products = new List<ProductDto>();
@@ -151,6 +182,13 @@
     private bool _productDrawerOpen = false;
     private EntityDrawerMode _productDrawerMode = EntityDrawerMode.Create;
     private ProductDto? _selectedProduct;
+
+    // Stores available quantity (sum across locations) per product
+    private readonly Dictionary<Guid, decimal> _productAvailableQuantities = new();
+
+    // Audit drawer state
+    private bool _auditDrawerOpen = false;
+    private ProductDto? _selectedProductForAudit;
 
     protected override async Task OnInitializedAsync()
     {
@@ -180,6 +218,9 @@
             {
                 _products = result.Items;
                 ApplyFilters();
+
+                // Load stock levels for the loaded products
+                await LoadStockForProductsAsync(_products.Select(p => p.Id).ToList());
             }
         }
         catch (Exception ex)
@@ -190,6 +231,47 @@
         finally
         {
             _isLoadingProducts = false;
+        }
+    }
+
+    private async Task LoadStockForProductsAsync(List<Guid> productIds)
+    {
+        _isLoadingStocks = true;
+        try
+        {
+            _productAvailableQuantities.Clear();
+
+            if (productIds == null || !productIds.Any())
+                return;
+
+            // Parallelize requests but keep reasonable concurrency
+            var tasks = productIds.Select(id => Task.Run(async () =>
+            {
+                try
+                {
+                    var stocks = await StockService.GetStockByProductIdAsync(id);
+                    // Sum available quantities across locations/lots for product
+                    var totalAvailable = stocks?.Sum(s => s.AvailableQuantity) ?? 0m;
+                    return (ProductId: id, Available: totalAvailable);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogDebug(ex, "Failed loading stock for product {ProductId}", id);
+                    return (ProductId: id, Available: 0m);
+                }
+            })).ToArray();
+
+            var results = await Task.WhenAll(tasks);
+
+            foreach (var r in results)
+            {
+                _productAvailableQuantities[r.ProductId] = r.Available;
+            }
+        }
+        finally
+        {
+            _isLoadingStocks = false;
+            StateHasChanged();
         }
     }
 
@@ -230,6 +312,119 @@
         NavigationManager.NavigateTo($"/product-management/products/{productId}");
     }
 
+    private async Task ViewProductAuditLog(ProductDto product)
+    {
+        _selectedProductForAudit = product;
+        _auditDrawerOpen = true;
+        await Task.CompletedTask;
+    }
+
+    private async Task DeleteProduct(ProductDto product)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("action.confirm", "Conferma"),
+            TranslationService.GetTranslationFormatted("product.confirmDelete", "Sei sicuro di voler eliminare il prodotto '{0}'?", product.Name),
+            yesText: TranslationService.GetTranslation("action.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("action.cancel", "Annulla"));
+
+        if (confirmed == true)
+        {
+            try
+            {
+                var success = await ProductService.DeleteProductAsync(product.Id);
+                if (success)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("product.deleteSuccess", "Prodotto eliminato con successo"), Severity.Success);
+                    await LoadProductsAsync();
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("product.deleteError", "Errore nell'eliminazione del prodotto"), Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting product {ProductId}", product.Id);
+                Snackbar.Add(TranslationService.GetTranslation("product.deleteError", "Errore nell'eliminazione del prodotto"), Severity.Error);
+            }
+        }
+    }
+
+    private async Task ToggleProductStatus(ProductDto product)
+    {
+        // Treat Deleted as not active
+        var isActive = product.Status != ProductStatus.Deleted;
+        var actionText = isActive
+            ? TranslationService.GetTranslation("common.deactivate", "disattivare")
+            : TranslationService.GetTranslation("common.activate", "attivare");
+
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted(
+            "product.confirmStatusChange",
+            "Sei sicuro di voler {0} il prodotto '{1}'?",
+            actionText, product.Name);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm != true)
+            return;
+
+        try
+        {
+            var newStatus = isActive ? ProductStatus.Deleted : ProductStatus.Active;
+
+            var updateDto = new UpdateProductDto
+            {
+                Name = product.Name ?? string.Empty,
+                ShortDescription = product.ShortDescription ?? string.Empty,
+                Description = product.Description ?? string.Empty,
+                ImageUrl = product.ImageUrl ?? string.Empty,
+                ImageDocumentId = product.ImageDocumentId,
+                Status = newStatus,
+                IsVatIncluded = product.IsVatIncluded,
+                DefaultPrice = product.DefaultPrice,
+                VatRateId = product.VatRateId,
+                UnitOfMeasureId = product.UnitOfMeasureId,
+                CategoryNodeId = product.CategoryNodeId,
+                FamilyNodeId = product.FamilyNodeId,
+                GroupNodeId = product.GroupNodeId,
+                StationId = product.StationId,
+                BrandId = product.BrandId,
+                ModelId = product.ModelId,
+                PreferredSupplierId = product.PreferredSupplierId,
+                ReorderPoint = product.ReorderPoint,
+                SafetyStock = product.SafetyStock,
+                TargetStockLevel = product.TargetStockLevel,
+                AverageDailyDemand = product.AverageDailyDemand
+            };
+
+            var updated = await ProductService.UpdateProductAsync(product.Id, updateDto);
+            if (updated != null)
+            {
+                Snackbar.Add(
+                    newStatus == ProductStatus.Active
+                        ? TranslationService.GetTranslation("product.activated", "Prodotto attivato con successo!")
+                        : TranslationService.GetTranslation("product.deactivated", "Prodotto disattivato con successo!"),
+                    Severity.Success);
+
+                await LoadProductsAsync();
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("product.statusChangeError", "Errore nel cambio di stato del prodotto"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error toggling status for product {ProductId}", product.Id);
+            Snackbar.Add(TranslationService.GetTranslation("product.statusChangeError", "Errore nel cambio di stato del prodotto"), Severity.Error);
+        }
+    }
+
     private async Task HandleProductCreated(ProductDto product)
     {
         await LoadProductsAsync();
@@ -239,4 +434,8 @@
     {
         await LoadProductsAsync();
     }
+
+    // Helper used for sorting header; fallback 0 when unknown
+    private object GetAvailableQuantityForSort(Guid productId)
+        => _productAvailableQuantities.TryGetValue(productId, out var v) ? v : 0m;
 }
