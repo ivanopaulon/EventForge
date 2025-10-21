@@ -1048,15 +1048,16 @@ public class ProductService : IProductService
                 OwnerId = productId,
                 OwnerType = "Product",
                 FileName = file.FileName,
-                Type = EventForge.DTOs.Common.DocumentReferenceType.ProfilePhoto, // Using ProfilePhoto as generic image type
+                Type = EventForge.DTOs.Common.DocumentReferenceType.ProfilePhoto,
                 SubType = EventForge.DTOs.Common.DocumentReferenceSubType.None,
                 MimeType = file.ContentType,
                 StorageKey = storageKey,
                 Url = storageKey,
+                ThumbnailStorageKey = storageKey, // <- ensure thumbnail key is set
                 FileSizeBytes = file.Length,
                 Title = $"Product {product.Name} Image",
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = "System" // In real implementation, get from auth context
+                CreatedBy = "System"
             };
 
             // If product already has an image, delete the old one first
@@ -1192,7 +1193,7 @@ public class ProductService : IProductService
             ImageUrl = product.ImageUrl,
 #pragma warning restore CS0618 // Type or member is obsolete
             ImageDocumentId = product.ImageDocumentId,
-            ThumbnailUrl = product.ImageDocument?.ThumbnailStorageKey,
+            ThumbnailUrl = product.ImageDocument?.Url ?? product.ImageDocument?.ThumbnailStorageKey ?? product.ImageDocument?.StorageKey,
             Status = (EventForge.DTOs.Common.ProductStatus)product.Status,
             IsVatIncluded = product.IsVatIncluded,
             DefaultPrice = product.DefaultPrice,
@@ -1226,7 +1227,7 @@ public class ProductService : IProductService
             ImageUrl = product.ImageUrl,
 #pragma warning restore CS0618 // Type or member is obsolete
             ImageDocumentId = product.ImageDocumentId,
-            ThumbnailUrl = product.ImageDocument?.ThumbnailStorageKey,
+            ThumbnailUrl = product.ImageDocument?.Url ?? product.ImageDocument?.ThumbnailStorageKey ?? product.ImageDocument?.StorageKey,
             Status = (EventForge.DTOs.Common.ProductStatus)product.Status,
             IsVatIncluded = product.IsVatIncluded,
             DefaultPrice = product.DefaultPrice,

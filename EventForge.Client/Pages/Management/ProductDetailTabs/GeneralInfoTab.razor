@@ -5,6 +5,8 @@
 @inject IProductService ProductService
 @inject ISnackbar Snackbar
 @inject ILogger<GeneralInfoTab> Logger
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager NavigationManager
 
 <MudGrid>
     <!-- Left column: basic fields -->
@@ -89,7 +91,7 @@
         <MudCard>
             @if (!string.IsNullOrEmpty(Product.ThumbnailUrl))
             {
-                <MudCardMedia Image="@Product.ThumbnailUrl" Height="180" />
+                <MudCardMedia Image="@_thumbnailAbsoluteUrl" Height="180" />
             }
             else
             {
@@ -233,10 +235,40 @@
     // helper to get selected file
     private IBrowserFile? SelectedFile => _selectedImage;
 
+    // Absolute URL computed for display
+    private string? _thumbnailAbsoluteUrl;
+
+    protected override Task OnParametersSetAsync()
+    {
+        // Ensure we convert server-provided relative URL to an absolute URL using ApiClient base address
+        _thumbnailAbsoluteUrl = MakeAbsoluteUrl(Product?.ThumbnailUrl);
+        return base.OnParametersSetAsync();
+    }
+
+    private string? MakeAbsoluteUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return null;
+        if (Uri.IsWellFormedUriString(url, UriKind.Absolute)) return url;
+
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ApiClient");
+            var baseAddress = client.BaseAddress ?? new Uri(NavigationManager.BaseUri);
+            // Uri(base, relative) handles leading/trailing slashes
+            return new Uri(baseAddress, url).ToString();
+        }
+        catch
+        {
+            // fallback: return original relative url
+            return url;
+        }
+    }
+
     // ClearImage returns Task so it can be used as EventCallback target
     private Task ClearImage()
     {
         _selectedImage = null;
+        _thumbnailAbsoluteUrl = MakeAbsoluteUrl(Product?.ThumbnailUrl);
         return Task.CompletedTask;
     }
 
@@ -244,6 +276,7 @@
     {
         Product.ImageDocumentId = null;
         Product.ThumbnailUrl = null;
+        _thumbnailAbsoluteUrl = null;
         await NotifyUpdated();
     }
 
@@ -279,6 +312,7 @@
             {
                 Product.ImageDocumentId = updatedProduct.ImageDocumentId;
                 Product.ThumbnailUrl = updatedProduct.ThumbnailUrl;
+                _thumbnailAbsoluteUrl = MakeAbsoluteUrl(Product.ThumbnailUrl);
 
                 Snackbar.Add(TranslationService.GetTranslation("product.imageUploadSuccess", "Immagine caricata con successo"), Severity.Success);
 

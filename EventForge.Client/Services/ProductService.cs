@@ -4,6 +4,7 @@ using EventForge.DTOs.Station;
 using EventForge.DTOs.UnitOfMeasures;
 using Microsoft.AspNetCore.Components.Forms;
 using System.Text.Json;
+using System.Net.Http.Headers;
 
 namespace EventForge.Client.Services;
 
@@ -14,13 +15,15 @@ public class ProductService : IProductService
 {
     private readonly IHttpClientService _httpClientService;
     private readonly IHttpClientFactory _httpClientFactory; // Keep for image upload only
+    private readonly IAuthService _authService;
     private readonly ILogger<ProductService> _logger;
     private const string BaseUrl = "api/v1/product-management/products";
 
-    public ProductService(IHttpClientService httpClientService, IHttpClientFactory httpClientFactory, ILogger<ProductService> logger)
+    public ProductService(IHttpClientService httpClientService, IHttpClientFactory httpClientFactory, IAuthService authService, ILogger<ProductService> logger)
     {
         _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+        _authService = authService ?? throw new ArgumentNullException(nameof(authService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -143,7 +146,18 @@ public class ProductService : IProductService
             fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
             content.Add(fileContent, "file", file.Name);
 
-            var response = await httpClient.PostAsync("api/v1/product-management/products/upload-image", content);
+            var request = new HttpRequestMessage(HttpMethod.Post, "api/v1/product-management/products/upload-image")
+            {
+                Content = content
+            };
+
+            var token = await _authService.GetAccessTokenAsync();
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await httpClient.SendAsync(request);
 
             if (response.IsSuccessStatusCode)
             {
@@ -177,7 +191,18 @@ public class ProductService : IProductService
             fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
             content.Add(fileContent, "file", file.Name);
 
-            var response = await httpClient.PostAsync($"api/v1/product-management/products/{productId}/image", content);
+            var request = new HttpRequestMessage(HttpMethod.Post, $"api/v1/product-management/products/{productId}/image")
+            {
+                Content = content
+            };
+
+            var token = await _authService.GetAccessTokenAsync();
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await httpClient.SendAsync(request);
 
             if (response.IsSuccessStatusCode)
             {
