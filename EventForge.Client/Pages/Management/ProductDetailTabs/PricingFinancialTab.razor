@@ -32,7 +32,8 @@
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudSelect @bind-Value="Product.VatRateId"
+        <MudSelect T="Guid?"
+                   @bind-Value="Product.VatRateId"
                    Label="@TranslationService.GetTranslation("field.vatRate", "Aliquota IVA")"
                    Variant="Variant.Outlined"
                    ReadOnly="@(!IsEditMode)"
@@ -41,7 +42,7 @@
             {
                 @foreach (var vat in _vatRates)
                 {
-                    <MudSelectItem Value="@vat.Id">@vat.Name (@vat.Percentage%)</MudSelectItem>
+                    <MudSelectItem T="Guid?" Value="@((Guid?)vat.Id)">@vat.Name (@vat.Percentage%)</MudSelectItem>
                 }
             }
         </MudSelect>

@@ -1672,21 +1672,26 @@ public class ProductService : IProductService
 
     public async Task<IEnumerable<ProductWithAssociationDto>> GetProductsWithSupplierAssociationAsync(Guid supplierId, CancellationToken cancellationToken = default)
     {
-        // Get all products
+        // Ensure tenant context available for association filtering
+        var currentTenantId = _tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for product supplier operations.");
+        }
+
+        // Get all products (preserve previous behaviour: products may be global)
         var products = await _context.Products
             .Where(p => !p.IsDeleted)
             .OrderBy(p => p.Name)
             .ToListAsync(cancellationToken);
 
-        // Get all existing associations for this supplier
+        // Get all existing associations for this supplier within the current tenant
         var associations = await _context.ProductSuppliers
-            .Where(ps => ps.SupplierId == supplierId && !ps.IsDeleted)
+            .Where(ps => ps.SupplierId == supplierId && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
             .ToListAsync(cancellationToken);
 
-        // Create a dictionary for quick lookup
         var associationDict = associations.ToDictionary(a => a.ProductId);
 
-        // Map to DTOs
         return products.Select(p =>
         {
             var hasAssociation = associationDict.TryGetValue(p.Id, out var association);
@@ -1707,12 +1712,20 @@ public class ProductService : IProductService
 
     public async Task<int> BulkUpdateProductSupplierAssociationsAsync(Guid supplierId, IEnumerable<Guid> productIds, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
         var productIdList = productIds.ToList();
         var now = DateTime.UtcNow;
 
-        // Get existing associations for this supplier
+        var currentTenantId = _tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for product supplier operations.");
+        }
+
+        // Get existing associations for this supplier within the tenant
         var existingAssociations = await _context.ProductSuppliers
-            .Where(ps => ps.SupplierId == supplierId && !ps.IsDeleted)
+            .Where(ps => ps.SupplierId == supplierId && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
             .ToListAsync(cancellationToken);
 
         var existingProductIds = existingAssociations.Select(a => a.ProductId).ToHashSet();
@@ -1725,7 +1738,7 @@ public class ProductService : IProductService
             .Where(a => !productIdList.Contains(a.ProductId))
             .ToList();
 
-        // Add new associations
+        // Add new associations and set TenantId
         foreach (var productId in productIdsToAdd)
         {
             var newAssociation = new ProductSupplier
@@ -1738,12 +1751,13 @@ public class ProductService : IProductService
                 CreatedBy = currentUser,
                 ModifiedAt = now,
                 ModifiedBy = currentUser,
-                IsDeleted = false
+                IsDeleted = false,
+                TenantId = currentTenantId.Value
             };
             _context.ProductSuppliers.Add(newAssociation);
         }
 
-        // Soft delete removed associations
+        // Soft delete removed associations (already scoped to tenant)
         foreach (var association in associationsToRemove)
         {
             association.IsDeleted = true;
