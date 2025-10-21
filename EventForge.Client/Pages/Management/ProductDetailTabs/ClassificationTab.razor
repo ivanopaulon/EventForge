@@ -91,8 +91,8 @@
     {
         try
         {
-            var brandsTask = BrandService.GetBrandsAsync(1, 1000);
-            var modelsTask = ModelService.GetModelsAsync(1, 1000);
+            var brandsTask = BrandService.GetBrandsAsync(1, 100);
+            var modelsTask = ModelService.GetModelsAsync(1, 100);
             var umTask = UMService.GetUMsAsync(1, 1000);
 
             await Task.WhenAll(brandsTask, modelsTask, umTask);

@@ -102,7 +102,7 @@
     private async Task OpenCreateDialog()
     {
         // Load unit of measures for the dialog
-        var unitOfMeasuresResult = await UMService.GetUMsAsync(page: 1, pageSize: 1000);
+        var unitOfMeasuresResult = await UMService.GetUMsAsync(page: 1, pageSize: 100);
         var unitOfMeasures = unitOfMeasuresResult?.Items ?? new List<UMDto>();
         
         var parameters = new DialogParameters
@@ -134,7 +134,7 @@
     private async Task OpenEditDialog(ProductUnitDto unit)
     {
         // Load unit of measures for the dialog
-        var unitOfMeasuresResult = await UMService.GetUMsAsync(page: 1, pageSize: 1000);
+        var unitOfMeasuresResult = await UMService.GetUMsAsync(page: 1, pageSize: 100);
         var unitOfMeasures = unitOfMeasuresResult?.Items ?? new List<UMDto>();
         
         var parameters = new DialogParameters
