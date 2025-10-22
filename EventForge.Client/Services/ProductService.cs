@@ -53,6 +53,21 @@ public class ProductService : IProductService
         }
     }
 
+    // NEW: request detailed product payload (server-side exposes a detailed DTO)
+    public async Task<ProductDto?> GetProductDetailAsync(Guid id)
+    {
+        try
+        {
+            // Endpoint path: assume server exposes /{id}/detail
+            return await _httpClientService.GetAsync<ProductDto>($"{BaseUrl}/{id}/detail");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product detail by ID {Id}", id);
+            return null;
+        }
+    }
+
     public async Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20)
     {
         try

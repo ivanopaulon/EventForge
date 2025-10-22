@@ -13,6 +13,10 @@ public interface IProductService
 {
     Task<ProductDto?> GetProductByCodeAsync(string code);
     Task<ProductDto?> GetProductByIdAsync(Guid id);
+
+    // NEW: dettagli prodotto (include codes/units/bundle-items)
+    Task<ProductDto?> GetProductDetailAsync(Guid id);
+
     Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20);
     Task<ProductDto?> CreateProductAsync(CreateProductDto createDto);
     Task<ProductDto?> UpdateProductAsync(Guid id, UpdateProductDto updateDto);

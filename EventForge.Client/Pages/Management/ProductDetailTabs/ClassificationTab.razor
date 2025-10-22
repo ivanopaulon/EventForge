@@ -9,6 +9,7 @@
 @inject IUMService UMService
 @inject IEntityManagementService EntityManagementService
 @inject ILogger<ClassificationTab> Logger
+@inject ISnackbar Snackbar
 
 <MudGrid>
     <MudItem xs="12">
@@ -26,7 +27,7 @@
                    Variant="Variant.Outlined"
                    ReadOnly="@(!IsEditMode)"
                    Clearable="true"
-                   @bind-Value:after="NotifyUpdated">
+                   @bind-Value:after="OnBrandChanged">
             @if (_brands != null)
             {
                 @foreach (var brand in _brands)
@@ -121,12 +122,18 @@
     private string? _familyText;
     private string? _groupText;
 
+    // flags to handle parameter-driven loading
+    private bool _lookupsLoaded = false;
+    private Guid? _currentBrandId;
+
     protected override async Task OnInitializedAsync()
     {
+        // keep lightweight here; actual lookup load may depend on Product passed by parent
+        // attempt to load lookups but OnParametersSetAsync will ensure models are synced to Product.BrandId
         await LoadDataAsync();
     }
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         // populate local buffers from Product when parameters change
         if (Product != null)
@@ -135,25 +142,147 @@
             _familyText = Product.FamilyNodeId?.ToString();
             _groupText = Product.GroupNodeId?.ToString();
         }
+
+        // If initial lookups not loaded yet, LoadDataAsync already called from OnInitializedAsync,
+        // but parent may have provided Product after initialization; ensure models reflect current brand.
+        if (!_lookupsLoaded)
+        {
+            // ensure lookups are loaded (brands, ums, models possibly filtered)
+            await LoadDataAsync();
+        }
+        else
+        {
+            // if Product.BrandId changed after lookups were loaded, refresh models accordingly
+            if (!Nullable.Equals(_currentBrandId, Product?.BrandId))
+            {
+                _currentBrandId = Product?.BrandId;
+                try
+                {
+                    if (Product?.BrandId != null)
+                    {
+                        var modelsByBrand = await ModelService.GetModelsByBrandIdAsync(Product.BrandId.Value, 1, 100);
+                        _models = modelsByBrand?.Items ?? Enumerable.Empty<ModelDto>();
+                    }
+                    else
+                    {
+                        var modelsResult = await ModelService.GetModelsAsync(1, 100);
+                        _models = modelsResult?.Items ?? Enumerable.Empty<ModelDto>();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to refresh models for brand {BrandId} in OnParametersSetAsync", Product?.BrandId);
+                    _models = Enumerable.Empty<ModelDto>();
+                    Snackbar.Add(TranslationService.GetTranslation("product.loadModelsError", "Errore nel caricamento dei modelli"), Severity.Warning);
+                }
+                StateHasChanged();
+            }
+        }
     }
 
     private async Task LoadDataAsync()
     {
         try
         {
-            var brandsTask = BrandService.GetBrandsAsync(1, 100);
-            var modelsTask = ModelService.GetModelsAsync(1, 100);
-            var umTask = UMService.GetUMsAsync(1, 100);
+            // Load required lookups defensively: each call handled independently so one failure doesn't prevent others
+            try
+            {
+                var brandsResult = await BrandService.GetBrandsAsync(1, 100);
+                _brands = brandsResult?.Items ?? Enumerable.Empty<BrandDto>();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to load brands");
+                _brands = Enumerable.Empty<BrandDto>();
+                Snackbar.Add(TranslationService.GetTranslation("product.loadBrandsError", "Errore nel caricamento dei marchi"), Severity.Warning);
+            }
 
-            await Task.WhenAll(brandsTask, modelsTask, umTask);
+            try
+            {
+                // if product already has a brand, prefer loading models filtered by brand to reduce payload and be accurate
+                if (Product?.BrandId != null)
+                {
+                    var modelsByBrand = await ModelService.GetModelsByBrandIdAsync(Product.BrandId.Value, 1, 100);
+                    _models = modelsByBrand?.Items ?? Enumerable.Empty<ModelDto>();
+                    _currentBrandId = Product.BrandId;
+                }
+                else
+                {
+                    var modelsResult = await ModelService.GetModelsAsync(1, 100);
+                    _models = modelsResult?.Items ?? Enumerable.Empty<ModelDto>();
+                    _currentBrandId = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to load models");
+                _models = Enumerable.Empty<ModelDto>();
+                Snackbar.Add(TranslationService.GetTranslation("product.loadModelsError", "Errore nel caricamento dei modelli"), Severity.Warning);
+            }
 
-            _brands = (await brandsTask)?.Items;
-            _models = (await modelsTask)?.Items;
-            _unitsOfMeasure = (await umTask)?.Items;
+            try
+            {
+                var umsResult = await UMService.GetUMsAsync(1, 100);
+                _unitsOfMeasure = umsResult?.Items ?? Enumerable.Empty<UMDto>();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to load units of measure");
+                _unitsOfMeasure = Enumerable.Empty<UMDto>();
+                Snackbar.Add(TranslationService.GetTranslation("product.loadUMError", "Errore nel caricamento unità di misura"), Severity.Warning);
+            }
+
+            _lookupsLoaded = true;
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Error loading classification lookups");
+            // generic fallback - should not be reached because inner catches handle expected failures
+            Logger.LogError(ex, "Unexpected error loading classification lookups");
+            Snackbar.Add(TranslationService.GetTranslation("product.loadLookupsError", "Errore caricamento dati classificazione"), Severity.Error);
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnBrandChanged()
+    {
+        try
+        {
+            // When brand changes, reload models for the selected brand.
+            if (Product?.BrandId == null)
+            {
+                _models = Enumerable.Empty<ModelDto>();
+                Product.ModelId = null;
+            }
+            else
+            {
+                try
+                {
+                    var modelsByBrand = await ModelService.GetModelsByBrandIdAsync(Product.BrandId.Value, 1, 100);
+                    _models = modelsByBrand?.Items ?? Enumerable.Empty<ModelDto>();
+                    _currentBrandId = Product.BrandId;
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to load models for brand {BrandId}", Product.BrandId);
+                    _models = Enumerable.Empty<ModelDto>();
+                    Snackbar.Add(TranslationService.GetTranslation("product.loadModelsByBrandError", "Errore caricamento modelli per il marchio selezionato"), Severity.Warning);
+                }
+
+                // If selected model doesn't belong to new brand, clear it
+                if (Product.ModelId.HasValue && !_models.Any(m => m.Id == Product.ModelId.Value))
+                {
+                    Product.ModelId = null;
+                }
+            }
+        }
+        finally
+        {
+            // notify parent that product has changed (brand/model may have been cleared)
+            await NotifyUpdated();
+            StateHasChanged();
         }
     }
 
@@ -170,6 +299,7 @@
                 // invalid GUID — keep previous value and optionally inform user
                 Logger.LogWarning("Invalid GUID entered for Category: {Value}", _categoryText);
                 Product.CategoryNodeId = null;
+                Snackbar.Add(TranslationService.GetTranslation("product.invalidGuid", "GUID non valido"), Severity.Warning);
             }
 
             if (OnProductUpdated.HasDelegate)
@@ -193,6 +323,7 @@
             {
                 Logger.LogWarning("Invalid GUID entered for Family: {Value}", _familyText);
                 Product.FamilyNodeId = null;
+                Snackbar.Add(TranslationService.GetTranslation("product.invalidGuid", "GUID non valido"), Severity.Warning);
             }
 
             if (OnProductUpdated.HasDelegate)
@@ -216,6 +347,7 @@
             {
                 Logger.LogWarning("Invalid GUID entered for Group: {Value}", _groupText);
                 Product.GroupNodeId = null;
+                Snackbar.Add(TranslationService.GetTranslation("product.invalidGuid", "GUID non valido"), Severity.Warning);
             }
 
             if (OnProductUpdated.HasDelegate)

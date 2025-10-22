@@ -90,6 +90,7 @@
                 </MudTabPanel>
 
                 <MudTabPanel Text="@TranslationService.GetTranslation("product.classification", "Classificazione")" Icon="@Icons.Material.Outlined.Category">
+                    <!-- Use detailed product payload so ClassificationTab gets full info -->
                     <ClassificationTab Product="@_product" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" />
                 </MudTabPanel>
 
@@ -161,7 +162,10 @@
         _isLoading = true;
         try
         {
-            _product = await ProductService.GetProductByIdAsync(ProductId);
+            // Prefer detailed payload if available on client service
+            var productResult = await ProductService.GetProductDetailAsync(ProductId) ?? await ProductService.GetProductByIdAsync(ProductId);
+            _product = productResult;
+
             if (_product != null)
             {
                 await LoadRelatedEntitiesAsync();

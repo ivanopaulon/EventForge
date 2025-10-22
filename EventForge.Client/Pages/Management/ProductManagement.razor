@@ -13,14 +13,14 @@
 @inject ITranslationService TranslationService
 @inject ILogger<ProductManagement> Logger
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4 px-0" Style="width:100%; min-height:100vh; display:flex; flex-direction:column;">
     @if (_isLoading)
     {
         <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
     }
     else
     {
-        <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4">
+        <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4 mx-0 d-flex flex-column">
             <div class="d-flex justify-space-between align-center mb-4">
                 <div>
                     <MudText Typo="Typo.h4">
@@ -34,7 +34,7 @@
             </div>
 
             <!-- Filters Section -->
-            <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
+            <MudPaper Elevation="0" Class="pa-3 mb-4 mx-0">
                 <div class="d-flex gap-3 align-center flex-wrap">
                     <MudTextField @bind-Value="_searchTerm"
                                   @bind-Value:after="OnSearchChanged"
@@ -49,7 +49,7 @@
             </MudPaper>
 
             <!-- Products Data Table -->
-            <MudPaper Elevation="1" Class="border-rounded">
+            <MudPaper Elevation="1" Class="border-rounded mx-0 flex-grow-1 d-flex flex-column" Style="min-height:0;">
                 <MudCardHeader Class="pa-2">
                     <CardHeaderContent>
                         <MudText Typo="Typo.h6">
@@ -73,13 +73,15 @@
                                            OnCreate="@OpenCreateProductDrawer" />
                     </CardHeaderActions>
                 </MudCardHeader>
-                <MudCardContent Class="pa-1">
+
+                <MudCardContent Class="pa-1 flex-grow-1" Style="min-height:0;">
                     @if (_isLoadingProducts)
                     {
                         <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
                     }
                     else
                     {
+                        <!-- Altezza calcolata per non superare la viewport; regola il valore 220px se necessario -->
                         <MudTable T="ProductDto" 
                                   Items="_filteredProducts" 
                                   Hover="true" 
@@ -89,7 +91,7 @@
                                   SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
                                   AllowUnsorted="false"
                                   FixedHeader="true"
-                                  Height="60vh">
+                                  Height="calc(100vh - 220px)">
                             <HeaderContent>
                                 <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => x.Code)">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel></MudTh>
                                 <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => x.Name)">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
