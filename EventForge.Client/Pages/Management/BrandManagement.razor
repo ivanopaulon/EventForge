@@ -13,6 +13,9 @@
 @inject ILogger<BrandManagement> Logger
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <PageLoadingOverlay IsVisible="_isLoading || _isLoadingBrands"
+                        Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
     @if (_isLoading)
     {
         <MudProgressCircular Color="Color.Primary" Indeterminate="true" />

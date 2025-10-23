@@ -13,6 +13,9 @@
 @inject ILogger<VatNatureManagement> Logger
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <PageLoadingOverlay IsVisible="_isLoading || _isLoadingVatNatures"
+                         Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
     @if (_isLoading)
     {
         <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
@@ -284,51 +287,4 @@
             _vatNatures[index] = updatedVatNature;
         }
         StateHasChanged();
-        await Task.CompletedTask;
-    }
-
-    private async Task ViewVatNature(VatNatureDto vatNature)
-    {
-        _vatNatureDrawerMode = EntityDrawerMode.View;
-        _selectedVatNature = vatNature;
-        _vatNatureDrawerOpen = true;
-        await Task.CompletedTask;
-    }
-
-    private async Task EditVatNature(VatNatureDto vatNature)
-    {
-        _vatNatureDrawerMode = EntityDrawerMode.Edit;
-        _selectedVatNature = vatNature;
-        _vatNatureDrawerOpen = true;
-        await Task.CompletedTask;
-    }
-
-    private async Task DeleteVatNature(VatNatureDto vatNature)
-    {
-        var confirmed = await DialogService.ShowMessageBox(
-            TranslationService.GetTranslation("financial.deleteVatNatureTitle", "Conferma Eliminazione"),
-            TranslationService.GetTranslation("financial.deleteVatNatureMessage", "Sei sicuro di voler eliminare la natura IVA '{0}'?", vatNature.Name),
-            yesText: TranslationService.GetTranslation("button.delete", "Elimina"),
-            cancelText: TranslationService.GetTranslation("button.cancel", "Annulla"));
-
-        if (confirmed == true)
-        {
-            try
-            {
-                await FinancialService.DeleteVatNatureAsync(vatNature.Id);
-                _vatNatures.Remove(vatNature);
-                Snackbar.Add(
-                    TranslationService.GetTranslation("financial.deleteVatNatureSuccess", "Natura IVA eliminata con successo"), 
-                    Severity.Success);
-                StateHasChanged();
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error deleting VAT nature");
-                Snackbar.Add(
-                    TranslationService.GetTranslation("financial.deleteVatNatureError", "Errore nell'eliminazione della natura IVA: {0}", ex.Message), 
-                    Severity.Error);
-            }
-        }
-    }
-}
+        await Task.Completed

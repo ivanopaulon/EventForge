@@ -13,6 +13,9 @@
 @inject ILogger<UnitOfMeasureManagement> Logger
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <PageLoadingOverlay IsVisible="_isLoading || _isLoadingUMs"
+                         Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
     @if (_isLoading)
     {
         <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
@@ -43,13 +46,13 @@
                                   Adornment="Adornment.End"
                                   AdornmentIcon="@Icons.Material.Outlined.Search"
                                   Clearable="true"
-                                  Style="flex: 2;" />
+                                  Style="flex:2;" />
                     <MudSelect T="string" @bind-Value="_defaultFilter" @bind-Value:after="OnDefaultFilterChanged" 
                                Label="@TranslationService.GetTranslation("field.filter", "Filtro")" 
                                Placeholder="@TranslationService.GetTranslation("um.selectFilter", "Seleziona filtro...")"
                                Variant="Variant.Outlined"
                                Clearable="true"
-                               Style="flex: 1;">
+                               Style="flex:1;">
                         <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
                         <MudSelectItem Value="@("default")">@TranslationService.GetTranslation("um.defaultOnly", "Solo Predefinite")</MudSelectItem>
                         <MudSelectItem Value="@("standard")">@TranslationService.GetTranslation("um.standardOnly", "Solo Standard")</MudSelectItem>
@@ -133,7 +136,7 @@
                                     </MudChip>
                                 </MudTd>
                                 <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
-                                    <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width: 300px;">
+                                    <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:300px;">
                                         @(string.IsNullOrEmpty(context.Description) ? "-" : context.Description)
                                     </MudText>
                                 </MudTd>
@@ -200,7 +203,7 @@
                             </NoRecordsContent>
 
                             <PagerContent>
-                                <MudTablePager PageSizeOptions="new[] { 10, 25, 50, 100 }" />
+                                <MudTablePager PageSizeOptions="new[] {10,25,50,100 }" />
                             </PagerContent>
                         </MudTable>
                     }

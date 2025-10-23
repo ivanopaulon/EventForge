@@ -1,0 +1,216 @@
+@page "/product-management/categories"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Categories
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@attribute [Authorize]
+@inject IAuthService AuthService
+@inject ICategoryService CategoryService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<ProductCategoryManagement> Logger
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+ <PageLoadingOverlay IsVisible="_isLoading || _isLoadingCategories"
+ Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
+ @if (_isLoading)
+ {
+ <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+ }
+ else
+ {
+ <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4">
+ <div class="d-flex justify-space-between align-center mb-4">
+ <div>
+ <MudText Typo="Typo.h4">
+ <MudIcon Icon="@Icons.Material.Outlined.Category" Class="mr-2" />
+ @TranslationService.GetTranslation("category.management", "Gestione Categorie Prodotto")
+ </MudText>
+ <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+ @TranslationService.GetTranslation("category.managementDescription", "Gestisci le categorie per organizzare i prodotti")
+ </MudText>
+ </div>
+ </div>
+
+ <!-- Filters Section -->
+ <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
+ <div class="d-flex gap-3 align-center flex-wrap">
+ <MudTextField @bind-Value="_searchTerm"
+ @bind-Value:after="OnSearchChanged"
+ Label="@TranslationService.GetTranslation("category.search", "Cerca categorie")"
+ Placeholder="@TranslationService.GetTranslation("category.searchPlaceholder", "Inserisci nome o descrizione...")"
+ Variant="Variant.Outlined"
+ Adornment="Adornment.End"
+ AdornmentIcon="@Icons.Material.Outlined.Search"
+ Clearable="true"
+ Style="flex:2;" />
+ <MudSelect T="string" @bind-Value="_parentFilter" @bind-Value:after="OnParentFilterChanged" 
+ Label="@TranslationService.GetTranslation("category.parentFilter", "Categoria Padre")" 
+ Placeholder="@TranslationService.GetTranslation("category.selectParent", "Seleziona categoria padre...")"
+ Variant="Variant.Outlined"
+ Clearable="true"
+ Style="flex:1;">
+ <MudSelectItem Value="@(\"all\")">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
+ @foreach (var cat in _parentCategories)
+ {
+ <MudSelectItem Value="@cat.Id">@cat.Name</MudSelectItem>
+ }
+ </MudSelect>
+ </div>
+ </MudPaper>
+
+ <!-- Categories Data Table -->
+ <MudPaper Elevation="1" Class="border-rounded">
+ <MudCardHeader Class="pa-2">
+ <CardHeaderContent>
+ <MudText Typo="Typo.h6">
+ <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
+ @TranslationService.GetTranslation("category.list", "Lista Categorie")
+ <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+ (@_filteredCategories.Count() @TranslationService.GetTranslation("category.itemsFound", "elementi trovati"))
+ </MudText>
+ </MudText>
+ </CardHeaderContent>
+ <CardHeaderActions>
+ <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
+ ShowRefresh="true"
+ ShowExport="true" 
+ ShowCreate="true"
+ ShowAuditLog="false"
+ CreateIcon="@Icons.Material.Outlined.Add"
+ CreateTooltip="@TranslationService.GetTranslation("category.createNew", "Crea nuova categoria")"
+ IsDisabled="_isLoadingCategories"
+ OnRefresh="@LoadCategoriesAsync"
+ OnCreate="@OpenCreateCategoryDrawer" />
+ </CardHeaderActions>
+ </MudCardHeader>
+ <MudCardContent Class="pa-1">
+ @if (_isLoadingCategories)
+ {
+ <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+ }
+ else
+ {
+ <MudTable T="CategoryDto" 
+ Items="_filteredCategories" 
+ Hover="true" 
+ Striped="true"
+ Loading="_isLoadingCategories"
+ LoadingProgressColor="Color.Info"
+ SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
+ AllowUnsorted="false"
+ Dense="false"
+ Breakpoint="Breakpoint.Sm">
+ <HeaderContent>
+ <MudTh><MudTableSortLabel SortBy="new Func<CategoryDto, object>(x => x.Name)">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
+ <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
+ <MudTh>@TranslationService.GetTranslation("field.parent", "Padre")</MudTh>
+ <MudTh><MudTableSortLabel SortBy="new Func<CategoryDto, object>(x => x.IsActive)">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel></MudTh>
+ <MudTh><MudTableSortLabel SortBy="new Func<CategoryDto, object>(x => x.CreatedAt)">@TranslationService.GetTranslation("field.createdAt", "Data Creazione")</MudTableSortLabel></MudTh>
+ <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
+ </HeaderContent>
+ <RowTemplate>
+ <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+ <MudText Typo="Typo.body2">@context.Name</MudText>
+ </MudTd>
+ <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
+ <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:300px;">
+ @(string.IsNullOrEmpty(context.Description) ? "-" : context.Description)
+ </MudText>
+ </MudTd>
+ <MudTd DataLabel="@TranslationService.GetTranslation("field.parent", "Padre")">
+ <MudText Typo="Typo.body2">@(context.ParentName ?? "-")</MudText>
+ </MudTd>
+ <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+ @if (context.IsActive)
+ {
+ <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">
+ @TranslationService.GetTranslation("status.active", "Attivo")
+ </MudChip>
+ }
+ else
+ {
+ <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+ @TranslationService.GetTranslation("status.inactive", "Inattivo")
+ </MudChip>
+ }
+ </MudTd>
+ <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Data Creazione")">
+ <MudText Typo="Typo.body2">@context.CreatedAt.ToString("dd/MM/yyyy")</MudText>
+ </MudTd>
+ <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
+ <ActionButtonGroup EntityName="@context.Name"
+ ItemDisplayName="@context.Name"
+ ShowView="true"
+ ShowEdit="true"
+ ShowAuditLog="true"
+ ShowToggleStatus="true"
+ ShowDelete="true"
+ IsActive="@context.IsActive"
+ OnView="@(() => ViewCategory(context))"
+ OnEdit="@(() => EditCategory(context))"
+ OnAuditLog="@(() => ViewCategoryAuditLog(context))"
+ OnToggleStatus="@(() => ToggleCategoryStatus(context))"
+ OnDelete="@(() => DeleteCategory(context))" />
+ </MudTd>
+ </RowTemplate>
+
+ <NoRecordsContent>
+ <div class="text-center pa-2 pa-sm-3 pa-md-4">
+ <MudIcon Icon="@Icons.Material.Outlined.Category" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+ <MudText Typo="Typo.h6" Class="mb-2">
+ @(_categories.Any() ? 
+ TranslationService.GetTranslation("category.noMatchFilters", "Nessuna categoria corrisponde ai filtri applicati") : 
+ TranslationService.GetTranslation("category.noFound", "Nessuna categoria trovata"))
+ </MudText>
+ @if (_categories.Any())
+ {
+ <MudButton Variant="Variant.Text" 
+ Color="Color.Primary" 
+ OnClick="@ClearFilters">
+ @TranslationService.GetTranslation("button.clearFilters", "Cancella Filtri")
+ </MudButton>
+ }
+ else
+ {
+ <MudButton Variant="Variant.Filled" 
+ Color="Color.Primary" 
+ StartIcon="@Icons.Material.Outlined.Add"
+ OnClick="@OpenCreateCategoryDrawer">
+ @TranslationService.GetTranslation("category.createFirst", "Crea la prima categoria")
+ </MudButton>
+ }
+ </div>
+ </NoRecordsContent>
+
+ <PagerContent>
+ <MudTablePager PageSizeOptions="new[] {10,25,50,100 }" />
+ </PagerContent>
+ </MudTable>
+ }
+ </MudCardContent>
+ </MudPaper>
+ </MudPaper>
+
+ <!-- Category Drawer -->
+ <CategoryDrawer @bind-IsOpen="@_categoryDrawerOpen"
+ @bind-Mode="@_categoryDrawerMode"
+ OriginalCategory="@_selectedCategory"
+ AllowEdit="true"
+ OnCategoryCreated="@OnCategoryCreated"
+ OnCategoryUpdated="@OnCategoryUpdated" />
+
+ <!-- Audit History Drawer -->
+ <AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+ EntityType="CATEGORY"
+ EntityId="@_selectedCategoryForAudit?.Id"
+ EntityName="@_selectedCategoryForAudit?.Name" />
+ }
+</MudContainer>
+
+@code {
+ // ...existing code...
+}

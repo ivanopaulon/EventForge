@@ -14,163 +14,159 @@
 @inject ILogger<ProductManagement> Logger
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4 px-0" Style="width:100%; min-height:100vh; display:flex; flex-direction:column;">
-    @if (_isLoading)
-    {
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-    }
-    else
-    {
-        <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4 mx-0 d-flex flex-column">
-            <div class="d-flex justify-space-between align-center mb-4">
-                <div>
-                    <MudText Typo="Typo.h4">
-                        <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Class="mr-2" />
-                        @TranslationService.GetTranslation("product.management", "Gestione Prodotti")
-                    </MudText>
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
-                        @TranslationService.GetTranslation("product.managementDescription", "Gestisci i prodotti e i loro fornitori")
-                    </MudText>
-                </div>
+    <PageLoadingOverlay IsVisible="_isLoading || _isLoadingProducts || _isLoadingStocks"
+                         Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
+    <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4 mx-0 d-flex flex-column">
+        <div class="d-flex justify-space-between align-center mb-4">
+            <div>
+                <MudText Typo="Typo.h4">
+                    <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Class="mr-2" />
+                    @TranslationService.GetTranslation("product.management", "Gestione Prodotti")
+                </MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+                    @TranslationService.GetTranslation("product.managementDescription", "Gestisci i prodotti e i loro fornitori")
+                </MudText>
             </div>
+        </div>
 
-            <!-- Filters Section -->
-            <MudPaper Elevation="0" Class="pa-3 mb-4 mx-0">
-                <div class="d-flex gap-3 align-center flex-wrap">
-                    <MudTextField @bind-Value="_searchTerm"
-                                  @bind-Value:after="OnSearchChanged"
-                                  Label="@TranslationService.GetTranslation("product.search", "Cerca prodotti")"
-                                  Placeholder="@TranslationService.GetTranslation("product.searchPlaceholder", "Inserisci nome o codice...")"
-                                  Variant="Variant.Outlined"
-                                  Adornment="Adornment.End"
-                                  AdornmentIcon="@Icons.Material.Outlined.Search"
-                                  Clearable="true"
-                                  Style="flex: 2;" />
-                </div>
-            </MudPaper>
+        <!-- Filters Section -->
+        <MudPaper Elevation="0" Class="pa-3 mb-4 mx-0">
+            <div class="d-flex gap-3 align-center flex-wrap">
+                <MudTextField @bind-Value="_searchTerm"
+                              @bind-Value:after="OnSearchChanged"
+                              Label="@TranslationService.GetTranslation("product.search", "Cerca prodotti")"
+                              Placeholder="@TranslationService.GetTranslation("product.searchPlaceholder", "Inserisci nome o codice...")"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              Clearable="true"
+                              Style="flex:2;" />
+            </div>
+        </MudPaper>
 
-            <!-- Products Data Table -->
-            <MudPaper Elevation="1" Class="border-rounded mx-0 flex-grow-1 d-flex flex-column" Style="min-height:0;">
-                <MudCardHeader Class="pa-2">
-                    <CardHeaderContent>
-                        <MudText Typo="Typo.h6">
-                            <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
-                            @TranslationService.GetTranslation("product.list", "Lista Prodotti")
-                            <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
-                                (@_filteredProducts.Count() @TranslationService.GetTranslation("common.itemsFound", "elementi trovati"))
-                            </MudText>
+        <!-- Products Data Table -->
+        <MudPaper Elevation="1" Class="border-rounded mx-0 flex-grow-1 d-flex flex-column" Style="min-height:0;">
+            <MudCardHeader Class="pa-2">
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
+                        @TranslationService.GetTranslation("product.list", "Lista Prodotti")
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                            (@_filteredProducts.Count() @TranslationService.GetTranslation("common.itemsFound", "elementi trovati"))
                         </MudText>
-                    </CardHeaderContent>
-                    <CardHeaderActions>
-                        <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
-                                           ShowRefresh="true"
-                                           ShowExport="false" 
-                                           ShowCreate="true"
-                                           ShowAuditLog="false"
-                                           CreateIcon="@Icons.Material.Outlined.Add"
-                                           CreateTooltip="@TranslationService.GetTranslation("product.createNew", "Crea nuovo prodotto")"
-                                           IsDisabled="_isLoadingProducts"
-                                           OnRefresh="@LoadProductsAsync"
-                                           OnCreate="@OpenCreateProductDrawer" />
-                    </CardHeaderActions>
-                </MudCardHeader>
+                    </MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
+                                       ShowRefresh="true"
+                                       ShowExport="false" 
+                                       ShowCreate="true"
+                                       ShowAuditLog="false"
+                                       CreateIcon="@Icons.Material.Outlined.Add"
+                                       CreateTooltip="@TranslationService.GetTranslation("product.createNew", "Crea nuovo prodotto")"
+                                       IsDisabled="_isLoadingProducts"
+                                       OnRefresh="@LoadProductsAsync"
+                                       OnCreate="@OpenCreateProductDrawer" />
+                </CardHeaderActions>
+            </MudCardHeader>
 
-                <MudCardContent Class="pa-1 flex-grow-1" Style="min-height:0;">
-                    @if (_isLoadingProducts)
-                    {
-                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
-                    }
-                    else
-                    {
-                        <!-- Altezza calcolata per non superare la viewport; regola il valore 220px se necessario -->
-                        <MudTable T="ProductDto" 
-                                  Items="_filteredProducts" 
-                                  Hover="true" 
-                                  Striped="true"
-                                  Loading="_isLoadingProducts"
-                                  LoadingProgressColor="Color.Info"
-                                  SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
-                                  AllowUnsorted="false"
-                                  FixedHeader="true"
-                                  Height="calc(100vh - 220px)">
-                            <HeaderContent>
-                                <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => x.Code)">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => x.Name)">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
-                                <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
-                                <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => x.DefaultPrice ?? 0)">@TranslationService.GetTranslation("field.price", "Prezzo")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => GetAvailableQuantityForSort(x.Id))">@TranslationService.GetTranslation("warehouse.available", "Giacenza")</MudTableSortLabel></MudTh>
-                                <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
-                            </HeaderContent>
-                            <RowTemplate>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")" Style="width:12%;">@context.Code</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")" Style="width:28%;">
-                                    <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:320px;">@context.Name</MudText>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")" Style="width:30%;">
-                                    <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:420px;">@(string.IsNullOrWhiteSpace(context.ShortDescription) ? "-" : context.ShortDescription)</MudText>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.price", "Prezzo")" Style="text-align: right; width:10%;">
-                                    @if (context.DefaultPrice.HasValue)
+            <MudCardContent Class="pa-1 flex-grow-1" Style="min-height:0;">
+                @if (_isLoadingProducts)
+                {
+                    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+                }
+                else
+                {
+                    <!-- Altezza calcolata per non superare la viewport; regola il valore220px se necessario -->
+                    <MudTable T="ProductDto" 
+                              Items="_filteredProducts" 
+                              Hover="true" 
+                              Striped="true"
+                              Loading="_isLoadingProducts"
+                              LoadingProgressColor="Color.Info"
+                              SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
+                              AllowUnsorted="false"
+                              FixedHeader="true"
+                              Height="calc(100vh -220px)">
+                        <HeaderContent>
+                            <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => x.Code)">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel></MudTh>
+                            <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => x.Name)">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
+                            <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
+                            <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => x.DefaultPrice ??0)">@TranslationService.GetTranslation("field.price", "Prezzo")</MudTableSortLabel></MudTh>
+                            <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => GetAvailableQuantityForSort(x.Id))">@TranslationService.GetTranslation("warehouse.available", "Giacenza")</MudTableSortLabel></MudTh>
+                            <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")" Style="width:12%;">@context.Code</MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")" Style="width:28%;">
+                                <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:320px;">@context.Name</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")" Style="width:30%;">
+                                <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:420px;">@(string.IsNullOrWhiteSpace(context.ShortDescription) ? "-" : context.ShortDescription)</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.price", "Prezzo")" Style="text-align: right; width:10%;">
+                                @if (context.DefaultPrice.HasValue)
+                                {
+                                    <MudText Typo="Typo.body2" Style="font-weight:600;">@context.DefaultPrice.Value.ToString("C2")</MudText>
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.available", "Giacenza")" Style="text-align: right; width:10%;">
+                                @if (_isLoadingStocks)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                                }
+                                else
+                                {
+                                    @if (_productAvailableQuantities.TryGetValue(context.Id, out var avail))
                                     {
-                                        <MudText Typo="Typo.body2" Style="font-weight:600;">@context.DefaultPrice.Value.ToString("C2")</MudText>
-                                    }
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.available", "Giacenza")" Style="text-align: right; width:10%;">
-                                    @if (_isLoadingStocks)
-                                    {
-                                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                                        <MudText Typo="Typo.body2" Style="font-weight:600;">@avail.ToString("N2")</MudText>
                                     }
                                     else
                                     {
-                                        @if (_productAvailableQuantities.TryGetValue(context.Id, out var avail))
-                                        {
-                                            <MudText Typo="Typo.body2" Style="font-weight:600;">@avail.ToString("N2")</MudText>
-                                        }
-                                        else
-                                        {
-                                            <span>-</span>
-                                        }
+                                        <span>-</span>
                                     }
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Style="text-align: right; width:10%;">
-                                    <ActionButtonGroup EntityName="@TranslationService.GetTranslation("entity.product", "Prodotto")"
-                                                       ItemDisplayName="@context.Name"
-                                                       ShowView="false"
-                                                       ShowEdit="true"
-                                                       ShowAuditLog="true"
-                                                       ShowToggleStatus="true"
-                                                       ShowDelete="true"
-                                                       IsActive="@(context.Status != ProductStatus.Deleted)"
-                                                       OnEdit="@(() => EditProduct(context.Id))"
-                                                       OnAuditLog="@(() => ViewProductAuditLog(context))"
-                                                       OnToggleStatus="@(() => ToggleProductStatus(context))"
-                                                       OnDelete="@(() => DeleteProduct(context))" />
-                                </MudTd>
-                            </RowTemplate>
-                            <NoRecordsContent>
-                                <MudText>@TranslationService.GetTranslation("messages.noProducts", "Nessun prodotto trovato")</MudText>
-                            </NoRecordsContent>
-                            <LoadingContent>
-                                <MudText>@TranslationService.GetTranslation("common.loading", "Caricamento...")</MudText>
-                            </LoadingContent>
-                        </MudTable>
-                    }
-                </MudCardContent>
-            </MudPaper>
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Style="text-align: right; width:10%;">
+                                <ActionButtonGroup EntityName="@TranslationService.GetTranslation("entity.product", "Prodotto")"
+                                                   ItemDisplayName="@context.Name"
+                                                   ShowView="false"
+                                                   ShowEdit="true"
+                                                   ShowAuditLog="true"
+                                                   ShowToggleStatus="true"
+                                                   ShowDelete="true"
+                                                   IsActive="@(context.Status != ProductStatus.Deleted)"
+                                                   OnEdit="@(() => EditProduct(context.Id))"
+                                                   OnAuditLog="@(() => ViewProductAuditLog(context))"
+                                                   OnToggleStatus="@(() => ToggleProductStatus(context))"
+                                                   OnDelete="@(() => DeleteProduct(context))" />
+                            </MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText>@TranslationService.GetTranslation("messages.noProducts", "Nessun prodotto trovato")</MudText>
+                        </NoRecordsContent>
+                        <LoadingContent>
+                            <MudText>@TranslationService.GetTranslation("common.loading", "Caricamento...")</MudText>
+                        </LoadingContent>
+                    </MudTable>
+                }
+            </MudCardContent>
         </MudPaper>
-    }
+    </MudPaper>
+
+    <ProductDrawer @bind-IsOpen="_productDrawerOpen"
+                   @bind-Mode="_productDrawerMode"
+                   OriginalProduct="_selectedProduct"
+                   AllowEdit="true"
+                   OnProductCreated="@HandleProductCreated"
+                   OnProductUpdated="@HandleProductUpdated" />
+
+    <AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+                        EntityType="Product"
+                        EntityId="@_selectedProductForAudit?.Id"
+                        EntityName="@_selectedProductForAudit?.Name" />
 </MudContainer>
-
-<ProductDrawer @bind-IsOpen="_productDrawerOpen"
-               @bind-Mode="_productDrawerMode"
-               OriginalProduct="_selectedProduct"
-               AllowEdit="true"
-               OnProductCreated="@HandleProductCreated"
-               OnProductUpdated="@HandleProductUpdated" />
-
-<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
-                    EntityType="Product"
-                    EntityId="@_selectedProductForAudit?.Id"
-                    EntityName="@_selectedProductForAudit?.Name" />
 
 @code {
     private bool _isLoading = true;
@@ -437,7 +433,7 @@
         await LoadProductsAsync();
     }
 
-    // Helper used for sorting header; fallback 0 when unknown
+    // Helper used for sorting header; fallback0 when unknown
     private object GetAvailableQuantityForSort(Guid productId)
-        => _productAvailableQuantities.TryGetValue(productId, out var v) ? v : 0m;
+        => _productAvailableQuantities.TryGetValue(productId, out var v) ? v :0m;
 }

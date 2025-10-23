@@ -1,0 +1,60 @@
+.language-selector {
+ min-width:140px;
+ height:40px;
+ transition: all0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+.language-selector .mud-select-input {
+ padding:8px12px;
+}
+
+.language-item {
+ transition: all0.2s ease;
+}
+
+.language-item:hover {
+ background-color: rgba(var(--mud-palette-action-hover),0.04);
+}
+
+.language-name {
+ margin-left:8px;
+}
+
+/* Flag icons using CSS - flat design */
+.flag-icon {
+ width:20px;
+ height:14px;
+ border-radius:2px;
+ display: inline-block;
+ margin-right:8px;
+ background-size: cover;
+ background-position: center;
+ border:1px solid rgba(0,0,0,0.1);
+}
+
+.flag-it {
+ background: linear-gradient(to right, #00924633.33%, #ffffff33.33%, #ffffff66.66%, #ce2b3766.66%);
+}
+
+.flag-en {
+ background: linear-gradient(to bottom, #01216925%, #ffffff25%, #ffffff75%, #c8102e75%),
+ linear-gradient(to right, #01216925%, #ffffff25%, #ffffff75%, #c8102e75%);
+ background-size:100%33.33%,33.33%100%;
+ background-position:00,00;
+ background-repeat: no-repeat;
+}
+
+.flag-default {
+ background: #cccccc;
+}
+
+/* Animation for language changes */
+.language-selector.changing {
+ animation: languageChange0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+@keyframes languageChange {
+0% { transform: scale(1); opacity:1; }
+50% { transform: scale(0.98); opacity:0.8; }
+100% { transform: scale(1); opacity:1; }
+}

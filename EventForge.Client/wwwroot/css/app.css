@@ -22,6 +22,8 @@
    NOTE: Avoid defining colors directly here - use custom theme variables instead.
 */
 
+@import url("./components/components.css");
+
 /* Global body padding for universal footer */
 body {
     padding-bottom: 80px !important; /* Account for fixed universal footer */

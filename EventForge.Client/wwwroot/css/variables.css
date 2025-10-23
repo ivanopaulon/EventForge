@@ -9,6 +9,7 @@
  --accent: var(--mud-palette-tertiary, #FF6B2C);
 
  --background: var(--mud-palette-background, #F5F6FA);
+ --background-primary: var(--mud-palette-background, #F5F6FA);
  --background-secondary: var(--mud-palette-surface, #FFFFFF);
  --card-background: var(--mud-palette-surface, #FFFFFF);
  --card-border: var(--mud-palette-lines-default, #e0e0e0);
@@ -24,15 +25,15 @@
  --border-primary: var(--mud-palette-primary, #1F2F46);
  --border-secondary: rgba(0,0,0,0.08);
 
- /* Shadows */
- --shadow-sm:01px3px rgba(0,0,0,0.08);
- --shadow-md:04px12px rgba(0,0,0,0.08);
- --shadow-lg:010px30px rgba(0,0,0,0.12);
+ /* Shadows (box-shadow values) */
+ --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+ --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+ --shadow-lg: 0 10px 30px rgba(0,0,0,0.12);
 
  /* Radii */
- --radius-sm:4px;
- --radius-md:8px;
- --radius-lg:12px;
+ --radius-sm: 4px;
+ --radius-md: 8px;
+ --radius-lg: 12px;
 
  /* Neutral palette */
  --neutral-light: #f8f9fa;

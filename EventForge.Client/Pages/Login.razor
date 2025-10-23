@@ -13,7 +13,7 @@
 <MudContainer Fixed>
     <MudPaper Class="login-paper" Elevation="1" role="main">
         <MudStack Row>
-            <MudImage Src="/eventforge.ico" Width="32" Height="32"></MudImage>
+            <MudImage Src="/eventforge.ico" Width="32" Height="32" Class="login-favicon"></MudImage>
             <MudText Typo="Typo.h5"
                      Align="Align.Center"
                      Class="mb-3">
@@ -119,7 +119,7 @@
                     <MudText id="remember-help"
                              Typo="Typo.caption"
                              Class="mud-input-helper-text">
-                        Mantieni l'accesso per 30 giorni
+                        Mantieni l'accesso per30 giorni
                     </MudText>
                 </MudItem>
 
@@ -251,48 +251,3 @@
         }
     }
 }
-
-<style>
-    /* Mapanel_ke background occupy full area inside layout (main is already 100vh and overflow hidden) */
-    .compact-login-container {
-        background: url('/login_background.jpg') content-box no-repeat;
-        background-size: cover;
-        max-width: 100vw;
-        max-height: 100vh;
-        position: absolute !important;
-        align-items: center !important;
-        justify-content: center !important;
-        opacity: 95% !important;
-        z-index: 2 !important;
-    }
-
-    .login-paper {
-        width: 370px !important;
-        background-color: antiquewhite !important;
-        border-radius: 5px !important;
-        margin: auto !important;
-        justify-content: center !important;
-        padding: 10px;
-        elevation: higher;
-    }
-
-    /* favicon in header */
-    .login-favicon {
-        width: 36px;
-        height: 36px;
-        object-fit: contain;
-        margin-right: 12px;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-    }
-
-    /* Responsive: allow vertical scrolling on small screens */
-    @@media (max-width: 767px) {
-        .login-container-centered {
-            min-height: auto;
-            background-attachment: scroll;
-            padding: 12px 8px 72px 8px; /* leave space for fixed footer */
-        }
-
-        .login-favicon { width: 28px; height: 28px; margin-right: 8px; }
-    }
-</style>

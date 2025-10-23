@@ -18,7 +18,7 @@ namespace EventForge.Client.Services
     {
         private readonly IHttpClientService _httpClientService;
         private readonly ILogger<BusinessPartyService> _logger;
-        private readonly ILoadingDialogService _loadingDialogService;
+        private readonly ILoadingDialogService _loadingDialogService; // kept for DI compatibility
 
         public BusinessPartyService(
             IHttpClientService httpClientService,
@@ -51,30 +51,9 @@ namespace EventForge.Client.Services
 
         public async Task<BusinessPartyDto> CreateBusinessPartyAsync(CreateBusinessPartyDto createDto)
         {
-            try
-            {
-                await _loadingDialogService.ShowAsync("Creazione Fornitore", "Configurazione nuovo fornitore...", true);
-                await _loadingDialogService.UpdateProgressAsync(30);
-
-                await _loadingDialogService.UpdateOperationAsync("Validazione dati fornitore...");
-                await _loadingDialogService.UpdateProgressAsync(60);
-
-                var result = await _httpClientService.PostAsync<CreateBusinessPartyDto, BusinessPartyDto>("api/v1/businessparties", createDto) ??
-                       throw new InvalidOperationException("Failed to create business party");
-
-                await _loadingDialogService.UpdateOperationAsync("Fornitore creato con successo");
-                await _loadingDialogService.UpdateProgressAsync(100);
-
-                await Task.Delay(1000);
-                await _loadingDialogService.HideAsync();
-
-                return result;
-            }
-            catch (Exception)
-            {
-                await _loadingDialogService.HideAsync();
-                throw;
-            }
+            // Keep service free of UI concerns. Pages/components should control loading UI using page-level flags or the global loading dialog service directly if needed.
+            var result = await _httpClientService.PostAsync<CreateBusinessPartyDto, BusinessPartyDto>("api/v1/businessparties", createDto);
+            return result ?? throw new InvalidOperationException("Failed to create business party");
         }
 
         public async Task<BusinessPartyDto> UpdateBusinessPartyAsync(Guid id, UpdateBusinessPartyDto updateDto)

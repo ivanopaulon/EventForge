@@ -1,0 +1,46 @@
+@using MudBlazor
+
+@if (IsVisible)
+{
+ <div class="page-loading-overlay" role="status" aria-live="polite" aria-label="Caricamento in corso">
+ <div class="page-loading-content">
+ <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+ @if (!string.IsNullOrEmpty(Message))
+ {
+ <MudText Typo="Typo.body1" Class="mt-3 mud-text-secondary">@Message</MudText>
+ }
+ </div>
+ </div>
+}
+
+@code {
+ [Parameter] public bool IsVisible { get; set; }
+ [Parameter] public string? Message { get; set; }
+}
+
+<style>
+.page-loading-overlay {
+ position: fixed;
+ inset:0;
+ background: rgba(0,0,0,0.35);
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ z-index:9998; /* below dialogs but above page content */
+}
+
+.page-loading-content {
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ justify-content: center;
+ gap:8px;
+ padding: 16px 24px;
+ border-radius:8px;
+ backdrop-filter: blur(2px);
+}
+
+@@media (prefers-reduced-motion: reduce) {
+ .page-loading-content { transition: none; }
+}
+</style>

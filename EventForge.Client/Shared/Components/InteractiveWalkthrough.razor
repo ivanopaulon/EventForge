@@ -82,53 +82,6 @@
     </div>
 }
 
-<style>
-    .walkthrough-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 9999;
-        pointer-events: auto;
-    }
-
-    .walkthrough-backdrop {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.7);
-        transition: background-color 0.3s ease;
-    }
-
-    .walkthrough-highlight {
-        position: absolute;
-        border: 3px solid var(--mud-palette-primary);
-        border-radius: 8px;
-        background-color: rgba(255, 255, 255, 0.1);
-        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7);
-        transition: all 0.3s ease;
-        pointer-events: none;
-    }
-
-    .walkthrough-card {
-        position: absolute;
-        max-width: 400px;
-        min-width: 300px;
-        transition: all 0.3s ease;
-        z-index: 10000;
-    }
-
-    @@media (max-width: 600px) {
-        .walkthrough-card {
-            max-width: 90vw;
-            min-width: 280px;
-        }
-    }
-</style>
-
 @code {
     /// <summary>
     /// Component ID for the walkthrough (e.g., "notifications", "chat").

@@ -13,6 +13,9 @@
 @inject ILogger<VatRateManagement> Logger
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <PageLoadingOverlay IsVisible="_isLoading || _isLoadingVatRates"
+                         Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
     @if (_isLoading)
     {
         <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
@@ -43,13 +46,13 @@
                                   Adornment="Adornment.End"
                                   AdornmentIcon="@Icons.Material.Outlined.Search"
                                   Clearable="true"
-                                  Style="flex: 2;" />
+                                  Style="flex:2;" />
                     <MudSelect T="string" @bind-Value="_statusFilter" @bind-Value:after="OnStatusFilterChanged" 
                                Label="@TranslationService.GetTranslation("field.status", "Stato")" 
                                Placeholder="@TranslationService.GetTranslation("financial.selectStatus", "Seleziona stato...")"
                                Variant="Variant.Outlined"
                                Clearable="true"
-                               Style="flex: 1;">
+                               Style="flex:1;">
                         <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
                         <MudSelectItem Value="@("active")">@TranslationService.GetTranslation("field.active", "Attivo")</MudSelectItem>
                         <MudSelectItem Value="@("suspended")">@TranslationService.GetTranslation("field.suspended", "Sospeso")</MudSelectItem>
@@ -107,7 +110,7 @@
                                 <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.ValidFrom ?? DateTime.MinValue))">@TranslationService.GetTranslation("field.validFrom", "Valido Da")</MudTableSortLabel></MudTh>
                                 <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.ValidTo ?? DateTime.MaxValue))">@TranslationService.GetTranslation("field.validTo", "Valido A")</MudTableSortLabel></MudTh>
                                 <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<VatRateDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel></MudTh>
-                                <MudTh Class="text-center" Style="min-width: 120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                                <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                             </HeaderContent>
 
                             <RowTemplate>
@@ -118,7 +121,7 @@
                                         </MudAvatar>
                                         <div>
                                             <MudText Typo="Typo.body2">@context.Name</MudText>
-                                            <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @context.Id.ToString().Substring(0, 8)...</MudText>
+                                            <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @context.Id.ToString().Substring(0,8)...</MudText>
                                         </div>
                                     </div>
                                 </MudTd>
