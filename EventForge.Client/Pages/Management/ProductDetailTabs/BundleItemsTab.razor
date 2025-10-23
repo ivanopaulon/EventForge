@@ -16,7 +16,7 @@
         </MudText>
         <MudButton Variant="Variant.Filled" 
                    Color="Color.Primary" 
-                   StartIcon="@Icons.Material.Outlined.Add"
+                   StartIcon="@Icons.Material.Filled.Add"
                    OnClick="@OpenCreateDialog"
                    Size="Size.Small">
             @TranslationService.GetTranslation("common.add", "Aggiungi")
@@ -48,11 +48,11 @@
                     </MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")">@context.Quantity</MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
-                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" 
                                        Size="Size.Small" 
                                        Color="Color.Primary"
                                        OnClick="@(() => OpenEditDialog(context))" />
-                        <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" 
                                        Size="Size.Small" 
                                        Color="Color.Error"
                                        OnClick="@(() => DeleteBundleItemAsync(context))" />

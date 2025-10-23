@@ -8,7 +8,7 @@
 <MudGrid>
     <MudItem xs="12">
         <MudText Typo="Typo.h6" Class="mb-3">
-            <MudIcon Icon="@Icons.Material.Outlined.AttachMoney" Class="mr-2" />
+            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Class="mr-2" />
             @TranslationService.GetTranslation("product.pricingInfo", "Informazioni Prezzi")
         </MudText>
         <MudDivider Class="mb-4" />
@@ -23,6 +23,7 @@
                          Format="N2"
                          Adornment="Adornment.Start"
                          AdornmentText="€"
+                         Size="Size.Small"
                          @bind-Value:after="NotifyUpdated" />
     </MudItem>
 
@@ -42,6 +43,7 @@
                    Variant="Variant.Outlined"
                    ReadOnly="@(!IsEditMode)"
                    Clearable="true"
+                   Size="Size.Small"
                    @bind-Value:after="NotifyUpdated">
             @if (_vatRates != null)
             {
@@ -76,6 +78,40 @@
         {
             Logger.LogWarning(ex, "Unable to load VAT rates");
         }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Ensure VAT rates are loaded and include the currently selected VatRate so MudSelect shows the label
+        if (_vatRates == null)
+        {
+            try
+            {
+                _vatRates = await FinancialService.GetVatRatesAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Unable to load VAT rates on parameter set");
+            }
+        }
+
+        // If product has a VatRateId that's not present in the loaded list, fetch it explicitly and add it
+        try
+        {
+            if (Product?.VatRateId.HasValue == true && _vatRates != null && !_vatRates.Any(v => v.Id == Product.VatRateId.Value))
+            {
+                var single = await FinancialService.GetVatRateAsync(Product.VatRateId.Value);
+                if (single != null)
+                {
+                    _vatRates = _vatRates.Append(single).ToList();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Unable to load specific VAT rate {VatRateId}", Product?.VatRateId);
+        }
+        StateHasChanged();
     }
 
     // Nota: chiamato come @bind-Checked:after, deve essere parameterless

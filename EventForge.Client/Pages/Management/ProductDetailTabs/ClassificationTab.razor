@@ -29,6 +29,7 @@
                    Variant="Variant.Outlined"
                    ReadOnly="@(!IsEditMode)"
                    Clearable="true"
+                   Size="Size.Small"
                    @bind-Value:after="OnBrandChanged">
             @if (_brands != null)
             {
@@ -47,6 +48,7 @@
                    Variant="Variant.Outlined"
                    ReadOnly="@(!IsEditMode)"
                    Clearable="true"
+                   Size="Size.Small"
                    @bind-Value:after="NotifyUpdated">
             @if (_models != null)
             {
@@ -65,6 +67,7 @@
                    Variant="Variant.Outlined"
                    ReadOnly="@(!IsEditMode)"
                    Clearable="true"
+                   Size="Size.Small"
                    @bind-Value:after="NotifyUpdated">
             @if (_unitsOfMeasure != null)
             {
@@ -85,11 +88,12 @@
                     <MudTextField Value="@(_categoryName ?? Product.CategoryNodeId?.ToString() ?? "-")"
                                   Variant="Variant.Outlined"
                                   ReadOnly="true"
+                                  Size="Size.Small"
                                   Style="flex:1" />
-                    <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.Category))">
+                    <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.Category))" Size="Size.Small">
                         @TranslationService.GetTranslation("common.select","Seleziona")
                     </MudButton>
-                    <MudIconButton Icon="@Icons.Material.Outlined.Clear" Disabled="!IsEditMode || Product.CategoryNodeId == null" OnClick="@ClearCategory" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Clear" Disabled="!IsEditMode || Product.CategoryNodeId == null" OnClick="@ClearCategory" Size="Size.Small" />
                 </div>
             </MudItem>
 
@@ -99,11 +103,12 @@
                     <MudTextField Value="@(_familyName ?? Product.FamilyNodeId?.ToString() ?? "-")"
                                   Variant="Variant.Outlined"
                                   ReadOnly="true"
+                                  Size="Size.Small"
                                   Style="flex:1" />
-                    <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.Family))">
+                    <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.Family))" Size="Size.Small">
                         @TranslationService.GetTranslation("common.select","Seleziona")
                     </MudButton>
-                    <MudIconButton Icon="@Icons.Material.Outlined.Clear" Disabled="!IsEditMode || Product.FamilyNodeId == null" OnClick="@ClearFamily" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Clear" Disabled="!IsEditMode || Product.FamilyNodeId == null" OnClick="@ClearFamily" Size="Size.Small" />
                 </div>
             </MudItem>
 
@@ -113,11 +118,12 @@
                     <MudTextField Value="@(_groupName ?? Product.GroupNodeId?.ToString() ?? "-")"
                                   Variant="Variant.Outlined"
                                   ReadOnly="true"
+                                  Size="Size.Small"
                                   Style="flex:1" />
-                    <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.MerchandiseGroup))">
+                    <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.MerchandiseGroup))" Size="Size.Small">
                         @TranslationService.GetTranslation("common.select","Seleziona")
                     </MudButton>
-                    <MudIconButton Icon="@Icons.Material.Outlined.Clear" Disabled="!IsEditMode || Product.GroupNodeId == null" OnClick="@ClearGroup" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Clear" Disabled="!IsEditMode || Product.GroupNodeId == null" OnClick="@ClearGroup" Size="Size.Small" />
                 </div>
             </MudItem>
         </MudGrid>

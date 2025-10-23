@@ -40,12 +40,12 @@
             <div class="d-flex justify-space-between align-center">
                 <div>
                     <div class="d-flex align-center gap-2 mb-2">
-                        <MudIconButton Icon="@Icons.Material.Outlined.ArrowBack" 
-                                       Color="Color.Default"
+                        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
+                                       Color="Color.Primary"
                                        OnClick="@(() => TryNavigateAway("/product-management/products"))"
                                        Size="Size.Small" />
                         <MudText Typo="Typo.h4">
-                            <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Class="mr-2" />
+                            <MudIcon Icon="@Icons.Material.Filled.Inventory2" Class="mr-2" />
                             @_product.Name
                         </MudText>
                         <MudChip T="string" Size="Size.Small" Color="GetStatusColor(_product.Status)">
@@ -67,9 +67,10 @@
                     <!-- Page now ALWAYS in edit mode -->
                     <MudButton Variant="Variant.Filled" 
                                Color="Color.Primary" 
-                               StartIcon="@Icons.Material.Outlined.Save"
+                               StartIcon="@Icons.Material.Filled.Save"
                                OnClick="SaveProductAsync"
-                               Disabled="_isSaving">
+                               Disabled="_isSaving"
+                               Size="Size.Small">
                         @TranslationService.GetTranslation("common.save", "Salva")
                     </MudButton>
                 </div>
@@ -79,41 +80,41 @@
         <!-- Tabs Section -->
         <MudPaper Elevation="2" Class="pa-2">
             <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" @bind-ActivePanelIndex="_activeTab" Color="Color.Primary">
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.generalInfo", "Informazioni Generali")" Icon="@Icons.Material.Outlined.Info">
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.generalInfo", "Informazioni Generali")" Icon="@Icons.Material.Filled.Info">
                     <GeneralInfoTab Product="@_product" IsEditMode="@_isEditMode"
                                     OnProductUpdated="@HandleProductLocallyChanged"
                                     OnProductUpdatedPersisted="@HandleProductPersistedChange" />
                 </MudTabPanel>
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.pricingFinancial", "Prezzi e Finanza")" Icon="@Icons.Material.Outlined.AttachMoney">
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.pricingFinancial", "Prezzi e Finanza")" Icon="@Icons.Material.Filled.AttachMoney">
                     <PricingFinancialTab Product="@_product" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" />
                 </MudTabPanel>
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.classification", "Classificazione")" Icon="@Icons.Material.Outlined.Category">
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.classification", "Classificazione")" Icon="@Icons.Material.Filled.Category">
                     <!-- Use detailed product payload so ClassificationTab gets full info -->
                     <ClassificationTab Product="@_product" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" />
                 </MudTabPanel>
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.alternativeCodes", "Codici Alternativi")" Icon="@Icons.Material.Outlined.QrCode2" BadgeData="@_productCodes?.Count()" BadgeDot="@(_productCodes?.Any() ?? false)">
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.alternativeCodes", "Codici Alternativi")" Icon="@Icons.Material.Filled.QrCode2" BadgeData="@_productCodes?.Count()" BadgeDot="@(_productCodes?.Any() ?? false)">
                     <ProductCodesTab ProductId="@ProductId" />
                 </MudTabPanel>
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.alternativeUnits", "Unità Alternative")" Icon="@Icons.Material.Outlined.Straighten" BadgeData="@_productUnits?.Count()" BadgeDot="@(_productUnits?.Any() ?? false)">
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.alternativeUnits", "Unità Alternative")" Icon="@Icons.Material.Filled.Straighten" BadgeData="@_productUnits?.Count()" BadgeDot="@(_productUnits?.Any() ?? false)">
                     <ProductUnitsTab ProductId="@ProductId" />
                 </MudTabPanel>
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.suppliers", "Fornitori")" Icon="@Icons.Material.Outlined.LocalShipping" BadgeData="@_productSuppliers?.Count()" BadgeDot="@(_productSuppliers?.Any() ?? false)">
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.suppliers", "Fornitori")" Icon="@Icons.Material.Filled.LocalShipping" BadgeData="@_productSuppliers?.Count()" BadgeDot="@(_productSuppliers?.Any() ?? false)">
                     <ProductSuppliersTab ProductId="@ProductId" />
                 </MudTabPanel>
 
                 @if (_product.IsBundle)
                 {
-                    <MudTabPanel Text="@TranslationService.GetTranslation("product.bundleComponents", "Componenti Bundle")" Icon="@Icons.Material.Outlined.Inventory" BadgeData="@_bundleItems?.Count()" BadgeDot="@(_bundleItems?.Any() ?? false)">
+                    <MudTabPanel Text="@TranslationService.GetTranslation("product.bundleComponents", "Componenti Bundle")" Icon="@Icons.Material.Filled.Inventory" BadgeData="@_bundleItems?.Count()" BadgeDot="@(_bundleItems?.Any() ?? false)">
                         <BundleItemsTab ProductId="@ProductId" />
                     </MudTabPanel>
                 }
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.stockInventory", "Magazzino e Inventario")" Icon="@Icons.Material.Outlined.Warehouse">
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.stockInventory", "Magazzino e Inventario")" Icon="@Icons.Material.Filled.Warehouse">
                     <StockInventoryTab Product="@_product" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
                 </MudTabPanel>
             </MudTabs>

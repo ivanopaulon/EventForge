@@ -116,7 +116,7 @@
                                               Variant="Variant.Filled"
                                               Color="Color.Primary"
                                               StartIcon="@Icons.Material.Filled.CloudUpload"
-                                              Size="Size.Medium"
+                                              Size="Size.Small"
                                               Disabled="_isUploadingImage">
                                         @TranslationService.GetTranslation("product.selectImage", "Seleziona Immagine")
                                     </MudButton>
@@ -128,7 +128,7 @@
                                        Color="Color.Success"
                                        StartIcon="@Icons.Material.Filled.Upload"
                                        Disabled="_isUploadingImage || SelectedFile == null"
-                                       Size="Size.Medium">
+                                       Size="Size.Small">
                                 @TranslationService.GetTranslation("common.upload", "Carica")
                             </MudButton>
 
@@ -139,7 +139,7 @@
                                            Color="Color.Error"
                                            StartIcon="@Icons.Material.Filled.Delete"
                                            Disabled="_isUploadingImage"
-                                           Size="Size.Medium">
+                                           Size="Size.Small">
                                     @TranslationService.GetTranslation("common.remove", "Rimuovi")
                                 </MudButton>
                             }

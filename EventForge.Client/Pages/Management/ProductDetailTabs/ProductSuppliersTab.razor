@@ -57,11 +57,11 @@
                         }
                     </MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
-                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" 
                                        Size="Size.Small" 
                                        Color="Color.Primary"
                                        OnClick="@(() => OpenEditDialog(context))" />
-                        <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" 
                                        Size="Size.Small" 
                                        Color="Color.Error"
                                        OnClick="@(() => DeleteSupplierAsync(context))" />
