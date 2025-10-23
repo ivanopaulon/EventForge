@@ -7,48 +7,48 @@
   <ItemGroup>
     <PackageVersion Include="Dapper" Version="2.1.66" />
     <PackageVersion Include="Konscious.Security.Cryptography.Argon2" Version="1.3.1" />
-    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.AspNetCore.Authorization" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.Extensions.Http" Version="9.0.9" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authorization" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="9.0.10" />
     <PackageVersion Include="MudBlazor" Version="8.13.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageVersion Include="Serilog.Settings.Configuration" Version="9.0.0" />
-    <PackageVersion Include="Serilog.Sinks.MSSqlServer" Version="8.2.2" />
+    <PackageVersion Include="Serilog.Sinks.MSSqlServer" Version="9.0.1" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="9.0.6" />
     <PackageVersion Include="System.ComponentModel.Annotations" Version="5.0.0" />
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
     <PackageVersion Include="Microsoft.AspNetCore.SignalR" Version="1.1.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="9.0.9" />
+    <PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="9.0.10" />
     <PackageVersion Include="FreeSpire.Barcode" Version="6.6.0" />
     <PackageVersion Include="SkiaSharp" Version="3.119.1" />
-    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="9.0.9" />
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="9.0.10" />
     <PackageVersion Include="System.Security.Cryptography.X509Certificates" Version="4.3.2" />
     <!-- Health Checks and Resiliency packages -->
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.10" />
     <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="9.0.0" />
     <!-- Redis packages for distributed caching and sessions -->
-    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.10" />
     <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
     <!-- Document Export packages -->
-    <PackageVersion Include="QuestPDF" Version="2025.7.2" />
-    <PackageVersion Include="EPPlus" Version="8.2.0" />
+    <PackageVersion Include="QuestPDF" Version="2025.7.3" />
+    <PackageVersion Include="EPPlus" Version="8.2.1" />
     <!-- Test packages -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
-    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.9" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.10" />
     <PackageVersion Include="Moq" Version="4.20.72" />
   </ItemGroup>
 </Project>
