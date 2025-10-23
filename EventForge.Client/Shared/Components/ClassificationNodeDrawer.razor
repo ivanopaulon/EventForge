@@ -19,17 +19,9 @@
     
     <FormContent>
         <MudGrid>
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_model.Code"
-                              Label="@TranslationService.GetTranslation("field.code", "Codice")"
-                              Variant="Variant.Outlined"
-                              MaxLength="30"
-                              aria-describedby="code-help" />
-                <MudText id="code-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                    @TranslationService.GetTranslation("drawer.helperText.classificationCode", "Codice univoco del nodo (es. CAT01)")
-                </MudText>
-            </MudItem>
-            
+            @* NOTE: Hanno richiesto di nascondere temporaneamente alcuni campi (Code, Level, Order).
+               Manteniamo la possibilità di mostrare questi campi in futuro, ma per ora li rimuoviamo dall'UI. *@
+
             <MudItem xs="12" md="6">
                 <MudTextField @bind-Value="_model.Name"
                               Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
@@ -86,50 +78,47 @@
                     @TranslationService.GetTranslation("drawer.helperText.nodeStatus", "Stato corrente del nodo")
                 </MudText>
             </MudItem>
-            
+
+            @* Parent selection: when creating a child we prefill and lock parent; otherwise user can select parent. *@
             <MudItem xs="12" md="6">
-                <MudSelect T="Guid?" @bind-Value="_model.ParentId"
-                           Label="@TranslationService.GetTranslation("field.parentNode", "Nodo Padre")"
-                           Variant="Variant.Outlined"
-                           Clearable="true"
-                           aria-describedby="parent-help">
-                    <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("classificationNode.rootNode", "Nodo Radice")</MudSelectItem>
-                    @foreach (var node in _availableParentNodes)
-                    {
-                        <MudSelectItem T="Guid?" Value="@((Guid?)node.Id)">@GetNodeDisplayName(node)</MudSelectItem>
-                    }
-                </MudSelect>
-                <MudText id="parent-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                    @TranslationService.GetTranslation("drawer.helperText.parentNode", "Seleziona il nodo padre (lascia vuoto per nodo radice)")
-                </MudText>
+                @if (_isCreatingChild && _parentPreview != null)
+                {
+                    <MudText Typo="Typo.subtitle2">@TranslationService.GetTranslation("field.parentNode", "Nodo Padre")</MudText>
+                    <MudText>@($"{_parentPreview.Name} ({GetTypeDisplayName(_parentPreview.Type)})")</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-input-helper-text">
+                        @TranslationService.GetTranslation("drawer.helperText.parentNodeLock", "Il nodo padre è stato preimpostato perché stai creando un nodo figlio.")
+                    </MudText>
+                }
+                else
+                {
+                    <MudSelect T="Guid?" @bind-Value="_model.ParentId"
+                               Label="@TranslationService.GetTranslation("field.parentNode", "Nodo Padre")"
+                               Variant="Variant.Outlined"
+                               Clearable="true"
+                               aria-describedby="parent-help">
+                        <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("classificationNode.rootNode", "Nodo Radice")</MudSelectItem>
+                        @foreach (var node in _availableParentNodes)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)node.Id)">@GetNodeDisplayName(node)</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudText id="parent-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                        @TranslationService.GetTranslation("drawer.helperText.parentNode", "Seleziona il nodo padre (lascia vuoto per nodo radice)")
+                    </MudText>
+                }
             </MudItem>
             
-            <MudItem xs="12" md="6">
-                <MudNumericField @bind-Value="_model.Order"
-                                 Label="@TranslationService.GetTranslation("field.order", "Ordine")"
-                                 Variant="Variant.Outlined"
-                                 Min="0"
-                                 Max="1000"
-                                 aria-describedby="order-help" />
-                <MudText id="order-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                    @TranslationService.GetTranslation("drawer.helperText.nodeOrder", "Ordine di visualizzazione (0-1000)")
-                </MudText>
-            </MudItem>
+            @* Order and Code and Level intentionally hidden per request (not used for now). *@
         </MudGrid>
     </FormContent>
     
     <ViewContent>
         <MudGrid>
             <MudItem xs="12" md="6">
-                <MudText Typo="Typo.subtitle2">@TranslationService.GetTranslation("field.code", "Codice")</MudText>
-                <MudText>@(_selectedNode?.Code ?? "-")</MudText>
-            </MudItem>
-            
-            <MudItem xs="12" md="6">
                 <MudText Typo="Typo.subtitle2">@TranslationService.GetTranslation("field.name", "Nome")</MudText>
                 <MudText>@(_selectedNode?.Name ?? "-")</MudText>
             </MudItem>
-            
+
             <MudItem xs="12">
                 <MudText Typo="Typo.subtitle2">@TranslationService.GetTranslation("field.description", "Descrizione")</MudText>
                 <MudText>@(_selectedNode?.Description ?? "-")</MudText>
@@ -148,16 +137,6 @@
             <MudItem xs="12" md="6">
                 <MudText Typo="Typo.subtitle2">@TranslationService.GetTranslation("field.parentNode", "Nodo Padre")</MudText>
                 <MudText>@(_selectedNode?.ParentName ?? TranslationService.GetTranslation("classificationNode.rootNode", "Nodo Radice"))</MudText>
-            </MudItem>
-            
-            <MudItem xs="12" md="6">
-                <MudText Typo="Typo.subtitle2">@TranslationService.GetTranslation("field.level", "Livello")</MudText>
-                <MudText>@(_selectedNode?.Level ?? 0)</MudText>
-            </MudItem>
-            
-            <MudItem xs="12" md="6">
-                <MudText Typo="Typo.subtitle2">@TranslationService.GetTranslation("field.order", "Ordine")</MudText>
-                <MudText>@(_selectedNode?.Order ?? 0)</MudText>
             </MudItem>
             
             <MudItem xs="12" md="6">
@@ -186,23 +165,51 @@
     private List<ClassificationNodeDto> _availableParentNodes = new();
     private List<ClassificationNodeDto> _allNodes = new();
 
+    // helper: when creating a child we show a locked parent preview
+    private bool _isCreatingChild = false;
+    private ClassificationNodeDto? _parentPreview;
+
     protected override async Task OnParametersSetAsync()
     {
         await LoadAvailableParentNodesAsync();
         
         if (Mode == EntityDrawerMode.Create)
         {
-            _model = new CreateClassificationNodeDto
+            if (OriginalClassificationNode != null)
             {
-                Type = ProductClassificationType.Category,
-                Status = ProductClassificationNodeStatus.Active,
-                Order = 0
-            };
-            _selectedNode = null;
-            _customTitle = TranslationService.GetTranslation("classificationNode.create", "Crea Nodo di Classificazione");
+                // Creating a child: prefill parent, type and level; lock parent selection in UI
+                _isCreatingChild = true;
+                _parentPreview = OriginalClassificationNode;
+                _model = new CreateClassificationNodeDto
+                {
+                    ParentId = OriginalClassificationNode.Id,
+                    Type = OriginalClassificationNode.Type,
+                    Status = ProductClassificationNodeStatus.Active,
+                    Order = 0,
+                    Level = OriginalClassificationNode.Level + 1
+                };
+                _selectedNode = null;
+                _customTitle = TranslationService.GetTranslation("classificationNode.createChild", "Crea Nodo Figlio di {0}", OriginalClassificationNode.Name);
+            }
+            else
+            {
+                _isCreatingChild = false;
+                _parentPreview = null;
+                _model = new CreateClassificationNodeDto
+                {
+                    Type = ProductClassificationType.Category,
+                    Status = ProductClassificationNodeStatus.Active,
+                    Order = 0,
+                    Level = 0
+                };
+                _selectedNode = null;
+                _customTitle = TranslationService.GetTranslation("classificationNode.create", "Crea Nodo di Classificazione");
+            }
         }
         else if (Mode == EntityDrawerMode.Edit && OriginalClassificationNode != null)
         {
+            _isCreatingChild = false;
+            _parentPreview = null;
             _model = new CreateClassificationNodeDto
             {
                 Code = OriginalClassificationNode.Code,
@@ -219,6 +226,8 @@
         }
         else if (Mode == EntityDrawerMode.View && OriginalClassificationNode != null)
         {
+            _isCreatingChild = false;
+            _parentPreview = null;
             _selectedNode = OriginalClassificationNode;
             _customTitle = TranslationService.GetTranslation("classificationNode.view", "Dettagli Nodo: {0}", OriginalClassificationNode.Name);
         }
@@ -250,13 +259,11 @@
                     .ToList();
             }
             
-            // Empty list is not an error - it just means this is the first node
             Logger.LogInformation("Loaded {Count} available parent nodes", _availableParentNodes.Count);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading parent nodes");
-            // Only show error if there's an actual exception, not for empty results
             Snackbar.Add(TranslationService.GetTranslation("classificationNode.loadParentNodesError", "Errore nel caricamento dei nodi padre"), Severity.Error);
         }
     }
@@ -366,5 +373,9 @@
     {
         IsOpen = false;
         await IsOpenChanged.InvokeAsync(false);
+
+        // reset local state
+        _isCreatingChild = false;
+        _parentPreview = null;
     }
 }

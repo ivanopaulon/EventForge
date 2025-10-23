@@ -12,20 +12,8 @@
 @inject ILogger<ClassificationNodeManagement> Logger
 
 <style>
-    /* Highlight per i nodi che corrispondono esattamente alla ricerca */
-    .matched-node {
-        background-color: rgba(255, 235, 59, 0.15); /* yellow-ish */
-        border-radius: 4px;
-        padding: 2px 6px;
-        display: inline-block;
-    }
-
-    /* Badge piccolo a destra del titolo (opzionale) */
-    .match-badge {
-        font-size: 0.8rem;
-        margin-left: 8px;
-        vertical-align: middle;
-    }
+    .matched-node { background-color: rgba(255,235,59,0.15); border-radius:4px; padding:2px 6px; display:inline-block; }
+    .match-badge { font-size:0.8rem; margin-left:8px; vertical-align:middle; }
 </style>
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
@@ -48,86 +36,52 @@
                 </div>
             </div>
 
-            <!-- Filters Section -->
             <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
                 <div class="d-flex gap-3 align-center flex-wrap">
-                    <MudTextField @bind-Value="_searchTerm"
-                                  @bind-Value:after="OnSearchChanged"
-                                  Label="@TranslationService.GetTranslation("classificationNode.search", "Cerca nodi")"
-                                  Placeholder="@TranslationService.GetTranslation("classificationNode.searchPlaceholder", "Inserisci nome o codice...")"
-                                  Variant="Variant.Outlined"
-                                  Adornment="Adornment.End"
-                                  AdornmentIcon="@Icons.Material.Outlined.Search"
-                                  Clearable="true"
-                                  Style="flex:2;" />
-                    <MudSelect T="ProductClassificationType?" @bind-Value="_typeFilter" @bind-Value:after="OnTypeFilterChanged" 
-                               Label="@TranslationService.GetTranslation("field.type", "Tipo")" 
-                               Placeholder="@TranslationService.GetTranslation("classificationNode.selectType", "Seleziona tipo...")"
-                               Variant="Variant.Outlined"
-                               Clearable="true"
-                               Style="flex:1;">
-                        <MudSelectItem T="ProductClassificationType?" Value="@((ProductClassificationType?)null)">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
-                        <MudSelectItem T="ProductClassificationType?" Value="@ProductClassificationType.Category">@TranslationService.GetTranslation("classificationType.category", "Categoria")</MudSelectItem>
-                        <MudSelectItem T="ProductClassificationType?" Value="@ProductClassificationType.Subcategory">@TranslationService.GetTranslation("classificationType.subcategory", "Sottocategoria")</MudSelectItem>
-                        <MudSelectItem T="ProductClassificationType?" Value="@ProductClassificationType.Brand">@TranslationService.GetTranslation("classificationType.brand", "Brand")</MudSelectItem>
-                        <MudSelectItem T="ProductClassificationType?" Value="@ProductClassificationType.Line">@TranslationService.GetTranslation("classificationType.line", "Linea")</MudSelectItem>
+                    <MudTextField @bind-Value="_searchTerm" @bind-Value:after="OnSearchChanged"
+                                  Label="@TranslationService.GetTranslation("classificationNode.search","Cerca nodi")"
+                                  Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Outlined.Search"
+                                  Clearable="true" Style="flex:2;" />
+                    <MudSelect T="ProductClassificationType?" @bind-Value="_typeFilter" @bind-Value:after="OnTypeFilterChanged" Variant="Variant.Outlined" Style="flex:1;">
+                        <MudSelectItem T="ProductClassificationType?" Value="@((ProductClassificationType?)null)">@TranslationService.GetTranslation("common.selectAll","Tutti")</MudSelectItem>
+                        <MudSelectItem T="ProductClassificationType?" Value="@ProductClassificationType.Category">@TranslationService.GetTranslation("classificationType.category","Categoria")</MudSelectItem>
+                        <MudSelectItem T="ProductClassificationType?" Value="@ProductClassificationType.Subcategory">@TranslationService.GetTranslation("classificationType.subcategory","Sottocategoria")</MudSelectItem>
+                        <MudSelectItem T="ProductClassificationType?" Value="@ProductClassificationType.Brand">@TranslationService.GetTranslation("classificationType.brand","Brand")</MudSelectItem>
+                        <MudSelectItem T="ProductClassificationType?" Value="@ProductClassificationType.Line">@TranslationService.GetTranslation("classificationType.line","Linea")</MudSelectItem>
                     </MudSelect>
-                    <MudSelect T="ProductClassificationNodeStatus?" @bind-Value="_statusFilter" @bind-Value:after="OnStatusFilterChanged" 
-                               Label="@TranslationService.GetTranslation("field.status", "Stato")" 
-                               Placeholder="@TranslationService.GetTranslation("classificationNode.selectStatus", "Seleziona stato...")"
-                               Variant="Variant.Outlined"
-                               Clearable="true"
-                               Style="flex:1;">
-                        <MudSelectItem T="ProductClassificationNodeStatus?" Value="@((ProductClassificationNodeStatus?)null)">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
-                        <MudSelectItem T="ProductClassificationNodeStatus?" Value="@ProductClassificationNodeStatus.Active">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
-                        <MudSelectItem T="ProductClassificationNodeStatus?" Value="@ProductClassificationNodeStatus.Inactive">@TranslationService.GetTranslation("status.inactive", "Inattivo")</MudSelectItem>
-                        <MudSelectItem T="ProductClassificationNodeStatus?" Value="@ProductClassificationNodeStatus.Pending">@TranslationService.GetTranslation("status.pending", "In attesa")</MudSelectItem>
+                    <MudSelect T="ProductClassificationNodeStatus?" @bind-Value="_statusFilter" @bind-Value:after="OnStatusFilterChanged" Variant="Variant.Outlined" Style="flex:1;">
+                        <MudSelectItem T="ProductClassificationNodeStatus?" Value="@((ProductClassificationNodeStatus?)null)">@TranslationService.GetTranslation("common.selectAll","Tutti")</MudSelectItem>
+                        <MudSelectItem T="ProductClassificationNodeStatus?" Value="@ProductClassificationNodeStatus.Active">@TranslationService.GetTranslation("status.active","Attivo")</MudSelectItem>
+                        <MudSelectItem T="ProductClassificationNodeStatus?" Value="@ProductClassificationNodeStatus.Inactive">@TranslationService.GetTranslation("status.inactive","Inattivo")</MudSelectItem>
+                        <MudSelectItem T="ProductClassificationNodeStatus?" Value="@ProductClassificationNodeStatus.Pending">@TranslationService.GetTranslation("status.pending","In attesa")</MudSelectItem>
                     </MudSelect>
                 </div>
             </MudPaper>
 
-            <!-- Tree View / Table Section -->
             <MudPaper Elevation="1" Class="border-rounded">
                 <MudCardHeader Class="pa-2">
                     <CardHeaderContent>
                         <MudText Typo="Typo.h6">
                             <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
-                            @TranslationService.GetTranslation("classificationNode.list", "Lista Nodi")
-                            <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
-                                (@_filteredNodes.Count @TranslationService.GetTranslation("classificationNode.itemsFound", "elementi trovati"))
-                            </MudText>
+                            @TranslationService.GetTranslation("classificationNode.list","Lista Nodi")
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">(@_filteredNodes.Count @TranslationService.GetTranslation("classificationNode.itemsFound","elementi trovati"))</MudText>
                         </MudText>
                     </CardHeaderContent>
                     <CardHeaderActions>
-                        <MudButtonGroup OverrideStyles="false">
+                        <MudButtonGroup>
                             <MudIconButton Icon="@(_viewMode == ViewMode.Tree ? Icons.Material.Outlined.List : Icons.Material.Outlined.AccountTree)"
-                                           Color="Color.Default"
-                                           Size="Size.Small"
-                                           OnClick="@ToggleViewMode"
-                                           Title="@TranslationService.GetTranslation("classificationNode.toggleView", "Cambia visualizzazione")" />
-                            <MudIconButton Icon="@Icons.Material.Outlined.ExpandMore"
-                                           Color="Color.Default"
-                                           Size="Size.Small"
-                                           OnClick="@ExpandAll"
-                                           Title="@TranslationService.GetTranslation("classificationNode.expandAll", "Espandi tutto")" />
-                            <MudIconButton Icon="@Icons.Material.Outlined.ExpandLess"
-                                           Color="Color.Default"
-                                           Size="Size.Small"
-                                           OnClick="@CollapseAll"
-                                           Title="@TranslationService.GetTranslation("classificationNode.collapseAll", "Comprimi tutto")" />
+                                           OnClick="@ToggleViewMode" Size="Size.Small" />
+                            <MudIconButton Icon="@Icons.Material.Outlined.ExpandMore" OnClick="@ExpandAll" Size="Size.Small" />
+                            <MudIconButton Icon="@Icons.Material.Outlined.ExpandLess" OnClick="@CollapseAll" Size="Size.Small" />
                         </MudButtonGroup>
+
                         <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
-                                           ShowRefresh="true"
-                                           ShowExport="false" 
-                                           ShowCreate="true"
-                                           ShowAuditLog="false"
-                                           CreateIcon="@Icons.Material.Outlined.Add"
-                                           CreateTooltip="@TranslationService.GetTranslation("classificationNode.createNew", "Crea nuovo nodo")"
-                                           IsDisabled="_isLoadingNodes"
-                                           OnRefresh="@LoadNodesAsync"
-                                           OnCreate="@OpenCreateNodeDrawer" />
+                                           ShowRefresh="true" ShowCreate="true" ShowExport="false"
+                                           CreateIcon="@Icons.Material.Outlined.Add" CreateTooltip="@TranslationService.GetTranslation("classificationNode.createNew","Crea nuovo nodo")"
+                                           IsDisabled="_isLoadingNodes" OnRefresh="@LoadNodesAsync" OnCreate="@OpenCreatePage" />
                     </CardHeaderActions>
                 </MudCardHeader>
+
                 <MudCardContent Class="pa-1">
                     @if (_isLoadingNodes)
                     {
@@ -136,7 +90,7 @@
                     else if (_viewMode == ViewMode.Tree)
                     {
                         <div class="pa-4">
-                            @if (TreeItems != null && TreeItems.Any())
+                            @if (TreeItems?.Any() == true)
                             {
                                 <MudTreeView Items="@TreeItems" T="ClassificationNodeTreeItem" Hover="true">
                                     <ItemTemplate Context="it">
@@ -147,23 +101,14 @@
                                                     <div class="d-flex justify-space-between align-center" style="width:100%">
                                                         <div class="d-flex align-center gap-2">
                                                             <MudIcon Icon="@nodeItem.Icon" Size="Size.Small" Class="mr-2" />
-                                                            <div>
-                                                                <MudText Typo="Typo.body2" Class="@(nodeItem.IsMatch ? "matched-node" : "")">@nodeItem.Text</MudText>
-                                                            </div>
+                                                            <MudText Typo="Typo.body2" Class="@(nodeItem.IsMatch ? "matched-node" : "")">@nodeItem.Text</MudText>
                                                         </div>
                                                         <div class="d-flex gap-1">
                                                             <MudIconButton Icon="@Icons.Material.Outlined.Add" Size="Size.Small" Color="Color.Success"
-                                                                           OnClick="@(() => OpenCreateChildNodeDrawer(nodeItem.Node))"
-                                                                           Title="@TranslationService.GetTranslation("classificationNode.addChild", "Aggiungi nodo figlio")" />
-                                                            <ActionButtonGroup EntityName="@nodeItem.Text"
-                                                                              ItemDisplayName="@nodeItem.Text"
-                                                                              ShowView="true"
-                                                                              ShowEdit="true"
-                                                                              ShowAuditLog="true"
-                                                                              ShowToggleStatus="true"
-                                                                              ShowDelete="true"
+                                                                           OnClick="@(() => OpenCreateChildPage(nodeItem.Node))" Title="@TranslationService.GetTranslation("classificationNode.addChild","Aggiungi nodo figlio")" />
+                                                            <ActionButtonGroup EntityName="@nodeItem.Text" ItemDisplayName="@nodeItem.Text"
+                                                                              ShowView="false" ShowEdit="true" ShowAuditLog="true" ShowToggleStatus="true" ShowDelete="true"
                                                                               IsActive="@(nodeItem.Node?.IsActive ?? false)"
-                                                                              OnView="@(() => ViewNode(nodeItem.Node))"
                                                                               OnEdit="@(() => EditNode(nodeItem.Node))"
                                                                               OnAuditLog="@(() => ViewNodeAuditLog(nodeItem.Node))"
                                                                               OnToggleStatus="@(() => ToggleNodeStatus(nodeItem.Node))"
@@ -180,19 +125,10 @@
                             {
                                 <div class="text-center pa-2 pa-sm-3 pa-md-4">
                                     <MudIcon Icon="@Icons.Material.Outlined.AccountTree" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
-                                    <MudText Typo="Typo.h6" Class="mb-2">
-                                        @(_nodes.Any() ? 
-                                            TranslationService.GetTranslation("classificationNode.noMatchFilters", "Nessun nodo corrisponde ai filtri applicati") : 
-                                            TranslationService.GetTranslation("classificationNode.noFound", "Nessun nodo trovato"))
-                                    </MudText>
+                                    <MudText Typo="Typo.h6" Class="mb-2">@(_nodes.Any() ? TranslationService.GetTranslation("classificationNode.noMatchFilters","Nessun nodo corrisponde ai filtri applicati") : TranslationService.GetTranslation("classificationNode.noFound","Nessun nodo trovato"))</MudText>
                                     @if (_nodes.Any())
                                     {
-                                        <MudButton Variant="Variant.Text" 
-                                                   Color="Color.Primary" 
-                                                   StartIcon="@Icons.Material.Outlined.Clear"
-                                                   OnClick="@ClearFilters">
-                                            @TranslationService.GetTranslation("classificationNode.clearFilters", "Cancella filtri")
-                                        </MudButton>
+                                        <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Clear" OnClick="@ClearFilters">@TranslationService.GetTranslation("classificationNode.clearFilters","Cancella filtri")</MudButton>
                                     }
                                 </div>
                             }
@@ -200,94 +136,33 @@
                     }
                     else
                     {
-                        <MudTable T="ClassificationNodeDto" 
-                                  Items="_filteredNodes" 
-                                  Hover="true" 
-                                  Striped="true"
-                                  Loading="_isLoadingNodes"
-                                  LoadingProgressColor="Color.Info"
-                                  SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
-                                  AllowUnsorted="false"
-                                  Dense="false"
-                                  Breakpoint="Breakpoint.Sm">
+                        <MudTable T="ClassificationNodeDto" Items="_filteredNodes" Hover="true" Striped="true" Loading="_isLoadingNodes" LoadingProgressColor="Color.Info" Breakpoint="Breakpoint.Sm">
                             <HeaderContent>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Code ?? ""))">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Type))">@TranslationService.GetTranslation("field.type", "Tipo")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Status))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.ParentName ?? ""))">@TranslationService.GetTranslation("field.parentNode", "Nodo Padre")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Level))">@TranslationService.GetTranslation("field.level", "Livello")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Order))">@TranslationService.GetTranslation("field.order", "Ordine")</MudTableSortLabel></MudTh>
-                                <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name","Nome")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Code ?? ""))">@TranslationService.GetTranslation("field.code","Codice")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Type))">@TranslationService.GetTranslation("field.type","Tipo")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Status))">@TranslationService.GetTranslation("field.status","Stato")</MudTableSortLabel></MudTh>
+                                <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions","Azioni")</MudTh>
                             </HeaderContent>
 
                             <RowTemplate>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                                <MudTd>
                                     <div class="d-flex align-center">
                                         <MudIcon Icon="@GetNodeIcon(context)" Size="Size.Small" Class="mr-2" />
-                                        <div>
-                                            <MudText Typo="Typo.body2">@context.Name</MudText>
-                                        </div>
+                                        <MudText Typo="Typo.body2">@context.Name</MudText>
                                     </div>
                                 </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">
-                                    <MudText Typo="Typo.body2">@(context.Code ?? "-")</MudText>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.type", "Tipo")">
-                                    <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.Type)">
-                                        @GetTypeDisplayName(context.Type)
-                                    </MudChip>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
-                                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
-                                        @GetStatusDisplayName(context.Status)
-                                    </MudChip>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.parentNode", "Nodo Padre")">
-                                    <MudText Typo="Typo.body2">@(context.ParentName ?? TranslationService.GetTranslation("classificationNode.rootNode", "Nodo Radice"))</MudText>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.level", "Livello")">
-                                    <MudText Typo="Typo.body2">@context.Level</MudText>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.order", "Ordine")">
-                                    <MudText Typo="Typo.body2">@context.Order</MudText>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
-                                    <ActionButtonGroup EntityName="@context.Name"
-                                                      ItemDisplayName="@context.Name"
-                                                      ShowView="true"
-                                                      ShowEdit="true"
-                                                      ShowAuditLog="true"
-                                                      ShowToggleStatus="true"
-                                                      ShowDelete="true"
-                                                      IsActive="@context.IsActive"
-                                                      OnView="@(() => ViewNode(context))"
+                                <MudTd><MudText Typo="Typo.body2">@(context.Code ?? "-")</MudText></MudTd>
+                                <MudTd><MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.Type)">@GetTypeDisplayName(context.Type)</MudChip></MudTd>
+                                <MudTd><MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@GetStatusDisplayName(context.Status)</MudChip></MudTd>
+                                <MudTd Class="text-center">
+                                    <ActionButtonGroup EntityName="@context.Name" ItemDisplayName="@context.Name" ShowView="false" ShowEdit="true" ShowAuditLog="true" ShowToggleStatus="true" ShowDelete="true" IsActive="@context.IsActive"
                                                       OnEdit="@(() => EditNode(context))"
                                                       OnAuditLog="@(() => ViewNodeAuditLog(context))"
                                                       OnToggleStatus="@(() => ToggleNodeStatus(context))"
                                                       OnDelete="@(() => DeleteNode(context))" />
                                 </MudTd>
                             </RowTemplate>
-
-                            <NoRecordsContent>
-                                <div class="text-center pa-2 pa-sm-3 pa-md-4">
-                                    <MudIcon Icon="@Icons.Material.Outlined.AccountTree" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
-                                    <MudText Typo="Typo.h6" Class="mb-2">
-                                        @(_nodes.Any() ? 
-                                            TranslationService.GetTranslation("classificationNode.noMatchFilters", "Nessun nodo corrisponde ai filtri applicati") : 
-                                            TranslationService.GetTranslation("classificationNode.noFound", "Nessun nodo trovato"))
-                                    </MudText>
-                                    @if (_nodes.Any())
-                                    {
-                                        <MudButton Variant="Variant.Text" 
-                                                   Color="Color.Primary" 
-                                                   StartIcon="@Icons.Material.Outlined.Clear"
-                                                   OnClick="@ClearFilters">
-                                            @TranslationService.GetTranslation("classificationNode.clearFilters", "Cancella filtri")
-                                        </MudButton>
-                                    }
-                                </div>
-                            </NoRecordsContent>
                         </MudTable>
                     }
                 </MudCardContent>
@@ -296,72 +171,40 @@
     }
 </MudContainer>
 
-<!-- Classification Node Drawer -->
-<ClassificationNodeDrawer @bind-IsOpen="_nodeDrawerOpen" 
-                         @bind-Mode="_nodeDrawerMode"
-                         OriginalClassificationNode="_selectedNode"
-                         AllowEdit="true"
-                         OnClassificationNodeCreated="@OnNodeCreated"
-                         OnClassificationNodeUpdated="@OnNodeUpdated" />
-
-<!-- Audit History Drawer -->
+<!-- Audit History Drawer (unico drawer autorizzato da policy) -->
 <AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
                     EntityType="ClassificationNode"
                     EntityId="@_selectedNodeForAudit?.Id"
                     EntityName="@_selectedNodeForAudit?.Name" />
 
 @code {
-    private enum ViewMode
-    {
-        Tree,
-        Table
-    }
+    private enum ViewMode { Tree, Table }
 
-    // UI State Management
     private bool _isLoading = true;
     private bool _isLoadingNodes = false;
-    private bool _nodeDrawerOpen = false;
     private bool _auditDrawerOpen = false;
     private ViewMode _viewMode = ViewMode.Tree;
-    
-    // Drawer management
-    private EntityDrawerMode _nodeDrawerMode = EntityDrawerMode.Create;
-    private ClassificationNodeDto? _selectedNode;
+
     private ClassificationNodeDto? _selectedNodeForAudit;
-    
-    // Filter and search state
+
     private string _searchTerm = string.Empty;
-    private ProductClassificationType? _typeFilter = null;
-    private ProductClassificationNodeStatus? _statusFilter = null;
-    
-    // Data collections
+    private ProductClassificationType? _typeFilter;
+    private ProductClassificationNodeStatus? _statusFilter;
+
     private List<ClassificationNodeDto> _nodes = new();
-
-    // Cached filtered collections to avoid repeated LINQ evaluation
     private List<ClassificationNodeDto> _filteredNodesCache = new();
-    private List<ClassificationNodeDto> _filteredRootNodesCache = new();
-
-    // children lookup as ILookup to support nullable keys reliably
     private ILookup<Guid?, ClassificationNodeDto> _childrenLookup = Enumerable.Empty<ClassificationNodeDto>().ToLookup(n => (Guid?)null);
-
-    // For debouncing search
-    private CancellationTokenSource? _searchCts;
-
-    // Backwards-compatible properties used by table markup
     private IReadOnlyList<ClassificationNodeDto> _filteredNodes => _filteredNodesCache;
-    private IReadOnlyList<ClassificationNodeDto> _filteredRootNodes => _filteredRootNodesCache;
 
-    // TreeItemData representation for MudTreeView - now using derived item type so markup Context has Node
     private IReadOnlyCollection<ClassificationNodeTreeItem> TreeItems { get; set; } = new List<ClassificationNodeTreeItem>();
+
+    private CancellationTokenSource? _searchCts;
 
     public class ClassificationNodeTreeItem : TreeItemData<ClassificationNodeTreeItem>
     {
         public Guid Id { get; set; }
         public ClassificationNodeDto Node { get; set; }
-        // Strongly-typed children list for MudTreeViewItem.Items
-        public new List<ClassificationNodeTreeItem> Children { get; set; }
-
-        // UI state
+        public new List<ClassificationNodeTreeItem> Children { get; set; } = new();
         public bool IsMatch { get; set; }
         public bool Expanded { get; set; }
 
@@ -370,134 +213,24 @@
             Id = node.Id;
             Node = node;
             Text = node.Name;
-            Children = new List<ClassificationNodeTreeItem>();
-            IsMatch = false;
-            Expanded = false;
         }
-    }
-
-    private void RecomputeFilteredNodes()
-    {
-        // Build predicate-matching list first (original matches)
-        var matches = _nodes.Where(n =>
-            (string.IsNullOrEmpty(_searchTerm) ||
-                (n.Name != null && n.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
-                (n.Code != null && n.Code.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
-                (n.Description != null && n.Description.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))) &&
-            (_typeFilter == null || n.Type == _typeFilter.Value) &&
-            (_statusFilter == null || n.Status == _statusFilter.Value))
-            .ToList();
-
-        // build quick lookups from full node set
-        var nodesById = _nodes.ToDictionary(n => n.Id);
-        _childrenLookup = _nodes.ToLookup(n => n.ParentId);
-
-        // compute final set: include matches + their ancestors + their descendants
-        var finalSet = new HashSet<Guid>();
-
-        // add matches
-        foreach (var m in matches)
-            finalSet.Add(m.Id);
-
-        // add ancestors
-        foreach (var m in matches)
-        {
-            var currentParent = m.ParentId;
-            while (currentParent.HasValue && nodesById.TryGetValue(currentParent.Value, out var parentNode))
-            {
-                if (!finalSet.Add(parentNode.Id))
-                    break; // already visited
-                currentParent = parentNode.ParentId;
-            }
-        }
-
-        // add descendants (BFS)
-        var queue = new Queue<Guid>(matches.Select(m => m.Id));
-        while (queue.Count > 0)
-        {
-            var id = queue.Dequeue();
-            foreach (var child in _childrenLookup[(Guid?)id])
-            {
-                if (finalSet.Add(child.Id))
-                    queue.Enqueue(child.Id);
-            }
-        }
-
-        // finalNodes: preserve order by Level/Order/Name
-        var finalNodes = _nodes.Where(n => finalSet.Contains(n.Id))
-                               .OrderBy(n => n.Level)
-                               .ThenBy(n => n.Order)
-                               .ThenBy(n => n.Name)
-                               .ToList();
-
-        _filteredNodesCache = finalNodes;
-
-        // filtered roots (for information)
-        _filteredRootNodesCache = finalNodes.Where(n => !n.ParentId.HasValue).ToList();
-
-        // Build TreeItems from finalNodes and set matching/expansion state
-        var matchesIds = new HashSet<Guid>(matches.Select(m => m.Id));
-        var itemLookup = finalNodes.ToDictionary(n => n.Id, n => new ClassificationNodeTreeItem(n));
-
-        // mark matches
-        foreach (var id in matchesIds)
-        {
-            if (itemLookup.TryGetValue(id, out var it))
-                it.IsMatch = true;
-        }
-
-        // ensure ancestors of matches are expanded so results are visible
-        foreach (var m in matches)
-        {
-            var currentParent = m.ParentId;
-            while (currentParent.HasValue)
-            {
-                if (itemLookup.TryGetValue(currentParent.Value, out var parentItem))
-                {
-                    parentItem.Expanded = true;
-                    currentParent = parentItem.Node.ParentId;
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
-
-        // set icons
-        foreach (var kv in itemLookup)
-            kv.Value.Icon = GetNodeIcon(kv.Value.Node);
-
-        var roots = new List<ClassificationNodeTreeItem>();
-        foreach (var item in itemLookup.Values)
-        {
-            var pid = item.Node.ParentId;
-            if (pid.HasValue && itemLookup.TryGetValue(pid.Value, out var parent))
-                parent.Children.Add(item);
-            else
-                roots.Add(item);
-        }
-
-        TreeItems = roots;
     }
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
-            if (!isAuthenticated)
+            if (!await AuthService.IsAuthenticatedAsync())
             {
                 NavigationManager.NavigateTo("/login");
                 return;
             }
-
             await LoadNodesAsync();
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("classificationNode.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
             Logger.LogError(ex, "Error loading classification nodes page");
+            Snackbar.Add(TranslationService.GetTranslation("classificationNode.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
         }
         finally
         {
@@ -509,15 +242,11 @@
     {
         _isLoadingNodes = true;
         StateHasChanged();
-
         try
         {
-            // Prefer single full-list call
             var allNodes = (await EntityManagementService.GetClassificationNodesAsync())?.ToList();
-
             if (allNodes != null && allNodes.Any())
             {
-                // populate ParentName for display
                 var byId = allNodes.ToDictionary(n => n.Id);
                 foreach (var n in allNodes)
                     n.ParentName = n.ParentId.HasValue && byId.TryGetValue(n.ParentId.Value, out var p) ? p.Name : null;
@@ -527,7 +256,6 @@
                 return;
             }
 
-            // fallback hierarchical retrieval
             var all = new List<ClassificationNodeDto>();
             IEnumerable<ClassificationNodeDto> roots;
             try
@@ -536,7 +264,7 @@
             }
             catch (Exception exRoot)
             {
-                Logger.LogWarning(exRoot, "Failed to load root classification nodes via root endpoint; falling back to paged load");
+                Logger.LogWarning(exRoot, "Failed to load root classification nodes; falling back to paged load");
                 var paged = await EntityManagementService.GetClassificationNodesAsync();
                 _nodes = (paged ?? Enumerable.Empty<ClassificationNodeDto>()).OrderBy(n => n.Level).ThenBy(n => n.Order).ThenBy(n => n.Name ?? string.Empty).ToList();
                 RecomputeFilteredNodes();
@@ -575,8 +303,8 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("classificationNode.loadingError", "Errore nel caricamento dei nodi: {0}", ex.Message), Severity.Error);
             Logger.LogError(ex, "Error loading classification nodes");
+            Snackbar.Add(TranslationService.GetTranslation("classificationNode.loadingError", "Errore nel caricamento dei nodi: {0}", ex.Message), Severity.Error);
             _nodes = new List<ClassificationNodeDto>();
             RecomputeFilteredNodes();
         }
@@ -587,301 +315,200 @@
         }
     }
 
-    private void ToggleViewMode()
+    private void RecomputeFilteredNodes()
     {
-        _viewMode = _viewMode == ViewMode.Tree ? ViewMode.Table : ViewMode.Tree;
-    }
+        var matches = _nodes.Where(n =>
+            (string.IsNullOrEmpty(_searchTerm) ||
+                (n.Name != null && n.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                (n.Code != null && n.Code.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                (n.Description != null && n.Description.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))) &&
+            (_typeFilter == null || n.Type == _typeFilter.Value) &&
+            (_statusFilter == null || n.Status == _statusFilter.Value)).ToList();
 
-    private void ExpandAll()
-    {
-        void Recurse(List<ClassificationNodeTreeItem> items)
+        var nodesById = _nodes.ToDictionary(n => n.Id);
+        _childrenLookup = _nodes.ToLookup(n => n.ParentId);
+
+        var finalSet = new HashSet<Guid>(matches.Select(m => m.Id));
+        foreach (var m in matches)
         {
-            foreach (var it in items)
+            var currentParent = m.ParentId;
+            while (currentParent.HasValue && nodesById.TryGetValue(currentParent.Value, out var parentNode))
             {
-                it.Expanded = true;
-                if (it.Children?.Any() == true)
-                    Recurse(it.Children);
+                if (!finalSet.Add(parentNode.Id)) break;
+                currentParent = parentNode.ParentId;
             }
         }
-        Recurse(TreeItems.ToList());
-        StateHasChanged();
-    }
 
-    private void CollapseAll()
-    {
-        void Recurse(List<ClassificationNodeTreeItem> items)
+        var queue = new Queue<Guid>(matches.Select(m => m.Id));
+        while (queue.Count > 0)
         {
-            foreach (var it in items)
+            var id = queue.Dequeue();
+            foreach (var child in _childrenLookup[(Guid?)id])
             {
-                it.Expanded = false;
-                if (it.Children?.Any() == true)
-                    Recurse(it.Children);
+                if (finalSet.Add(child.Id)) queue.Enqueue(child.Id);
             }
         }
-        Recurse(TreeItems.ToList());
-        StateHasChanged();
+
+        var finalNodes = _nodes.Where(n => finalSet.Contains(n.Id)).OrderBy(n => n.Level).ThenBy(n => n.Order).ThenBy(n => n.Name).ToList();
+        _filteredNodesCache = finalNodes;
+
+        var matchesIds = new HashSet<Guid>(matches.Select(m => m.Id));
+        var itemLookup = finalNodes.ToDictionary(n => n.Id, n => new ClassificationNodeTreeItem(n));
+        foreach (var id in matchesIds) if (itemLookup.TryGetValue(id, out var it)) it.IsMatch = true;
+        foreach (var m in matches)
+        {
+            var currentParent = m.ParentId;
+            while (currentParent.HasValue)
+            {
+                if (itemLookup.TryGetValue(currentParent.Value, out var parentItem))
+                {
+                    parentItem.Expanded = true;
+                    currentParent = parentItem.Node.ParentId;
+                }
+                else break;
+            }
+        }
+
+        foreach (var kv in itemLookup) kv.Value.Icon = GetNodeIcon(kv.Value.Node);
+
+        var roots = new List<ClassificationNodeTreeItem>();
+        foreach (var item in itemLookup.Values)
+        {
+            var pid = item.Node.ParentId;
+            if (pid.HasValue && itemLookup.TryGetValue(pid.Value, out var parent)) parent.Children.Add(item);
+            else roots.Add(item);
+        }
+
+        TreeItems = roots;
     }
 
-    private async Task ClearFilters()
-    {
-        _searchTerm = string.Empty;
-        _typeFilter = null;
-        _statusFilter = null;
-        RecomputeFilteredNodes();
-        StateHasChanged();
-        await Task.CompletedTask;
-    }
+    private void ToggleViewMode() => _viewMode = _viewMode == ViewMode.Tree ? ViewMode.Table : ViewMode.Tree;
+
+    private void ExpandAll() { void Recurse(List<ClassificationNodeTreeItem> items) { foreach (var it in items) { it.Expanded = true; if (it.Children?.Any() == true) Recurse(it.Children); } } Recurse(TreeItems.ToList()); StateHasChanged(); }
+    private void CollapseAll() { void Recurse(List<ClassificationNodeTreeItem> items) { foreach (var it in items) { it.Expanded = false; if (it.Children?.Any() == true) Recurse(it.Children); } } Recurse(TreeItems.ToList()); StateHasChanged(); }
+
+    private async Task ClearFilters() { _searchTerm = string.Empty; _typeFilter = null; _statusFilter = null; RecomputeFilteredNodes(); StateHasChanged(); await Task.CompletedTask; }
 
     private async Task OnSearchChanged()
     {
         _searchCts?.Cancel();
         _searchCts?.Dispose();
         _searchCts = new CancellationTokenSource();
-        try
-        {
-            await Task.Delay(300, _searchCts.Token);
-            RecomputeFilteredNodes();
-            StateHasChanged();
-        }
-        catch (TaskCanceledException)
-        {
-        }
+        try { await Task.Delay(300, _searchCts.Token); RecomputeFilteredNodes(); StateHasChanged(); } catch (TaskCanceledException) { }
     }
 
-    private Task OnTypeFilterChanged()
-    {
-        RecomputeFilteredNodes();
-        StateHasChanged();
-        return Task.CompletedTask;
-    }
+    private Task OnTypeFilterChanged() { RecomputeFilteredNodes(); StateHasChanged(); return Task.CompletedTask; }
+    private Task OnStatusFilterChanged() { RecomputeFilteredNodes(); StateHasChanged(); return Task.CompletedTask; }
 
-    private Task OnStatusFilterChanged()
-    {
-        RecomputeFilteredNodes();
-        StateHasChanged();
-        return Task.CompletedTask;
-    }
-
-    private Task OpenCreateNodeDrawer()
-    {
-        _nodeDrawerMode = EntityDrawerMode.Create;
-        _selectedNode = null;
-        _nodeDrawerOpen = true;
-        return Task.CompletedTask;
-    }
-
-    private Task OpenCreateChildNodeDrawer(ClassificationNodeDto? parent)
-    {
-        _nodeDrawerMode = EntityDrawerMode.Create;
-        if (parent != null)
-        {
-            _selectedNode = new ClassificationNodeDto
-            {
-                ParentId = parent.Id,
-                Level = parent.Level + 1,
-                Type = parent.Type,
-                Status = ProductClassificationNodeStatus.Active
-            };
-        }
-        else
-        {
-            _selectedNode = null;
-        }
-
-        _nodeDrawerOpen = true;
-        return Task.CompletedTask;
-    }
-
-    private Task OnNodeCreated(ClassificationNodeDto newNode)
-    {
-        _nodes.Add(newNode);
-        RecomputeFilteredNodes();
-        StateHasChanged();
-        return Task.CompletedTask;
-    }
-
-    private Task OnNodeUpdated(ClassificationNodeDto updatedNode)
-    {
-        var index = _nodes.FindIndex(n => n.Id == updatedNode.Id);
-        if (index >= 0)
-            _nodes[index] = updatedNode;
-        RecomputeFilteredNodes();
-        StateHasChanged();
-        return Task.CompletedTask;
-    }
-
-    private Task ViewNode(ClassificationNodeDto node)
-    {
-        _nodeDrawerMode = EntityDrawerMode.View;
-        _selectedNode = node;
-        _nodeDrawerOpen = true;
-        return Task.CompletedTask;
-    }
-
-    private Task EditNode(ClassificationNodeDto node)
-    {
-        _nodeDrawerMode = EntityDrawerMode.Edit;
-        _selectedNode = node;
-        _nodeDrawerOpen = true;
-        return Task.CompletedTask;
-    }
+    private Task OpenCreatePage() { NavigationManager.NavigateTo("/management/classification-nodes/new"); return Task.CompletedTask; }
+    private Task OpenCreateChildPage(ClassificationNodeDto? parent) { NavigationManager.NavigateTo(parent == null ? "/management/classification-nodes/new" : $"/management/classification-nodes/new/{parent.Id}"); return Task.CompletedTask; }
+    private Task EditNode(ClassificationNodeDto? node) { if (node == null) return Task.CompletedTask; NavigationManager.NavigateTo($"/management/classification-nodes/{node.Id}"); return Task.CompletedTask; }
 
     private async Task DeleteNode(ClassificationNodeDto node)
     {
-        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
-        var confirmMessage = TranslationService.GetTranslation("classificationNode.confirmDelete", 
-            "Sei sicuro di voler eliminare il nodo '{0}'? Questa azione eliminerà anche tutti i nodi figli. Questa azione non può essere annullata.", 
-            node.Name);
+        var confirmTitle = TranslationService.GetTranslation("common.confirm","Conferma");
+        var confirmMessage = TranslationService.GetTranslation("classificationNode.confirmDelete","Sei sicuro di voler eliminare il nodo '{0}'? Questa azione eliminerà anche tutti i nodi figli. Questa azione non può essere annullata.", node.Name);
 
-        var confirm = await DialogService.ShowMessageBox(
-            confirmTitle,
-            confirmMessage,
-            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
-            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+        var confirm = await DialogService.ShowMessageBox(confirmTitle, confirmMessage, yesText: TranslationService.GetTranslation("common.delete","Elimina"), cancelText: TranslationService.GetTranslation("common.cancel","Annulla"));
+        if (confirm != true) return;
 
-        if (confirm == true)
+        try
         {
-            try
-            {
-                await EntityManagementService.DeleteClassificationNodeAsync(node.Id);
-                // rebuild children lookup and remove locally
-                _childrenLookup = _nodes.ToLookup(n => n.ParentId);
-                RemoveNodeAndDescendants(node.Id);
-                RecomputeFilteredNodes();
-                Snackbar.Add(TranslationService.GetTranslation("classificationNode.deleted", "Nodo eliminato con successo!"), Severity.Success);
-                StateHasChanged();
-            }
-            catch (Exception ex)
-            {
-                Snackbar.Add(TranslationService.GetTranslation("classificationNode.deleteError", 
-                    "Errore nell'eliminazione del nodo: {0}", ex.Message), Severity.Error);
-                Logger.LogError(ex, "Error deleting classification node {NodeId}", node.Id);
-            }
+            await EntityManagementService.DeleteClassificationNodeAsync(node.Id);
+            _childrenLookup = _nodes.ToLookup(n => n.ParentId);
+            RemoveNodeAndDescendants(node.Id);
+            RecomputeFilteredNodes();
+            Snackbar.Add(TranslationService.GetTranslation("classificationNode.deleted","Nodo eliminato con successo!"), Severity.Success);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting classification node {NodeId}", node.Id);
+            Snackbar.Add(TranslationService.GetTranslation("classificationNode.deleteError","Errore nell'eliminazione del nodo: {0}", ex.Message), Severity.Error);
         }
     }
 
     private void RemoveNodeAndDescendants(Guid nodeId)
     {
-        var toRemove = new Stack<Guid>();
-        toRemove.Push(nodeId);
-
+        var toRemove = new Stack<Guid>(); toRemove.Push(nodeId);
         while (toRemove.Count > 0)
         {
             var current = toRemove.Pop();
-            foreach (var child in _childrenLookup[(Guid?)current])
-                toRemove.Push(child.Id);
-
+            foreach (var child in _childrenLookup[(Guid?)current]) toRemove.Push(child.Id);
             var existing = _nodes.FirstOrDefault(n => n.Id == current);
-            if (existing != null)
-                _nodes.Remove(existing);
+            if (existing != null) _nodes.Remove(existing);
         }
     }
 
-    private string GetNodeIcon(ClassificationNodeDto node)
+    private string GetNodeIcon(ClassificationNodeDto node) => node.Type switch
     {
-        return node.Type switch
-        {
-            ProductClassificationType.Category => Icons.Material.Outlined.Category,
-            ProductClassificationType.Subcategory => Icons.Material.Outlined.SubdirectoryArrowRight,
-            ProductClassificationType.Brand => Icons.Material.Outlined.Stars,
-            ProductClassificationType.Line => Icons.Material.Outlined.LinearScale,
-            _ => Icons.Material.Outlined.Circle
-        };
-    }
+        ProductClassificationType.Category => Icons.Material.Outlined.Category,
+        ProductClassificationType.Subcategory => Icons.Material.Outlined.SubdirectoryArrowRight,
+        ProductClassificationType.Brand => Icons.Material.Outlined.Stars,
+        ProductClassificationType.Line => Icons.Material.Outlined.LinearScale,
+        _ => Icons.Material.Outlined.Circle
+    };
 
-    private Color GetTypeColor(ProductClassificationType type)
+    private Color GetTypeColor(ProductClassificationType type) => type switch
     {
-        return type switch
-        {
-            ProductClassificationType.Category => Color.Primary,
-            ProductClassificationType.Subcategory => Color.Secondary,
-            ProductClassificationType.Brand => Color.Tertiary,
-            ProductClassificationType.Line => Color.Info,
-            _ => Color.Default
-        };
-    }
+        ProductClassificationType.Category => Color.Primary,
+        ProductClassificationType.Subcategory => Color.Secondary,
+        ProductClassificationType.Brand => Color.Tertiary,
+        ProductClassificationType.Line => Color.Info,
+        _ => Color.Default
+    };
 
-    private string GetTypeDisplayName(ProductClassificationType type)
+    private string GetTypeDisplayName(ProductClassificationType type) => type switch
     {
-        return type switch
-        {
-            ProductClassificationType.Category => TranslationService.GetTranslation("classificationType.category", "Categoria"),
-            ProductClassificationType.Subcategory => TranslationService.GetTranslation("classificationType.subcategory", "Sottocategoria"),
-            ProductClassificationType.Brand => TranslationService.GetTranslation("classificationType.brand", "Brand"),
-            ProductClassificationType.Line => TranslationService.GetTranslation("classificationType.line", "Linea"),
-            _ => type.ToString()
-        };
-    }
+        ProductClassificationType.Category => TranslationService.GetTranslation("classificationType.category","Categoria"),
+        ProductClassificationType.Subcategory => TranslationService.GetTranslation("classificationType.subcategory","Sottocategoria"),
+        ProductClassificationType.Brand => TranslationService.GetTranslation("classificationType.brand","Brand"),
+        ProductClassificationType.Line => TranslationService.GetTranslation("classificationType.line","Linea"),
+        _ => type.ToString()
+    };
 
-    private Color GetStatusColor(ProductClassificationNodeStatus status)
+    private Color GetStatusColor(ProductClassificationNodeStatus status) => status switch
     {
-        return status switch
-        {
-            ProductClassificationNodeStatus.Active => Color.Success,
-            ProductClassificationNodeStatus.Inactive => Color.Default,
-            ProductClassificationNodeStatus.Pending => Color.Warning,
-            _ => Color.Default
-        };
-    }
+        ProductClassificationNodeStatus.Active => Color.Success,
+        ProductClassificationNodeStatus.Inactive => Color.Default,
+        ProductClassificationNodeStatus.Pending => Color.Warning,
+        _ => Color.Default
+    };
 
-    private string GetStatusDisplayName(ProductClassificationNodeStatus status)
+    private string GetStatusDisplayName(ProductClassificationNodeStatus status) => status switch
     {
-        return status switch
-        {
-            ProductClassificationNodeStatus.Active => TranslationService.GetTranslation("status.active", "Attivo"),
-            ProductClassificationNodeStatus.Inactive => TranslationService.GetTranslation("status.inactive", "Inattivo"),
-            ProductClassificationNodeStatus.Pending => TranslationService.GetTranslation("status.pending", "In attesa"),
-            _ => status.ToString()
-        };
-    }
+        ProductClassificationNodeStatus.Active => TranslationService.GetTranslation("status.active","Attivo"),
+        ProductClassificationNodeStatus.Inactive => TranslationService.GetTranslation("status.inactive","Inattivo"),
+        ProductClassificationNodeStatus.Pending => TranslationService.GetTranslation("status.pending","In attesa"),
+        _ => status.ToString()
+    };
 
-    private Task ViewNodeAuditLog(ClassificationNodeDto node)
-    {
-        _selectedNodeForAudit = node;
-        _auditDrawerOpen = true;
-        return Task.CompletedTask;
-    }
+    private Task ViewNodeAuditLog(ClassificationNodeDto node) { _selectedNodeForAudit = node; _auditDrawerOpen = true; return Task.CompletedTask; }
 
     private async Task ToggleNodeStatus(ClassificationNodeDto node)
     {
-        var actionText = node.IsActive ? 
-            TranslationService.GetTranslation("common.deactivate", "disattivare") : 
-            TranslationService.GetTranslation("common.activate", "attivare");
-            
-        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
-        var confirmMessage = TranslationService.GetTranslationFormatted("classificationNode.confirmStatusChange", 
-            "Sei sicuro di voler {0} il nodo '{1}'?", 
-            actionText, node.Name);
+        var actionText = node.IsActive ? TranslationService.GetTranslation("common.deactivate","disattivare") : TranslationService.GetTranslation("common.activate","attivare");
+        var confirmTitle = TranslationService.GetTranslation("common.confirm","Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("classificationNode.confirmStatusChange","Sei sicuro di voler {0} il nodo '{1}'?", actionText, node.Name);
 
-        var confirm = await DialogService.ShowMessageBox(
-            confirmTitle,
-            confirmMessage,
-            yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
-            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+        var confirm = await DialogService.ShowMessageBox(confirmTitle, confirmMessage, yesText: TranslationService.GetTranslation("common.confirm","Conferma"), cancelText: TranslationService.GetTranslation("common.cancel","Annulla"));
+        if (confirm != true) return;
 
-        if (confirm == true)
+        try
         {
-            try
-            {
-                node.IsActive = !node.IsActive;
-
-                var statusMessage = node.IsActive ?
-                    TranslationService.GetTranslation("classificationNode.activated", "Nodo attivato con successo!") :
-                    TranslationService.GetTranslation("classificationNode.deactivated", "Nodo disattivato con successo!");
-                
-                Snackbar.Add(statusMessage, Severity.Success);
-                RecomputeFilteredNodes();
-                StateHasChanged();
-            }
-            catch (Exception ex)
-            {
-                Snackbar.Add(TranslationService.GetTranslation("classificationNode.statusChangeError", 
-                    "Errore nel cambio di stato: {0}", ex.Message), Severity.Error);
-                Logger.LogError(ex, "Error toggling classification node status {NodeId}", node.Id);
-                node.IsActive = !node.IsActive;
-                RecomputeFilteredNodes();
-                StateHasChanged();
-            }
+            node.IsActive = !node.IsActive;
+            var statusMessage = node.IsActive ? TranslationService.GetTranslation("classificationNode.activated","Nodo attivato con successo!") : TranslationService.GetTranslation("classificationNode.deactivated","Nodo disattivato con successo!");
+            Snackbar.Add(statusMessage, Severity.Success);
+            RecomputeFilteredNodes();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error toggling classification node status {NodeId}", node.Id);
+            node.IsActive = !node.IsActive;
+            Snackbar.Add(TranslationService.GetTranslation("classificationNode.statusChangeError","Errore nel cambio di stato: {0}", ex.Message), Severity.Error);
+            RecomputeFilteredNodes();
+            StateHasChanged();
         }
     }
 }

@@ -1,0 +1,611 @@
+@page "/management/classification-nodes/new/{ParentId:guid?}"
+@page "/management/classification-nodes/{NodeId:guid}"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@attribute [Authorize]
+@inject IEntityManagementService EntityManagementService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<ClassificationNodeDetail> Logger
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    @if (_isLoading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else
+    {
+        <MudPaper Elevation="2" Class="pa-4 mb-4">
+            <div class="d-flex justify-space-between align-center">
+                <div>
+                    <div class="d-flex align-center gap-2 mb-2">
+                        <MudIconButton Icon="@Icons.Material.Outlined.ArrowBack"
+                                       Color="Color.Default"
+                                       OnClick="@(() => TryNavigateAway("/management/classification-nodes"))"
+                                       Size="Size.Small" />
+                        <MudText Typo="Typo.h4">
+                            <MudIcon Icon="@Icons.Material.Outlined.AccountTree" Class="mr-2" />
+                            @(_isCreateMode ? TranslationService.GetTranslation("classificationNode.create", "Crea Nodo di Classificazione") : _node?.Name)
+                        </MudText>
+
+                        @if (!_isCreateMode && _node != null)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(_node.Status)">
+                                @GetStatusDisplayName(_node.Status)
+                            </MudChip>
+                        }
+
+                        @if (HasUnsavedChanges())
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">
+                                @TranslationService.GetTranslation("classificationNode.unsavedChanges", "Modifiche non salvate")
+                            </MudChip>
+                        }
+                    </div>
+
+                    @if (!_isCreateMode && _node != null)
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                            @TranslationService.GetTranslation("field.parentNode", "Nodo Padre"): @(_node.ParentName ?? TranslationService.GetTranslation("classificationNode.rootNode", "Nodo Radice"))
+                        </MudText>
+                    }
+                </div>
+
+                <div class="d-flex gap-2">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Outlined.Save"
+                               OnClick="SaveAsync"
+                               Disabled="_isSaving">
+                        @TranslationService.GetTranslation("common.save", "Salva")
+                    </MudButton>
+                </div>
+            </div>
+        </MudPaper>
+
+        <MudPaper Elevation="2" Class="pa-2">
+            <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" @bind-ActivePanelIndex="_activeTab" Color="Color.Primary">
+                <MudTabPanel Text="@TranslationService.GetTranslation("classificationNode.generalInfo", "Informazioni")" Icon="@Icons.Material.Outlined.Info">
+                    <MudForm @ref="_form" Class="pa-2">
+                        <MudGrid>
+                            <MudItem xs="12" md="8">
+                                <MudGrid>
+                                    <MudItem xs="12" md="6">
+                                        <MudTextField @bind-Value="NodeName"
+                                                      Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                                                      Variant="Variant.Outlined"
+                                                      Required="true"
+                                                      RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
+                                                      MaxLength="100"
+                                                      Immediate="true"
+                                                      OnBlur="@(()=> MarkChanged())" />
+                                    </MudItem>
+
+                                    <MudItem xs="12" md="6">
+                                        <MudTextField Value="@(NodeCode ?? "-")"
+                                                      Label="@TranslationService.GetTranslation("field.code", "Codice")"
+                                                      Variant="Variant.Outlined"
+                                                      ReadOnly="true" />
+                                    </MudItem>
+
+                                    <MudItem xs="12">
+                                        <MudTextField @bind-Value="NodeDescription"
+                                                      Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                                                      Variant="Variant.Outlined"
+                                                      Lines="3"
+                                                      MaxLength="200"
+                                                      OnBlur="@(()=> MarkChanged())" />
+                                    </MudItem>
+
+                                    <MudItem xs="12" md="6">
+                                        <MudSelect T="ProductClassificationType" @bind-Value="NodeType"
+                                                   Label="@TranslationService.GetTranslation("field.type", "Tipo")"
+                                                   Variant="Variant.Outlined"
+                                                   Required="true"
+                                                   OnClose="@(()=> MarkChanged())">
+                                            <MudSelectItem Value="@ProductClassificationType.Category">@TranslationService.GetTranslation("classificationType.category", "Categoria")</MudSelectItem>
+                                            <MudSelectItem Value="@ProductClassificationType.Subcategory">@TranslationService.GetTranslation("classificationType.subcategory", "Sottocategoria")</MudSelectItem>
+                                            <MudSelectItem Value="@ProductClassificationType.Brand">@TranslationService.GetTranslation("classificationType.brand", "Brand")</MudSelectItem>
+                                            <MudSelectItem Value="@ProductClassificationType.Line">@TranslationService.GetTranslation("classificationType.line", "Linea")</MudSelectItem>
+                                        </MudSelect>
+                                    </MudItem>
+
+                                    <MudItem xs="12" md="6">
+                                        <MudSelect T="ProductClassificationNodeStatus" @bind-Value="NodeStatus"
+                                                   Label="@TranslationService.GetTranslation("field.status", "Stato")"
+                                                   Variant="Variant.Outlined"
+                                                   Required="true"
+                                                   OnClose="@(()=> MarkChanged())">
+                                            <MudSelectItem Value="@ProductClassificationNodeStatus.Active">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
+                                            <MudSelectItem Value="@ProductClassificationNodeStatus.Inactive">@TranslationService.GetTranslation("status.inactive", "Inattivo")</MudSelectItem>
+                                            <MudSelectItem Value="@ProductClassificationNodeStatus.Pending">@TranslationService.GetTranslation("status.pending", "In attesa")</MudSelectItem>
+                                        </MudSelect>
+                                    </MudItem>
+
+                                    <MudItem xs="12" md="6">
+                                        <MudSelect T="Guid?" @bind-Value="NodeParentId"
+                                                   Label="@TranslationService.GetTranslation("field.parentNode", "Nodo Padre")"
+                                                   Variant="Variant.Outlined"
+                                                   Clearable="true"
+                                                   OnClose="@(()=> MarkChanged())">
+                                            <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("classificationNode.rootNode", "Nodo Radice")</MudSelectItem>
+                                            @foreach (var p in _availableParentNodes.Where(p => !_isCreateMode || p.Id != NodeId && !IsDescendant(p.Id, NodeId)))
+                                            {
+                                                <MudSelectItem T="Guid?" Value="@((Guid?)p.Id)">@GetNodeDisplayName(p)</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    </MudItem>
+                                </MudGrid>
+                            </MudItem>
+
+                            <MudItem xs="12" md="4">
+                                <MudText Typo="Typo.h6" Class="mb-2">@TranslationService.GetTranslation("common.metadata", "Metadati")</MudText>
+                                <MudDivider Class="mb-2" />
+                                <MudText Typo="Typo.caption" Class="d-block mt-2">@TranslationService.GetTranslation("field.level", "Livello"): @NodeLevel</MudText>
+                                <MudText Typo="Typo.caption" Class="d-block mt-1">@TranslationService.GetTranslation("field.order", "Ordine"): @NodeOrder</MudText>
+
+                                @if (!_isCreateMode && _node != null)
+                                {
+                                    <MudText Typo="Typo.caption" Class="d-block mt-2">@TranslationService.GetTranslation("field.createdAt", "Creato il"): @_node.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
+                                    @if (!string.IsNullOrWhiteSpace(_node.CreatedBy))
+                                    {
+                                        <MudText Typo="Typo.caption" Class="d-block mt-1">@TranslationService.GetTranslation("field.createdBy", "Creato da"): @_node.CreatedBy</MudText>
+                                    }
+                                }
+                            </MudItem>
+                        </MudGrid>
+                    </MudForm>
+                </MudTabPanel>
+
+                <MudTabPanel Text="@TranslationService.GetTranslation("classificationNode.children", "Figli")" Icon="@Icons.Material.Outlined.List">
+                    @if (_childrenLoading)
+                    {
+                        <MudProgressLinear Indeterminate="true" />
+                    }
+                    else if (_children?.Any() != true)
+                    {
+                        <div class="pa-4">
+                            <MudText Typo="Typo.body2">@TranslationService.GetTranslation("classificationNode.noChildren", "Nessun nodo figlio")</MudText>
+                        </div>
+                    }
+                    else
+                    {
+                        <MudTable T="ClassificationNodeDto" Items="_children" Hover="true" Dense="true" Striped="true">
+                            <HeaderContent>
+                                <MudTh>@TranslationService.GetTranslation("field.name", "Nome")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.type", "Tipo")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
+                                <MudTh Class="text-right">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd>@context.Name</MudTd>
+                                <MudTd>@GetTypeDisplayName(context.Type)</MudTd>
+                                <MudTd><MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@GetStatusDisplayName(context.Status)</MudChip></MudTd>
+                                <MudTd Class="text-right">
+                                    <MudIconButton Icon="@Icons.Material.Outlined.OpenInNew" Size="Size.Small" Color="Color.Info"
+                                                   OnClick="@(() => NavigationManager.NavigateTo($"/management/classification-nodes/{context.Id}"))" />
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                </MudTabPanel>
+
+                <MudTabPanel Text="@TranslationService.GetTranslation("classificationNode.audit", "Audit")" Icon="@Icons.Material.Outlined.History">
+                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("messages.auditInDrawer", "Storia modifiche disponibile nell'audit drawer")</MudText>
+                    <MudButton Class="mt-3" OnClick="@OpenAuditDrawer">@TranslationService.GetTranslation("classificationNode.viewAudit", "Apri cronologia")</MudButton>
+                </MudTabPanel>
+            </MudTabs>
+        </MudPaper>
+    }
+</MudContainer>
+
+<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+                    EntityType="ClassificationNode"
+                    EntityId="@(_isCreateMode ? null : _node?.Id)"
+                    EntityName="@(_isCreateMode ? null : _node?.Name)" />
+
+@code {
+    [Parameter] public Guid NodeId { get; set; }
+    [Parameter] public Guid? ParentId { get; set; }
+
+    private bool _isLoading = true;
+    private bool _isSaving = false;
+    private bool _isCreateMode = false;
+    private bool _childrenLoading = false;
+    private bool _auditDrawerOpen = false;
+    private int _activeTab = 0;
+
+    private ClassificationNodeDto? _node;
+    private CreateClassificationNodeDto _createModel = new();
+    private UpdateClassificationNodeDto _updateModel = new();
+    private IEntityManagementService _ems => EntityManagementService;
+
+    // data lists
+    private List<ClassificationNodeDto> _availableParentNodes = new();
+    private IEnumerable<ClassificationNodeDto>? _children;
+
+    // unsaved snapshot
+    private string _originalSnapshot = string.Empty;
+    private bool _hasLocalChanges = false;
+    private static readonly System.Text.Json.JsonSerializerOptions _json_options = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+
+    private MudForm? _form;
+
+    // Binding adapters (avoid dynamic in markup)
+    private string NodeName
+    {
+        get => _isCreateMode ? (_createModel.Name ?? string.Empty) : (_update_model_get_name());
+        set
+        {
+            if (_isCreateMode)
+                _createModel.Name = value;
+            else
+                _updateModel.Name = value;
+            MarkChanged();
+        }
+    }
+
+    private string _update_model_get_name() => _updateModel.Name ?? string.Empty;
+
+    private string? NodeCode => _isCreateMode ? _createModel.Code : _updateModel.Code;
+
+    private string NodeDescription
+    {
+        get => _isCreateMode ? (_createModel.Description ?? string.Empty) : (_updateModel.Description ?? string.Empty);
+        set
+        {
+            if (_isCreateMode)
+                _createModel.Description = value;
+            else
+                _updateModel.Description = value;
+            MarkChanged();
+        }
+    }
+
+    private ProductClassificationType NodeType
+    {
+        get => _isCreateMode ? _createModel.Type : _updateModel.Type;
+        set
+        {
+            if (_isCreateMode)
+                _createModel.Type = value;
+            else
+                _updateModel.Type = value;
+            MarkChanged();
+        }
+    }
+
+    private ProductClassificationNodeStatus NodeStatus
+    {
+        get => _isCreateMode ? _createModel.Status : _updateModel.Status;
+        set
+        {
+            if (_isCreateMode)
+                _createModel.Status = value;
+            else
+                _updateModel.Status = value;
+            MarkChanged();
+        }
+    }
+
+    private Guid? NodeParentId
+    {
+        get => _isCreateMode ? _createModel.ParentId : _updateModel.ParentId;
+        set
+        {
+            if (_isCreateMode)
+                _createModel.ParentId = value;
+            else
+                _updateModel.ParentId = value;
+            MarkChanged();
+        }
+    }
+
+    private int NodeLevel
+    {
+        get => _isCreateMode ? _createModel.Level : _updateModel.Level;
+        set
+        {
+            if (_isCreateMode)
+                _createModel.Level = value;
+            else
+                _updateModel.Level = value;
+            MarkChanged();
+        }
+    }
+
+    private int NodeOrder
+    {
+        get => _isCreateMode ? _createModel.Order : _updateModel.Order;
+        set
+        {
+            if (_isCreateMode)
+                _createModel.Order = value;
+            else
+                _updateModel.Order = value;
+            MarkChanged();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isCreateMode = ParentId.HasValue && ParentId != Guid.Empty;
+        _isLoading = true;
+        try
+        {
+            await LoadAvailableParentsAsync();
+
+            if (_isCreateMode)
+                InitializeCreateModel();
+            else
+                await LoadNodeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing classification node detail");
+            Snackbar.Add(TranslationService.GetTranslation("classificationNode.loadError", "Errore nel caricamento del nodo"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void InitializeCreateModel()
+    {
+        _createModel = new CreateClassificationNodeDto
+        {
+            Status = ProductClassificationNodeStatus.Active,
+            Type = ProductClassificationType.Category,
+            Order = 0,
+            Level = 0,
+            ParentId = ParentId
+        };
+
+        if (ParentId.HasValue)
+        {
+            var parent = _availableParentNodes.FirstOrDefault(p => p.Id == ParentId.Value);
+            if (parent != null)
+            {
+                _createModel.Type = parent.Type;
+                _createModel.Level = parent.Level + 1;
+            }
+        }
+
+        _originalSnapshot = SerializeCurrentModel();
+        _hasLocalChanges = false;
+    }
+
+    private async Task LoadNodeAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            // correct interface method (existing service)
+            _node = await _ems.GetClassificationNodeAsync(NodeId);
+            if (_node == null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("classificationNode.notFound", "Nodo di classificazione non trovato"), Severity.Error);
+                return;
+            }
+
+            // map to update model
+            _updateModel = new UpdateClassificationNodeDto
+            {
+                Code = _node.Code,
+                Name = _node.Name,
+                Description = _node.Description,
+                Type = _node.Type,
+                Status = _node.Status,
+                Level = _node.Level,
+                Order = _node.Order,
+                ParentId = _node.ParentId
+            };
+
+            _originalSnapshot = SerializeCurrentModel();
+            _hasLocalChanges = false;
+
+            await LoadChildrenAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading node {NodeId}", NodeId);
+            Snackbar.Add(TranslationService.GetTranslation("classificationNode.loadError", "Errore nel caricamento del nodo"), Severity.Error);
+            _node = null;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadAvailableParentsAsync()
+    {
+        try
+        {
+            var all = (await _ems.GetClassificationNodesAsync())?.ToList() ?? new List<ClassificationNodeDto>();
+            _availableParentNodes = all
+                .OrderBy(n => n.Level)
+                .ThenBy(n => n.Order)
+                .ThenBy(n => n.Name)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading parent nodes");
+        }
+    }
+
+    private async Task LoadChildrenAsync()
+    {
+        if (_node == null) return;
+        _childrenLoading = true;
+        try
+        {
+            // correct interface method (existing service)
+            _children = await _ems.GetChildrenClassificationNodesAsync(_node.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading children for node {NodeId}", _node.Id);
+            _children = Enumerable.Empty<ClassificationNodeDto>();
+        }
+        finally
+        {
+            _childrenLoading = false;
+        }
+    }
+
+    private bool IsDescendant(Guid potentialDescendantId, Guid ancestorId)
+    {
+        var dict = _availableParentNodes.ToDictionary(n => n.Id);
+        if (!dict.TryGetValue(potentialDescendantId, out var node)) return false;
+        while (node != null && node.ParentId.HasValue)
+        {
+            if (node.ParentId.Value == ancestorId) return true;
+            if (!dict.TryGetValue(node.ParentId.Value, out node)) break;
+        }
+        return false;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_isSaving) return;
+        if (_form != null) await _form.Validate();
+
+        if (_form != null && _form.IsValid == false)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("validation.formInvalid", "Modulo non valido"), Severity.Warning);
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            if (_isCreateMode)
+            {
+                var created = await _ems.CreateClassificationNodeAsync(_createModel);
+                if (created != null)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("classificationNode.created", "Nodo creato con successo"), Severity.Success);
+                    NavigationManager.NavigateTo($"/management/classification-nodes/{created.Id}");
+                    return;
+                }
+                Snackbar.Add(TranslationService.GetTranslation("classificationNode.createError", "Errore nella creazione del nodo"), Severity.Error);
+            }
+            else if (_node != null)
+            {
+                var updated = await _ems.UpdateClassificationNodeAsync(_node.Id, _updateModel);
+                if (updated != null)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("classificationNode.updated", "Nodo aggiornato con successo"), Severity.Success);
+                    await LoadNodeAsync();
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("classificationNode.updateError", "Errore nell'aggiornamento del nodo"), Severity.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving classification node");
+            Snackbar.Add(TranslationService.GetTranslation("classificationNode.saveError", "Errore nel salvataggio del nodo: {0}", ex.Message), Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void MarkChanged()
+    {
+        _hasLocalChanges = true;
+        StateHasChanged();
+    }
+
+    private string SerializeCurrentModel()
+    {
+        var model = _isCreateMode ? (object)_createModel : (object)_updateModel;
+        return System.Text.Json.JsonSerializer.Serialize(model, _json_options);
+    }
+
+    private bool HasUnsavedChanges()
+    {
+        if (_isCreateMode) return _hasLocalChanges;
+        if (_node == null) return false;
+        var current = SerializeCurrentModel();
+        return !string.Equals(current, _originalSnapshot, StringComparison.Ordinal);
+    }
+
+    private async Task TryNavigateAway(string target)
+    {
+        if (!HasUnsavedChanges())
+        {
+            NavigationManager.NavigateTo(target);
+            return;
+        }
+
+        var title = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var message = TranslationService.GetTranslation("classificationNode.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?");
+        var saveText = TranslationService.GetTranslation("common.save", "Salva");
+        var discardText = TranslationService.GetTranslation("common.discard", "Non salvare");
+        var cancelText = TranslationService.GetTranslation("common.cancel", "Annulla");
+
+        var result = await DialogService.ShowMessageBox(title, message, yesText: saveText, noText: discardText, cancelText: cancelText);
+
+        if (result == true)
+        {
+            await SaveAsync();
+            NavigationManager.NavigateTo(target);
+        }
+        else if (result == false)
+        {
+            NavigationManager.NavigateTo(target);
+        }
+        // else cancel
+    }
+
+    private void OpenAuditDrawer()
+    {
+        _auditDrawerOpen = true;
+    }
+
+    private string GetNodeDisplayName(ClassificationNodeDto node)
+    {
+        var indent = new string('—', Math.Max(0, node.Level));
+        return $"{indent} {node.Name} ({GetTypeDisplayName(node.Type)})";
+    }
+
+    private Color GetStatusColor(ProductClassificationNodeStatus status) => status switch
+    {
+        ProductClassificationNodeStatus.Active => Color.Success,
+        ProductClassificationNodeStatus.Inactive => Color.Default,
+        ProductClassificationNodeStatus.Pending => Color.Warning,
+        _ => Color.Default
+    };
+
+    private string GetStatusDisplayName(ProductClassificationNodeStatus status) => status switch
+    {
+        ProductClassificationNodeStatus.Active => TranslationService.GetTranslation("status.active", "Attivo"),
+        ProductClassificationNodeStatus.Inactive => TranslationService.GetTranslation("status.inactive", "Inattivo"),
+        ProductClassificationNodeStatus.Pending => TranslationService.GetTranslation("status.pending", "In attesa"),
+        _ => status.ToString()
+    };
+
+    private string GetTypeDisplayName(ProductClassificationType type) => type switch
+    {
+        ProductClassificationType.Category => TranslationService.GetTranslation("classificationType.category", "Categoria"),
+        ProductClassificationType.Subcategory => TranslationService.GetTranslation("classificationType.subcategory", "Sottocategoria"),
+        ProductClassificationType.Brand => TranslationService.GetTranslation("classificationType.brand", "Brand"),
+        ProductClassificationType.Line => TranslationService.GetTranslation("classificationType.line", "Linea"),
+        _ => type.ToString()
+    };
+}
