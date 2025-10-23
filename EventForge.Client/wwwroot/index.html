@@ -19,6 +19,8 @@
     <link rel="icon" type="image/svg+xml" href="trace.svg" />
     <link href="EventForge.Client.styles.css" rel="stylesheet" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    <!-- EventForge MudBlazor component overrides and helpers -->
+    <link rel="stylesheet" href="css/components/mud-components.css" />
 </head>
 
 <body>
@@ -47,6 +49,9 @@
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     
+    <!-- Runtime helper to apply ef-* classes -->
+    <script src="js/apply-mud-classes.js"></script>
+
     <!-- QZ Tray library from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.1.0/dist/qz-tray.js"></script>
     
