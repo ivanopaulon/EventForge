@@ -82,7 +82,20 @@ public class ProductService : IProductService
                 .Include(p => p.Model)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return product != null ? MapToProductDto(product) : null;
+            if (product == null) return null;
+
+            string? preferredSupplierName = null;
+            if (product.PreferredSupplierId.HasValue)
+            {
+                preferredSupplierName = await _context.BusinessParties
+                    .Where(bp => bp.Id == product.PreferredSupplierId.Value && !bp.IsDeleted)
+                    .Select(bp => bp.Name)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
+            var dto = MapToProductDto(product);
+            dto.PreferredSupplierName = preferredSupplierName;
+            return dto;
         }
         catch (Exception ex)
         {
@@ -105,7 +118,20 @@ public class ProductService : IProductService
                 .Include(p => p.Model)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return product != null ? MapToProductDetailDto(product) : null;
+            if (product == null) return null;
+
+            string? preferredSupplierName = null;
+            if (product.PreferredSupplierId.HasValue)
+            {
+                preferredSupplierName = await _context.BusinessParties
+                    .Where(bp => bp.Id == product.PreferredSupplierId.Value && !bp.IsDeleted)
+                    .Select(bp => bp.Name)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
+            var dto = MapToProductDetailDto(product);
+            dto.PreferredSupplierName = preferredSupplierName;
+            return dto;
         }
         catch (Exception ex)
         {
@@ -142,7 +168,7 @@ public class ProductService : IProductService
                 IsVatIncluded = createProductDto.IsVatIncluded,
                 DefaultPrice = createProductDto.DefaultPrice,
                 VatRateId = createProductDto.VatRateId,
-                UnitOfMeasureId = createProductDto.UnitOfMeasureId,
+                UnitOfMeasureId = createProductDto.CategoryNodeId,
                 CategoryNodeId = createProductDto.CategoryNodeId,
                 FamilyNodeId = createProductDto.FamilyNodeId,
                 GroupNodeId = createProductDto.GroupNodeId,
@@ -1208,6 +1234,10 @@ public class ProductService : IProductService
             ModelId = product.ModelId,
             ModelName = product.Model?.Name,
             PreferredSupplierId = product.PreferredSupplierId,
+            ReorderPoint = product.ReorderPoint,
+            SafetyStock = product.SafetyStock,
+            TargetStockLevel = product.TargetStockLevel,
+            AverageDailyDemand = product.AverageDailyDemand,
             CategoryNodeId = product.CategoryNodeId,
             FamilyNodeId = product.FamilyNodeId,
             GroupNodeId = product.GroupNodeId,
@@ -1247,6 +1277,11 @@ public class ProductService : IProductService
             ModelId = product.ModelId,
             ModelName = product.Model?.Name,
             PreferredSupplierId = product.PreferredSupplierId,
+            PreferredSupplierName = null, // resolved on client via suppliers list
+            ReorderPoint = product.ReorderPoint,
+            SafetyStock = product.SafetyStock,
+            TargetStockLevel = product.TargetStockLevel,
+            AverageDailyDemand = product.AverageDailyDemand,
             CategoryNodeId = product.CategoryNodeId,
             FamilyNodeId = product.FamilyNodeId,
             GroupNodeId = product.GroupNodeId,

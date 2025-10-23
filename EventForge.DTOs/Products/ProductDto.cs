@@ -124,6 +124,11 @@ namespace EventForge.DTOs.Products
         public Guid? PreferredSupplierId { get; set; }
 
         /// <summary>
+        /// Preferred supplier name.
+        /// </summary>
+        public string? PreferredSupplierName { get; set; }
+
+        /// <summary>
         /// Reorder point - inventory level at which to reorder.
         /// </summary>
         public decimal? ReorderPoint { get; set; }

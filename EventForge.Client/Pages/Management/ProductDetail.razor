@@ -114,7 +114,7 @@
                 }
 
                 <MudTabPanel Text="@TranslationService.GetTranslation("product.stockInventory", "Magazzino e Inventario")" Icon="@Icons.Material.Outlined.Warehouse">
-                    <StockInventoryTab Product="@_product" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" />
+                    <StockInventoryTab Product="@_product" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
                 </MudTabPanel>
             </MudTabs>
         </MudPaper>

@@ -18,60 +18,97 @@
         <MudDivider Class="mb-4" />
     </MudItem>
 
-    <MudItem xs="12" md="6">
-        <MudNumericField @bind-Value="Product.ReorderPoint"
-                         Label="@TranslationService.GetTranslation("field.reorderPoint", "Punto di Riordino")"
-                         Variant="Variant.Outlined"
-                         ReadOnly="@(!IsEditMode)"
-                         Min="0"
-                         Format="N2"
-                         HelperText="@TranslationService.GetTranslation("product.reorderPointHelp", "Livello di inventario al quale riordinare")"
-                         @bind-Value:after="NotifyUpdated" />
+    <!-- Two column layout: procurement data (left) and stock summary (right) -->
+    <MudItem xs="12">
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudPaper Elevation="0" Class="pa-3">
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">@TranslationService.GetTranslation("product.procurementData", "Dati di Approvvigionamento")</MudText>
+                    <MudGrid>
+                        <MudItem xs="12" md="6">
+                            <MudTextField Value="@(Product.PreferredSupplierName ?? "-")"
+                                          Label="@TranslationService.GetTranslation("field.preferredSupplier", "Fornitore Preferito")"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="true" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudNumericField Value="@(Product.ReorderPoint ??0)"
+                                             Label="@TranslationService.GetTranslation("field.reorderPoint", "Punto di Riordino")"
+                                             Variant="Variant.Outlined"
+                                             ReadOnly="true"
+                                             Min="0" Format="N2" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudNumericField Value="@(Product.SafetyStock ??0)"
+                                             Label="@TranslationService.GetTranslation("field.safetyStock", "Scorta di Sicurezza")"
+                                             Variant="Variant.Outlined"
+                                             ReadOnly="true"
+                                             Min="0" Format="N2" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudNumericField Value="@(Product.TargetStockLevel ??0)"
+                                             Label="@TranslationService.GetTranslation("field.targetStockLevel", "Livello Stock Obiettivo")"
+                                             Variant="Variant.Outlined"
+                                             ReadOnly="true"
+                                             Min="0" Format="N2" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudNumericField Value="@(Product.AverageDailyDemand ??0)"
+                                             Label="@TranslationService.GetTranslation("field.averageDailyDemand", "Domanda Media Giornaliera")"
+                                             Variant="Variant.Outlined"
+                                             ReadOnly="true"
+                                             Min="0" Format="N2" />
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudPaper Elevation="0" Class="pa-3">
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">@TranslationService.GetTranslation("product.stockLevelsSummary", "Riepilogo Giacenze")</MudText>
+                    @if (_isLoadingStock)
+                    {
+                        <div class="d-flex justify-center pa-4">
+                            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                        </div>
+                    }
+                    else
+                    {
+                        <MudGrid>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.caption">@TranslationService.GetTranslation("warehouse.totalQuantity", "Quantità Totale")</MudText>
+                                <MudText Typo="Typo.h6">@_totalQuantity.ToString("N2")</MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.caption">@TranslationService.GetTranslation("warehouse.totalAvailable", "Disponibile Totale")</MudText>
+                                <MudText Typo="Typo.h6">@_totalAvailable.ToString("N2")</MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.caption">@TranslationService.GetTranslation("warehouse.totalReserved", "Riservata Totale")</MudText>
+                                <MudText Typo="Typo.h6">@_totalReserved.ToString("N2")</MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.caption">@TranslationService.GetTranslation("warehouse.lotsCount", "Lotti")</MudText>
+                                <MudText Typo="Typo.h6">@_lotCount</MudText>
+                            </MudItem>
+                        </MudGrid>
+                    }
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
     </MudItem>
 
-    <MudItem xs="12" md="6">
-        <MudNumericField @bind-Value="Product.SafetyStock"
-                         Label="@TranslationService.GetTranslation("field.safetyStock", "Scorta di Sicurezza")"
-                         Variant="Variant.Outlined"
-                         ReadOnly="@(!IsEditMode)"
-                         Min="0"
-                         Format="N2"
-                         HelperText="@TranslationService.GetTranslation("product.safetyStockHelp", "Stock minimo da mantenere")"
-                         @bind-Value:after="NotifyUpdated" />
-    </MudItem>
-
-    <MudItem xs="12" md="6">
-        <MudNumericField @bind-Value="Product.TargetStockLevel"
-                         Label="@TranslationService.GetTranslation("field.targetStockLevel", "Livello Stock Obiettivo")"
-                         Variant="Variant.Outlined"
-                         ReadOnly="@(!IsEditMode)"
-                         Min="0"
-                         Format="N2"
-                         HelperText="@TranslationService.GetTranslation("product.targetStockHelp", "Livello di inventario desiderato")"
-                         @bind-Value:after="NotifyUpdated" />
-    </MudItem>
-
-    <MudItem xs="12" md="6">
-        <MudNumericField @bind-Value="Product.AverageDailyDemand"
-                         Label="@TranslationService.GetTranslation("field.averageDailyDemand", "Domanda Media Giornaliera")"
-                         Variant="Variant.Outlined"
-                         ReadOnly="@(!IsEditMode)"
-                         Min="0"
-                         Format="N2"
-                         HelperText="@TranslationService.GetTranslation("product.avgDailyDemandHelp", "Domanda media giornaliera per pianificazione inventario")"
-                         @bind-Value:after="NotifyUpdated" />
-    </MudItem>
-
-    <!-- Stock Levels Section -->
-    <MudItem xs="12" Class="mt-6">
+    <!-- Detailed stock table below -->
+    <MudItem xs="12" Class="mt-4">
         <MudDivider Class="my-4" />
         <MudText Typo="Typo.h6" Class="mb-3">
             <MudIcon Icon="@Icons.Material.Outlined.Inventory" Class="mr-2" />
             @TranslationService.GetTranslation("product.stockLevels", "Giacenze a Magazzino")
         </MudText>
-    </MudItem>
 
-    <MudItem xs="12">
         @if (_isLoadingStock)
         {
             <div class="d-flex justify-center pa-4">
@@ -80,11 +117,7 @@
         }
         else if (_stockLevels?.Any() == true)
         {
-            <MudTable Items="@_stockLevels"
-                      Hover="true"
-                      Striped="true"
-                      Dense="true"
-                      Class="mb-4">
+            <MudTable Items="@_stockLevels" Hover="true" Striped="true" Dense="true" Class="mb-4">
                 <HeaderContent>
                     <MudTh>@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")</MudTh>
                     <MudTh>@TranslationService.GetTranslation("warehouse.location", "Ubicazione")</MudTh>
@@ -95,54 +128,14 @@
                     <MudTh>@TranslationService.GetTranslation("warehouse.lastMovement", "Ultimo Movimento")</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")">
-                        @(context.WarehouseName ?? "-")
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.location", "Ubicazione")">
-                        @(context.StorageLocationCode ?? "-")
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.lot", "Lotto")">
-                        @(context.LotCode ?? "-")
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.quantity", "Quantità")" Class="text-right">
-                        <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.Quantity.ToString("N2")</MudText>
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.reserved", "Riservata")" Class="text-right">
-                        @context.ReservedQuantity.ToString("N2")
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.available", "Disponibile")" Class="text-right">
-                        <MudChip T="string" Size="Size.Small" 
-                                 Color="@(context.AvailableQuantity > 0 ? Color.Success : Color.Default)">
-                            @context.AvailableQuantity.ToString("N2")
-                        </MudChip>
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.lastMovement", "Ultimo Movimento")">
-                        @(context.LastMovementDate?.ToString("dd/MM/yyyy") ?? "-")
-                    </MudTd>
+                    <MudTd>@(context.WarehouseName ?? "-")</MudTd>
+                    <MudTd>@(context.StorageLocationCode ?? "-")</MudTd>
+                    <MudTd>@(context.LotCode ?? "-")</MudTd>
+                    <MudTd Class="text-right">@context.Quantity.ToString("N2")</MudTd>
+                    <MudTd Class="text-right">@context.ReservedQuantity.ToString("N2")</MudTd>
+                    <MudTd Class="text-right">@context.AvailableQuantity.ToString("N2")</MudTd>
+                    <MudTd>@(context.LastMovementDate?.ToString("dd/MM/yyyy") ?? "-")</MudTd>
                 </RowTemplate>
-                <FooterContent>
-                    <MudTh colspan="3">
-                        <MudText Typo="Typo.body1" Style="font-weight: 600;">
-                            @TranslationService.GetTranslation("warehouse.total", "Totale")
-                        </MudText>
-                    </MudTh>
-                    <MudTh Class="text-right">
-                        <MudText Typo="Typo.body1" Style="font-weight: 600;">
-                            @_stockLevels.Sum(s => s.Quantity).ToString("N2")
-                        </MudText>
-                    </MudTh>
-                    <MudTh Class="text-right">
-                        <MudText Typo="Typo.body1" Style="font-weight: 600;">
-                            @_stockLevels.Sum(s => s.ReservedQuantity).ToString("N2")
-                        </MudText>
-                    </MudTh>
-                    <MudTh Class="text-right">
-                        <MudText Typo="Typo.body1" Style="font-weight: 600;">
-                            @_stockLevels.Sum(s => s.AvailableQuantity).ToString("N2")
-                        </MudText>
-                    </MudTh>
-                    <MudTh></MudTh>
-                </FooterContent>
             </MudTable>
         }
         else
@@ -153,7 +146,7 @@
         }
     </MudItem>
 
-    <!-- Document History Section -->
+    <!-- Documents list below stock -->
     <MudItem xs="12" Class="mt-6">
         <MudDivider Class="my-4" />
         <MudText Typo="Typo.h6" Class="mb-3">
@@ -162,7 +155,7 @@
         </MudText>
     </MudItem>
 
-    <!-- Filters -->
+    <!-- Filters and documents table (same as before) -->
     <MudItem xs="12">
         <MudPaper Elevation="0" Class="pa-4 mb-4" Style="background-color: var(--mud-palette-background-grey);">
             <MudGrid Spacing="2">
@@ -199,7 +192,6 @@
         </MudPaper>
     </MudItem>
 
-    <!-- Documents Table -->
     <MudItem xs="12">
         @if (_isLoadingDocuments)
         {
@@ -209,11 +201,7 @@
         }
         else if (_documents?.Items?.Any() == true)
         {
-            <MudTable Items="@_documents.Items"
-                      Hover="true"
-                      Striped="true"
-                      Dense="true"
-                      Class="mb-4">
+            <MudTable Items="@_documents.Items" Hover="true" Striped="true" Dense="true" Class="mb-4">
                 <HeaderContent>
                     <MudTh>@TranslationService.GetTranslation("field.number", "Numero")</MudTh>
                     <MudTh>@TranslationService.GetTranslation("field.date", "Data")</MudTh>
@@ -223,39 +211,28 @@
                     <MudTh Class="text-right">@TranslationService.GetTranslation("field.total", "Totale")</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.number", "Numero")">
-                        @context.Number
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.date", "Data")">
-                        @context.Date.ToString("dd/MM/yyyy")
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.type", "Tipo")">
-                        @context.DocumentTypeName
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.businessParty", "Cliente/Fornitore")">
-                        @(context.BusinessPartyName ?? context.CustomerName ?? "-")
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                    <MudTd>@context.Number</MudTd>
+                    <MudTd>@context.Date.ToString("dd/MM/yyyy")</MudTd>
+                    <MudTd>@context.DocumentTypeName</MudTd>
+                    <MudTd>@(context.BusinessPartyName ?? context.CustomerName ?? "-")</MudTd>
+                    <MudTd>
                         <MudChip T="string" Size="Size.Small" Color="GetStatusColor(context.Status)">
                             @GetStatusText(context.Status)
                         </MudChip>
                     </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.total", "Totale")" Class="text-right">
-                        @context.TotalGrossAmount.ToString("C2")
-                    </MudTd>
+                    <MudTd Class="text-right">@context.TotalGrossAmount.ToString("C2")</MudTd>
                 </RowTemplate>
             </MudTable>
 
-            <!-- Pagination -->
             <div class="d-flex justify-space-between align-center">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">
                     @TranslationService.GetTranslation("pagination.showing", "Mostrando") 
-                    @((_documents.Page - 1) * _documents.PageSize + 1) - 
+                    @((_documents.Page -1) * _documents.PageSize +1) - 
                     @Math.Min(_documents.Page * _documents.PageSize, _documents.TotalCount) 
                     @TranslationService.GetTranslation("pagination.of", "di") 
                     @_documents.TotalCount
                 </MudText>
-                <MudPagination Count="@((int)((_documents.TotalCount + _documents.PageSize - 1) / _documents.PageSize))"
+                <MudPagination Count="@((int)((_documents.TotalCount + _documents.PageSize -1) / _documents.PageSize))"
                                Selected="@_currentPage"
                                SelectedChanged="OnPageChangedAsync"
                                ShowFirstButton="true"
@@ -281,20 +258,29 @@
     [Parameter]
     public EventCallback OnProductUpdated { get; set; }
 
+    [Parameter]
+    public EventCallback OnProductUpdatedPersisted { get; set; }
+
     private bool _isLoadingDocuments = false;
     private bool _isLoadingStock = false;
     private PagedResult<DocumentHeaderDto>? _documents;
     private IEnumerable<StockDto> _stockLevels = Enumerable.Empty<StockDto>();
-    private int _currentPage = 1;
-    private const int PageSize = 10;
+    private int _currentPage =1;
+    private const int PageSize =10;
+
+    private decimal _totalQuantity =0m;
+    private decimal _totalAvailable =0m;
+    private decimal _totalReserved =0m;
+    private int _lotCount =0;
 
     // Filters
     private DateTime? _fromDate;
     private DateTime? _toDate;
     private string? _customerNameFilter;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
+        // Load documents and stock; PreferredSupplierName is provided by server in the Product DTO
         await Task.WhenAll(LoadDocumentsAsync(), LoadStockLevelsAsync());
     }
 
@@ -304,14 +290,20 @@
         try
         {
             _stockLevels = await StockService.GetStockByProductIdAsync(Product.Id);
+            _totalQuantity = _stockLevels.Sum(s => s.Quantity);
+            _totalReserved = _stockLevels.Sum(s => s.ReservedQuantity);
+            _totalAvailable = _stockLevels.Sum(s => s.AvailableQuantity);
+            _lotCount = _stockLevels.Count(s => !string.IsNullOrWhiteSpace(s.LotCode));
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading stock levels for product {ProductId}", Product.Id);
+            _stockLevels = Enumerable.Empty<StockDto>();
         }
         finally
         {
             _isLoadingStock = false;
+            StateHasChanged();
         }
     }
 
@@ -337,10 +329,12 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading documents for product {ProductId}", Product.Id);
+            _documents = null;
         }
         finally
         {
             _isLoadingDocuments = false;
+            StateHasChanged();
         }
     }
 
