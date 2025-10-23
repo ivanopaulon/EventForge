@@ -1,34 +1,61 @@
-/* Core brand CSS variables for EventForge - single source of truth
- This file replaces the previous multi-theme CSS files and provides
- a small set of semantic variables used across the app. */
+/* Minimal fallback semantic variables
+ These map legacy custom properties used across the CSS to MudBlazor palette variables
+ where possible and provide safe defaults so components don't render incorrectly.
+ You can redesign these values later as needed. */
 :root {
- --ef-primary: #1F2F46; /* Navy Blue */
- --ef-secondary: #247BFF; /* Electric Blue */
- --ef-accent: #FF6B2C; /* Orange Fire */
- --ef-background: #F5F6FA; /* Light Gray */
- --ef-surface: #FFFFFF;
- --ef-text-primary: #2D2D2D;
- --ef-text-secondary: #666666;
+ /* Brand / semantic colors (prefer MudBlazor palette when available) */
+ --primary: var(--mud-palette-primary, #1F2F46);
+ --secondary: var(--mud-palette-secondary, #247BFF);
+ --accent: var(--mud-palette-tertiary, #FF6B2C);
 
- /* Semantic mappings used by components */
- --appbar-background: var(--ef-primary);
- --appbar-text: #ffffff;
- --card-background: var(--ef-surface);
- --card-border: #e0e0e0;
+ --background: var(--mud-palette-background, #F5F6FA);
+ --background-secondary: var(--mud-palette-surface, #FFFFFF);
+ --card-background: var(--mud-palette-surface, #FFFFFF);
+ --card-border: var(--mud-palette-lines-default, #e0e0e0);
 
- /* Status colors */
- --success: #4caf50;
- --warning: #ff9800;
- --error: #f44336;
- --info: var(--ef-secondary);
+ /* Buttons */
+ --button-primary-bg: var(--primary);
+ --button-primary-text: var(--mud-palette-primary-contrast, #ffffff);
+
+ /* Form & focus */
+ --form-focus-border: rgba(36,123,255,0.6);
+
+ /* Borders */
+ --border-primary: var(--mud-palette-primary, #1F2F46);
+ --border-secondary: rgba(0,0,0,0.08);
+
+ /* Shadows */
+ --shadow-sm:01px3px rgba(0,0,0,0.08);
+ --shadow-md:04px12px rgba(0,0,0,0.08);
+ --shadow-lg:010px30px rgba(0,0,0,0.12);
+
+ /* Radii */
+ --radius-sm:4px;
+ --radius-md:8px;
+ --radius-lg:12px;
+
+ /* Neutral palette */
+ --neutral-light: #f8f9fa;
+ --neutral-light-darker: #f1f3f5;
+ --neutral-dark: #1f2f46;
+ --neutral-dark-light: #2d2d30;
+
+ /* Legacy ef names (compat) */
+ --ef-primary: var(--primary);
+ --ef-background: var(--background);
+ --ef-surface: var(--card-background);
+
+ /* Loading placeholder text fallback */
+ --blazor-load-percentage-text: "Loading";
 }
 
-/* Dark mode override (used if MudBlazor applies dark theme classes) */
+/* Dark mode sensible defaults (will be overridden by MudBlazor dark theme variables when used) */
 .mud-theme-dark {
- --appbar-background: #1a1a2e;
- --appbar-text: #e0e0e0;
- --card-background: #2d2d30;
- --card-border: #444444;
- --ef-background: #1a1a2e;
- --ef-text-primary: #e0e0e0;
+ --primary: var(--mud-palette-primary, #4fc3f7);
+ --secondary: var(--mud-palette-secondary, #ffb74d);
+ --background: var(--mud-palette-background, #1a1a2e);
+ --background-secondary: var(--mud-palette-surface, #2d2d30);
+ --card-background: var(--mud-palette-surface, #2d2d30);
+ --card-border: rgba(255,255,255,0.06);
+ --button-primary-text: #111827;
 }
