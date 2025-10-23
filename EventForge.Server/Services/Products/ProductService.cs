@@ -87,8 +87,9 @@ public class ProductService : IProductService
             string? preferredSupplierName = null;
             if (product.PreferredSupplierId.HasValue)
             {
+                var currentTenantId = _tenantContext.CurrentTenantId;
                 preferredSupplierName = await _context.BusinessParties
-                    .Where(bp => bp.Id == product.PreferredSupplierId.Value && !bp.IsDeleted)
+                    .Where(bp => bp.Id == product.PreferredSupplierId.Value && !bp.IsDeleted && (!currentTenantId.HasValue || bp.TenantId == currentTenantId.Value))
                     .Select(bp => bp.Name)
                     .FirstOrDefaultAsync(cancellationToken);
             }
@@ -123,8 +124,9 @@ public class ProductService : IProductService
             string? preferredSupplierName = null;
             if (product.PreferredSupplierId.HasValue)
             {
+                var currentTenantId = _tenantContext.CurrentTenantId;
                 preferredSupplierName = await _context.BusinessParties
-                    .Where(bp => bp.Id == product.PreferredSupplierId.Value && !bp.IsDeleted)
+                    .Where(bp => bp.Id == product.PreferredSupplierId.Value && !bp.IsDeleted && (!currentTenantId.HasValue || bp.TenantId == currentTenantId.Value))
                     .Select(bp => bp.Name)
                     .FirstOrDefaultAsync(cancellationToken);
             }

@@ -4,6 +4,21 @@
     "selectLanguage": "Seleziona lingua",
     "skipToContent": "Salta al contenuto principale"
   },
+  "product": {
+    "stockInfo": "Informazioni Magazzino",
+    "general": "Generali",
+    "availabilityStock": "Disponibilità e giacenza",
+    "stockLevels": "Giacenze a Magazzino",
+    "noStockFound": "Nessuna giacenza trovata per questo prodotto",
+    "documentHistory": "Storico Documenti",
+    "noDocumentsFound": "Nessun documento trovato per questo prodotto"
+  },
+  "helper": {
+    "reorderPoint": "Livello al quale si dovrebbe creare un ordine di riapprovvigionamento",
+    "safetyStock": "Quantità minima di sicurezza da mantenere in magazzino",
+    "targetStockLevel": "Livello di scorte obiettivo desiderato per gestire la domanda",
+    "averageDailyDemand": "Domanda media giornaliera prevista per il prodotto"
+  },
   "action": {
     "cancel": "Annulla",
     "clearFilters": "Cancella filtri",
@@ -1912,7 +1927,7 @@
     "setupAlerts": "Configura avvisi",
     "sort": "Ordina",
     "sortColumn": "Ordina colonna",
-    "startImpersonation": "Inizia impersonificazione utente",
+    "startImpersonazione": "Inizia impersonificazione utente",
     "switchTenant": "Cambia contesto tenant",
     "toggleEventCategoryStatus": "Cambia stato categoria evento",
     "toggleFilters": "Mostra/Nascondi filtri avanzati",

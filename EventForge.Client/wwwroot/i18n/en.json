@@ -4,6 +4,21 @@
     "selectLanguage": "Select language",
     "skipToContent": "Skip to main content"
   },
+  "product": {
+    "stockInfo": "Stock information",
+    "general": "General",
+    "availabilityStock": "Availability & stock",
+    "stockLevels": "Stock levels",
+    "noStockFound": "No stock found for this product",
+    "documentHistory": "Document history",
+    "noDocumentsFound": "No documents found for this product"
+  },
+  "helper": {
+    "reorderPoint": "Level at which to trigger a replenishment order",
+    "safetyStock": "Minimum safety quantity to keep in stock",
+    "targetStockLevel": "Desired target stock level to meet demand",
+    "averageDailyDemand": "Estimated average daily demand for the product"
+  },
   "action": {
     "cancel": "Cancel",
     "clearFilters": "Clear filters",
