@@ -45,9 +45,8 @@
                     <MudSelect T="ProductClassificationType?" @bind-Value="_typeFilter" @bind-Value:after="OnTypeFilterChanged" Variant="Variant.Outlined" Style="flex:1;">
                         <MudSelectItem T="ProductClassificationType?" Value="@((ProductClassificationType?)null)">@TranslationService.GetTranslation("common.selectAll","Tutti")</MudSelectItem>
                         <MudSelectItem T="ProductClassificationType?" Value="@ProductClassificationType.Category">@TranslationService.GetTranslation("classificationType.category","Categoria")</MudSelectItem>
-                        <MudSelectItem T="ProductClassificationType?" Value="@ProductClassificationType.Subcategory">@TranslationService.GetTranslation("classificationType.subcategory","Sottocategoria")</MudSelectItem>
-                        <MudSelectItem T="ProductClassificationType?" Value="@ProductClassificationType.Brand">@TranslationService.GetTranslation("classificationType.brand","Brand")</MudSelectItem>
-                        <MudSelectItem T="ProductClassificationType?" Value="@ProductClassificationType.Line">@TranslationService.GetTranslation("classificationType.line","Linea")</MudSelectItem>
+                        <MudSelectItem T="ProductClassificationType?" Value="@ProductClassificationType.Family">@TranslationService.GetTranslation("classificationType.family","Famiglia")</MudSelectItem>
+                        <MudSelectItem T="ProductClassificationType?" Value="@ProductClassificationType.MerchandiseGroup">@TranslationService.GetTranslation("classificationType.merchandiseGroup","Gruppo Merceologico")</MudSelectItem>
                     </MudSelect>
                     <MudSelect T="ProductClassificationNodeStatus?" @bind-Value="_statusFilter" @bind-Value:after="OnStatusFilterChanged" Variant="Variant.Outlined" Style="flex:1;">
                         <MudSelectItem T="ProductClassificationNodeStatus?" Value="@((ProductClassificationNodeStatus?)null)">@TranslationService.GetTranslation("common.selectAll","Tutti")</MudSelectItem>
@@ -443,27 +442,24 @@
     private string GetNodeIcon(ClassificationNodeDto node) => node.Type switch
     {
         ProductClassificationType.Category => Icons.Material.Outlined.Category,
-        ProductClassificationType.Subcategory => Icons.Material.Outlined.SubdirectoryArrowRight,
-        ProductClassificationType.Brand => Icons.Material.Outlined.Stars,
-        ProductClassificationType.Line => Icons.Material.Outlined.LinearScale,
+        ProductClassificationType.Family => Icons.Material.Outlined.GroupWork,
+        ProductClassificationType.MerchandiseGroup => Icons.Material.Outlined.LocalOffer,
         _ => Icons.Material.Outlined.Circle
     };
 
     private Color GetTypeColor(ProductClassificationType type) => type switch
     {
         ProductClassificationType.Category => Color.Primary,
-        ProductClassificationType.Subcategory => Color.Secondary,
-        ProductClassificationType.Brand => Color.Tertiary,
-        ProductClassificationType.Line => Color.Info,
+        ProductClassificationType.Family => Color.Secondary,
+        ProductClassificationType.MerchandiseGroup => Color.Info,
         _ => Color.Default
     };
 
     private string GetTypeDisplayName(ProductClassificationType type) => type switch
     {
         ProductClassificationType.Category => TranslationService.GetTranslation("classificationType.category","Categoria"),
-        ProductClassificationType.Subcategory => TranslationService.GetTranslation("classificationType.subcategory","Sottocategoria"),
-        ProductClassificationType.Brand => TranslationService.GetTranslation("classificationType.brand","Brand"),
-        ProductClassificationType.Line => TranslationService.GetTranslation("classificationType.line","Linea"),
+        ProductClassificationType.Family => TranslationService.GetTranslation("classificationType.family","Famiglia"),
+        ProductClassificationType.MerchandiseGroup => TranslationService.GetTranslation("classificationType.merchandiseGroup","Gruppo Merceologico"),
         _ => type.ToString()
     };
 

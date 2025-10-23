@@ -1,0 +1,230 @@
+@using MudBlazor
+@using EventForge.DTOs.Common
+@inject IEntityManagementService EntityManagementService
+@inject ILogger<ClassificationNodePicker> Logger
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+
+<MudPaper Class="pa-3" Elevation="0">
+    <div class="d-flex align-center mb-3">
+        <MudText Typo="Typo.h6" Class="mr-2">@Title</MudText>
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">@TranslationService.GetTranslation("classificationNode.pickHint","Seleziona un nodo dalla gerarchia")</MudText>
+    </div>
+
+    <MudTextField @bind-Value="_searchTerm"
+                  Placeholder="@TranslationService.GetTranslation("common.search","Cerca")"
+                  Variant="Variant.Outlined"
+                  Adornment="Adornment.End"
+                  AdornmentIcon="@Icons.Material.Outlined.Search"
+                  Immediate="true"
+                  OnImmediateValueChanged="OnSearchChanged"
+                  Class="mb-3" />
+
+    @if (_isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" />
+    }
+    else if (TreeItems?.Any() != true)
+    {
+        <div class="pa-4">
+            <MudText Typo="Typo.body2">@TranslationService.GetTranslation("classificationNode.noFound","Nessun nodo trovato")</MudText>
+        </div>
+    }
+    else
+    {
+        <MudTreeView Items="@TreeItems" T="ClassificationNodeTreeItem" Hover="true" Dense="true">
+            <ItemTemplate Context="it">
+                @if (it is ClassificationNodeTreeItem nodeItem)
+                {
+                    <MudTreeViewItem Items="@nodeItem.Children" Expanded="@nodeItem.Expanded">
+                        <BodyContent>
+                            <div class="d-flex justify-space-between align-center" style="width:100%">
+                                <div class="d-flex align-center gap-2">
+                                    <MudIcon Icon="@GetNodeIcon(nodeItem.Node)" Size="Size.Small" Class="mr-1" />
+                                    <MudText Typo="Typo.body2" Class="@(nodeItem.IsMatch ? "matched-node" : "")">@nodeItem.Node.Name</MudText>
+                                    @if (!string.IsNullOrWhiteSpace(nodeItem.Node.Code))
+                                    {
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary ml-2">(@nodeItem.Node.Code)</MudText>
+                                    }
+                                </div>
+                                <div>
+                                    @if (nodeItem.IsSelectable)
+                                    {
+                                        <MudIconButton Icon="@(SelectedId == nodeItem.Node.Id ? Icons.Material.Filled.RadioButtonChecked : Icons.Material.Outlined.RadioButtonUnchecked)"
+                                                       Size="Size.Small"
+                                                       Color="Color.Primary"
+                                                       OnClick="@(async () => await ToggleSelect(nodeItem))" />
+                                    }
+                                </div>
+                            </div>
+                        </BodyContent>
+                    </MudTreeViewItem>
+                }
+            </ItemTemplate>
+        </MudTreeView>
+    }
+
+    <MudDivider Class="mt-3 mb-3" />
+
+    <div class="d-flex justify-end gap-2">
+        <MudButton Variant="Variant.Text" OnClick="Cancel">@TranslationService.GetTranslation("common.cancel","Annulla")</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Confirm" Disabled="@(_selectedNode == null)">
+            @TranslationService.GetTranslation("common.select","Seleziona")
+        </MudButton>
+    </div>
+</MudPaper>
+
+@code {
+    [CascadingParameter] public IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter] public ProductClassificationType Type { get; set; }
+    [Parameter] public Guid? InitialSelectedId { get; set; }
+    [Parameter] public string Title { get; set; } = "";
+
+    private bool _isLoading = true;
+    private string? _searchTerm;
+    private List<ClassificationNodeDto> _nodes = new();
+    private ILookup<Guid?, ClassificationNodeDto> _childrenLookup = Enumerable.Empty<ClassificationNodeDto>().ToLookup(n => (Guid?)null);
+    private List<ClassificationNodeTreeItem> TreeItems { get; set; } = new();
+    private ClassificationNodeDto? _selectedNode;
+    private Guid? SelectedId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Title = string.IsNullOrWhiteSpace(Title) ? TranslationService.GetTranslation("classificationNode.selectNode", "Seleziona nodo") : Title;
+        await LoadNodesAsync();
+    }
+
+    private async Task LoadNodesAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            var all = (await EntityManagementService.GetClassificationNodesAsync())?.ToList() ?? new List<ClassificationNodeDto>();
+            _nodes = all;
+            _childrenLookup = _nodes.ToLookup(n => n.ParentId);
+
+            // build initial tree items
+            RecomputeTree();
+            // set initial selection if provided
+            if (InitialSelectedId.HasValue)
+            {
+                SelectedId = InitialSelectedId;
+                _selectedNode = _nodes.FirstOrDefault(n => n.Id == InitialSelectedId.Value);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading classification nodes in picker");
+            Snackbar.Add(TranslationService.GetTranslation("classificationNode.loadError", "Errore nel caricamento dei nodi"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void RecomputeTree()
+    {
+        var itemLookup = _nodes.ToDictionary(n => n.Id, n => new ClassificationNodeTreeItem(n)
+        {
+            IsSelectable = n.Type == Type
+        });
+
+        foreach (var kv in itemLookup)
+        {
+            kv.Value.Icon = GetNodeIcon(kv.Value.Node);
+            kv.Value.Expanded = false;
+        }
+
+        var roots = new List<ClassificationNodeTreeItem>();
+        foreach (var item in itemLookup.Values)
+        {
+            var pid = item.Node.ParentId;
+            if (pid.HasValue && itemLookup.TryGetValue(pid.Value, out var parent))
+            {
+                parent.Children.Add(item);
+            }
+            else
+            {
+                roots.Add(item);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            var matches = _nodes.Where(n =>
+                (n.Name?.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (n.Code?.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (n.Description?.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)).Select(n => n.Id).ToHashSet();
+
+            foreach (var id in matches)
+            {
+                if (itemLookup.TryGetValue(id, out var it))
+                {
+                    it.IsMatch = true;
+                    var current = it.Node.ParentId;
+                    while (current.HasValue && itemLookup.TryGetValue(current.Value, out var parent))
+                    {
+                        parent.Expanded = true;
+                        current = parent.Node.ParentId;
+                    }
+                }
+            }
+        }
+
+        TreeItems = roots;
+    }
+
+    private string GetNodeIcon(ClassificationNodeDto node) => node.Type switch
+    {
+        ProductClassificationType.Category => Icons.Material.Outlined.Category,
+        ProductClassificationType.Family => Icons.Material.Outlined.GroupWork,
+        ProductClassificationType.MerchandiseGroup => Icons.Material.Outlined.LocalOffer,
+        _ => Icons.Material.Outlined.Circle
+    };
+
+    private async Task ToggleSelect(ClassificationNodeTreeItem item)
+    {
+        if (!item.IsSelectable) return;
+        SelectedId = item.Node.Id;
+        _selectedNode = item.Node;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnSearchChanged(string value)
+    {
+        _searchTerm = value;
+        RecomputeTree();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private void Confirm()
+    {
+        if (_selectedNode == null)
+            MudDialog?.Cancel();
+        else
+            MudDialog?.Close(DialogResult.Ok(_selectedNode));
+    }
+
+    public class ClassificationNodeTreeItem
+    {
+        public ClassificationNodeDto Node { get; set; }
+        public List<ClassificationNodeTreeItem> Children { get; set; } = new();
+        public bool IsMatch { get; set; }
+        public bool Expanded { get; set; }
+        public bool IsSelectable { get; set; }
+        public string Icon { get; set; } = Icons.Material.Outlined.Circle;
+
+        public ClassificationNodeTreeItem(ClassificationNodeDto node)
+        {
+            Node = node;
+        }
+    }
+}

@@ -107,9 +107,8 @@
                                                    Required="true"
                                                    OnClose="@(()=> MarkChanged())">
                                             <MudSelectItem Value="@ProductClassificationType.Category">@TranslationService.GetTranslation("classificationType.category", "Categoria")</MudSelectItem>
-                                            <MudSelectItem Value="@ProductClassificationType.Subcategory">@TranslationService.GetTranslation("classificationType.subcategory", "Sottocategoria")</MudSelectItem>
-                                            <MudSelectItem Value="@ProductClassificationType.Brand">@TranslationService.GetTranslation("classificationType.brand", "Brand")</MudSelectItem>
-                                            <MudSelectItem Value="@ProductClassificationType.Line">@TranslationService.GetTranslation("classificationType.line", "Linea")</MudSelectItem>
+                                            <MudSelectItem Value="@ProductClassificationType.Family">@TranslationService.GetTranslation("classificationType.family", "Famiglia")</MudSelectItem>
+                                            <MudSelectItem Value="@ProductClassificationType.MerchandiseGroup">@TranslationService.GetTranslation("classificationType.merchandiseGroup", "Gruppo Merceologico")</MudSelectItem>
                                         </MudSelect>
                                     </MudItem>
 
@@ -241,7 +240,7 @@
     // Binding adapters (avoid dynamic in markup)
     private string NodeName
     {
-        get => _isCreateMode ? (_createModel.Name ?? string.Empty) : (_update_model_get_name());
+        get => _isCreateMode ? (_create_model_get_name_create()) : (_update_model_get_name());
         set
         {
             if (_isCreateMode)
@@ -252,6 +251,7 @@
         }
     }
 
+    private string _create_model_get_name_create() => _createModel.Name ?? string.Empty;
     private string _update_model_get_name() => _updateModel.Name ?? string.Empty;
 
     private string? NodeCode => _isCreateMode ? _createModel.Code : _updateModel.Code;
@@ -323,7 +323,7 @@
 
     private int NodeOrder
     {
-        get => _isCreateMode ? _createModel.Order : _updateModel.Order;
+        get => _isCreateMode ? _createModel.Order : _update_model_get_order();
         set
         {
             if (_isCreateMode)
@@ -333,6 +333,8 @@
             MarkChanged();
         }
     }
+
+    private int _update_model_get_order() => _updateModel.Order;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -375,13 +377,16 @@
             if (parent != null)
             {
                 _createModel.Type = parent.Type;
-                _createModel.Level = parent.Level + 1;
+                _create_model_set_level(parent.Level + 1);
             }
         }
 
         _originalSnapshot = SerializeCurrentModel();
-        _hasLocalChanges = false;
+        _has_local_changes_reset();
     }
+
+    private void _create_model_set_level(int v) => _createModel.Level = v;
+    private void _has_local_changes_reset() => _hasLocalChanges = false;
 
     private async Task LoadNodeAsync()
     {
@@ -603,9 +608,8 @@
     private string GetTypeDisplayName(ProductClassificationType type) => type switch
     {
         ProductClassificationType.Category => TranslationService.GetTranslation("classificationType.category", "Categoria"),
-        ProductClassificationType.Subcategory => TranslationService.GetTranslation("classificationType.subcategory", "Sottocategoria"),
-        ProductClassificationType.Brand => TranslationService.GetTranslation("classificationType.brand", "Brand"),
-        ProductClassificationType.Line => TranslationService.GetTranslation("classificationType.line", "Linea"),
+        ProductClassificationType.Family => TranslationService.GetTranslation("classificationType.family", "Famiglia"),
+        ProductClassificationType.MerchandiseGroup => TranslationService.GetTranslation("classificationType.merchandiseGroup", "Gruppo Merceologico"),
         _ => type.ToString()
     };
 }

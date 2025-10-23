@@ -2,6 +2,7 @@
 @using EventForge.DTOs.UnitOfMeasures
 @using EventForge.DTOs.Station
 @using EventForge.Client.Services
+@using EventForge.DTOs.Common
 @using MudBlazor
 @inject ITranslationService TranslationService
 @inject IBrandService BrandService
@@ -10,6 +11,7 @@
 @inject IEntityManagementService EntityManagementService
 @inject ILogger<ClassificationTab> Logger
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 <MudGrid>
     <MudItem xs="12">
@@ -74,31 +76,49 @@
         </MudSelect>
     </MudItem>
 
+    <!-- Category picker -->
     <MudItem xs="12" md="4">
-        <MudTextField @bind-Value="_categoryText"
-                      Label="@TranslationService.GetTranslation("product.category", "Categoria (GUID)")"
-                      Variant="Variant.Outlined"
-                      Immediate="true"
-                      ReadOnly="@(!IsEditMode)"
-                      @bind-Value:after="OnCategoryChanged" />
+        <MudText Typo="Typo.caption" Class="mb-1">@TranslationService.GetTranslation("product.categoryLabel","Categoria")</MudText>
+        <div class="d-flex gap-2">
+            <MudTextField Value="@(_categoryName ?? Product.CategoryNodeId?.ToString() ?? "-")"
+                          Variant="Variant.Outlined"
+                          ReadOnly="true"
+                          Style="flex:1" />
+            <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.Category))">
+                @TranslationService.GetTranslation("common.select","Seleziona")
+            </MudButton>
+            <MudIconButton Icon="@Icons.Material.Outlined.Clear" Disabled="!IsEditMode || Product.CategoryNodeId == null" OnClick="@ClearCategory" />
+        </div>
     </MudItem>
 
+    <!-- Family picker -->
     <MudItem xs="12" md="4">
-        <MudTextField @bind-Value="_familyText"
-                      Label="@TranslationService.GetTranslation("product.family", "Famiglia (GUID)")"
-                      Variant="Variant.Outlined"
-                      Immediate="true"
-                      ReadOnly="@(!IsEditMode)"
-                      @bind-Value:after="OnFamilyChanged" />
+        <MudText Typo="Typo.caption" Class="mb-1">@TranslationService.GetTranslation("product.familyLabel","Famiglia")</MudText>
+        <div class="d-flex gap-2">
+            <MudTextField Value="@(_familyName ?? Product.FamilyNodeId?.ToString() ?? "-")"
+                          Variant="Variant.Outlined"
+                          ReadOnly="true"
+                          Style="flex:1" />
+            <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.Family))">
+                @TranslationService.GetTranslation("common.select","Seleziona")
+            </MudButton>
+            <MudIconButton Icon="@Icons.Material.Outlined.Clear" Disabled="!IsEditMode || Product.FamilyNodeId == null" OnClick="@ClearFamily" />
+        </div>
     </MudItem>
 
+    <!-- MerchandiseGroup picker -->
     <MudItem xs="12" md="4">
-        <MudTextField @bind-Value="_groupText"
-                      Label="@TranslationService.GetTranslation("product.group", "Gruppo (GUID)")"
-                      Variant="Variant.Outlined"
-                      Immediate="true"
-                      ReadOnly="@(!IsEditMode)"
-                      @bind-Value:after="OnGroupChanged" />
+        <MudText Typo="Typo.caption" Class="mb-1">@TranslationService.GetTranslation("product.groupLabel","Gruppo")</MudText>
+        <div class="d-flex gap-2">
+            <MudTextField Value="@(_groupName ?? Product.GroupNodeId?.ToString() ?? "-")"
+                          Variant="Variant.Outlined"
+                          ReadOnly="true"
+                          Style="flex:1" />
+            <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.MerchandiseGroup))">
+                @TranslationService.GetTranslation("common.select","Seleziona")
+            </MudButton>
+            <MudIconButton Icon="@Icons.Material.Outlined.Clear" Disabled="!IsEditMode || Product.GroupNodeId == null" OnClick="@ClearGroup" />
+        </div>
     </MudItem>
 </MudGrid>
 
@@ -115,12 +135,11 @@
     private IEnumerable<BrandDto>? _brands;
     private IEnumerable<ModelDto>? _models;
     private IEnumerable<UMDto>? _unitsOfMeasure;
-    private IEnumerable<StationDto>? _stations;
 
-    // local edit buffers for GUID text fields (to avoid binding to read-only computed props)
-    private string? _categoryText;
-    private string? _familyText;
-    private string? _groupText;
+    // friendly names for currently selected classification nodes
+    private string? _categoryName;
+    private string? _familyName;
+    private string? _groupName;
 
     // flags to handle parameter-driven loading
     private bool _lookupsLoaded = false;
@@ -128,55 +147,22 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // keep lightweight here; actual lookup load may depend on Product passed by parent
-        // attempt to load lookups but OnParametersSetAsync will ensure models are synced to Product.BrandId
         await LoadDataAsync();
     }
 
     protected override async Task OnParametersSetAsync()
     {
-        // populate local buffers from Product when parameters change
-        if (Product != null)
-        {
-            _categoryText = Product.CategoryNodeId?.ToString();
-            _familyText = Product.FamilyNodeId?.ToString();
-            _groupText = Product.GroupNodeId?.ToString();
-        }
+        // refresh names for selected nodes
+        await LoadSelectedNodeNamesAsync();
 
-        // If initial lookups not loaded yet, LoadDataAsync already called from OnInitializedAsync,
-        // but parent may have provided Product after initialization; ensure models reflect current brand.
         if (!_lookupsLoaded)
         {
-            // ensure lookups are loaded (brands, ums, models possibly filtered)
             await LoadDataAsync();
         }
-        else
+        else if (!Nullable.Equals(_currentBrandId, Product?.BrandId))
         {
-            // if Product.BrandId changed after lookups were loaded, refresh models accordingly
-            if (!Nullable.Equals(_currentBrandId, Product?.BrandId))
-            {
-                _currentBrandId = Product?.BrandId;
-                try
-                {
-                    if (Product?.BrandId != null)
-                    {
-                        var modelsByBrand = await ModelService.GetModelsByBrandIdAsync(Product.BrandId.Value, 1, 100);
-                        _models = modelsByBrand?.Items ?? Enumerable.Empty<ModelDto>();
-                    }
-                    else
-                    {
-                        var modelsResult = await ModelService.GetModelsAsync(1, 100);
-                        _models = modelsResult?.Items ?? Enumerable.Empty<ModelDto>();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogWarning(ex, "Failed to refresh models for brand {BrandId} in OnParametersSetAsync", Product?.BrandId);
-                    _models = Enumerable.Empty<ModelDto>();
-                    Snackbar.Add(TranslationService.GetTranslation("product.loadModelsError", "Errore nel caricamento dei modelli"), Severity.Warning);
-                }
-                StateHasChanged();
-            }
+            _currentBrandId = Product?.BrandId;
+            await RefreshModelsForBrandAsync();
         }
     }
 
@@ -184,7 +170,6 @@
     {
         try
         {
-            // Load required lookups defensively: each call handled independently so one failure doesn't prevent others
             try
             {
                 var brandsResult = await BrandService.GetBrandsAsync(1, 100);
@@ -199,7 +184,6 @@
 
             try
             {
-                // if product already has a brand, prefer loading models filtered by brand to reduce payload and be accurate
                 if (Product?.BrandId != null)
                 {
                     var modelsByBrand = await ModelService.GetModelsByBrandIdAsync(Product.BrandId.Value, 1, 100);
@@ -236,7 +220,6 @@
         }
         catch (Exception ex)
         {
-            // generic fallback - should not be reached because inner catches handle expected failures
             Logger.LogError(ex, "Unexpected error loading classification lookups");
             Snackbar.Add(TranslationService.GetTranslation("product.loadLookupsError", "Errore caricamento dati classificazione"), Severity.Error);
         }
@@ -246,11 +229,147 @@
         }
     }
 
+    private async Task RefreshModelsForBrandAsync()
+    {
+        try
+        {
+            if (Product?.BrandId != null)
+            {
+                var modelsByBrand = await ModelService.GetModelsByBrandIdAsync(Product.BrandId.Value, 1, 100);
+                _models = modelsByBrand?.Items ?? Enumerable.Empty<ModelDto>();
+            }
+            else
+            {
+                var modelsResult = await ModelService.GetModelsAsync(1, 100);
+                _models = modelsResult?.Items ?? Enumerable.Empty<ModelDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to refresh models for brand {BrandId}", Product?.BrandId);
+            _models = Enumerable.Empty<ModelDto>();
+            Snackbar.Add(TranslationService.GetTranslation("product.loadModelsError", "Errore nel caricamento dei modelli"), Severity.Warning);
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadSelectedNodeNamesAsync()
+    {
+        // Load readable names for currently selected classification GUIDs (if present)
+        _categoryName = null;
+        _familyName = null;
+        _groupName = null;
+
+        try
+        {
+            if (Product?.CategoryNodeId != null)
+            {
+                var n = await EntityManagementService.GetClassificationNodeAsync(Product.CategoryNodeId.Value);
+                _categoryName = n?.Name;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to load category node name");
+        }
+
+        try
+        {
+            if (Product?.FamilyNodeId != null)
+            {
+                var n = await EntityManagementService.GetClassificationNodeAsync(Product.FamilyNodeId.Value);
+                _familyName = n?.Name;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to load family node name");
+        }
+
+        try
+        {
+            if (Product?.GroupNodeId != null)
+            {
+                var n = await EntityManagementService.GetClassificationNodeAsync(Product.GroupNodeId.Value);
+                _groupName = n?.Name;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to load group node name");
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task OpenPicker(ProductClassificationType type)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                { "Type", type },
+                {
+                    "InitialSelectedId",
+                    type == ProductClassificationType.Category ? Product.CategoryNodeId :
+                    type == ProductClassificationType.Family ? Product.FamilyNodeId :
+                    Product.GroupNodeId
+                },
+                { "Title", TranslationService.GetTranslation("classificationNode.selectFor", $"Seleziona {type}") }
+            };
+
+            var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+            var dialog = DialogService.Show<EventForge.Client.Shared.Components.ClassificationNodePicker>("", parameters, options);
+            var result = await dialog.Result;
+
+            if (!result.Cancelled && result.Data is ClassificationNodeDto selected)
+            {
+                switch (type)
+                {
+                    case ProductClassificationType.Category:
+                        Product.CategoryNodeId = selected.Id;
+                        _categoryName = selected.Name;
+                        break;
+                    case ProductClassificationType.Family:
+                        Product.FamilyNodeId = selected.Id;
+                        _familyName = selected.Name;
+                        break;
+                    case ProductClassificationType.MerchandiseGroup:
+                        Product.GroupNodeId = selected.Id;
+                        _groupName = selected.Name;
+                        break;
+                }
+
+                await NotifyUpdated();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening classification picker");
+            Snackbar.Add(TranslationService.GetTranslation("classificationNode.openPickerError", "Errore nell'apertura del selettore nodi"), Severity.Error);
+        }
+    }
+
+    private async Task NotifyUpdated()
+    {
+        try
+        {
+            if (OnProductUpdated.HasDelegate)
+                await OnProductUpdated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error invoking OnProductUpdated from ClassificationTab");
+        }
+    }
+
     private async Task OnBrandChanged()
     {
         try
         {
-            // When brand changes, reload models for the selected brand.
             if (Product?.BrandId == null)
             {
                 _models = Enumerable.Empty<ModelDto>();
@@ -271,7 +390,6 @@
                     Snackbar.Add(TranslationService.GetTranslation("product.loadModelsByBrandError", "Errore caricamento modelli per il marchio selezionato"), Severity.Warning);
                 }
 
-                // If selected model doesn't belong to new brand, clear it
                 if (Product.ModelId.HasValue && !_models.Any(m => m.Id == Product.ModelId.Value))
                 {
                     Product.ModelId = null;
@@ -280,95 +398,29 @@
         }
         finally
         {
-            // notify parent that product has changed (brand/model may have been cleared)
             await NotifyUpdated();
             StateHasChanged();
         }
     }
 
-    private async Task OnCategoryChanged()
+    private void ClearCategory()
     {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(_categoryText))
-                Product.CategoryNodeId = null;
-            else if (Guid.TryParse(_categoryText, out var g))
-                Product.CategoryNodeId = g;
-            else
-            {
-                // invalid GUID — keep previous value and optionally inform user
-                Logger.LogWarning("Invalid GUID entered for Category: {Value}", _categoryText);
-                Product.CategoryNodeId = null;
-                Snackbar.Add(TranslationService.GetTranslation("product.invalidGuid", "GUID non valido"), Severity.Warning);
-            }
-
-            if (OnProductUpdated.HasDelegate)
-                await OnProductUpdated.InvokeAsync();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error in OnCategoryChanged");
-        }
+        Product.CategoryNodeId = null;
+        _categoryName = null;
+        _ = NotifyUpdated();
     }
 
-    private async Task OnFamilyChanged()
+    private void ClearFamily()
     {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(_familyText))
-                Product.FamilyNodeId = null;
-            else if (Guid.TryParse(_familyText, out var g))
-                Product.FamilyNodeId = g;
-            else
-            {
-                Logger.LogWarning("Invalid GUID entered for Family: {Value}", _familyText);
-                Product.FamilyNodeId = null;
-                Snackbar.Add(TranslationService.GetTranslation("product.invalidGuid", "GUID non valido"), Severity.Warning);
-            }
-
-            if (OnProductUpdated.HasDelegate)
-                await OnProductUpdated.InvokeAsync();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error in OnFamilyChanged");
-        }
+        Product.FamilyNodeId = null;
+        _familyName = null;
+        _ = NotifyUpdated();
     }
 
-    private async Task OnGroupChanged()
+    private void ClearGroup()
     {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(_groupText))
-                Product.GroupNodeId = null;
-            else if (Guid.TryParse(_groupText, out var g))
-                Product.GroupNodeId = g;
-            else
-            {
-                Logger.LogWarning("Invalid GUID entered for Group: {Value}", _groupText);
-                Product.GroupNodeId = null;
-                Snackbar.Add(TranslationService.GetTranslation("product.invalidGuid", "GUID non valido"), Severity.Warning);
-            }
-
-            if (OnProductUpdated.HasDelegate)
-                await OnProductUpdated.InvokeAsync();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error in OnGroupChanged");
-        }
-    }
-
-    private async Task NotifyUpdated()
-    {
-        try
-        {
-            if (OnProductUpdated.HasDelegate)
-                await OnProductUpdated.InvokeAsync();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error invoking OnProductUpdated from ClassificationTab");
-        }
+        Product.GroupNodeId = null;
+        _groupName = null;
+        _ = NotifyUpdated();
     }
 }

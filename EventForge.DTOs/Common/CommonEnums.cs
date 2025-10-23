@@ -38,13 +38,13 @@ namespace EventForge.DTOs.Common
 
     /// <summary>
     /// Product classification type enumeration.
+    /// Reduced to Category, Family, MerchandiseGroup to match product taxonomy.
     /// </summary>
     public enum ProductClassificationType
     {
         Category,
-        Subcategory,
-        Brand,
-        Line
+        Family,
+        MerchandiseGroup
     }
 
     /// <summary>
