@@ -307,8 +307,8 @@
                 var nodesList = classificationNodes.ToList();
                 
                 _categoryNodes = nodesList.Where(n => n.Type == ProductClassificationType.Category).ToList();
-                _familyNodes = nodesList.Where(n => n.Type == ProductClassificationType.Subcategory).ToList();
-                _groupNodes = nodesList.Where(n => n.Type == ProductClassificationType.Brand).ToList();
+                _familyNodes = nodesList.Where(n => n.Type == ProductClassificationType.Family).ToList();
+                _groupNodes = nodesList.Where(n => n.Type == ProductClassificationType.MerchandiseGroup).ToList();
                 
                 await ClientLogService.LogInformationAsync(
                     $"CreateProductDialog: Loaded classification nodes - Categories: {_categoryNodes.Count}, Families: {_familyNodes.Count}, Groups: {_groupNodes.Count}", 

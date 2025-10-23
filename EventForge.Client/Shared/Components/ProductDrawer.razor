@@ -231,7 +231,7 @@
                            aria-describedby="subcategory-help">
                     @if (_classificationNodes != null)
                     {
-                        @foreach (var node in _classificationNodes.Where(n => n.Type == ProductClassificationType.Subcategory))
+                        @foreach (var node in _classificationNodes.Where(n => n.Type == ProductClassificationType.Family))
                         {
                             <MudSelectItem Value="@((Guid?)node.Id)">@node.Name</MudSelectItem>
                         }
@@ -250,7 +250,7 @@
                            aria-describedby="line-help">
                     @if (_classificationNodes != null)
                     {
-                        @foreach (var node in _classificationNodes.Where(n => n.Type == ProductClassificationType.Line))
+                        @foreach (var node in _classificationNodes.Where(n => n.Type == ProductClassificationType.MerchandiseGroup))
                         {
                             <MudSelectItem Value="@((Guid?)node.Id)">@node.Name</MudSelectItem>
                         }

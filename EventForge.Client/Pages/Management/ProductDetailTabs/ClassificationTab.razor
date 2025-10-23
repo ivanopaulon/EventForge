@@ -325,25 +325,30 @@
             var dialog = DialogService.Show<EventForge.Client.Shared.Components.ClassificationNodePicker>("", parameters, options);
             var result = await dialog.Result;
 
-            if (!result.Cancelled && result.Data is ClassificationNodeDto selected)
+            // MudBlazor's DialogResult exposes 'Canceled' (US spelling). Cast Data safely to avoid pattern-scope issues.
+            if (!result.Canceled)
             {
-                switch (type)
+                var selected = result.Data as ClassificationNodeDto;
+                if (selected != null)
                 {
-                    case ProductClassificationType.Category:
-                        Product.CategoryNodeId = selected.Id;
-                        _categoryName = selected.Name;
-                        break;
-                    case ProductClassificationType.Family:
-                        Product.FamilyNodeId = selected.Id;
-                        _familyName = selected.Name;
-                        break;
-                    case ProductClassificationType.MerchandiseGroup:
-                        Product.GroupNodeId = selected.Id;
-                        _groupName = selected.Name;
-                        break;
-                }
+                    switch (type)
+                    {
+                        case ProductClassificationType.Category:
+                            Product.CategoryNodeId = selected.Id;
+                            _categoryName = selected.Name;
+                            break;
+                        case ProductClassificationType.Family:
+                            Product.FamilyNodeId = selected.Id;
+                            _familyName = selected.Name;
+                            break;
+                        case ProductClassificationType.MerchandiseGroup:
+                            Product.GroupNodeId = selected.Id;
+                            _groupName = selected.Name;
+                            break;
+                    }
 
-                await NotifyUpdated();
+                    await NotifyUpdated();
+                }
             }
         }
         catch (Exception ex)

@@ -85,7 +85,7 @@
     private string? _searchTerm;
     private List<ClassificationNodeDto> _nodes = new();
     private ILookup<Guid?, ClassificationNodeDto> _childrenLookup = Enumerable.Empty<ClassificationNodeDto>().ToLookup(n => (Guid?)null);
-    private List<ClassificationNodeTreeItem> TreeItems { get; set; } = new();
+    private IReadOnlyCollection<ClassificationNodeTreeItem> TreeItems { get; set; } = Array.Empty<ClassificationNodeTreeItem>();
     private ClassificationNodeDto? _selectedNode;
     private Guid? SelectedId { get; set; }
 
@@ -213,18 +213,20 @@
             MudDialog?.Close(DialogResult.Ok(_selectedNode));
     }
 
-    public class ClassificationNodeTreeItem
+    public class ClassificationNodeTreeItem : MudBlazor.TreeItemData<ClassificationNodeTreeItem>
     {
+        public Guid Id { get; set; }
         public ClassificationNodeDto Node { get; set; }
-        public List<ClassificationNodeTreeItem> Children { get; set; } = new();
+        public new List<ClassificationNodeTreeItem> Children { get; set; } = new();
         public bool IsMatch { get; set; }
         public bool Expanded { get; set; }
         public bool IsSelectable { get; set; }
-        public string Icon { get; set; } = Icons.Material.Outlined.Circle;
 
         public ClassificationNodeTreeItem(ClassificationNodeDto node)
         {
+            Id = node.Id;
             Node = node;
+            Text = node.Name;
         }
     }
 }
