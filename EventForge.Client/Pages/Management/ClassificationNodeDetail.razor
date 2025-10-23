@@ -105,6 +105,7 @@
                                                    Label="@TranslationService.GetTranslation("field.type", "Tipo")"
                                                    Variant="Variant.Outlined"
                                                    Required="true"
+                                                   Disabled="@(_isCreateMode && NodeParentId.HasValue)"
                                                    OnClose="@(()=> MarkChanged())">
                                             <MudSelectItem Value="@ProductClassificationType.Category">@TranslationService.GetTranslation("classificationType.category", "Categoria")</MudSelectItem>
                                             <MudSelectItem Value="@ProductClassificationType.Family">@TranslationService.GetTranslation("classificationType.family", "Famiglia")</MudSelectItem>
@@ -301,9 +302,31 @@
         set
         {
             if (_isCreateMode)
+            {
                 _createModel.ParentId = value;
+
+                // If creating a child, inherit Type and Level from selected parent (if available)
+                if (value.HasValue)
+                {
+                    var parent = _availableParentNodes.FirstOrDefault(p => p.Id == value.Value);
+                    if (parent != null)
+                    {
+                        _createModel.Type = parent.Type;
+                        _create_model_set_level(parent.Level +1);
+                    }
+                }
+                else
+                {
+                    // no parent -> root defaults
+                    _createModel.Type = ProductClassificationType.Category;
+                    _create_model_set_level(0);
+                }
+            }
             else
+            {
                 _updateModel.ParentId = value;
+            }
+
             MarkChanged();
         }
     }

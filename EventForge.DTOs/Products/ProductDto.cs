@@ -104,9 +104,19 @@ namespace EventForge.DTOs.Products
         public Guid? BrandId { get; set; }
 
         /// <summary>
+        /// Brand name.
+        /// </summary>
+        public string? BrandName { get; set; }
+
+        /// <summary>
         /// Model identifier.
         /// </summary>
         public Guid? ModelId { get; set; }
+
+        /// <summary>
+        /// Model name.
+        /// </summary>
+        public string? ModelName { get; set; }
 
         /// <summary>
         /// Preferred supplier identifier.

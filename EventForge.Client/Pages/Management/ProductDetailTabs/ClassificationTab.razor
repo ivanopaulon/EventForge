@@ -76,49 +76,51 @@
         </MudSelect>
     </MudItem>
 
-    <!-- Category picker -->
-    <MudItem xs="12" md="4">
-        <MudText Typo="Typo.caption" Class="mb-1">@TranslationService.GetTranslation("product.categoryLabel","Categoria")</MudText>
-        <div class="d-flex gap-2">
-            <MudTextField Value="@(_categoryName ?? Product.CategoryNodeId?.ToString() ?? "-")"
-                          Variant="Variant.Outlined"
-                          ReadOnly="true"
-                          Style="flex:1" />
-            <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.Category))">
-                @TranslationService.GetTranslation("common.select","Seleziona")
-            </MudButton>
-            <MudIconButton Icon="@Icons.Material.Outlined.Clear" Disabled="!IsEditMode || Product.CategoryNodeId == null" OnClick="@ClearCategory" />
-        </div>
-    </MudItem>
+    <!-- Category / Family / Group pickers on single row -->
+    <MudItem xs="12">
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudText Typo="Typo.caption" Class="mb-1">@TranslationService.GetTranslation("product.categoryLabel","Categoria")</MudText>
+                <div class="d-flex gap-2">
+                    <MudTextField Value="@(_categoryName ?? Product.CategoryNodeId?.ToString() ?? "-")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  Style="flex:1" />
+                    <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.Category))">
+                        @TranslationService.GetTranslation("common.select","Seleziona")
+                    </MudButton>
+                    <MudIconButton Icon="@Icons.Material.Outlined.Clear" Disabled="!IsEditMode || Product.CategoryNodeId == null" OnClick="@ClearCategory" />
+                </div>
+            </MudItem>
 
-    <!-- Family picker -->
-    <MudItem xs="12" md="4">
-        <MudText Typo="Typo.caption" Class="mb-1">@TranslationService.GetTranslation("product.familyLabel","Famiglia")</MudText>
-        <div class="d-flex gap-2">
-            <MudTextField Value="@(_familyName ?? Product.FamilyNodeId?.ToString() ?? "-")"
-                          Variant="Variant.Outlined"
-                          ReadOnly="true"
-                          Style="flex:1" />
-            <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.Family))">
-                @TranslationService.GetTranslation("common.select","Seleziona")
-            </MudButton>
-            <MudIconButton Icon="@Icons.Material.Outlined.Clear" Disabled="!IsEditMode || Product.FamilyNodeId == null" OnClick="@ClearFamily" />
-        </div>
-    </MudItem>
+            <MudItem xs="12" md="4">
+                <MudText Typo="Typo.caption" Class="mb-1">@TranslationService.GetTranslation("product.familyLabel","Famiglia")</MudText>
+                <div class="d-flex gap-2">
+                    <MudTextField Value="@(_familyName ?? Product.FamilyNodeId?.ToString() ?? "-")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  Style="flex:1" />
+                    <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.Family))">
+                        @TranslationService.GetTranslation("common.select","Seleziona")
+                    </MudButton>
+                    <MudIconButton Icon="@Icons.Material.Outlined.Clear" Disabled="!IsEditMode || Product.FamilyNodeId == null" OnClick="@ClearFamily" />
+                </div>
+            </MudItem>
 
-    <!-- MerchandiseGroup picker -->
-    <MudItem xs="12" md="4">
-        <MudText Typo="Typo.caption" Class="mb-1">@TranslationService.GetTranslation("product.groupLabel","Gruppo")</MudText>
-        <div class="d-flex gap-2">
-            <MudTextField Value="@(_groupName ?? Product.GroupNodeId?.ToString() ?? "-")"
-                          Variant="Variant.Outlined"
-                          ReadOnly="true"
-                          Style="flex:1" />
-            <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.MerchandiseGroup))">
-                @TranslationService.GetTranslation("common.select","Seleziona")
-            </MudButton>
-            <MudIconButton Icon="@Icons.Material.Outlined.Clear" Disabled="!IsEditMode || Product.GroupNodeId == null" OnClick="@ClearGroup" />
-        </div>
+            <MudItem xs="12" md="4">
+                <MudText Typo="Typo.caption" Class="mb-1">@TranslationService.GetTranslation("product.groupLabel","Gruppo")</MudText>
+                <div class="d-flex gap-2">
+                    <MudTextField Value="@(_groupName ?? Product.GroupNodeId?.ToString() ?? "-")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  Style="flex:1" />
+                    <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.MerchandiseGroup))">
+                        @TranslationService.GetTranslation("common.select","Seleziona")
+                    </MudButton>
+                    <MudIconButton Icon="@Icons.Material.Outlined.Clear" Disabled="!IsEditMode || Product.GroupNodeId == null" OnClick="@ClearGroup" />
+                </div>
+            </MudItem>
+        </MudGrid>
     </MudItem>
 </MudGrid>
 
@@ -132,8 +134,8 @@
     [Parameter]
     public EventCallback OnProductUpdated { get; set; }
 
-    private IEnumerable<BrandDto>? _brands;
-    private IEnumerable<ModelDto>? _models;
+    private List<BrandDto> _brands = new();
+    private List<ModelDto> _models = new();
     private IEnumerable<UMDto>? _unitsOfMeasure;
 
     // friendly names for currently selected classification nodes
@@ -144,6 +146,7 @@
     // flags to handle parameter-driven loading
     private bool _lookupsLoaded = false;
     private Guid? _currentBrandId;
+    private bool _suppressBrandChange = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -164,21 +167,86 @@
             _currentBrandId = Product?.BrandId;
             await RefreshModelsForBrandAsync();
         }
+        // Always ensure that the currently selected Brand/Model are present in the lists
+        await EnsureSelectedBrandAndModelPresent();
+    }
+
+    private async Task EnsureSelectedBrandAndModelPresent()
+    {
+        try
+        {
+            // Brands
+            if (Product?.BrandId.HasValue == true && !_brands.Any(b => b.Id == Product.BrandId.Value))
+            {
+                try
+                {
+                    var brand = await BrandService.GetBrandByIdAsync(Product.BrandId.Value);
+                    if (brand != null)
+                    {
+                        _brands.Add(brand);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "EnsureSelectedBrandAndModelPresent: failed to load brand {BrandId}", Product.BrandId);
+                }
+            }
+
+            // Models
+            if (Product?.ModelId.HasValue == true && !_models.Any(m => m.Id == Product.ModelId.Value))
+            {
+                try
+                {
+                    var model = await ModelService.GetModelByIdAsync(Product.ModelId.Value);
+                    if (model != null)
+                    {
+                        _models.Add(model);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "EnsureSelectedBrandAndModelPresent: failed to load model {ModelId}", Product.ModelId);
+                }
+            }
+
+            StateHasChanged();
+        }
+        catch { }
     }
 
     private async Task LoadDataAsync()
     {
+        _suppressBrandChange = true;
         try
         {
             try
             {
-                var brandsResult = await BrandService.GetBrandsAsync(1, 100);
-                _brands = brandsResult?.Items ?? Enumerable.Empty<BrandDto>();
+                var brandsResult = await BrandService.GetBrandsAsync(1,100);
+                _brands = (brandsResult?.Items ?? Enumerable.Empty<BrandDto>()).ToList();
+
+                // Ensure selected brand is present in the list so MudSelect can display the selected label
+                if (Product?.BrandId.HasValue == true && !_brands.Any(b => b.Id == Product.BrandId.Value))
+                {
+                    try
+                    {
+                        var brand = await BrandService.GetBrandByIdAsync(Product.BrandId.Value);
+                        if (brand != null)
+                        {
+                            var list = _brands.ToList();
+                            list.Add(brand);
+                            _brands = list;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning(ex, "Failed to load specific brand {BrandId}", Product.BrandId);
+                    }
+                }
             }
             catch (Exception ex)
             {
                 Logger.LogWarning(ex, "Failed to load brands");
-                _brands = Enumerable.Empty<BrandDto>();
+                _brands = new List<BrandDto>();
                 Snackbar.Add(TranslationService.GetTranslation("product.loadBrandsError", "Errore nel caricamento dei marchi"), Severity.Warning);
             }
 
@@ -186,21 +254,40 @@
             {
                 if (Product?.BrandId != null)
                 {
-                    var modelsByBrand = await ModelService.GetModelsByBrandIdAsync(Product.BrandId.Value, 1, 100);
-                    _models = modelsByBrand?.Items ?? Enumerable.Empty<ModelDto>();
+                    var modelsByBrand = await ModelService.GetModelsByBrandIdAsync(Product.BrandId.Value,1,100);
+                    _models = (modelsByBrand?.Items ?? Enumerable.Empty<ModelDto>()).ToList();
                     _currentBrandId = Product.BrandId;
+
+                    // Ensure previously selected model is present in the list. If not, fetch it specifically and add.
+                    if (Product.ModelId.HasValue && !_models.Any(m => m.Id == Product.ModelId.Value))
+                    {
+                        try
+                        {
+                            var model = await ModelService.GetModelByIdAsync(Product.ModelId.Value);
+                            if (model != null)
+                            {
+                                var list = _models.ToList();
+                                list.Add(model);
+                                _models = list;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogWarning(ex, "Failed to load specific model {ModelId}", Product.ModelId);
+                        }
+                    }
                 }
                 else
                 {
-                    var modelsResult = await ModelService.GetModelsAsync(1, 100);
-                    _models = modelsResult?.Items ?? Enumerable.Empty<ModelDto>();
+                    var modelsResult = await ModelService.GetModelsAsync(1,100);
+                    _models = (modelsResult?.Items ?? new List<ModelDto>()).ToList();
                     _currentBrandId = null;
                 }
             }
             catch (Exception ex)
             {
                 Logger.LogWarning(ex, "Failed to load models");
-                _models = Enumerable.Empty<ModelDto>();
+                _models = new List<ModelDto>();
                 Snackbar.Add(TranslationService.GetTranslation("product.loadModelsError", "Errore nel caricamento dei modelli"), Severity.Warning);
             }
 
@@ -225,33 +312,55 @@
         }
         finally
         {
+            _suppressBrandChange = false;
             StateHasChanged();
         }
     }
 
     private async Task RefreshModelsForBrandAsync()
     {
+        _suppressBrandChange = true;
         try
         {
             if (Product?.BrandId != null)
             {
-                var modelsByBrand = await ModelService.GetModelsByBrandIdAsync(Product.BrandId.Value, 1, 100);
-                _models = modelsByBrand?.Items ?? Enumerable.Empty<ModelDto>();
+                var modelsByBrand = await ModelService.GetModelsByBrandIdAsync(Product.BrandId.Value,1,100);
+                _models = (modelsByBrand?.Items ?? new List<ModelDto>()).ToList();
+
+                // Ensure selected model present
+                if (Product.ModelId.HasValue && !_models.Any(m => m.Id == Product.ModelId.Value))
+                {
+                    try
+                    {
+                        var model = await ModelService.GetModelByIdAsync(Product.ModelId.Value);
+                        if (model != null)
+                        {
+                            var list = _models.ToList();
+                            list.Add(model);
+                            _models = list;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning(ex, "Failed to load specific model {ModelId} during refresh", Product.ModelId);
+                    }
+                }
             }
             else
             {
-                var modelsResult = await ModelService.GetModelsAsync(1, 100);
-                _models = modelsResult?.Items ?? Enumerable.Empty<ModelDto>();
+                var modelsResult = await ModelService.GetModelsAsync(1,100);
+                _models = (modelsResult?.Items ?? new List<ModelDto>()).ToList();
             }
         }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Failed to refresh models for brand {BrandId}", Product?.BrandId);
-            _models = Enumerable.Empty<ModelDto>();
-            Snackbar.Add(TranslationService.GetTranslation("product.loadModelsError", "Errore nel caricamento dei modelli"), Severity.Warning);
+            _models = new List<ModelDto>();
+            Snackbar.Add(TranslationService.GetTranslation("product.loadModelsByBrandError", "Errore caricamento modelli per il marchio selezionato"), Severity.Warning);
         }
         finally
         {
+            _suppressBrandChange = false;
             StateHasChanged();
         }
     }
@@ -373,11 +482,14 @@
 
     private async Task OnBrandChanged()
     {
+        // Ignore programmatic changes during initialization or refresh
+        if (_suppressBrandChange) return;
+
         try
         {
             if (Product?.BrandId == null)
             {
-                _models = Enumerable.Empty<ModelDto>();
+                _models = new List<ModelDto>();
                 Product.ModelId = null;
             }
             else
@@ -385,18 +497,33 @@
                 try
                 {
                     var modelsByBrand = await ModelService.GetModelsByBrandIdAsync(Product.BrandId.Value, 1, 100);
-                    _models = modelsByBrand?.Items ?? Enumerable.Empty<ModelDto>();
+                    _models = (modelsByBrand?.Items ?? new List<ModelDto>()).ToList();
                     _currentBrandId = Product.BrandId;
+
+                    // If a model was previously selected and it's not in the page, fetch it explicitly and keep it selected
+                    if (Product.ModelId.HasValue && !_models.Any(m => m.Id == Product.ModelId.Value))
+                    {
+                        try
+                        {
+                            var model = await ModelService.GetModelByIdAsync(Product.ModelId.Value);
+                            if (model != null)
+                            {
+                                _models = _models.Append(model).ToList();
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogWarning(ex, "Failed to load specific model {ModelId} during brand change", Product.ModelId);
+                            // If the model cannot be loaded, clear selection to avoid inconsistent state
+                            Product.ModelId = null;
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
                     Logger.LogWarning(ex, "Failed to load models for brand {BrandId}", Product.BrandId);
-                    _models = Enumerable.Empty<ModelDto>();
+                    _models = new List<ModelDto>();
                     Snackbar.Add(TranslationService.GetTranslation("product.loadModelsByBrandError", "Errore caricamento modelli per il marchio selezionato"), Severity.Warning);
-                }
-
-                if (Product.ModelId.HasValue && !_models.Any(m => m.Id == Product.ModelId.Value))
-                {
                     Product.ModelId = null;
                 }
             }

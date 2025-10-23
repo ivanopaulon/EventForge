@@ -100,8 +100,9 @@
         _isLoading = true;
         try
         {
+            // Load all nodes then filter by requested Type at source so the tree shows only nodes of that type
             var all = (await EntityManagementService.GetClassificationNodesAsync())?.ToList() ?? new List<ClassificationNodeDto>();
-            _nodes = all;
+            _nodes = all.Where(n => n.Type == Type).ToList();
             _childrenLookup = _nodes.ToLookup(n => n.ParentId);
 
             // build initial tree items
@@ -110,6 +111,7 @@
             if (InitialSelectedId.HasValue)
             {
                 SelectedId = InitialSelectedId;
+                // If the initially selected id is not of the requested Type it won't be present in the filtered list
                 _selectedNode = _nodes.FirstOrDefault(n => n.Id == InitialSelectedId.Value);
             }
         }

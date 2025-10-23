@@ -78,6 +78,8 @@ public class ProductService : IProductService
                 .Include(p => p.Units.Where(u => !u.IsDeleted))
                 .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
                 .Include(p => p.ImageDocument)
+                .Include(p => p.Brand)
+                .Include(p => p.Model)
                 .FirstOrDefaultAsync(cancellationToken);
 
             return product != null ? MapToProductDto(product) : null;
@@ -99,6 +101,8 @@ public class ProductService : IProductService
                 .Include(p => p.Units.Where(u => !u.IsDeleted))
                 .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
                 .Include(p => p.ImageDocument)
+                .Include(p => p.Brand)
+                .Include(p => p.Model)
                 .FirstOrDefaultAsync(cancellationToken);
 
             return product != null ? MapToProductDetailDto(product) : null;
@@ -1199,6 +1203,11 @@ public class ProductService : IProductService
             DefaultPrice = product.DefaultPrice,
             VatRateId = product.VatRateId,
             UnitOfMeasureId = product.UnitOfMeasureId,
+            BrandId = product.BrandId,
+            BrandName = product.Brand?.Name,
+            ModelId = product.ModelId,
+            ModelName = product.Model?.Name,
+            PreferredSupplierId = product.PreferredSupplierId,
             CategoryNodeId = product.CategoryNodeId,
             FamilyNodeId = product.FamilyNodeId,
             GroupNodeId = product.GroupNodeId,
@@ -1233,6 +1242,11 @@ public class ProductService : IProductService
             DefaultPrice = product.DefaultPrice,
             VatRateId = product.VatRateId,
             UnitOfMeasureId = product.UnitOfMeasureId,
+            BrandId = product.BrandId,
+            BrandName = product.Brand?.Name,
+            ModelId = product.ModelId,
+            ModelName = product.Model?.Name,
+            PreferredSupplierId = product.PreferredSupplierId,
             CategoryNodeId = product.CategoryNodeId,
             FamilyNodeId = product.FamilyNodeId,
             GroupNodeId = product.GroupNodeId,
