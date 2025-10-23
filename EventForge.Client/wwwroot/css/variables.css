@@ -1,0 +1,34 @@
+/* Core brand CSS variables for EventForge - single source of truth
+ This file replaces the previous multi-theme CSS files and provides
+ a small set of semantic variables used across the app. */
+:root {
+ --ef-primary: #1F2F46; /* Navy Blue */
+ --ef-secondary: #247BFF; /* Electric Blue */
+ --ef-accent: #FF6B2C; /* Orange Fire */
+ --ef-background: #F5F6FA; /* Light Gray */
+ --ef-surface: #FFFFFF;
+ --ef-text-primary: #2D2D2D;
+ --ef-text-secondary: #666666;
+
+ /* Semantic mappings used by components */
+ --appbar-background: var(--ef-primary);
+ --appbar-text: #ffffff;
+ --card-background: var(--ef-surface);
+ --card-border: #e0e0e0;
+
+ /* Status colors */
+ --success: #4caf50;
+ --warning: #ff9800;
+ --error: #f44336;
+ --info: var(--ef-secondary);
+}
+
+/* Dark mode override (used if MudBlazor applies dark theme classes) */
+.mud-theme-dark {
+ --appbar-background: #1a1a2e;
+ --appbar-text: #e0e0e0;
+ --card-background: #2d2d30;
+ --card-border: #444444;
+ --ef-background: #1a1a2e;
+ --ef-text-primary: #e0e0e0;
+}
