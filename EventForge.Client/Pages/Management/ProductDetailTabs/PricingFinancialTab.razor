@@ -5,56 +5,53 @@
 @inject IFinancialService FinancialService
 @inject ILogger<PricingFinancialTab> Logger
 
-<MudGrid>
-    <MudItem xs="12">
-        <MudText Typo="Typo.h6" Class="mb-3">
-            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Class="mr-2" />
-            @TranslationService.GetTranslation("product.pricingInfo", "Informazioni Prezzi")
-        </MudText>
-        <MudDivider Class="mb-4" />
-    </MudItem>
+<MudStack Spacing="3">
+    <MudPaper Elevation="1" Class="pa-4">
+        <MudGrid>
+            <MudItem xs="12">
+                <!-- Fields presented in column (stacked) -->
+                <MudNumericField @bind-Value="Product.DefaultPrice"
+                                 Label="@TranslationService.GetTranslation("field.defaultPrice", "Prezzo Predefinito")"
+                                 Variant="Variant.Outlined"
+                                 ReadOnly="@(!IsEditMode)"
+                                 Min="0"
+                                 Format="N2"
+                                 Adornment="Adornment.Start"
+                                 AdornmentText="€"
+                                 Size="Size.Small"
+                                 @bind-Value:after="NotifyUpdated" />
+            </MudItem>
 
-    <MudItem xs="12" md="6">
-        <MudNumericField @bind-Value="Product.DefaultPrice"
-                         Label="@TranslationService.GetTranslation("field.defaultPrice", "Prezzo Predefinito")"
-                         Variant="Variant.Outlined"
-                         ReadOnly="@(!IsEditMode)"
-                         Min="0"
-                         Format="N2"
-                         Adornment="Adornment.Start"
-                         AdornmentText="€"
-                         Size="Size.Small"
-                         @bind-Value:after="NotifyUpdated" />
-    </MudItem>
+            <MudItem xs="12">
+                <MudSwitch T="bool"
+                           @bind-Checked="Product.IsVatIncluded"
+                           @bind-Checked:after="OnVatIncludedChanged"
+                           Label="@TranslationService.GetTranslation("product.isVatIncluded", "IVA Inclusa")"
+                           Color="Color.Primary"
+                           ReadOnly="@(!IsEditMode)" />
+            </MudItem>
 
-    <MudItem xs="12" md="6">
-        <MudSwitch T="bool"
-                   @bind-Checked="Product.IsVatIncluded"
-                   @bind-Checked:after="OnVatIncludedChanged"
-                   Label="@TranslationService.GetTranslation("product.isVatIncluded", "IVA Inclusa")"
-                   Color="Color.Primary"
-                   ReadOnly="@(!IsEditMode)" />
-    </MudItem>
-
-    <MudItem xs="12" md="6">
-        <MudSelect T="Guid?"
-                   @bind-Value="Product.VatRateId"
-                   Label="@TranslationService.GetTranslation("field.vatRate", "Aliquota IVA")"
-                   Variant="Variant.Outlined"
-                   ReadOnly="@(!IsEditMode)"
-                   Clearable="true"
-                   Size="Size.Small"
-                   @bind-Value:after="NotifyUpdated">
-            @if (_vatRates != null)
-            {
-                @foreach (var vat in _vatRates)
-                {
-                    <MudSelectItem T="Guid?" Value="@((Guid?)vat.Id)">@vat.Name (@vat.Percentage%)</MudSelectItem>
-                }
-            }
-        </MudSelect>
-    </MudItem>
-</MudGrid>
+            <MudItem xs="12">
+                <MudSelect T="Guid?"
+                           @bind-Value="Product.VatRateId"
+                           Label="@TranslationService.GetTranslation("field.vatRate", "Aliquota IVA")"
+                           Variant="Variant.Outlined"
+                           ReadOnly="@(!IsEditMode)"
+                           Clearable="true"
+                           Size="Size.Small"
+                           @bind-Value:after="NotifyUpdated">
+                    @if (_vatRates != null)
+                    {
+                        @foreach (var vat in _vatRates)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)vat.Id)">@vat.Name (@vat.Percentage%)</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+</MudStack>
 
 @code {
     [Parameter, EditorRequired]

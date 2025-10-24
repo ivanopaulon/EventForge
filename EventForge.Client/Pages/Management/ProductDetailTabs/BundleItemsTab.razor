@@ -7,77 +7,83 @@
 @inject ISnackbar Snackbar
 @inject ILogger<BundleItemsTab> Logger
 
-<MudGrid>
-    <MudItem xs="12" Class="d-flex justify-space-between align-center mb-2">
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Outlined.Inventory" Class="mr-2" />
-            @TranslationService.GetTranslation("product.bundleComponents", "Componenti Bundle")
-            <MudChip T="string" Size="Size.Small" Class="ml-2">@(_bundleItems?.Count() ?? 0)</MudChip>
-        </MudText>
-        <MudButton Variant="Variant.Filled" 
-                   Color="Color.Primary" 
-                   StartIcon="@Icons.Material.Filled.Add"
-                   OnClick="@OpenCreateDialog"
-                   Size="Size.Small">
-            @TranslationService.GetTranslation("common.add", "Aggiungi")
-        </MudButton>
-    </MudItem>
+<MudStack Spacing="3">
+    <MudPaper Elevation="1" Class="pa-4">
+        <MudGrid>
+            <MudItem xs="12" Class="d-flex justify-end align-center mb-2">
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="@OpenCreateDialog"
+                           Size="Size.Small">
+                    @TranslationService.GetTranslation("common.add", "Aggiungi")
+                </MudButton>
+            </MudItem>
 
-    <MudItem xs="12">
-        @if (_isLoading)
-        {
-            <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-        }
-        else if (_bundleItems == null || !_bundleItems.Any())
-        {
-            <MudAlert Severity="Severity.Info">
-                @TranslationService.GetTranslation("product.noBundleItems", "Nessun componente configurato per questo bundle")
-            </MudAlert>
-        }
-        else
-        {
-            <MudTable Items="_bundleItems" Hover="true" Striped="true" Dense="true">
-                <HeaderContent>
-                    <MudTh>@TranslationService.GetTranslation("field.componentProduct", "Prodotto Componente")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("field.quantity", "Quantità")</MudTh>
-                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.componentProduct", "Prodotto Componente")">
-                        @GetProductName(context.ComponentProductId)
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")">@context.Quantity</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit" 
-                                       Size="Size.Small" 
-                                       Color="Color.Primary"
-                                       OnClick="@(() => OpenEditDialog(context))" />
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" 
-                                       Size="Size.Small" 
-                                       Color="Color.Error"
-                                       OnClick="@(() => DeleteBundleItemAsync(context))" />
-                    </MudTd>
-                </RowTemplate>
-            </MudTable>
-        }
-    </MudItem>
-</MudGrid>
+            <MudItem xs="12">
+                @if (_isLoading)
+                {
+                    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                }
+                else if (_bundleItems == null || !_bundleItems.Any())
+                {
+                    <MudAlert Severity="Severity.Info">
+                        @TranslationService.GetTranslation("product.noBundleItems", "Nessun componente configurato per questo bundle")
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudTable Items="_bundleItems" Hover="true" Striped="true" Dense="true">
+                        <HeaderContent>
+                            <MudTh>@TranslationService.GetTranslation("field.componentProduct", "Prodotto Componente")</MudTh>
+                            <MudTh>@TranslationService.GetTranslation("field.quantity", "Quantità")</MudTh>
+                            <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.componentProduct", "Prodotto Componente")">
+                                @GetProductName(context.ComponentProductId)
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")">@context.Quantity</MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                               Size="Size.Small" 
+                                               Color="Color.Primary"
+                                               OnClick="@(() => OpenEditDialog(context))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                               Size="Size.Small" 
+                                               Color="Color.Error"
+                                               OnClick="@(() => DeleteBundleItemAsync(context))" />
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+</MudStack>
 
 @code {
     [Parameter, EditorRequired]
-    public Guid ProductId { get; set; }
+    public ProductDto Product { get; set; } = default!;
 
     // Notifications for parent
     [Parameter] public EventCallback OnProductUpdated { get; set; }
     [Parameter] public EventCallback OnProductUpdatedPersisted { get; set; }
 
+    // Add missing IsEditMode parameter
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
     private IEnumerable<ProductBundleItemDto>? _bundleItems;
     private Dictionary<Guid, string> _productNames = new();
     private bool _isLoading = true;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        await LoadBundleItemsAsync();
+        if (Product?.Id != Guid.Empty)
+        {
+            await LoadBundleItemsAsync();
+        }
     }
 
     private async Task LoadBundleItemsAsync()
@@ -85,7 +91,7 @@
         _isLoading = true;
         try
         {
-            _bundleItems = await ProductService.GetProductBundleItemsAsync(ProductId);
+            _bundleItems = await ProductService.GetProductBundleItemsAsync(Product.Id);
             
             // Load product names for display
             if (_bundleItems != null && _bundleItems.Any())
@@ -95,7 +101,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading bundle items for product {ProductId}", ProductId);
+            Logger.LogError(ex, "Error loading bundle items for product {ProductId}", Product.Id);
             Snackbar.Add(TranslationService.GetTranslation("product.loadBundleItemsError", "Errore nel caricamento dei componenti"), Severity.Error);
         }
         finally
@@ -156,7 +162,7 @@
     {
         var parameters = new DialogParameters
         {
-            { "BundleProductId", ProductId }
+            { "BundleProductId", Product.Id }
         };
 
         var options = new DialogOptions
@@ -184,7 +190,7 @@
         var parameters = new DialogParameters
         {
             { "BundleItem", item },
-            { "BundleProductId", ProductId }
+            { "BundleProductId", Product.Id }
         };
 
         var options = new DialogOptions

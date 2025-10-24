@@ -2,9 +2,7 @@
 using EventForge.Server.Data.Entities.Chat;
 using EventForge.Server.Data.Entities.Notifications;
 using EventForge.Server.Data.Entities.Sales;
-using EventForge.Server.Data.Entities.Warehouse;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
 
 namespace EventForge.Server.Data;
 
@@ -204,48 +202,48 @@ public partial class EventForgeDbContext : DbContext
         }
 
         // Specific known overrides for decimal fields that should have higher precision can be added here
-        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.AmountPaid).HasPrecision(18,6);
-        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.BaseCurrencyAmount).HasPrecision(18,6);
-        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.ExchangeRate).HasPrecision(18,6);
-        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalDiscount).HasPrecision(18,6);
-        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalDiscountAmount).HasPrecision(18,6);
-        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalGrossAmount).HasPrecision(18,6);
-        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalNetAmount).HasPrecision(18,6);
-        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.VatAmount).HasPrecision(18,6);
+        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.AmountPaid).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.BaseCurrencyAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.ExchangeRate).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalDiscount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalDiscountAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalGrossAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.TotalNetAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.VatAmount).HasPrecision(18, 6);
 
-        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.UnitPrice).HasPrecision(18,6);
-        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.Quantity).HasPrecision(18,6);
-        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.LineDiscount).HasPrecision(5,2);
-        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.VatRate).HasPrecision(5,2);
+        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.UnitPrice).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.Quantity).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.LineDiscount).HasPrecision(5, 2);
+        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.VatRate).HasPrecision(5, 2);
 
-        _ = modelBuilder.Entity<PriceListEntry>().Property(x => x.Price).HasPrecision(18,6);
-        _ = modelBuilder.Entity<Product>().Property(x => x.DefaultPrice).HasPrecision(18,6);
-        _ = modelBuilder.Entity<Promotion>().Property(x => x.MinOrderAmount).HasPrecision(18,6);
-        _ = modelBuilder.Entity<PromotionRule>().Property(x => x.DiscountAmount).HasPrecision(18,6);
-        _ = modelBuilder.Entity<PromotionRule>().Property(x => x.DiscountPercentage).HasPrecision(5,2);
-        _ = modelBuilder.Entity<PromotionRule>().Property(x => x.FixedPrice).HasPrecision(18,6);
-        _ = modelBuilder.Entity<PromotionRule>().Property(x => x.MinOrderAmount).HasPrecision(18,6);
-        _ = modelBuilder.Entity<VatRate>().Property(x => x.Percentage).HasPrecision(5,2);
+        _ = modelBuilder.Entity<PriceListEntry>().Property(x => x.Price).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<Product>().Property(x => x.DefaultPrice).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<Promotion>().Property(x => x.MinOrderAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<PromotionRule>().Property(x => x.DiscountAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<PromotionRule>().Property(x => x.DiscountPercentage).HasPrecision(5, 2);
+        _ = modelBuilder.Entity<PromotionRule>().Property(x => x.FixedPrice).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<PromotionRule>().Property(x => x.MinOrderAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<VatRate>().Property(x => x.Percentage).HasPrecision(5, 2);
 
-        _ = modelBuilder.Entity<SaleSession>().Property(x => x.OriginalTotal).HasPrecision(18,6);
-        _ = modelBuilder.Entity<SaleSession>().Property(x => x.DiscountAmount).HasPrecision(18,6);
-        _ = modelBuilder.Entity<SaleSession>().Property(x => x.FinalTotal).HasPrecision(18,6);
-        _ = modelBuilder.Entity<SaleSession>().Property(x => x.TaxAmount).HasPrecision(18,6);
+        _ = modelBuilder.Entity<SaleSession>().Property(x => x.OriginalTotal).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<SaleSession>().Property(x => x.DiscountAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<SaleSession>().Property(x => x.FinalTotal).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<SaleSession>().Property(x => x.TaxAmount).HasPrecision(18, 6);
 
-        _ = modelBuilder.Entity<SaleItem>().Property(x => x.UnitPrice).HasPrecision(18,6);
-        _ = modelBuilder.Entity<SaleItem>().Property(x => x.Quantity).HasPrecision(18,6);
-        _ = modelBuilder.Entity<SaleItem>().Property(x => x.DiscountPercent).HasPrecision(5,2);
-        _ = modelBuilder.Entity<SaleItem>().Property(x => x.TaxRate).HasPrecision(5,2);
-        _ = modelBuilder.Entity<SaleItem>().Property(x => x.TaxAmount).HasPrecision(18,6);
-        _ = modelBuilder.Entity<SaleItem>().Property(x => x.TotalAmount).HasPrecision(18,6);
+        _ = modelBuilder.Entity<SaleItem>().Property(x => x.UnitPrice).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<SaleItem>().Property(x => x.Quantity).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<SaleItem>().Property(x => x.DiscountPercent).HasPrecision(5, 2);
+        _ = modelBuilder.Entity<SaleItem>().Property(x => x.TaxRate).HasPrecision(5, 2);
+        _ = modelBuilder.Entity<SaleItem>().Property(x => x.TaxAmount).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<SaleItem>().Property(x => x.TotalAmount).HasPrecision(18, 6);
 
-        _ = modelBuilder.Entity<SalePayment>().Property(x => x.Amount).HasPrecision(18,6);
+        _ = modelBuilder.Entity<SalePayment>().Property(x => x.Amount).HasPrecision(18, 6);
 
-        _ = modelBuilder.Entity<WasteManagementRecord>().Property(x => x.Quantity).HasPrecision(18,6);
-        _ = modelBuilder.Entity<WasteManagementRecord>().Property(x => x.WeightKg).HasPrecision(18,6);
-        _ = modelBuilder.Entity<WasteManagementRecord>().Property(x => x.DisposalCost).HasPrecision(18,6);
-        _ = modelBuilder.Entity<WasteManagementRecord>().Property(x => x.RecoveryValue).HasPrecision(18,6);
-        _ = modelBuilder.Entity<WasteManagementRecord>().Property(x => x.RecyclingRatePercentage).HasPrecision(5,2);
+        _ = modelBuilder.Entity<WasteManagementRecord>().Property(x => x.Quantity).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<WasteManagementRecord>().Property(x => x.WeightKg).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<WasteManagementRecord>().Property(x => x.DisposalCost).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<WasteManagementRecord>().Property(x => x.RecoveryValue).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<WasteManagementRecord>().Property(x => x.RecyclingRatePercentage).HasPrecision(5, 2);
     }
 
     private static void ConfigureGlobalQueryFilters(ModelBuilder modelBuilder)
@@ -460,17 +458,17 @@ public partial class EventForgeDbContext : DbContext
         _ = modelBuilder.Entity<ProductSupplier>().HasIndex(ps => ps.SupplierId).HasDatabaseName("IX_ProductSupplier_SupplierId");
         _ = modelBuilder.Entity<ProductSupplier>().HasIndex(ps => new { ps.ProductId, ps.Preferred }).HasDatabaseName("IX_ProductSupplier_ProductId_Preferred");
 
-        _ = modelBuilder.Entity<ProductSupplier>().Property(ps => ps.UnitCost).HasPrecision(18,6);
-        _ = modelBuilder.Entity<ProductSupplier>().Property(ps => ps.LastPurchasePrice).HasPrecision(18,6);
+        _ = modelBuilder.Entity<ProductSupplier>().Property(ps => ps.UnitCost).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<ProductSupplier>().Property(ps => ps.LastPurchasePrice).HasPrecision(18, 6);
 
         _ = modelBuilder.Entity<Product>().HasIndex(p => p.BrandId).HasDatabaseName("IX_Product_BrandId");
         _ = modelBuilder.Entity<Product>().HasIndex(p => p.ModelId).HasDatabaseName("IX_Product_ModelId");
         _ = modelBuilder.Entity<Product>().HasIndex(p => p.PreferredSupplierId).HasDatabaseName("IX_Product_PreferredSupplierId");
 
-        _ = modelBuilder.Entity<Product>().Property(p => p.ReorderPoint).HasPrecision(18,6);
-        _ = modelBuilder.Entity<Product>().Property(p => p.SafetyStock).HasPrecision(18,6);
-        _ = modelBuilder.Entity<Product>().Property(p => p.TargetStockLevel).HasPrecision(18,6);
-        _ = modelBuilder.Entity<Product>().Property(p => p.AverageDailyDemand).HasPrecision(18,6);
+        _ = modelBuilder.Entity<Product>().Property(p => p.ReorderPoint).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<Product>().Property(p => p.SafetyStock).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<Product>().Property(p => p.TargetStockLevel).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<Product>().Property(p => p.AverageDailyDemand).HasPrecision(18, 6);
 
         _ = modelBuilder.Entity<Product>()
             .HasOne(p => p.ImageDocument)

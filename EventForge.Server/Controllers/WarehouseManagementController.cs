@@ -1,7 +1,6 @@
 using EventForge.DTOs.Documents;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.Warehouse;
-using EventForge.Server.Data;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Products;
@@ -73,7 +72,7 @@ public class WarehouseManagementController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         var enrichedRows = new List<InventoryDocumentRowDto>();
-        
+
         foreach (var row in rows)
         {
             // Use ProductId and LocationId directly from the row
@@ -1797,7 +1796,7 @@ public class WarehouseManagementController : BaseApiController
             // Find the row in the database
             var rowEntity = await _context.DocumentRows
                 .FirstOrDefaultAsync(r => r.Id == rowId && !r.IsDeleted, cancellationToken);
-            
+
             if (rowEntity == null)
             {
                 return NotFound(new ProblemDetails
@@ -1895,7 +1894,7 @@ public class WarehouseManagementController : BaseApiController
             // Find the row in the database
             var rowEntity = await _context.DocumentRows
                 .FirstOrDefaultAsync(r => r.Id == rowId && !r.IsDeleted, cancellationToken);
-                
+
             if (rowEntity == null)
             {
                 return NotFound(new ProblemDetails
@@ -2046,7 +2045,7 @@ public class WarehouseManagementController : BaseApiController
                                     Quantity = newQuantity,
                                     Notes = $"Adjusted by inventory document {documentHeader.Number}"
                                     // Other fields (ReservedQuantity, MinimumLevel etc.) can be left null or set if known
-                            };
+                                };
 
                                 // This call will create or update a Stock record
                                 var updatedStock = await _stockService.CreateOrUpdateStockAsync(createStockDto, GetCurrentUser(), cancellationToken);

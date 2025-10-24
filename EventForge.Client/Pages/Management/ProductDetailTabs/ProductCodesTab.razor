@@ -7,78 +7,84 @@
 @inject ISnackbar Snackbar
 @inject ILogger<ProductCodesTab> Logger
 
-<MudGrid>
-    <MudItem xs="12" Class="d-flex justify-space-between align-center mb-2">
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Outlined.QrCode2" Class="mr-2" />
-            @TranslationService.GetTranslation("product.alternativeCodes", "Codici Alternativi")
-            <MudChip T="string" Size="Size.Small" Class="ml-2">@(_productCodes?.Count() ?? 0)</MudChip>
-        </MudText>
-        <MudButton Variant="Variant.Filled" 
-                   Color="Color.Primary" 
-                   StartIcon="@Icons.Material.Filled.Add"
-                   OnClick="@OpenCreateDialog"
-                   Size="Size.Small">
-            @TranslationService.GetTranslation("common.add", "Aggiungi")
-        </MudButton>
-    </MudItem>
+<MudStack Spacing="3">
+    <MudPaper Elevation="1" Class="pa-4">
+        <MudGrid>
+            <MudItem xs="12" Class="d-flex justify-end align-center mb-2">
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="@OpenCreateDialog"
+                           Size="Size.Small">
+                    @TranslationService.GetTranslation("common.add", "Aggiungi")
+                </MudButton>
+            </MudItem>
 
-    <MudItem xs="12">
-        @if (_isLoading)
-        {
-            <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-        }
-        else if (_productCodes == null || !_productCodes.Any())
-        {
-            <MudAlert Severity="Severity.Info">
-                @TranslationService.GetTranslation("product.noAlternativeCodes", "Nessun codice alternativo configurato")
-            </MudAlert>
-        }
-        else
-        {
-            <MudTable Items="_productCodes" Hover="true" Striped="true" Dense="true">
-                <HeaderContent>
-                    <MudTh>@TranslationService.GetTranslation("field.codeType", "Tipo Codice")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("field.code", "Codice")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
-                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.codeType", "Tipo Codice")">@context.CodeType</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">@context.Code</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">@context.AlternativeDescription</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">@context.Status</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit" 
-                                       Size="Size.Small" 
-                                       Color="Color.Primary"
-                                       OnClick="@(() => OpenEditDialog(context))" />
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" 
-                                       Size="Size.Small" 
-                                       Color="Color.Error"
-                                       OnClick="@(() => DeleteCodeAsync(context))" />
-                    </MudTd>
-                </RowTemplate>
-            </MudTable>
-        }
-    </MudItem>
-</MudGrid>
+            <MudItem xs="12">
+                @if (_isLoading)
+                {
+                    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                }
+                else if (_productCodes == null || !_productCodes.Any())
+                {
+                    <MudAlert Severity="Severity.Info">
+                        @TranslationService.GetTranslation("product.noAlternativeCodes", "Nessun codice alternativo configurato")
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudTable Items="_productCodes" Hover="true" Striped="true" Dense="true">
+                        <HeaderContent>
+                            <MudTh>@TranslationService.GetTranslation("field.codeType", "Tipo Codice")</MudTh>
+                            <MudTh>@TranslationService.GetTranslation("field.code", "Codice")</MudTh>
+                            <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
+                            <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
+                            <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.codeType", "Tipo Codice")">@context.CodeType</MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">@context.Code</MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">@context.AlternativeDescription</MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">@context.Status</MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                               Size="Size.Small" 
+                                               Color="Color.Primary"
+                                               OnClick="@(() => OpenEditDialog(context))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                               Size="Size.Small" 
+                                               Color="Color.Error"
+                                               OnClick="@(() => DeleteCodeAsync(context))" />
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+</MudStack>
 
 @code {
     [Parameter, EditorRequired]
-    public Guid ProductId { get; set; }
+    public ProductDto Product { get; set; } = default!;
 
     // Notifications for parent
     [Parameter] public EventCallback OnProductUpdated { get; set; }
     [Parameter] public EventCallback OnProductUpdatedPersisted { get; set; }
 
+    // IsEditMode parameter was missing and caused Unknown parameter error when parent passed it
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
     private IEnumerable<ProductCodeDto>? _productCodes;
     private bool _isLoading = true;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        await LoadCodesAsync();
+        if (Product?.Id != Guid.Empty)
+        {
+            await LoadCodesAsync();
+        }
     }
 
     private async Task LoadCodesAsync()
@@ -86,11 +92,11 @@
         _isLoading = true;
         try
         {
-            _productCodes = await ProductService.GetProductCodesAsync(ProductId);
+            _productCodes = await ProductService.GetProductCodesAsync(Product.Id);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading product codes for product {ProductId}", ProductId);
+            Logger.LogError(ex, "Error loading product codes for product {ProductId}", Product.Id);
             Snackbar.Add(TranslationService.GetTranslation("product.loadCodesError", "Errore nel caricamento dei codici"), Severity.Error);
         }
         finally
@@ -101,10 +107,12 @@
 
     private async Task OpenCreateDialog()
     {
+        var productUnits = await ProductService.GetProductUnitsAsync(Product.Id) ?? new List<ProductUnitDto>();
+
         var parameters = new DialogParameters
         {
-            { "ProductId", ProductId },
-            { "ProductUnits", _productCodes?.Any() == true ? await ProductService.GetProductUnitsAsync(ProductId) : new List<ProductUnitDto>() }
+            { "ProductId", Product.Id },
+            { "ProductUnits", productUnits }
         };
 
         var options = new DialogOptions
@@ -129,10 +137,12 @@
 
     private async Task OpenEditDialog(ProductCodeDto code)
     {
+        var productUnits = await ProductService.GetProductUnitsAsync(Product.Id) ?? new List<ProductUnitDto>();
+
         var parameters = new DialogParameters
         {
             { "ProductCode", code },
-            { "ProductUnits", await ProductService.GetProductUnitsAsync(ProductId) }
+            { "ProductUnits", productUnits }
         };
 
         var options = new DialogOptions

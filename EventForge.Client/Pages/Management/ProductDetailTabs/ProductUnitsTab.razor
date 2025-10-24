@@ -9,216 +9,232 @@
 @inject ISnackbar Snackbar
 @inject ILogger<ProductUnitsTab> Logger
 
-<MudGrid>
-    <MudItem xs="12" Class="d-flex justify-space-between align-center mb-2">
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Outlined.Straighten" Class="mr-2" />
-            @TranslationService.GetTranslation("product.alternativeUnits", "Unità Alternative")
-            <MudChip T="string" Size="Size.Small" Class="ml-2">@(_productUnits?.Count() ?? 0)</MudChip>
-        </MudText>
-        <MudButton Variant="Variant.Filled" 
-                   Color="Color.Primary" 
-                   StartIcon="@Icons.Material.Outlined.Add"
-                   OnClick="@OpenCreateDialog"
-                   Size="Size.Small">
-            @TranslationService.GetTranslation("common.add", "Aggiungi")
-        </MudButton>
-    </MudItem>
+<MudStack Spacing="3">
+ <MudPaper Elevation="1" Class="pa-4">
+ <MudGrid>
+ <MudItem xs="12" Class="d-flex justify-end align-center mb-2">
+ <MudButton Variant="Variant.Filled" 
+ Color="Color.Primary" 
+ StartIcon="@Icons.Material.Outlined.Add"
+ OnClick="@OpenCreateDialog"
+ Size="Size.Small">
+ @TranslationService.GetTranslation("common.add", "Aggiungi")
+ </MudButton>
+ </MudItem>
 
-    <MudItem xs="12">
-        @if (_isLoading)
-        {
-            <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-        }
-        else if (_productUnits == null || !_productUnits.Any())
-        {
-            <MudAlert Severity="Severity.Info">
-                @TranslationService.GetTranslation("product.noAlternativeUnits", "Nessuna unità alternativa configurata")
-            </MudAlert>
-        }
-        else
-        {
-            <MudTable Items="_productUnits" Hover="true" Striped="true" Dense="true">
-                <HeaderContent>
-                    <MudTh>@TranslationService.GetTranslation("field.unitType", "Tipo Unità")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("field.conversionFactor", "Fattore di Conversione")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
-                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.unitType", "Tipo Unità")">@context.UnitType</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")">@context.UnitOfMeasureId</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.conversionFactor", "Fattore di Conversione")">@context.ConversionFactor.ToString("N3")</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">@context.Description</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">@context.Status</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit" 
-                                       Size="Size.Small" 
-                                       Color="Color.Primary"
-                                       OnClick="@(() => OpenEditDialog(context))" />
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" 
-                                       Size="Size.Small" 
-                                       Color="Color.Error"
-                                       OnClick="@(() => DeleteUnitAsync(context))" />
-                    </MudTd>
-                </RowTemplate>
-            </MudTable>
-        }
-    </MudItem>
-</MudGrid>
+ <MudItem xs="12">
+ @if (_isLoading)
+ {
+ <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+ }
+ else if (_productUnits == null || !_productUnits.Any())
+ {
+ <MudAlert Severity="Severity.Info">
+ @TranslationService.GetTranslation("product.noAlternativeUnits", "Nessuna unità alternativa configurata")
+ </MudAlert>
+ }
+ else
+ {
+ <!-- Display table for units -->
+ <MudTable Items="_productUnits" Hover="true" Striped="true" Dense="true">
+ <HeaderContent>
+ <MudTh>@TranslationService.GetTranslation("field.unitType", "Tipo Unità")</MudTh>
+ <MudTh>@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")</MudTh>
+ <MudTh>@TranslationService.GetTranslation("field.conversionFactor", "Fattore di Conversione")</MudTh>
+ <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
+ <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
+ <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
+ </HeaderContent>
+ <RowTemplate>
+ <MudTd DataLabel="@TranslationService.GetTranslation("field.unitType", "Tipo Unità")">@context.UnitType</MudTd>
+ <MudTd DataLabel="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")">@GetUnitOfMeasureName(context.UnitOfMeasureId)</MudTd>
+ <MudTd DataLabel="@TranslationService.GetTranslation("field.conversionFactor", "Fattore di Conversione")">@context.ConversionFactor.ToString("N3")</MudTd>
+ <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">@context.Description</MudTd>
+ <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">@context.Status</MudTd>
+ <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
+ <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+ Size="Size.Small" 
+ Color="Color.Primary"
+ OnClick="@(() => OpenEditDialog(context))" />
+ <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+ Size="Size.Small" 
+ Color="Color.Error"
+ OnClick="@(() => DeleteUnitAsync(context))" />
+ </MudTd>
+ </RowTemplate>
+ </MudTable>
+ }
+ </MudItem>
+ </MudGrid>
+ </MudPaper>
+</MudStack>
 
 @code {
-    [Parameter, EditorRequired]
-    public Guid ProductId { get; set; }
+ [Parameter, EditorRequired]
+ public ProductDto Product { get; set; } = default!;
 
-    // Notifications for parent
-    [Parameter] public EventCallback OnProductUpdated { get; set; }
-    [Parameter] public EventCallback OnProductUpdatedPersisted { get; set; }
+ // Notifications for parent
+ [Parameter] public EventCallback OnProductUpdated { get; set; }
+ [Parameter] public EventCallback OnProductUpdatedPersisted { get; set; }
 
-    private IEnumerable<ProductUnitDto>? _productUnits;
-    private bool _isLoading = true;
+ [Parameter]
+ public bool IsEditMode { get; set; }
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadUnitsAsync();
-    }
+ private IEnumerable<ProductUnitDto>? _productUnits;
+ private bool _isLoading = true;
+ private IEnumerable<UMDto> _ums = Enumerable.Empty<UMDto>();
 
-    private async Task LoadUnitsAsync()
-    {
-        _isLoading = true;
-        try
-        {
-            _productUnits = await ProductService.GetProductUnitsAsync(ProductId);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading product units for product {ProductId}", ProductId);
-            Snackbar.Add(TranslationService.GetTranslation("product.loadUnitsError", "Errore nel caricamento delle unità"), Severity.Error);
-        }
-        finally
-        {
-            _isLoading = false;
-        }
-    }
+ protected override async Task OnParametersSetAsync()
+ {
+ if (Product?.Id != Guid.Empty)
+ {
+ await LoadUnitsAsync();
+ }
+ }
 
-    private async Task OpenCreateDialog()
-    {
-        // Load unit of measures for the dialog
-        var unitOfMeasuresResult = await UMService.GetUMsAsync(page: 1, pageSize: 100);
-        var unitOfMeasures = unitOfMeasuresResult?.Items ?? new List<UMDto>();
-        
-        var parameters = new DialogParameters
-        {
-            { "ProductId", ProductId },
-            { "UnitOfMeasures", unitOfMeasures },
-            { "ExistingUnits", _productUnits ?? new List<ProductUnitDto>() }
-        };
+ private async Task LoadUnitsAsync()
+ {
+ _isLoading = true;
+ try
+ {
+ _productUnits = await ProductService.GetProductUnitsAsync(Product.Id);
+ var umsResult = await UMService.GetUMsAsync(1,100);
+ _ums = umsResult?.Items ?? Enumerable.Empty<UMDto>();
+ }
+ catch (Exception ex)
+ {
+ Logger.LogError(ex, "Error loading product units for product {ProductId}", Product.Id);
+ Snackbar.Add(TranslationService.GetTranslation("product.loadUnitsError", "Errore nel caricamento delle unità"), Severity.Error);
+ }
+ finally
+ {
+ _isLoading = false;
+ }
+ }
 
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true
-        };
+ private string GetUnitOfMeasureName(Guid? umId)
+ {
+ if (!umId.HasValue) return "-";
+ var um = _ums.FirstOrDefault(u => u.Id == umId.Value);
+ return um != null ? $"{um.Name} ({um.Symbol})" : umId.ToString() ?? "-";
+ }
 
-        var dialog = await DialogService.ShowAsync<AddProductUnitDialog>(
-            TranslationService.GetTranslation("product.addUnit", "Aggiungi Unità Alternativa"),
-            parameters,
-            options);
+ private async Task OpenCreateDialog()
+ {
+ // Load unit of measures for the dialog
+ var unitOfMeasuresResult = await UMService.GetUMsAsync(page:1, pageSize:100);
+ var unitOfMeasures = unitOfMeasuresResult?.Items ?? new List<UMDto>();
 
-        var result = await dialog.Result;
-        if (!result.Canceled)
-        {
-            await LoadUnitsAsync();
-            await NotifyPersisted();
-        }
-    }
+ var parameters = new DialogParameters
+ {
+ { "ProductId", Product.Id },
+ { "UnitOfMeasures", unitOfMeasures },
+ { "ExistingUnits", _productUnits ?? new List<ProductUnitDto>() }
+ };
 
-    private async Task OpenEditDialog(ProductUnitDto unit)
-    {
-        // Load unit of measures for the dialog
-        var unitOfMeasuresResult = await UMService.GetUMsAsync(page: 1, pageSize: 100);
-        var unitOfMeasures = unitOfMeasuresResult?.Items ?? new List<UMDto>();
-        
-        var parameters = new DialogParameters
-        {
-            { "ProductUnit", unit },
-            { "UnitOfMeasures", unitOfMeasures },
-            { "ExistingUnits", _productUnits ?? new List<ProductUnitDto>() }
-        };
+ var options = new DialogOptions
+ {
+ MaxWidth = MaxWidth.Medium,
+ FullWidth = true,
+ CloseButton = true
+ };
 
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true
-        };
+ var dialog = await DialogService.ShowAsync<AddProductUnitDialog>(
+ TranslationService.GetTranslation("product.addUnit", "Aggiungi Unità Alternativa"),
+ parameters,
+ options);
 
-        var dialog = await DialogService.ShowAsync<EditProductUnitDialog>(
-            TranslationService.GetTranslation("product.editUnit", "Modifica Unità Alternativa"),
-            parameters,
-            options);
+ var result = await dialog.Result;
+ if (!result.Canceled)
+ {
+ await LoadUnitsAsync();
+ await NotifyPersisted();
+ }
+ }
 
-        var result = await dialog.Result;
-        if (!result.Canceled)
-        {
-            await LoadUnitsAsync();
-            await NotifyPersisted();
-        }
-    }
+ private async Task OpenEditDialog(ProductUnitDto unit)
+ {
+ // Load unit of measures for the dialog
+ var unitOfMeasuresResult = await UMService.GetUMsAsync(page:1, pageSize:100);
+ var unitOfMeasures = unitOfMeasuresResult?.Items ?? new List<UMDto>();
 
-    private async Task DeleteUnitAsync(ProductUnitDto unit)
-    {
-        var confirmed = await DialogService.ShowMessageBox(
-            TranslationService.GetTranslation("common.confirm", "Conferma"),
-            TranslationService.GetTranslation("product.confirmDeleteUnit", "Sei sicuro di voler eliminare questa unità?"),
-            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
-            noText: TranslationService.GetTranslation("common.no", "No"));
+ var parameters = new DialogParameters
+ {
+ { "ProductUnit", unit },
+ { "UnitOfMeasures", unitOfMeasures },
+ { "ExistingUnits", _productUnits ?? new List<ProductUnitDto>() }
+ };
 
-        if (confirmed == true)
-        {
-            try
-            {
-                await ProductService.DeleteProductUnitAsync(unit.Id);
-                Snackbar.Add(TranslationService.GetTranslation("product.unitDeleted", "Unità eliminata con successo"), Severity.Success);
-                await LoadUnitsAsync();
-                await NotifyPersisted();
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error deleting product unit {UnitId}", unit.Id);
-                Snackbar.Add(TranslationService.GetTranslation("product.deleteUnitError", "Errore nell'eliminazione dell'unità"), Severity.Error);
-            }
-        }
-    }
+ var options = new DialogOptions
+ {
+ MaxWidth = MaxWidth.Medium,
+ FullWidth = true,
+ CloseButton = true
+ };
 
-    private async Task NotifyUpdated()
-    {
-        try
-        {
-            if (OnProductUpdated.HasDelegate)
-                await OnProductUpdated.InvokeAsync();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error invoking OnProductUpdated from ProductUnitsTab");
-        }
-    }
+ var dialog = await DialogService.ShowAsync<EditProductUnitDialog>(
+ TranslationService.GetTranslation("product.editUnit", "Modifica Unità Alternativa"),
+ parameters,
+ options);
 
-    private async Task NotifyPersisted()
-    {
-        try
-        {
-            if (OnProductUpdatedPersisted.HasDelegate)
-                await OnProductUpdatedPersisted.InvokeAsync();
-            else if (OnProductUpdated.HasDelegate)
-                await OnProductUpdated.InvokeAsync();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error invoking OnProductUpdatedPersisted from ProductUnitsTab");
-        }
-    }
+ var result = await dialog.Result;
+ if (!result.Canceled)
+ {
+ await LoadUnitsAsync();
+ await NotifyPersisted();
+ }
+ }
+
+ private async Task DeleteUnitAsync(ProductUnitDto unit)
+ {
+ var confirmed = await DialogService.ShowMessageBox(
+ TranslationService.GetTranslation("common.confirm", "Conferma"),
+ TranslationService.GetTranslation("product.confirmDeleteUnit", "Sei sicuro di voler eliminare questa unità?"),
+ yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+ noText: TranslationService.GetTranslation("common.no", "No"));
+
+ if (confirmed == true)
+ {
+ try
+ {
+ await ProductService.DeleteProductUnitAsync(unit.Id);
+ Snackbar.Add(TranslationService.GetTranslation("product.unitDeleted", "Unità eliminata con successo"), Severity.Success);
+ await LoadUnitsAsync();
+ await NotifyPersisted();
+ }
+ catch (Exception ex)
+ {
+ Logger.LogError(ex, "Error deleting product unit {UnitId}", unit.Id);
+ Snackbar.Add(TranslationService.GetTranslation("product.deleteUnitError", "Errore nell'eliminazione dell'unità"), Severity.Error);
+ }
+ }
+ }
+
+ private async Task NotifyUpdated()
+ {
+ try
+ {
+ if (OnProductUpdated.HasDelegate)
+ await OnProductUpdated.InvokeAsync();
+ }
+ catch (Exception ex)
+ {
+ Logger.LogError(ex, "Error invoking OnProductUpdated from ProductUnitsTab");
+ }
+ }
+
+ private async Task NotifyPersisted()
+ {
+ try
+ {
+ if (OnProductUpdatedPersisted.HasDelegate)
+ await OnProductUpdatedPersisted.InvokeAsync();
+ else if (OnProductUpdated.HasDelegate)
+ await OnProductUpdated.InvokeAsync();
+ }
+ catch (Exception ex)
+ {
+ Logger.LogError(ex, "Error invoking OnProductUpdatedPersisted from ProductUnitsTab");
+ }
+ }
 }

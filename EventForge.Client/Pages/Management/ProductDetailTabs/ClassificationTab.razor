@@ -13,76 +13,68 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
-<MudGrid>
-    <MudItem xs="12">
-        <MudText Typo="Typo.h6" Class="mb-3">
-            <MudIcon Icon="@Icons.Material.Outlined.Category" Class="mr-2" />
-            @TranslationService.GetTranslation("product.classificationInfo", "Classificazione")
-        </MudText>
-        <MudDivider Class="mb-4" />
-    </MudItem>
-
-    <MudItem xs="12" md="6">
-        <MudSelect T="Guid?"
-                   @bind-Value="Product.BrandId"
-                   Label="@TranslationService.GetTranslation("field.brand", "Marchio")"
-                   Variant="Variant.Outlined"
-                   ReadOnly="@(!IsEditMode)"
-                   Clearable="true"
-                   Size="Size.Small"
-                   @bind-Value:after="OnBrandChanged">
-            @if (_brands != null)
-            {
-                @foreach (var brand in _brands)
-                {
-                    <MudSelectItem T="Guid?" Value="@((Guid?)brand.Id)">@brand.Name</MudSelectItem>
-                }
-            }
-        </MudSelect>
-    </MudItem>
-
-    <MudItem xs="12" md="6">
-        <MudSelect T="Guid?"
-                   @bind-Value="Product.ModelId"
-                   Label="@TranslationService.GetTranslation("field.model", "Modello")"
-                   Variant="Variant.Outlined"
-                   ReadOnly="@(!IsEditMode)"
-                   Clearable="true"
-                   Size="Size.Small"
-                   @bind-Value:after="NotifyUpdated">
-            @if (_models != null)
-            {
-                @foreach (var model in _models)
-                {
-                    <MudSelectItem T="Guid?" Value="@((Guid?)model.Id)">@model.Name</MudSelectItem>
-                }
-            }
-        </MudSelect>
-    </MudItem>
-
-    <MudItem xs="12" md="6">
-        <MudSelect T="Guid?"
-                   @bind-Value="Product.UnitOfMeasureId"
-                   Label="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")"
-                   Variant="Variant.Outlined"
-                   ReadOnly="@(!IsEditMode)"
-                   Clearable="true"
-                   Size="Size.Small"
-                   @bind-Value:after="NotifyUpdated">
-            @if (_unitsOfMeasure != null)
-            {
-                @foreach (var um in _unitsOfMeasure)
-                {
-                    <MudSelectItem T="Guid?" Value="@((Guid?)um.Id)">@um.Name (@um.Symbol)</MudSelectItem>
-                }
-            }
-        </MudSelect>
-    </MudItem>
-
-    <!-- Category / Family / Group pickers on single row -->
-    <MudItem xs="12">
+<MudStack Spacing="3">
+    <MudPaper Elevation="1" Class="pa-4">
         <MudGrid>
-            <MudItem xs="12" md="4">
+            <MudItem xs="12" md="6">
+                <MudSelect T="Guid?"
+                           @bind-Value="Product.BrandId"
+                           Label="@TranslationService.GetTranslation("field.brand", "Marchio")"
+                           Variant="Variant.Outlined"
+                           ReadOnly="@(!IsEditMode)"
+                           Clearable="true"
+                           Size="Size.Small"
+                           @bind-Value:after="OnBrandChanged">
+                    @if (_brands != null)
+                    {
+                        @foreach (var brand in _brands)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)brand.Id)">@brand.Name</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect T="Guid?"
+                           @bind-Value="Product.ModelId"
+                           Label="@TranslationService.GetTranslation("field.model", "Modello")"
+                           Variant="Variant.Outlined"
+                           ReadOnly="@(!IsEditMode)"
+                           Clearable="true"
+                           Size="Size.Small"
+                           @bind-Value:after="NotifyUpdated">
+                    @if (_models != null)
+                    {
+                        @foreach (var model in _models)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)model.Id)">@model.Name</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect T="Guid?"
+                           @bind-Value="Product.UnitOfMeasureId"
+                           Label="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")"
+                           Variant="Variant.Outlined"
+                           ReadOnly="@(!IsEditMode)"
+                           Clearable="true"
+                           Size="Size.Small"
+                           @bind-Value:after="NotifyUpdated">
+                    @if (_unitsOfMeasure != null)
+                    {
+                        @foreach (var um in _unitsOfMeasure)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)um.Id)">@um.Name (@um.Symbol)</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <!-- Category / Family / Group pickers stacked for clarity -->
+            <MudItem xs="12">
                 <MudText Typo="Typo.caption" Class="mb-1">@TranslationService.GetTranslation("product.categoryLabel","Categoria")</MudText>
                 <div class="d-flex gap-2">
                     <MudTextField Value="@(_categoryName ?? Product.CategoryNodeId?.ToString() ?? "-")"
@@ -93,11 +85,11 @@
                     <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.Category))" Size="Size.Small">
                         @TranslationService.GetTranslation("common.select","Seleziona")
                     </MudButton>
-                    <MudIconButton Icon="@Icons.Material.Filled.Clear" Disabled="!IsEditMode || Product.CategoryNodeId == null" OnClick="@ClearCategory" Size="Size.Small" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Clear" Disabled="!IsEditMode || Product.CategoryNodeId == null" OnClick="ClearCategory" Size="Size.Small" />
                 </div>
             </MudItem>
 
-            <MudItem xs="12" md="4">
+            <MudItem xs="12">
                 <MudText Typo="Typo.caption" Class="mb-1">@TranslationService.GetTranslation("product.familyLabel","Famiglia")</MudText>
                 <div class="d-flex gap-2">
                     <MudTextField Value="@(_familyName ?? Product.FamilyNodeId?.ToString() ?? "-")"
@@ -108,11 +100,11 @@
                     <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.Family))" Size="Size.Small">
                         @TranslationService.GetTranslation("common.select","Seleziona")
                     </MudButton>
-                    <MudIconButton Icon="@Icons.Material.Filled.Clear" Disabled="!IsEditMode || Product.FamilyNodeId == null" OnClick="@ClearFamily" Size="Size.Small" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Clear" Disabled="!IsEditMode || Product.FamilyNodeId == null" OnClick="ClearFamily" Size="Size.Small" />
                 </div>
             </MudItem>
 
-            <MudItem xs="12" md="4">
+            <MudItem xs="12">
                 <MudText Typo="Typo.caption" Class="mb-1">@TranslationService.GetTranslation("product.groupLabel","Gruppo")</MudText>
                 <div class="d-flex gap-2">
                     <MudTextField Value="@(_groupName ?? Product.GroupNodeId?.ToString() ?? "-")"
@@ -123,12 +115,12 @@
                     <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.MerchandiseGroup))" Size="Size.Small">
                         @TranslationService.GetTranslation("common.select","Seleziona")
                     </MudButton>
-                    <MudIconButton Icon="@Icons.Material.Filled.Clear" Disabled="!IsEditMode || Product.GroupNodeId == null" OnClick="@ClearGroup" Size="Size.Small" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Clear" Disabled="!IsEditMode || Product.GroupNodeId == null" OnClick="ClearGroup" Size="Size.Small" />
                 </div>
             </MudItem>
         </MudGrid>
-    </MudItem>
-</MudGrid>
+    </MudPaper>
+</MudStack>
 
 @code {
     [Parameter, EditorRequired]

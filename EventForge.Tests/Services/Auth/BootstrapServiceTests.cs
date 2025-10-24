@@ -603,7 +603,7 @@ public class BootstrapServiceTests
 
         // Verify base entities were re-seeded
         await using var verifyContext = new EventForgeDbContext(options);
-        
+
         var vatNatureCount = await verifyContext.VatNatures.CountAsync(v => v.TenantId == tenantId);
         Assert.Equal(24, vatNatureCount);
 

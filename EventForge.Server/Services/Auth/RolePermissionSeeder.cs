@@ -8,13 +8,13 @@ namespace EventForge.Server.Services.Auth;
 /// </summary>
 public static class RolePermissionSeeder
 {
- public static async Task<bool> SeedAsync(EventForgeDbContext _dbContext, ILogger logger, CancellationToken cancellationToken = default)
- {
- try
- {
- // Define default permissions
- Permission[] defaultPermissions = new Permission[]
- {
+    public static async Task<bool> SeedAsync(EventForgeDbContext _dbContext, ILogger logger, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Define default permissions
+            Permission[] defaultPermissions = new Permission[]
+            {
  new Permission { Name = "Users.Users.Create", DisplayName = "Create Users", Category = "Users", Resource = "Users", Action = "Create", IsSystemPermission = true, TenantId = Guid.Empty },
  new Permission { Name = "Users.Users.Read", DisplayName = "View Users", Category = "Users", Resource = "Users", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty },
  new Permission { Name = "Users.Users.Update", DisplayName = "Update Users", Category = "Users", Resource = "Users", Action = "Update", IsSystemPermission = true, TenantId = Guid.Empty },
@@ -103,38 +103,38 @@ public static class RolePermissionSeeder
 
  new Permission { Name = "System.Settings.Update", DisplayName = "Update System Settings", Category = "System", Resource = "Settings", Action = "Update", IsSystemPermission = true, TenantId = Guid.Empty },
  new Permission { Name = "System.Logs.Read", DisplayName = "View System Logs", Category = "System", Resource = "Logs", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty }
- };
+            };
 
- // Fetch existing permission names in a single query
- var existingPermissionNames = await _dbContext.Permissions.Select(p => p.Name).ToListAsync(cancellationToken);
- var existingNamesSet = existingPermissionNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            // Fetch existing permission names in a single query
+            var existingPermissionNames = await _dbContext.Permissions.Select(p => p.Name).ToListAsync(cancellationToken);
+            var existingNamesSet = existingPermissionNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
- var toAddPermissions = new List<Permission>();
+            var toAddPermissions = new List<Permission>();
 
- foreach (var permission in defaultPermissions)
- {
- if (!existingNamesSet.Contains(permission.Name))
- {
- permission.CreatedBy = "system";
- permission.CreatedAt = DateTime.UtcNow;
- toAddPermissions.Add(permission);
- }
- }
+            foreach (var permission in defaultPermissions)
+            {
+                if (!existingNamesSet.Contains(permission.Name))
+                {
+                    permission.CreatedBy = "system";
+                    permission.CreatedAt = DateTime.UtcNow;
+                    toAddPermissions.Add(permission);
+                }
+            }
 
- if (toAddPermissions.Any())
- {
- _dbContext.Permissions.AddRange(toAddPermissions);
- _ = await _dbContext.SaveChangesAsync(cancellationToken);
- logger.LogInformation("Added {Count} new system permissions", toAddPermissions.Count);
- }
- else
- {
- logger.LogInformation("No new system permissions to add");
- }
+            if (toAddPermissions.Any())
+            {
+                _dbContext.Permissions.AddRange(toAddPermissions);
+                _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                logger.LogInformation("Added {Count} new system permissions", toAddPermissions.Count);
+            }
+            else
+            {
+                logger.LogInformation("No new system permissions to add");
+            }
 
- // Ensure default roles exist (create if missing)
- var defaultRoles = new[]
- {
+            // Ensure default roles exist (create if missing)
+            var defaultRoles = new[]
+            {
  new Role { Name = "SuperAdmin", DisplayName = "Super Administrator", Description = "Full unrestricted system access", IsSystemRole = true, TenantId = Guid.Empty },
  new Role { Name = "Admin", DisplayName = "System Administrator", Description = "Full system access", IsSystemRole = true, TenantId = Guid.Empty },
  new Role { Name = "Manager", DisplayName = "Manager", Description = "Management level access", IsSystemRole = true, TenantId = Guid.Empty },
@@ -142,67 +142,67 @@ public static class RolePermissionSeeder
  new Role { Name = "Viewer", DisplayName = "Viewer", Description = "Read-only access", IsSystemRole = true, TenantId = Guid.Empty }
  };
 
- var existingRoles = await _dbContext.Roles.Select(r => r.Name).ToListAsync(cancellationToken);
- var existingRolesSet = existingRoles.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var existingRoles = await _dbContext.Roles.Select(r => r.Name).ToListAsync(cancellationToken);
+            var existingRolesSet = existingRoles.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
- var rolesToAdd = new List<Role>();
- foreach (var role in defaultRoles)
- {
- if (!existingRolesSet.Contains(role.Name))
- {
- role.CreatedBy = "system";
- role.CreatedAt = DateTime.UtcNow;
- rolesToAdd.Add(role);
- }
- }
+            var rolesToAdd = new List<Role>();
+            foreach (var role in defaultRoles)
+            {
+                if (!existingRolesSet.Contains(role.Name))
+                {
+                    role.CreatedBy = "system";
+                    role.CreatedAt = DateTime.UtcNow;
+                    rolesToAdd.Add(role);
+                }
+            }
 
- if (rolesToAdd.Any())
- {
- _dbContext.Roles.AddRange(rolesToAdd);
- _ = await _dbContext.SaveChangesAsync(cancellationToken);
- logger.LogInformation("Added {Count} new system roles", rolesToAdd.Count);
- }
+            if (rolesToAdd.Any())
+            {
+                _dbContext.Roles.AddRange(rolesToAdd);
+                _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                logger.LogInformation("Added {Count} new system roles", rolesToAdd.Count);
+            }
 
- // Load permissions and roles to assign
- var allPermissions = await _dbContext.Permissions.ToListAsync(cancellationToken);
+            // Load permissions and roles to assign
+            var allPermissions = await _dbContext.Permissions.ToListAsync(cancellationToken);
 
- // Helper to ensure role has permissions (idempotent)
- async Task EnsureRoleHasAllPermissions(string roleName)
- {
- var role = await _dbContext.Roles.Include(r => r.RolePermissions).FirstOrDefaultAsync(r => r.Name == roleName, cancellationToken);
- if (role == null) return;
+            // Helper to ensure role has permissions (idempotent)
+            async Task EnsureRoleHasAllPermissions(string roleName)
+            {
+                var role = await _dbContext.Roles.Include(r => r.RolePermissions).FirstOrDefaultAsync(r => r.Name == roleName, cancellationToken);
+                if (role == null) return;
 
- var existingPermIds = role.RolePermissions.Select(rp => rp.PermissionId).ToHashSet();
- var toAdd = allPermissions.Where(p => !existingPermIds.Contains(p.Id)).Select(p => new RolePermission
- {
- RoleId = role.Id,
- PermissionId = p.Id,
- GrantedBy = "system",
- GrantedAt = DateTime.UtcNow,
- CreatedBy = "system",
- CreatedAt = DateTime.UtcNow,
- TenantId = Guid.Empty
- }).ToList();
+                var existingPermIds = role.RolePermissions.Select(rp => rp.PermissionId).ToHashSet();
+                var toAdd = allPermissions.Where(p => !existingPermIds.Contains(p.Id)).Select(p => new RolePermission
+                {
+                    RoleId = role.Id,
+                    PermissionId = p.Id,
+                    GrantedBy = "system",
+                    GrantedAt = DateTime.UtcNow,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow,
+                    TenantId = Guid.Empty
+                }).ToList();
 
- if (toAdd.Any())
- {
- _dbContext.RolePermissions.AddRange(toAdd);
- _ = await _dbContext.SaveChangesAsync(cancellationToken);
- logger.LogInformation("Assigned {Count} permissions to {Role}", toAdd.Count, roleName);
- }
- }
+                if (toAdd.Any())
+                {
+                    _dbContext.RolePermissions.AddRange(toAdd);
+                    _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                    logger.LogInformation("Assigned {Count} permissions to {Role}", toAdd.Count, roleName);
+                }
+            }
 
- // Assign all permissions to Admin and SuperAdmin roles if missing
- await EnsureRoleHasAllPermissions("Admin");
- await EnsureRoleHasAllPermissions("SuperAdmin");
+            // Assign all permissions to Admin and SuperAdmin roles if missing
+            await EnsureRoleHasAllPermissions("Admin");
+            await EnsureRoleHasAllPermissions("SuperAdmin");
 
- logger.LogInformation("Default roles and permissions seeded successfully");
- return true;
- }
- catch (Exception ex)
- {
- logger.LogError(ex, "Error seeding default roles and permissions");
- return false;
- }
- }
+            logger.LogInformation("Default roles and permissions seeded successfully");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error seeding default roles and permissions");
+            return false;
+        }
+    }
 }

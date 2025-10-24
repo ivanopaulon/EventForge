@@ -1,11 +1,9 @@
-using EventForge.Server.Data.Entities.Business;
+using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Services.Products;
-using EventForge.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 
 namespace EventForge.Tests.Services;
 
@@ -30,7 +28,7 @@ public class SupplierProductAssociationTests
         // Arrange
         using var context = new EventForgeDbContext(_dbContextOptions);
         var service = CreateProductService(context);
-        
+
         var supplierId = Guid.NewGuid();
         var product1Id = Guid.NewGuid();
         var product2Id = Guid.NewGuid();
@@ -61,7 +59,7 @@ public class SupplierProductAssociationTests
 
         // Assert
         Assert.Equal(3, resultList.Count);
-        
+
         var product1Result = resultList.First(p => p.ProductId == product1Id);
         Assert.True(product1Result.IsAssociated);
         Assert.NotNull(product1Result.ProductSupplierId);
@@ -83,7 +81,7 @@ public class SupplierProductAssociationTests
         // Arrange
         using var context = new EventForgeDbContext(_dbContextOptions);
         var service = CreateProductService(context);
-        
+
         var supplierId = Guid.NewGuid();
         var product1Id = Guid.NewGuid();
         var product2Id = Guid.NewGuid();
@@ -115,7 +113,7 @@ public class SupplierProductAssociationTests
         // Arrange
         using var context = new EventForgeDbContext(_dbContextOptions);
         var service = CreateProductService(context);
-        
+
         var supplierId = Guid.NewGuid();
         var product1Id = Guid.NewGuid();
         var product2Id = Guid.NewGuid();
@@ -146,7 +144,7 @@ public class SupplierProductAssociationTests
             .IgnoreQueryFilters()  // Ignore global IsDeleted filter
             .Where(ps => ps.SupplierId == supplierId)
             .ToListAsync();
-        
+
         var activeAssociations = allAssociations.Where(ps => !ps.IsDeleted).ToList();
         Assert.Equal(2, activeAssociations.Count);
         Assert.Contains(activeAssociations, a => a.ProductId == product1Id);
@@ -163,7 +161,7 @@ public class SupplierProductAssociationTests
         // Arrange
         using var context = new EventForgeDbContext(_dbContextOptions);
         var service = CreateProductService(context);
-        
+
         var supplierId = Guid.NewGuid();
         var product1Id = Guid.NewGuid();
         var product2Id = Guid.NewGuid();
@@ -208,10 +206,10 @@ public class SupplierProductAssociationTests
         var loggerMock = new Mock<ILogger<ProductService>>();
         var auditLogServiceMock = new Mock<EventForge.Server.Services.Audit.IAuditLogService>();
         var tenantContextMock = new Mock<EventForge.Server.Services.Tenants.ITenantContext>();
-        
+
         // Setup tenant context to return a valid tenant ID
         tenantContextMock.Setup(x => x.CurrentTenantId).Returns((Guid?)Guid.NewGuid());
-        
+
         return new ProductService(
             context,
             auditLogServiceMock.Object,

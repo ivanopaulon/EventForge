@@ -7,209 +7,214 @@
 @inject ISnackbar Snackbar
 @inject ILogger<ProductSuppliersTab> Logger
 
-<MudGrid>
-    <MudItem xs="12" Class="d-flex justify-space-between align-center mb-2">
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Outlined.LocalShipping" Class="mr-2" />
-            @TranslationService.GetTranslation("product.suppliers", "Fornitori")
-            <MudChip T="string" Size="Size.Small" Class="ml-2">@(_productSuppliers?.Count() ?? 0)</MudChip>
-        </MudText>
-        <MudButton Variant="Variant.Filled" 
-                   Color="Color.Primary" 
-                   StartIcon="@Icons.Material.Outlined.Add"
-                   OnClick="@OpenCreateDialog"
-                   Size="Size.Small">
-            @TranslationService.GetTranslation("common.add", "Aggiungi")
-        </MudButton>
-    </MudItem>
+<MudStack Spacing="3">
+ <MudPaper Elevation="1" Class="pa-4">
+ <MudGrid>
+ <MudItem xs="12" Class="d-flex justify-end align-center mb-2">
+ <MudButton Variant="Variant.Filled" 
+ Color="Color.Primary" 
+ StartIcon="@Icons.Material.Outlined.Add"
+ OnClick="@OpenCreateDialog"
+ Size="Size.Small">
+ @TranslationService.GetTranslation("common.add", "Aggiungi")
+ </MudButton>
+ </MudItem>
 
-    <MudItem xs="12">
-        @if (_isLoading)
-        {
-            <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-        }
-        else if (_productSuppliers == null || !_productSuppliers.Any())
-        {
-            <MudAlert Severity="Severity.Info">
-                @TranslationService.GetTranslation("product.noSuppliers", "Nessun fornitore configurato")
-            </MudAlert>
-        }
-        else
-        {
-            <MudTable Items="_productSuppliers" Hover="true" Striped="true" Dense="true">
-                <HeaderContent>
-                    <MudTh>@TranslationService.GetTranslation("field.supplier", "Fornitore")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("field.supplierCode", "Codice Fornitore")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("field.cost", "Costo")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("field.leadTime", "Tempo di Consegna")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("field.isPreferred", "Preferito")</MudTh>
-                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.supplier", "Fornitore")">@context.SupplierName</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.supplierCode", "Codice Fornitore")">@context.SupplierProductCode</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.cost", "Costo")">€@context.UnitCost?.ToString("N2")</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.leadTime", "Tempo di Consegna")">@context.LeadTimeDays gg</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.isPreferred", "Preferito")">
-                        @if (context.Preferred)
-                        {
-                            <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" />
-                        }
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit" 
-                                       Size="Size.Small" 
-                                       Color="Color.Primary"
-                                       OnClick="@(() => OpenEditDialog(context))" />
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" 
-                                       Size="Size.Small" 
-                                       Color="Color.Error"
-                                       OnClick="@(() => DeleteSupplierAsync(context))" />
-                    </MudTd>
-                </RowTemplate>
-            </MudTable>
-        }
-    </MudItem>
-</MudGrid>
+ <MudItem xs="12">
+ @if (_isLoading)
+ {
+ <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+ }
+ else if (_productSuppliers == null || !_productSuppliers.Any())
+ {
+ <MudAlert Severity="Severity.Info">
+ @TranslationService.GetTranslation("product.noSuppliers", "Nessun fornitore configurato")
+ </MudAlert>
+ }
+ else
+ {
+ <MudTable Items="_productSuppliers" Hover="true" Striped="true" Dense="true">
+ <HeaderContent>
+ <MudTh>@TranslationService.GetTranslation("field.supplier", "Fornitore")</MudTh>
+ <MudTh>@TranslationService.GetTranslation("field.supplierCode", "Codice Fornitore")</MudTh>
+ <MudTh>@TranslationService.GetTranslation("field.cost", "Costo")</MudTh>
+ <MudTh>@TranslationService.GetTranslation("field.leadTime", "Tempo di Consegna")</MudTh>
+ <MudTh>@TranslationService.GetTranslation("field.isPreferred", "Preferito")</MudTh>
+ <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
+ </HeaderContent>
+ <RowTemplate>
+ <MudTd DataLabel="@TranslationService.GetTranslation("field.supplier", "Fornitore")">@context.SupplierName</MudTd>
+ <MudTd DataLabel="@TranslationService.GetTranslation("field.supplierCode", "Codice Fornitore")">@context.SupplierProductCode</MudTd>
+ <MudTd DataLabel="@TranslationService.GetTranslation("field.cost", "Costo")">€@context.UnitCost?.ToString("N2")</MudTd>
+ <MudTd DataLabel="@TranslationService.GetTranslation("field.leadTime", "Tempo di Consegna")">@context.LeadTimeDays gg</MudTd>
+ <MudTd DataLabel="@TranslationService.GetTranslation("field.isPreferred", "Preferito")">
+ @if (context.Preferred)
+ {
+ <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" />
+ }
+ </MudTd>
+ <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
+ <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+ Size="Size.Small" 
+ Color="Color.Primary"
+ OnClick="@(() => OpenEditDialog(context))" />
+ <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+ Size="Size.Small" 
+ Color="Color.Error"
+ OnClick="@(() => DeleteSupplierAsync(context))" />
+ </MudTd>
+ </RowTemplate>
+ </MudTable>
+ }
+ </MudItem>
+ </MudGrid>
+ </MudPaper>
+</MudStack>
 
 @code {
-    [Parameter, EditorRequired]
-    public Guid ProductId { get; set; }
+ [Parameter, EditorRequired]
+ public ProductDto Product { get; set; } = default!;
 
-    // Notifications for parent
-    [Parameter] public EventCallback OnProductUpdated { get; set; }
-    [Parameter] public EventCallback OnProductUpdatedPersisted { get; set; }
+ // Notifications for parent
+ [Parameter] public EventCallback OnProductUpdated { get; set; }
+ [Parameter] public EventCallback OnProductUpdatedPersisted { get; set; }
 
-    private IEnumerable<ProductSupplierDto>? _productSuppliers;
-    private bool _isLoading = true;
+ [Parameter]
+ public bool IsEditMode { get; set; }
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadSuppliersAsync();
-    }
+ private IEnumerable<ProductSupplierDto>? _productSuppliers;
+ private bool _isLoading = true;
 
-    private async Task LoadSuppliersAsync()
-    {
-        _isLoading = true;
-        try
-        {
-            _productSuppliers = await ProductService.GetProductSuppliersAsync(ProductId);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading product suppliers for product {ProductId}", ProductId);
-            Snackbar.Add(TranslationService.GetTranslation("product.loadSuppliersError", "Errore nel caricamento dei fornitori"), Severity.Error);
-        }
-        finally
-        {
-            _isLoading = false;
-        }
-    }
+ protected override async Task OnParametersSetAsync()
+ {
+ if (Product?.Id != Guid.Empty)
+ {
+ await LoadSuppliersAsync();
+ }
+ }
 
-    private async Task OpenCreateDialog()
-    {
-        var parameters = new DialogParameters
-        {
-            { "ProductId", ProductId }
-        };
+ private async Task LoadSuppliersAsync()
+ {
+ _isLoading = true;
+ try
+ {
+ _productSuppliers = await ProductService.GetProductSuppliersAsync(Product.Id);
+ }
+ catch (Exception ex)
+ {
+ Logger.LogError(ex, "Error loading product suppliers for product {ProductId}", Product.Id);
+ Snackbar.Add(TranslationService.GetTranslation("product.loadSuppliersError", "Errore nel caricamento dei fornitori"), Severity.Error);
+ }
+ finally
+ {
+ _isLoading = false;
+ }
+ }
 
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true
-        };
+ private async Task OpenCreateDialog()
+ {
+ var parameters = new DialogParameters
+ {
+ { "ProductId", Product.Id }
+ };
 
-        var dialog = await DialogService.ShowAsync<AddProductSupplierDialog>(
-            TranslationService.GetTranslation("product.addSupplier", "Aggiungi Fornitore"),
-            parameters,
-            options);
+ var options = new DialogOptions
+ {
+ MaxWidth = MaxWidth.Medium,
+ FullWidth = true,
+ CloseButton = true
+ };
 
-        var result = await dialog.Result;
-        if (!result.Canceled)
-        {
-            await LoadSuppliersAsync();
-            await NotifyPersisted();
-        }
-    }
+ var dialog = await DialogService.ShowAsync<AddProductSupplierDialog>(
+ TranslationService.GetTranslation("product.addSupplier", "Aggiungi Fornitore"),
+ parameters,
+ options);
 
-    private async Task OpenEditDialog(ProductSupplierDto supplier)
-    {
-        var parameters = new DialogParameters
-        {
-            { "ProductSupplier", supplier }
-        };
+ var result = await dialog.Result;
+ if (!result.Canceled)
+ {
+ await LoadSuppliersAsync();
+ await NotifyPersisted();
+ }
+ }
 
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true
-        };
+ private async Task OpenEditDialog(ProductSupplierDto supplier)
+ {
+ var parameters = new DialogParameters
+ {
+ { "ProductSupplier", supplier }
+ };
 
-        var dialog = await DialogService.ShowAsync<EditProductSupplierDialog>(
-            TranslationService.GetTranslation("product.editSupplier", "Modifica Fornitore"),
-            parameters,
-            options);
+ var options = new DialogOptions
+ {
+ MaxWidth = MaxWidth.Medium,
+ FullWidth = true,
+ CloseButton = true
+ };
 
-        var result = await dialog.Result;
-        if (!result.Canceled)
-        {
-            await LoadSuppliersAsync();
-            await NotifyPersisted();
-        }
-    }
+ var dialog = await DialogService.ShowAsync<EditProductSupplierDialog>(
+ TranslationService.GetTranslation("product.editSupplier", "Modifica Fornitore"),
+ parameters,
+ options);
 
-    private async Task DeleteSupplierAsync(ProductSupplierDto supplier)
-    {
-        var confirmed = await DialogService.ShowMessageBox(
-            TranslationService.GetTranslation("common.confirm", "Conferma"),
-            TranslationService.GetTranslation("product.confirmDeleteSupplier", "Sei sicuro di voler eliminare questo fornitore?"),
-            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
-            noText: TranslationService.GetTranslation("common.no", "No"));
+ var result = await dialog.Result;
+ if (!result.Canceled)
+ {
+ await LoadSuppliersAsync();
+ await NotifyPersisted();
+ }
+ }
 
-        if (confirmed == true)
-        {
-            try
-            {
-                await ProductService.DeleteProductSupplierAsync(supplier.Id);
-                Snackbar.Add(TranslationService.GetTranslation("product.supplierDeleted", "Fornitore eliminato con successo"), Severity.Success);
-                await LoadSuppliersAsync();
-                await NotifyPersisted();
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error deleting product supplier {SupplierId}", supplier.Id);
-                Snackbar.Add(TranslationService.GetTranslation("product.deleteSupplierError", "Errore nell'eliminazione del fornitore"), Severity.Error);
-            }
-        }
-    }
+ private async Task DeleteSupplierAsync(ProductSupplierDto supplier)
+ {
+ var confirmed = await DialogService.ShowMessageBox(
+ TranslationService.GetTranslation("common.confirm", "Conferma"),
+ TranslationService.GetTranslation("product.confirmDeleteSupplier", "Sei sicuro di voler eliminare questo fornitore?"),
+ yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+ noText: TranslationService.GetTranslation("common.no", "No"));
 
-    private async Task NotifyUpdated()
-    {
-        try
-        {
-            if (OnProductUpdated.HasDelegate)
-                await OnProductUpdated.InvokeAsync();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error invoking OnProductUpdated from ProductSuppliersTab");
-        }
-    }
+ if (confirmed == true)
+ {
+ try
+ {
+ await ProductService.DeleteProductSupplierAsync(supplier.Id);
+ Snackbar.Add(TranslationService.GetTranslation("product.supplierDeleted", "Fornitore eliminato con successo"), Severity.Success);
+ await LoadSuppliersAsync();
+ await NotifyPersisted();
+ }
+ catch (Exception ex)
+ {
+ Logger.LogError(ex, "Error deleting product supplier {SupplierId}", supplier.Id);
+ Snackbar.Add(TranslationService.GetTranslation("product.deleteSupplierError", "Errore nell'eliminazione del fornitore"), Severity.Error);
+ }
+ }
+ }
 
-    private async Task NotifyPersisted()
-    {
-        try
-        {
-            if (OnProductUpdatedPersisted.HasDelegate)
-                await OnProductUpdatedPersisted.InvokeAsync();
-            else if (OnProductUpdated.HasDelegate)
-                await OnProductUpdated.InvokeAsync();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error invoking OnProductUpdatedPersisted from ProductSuppliersTab");
-        }
-    }
+ private async Task NotifyUpdated()
+ {
+ try
+ {
+ if (OnProductUpdated.HasDelegate)
+ await OnProductUpdated.InvokeAsync();
+ }
+ catch (Exception ex)
+ {
+ Logger.LogError(ex, "Error invoking OnProductUpdated from ProductSuppliersTab");
+ }
+ }
+
+ private async Task NotifyPersisted()
+ {
+ try
+ {
+ if (OnProductUpdatedPersisted.HasDelegate)
+ await OnProductUpdatedPersisted.InvokeAsync();
+ else if (OnProductUpdated.HasDelegate)
+ await OnProductUpdated.InvokeAsync();
+ }
+ catch (Exception ex)
+ {
+ Logger.LogError(ex, "Error invoking OnProductUpdatedPersisted from ProductSuppliersTab");
+ }
+ }
 }

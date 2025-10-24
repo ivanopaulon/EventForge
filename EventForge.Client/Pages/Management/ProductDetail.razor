@@ -96,21 +96,21 @@
                 </MudTabPanel>
 
                 <MudTabPanel Text="@TranslationService.GetTranslation("product.alternativeCodes", "Codici Alternativi")" Icon="@Icons.Material.Filled.QrCode2" BadgeData="@_productCodes?.Count()" BadgeDot="@(_productCodes?.Any() ?? false)">
-                    <ProductCodesTab ProductId="@ProductId" />
+                    <ProductCodesTab Product="@_product" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
                 </MudTabPanel>
 
                 <MudTabPanel Text="@TranslationService.GetTranslation("product.alternativeUnits", "Unità Alternative")" Icon="@Icons.Material.Filled.Straighten" BadgeData="@_productUnits?.Count()" BadgeDot="@(_productUnits?.Any() ?? false)">
-                    <ProductUnitsTab ProductId="@ProductId" />
+                    <ProductUnitsTab Product="@_product" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
                 </MudTabPanel>
 
                 <MudTabPanel Text="@TranslationService.GetTranslation("product.suppliers", "Fornitori")" Icon="@Icons.Material.Filled.LocalShipping" BadgeData="@_productSuppliers?.Count()" BadgeDot="@(_productSuppliers?.Any() ?? false)">
-                    <ProductSuppliersTab ProductId="@ProductId" />
+                    <ProductSuppliersTab Product="@_product" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
                 </MudTabPanel>
 
                 @if (_product.IsBundle)
                 {
                     <MudTabPanel Text="@TranslationService.GetTranslation("product.bundleComponents", "Componenti Bundle")" Icon="@Icons.Material.Filled.Inventory" BadgeData="@_bundleItems?.Count()" BadgeDot="@(_bundleItems?.Any() ?? false)">
-                        <BundleItemsTab ProductId="@ProductId" />
+                        <BundleItemsTab Product="@_product" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
                     </MudTabPanel>
                 }
 

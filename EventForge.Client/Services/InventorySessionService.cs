@@ -1,5 +1,4 @@
 using Microsoft.JSInterop;
-using EventForge.DTOs.Warehouse;
 
 namespace EventForge.Client.Services;
 

@@ -1,4 +1,3 @@
-using EventForge.Server.Hubs;
 using EventForge.Server.Middleware;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc;
