@@ -213,7 +213,9 @@ public class DocumentAccessLogService : IDocumentAccessLogService
         return new DocumentAccessLogDto
         {
             Id = log.Id,
-            DocumentHeaderId = log.DocumentHeaderId,
+            // DocumentHeaderId on the entity is nullable; DTO expects non-nullable Guid.
+            // Use Guid.Empty when the header id is not present.
+            DocumentHeaderId = log.DocumentHeaderId ?? Guid.Empty,
             DocumentNumber = log.DocumentHeader?.Number,
             UserId = log.UserId,
             UserName = log.UserName,

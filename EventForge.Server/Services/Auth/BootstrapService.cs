@@ -86,8 +86,8 @@ public class BootstrapService : IBootstrapService
             // Ensure database is created
             _ = await _dbContext.Database.EnsureCreatedAsync(cancellationToken);
 
-            // Always seed/update default roles and permissions
-            if (!await SeedDefaultRolesAndPermissionsAsync(cancellationToken))
+            // Seed/update default roles and permissions using dedicated seeder
+            if (!await RolePermissionSeeder.SeedAsync(_dbContext, _logger, cancellationToken))
             {
                 _logger.LogError("Failed to seed default roles and permissions");
                 return false;
@@ -106,7 +106,7 @@ public class BootstrapService : IBootstrapService
             if (existingTenants.Any())
             {
                 _logger.LogInformation("Tenants already exist. Checking if base entities need to be seeded...");
-                
+
                 // Check each tenant to see if it needs base entities seeded
                 foreach (var tenant in existingTenants)
                 {
@@ -129,9 +129,9 @@ public class BootstrapService : IBootstrapService
                     // If any base entities are missing, seed them
                     if (!hasVatNatures || !hasVatRates || !hasUnitsMeasure || !hasWarehouses)
                     {
-                        _logger.LogWarning("Tenant {TenantId} ({TenantName}) is missing base entities. Seeding now...", 
+                        _logger.LogWarning("Tenant {TenantId} ({TenantName}) is missing base entities. Seeding now...",
                             tenant.Id, tenant.Name);
-                        
+
                         if (!await SeedTenantBaseEntitiesAsync(tenant.Id, cancellationToken))
                         {
                             _logger.LogError("Failed to seed base entities for tenant {TenantId}", tenant.Id);
@@ -139,17 +139,17 @@ public class BootstrapService : IBootstrapService
                         }
                         else
                         {
-                            _logger.LogInformation("Successfully seeded base entities for tenant {TenantId} ({TenantName})", 
+                            _logger.LogInformation("Successfully seeded base entities for tenant {TenantId} ({TenantName})",
                                 tenant.Id, tenant.Name);
                         }
                     }
                     else
                     {
-                        _logger.LogInformation("Tenant {TenantId} ({TenantName}) already has base entities seeded", 
+                        _logger.LogInformation("Tenant {TenantId} ({TenantName}) already has base entities seeded",
                             tenant.Id, tenant.Name);
                     }
                 }
-                
+
                 _logger.LogInformation("Bootstrap data update completed.");
                 return true;
             }
@@ -179,6 +179,14 @@ public class BootstrapService : IBootstrapService
                 return false;
             }
 
+            // Create default Manager user
+            var managerUser = await CreateDefaultManagerUserAsync(defaultTenant.Id, cancellationToken);
+            if (managerUser == null)
+            {
+                _logger.LogWarning("Failed to create default Manager user");
+                // Not fatal
+            }
+
             // Create AdminTenant record
             if (!await CreateAdminTenantRecordAsync(superAdminUser.Id, defaultTenant.Id, cancellationToken))
             {
@@ -196,8 +204,13 @@ public class BootstrapService : IBootstrapService
             _logger.LogInformation("=== BOOTSTRAP COMPLETED SUCCESSFULLY ===");
             _logger.LogInformation("Default tenant created: {TenantName} (Code: {TenantCode})", defaultTenant.Name, defaultTenant.Code);
             _logger.LogInformation("SuperAdmin user created: {Username} ({Email})", superAdminUser.Username, superAdminUser.Email);
-            _logger.LogInformation("Password: {Password}", _options.DefaultAdminPassword);
-            _logger.LogWarning("SECURITY: Please change the SuperAdmin password immediately after first login!");
+            _logger.LogInformation("SuperAdmin account created. (Password suppressed in logs for security)");
+            if (managerUser != null)
+            {
+                _logger.LogInformation("Manager user created: {Username} ({Email})", managerUser.Username, managerUser.Email);
+                _logger.LogInformation("Manager account created. (Password suppressed in logs for security)");
+            }
+            _logger.LogWarning("SECURITY: Please change the SuperAdmin and Manager passwords immediately after first login!");
             _logger.LogInformation("SuperAdmin license assigned with unlimited users and API calls, including all features");
             _logger.LogInformation("==========================================");
 
@@ -213,8 +226,6 @@ public class BootstrapService : IBootstrapService
     /// <summary>
     /// Creates the default tenant.
     /// </summary>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Default tenant entity</returns>
     private async Task<Tenant?> CreateDefaultTenantAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -251,13 +262,18 @@ public class BootstrapService : IBootstrapService
     /// <summary>
     /// Creates the SuperAdmin user with specific requirements.
     /// </summary>
-    /// <param name="tenantId">Tenant ID for the admin user</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Created user entity</returns>
     private async Task<User?> CreateSuperAdminUserAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
         try
         {
+            // If user already exists, return it
+            var existing = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == _options.DefaultAdminUsername || u.Email == _options.DefaultAdminEmail, cancellationToken);
+            if (existing != null)
+            {
+                _logger.LogInformation("SuperAdmin user already exists: {Username}", existing.Username);
+                return existing;
+            }
+
             // Validate password
             var validation = _passwordService.ValidatePassword(_options.DefaultAdminPassword);
             if (!validation.IsValid)
@@ -273,8 +289,8 @@ public class BootstrapService : IBootstrapService
             // Create SuperAdmin user with specific requirements
             var superAdminUser = new User
             {
-                Username = "superadmin",
-                Email = "superadmin@localhost",
+                Username = _options.DefaultAdminUsername,
+                Email = _options.DefaultAdminEmail,
                 FirstName = "Super",
                 LastName = "Admin",
                 PasswordHash = hash,
@@ -290,10 +306,8 @@ public class BootstrapService : IBootstrapService
             _ = _dbContext.Users.Add(superAdminUser);
             _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
-            // Assign SuperAdmin role
-            var superAdminRole = await _dbContext.Roles
-                .FirstOrDefaultAsync(r => r.Name == "SuperAdmin", cancellationToken);
-
+            // Assign SuperAdmin role if exists
+            var superAdminRole = await _dbContext.Roles.FirstOrDefaultAsync(r => r.Name == "SuperAdmin", cancellationToken);
             if (superAdminRole != null)
             {
                 var userRole = new UserRole
@@ -328,16 +342,139 @@ public class BootstrapService : IBootstrapService
     }
 
     /// <summary>
+    /// Creates a default Manager user and assigns Manager role and permissions.
+    /// </summary>
+    private async Task<User?> CreateDefaultManagerUserAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    {
+        const string managerUsername = "manager";
+        const string managerEmail = "manager@localhost";
+        const string managerPassword = "Manager2024!";
+
+        try
+        {
+            var existing = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == managerUsername || u.Email == managerEmail, cancellationToken);
+            if (existing != null)
+            {
+                _logger.LogInformation("Manager user already exists: {Username}", existing.Username);
+                return existing;
+            }
+
+            var validation = _passwordService.ValidatePassword(managerPassword);
+            if (!validation.IsValid)
+            {
+                _logger.LogWarning("Default manager password does not meet policy requirements: {Errors}", string.Join(", ", validation.Errors));
+                // Still proceed but log warning
+            }
+
+            var (hash, salt) = _passwordService.HashPassword(managerPassword);
+
+            var managerUser = new User
+            {
+                Username = managerUsername,
+                Email = managerEmail,
+                FirstName = "Default",
+                LastName = "Manager",
+                PasswordHash = hash,
+                PasswordSalt = salt,
+                TenantId = tenantId,
+                IsActive = true,
+                MustChangePassword = true,
+                CreatedBy = "system",
+                CreatedAt = DateTime.UtcNow,
+                PasswordChangedAt = DateTime.UtcNow
+            };
+
+            _ = _dbContext.Users.Add(managerUser);
+            _ = await _dbContext.SaveChangesAsync(cancellationToken);
+
+            // Assign Manager role
+            var managerRole = await _dbContext.Roles.FirstOrDefaultAsync(r => r.Name == "Manager", cancellationToken);
+            if (managerRole != null)
+            {
+                var userRole = new UserRole
+                {
+                    UserId = managerUser.Id,
+                    RoleId = managerRole.Id,
+                    GrantedBy = "system",
+                    GrantedAt = DateTime.UtcNow,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow,
+                    TenantId = tenantId
+                };
+
+                _ = _dbContext.UserRoles.Add(userRole);
+                _ = await _dbContext.SaveChangesAsync(cancellationToken);
+
+                _logger.LogInformation("Manager role assigned to user: {Username}", managerUser.Username);
+
+                // Assign a curated set of permissions to Manager role (if not already assigned)
+                var managerPermissionNames = new[]
+                {
+                    // Events
+                    "Events.Events.Read", "Events.Events.Create", "Events.Events.Update",
+                    // Teams
+                    "Events.Teams.Read", "Events.Teams.Create", "Events.Teams.Update",
+                    // Products
+                    "Products.Products.Read", "Products.Products.Create", "Products.Products.Update",
+                    // Documents (read/create)
+                    "Documents.Documents.Read", "Documents.Documents.Create",
+                    // Sales (read/create)
+                    "Sales.Sales.Read", "Sales.Sales.Create",
+                    // Reports
+                    "Reports.Reports.Read"
+                };
+
+                var allPermissions = await _dbContext.Permissions.Where(p => managerPermissionNames.Contains(p.Name)).ToListAsync(cancellationToken);
+                var existingRolePermissions = await _dbContext.RolePermissions.Where(rp => rp.RoleId == managerRole.Id).Select(rp => rp.PermissionId).ToListAsync(cancellationToken);
+
+                var toAdd = new List<RolePermission>();
+                foreach (var perm in allPermissions)
+                {
+                    if (!existingRolePermissions.Contains(perm.Id))
+                    {
+                        toAdd.Add(new RolePermission
+                        {
+                            RoleId = managerRole.Id,
+                            PermissionId = perm.Id,
+                            GrantedBy = "system",
+                            GrantedAt = DateTime.UtcNow,
+                            CreatedBy = "system",
+                            CreatedAt = DateTime.UtcNow,
+                            TenantId = Guid.Empty
+                        });
+                    }
+                }
+
+                if (toAdd.Any())
+                {
+                    _dbContext.RolePermissions.AddRange(toAdd);
+                    _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                    _logger.LogInformation("Assigned {Count} permissions to Manager role", toAdd.Count);
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Manager role not found. Manager user created without role assignment.");
+            }
+
+            _logger.LogInformation("Manager user created: {Username} ({Email})", managerUser.Username, managerUser.Email);
+            return managerUser;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating Manager user");
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Ensures the SuperAdmin license exists and is up to date with the code-defined configuration.
     /// Creates the license if it doesn't exist, or updates it if the definition has changed.
     /// </summary>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>SuperAdmin license entity</returns>
     private async Task<License?> EnsureSuperAdminLicenseAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            // Define the expected license configuration (source of truth)
             var expectedConfig = new
             {
                 Name = "superadmin",
@@ -349,58 +486,45 @@ public class BootstrapService : IBootstrapService
                 IsActive = true
             };
 
-            // Check if superadmin license already exists
             var existingLicense = await _dbContext.Licenses
                 .FirstOrDefaultAsync(l => l.Name == expectedConfig.Name, cancellationToken);
 
             if (existingLicense != null)
             {
-                // Update license if any properties differ from expected configuration
                 var hasChanges = false;
 
                 if (existingLicense.DisplayName != expectedConfig.DisplayName)
                 {
-                    _logger.LogInformation("Updating SuperAdmin license DisplayName: '{OldValue}' -> '{NewValue}'",
-                        existingLicense.DisplayName, expectedConfig.DisplayName);
                     existingLicense.DisplayName = expectedConfig.DisplayName;
                     hasChanges = true;
                 }
 
                 if (existingLicense.Description != expectedConfig.Description)
                 {
-                    _logger.LogInformation("Updating SuperAdmin license Description");
                     existingLicense.Description = expectedConfig.Description;
                     hasChanges = true;
                 }
 
                 if (existingLicense.MaxUsers != expectedConfig.MaxUsers)
                 {
-                    _logger.LogInformation("Updating SuperAdmin license MaxUsers: {OldValue} -> {NewValue}",
-                        existingLicense.MaxUsers, expectedConfig.MaxUsers);
                     existingLicense.MaxUsers = expectedConfig.MaxUsers;
                     hasChanges = true;
                 }
 
                 if (existingLicense.MaxApiCallsPerMonth != expectedConfig.MaxApiCallsPerMonth)
                 {
-                    _logger.LogInformation("Updating SuperAdmin license MaxApiCallsPerMonth: {OldValue} -> {NewValue}",
-                        existingLicense.MaxApiCallsPerMonth, expectedConfig.MaxApiCallsPerMonth);
                     existingLicense.MaxApiCallsPerMonth = expectedConfig.MaxApiCallsPerMonth;
                     hasChanges = true;
                 }
 
                 if (existingLicense.TierLevel != expectedConfig.TierLevel)
                 {
-                    _logger.LogInformation("Updating SuperAdmin license TierLevel: {OldValue} -> {NewValue}",
-                        existingLicense.TierLevel, expectedConfig.TierLevel);
                     existingLicense.TierLevel = expectedConfig.TierLevel;
                     hasChanges = true;
                 }
 
                 if (existingLicense.IsActive != expectedConfig.IsActive)
                 {
-                    _logger.LogInformation("Updating SuperAdmin license IsActive: {OldValue} -> {NewValue}",
-                        existingLicense.IsActive, expectedConfig.IsActive);
                     existingLicense.IsActive = expectedConfig.IsActive;
                     hasChanges = true;
                 }
@@ -459,14 +583,10 @@ public class BootstrapService : IBootstrapService
     /// Synchronizes all license features for the SuperAdmin license with the code-defined configuration.
     /// Adds new features, updates existing ones, and marks obsolete ones as inactive.
     /// </summary>
-    /// <param name="licenseId">License ID</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Task</returns>
     private async Task SyncSuperAdminLicenseFeaturesAsync(Guid licenseId, CancellationToken cancellationToken = default)
     {
         try
         {
-            // Define the expected features configuration (source of truth)
             var expectedFeatures = new[]
             {
                 // Event Management
@@ -510,15 +630,11 @@ public class BootstrapService : IBootstrapService
                 new { Name = "AdvancedSecurity", DisplayName = "Sicurezza Avanzata", Description = "Funzionalità di sicurezza avanzate", Category = "Security" }
             };
 
-            // Get existing features for this license
-            var existingFeatures = await _dbContext.LicenseFeatures
-                .Where(lf => lf.LicenseId == licenseId)
-                .ToListAsync(cancellationToken);
+            var existingFeatures = await _dbContext.LicenseFeatures.Where(lf => lf.LicenseId == licenseId).ToListAsync(cancellationToken);
 
             var featuresAdded = 0;
             var featuresUpdated = 0;
 
-            // Process each expected feature
             foreach (var expected in expectedFeatures)
             {
                 var existing = existingFeatures.FirstOrDefault(f => f.Name == expected.Name);
@@ -582,7 +698,6 @@ public class BootstrapService : IBootstrapService
                 }
             }
 
-            // Mark features that are no longer in the expected list as inactive
             var expectedNames = expectedFeatures.Select(f => f.Name).ToHashSet();
             var obsoleteFeatures = existingFeatures.Where(f => !expectedNames.Contains(f.Name) && f.IsActive).ToList();
 
@@ -615,10 +730,6 @@ public class BootstrapService : IBootstrapService
     /// <summary>
     /// Assigns a license to a tenant.
     /// </summary>
-    /// <param name="tenantId">Tenant ID</param>
-    /// <param name="licenseId">License ID</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>True if successful</returns>
     private async Task<bool> AssignLicenseToTenantAsync(Guid tenantId, Guid licenseId, CancellationToken cancellationToken = default)
     {
         try
@@ -652,10 +763,6 @@ public class BootstrapService : IBootstrapService
     /// <summary>
     /// Creates an AdminTenant record granting SuperAdmin access to manage the default tenant.
     /// </summary>
-    /// <param name="userId">SuperAdmin user ID</param>
-    /// <param name="tenantId">Tenant ID to manage</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>True if successful</returns>
     private async Task<bool> CreateAdminTenantRecordAsync(Guid userId, Guid tenantId, CancellationToken cancellationToken = default)
     {
         try
@@ -800,23 +907,34 @@ public class BootstrapService : IBootstrapService
                 new Permission { Name = "System.Logs.Read", DisplayName = "View System Logs", Category = "System", Resource = "Logs", Action = "Read", IsSystemPermission = true, TenantId = Guid.Empty }
             };
 
-            // Add permissions if they don't exist
+            // Fetch existing permission names in a single query
+            var existingPermissionNames = await _dbContext.Permissions.Select(p => p.Name).ToListAsync(cancellationToken);
+            var existingNamesSet = existingPermissionNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var toAddPermissions = new List<Permission>();
+
             foreach (var permission in defaultPermissions)
             {
-                var existingPermission = await _dbContext.Permissions
-                    .FirstOrDefaultAsync(p => p.Name == permission.Name, cancellationToken);
-
-                if (existingPermission == null)
+                if (!existingNamesSet.Contains(permission.Name))
                 {
                     permission.CreatedBy = "system";
                     permission.CreatedAt = DateTime.UtcNow;
-                    _ = _dbContext.Permissions.Add(permission);
+                    toAddPermissions.Add(permission);
                 }
             }
 
-            _ = await _dbContext.SaveChangesAsync(cancellationToken);
+            if (toAddPermissions.Any())
+            {
+                _dbContext.Permissions.AddRange(toAddPermissions);
+                _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation("Added {Count} new system permissions", toAddPermissions.Count);
+            }
+            else
+            {
+                _logger.LogInformation("No new system permissions to add");
+            }
 
-            // Define default roles
+            // Ensure default roles exist (create if missing)
             var defaultRoles = new[]
             {
                 new Role { Name = "SuperAdmin", DisplayName = "Super Administrator", Description = "Full unrestricted system access", IsSystemRole = true, TenantId = Guid.Empty },
@@ -826,78 +944,59 @@ public class BootstrapService : IBootstrapService
                 new Role { Name = "Viewer", DisplayName = "Viewer", Description = "Read-only access", IsSystemRole = true, TenantId = Guid.Empty }
             };
 
-            // Add roles if they don't exist
+            var existingRoles = await _dbContext.Roles.Select(r => r.Name).ToListAsync(cancellationToken);
+            var existingRolesSet = existingRoles.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var rolesToAdd = new List<Role>();
             foreach (var role in defaultRoles)
             {
-                var existingRole = await _dbContext.Roles
-                    .FirstOrDefaultAsync(r => r.Name == role.Name, cancellationToken);
-
-                if (existingRole == null)
+                if (!existingRolesSet.Contains(role.Name))
                 {
                     role.CreatedBy = "system";
                     role.CreatedAt = DateTime.UtcNow;
-                    _ = _dbContext.Roles.Add(role);
+                    rolesToAdd.Add(role);
                 }
             }
 
-            _ = await _dbContext.SaveChangesAsync(cancellationToken);
+            if (rolesToAdd.Any())
+            {
+                _dbContext.Roles.AddRange(rolesToAdd);
+                _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation("Added {Count} new system roles", rolesToAdd.Count);
+            }
 
-            // Get all permissions once for assigning to roles
+            // Load permissions and roles to assign
             var allPermissions = await _dbContext.Permissions.ToListAsync(cancellationToken);
 
-            // Assign permissions to Admin role
-            var adminRole = await _dbContext.Roles
-                .Include(r => r.RolePermissions)
-                .FirstOrDefaultAsync(r => r.Name == "Admin", cancellationToken);
-
-            if (adminRole != null && !adminRole.RolePermissions.Any())
+            // Helper to ensure role has permissions (idempotent)
+            async Task EnsureRoleHasAllPermissions(string roleName)
             {
-                foreach (var permission in allPermissions)
+                var role = await _dbContext.Roles.Include(r => r.RolePermissions).FirstOrDefaultAsync(r => r.Name == roleName, cancellationToken);
+                if (role == null) return;
+
+                var existingPermIds = role.RolePermissions.Select(rp => rp.PermissionId).ToHashSet();
+                var toAdd = allPermissions.Where(p => !existingPermIds.Contains(p.Id)).Select(p => new RolePermission
                 {
-                    var rolePermission = new RolePermission
-                    {
-                        RoleId = adminRole.Id,
-                        PermissionId = permission.Id,
-                        GrantedBy = "system",
-                        GrantedAt = DateTime.UtcNow,
-                        CreatedBy = "system",
-                        CreatedAt = DateTime.UtcNow,
-                        TenantId = Guid.Empty
-                    };
+                    RoleId = role.Id,
+                    PermissionId = p.Id,
+                    GrantedBy = "system",
+                    GrantedAt = DateTime.UtcNow,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow,
+                    TenantId = Guid.Empty
+                }).ToList();
 
-                    _ = _dbContext.RolePermissions.Add(rolePermission);
+                if (toAdd.Any())
+                {
+                    _dbContext.RolePermissions.AddRange(toAdd);
+                    _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                    _logger.LogInformation("Assigned {Count} permissions to {Role}", toAdd.Count, roleName);
                 }
-
-                _logger.LogInformation("Assigned {Count} permissions to Admin role", allPermissions.Count);
             }
 
-            // Assign permissions to SuperAdmin role - SuperAdmin must have unrestricted access to everything
-            var superAdminRole = await _dbContext.Roles
-                .Include(r => r.RolePermissions)
-                .FirstOrDefaultAsync(r => r.Name == "SuperAdmin", cancellationToken);
-
-            if (superAdminRole != null && !superAdminRole.RolePermissions.Any())
-            {
-                foreach (var permission in allPermissions)
-                {
-                    var rolePermission = new RolePermission
-                    {
-                        RoleId = superAdminRole.Id,
-                        PermissionId = permission.Id,
-                        GrantedBy = "system",
-                        GrantedAt = DateTime.UtcNow,
-                        CreatedBy = "system",
-                        CreatedAt = DateTime.UtcNow,
-                        TenantId = Guid.Empty
-                    };
-
-                    _ = _dbContext.RolePermissions.Add(rolePermission);
-                }
-
-                _logger.LogInformation("Assigned {Count} permissions to SuperAdmin role", allPermissions.Count);
-            }
-
-            _ = await _dbContext.SaveChangesAsync(cancellationToken);
+            // Assign all permissions to Admin and SuperAdmin roles if missing
+            await EnsureRoleHasAllPermissions("Admin");
+            await EnsureRoleHasAllPermissions("SuperAdmin");
 
             _logger.LogInformation("Default roles and permissions seeded successfully");
             return true;
@@ -912,9 +1011,6 @@ public class BootstrapService : IBootstrapService
     /// <summary>
     /// Seeds base entities for a tenant (warehouse, storage location, VAT rates, VAT natures, units of measure).
     /// </summary>
-    /// <param name="tenantId">Tenant ID</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>True if successful</returns>
     private async Task<bool> SeedTenantBaseEntitiesAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
         try
@@ -969,9 +1065,6 @@ public class BootstrapService : IBootstrapService
     /// <summary>
     /// Seeds Italian VAT nature codes (Natura IVA).
     /// </summary>
-    /// <param name="tenantId">Tenant ID</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>True if successful</returns>
     private async Task<bool> SeedVatNaturesAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
         try
@@ -1249,9 +1342,6 @@ public class BootstrapService : IBootstrapService
     /// <summary>
     /// Seeds Italian VAT rates (current legislation).
     /// </summary>
-    /// <param name="tenantId">Tenant ID</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>True if successful</returns>
     private async Task<bool> SeedVatRatesAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
         try
@@ -1344,9 +1434,6 @@ public class BootstrapService : IBootstrapService
     /// <summary>
     /// Seeds common units of measure for warehouse management.
     /// </summary>
-    /// <param name="tenantId">Tenant ID</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>True if successful</returns>
     private async Task<bool> SeedUnitsOfMeasureAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
         try
@@ -1589,9 +1676,6 @@ public class BootstrapService : IBootstrapService
     /// <summary>
     /// Seeds a default warehouse and storage location for the tenant.
     /// </summary>
-    /// <param name="tenantId">Tenant ID</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>True if successful</returns>
     private async Task<bool> SeedDefaultWarehouseAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
         try
@@ -1655,9 +1739,6 @@ public class BootstrapService : IBootstrapService
     /// <summary>
     /// Seeds standard document types for the tenant.
     /// </summary>
-    /// <param name="tenantId">Tenant ID</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>True if successful</returns>
     private async Task<bool> SeedDocumentTypesAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
         try

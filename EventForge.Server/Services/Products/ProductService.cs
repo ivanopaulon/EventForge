@@ -1746,18 +1746,19 @@ public class ProductService : IProductService
 
         return products.Select(p =>
         {
-            var hasAssociation = associationDict.TryGetValue(p.Id, out var association);
+            // Try to get association; use null-safe operators to avoid possible null dereference warnings
+            associationDict.TryGetValue(p.Id, out var association);
             return new ProductWithAssociationDto
             {
                 ProductId = p.Id,
                 Code = p.Code,
                 Name = p.Name,
                 Description = p.ShortDescription,
-                IsAssociated = hasAssociation,
-                ProductSupplierId = hasAssociation ? association.Id : null,
-                UnitCost = hasAssociation ? association.UnitCost : null,
-                SupplierProductCode = hasAssociation ? association.SupplierProductCode : null,
-                Preferred = hasAssociation && association.Preferred
+                IsAssociated = association != null,
+                ProductSupplierId = association?.Id,
+                UnitCost = association?.UnitCost,
+                SupplierProductCode = association?.SupplierProductCode,
+                Preferred = association?.Preferred ?? false
             };
         }).ToList();
     }

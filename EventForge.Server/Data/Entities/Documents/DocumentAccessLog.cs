@@ -17,9 +17,8 @@ public class DocumentAccessLog
     /// <summary>
     /// Document that was accessed.
     /// </summary>
-    [Required]
     [Display(Name = "Document ID", Description = "Document that was accessed.")]
-    public Guid DocumentHeaderId { get; set; }
+    public Guid? DocumentHeaderId { get; set; }
 
     /// <summary>
     /// Navigation property for the document.
