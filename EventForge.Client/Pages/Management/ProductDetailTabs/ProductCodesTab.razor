@@ -11,8 +11,8 @@
     <MudPaper Elevation="1" Class="pa-4">
         <MudGrid>
             <MudItem xs="12" Class="d-flex justify-end align-center mb-2">
-                <MudButton Variant="Variant.Filled" 
-                           Color="Color.Primary" 
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Add"
                            OnClick="@OpenCreateDialog"
                            Size="Size.Small">
@@ -47,12 +47,12 @@
                             <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">@context.AlternativeDescription</MudTd>
                             <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">@context.Status</MudTd>
                             <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit" 
-                                               Size="Size.Small" 
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                               Size="Size.Small"
                                                Color="Color.Primary"
                                                OnClick="@(() => OpenEditDialog(context))" />
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
-                                               Size="Size.Small" 
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Size="Size.Small"
                                                Color="Color.Error"
                                                OnClick="@(() => DeleteCodeAsync(context))" />
                             </MudTd>
@@ -72,7 +72,6 @@
     [Parameter] public EventCallback OnProductUpdated { get; set; }
     [Parameter] public EventCallback OnProductUpdatedPersisted { get; set; }
 
-    // IsEditMode parameter was missing and caused Unknown parameter error when parent passed it
     [Parameter]
     public bool IsEditMode { get; set; }
 
@@ -110,10 +109,10 @@
         var productUnits = await ProductService.GetProductUnitsAsync(Product.Id) ?? new List<ProductUnitDto>();
 
         var parameters = new DialogParameters
-        {
-            { "ProductId", Product.Id },
-            { "ProductUnits", productUnits }
-        };
+ {
+ { "ProductId", Product.Id },
+ { "ProductUnits", productUnits }
+ };
 
         var options = new DialogOptions
         {
@@ -123,9 +122,9 @@
         };
 
         var dialog = await DialogService.ShowAsync<AddProductCodeDialog>(
-            TranslationService.GetTranslation("product.addCode", "Aggiungi Codice Alternativo"),
-            parameters,
-            options);
+        TranslationService.GetTranslation("product.addCode", "Aggiungi Codice Alternativo"),
+        parameters,
+        options);
 
         var result = await dialog.Result;
         if (!result.Canceled)
@@ -140,10 +139,10 @@
         var productUnits = await ProductService.GetProductUnitsAsync(Product.Id) ?? new List<ProductUnitDto>();
 
         var parameters = new DialogParameters
-        {
-            { "ProductCode", code },
-            { "ProductUnits", productUnits }
-        };
+ {
+ { "ProductCode", code },
+ { "ProductUnits", productUnits }
+ };
 
         var options = new DialogOptions
         {
@@ -153,9 +152,9 @@
         };
 
         var dialog = await DialogService.ShowAsync<EditProductCodeDialog>(
-            TranslationService.GetTranslation("product.editCode", "Modifica Codice Alternativo"),
-            parameters,
-            options);
+        TranslationService.GetTranslation("product.editCode", "Modifica Codice Alternativo"),
+        parameters,
+        options);
 
         var result = await dialog.Result;
         if (!result.Canceled)
@@ -168,10 +167,10 @@
     private async Task DeleteCodeAsync(ProductCodeDto code)
     {
         var confirmed = await DialogService.ShowMessageBox(
-            TranslationService.GetTranslation("common.confirm", "Conferma"),
-            TranslationService.GetTranslation("product.confirmDeleteCode", "Sei sicuro di voler eliminare questo codice?"),
-            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
-            noText: TranslationService.GetTranslation("common.no", "No"));
+        TranslationService.GetTranslation("common.confirm", "Conferma"),
+        TranslationService.GetTranslation("product.confirmDeleteCode", "Sei sicuro di voler eliminare questo codice?"),
+        yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+        noText: TranslationService.GetTranslation("common.no", "No"));
 
         if (confirmed == true)
         {

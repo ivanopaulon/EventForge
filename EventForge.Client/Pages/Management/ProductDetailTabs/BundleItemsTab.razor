@@ -11,11 +11,7 @@
     <MudPaper Elevation="1" Class="pa-4">
         <MudGrid>
             <MudItem xs="12" Class="d-flex justify-end align-center mb-2">
-                <MudButton Variant="Variant.Filled" 
-                           Color="Color.Primary" 
-                           StartIcon="@Icons.Material.Filled.Add"
-                           OnClick="@OpenCreateDialog"
-                           Size="Size.Small">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@OpenCreateDialog" Size="Size.Small">
                     @TranslationService.GetTranslation("common.add", "Aggiungi")
                 </MudButton>
             </MudItem>
@@ -40,19 +36,13 @@
                             <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
                         </HeaderContent>
                         <RowTemplate>
-                            <MudTd DataLabel="@TranslationService.GetTranslation("field.componentProduct", "Prodotto Componente")">
+                            <MudTd DataLabel='@TranslationService.GetTranslation("field.componentProduct", "Prodotto Componente")'>
                                 @GetProductName(context.ComponentProductId)
                             </MudTd>
-                            <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")">@context.Quantity</MudTd>
-                            <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit" 
-                                               Size="Size.Small" 
-                                               Color="Color.Primary"
-                                               OnClick="@(() => OpenEditDialog(context))" />
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
-                                               Size="Size.Small" 
-                                               Color="Color.Error"
-                                               OnClick="@(() => DeleteBundleItemAsync(context))" />
+                            <MudTd DataLabel='@TranslationService.GetTranslation("field.quantity", "Quantità")'>@context.Quantity</MudTd>
+                            <MudTd DataLabel='@TranslationService.GetTranslation("field.actions", "Azioni")' Style="text-align: right;">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" OnClick="@(() => OpenEditDialog(context))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteBundleItemAsync(context))" />
                             </MudTd>
                         </RowTemplate>
                     </MudTable>
@@ -70,7 +60,6 @@
     [Parameter] public EventCallback OnProductUpdated { get; set; }
     [Parameter] public EventCallback OnProductUpdatedPersisted { get; set; }
 
-    // Add missing IsEditMode parameter
     [Parameter]
     public bool IsEditMode { get; set; }
 
@@ -92,7 +81,7 @@
         try
         {
             _bundleItems = await ProductService.GetProductBundleItemsAsync(Product.Id);
-            
+
             // Load product names for display
             if (_bundleItems != null && _bundleItems.Any())
             {
@@ -109,15 +98,15 @@
             _isLoading = false;
         }
     }
-    
+
     private async Task LoadProductNamesAsync()
     {
         try
         {
             _productNames.Clear();
-            
+
             if (_bundleItems == null) return;
-            
+
             // Load product details in parallel for better performance
             var loadTasks = _bundleItems.Select(async item =>
             {
@@ -135,9 +124,9 @@
                 }
                 return (item.ComponentProductId, Name: item.ComponentProductId.ToString());
             });
-            
+
             var results = await Task.WhenAll(loadTasks);
-            
+
             foreach (var (productId, name) in results)
             {
                 _productNames[productId] = name;
@@ -148,7 +137,7 @@
             Logger.LogError(ex, "Error loading product names");
         }
     }
-    
+
     private string GetProductName(Guid productId)
     {
         if (_productNames.TryGetValue(productId, out var name))
@@ -161,9 +150,9 @@
     private async Task OpenCreateDialog()
     {
         var parameters = new DialogParameters
-        {
-            { "BundleProductId", Product.Id }
-        };
+ {
+ { "BundleProductId", Product.Id }
+ };
 
         var options = new DialogOptions
         {
@@ -173,9 +162,9 @@
         };
 
         var dialog = await DialogService.ShowAsync<AddBundleItemDialog>(
-            TranslationService.GetTranslation("product.addBundleItem", "Aggiungi Componente Bundle"),
-            parameters,
-            options);
+        TranslationService.GetTranslation("product.addBundleItem", "Aggiungi Componente Bundle"),
+        parameters,
+        options);
 
         var result = await dialog.Result;
         if (!result.Canceled)
@@ -188,10 +177,10 @@
     private async Task OpenEditDialog(ProductBundleItemDto item)
     {
         var parameters = new DialogParameters
-        {
-            { "BundleItem", item },
-            { "BundleProductId", Product.Id }
-        };
+ {
+ { "BundleItem", item },
+ { "BundleProductId", Product.Id }
+ };
 
         var options = new DialogOptions
         {
@@ -201,9 +190,9 @@
         };
 
         var dialog = await DialogService.ShowAsync<EditBundleItemDialog>(
-            TranslationService.GetTranslation("product.editBundleItem", "Modifica Componente Bundle"),
-            parameters,
-            options);
+        TranslationService.GetTranslation("product.editBundleItem", "Modifica Componente Bundle"),
+        parameters,
+        options);
 
         var result = await dialog.Result;
         if (!result.Canceled)
@@ -217,12 +206,12 @@
     {
         var productName = GetProductName(item.ComponentProductId);
         var message = $"{TranslationService.GetTranslation("product.confirmDeleteBundleItem", "Sei sicuro di voler eliminare questo componente?")} ({productName})";
-        
+
         var confirmed = await DialogService.ShowMessageBox(
-            TranslationService.GetTranslation("common.confirm", "Conferma"),
-            message,
-            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
-            noText: TranslationService.GetTranslation("common.no", "No"));
+        TranslationService.GetTranslation("common.confirm", "Conferma"),
+        message,
+        yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+        noText: TranslationService.GetTranslation("common.no", "No"));
 
         if (confirmed == true)
         {
