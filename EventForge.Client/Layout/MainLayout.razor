@@ -69,9 +69,11 @@
         <!-- Navigation drawer with accessibility improvements -->
         <MudDrawer @bind-Open="@_drawerOpen" 
                    ClipMode="DrawerClipMode.Always" 
-                   Elevation="2"
+                   Variant="DrawerVariant.Temporary"
+                   Elevation="1"
                    id="navigation-drawer"
-                   aria-label="@TranslationService.GetTranslation("navigation.mainMenu", "Main navigation menu")">
+                   aria-label="@TranslationService.GetTranslation("navigation.mainMenu", "Main navigation menu")"
+                   OverlayAutoClose= "true">
             <NavMenu />
         </MudDrawer>
     }

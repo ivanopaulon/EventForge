@@ -1,7 +1,6 @@
 @page "/business/suppliers"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Business
-@using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
 @attribute [Authorize]
 @inject IAuthService AuthService
@@ -12,269 +11,77 @@
 @inject ITranslationService TranslationService
 @inject ILogger<SupplierManagement> Logger
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+<PageTitle>@TranslationService.GetTranslation("supplier.management", "Gestione Fornitori")</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4" Style="height:100vh; display:flex; flex-direction:column;">
     <!-- Page loading overlay -->
-    <PageLoadingOverlay IsVisible="_isLoading || _isLoadingSuppliers" 
-                         Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+    <PageLoadingOverlay IsVisible="_isLoading" 
+                         Message="@TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...")" />
 
-    <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4">
-        <div class="d-flex justify-space-between align-center mb-4">
-            <div>
-                <MudText Typo="Typo.h4">
-                    <MudIcon Icon="@Icons.Material.Outlined.Business" Class="mr-2" />
-                    @TranslationService.GetTranslation("supplier.management", "Gestione Fornitori")
-                </MudText>
-                <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
-                    @TranslationService.GetTranslation("supplier.managementDescription", "Gestisci i fornitori per la tua organizzazione")
-                </MudText>
-            </div>
+    <MudPaper Elevation="1" Class="pa-3 mb-4" Style="min-height:0;">
+        <MudText Typo="Typo.h4">
+            <MudIcon Icon="@Icons.Material.Outlined.LocalShipping" Class="mr-2" />
+            @TranslationService.GetTranslation("supplier.management", "Gestione Fornitori")
+        </MudText>
+    </MudPaper>
+
+    <MudPaper Elevation="1" Class="pa-4 flex-grow-1 d-flex flex-column" Style="min-height:0;">
+        <MudTextField @bind-Value="_searchTerm"
+                      Placeholder="@TranslationService.GetTranslation("supplier.searchPlaceholder", "Cerca fornitori...")"
+                      Variant="Variant.Outlined"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Outlined.Search" />
+        <div Style="overflow:auto; min-height:0; flex:1;">
+            <MudTable Items="@_filteredSuppliers" 
+                  Loading="_isLoadingSuppliers || _isLoading" 
+                  Hover="true" 
+                  Striped="true" 
+                  Class="mt-3">
+            <HeaderContent>
+                <MudTh>@TranslationService.GetTranslation("field.name", "Nome")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("field.code", "Codice")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("field.contacts", "Contatti")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Name</MudTd>
+                <MudTd>-</MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Phone">@context.ContactCount</MudChip>
+                </MudTd>
+                <MudTd>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => EditSupplier(context))">
+                        @TranslationService.GetTranslation("common.edit", "Modifica")
+                    </MudButton>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
         </div>
-
-        <!-- Filters Section -->
-        <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
-            <div class="d-flex gap-3 align-center flex-wrap">
-                <MudTextField @bind-Value="_searchTerm"
-                              @bind-Value:after="OnSearchChanged"
-                              Label="@TranslationService.GetTranslation("supplier.search", "Cerca fornitori")"
-                              Placeholder="@TranslationService.GetTranslation("supplier.searchPlaceholder", "Inserisci nome, P.IVA o codice fiscale...")"
-                              Variant="Variant.Outlined"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@Icons.Material.Outlined.Search"
-                              Clearable="true"
-                              Style="flex:2;" />
-                <MudSelect T="string" @bind-Value="_partyTypeFilter" @bind-Value:after="OnPartyTypeFilterChanged" 
-                           Label="@TranslationService.GetTranslation("field.partyType", "Tipo")" 
-                           Placeholder="@TranslationService.GetTranslation("supplier.selectType", "Seleziona tipo...")"
-                           Variant="Variant.Outlined"
-                           Clearable="true"
-                           Style="flex:1;">
-                    <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
-                    <MudSelectItem Value="@("supplier")">@TranslationService.GetTranslation("partyType.supplier", "Fornitore")</MudSelectItem>
-                    <MudSelectItem Value="@("both")">@TranslationService.GetTranslation("partyType.both", "Cliente/Fornitore")</MudSelectItem>
-                </MudSelect>
-            </div>
-        </MudPaper>
-
-        <!-- Suppliers Data Table -->
-        <MudPaper Elevation="1" Class="border-rounded">
-            <MudCardHeader Class="pa-2">
-                <CardHeaderContent>
-                    <MudText Typo="Typo.h6">
-                        <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
-                        @TranslationService.GetTranslation("supplier.list", "Lista Fornitori")
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
-                            (@_filteredSuppliers.Count() @TranslationService.GetTranslation("supplier.itemsFound", "elementi trovati"))
-                        </MudText>
-                    </MudText>
-                </CardHeaderContent>
-                <CardHeaderActions>
-                    <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
-                                       ShowRefresh="true"
-                                       ShowExport="false" 
-                                       ShowCreate="true"
-                                       ShowAuditLog="false"
-                                       CreateIcon="@Icons.Material.Outlined.Add"
-                                       CreateTooltip="@TranslationService.GetTranslation("supplier.createNew", "Crea nuovo fornitore")"
-                                       IsDisabled="_isLoadingSuppliers"
-                                       OnRefresh="@LoadSuppliersAsync"
-                                       OnCreate="@OpenCreateSupplierDrawer" />
-                </CardHeaderActions>
-            </MudCardHeader>
-            <MudCardContent Class="pa-1">
-                <MudTable T="BusinessPartyDto" 
-                          Items="_filteredSuppliers" 
-                          Hover="true" 
-                          Striped="true"
-                          Loading="_isLoadingSuppliers"
-                          LoadingProgressColor="Color.Info"
-                          SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
-                          AllowUnsorted="false"
-                          Dense="false"
-                          Breakpoint="Breakpoint.Sm">
-                    <HeaderContent>
-                        <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
-                        <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.PartyType))">@TranslationService.GetTranslation("field.partyType", "Tipo")</MudTableSortLabel></MudTh>
-                        <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.VatNumber ?? ""))">@TranslationService.GetTranslation("field.vatNumber", "P.IVA")</MudTableSortLabel></MudTh>
-                        <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.TaxCode ?? ""))">@TranslationService.GetTranslation("field.taxCode", "C.F.")</MudTableSortLabel></MudTh>
-                        <MudTh>@TranslationService.GetTranslation("field.contacts", "Contatti")</MudTh>
-                        <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<BusinessPartyDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel></MudTh>
-                        <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
-                    </HeaderContent>
-
-                    <RowTemplate>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
-                            <div class="d-flex align-center">
-                                <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
-                                    <MudIcon Icon="@Icons.Material.Outlined.Business" />
-                                </MudAvatar>
-                                <div>
-                                    <MudText Typo="Typo.body2">@context.Name</MudText>
-                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @context.Id.ToString().Substring(0,8)...</MudText>
-                                </div>
-                            </div>
-                        </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.partyType", "Tipo")">
-                            <MudChip T="string" Size="Size.Small" Color="@GetPartyTypeColor(context.PartyType)">
-                                @GetPartyTypeText(context.PartyType)
-                            </MudChip>
-                        </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.vatNumber", "P.IVA")">
-                            <MudText Typo="Typo.body2">@(context.VatNumber ?? "-")</MudText>
-                        </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.taxCode", "C.F.")">
-                            <MudText Typo="Typo.body2">@(context.TaxCode ?? "-")</MudText>
-                        </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.contacts", "Contatti")">
-                            <div class="d-flex gap-2">
-                                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.LocationOn">@context.AddressCount</MudChip>
-                                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Phone">@context.ContactCount</MudChip>
-                                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Person">@context.ReferenceCount</MudChip>
-                            </div>
-                        </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
-                            <MudText Typo="Typo.body2">@context.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
-                        </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
-                            <MudTooltip Text="@TranslationService.GetTranslation("supplier.manageProducts", "Gestisci Prodotti")">
-                                <MudIconButton Icon="@Icons.Material.Outlined.Inventory2"
-                                               Color="Color.Dark"
-                                               Size="Size.Small"
-                                               OnClick="@(() => ManageSupplierProducts(context))" />
-                            </MudTooltip>
-                            <ActionButtonGroup EntityName="@context.Name"
-                                              ItemDisplayName="@context.Name"
-                                              ShowView="true"
-                                              ShowEdit="true"
-                                              ShowAuditLog="true"
-                                              ShowToggleStatus="true"
-                                              ShowDelete="true"
-                                              IsActive="@context.IsActive"
-                                              OnView="@(() => ViewSupplier(context))"
-                                              OnEdit="@(() => EditSupplier(context))"
-                                              OnAuditLog="@(() => ViewSupplierAuditLog(context))"
-                                              OnToggleStatus="@(() => ToggleSupplierStatus(context))"
-                                              OnDelete="@(() => DeleteSupplier(context))" />
-                        </MudTd>
-                    </RowTemplate>
-
-                    <NoRecordsContent>
-                        <div class="text-center pa-2 pa-sm-3 pa-md-4">
-                            <MudIcon Icon="@Icons.Material.Outlined.Business" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
-                            <MudText Typo="Typo.h6" Class="mb-2">
-                                @(_suppliers.Any() ? 
-                                    TranslationService.GetTranslation("supplier.noMatchFilters", "Nessun fornitore corrisponde ai filtri applicati") : 
-                                    TranslationService.GetTranslation("supplier.noFound", "Nessun fornitore trovato"))
-                            </MudText>
-                            @if (_suppliers.Any())
-                            {
-                                <MudButton Variant="Variant.Text" 
-                                           Color="Color.Primary" 
-                                           StartIcon="@Icons.Material.Outlined.Clear"
-                                           OnClick="@ClearFilters">
-                                    @TranslationService.GetTranslation("supplier.clearFilters", "Cancella filtri")
-                                </MudButton>
-                            }
-                        </div>
-                    </NoRecordsContent>
-                </MudTable>
-            </MudCardContent>
-        </MudPaper>
     </MudPaper>
 </MudContainer>
 
-<!-- Business Party Drawer -->
-<BusinessPartyDrawer @bind-IsOpen="_supplierDrawerOpen" 
-                     @bind-Mode="_supplierDrawerMode"
-                     OriginalBusinessParty="_selectedSupplier"
-                     DefaultPartyType="BusinessPartyType.Supplier"
-                     AllowEdit="true"
-                     OnBusinessPartyCreated="@OnSupplierCreated"
-                     OnBusinessPartyUpdated="@OnSupplierUpdated" />
-
-<!-- Audit History Drawer -->
-<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
-                    EntityType="BusinessParty"
-                    EntityId="@_selectedSupplierForAudit?.Id"
-                    EntityName="@_selectedSupplierForAudit?.Name" />
-
 @code {
-    // UI State Management
     private bool _isLoading = true;
     private bool _isLoadingSuppliers = false;
-    private bool _supplierDrawerOpen = false;
-    private bool _auditDrawerOpen = false;
-    
-    // Drawer management
-    private EntityDrawerMode _supplierDrawerMode = EntityDrawerMode.Create;
-    private BusinessPartyDto? _selectedSupplier;
-    private BusinessPartyDto? _selectedSupplierForAudit;
-    
-    // Filter and search state
     private string _searchTerm = string.Empty;
-    private string _partyTypeFilter = "all";
-    
-    // Data collections
     private List<BusinessPartyDto> _suppliers = new();
 
-    /// <summary>
-    /// Computed property for filtered suppliers based on search criteria.
-    /// </summary>
-    private IEnumerable<BusinessPartyDto> _filteredSuppliers => 
-        _suppliers.Where(s => 
-            // Search filter: check name, VAT number, or tax code
-            (string.IsNullOrEmpty(_searchTerm) || 
-             s.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-             (s.VatNumber != null && s.VatNumber.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
-             (s.TaxCode != null && s.TaxCode.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))) &&
-            // Party type filter
-            (_partyTypeFilter == "all" || 
-             (_partyTypeFilter == "supplier" && s.PartyType == BusinessPartyType.Supplier) ||
-             (_partyTypeFilter == "both" && s.PartyType == BusinessPartyType.Both)));
-
-    /// <summary>
-    /// Component initialization.
-    /// </summary>
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            // Check authentication
-            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
-            if (!isAuthenticated)
-            {
-                NavigationManager.NavigateTo("/login");
-                return;
-            }
-
-            // Load suppliers
-            await LoadSuppliersAsync();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add(TranslationService.GetTranslation("supplier.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
-            Logger.LogError(ex, "Error loading suppliers page");
-        }
-        finally
-        {
-            _isLoading = false;
-        }
+        await LoadSuppliersAsync();
+        _isLoading = false;
     }
 
-    /// <summary>
-    /// Loads supplier data (Fornitore and ClienteFornitore types).
-    /// </summary>
     private async Task LoadSuppliersAsync()
     {
         try
         {
             _isLoadingSuppliers = true;
-            StateHasChanged();
-            
             // Get suppliers (Supplier type)
-            var suppliers = await BusinessPartyService.GetBusinessPartiesByTypeAsync(BusinessPartyType.Supplier);
+            var suppliers = await BusinessPartyService.GetBusinessPartiesByTypeAsync(EventForge.DTOs.Common.BusinessPartyType.Supplier);
             
-            // Get both types (Cliente/Fornitore)
-            var both = await BusinessPartyService.GetBusinessPartiesByTypeAsync(BusinessPartyType.Both);
+            // Get both types (Both)
+            var both = await BusinessPartyService.GetBusinessPartiesByTypeAsync(EventForge.DTOs.Common.BusinessPartyType.Both);
             
             // Combine and sort
             _suppliers = suppliers.Concat(both).OrderBy(s => s.Name).ToList();
@@ -292,210 +99,18 @@
     }
 
     /// <summary>
-    /// Clears all active filters.
+    /// Computed property for filtered suppliers based on search criteria.
     /// </summary>
-    private async Task ClearFilters()
-    {
-        _searchTerm = string.Empty;
-        _partyTypeFilter = "all";
-        await Task.CompletedTask;
-        StateHasChanged();
-    }
-
-    private async Task OnSearchChanged()
-    {
-        await Task.Delay(300); // Debounce
-        StateHasChanged();
-    }
-
-    private async Task OnPartyTypeFilterChanged()
-    {
-        await Task.CompletedTask;
-        StateHasChanged();
-    }
-
-    private async Task OpenCreateSupplierDrawer()
-    {
-        _supplierDrawerMode = EntityDrawerMode.Create;
-        _selectedSupplier = null;
-        _supplierDrawerOpen = true;
-        await Task.CompletedTask;
-    }
-
-    private async Task OnSupplierCreated(BusinessPartyDto newSupplier)
-    {
-        _suppliers.Add(newSupplier);
-        _suppliers = _suppliers.OrderBy(s => s.Name).ToList();
-        StateHasChanged();
-        await Task.CompletedTask;
-    }
-
-    private async Task OnSupplierUpdated(BusinessPartyDto updatedSupplier)
-    {
-        var index = _suppliers.FindIndex(s => s.Id == updatedSupplier.Id);
-        if (index >= 0)
-        {
-            _suppliers[index] = updatedSupplier;
-        }
-        StateHasChanged();
-        await Task.CompletedTask;
-    }
-
-    private async Task ViewSupplier(BusinessPartyDto supplier)
-    {
-        _supplierDrawerMode = EntityDrawerMode.View;
-        _selectedSupplier = supplier;
-        _supplierDrawerOpen = true;
-        await Task.CompletedTask;
-    }
+    private IEnumerable<BusinessPartyDto> _filteredSuppliers => 
+        _suppliers.Where(s => 
+            // Search filter: check name, VAT number, or tax code
+            (string.IsNullOrEmpty(_searchTerm) || 
+             s.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             (s.VatNumber != null && s.VatNumber.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+             (s.TaxCode != null && s.TaxCode.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))));
 
     private async Task EditSupplier(BusinessPartyDto supplier)
     {
-        _supplierDrawerMode = EntityDrawerMode.Edit;
-        _selectedSupplier = supplier;
-        _supplierDrawerOpen = true;
-        await Task.CompletedTask;
-    }
-
-    private async Task DeleteSupplier(BusinessPartyDto supplier)
-    {
-        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
-        var confirmMessage = TranslationService.GetTranslation("supplier.confirmDelete", 
-            "Sei sicuro di voler eliminare il fornitore '{0}'? Questa azione non può essere annullata.", 
-            supplier.Name);
-
-        var confirm = await DialogService.ShowMessageBox(
-            confirmTitle,
-            confirmMessage,
-            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
-            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
-
-        if (confirm == true)
-        {
-            try
-            {
-                await BusinessPartyService.DeleteBusinessPartyAsync(supplier.Id);
-                _suppliers.Remove(supplier);
-                Snackbar.Add(TranslationService.GetTranslation("supplier.deleted", "Fornitore eliminato con successo!"), Severity.Success);
-                StateHasChanged();
-            }
-            catch (Exception ex)
-            {
-                Snackbar.Add(TranslationService.GetTranslation("supplier.deleteError", 
-                    "Errore nell'eliminazione del fornitore: {0}", ex.Message), Severity.Error);
-                Logger.LogError(ex, "Error deleting supplier {SupplierId}", supplier.Id);
-            }
-        }
-    }
-
-    private Color GetPartyTypeColor(BusinessPartyType partyType)
-    {
-        return partyType switch
-        {
-            BusinessPartyType.Cliente => Color.Info,
-            BusinessPartyType.Supplier => Color.Primary,
-            BusinessPartyType.Both => Color.Success,
-            _ => Color.Default
-        };
-    }
-
-    private string GetPartyTypeText(BusinessPartyType partyType)
-    {
-        return partyType switch
-        {
-            BusinessPartyType.Cliente => TranslationService.GetTranslation("partyType.cliente", "Cliente"),
-            BusinessPartyType.Supplier => TranslationService.GetTranslation("partyType.supplier", "Fornitore"),
-            BusinessPartyType.Both => TranslationService.GetTranslation("partyType.both", "Cliente/Fornitore"),
-            _ => partyType.ToString()
-        };
-    }
-
-    /// <summary>
-    /// Opens the audit log drawer for a supplier.
-    /// </summary>
-    private async Task ViewSupplierAuditLog(BusinessPartyDto supplier)
-    {
-        _selectedSupplierForAudit = supplier;
-        _auditDrawerOpen = true;
-        await Task.CompletedTask;
-    }
-
-    /// <summary>
-    /// Toggles the active status of a supplier.
-    /// </summary>
-    private async Task ToggleSupplierStatus(BusinessPartyDto supplier)
-    {
-        var actionText = supplier.IsActive ? 
-            TranslationService.GetTranslation("common.deactivate", "disattivare") : 
-            TranslationService.GetTranslation("common.activate", "attivare");
-            
-        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
-        var confirmMessage = TranslationService.GetTranslationFormatted("supplier.confirmStatusChange", 
-            "Sei sicuro di voler {0} il fornitore '{1}'?", 
-            actionText, supplier.Name);
-
-        var confirm = await DialogService.ShowMessageBox(
-            confirmTitle,
-            confirmMessage,
-            yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
-            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
-
-        if (confirm == true)
-        {
-            try
-            {
-                // Toggle the status locally (in a real implementation, you would call a service method)
-                supplier.IsActive = !supplier.IsActive;
-                
-                var statusMessage = supplier.IsActive ?
-                    TranslationService.GetTranslation("supplier.activated", "Fornitore attivato con successo!") :
-                    TranslationService.GetTranslation("supplier.deactivated", "Fornitore disattivato con successo!");
-                
-                Snackbar.Add(statusMessage, Severity.Success);
-                StateHasChanged();
-                
-                // Note: In a real implementation, you would call:
-                // await BusinessPartyService.ToggleBusinessPartyStatusAsync(supplier.Id, supplier.IsActive);
-            }
-            catch (Exception ex)
-            {
-                Snackbar.Add(TranslationService.GetTranslation("supplier.statusChangeError", 
-                    "Errore nel cambio di stato: {0}", ex.Message), Severity.Error);
-                Logger.LogError(ex, "Error toggling supplier status {SupplierId}", supplier.Id);
-                // Revert the change on error
-                supplier.IsActive = !supplier.IsActive;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Opens the dialog to manage products for a supplier.
-    /// </summary>
-    private async Task ManageSupplierProducts(BusinessPartyDto supplier)
-    {
-        var parameters = new DialogParameters
-        {
-            { "SupplierId", supplier.Id },
-            { "SupplierName", supplier.Name }
-        };
-
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Large,
-            FullWidth = true,
-            CloseButton = true
-        };
-
-        var dialog = await DialogService.ShowAsync<ManageSupplierProductsDialog>(
-            TranslationService.GetTranslation("supplier.manageProducts", "Gestisci Prodotti") + $" - {supplier.Name}",
-            parameters,
-            options);
-
-        var result = await dialog.Result;
-        if (!result.Canceled)
-        {
-            // Optionally refresh the supplier list or show success message
-            StateHasChanged();
-        }
+        Snackbar.Add(TranslationService.GetTranslation("common.notImplemented", "Funzionalità non ancora implementata"), Severity.Info);
     }
 }
