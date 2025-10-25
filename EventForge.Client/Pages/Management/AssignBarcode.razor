@@ -14,13 +14,15 @@
 <PageTitle>@TranslationService.GetTranslation("products.assignBarcode", "Assegna Codice a Barre")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
-    <PageLoadingOverlay IsVisible="_isLoading || _isLoadingOperation"
-                        Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
-
     <MudText Typo="Typo.h4" Class="mb-4">
         <MudIcon Icon="@Icons.Material.Outlined.Link" Class="mr-2" Size="Size.Medium" />
         @TranslationService.GetTranslation("products.assignBarcode", "Assegna Codice a Barre")
     </MudText>
+
+    @if (_isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Class="mb-4" />
+    }
 
     <MudPaper Elevation="2" Class="pa-4 mb-4">
         <MudText Typo="Typo.h6" Class="mb-3">
@@ -129,7 +131,6 @@
 
 @code {
     private bool _isLoading = false;
-    private bool _isLoadingOperation = false;
     private bool _isFormValid = false;
     private MudForm? _form;
     private ProductDto? _selectedProduct;
@@ -183,12 +184,10 @@
         if (string.IsNullOrWhiteSpace(value))
             return Task.FromResult<IEnumerable<ProductDto>>(_allProducts);
 
-        var filtered = _allProducts
-            .Where(p => (!string.IsNullOrEmpty(p.Name) && p.Name.Contains(value, StringComparison.OrdinalIgnoreCase)) ||
-                         (!string.IsNullOrEmpty(p.Code) && p.Code.Contains(value, StringComparison.OrdinalIgnoreCase)))
-            .ToList();
-
-        return Task.FromResult<IEnumerable<ProductDto>>(filtered);
+        return Task.FromResult<IEnumerable<ProductDto>>(_allProducts
+            .Where(p => p.Name.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+                       p.Code.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .ToList());
     }
 
     private async Task AssignBarcodeToProduct()
@@ -196,7 +195,7 @@
         if (!_isFormValid || _selectedProduct == null)
             return;
 
-        _isLoadingOperation = true;
+        _isLoading = true;
         try
         {
             _createCodeDto.ProductId = _selectedProduct.Id;
@@ -219,7 +218,7 @@
         }
         finally
         {
-            _isLoadingOperation = false;
+            _isLoading = false;
         }
     }
 

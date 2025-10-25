@@ -1,88 +1,306 @@
 @page "/product-management/brands"
 @using Microsoft.AspNetCore.Authorization
-@using EventForge.DTOs.Common
 @using EventForge.DTOs.Products
+@using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
-@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+@attribute [Authorize]
+@inject IAuthService AuthService
 @inject IBrandService BrandService
+@inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<BrandManagement> Logger
 
-<PageTitle>@TranslationService.GetTranslation("brands.management", "Gestione Marche")</PageTitle>
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <PageLoadingOverlay IsVisible="_isLoading || _isLoadingBrands"
+                        Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4" Style="height:100vh; display:flex; flex-direction:column;">
-    <PageLoadingOverlay IsVisible="_isLoading" Message="@TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...")" />
+    @if (_isLoading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else
+    {
+        <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4">
+            <div class="d-flex justify-space-between align-center mb-4">
+                <div>
+                    <MudText Typo="Typo.h4">
+                        <MudIcon Icon="@Icons.Material.Outlined.Sell" Class="mr-2" />
+                        @TranslationService.GetTranslation("brand.management", "Gestione Marchi")
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+                        @TranslationService.GetTranslation("brand.managementDescription", "Gestisci i marchi dei prodotti")
+                    </MudText>
+                </div>
+            </div>
 
-    <MudPaper Elevation="1" Class="pa-3 mb-4" Style="min-height:0;">
-        <div class="d-flex justify-space-between align-center">
-            <MudText Typo="Typo.h4">
-                <MudIcon Icon="@Icons.Material.Outlined.Label" Class="mr-2" />
-                @TranslationService.GetTranslation("brands.management", "Gestione Marche")
-            </MudText>
-            <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Outlined.Add" Color="Color.Primary" OnClick="@OpenCreateBrand">
-                @TranslationService.GetTranslation("common.create", "Crea")
-            </MudButton>
-        </div>
-    </MudPaper>
+            <!-- Filters Section -->
+            <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
+                <div class="d-flex gap-3 align-center flex-wrap">
+                    <MudTextField @bind-Value="_searchTerm"
+                                  @bind-Value:after="OnSearchChanged"
+                                  Label="@TranslationService.GetTranslation("brand.search", "Cerca marchi")"
+                                  Placeholder="@TranslationService.GetTranslation("brand.searchPlaceholder", "Inserisci nome...")"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@Icons.Material.Outlined.Search"
+                                  Clearable="true"
+                                  Style="flex: 2;" />
+                </div>
+            </MudPaper>
 
-    <MudPaper Elevation="1" Class="pa-4 flex-grow-1 d-flex flex-column" Style="min-height:0;">
-        <MudTextField @bind-Value="_search" Placeholder="@TranslationService.GetTranslation("brands.searchPlaceholder", "Cerca marche...")" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Search" />
-        <div Style="overflow:auto; min-height:0; flex:1;">
-            <MudTable Items="@(_brandsPaged?.Items ?? Enumerable.Empty<BrandDto>())" Loading="_isLoading" Hover="true" Striped="true" Class="mt-3">
-                <HeaderContent>
-                    <MudTh>@TranslationService.GetTranslation("field.name", "Nome")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd>@context.Name</MudTd>
-                    <MudTd>@context.CreatedAt.ToString("dd/MM/yyyy")</MudTd>
-                    <MudTd>
-                        <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => EditBrand(context))">@TranslationService.GetTranslation("common.edit", "Modifica")</MudButton>
-                    </MudTd>
-                </RowTemplate>
-            </MudTable>
-        </div>
-    </MudPaper>
+            <!-- Brands Data Table -->
+            <MudPaper Elevation="1" Class="border-rounded">
+                <MudCardHeader Class="pa-2">
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">
+                            <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
+                            @TranslationService.GetTranslation("brand.list", "Lista Marchi")
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                                (@_filteredBrands.Count() @TranslationService.GetTranslation("common.itemsFound", "elementi trovati"))
+                            </MudText>
+                        </MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
+                                           ShowRefresh="true"
+                                           ShowExport="false" 
+                                           ShowCreate="true"
+                                           ShowAuditLog="false"
+                                           CreateIcon="@Icons.Material.Outlined.Add"
+                                           CreateTooltip="@TranslationService.GetTranslation("brand.createNew", "Crea nuovo marchio")"
+                                           IsDisabled="_isLoadingBrands"
+                                           OnRefresh="@LoadBrandsAsync"
+                                           OnCreate="@OpenCreateBrandDrawer" />
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent Class="pa-1">
+                    @if (_isLoadingBrands)
+                    {
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+                    }
+                    else
+                    {
+                        <MudTable T="BrandDto" 
+                                  Items="_filteredBrands" 
+                                  Hover="true" 
+                                  Striped="true"
+                                  Loading="_isLoadingBrands"
+                                  LoadingProgressColor="Color.Info"
+                                  SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
+                                  AllowUnsorted="false"
+                                  FixedHeader="true"
+                                  Height="60vh">
+                            <HeaderContent>
+                                <MudTh><MudTableSortLabel SortBy="new Func<BrandDto, object>(x => x.Name)">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.country", "Paese")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.website", "Sito Web")</MudTh>
+                                <MudTh><MudTableSortLabel SortBy="new Func<BrandDto, object>(x => x.CreatedAt)">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel></MudTh>
+                                <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                                    <strong>@context.Name</strong>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
+                                    @if (!string.IsNullOrWhiteSpace(context.Description))
+                                    {
+                                        <span>@(context.Description.Length > 50 ? context.Description.Substring(0, 50) + "..." : context.Description)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="mud-text-secondary">-</span>
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.country", "Paese")">
+                                    @(context.Country ?? "-")
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.website", "Sito Web")">
+                                    @if (!string.IsNullOrWhiteSpace(context.Website))
+                                    {
+                                        <MudLink Href="@context.Website" Target="_blank">@TranslationService.GetTranslation("action.visit", "Visita")</MudLink>
+                                    }
+                                    else
+                                    {
+                                        <span class="mud-text-secondary">-</span>
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
+                                    @context.CreatedAt.ToString("dd/MM/yyyy")
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
+                                    <ActionButtonGroup EntityName="@context.Name"
+                                                       ItemDisplayName="@context.Name"
+                                                       ShowView="true"
+                                                       ShowEdit="true"
+                                                       ShowAuditLog="true"
+                                                       ShowDelete="true"
+                                                       OnView="@(() => ViewBrand(context.Id))"
+                                                       OnEdit="@(() => EditBrand(context.Id))"
+                                                       OnAuditLog="@(() => ViewBrandAuditLog(context))"
+                                                       OnDelete="@(() => DeleteBrand(context))" />
+                                </MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <div class="pa-4 text-center">
+                                    <MudIcon Icon="@Icons.Material.Outlined.SearchOff" Size="Size.Large" Class="mb-2" />
+                                    <MudText Typo="Typo.body1">
+                                        @TranslationService.GetTranslation("brand.noBrandsFound", "Nessun marchio trovato")
+                                    </MudText>
+                                    @if (!string.IsNullOrWhiteSpace(_searchTerm))
+                                    {
+                                        <MudButton Variant="Variant.Text"
+                                                   Color="Color.Primary"
+                                                   OnClick="ClearFilters"
+                                                   Class="mt-2">
+                                            @TranslationService.GetTranslation("action.clearFilters", "Cancella filtri")
+                                        </MudButton>
+                                    }
+                                </div>
+                            </NoRecordsContent>
+                        </MudTable>
+                    }
+                </MudCardContent>
+            </MudPaper>
+        </MudPaper>
+    }
 </MudContainer>
 
+<BrandDrawer @ref="_brandDrawer" OnEntitySaved="HandleBrandSaved" />
+
+<!-- Audit History Drawer -->
+<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+                    EntityType="Brand"
+                    EntityId="@_selectedBrandForAudit?.Id"
+                    EntityName="@_selectedBrandForAudit?.Name" />
+
 @code {
+    private BrandDrawer _brandDrawer = default!;
+    private IEnumerable<BrandDto> _brands = new List<BrandDto>();
+    private IEnumerable<BrandDto> _filteredBrands = new List<BrandDto>();
     private bool _isLoading = true;
-    private string _search = string.Empty;
-    private PagedResult<BrandDto>? _brandsPaged;
+    private bool _isLoadingBrands = false;
+    private bool _auditDrawerOpen = false;
+    private string _searchTerm = string.Empty;
+    private BrandDto? _selectedBrandForAudit;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadBrands();
+        await LoadBrandsAsync();
+        _isLoading = false;
     }
 
-    private async Task LoadBrands()
+    private async Task LoadBrandsAsync()
     {
         try
         {
-            _isLoading = true;
-            _brandsPaged = await BrandService.GetBrandsAsync(1,100);
+            _isLoadingBrands = true;
+            StateHasChanged();
+
+            // Use a reasonable pageSize (the API may reject very large pageSize values)
+            var result = await BrandService.GetBrandsAsync(page: 1, pageSize: 100);
+            _brands = result.Items ?? new List<BrandDto>();
+            ApplyFilters();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading brands");
-            Snackbar.Add(TranslationService.GetTranslation("common.errorLoading", "Errore nel caricamento"), Severity.Error);
+            // Show more informative message to the user to help debugging
+            Snackbar.Add(
+                $"{TranslationService.GetTranslation("brand.loadError", "Errore nel caricamento dei marchi")}: {ex.Message}",
+                Severity.Error);
         }
         finally
         {
-            _isLoading = false;
+            _isLoadingBrands = false;
+            StateHasChanged();
         }
     }
 
-    private void OpenCreateBrand()
+    private void ApplyFilters()
     {
-        Snackbar.Add(TranslationService.GetTranslation("common.notImplemented", "Funzionalità non ancora implementata"), Severity.Info);
+        _filteredBrands = _brands;
+
+        if (!string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            var searchLower = _searchTerm.ToLower();
+            _filteredBrands = _filteredBrands.Where(b =>
+                (b.Name?.ToLower().Contains(searchLower) ?? false) ||
+                (b.Description?.ToLower().Contains(searchLower) ?? false) ||
+                (b.Country?.ToLower().Contains(searchLower) ?? false));
+        }
     }
 
-    private void EditBrand(BrandDto brand)
+    private void OnSearchChanged()
     {
-        Snackbar.Add(TranslationService.GetTranslation("common.notImplemented", "Funzionalità non ancora implementata"), Severity.Info);
+        ApplyFilters();
+        StateHasChanged();
+    }
+
+    private void ClearFilters()
+    {
+        _searchTerm = string.Empty;
+        ApplyFilters();
+        StateHasChanged();
+    }
+
+    private void OpenCreateBrandDrawer()
+    {
+        _brandDrawer.OpenForCreate();
+    }
+
+    private async Task ViewBrand(Guid id)
+    {
+        await _brandDrawer.OpenForView(id);
+    }
+
+    private async Task EditBrand(Guid id)
+    {
+        await _brandDrawer.OpenForEdit(id);
+    }
+
+    private async Task DeleteBrand(BrandDto brand)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("action.confirm", "Conferma"),
+            TranslationService.GetTranslation("brand.confirmDelete", $"Sei sicuro di voler eliminare il marchio '{brand.Name}'?"),
+            yesText: TranslationService.GetTranslation("action.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("action.cancel", "Annulla"));
+
+        if (confirmed == true)
+        {
+            try
+            {
+                await BrandService.DeleteBrandAsync(brand.Id);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("brand.deleteSuccess", "Marchio eliminato con successo"),
+                    Severity.Success);
+                await LoadBrandsAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting brand {BrandId}", brand.Id);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("brand.deleteError", "Errore nell'eliminazione del marchio"),
+                    Severity.Error);
+            }
+        }
+    }
+
+    private async Task HandleBrandSaved()
+    {
+        await LoadBrandsAsync();
+    }
+    
+    /// <summary>
+    /// Opens the audit log drawer for a brand.
+    /// </summary>
+    private async Task ViewBrandAuditLog(BrandDto brand)
+    {
+        _selectedBrandForAudit = brand;
+        _auditDrawerOpen = true;
+        await Task.CompletedTask;
     }
 }

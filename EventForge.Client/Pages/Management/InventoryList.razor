@@ -14,7 +14,7 @@
 
 <PageTitle>@TranslationService.GetTranslation("warehouse.inventoryDocuments", "Documenti di Inventario")</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4" Style="height:100vh; display:flex; flex-direction:column;">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudGrid Class="mb-4">
         <MudItem xs="12" md="8">
             <MudText Typo="Typo.h4">
@@ -45,7 +45,7 @@
         <MudProgressLinear Indeterminate="true" Class="mb-4" />
     }
 
-    <MudCard Elevation="2" Class="flex-grow-1 d-flex flex-column" Style="min-height:0;">
+    <MudCard Elevation="2">
         <MudCardHeader>
             <CardHeaderContent>
                 <MudText Typo="Typo.h6">
@@ -66,9 +66,9 @@
                                    OnCreate="@CreateNewInventory" />
             </CardHeaderActions>
         </MudCardHeader>
-        <MudCardContent Style="min-height:0; overflow:auto;">
+        <MudCardContent>
         <!-- Filter Section -->
-        <MudGrid Class="mb-4" Style="background-color: var(--mud-palette-background-grey); padding:16px; border-radius:4px;">
+        <MudGrid Class="mb-4" Style="background-color: var(--mud-palette-background-grey); padding: 16px; border-radius: 4px;">
             <MudItem xs="12" md="3">
                 <MudSelect T="string" 
                            Label="@TranslationService.GetTranslation("common.status", "Stato")" 

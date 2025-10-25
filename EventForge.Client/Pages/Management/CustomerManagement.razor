@@ -12,454 +12,461 @@
 @inject ITranslationService TranslationService
 @inject ILogger<CustomerManagement> Logger
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4" Style="height:100vh; display:flex; flex-direction:column;">
- <PageLoadingOverlay IsVisible="_isLoading || _isLoadingCustomers"
- Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    @if (_isLoading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else
+    {
+        <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4">
+            <div class="d-flex justify-space-between align-center mb-4">
+                <div>
+                    <MudText Typo="Typo.h4">
+                        <MudIcon Icon="@Icons.Material.Outlined.People" Class="mr-2" />
+                        @TranslationService.GetTranslation("customer.management", "Gestione Clienti")
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+                        @TranslationService.GetTranslation("customer.managementDescription", "Gestisci i clienti per la tua organizzazione")
+                    </MudText>
+                </div>
+            </div>
 
- <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4" Style="min-height:0;">
- <div class="d-flex justify-space-between align-center mb-4">
- <div>
- <MudText Typo="Typo.h4">
- <MudIcon Icon="@Icons.Material.Outlined.People" Class="mr-2" />
- @TranslationService.GetTranslation("customer.management", "Gestione Clienti")
- </MudText>
- <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
- @TranslationService.GetTranslation("customer.managementDescription", "Gestisci i clienti per la tua organizzazione")
- </MudText>
- </div>
- </div>
- </MudPaper>
+            <!-- Filters Section -->
+            <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
+                <div class="d-flex gap-3 align-center flex-wrap">
+                    <MudTextField @bind-Value="_searchTerm"
+                                  @bind-Value:after="OnSearchChanged"
+                                  Label="@TranslationService.GetTranslation("customer.search", "Cerca clienti")"
+                                  Placeholder="@TranslationService.GetTranslation("customer.searchPlaceholder", "Inserisci nome, P.IVA o codice fiscale...")"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@Icons.Material.Outlined.Search"
+                                  Clearable="true"
+                                  Style="flex: 2;" />
+                    <MudSelect T="string" @bind-Value="_partyTypeFilter" @bind-Value:after="OnPartyTypeFilterChanged" 
+                               Label="@TranslationService.GetTranslation("field.partyType", "Tipo")" 
+                               Placeholder="@TranslationService.GetTranslation("customer.selectType", "Seleziona tipo...")"
+                               Variant="Variant.Outlined"
+                               Clearable="true"
+                               Style="flex: 1;">
+                        <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
+                        <MudSelectItem Value="@("customer")">@TranslationService.GetTranslation("partyType.cliente", "Cliente")</MudSelectItem>
+                        <MudSelectItem Value="@("both")">@TranslationService.GetTranslation("partyType.both", "Cliente/Fornitore")</MudSelectItem>
+                    </MudSelect>
+                </div>
+            </MudPaper>
 
- <!-- Filters Section -->
- <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey); min-height:0;">
- <div class="d-flex gap-3 align-center flex-wrap">
- <MudTextField @bind-Value="_searchTerm"
- @bind-Value:after="OnSearchChanged"
- Label="@TranslationService.GetTranslation("customer.search", "Cerca clienti")"
- Placeholder="@TranslationService.GetTranslation("customer.searchPlaceholder", "Inserisci nome, P.IVA o codice fiscale...")"
- Variant="Variant.Outlined"
- Adornment="Adornment.End"
- AdornmentIcon="@Icons.Material.Outlined.Search"
- Clearable="true"
- Style="flex:2;" />
- <MudSelect T="string" @bind-Value="_partyTypeFilter" @bind-Value:after="OnPartyTypeFilterChanged" 
- Label="@TranslationService.GetTranslation("field.partyType", "Tipo")" 
- Placeholder="@TranslationService.GetTranslation("customer.selectType", "Seleziona tipo...")"
- Variant="Variant.Outlined"
- Clearable="true"
- Style="flex:1;">
- <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
- <MudSelectItem Value="@("customer")">@TranslationService.GetTranslation("partyType.cliente", "Cliente")</MudSelectItem>
- <MudSelectItem Value="@("both")">@TranslationService.GetTranslation("partyType.both", "Cliente/Fornitore")</MudSelectItem>
- </MudSelect>
- </div>
- </MudPaper>
+            <!-- Customers Data Table -->
+            <MudPaper Elevation="1" Class="border-rounded">
+                <MudCardHeader Class="pa-2">
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">
+                            <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
+                            @TranslationService.GetTranslation("customer.list", "Lista Clienti")
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                                (@_filteredCustomers.Count() @TranslationService.GetTranslation("customer.itemsFound", "elementi trovati"))
+                            </MudText>
+                        </MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
+                                           ShowRefresh="true"
+                                           ShowExport="false" 
+                                           ShowCreate="true"
+                                           ShowAuditLog="false"
+                                           CreateIcon="@Icons.Material.Outlined.Add"
+                                           CreateTooltip="@TranslationService.GetTranslation("customer.createNew", "Crea nuovo cliente")"
+                                           IsDisabled="_isLoadingCustomers"
+                                           OnRefresh="@LoadCustomersAsync"
+                                           OnCreate="@OpenCreateCustomerDrawer" />
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent Class="pa-1">
+                    @if (_isLoadingCustomers)
+                    {
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+                    }
+                    else
+                    {
+                        <MudTable T="BusinessPartyDto" 
+                                  Items="_filteredCustomers" 
+                                  Hover="true" 
+                                  Striped="true"
+                                  Loading="_isLoadingCustomers"
+                                  LoadingProgressColor="Color.Info"
+                                  SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
+                                  AllowUnsorted="false"
+                                  Dense="false"
+                                  Breakpoint="Breakpoint.Sm">
+                            <HeaderContent>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.PartyType))">@TranslationService.GetTranslation("field.partyType", "Tipo")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.VatNumber ?? ""))">@TranslationService.GetTranslation("field.vatNumber", "P.IVA")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.TaxCode ?? ""))">@TranslationService.GetTranslation("field.taxCode", "C.F.")</MudTableSortLabel></MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.contacts", "Contatti")</MudTh>
+                                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<BusinessPartyDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel></MudTh>
+                                <MudTh Class="text-center" Style="min-width: 120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                            </HeaderContent>
 
- <!-- Customers Data Table -->
- <MudPaper Elevation="1" Class="border-rounded flex-grow-1 d-flex flex-column" Style="min-height:0;">
- <MudCardHeader Class="pa-2">
- <CardHeaderContent>
- <MudText Typo="Typo.h6">
- <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
- @TranslationService.GetTranslation("customer.list", "Lista Clienti")
- <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
- (@_filteredCustomers.Count() @TranslationService.GetTranslation("customer.itemsFound", "elementi trovati"))
- </MudText>
- </MudText>
- </CardHeaderContent>
- <CardHeaderActions>
- <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
- ShowRefresh="true"
- ShowExport="false" 
- ShowCreate="true"
- ShowAuditLog="false"
- CreateIcon="@Icons.Material.Outlined.Add"
- CreateTooltip="@TranslationService.GetTranslation("customer.createNew", "Crea nuovo cliente")"
- IsDisabled="_isLoadingCustomers"
- OnRefresh="@LoadCustomersAsync"
- OnCreate="@OpenCreateCustomerDrawer" />
- </CardHeaderActions>
- </MudCardHeader>
- <MudCardContent Class="pa-1" Style="min-height:0; overflow:auto;">
- <MudTable T="BusinessPartyDto" 
- Items="_filteredCustomers" 
- Hover="true" 
- Striped="true"
- Loading="_isLoadingCustomers"
- LoadingProgressColor="Color.Info"
- SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
- AllowUnsorted="false"
- Dense="false"
- Breakpoint="Breakpoint.Sm">
- <HeaderContent>
- <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
- <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.PartyType))">@TranslationService.GetTranslation("field.partyType", "Tipo")</MudTableSortLabel></MudTh>
- <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.VatNumber ?? ""))">@TranslationService.GetTranslation("field.vatNumber", "P.IVA")</MudTableSortLabel></MudTh>
- <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.TaxCode ?? ""))">@TranslationService.GetTranslation("field.taxCode", "C.F.")</MudTableSortLabel></MudTh>
- <MudTh>@TranslationService.GetTranslation("field.contacts", "Contatti")</MudTh>
- <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<BusinessPartyDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel></MudTh>
- <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
- </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                                    <div class="d-flex align-center">
+                                        <MudAvatar Color="Color.Info" Size="Size.Small" Class="mr-2">
+                                            <MudIcon Icon="@Icons.Material.Outlined.Person" />
+                                        </MudAvatar>
+                                        <div>
+                                            <MudText Typo="Typo.body2">@context.Name</MudText>
+                                            <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @context.Id.ToString().Substring(0, 8)...</MudText>
+                                        </div>
+                                    </div>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.partyType", "Tipo")">
+                                    <MudChip T="string" Size="Size.Small" Color="@GetPartyTypeColor(context.PartyType)">
+                                        @GetPartyTypeText(context.PartyType)
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.vatNumber", "P.IVA")">
+                                    <MudText Typo="Typo.body2">@(context.VatNumber ?? "-")</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.taxCode", "C.F.")">
+                                    <MudText Typo="Typo.body2">@(context.TaxCode ?? "-")</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.contacts", "Contatti")">
+                                    <div class="d-flex gap-2">
+                                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.LocationOn">@context.AddressCount</MudChip>
+                                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Phone">@context.ContactCount</MudChip>
+                                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Person">@context.ReferenceCount</MudChip>
+                                    </div>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
+                                    <MudText Typo="Typo.body2">@context.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                                    <ActionButtonGroup EntityName="@context.Name"
+                                                      ItemDisplayName="@context.Name"
+                                                      ShowView="true"
+                                                      ShowEdit="true"
+                                                      ShowAuditLog="true"
+                                                      ShowToggleStatus="true"
+                                                      ShowDelete="true"
+                                                      IsActive="@context.IsActive"
+                                                      OnView="@(() => ViewCustomer(context))"
+                                                      OnEdit="@(() => EditCustomer(context))"
+                                                      OnAuditLog="@(() => ViewCustomerAuditLog(context))"
+                                                      OnToggleStatus="@(() => ToggleCustomerStatus(context))"
+                                                      OnDelete="@(() => DeleteCustomer(context))" />
+                                </MudTd>
+                            </RowTemplate>
 
- <RowTemplate>
- <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
- <div class="d-flex align-center">
- <MudAvatar Color="Color.Info" Size="Size.Small" Class="mr-2">
- <MudIcon Icon="@Icons.Material.Outlined.Person" />
- </MudAvatar>
- <div>
- <MudText Typo="Typo.body2">@context.Name</MudText>
- <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @context.Id.ToString().Substring(0,8)...</MudText>
- </div>
- </div>
- </MudTd>
- <MudTd DataLabel="@TranslationService.GetTranslation("field.partyType", "Tipo")">
- <MudChip T="string" Size="Size.Small" Color="@GetPartyTypeColor(context.PartyType)">
- @GetPartyTypeText(context.PartyType)
- </MudChip>
- </MudTd>
- <MudTd DataLabel="@TranslationService.GetTranslation("field.vatNumber", "P.IVA")">
- <MudText Typo="Typo.body2">@(context.VatNumber ?? "-")</MudText>
- </MudTd>
- <MudTd DataLabel="@TranslationService.GetTranslation("field.taxCode", "C.F.")">
- <MudText Typo="Typo.body2">@(context.TaxCode ?? "-")</MudText>
- </MudTd>
- <MudTd DataLabel="@TranslationService.GetTranslation("field.contacts", "Contatti")">
- <div class="d-flex gap-2">
- <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.LocationOn">@context.AddressCount</MudChip>
- <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Phone">@context.ContactCount</MudChip>
- <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Person">@context.ReferenceCount</MudChip>
- </div>
- </MudTd>
- <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
- <MudText Typo="Typo.body2">@context.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
- </MudTd>
- <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
- <ActionButtonGroup EntityName="@context.Name"
- ItemDisplayName="@context.Name"
- ShowView="true"
- ShowEdit="true"
- ShowAuditLog="true"
- ShowToggleStatus="true"
- ShowDelete="true"
- IsActive="@context.IsActive"
- OnView="@(() => ViewCustomer(context))"
- OnEdit="@(() => EditCustomer(context))"
- OnAuditLog="@(() => ViewCustomerAuditLog(context))"
- OnToggleStatus="@(() => ToggleCustomerStatus(context))"
- OnDelete="@(() => DeleteCustomer(context))" />
- </MudTd>
- </RowTemplate>
-
- <NoRecordsContent>
- <div class="text-center pa-2 pa-sm-3 pa-md-4">
- <MudIcon Icon="@Icons.Material.Outlined.People" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
- <MudText Typo="Typo.h6" Class="mb-2">
- @(_customers.Any() ? 
- TranslationService.GetTranslation("customer.noMatchFilters", "Nessun cliente corrisponde ai filtri applicati") : 
- TranslationService.GetTranslation("customer.noFound", "Nessun cliente trovato"))
- </MudText>
- @if (_customers.Any())
- {
- <MudButton Variant="Variant.Text" 
- Color="Color.Primary" 
- StartIcon="@Icons.Material.Outlined.Clear"
- OnClick="@ClearFilters">
- @TranslationService.GetTranslation("customer.clearFilters", "Cancella filtri")
- </MudButton>
- }
- </div>
- </NoRecordsContent>
- </MudTable>
- </MudCardContent>
- </MudPaper>
+                            <NoRecordsContent>
+                                <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                                    <MudIcon Icon="@Icons.Material.Outlined.People" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                                    <MudText Typo="Typo.h6" Class="mb-2">
+                                        @(_customers.Any() ? 
+                                            TranslationService.GetTranslation("customer.noMatchFilters", "Nessun cliente corrisponde ai filtri applicati") : 
+                                            TranslationService.GetTranslation("customer.noFound", "Nessun cliente trovato"))
+                                    </MudText>
+                                    @if (_customers.Any())
+                                    {
+                                        <MudButton Variant="Variant.Text" 
+                                                   Color="Color.Primary" 
+                                                   StartIcon="@Icons.Material.Outlined.Clear"
+                                                   OnClick="@ClearFilters">
+                                            @TranslationService.GetTranslation("customer.clearFilters", "Cancella filtri")
+                                        </MudButton>
+                                    }
+                                </div>
+                            </NoRecordsContent>
+                        </MudTable>
+                    }
+                </MudCardContent>
+            </MudPaper>
+        </MudPaper>
+    }
 </MudContainer>
 
 <!-- Business Party Drawer -->
 <BusinessPartyDrawer @bind-IsOpen="_customerDrawerOpen" 
- @bind-Mode="_customerDrawerMode"
- OriginalBusinessParty="_selectedCustomer"
- DefaultPartyType="BusinessPartyType.Cliente"
- AllowEdit="true"
- OnBusinessPartyCreated="@OnCustomerCreated"
- OnBusinessPartyUpdated="@OnCustomerUpdated" />
+                     @bind-Mode="_customerDrawerMode"
+                     OriginalBusinessParty="_selectedCustomer"
+                     DefaultPartyType="BusinessPartyType.Cliente"
+                     AllowEdit="true"
+                     OnBusinessPartyCreated="@OnCustomerCreated"
+                     OnBusinessPartyUpdated="@OnCustomerUpdated" />
 
 <!-- Audit History Drawer -->
 <AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
- EntityType="BusinessParty"
- EntityId="@_selectedCustomerForAudit?.Id"
- EntityName="@_selectedCustomerForAudit?.Name" />
+                    EntityType="BusinessParty"
+                    EntityId="@_selectedCustomerForAudit?.Id"
+                    EntityName="@_selectedCustomerForAudit?.Name" />
 
 @code {
- // UI State Management
- private bool _isLoading = true;
- private bool _isLoadingCustomers = false;
- private string _loadingMessage = string.Empty;
- private bool _customerDrawerOpen = false;
- private bool _auditDrawerOpen = false;
- 
- // Drawer management
- private EntityDrawerMode _customerDrawerMode = EntityDrawerMode.Create;
- private BusinessPartyDto? _selectedCustomer;
- private BusinessPartyDto? _selectedCustomerForAudit;
- 
- // Filter and search state
- private string _searchTerm = string.Empty;
- private string _partyTypeFilter = "all";
- 
- // Data collections
- private List<BusinessPartyDto> _customers = new();
+    // UI State Management
+    private bool _isLoading = true;
+    private bool _isLoadingCustomers = false;
+    private bool _customerDrawerOpen = false;
+    private bool _auditDrawerOpen = false;
+    
+    // Drawer management
+    private EntityDrawerMode _customerDrawerMode = EntityDrawerMode.Create;
+    private BusinessPartyDto? _selectedCustomer;
+    private BusinessPartyDto? _selectedCustomerForAudit;
+    
+    // Filter and search state
+    private string _searchTerm = string.Empty;
+    private string _partyTypeFilter = "all";
+    
+    // Data collections
+    private List<BusinessPartyDto> _customers = new();
 
- /// <summary>
- /// Computed property for filtered customers based on search criteria.
- /// </summary>
- private IEnumerable<BusinessPartyDto> _filteredCustomers => 
- _customers.Where(c => 
- // Search filter: check name, VAT number, or tax code
- (string.IsNullOrEmpty(_searchTerm) || 
- c.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
- (c.VatNumber != null && c.VatNumber.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
- (c.TaxCode != null && c.TaxCode.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))) &&
- // Party type filter
- (_partyTypeFilter == "all" || 
- (_partyTypeFilter == "customer" && c.PartyType == BusinessPartyType.Cliente) ||
- (_partyTypeFilter == "both" && c.PartyType == BusinessPartyType.Both)));
+    /// <summary>
+    /// Computed property for filtered customers based on search criteria.
+    /// </summary>
+    private IEnumerable<BusinessPartyDto> _filteredCustomers => 
+        _customers.Where(c => 
+            // Search filter: check name, VAT number, or tax code
+            (string.IsNullOrEmpty(_searchTerm) || 
+             c.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             (c.VatNumber != null && c.VatNumber.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+             (c.TaxCode != null && c.TaxCode.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))) &&
+            // Party type filter
+            (_partyTypeFilter == "all" || 
+             (_partyTypeFilter == "customer" && c.PartyType == BusinessPartyType.Cliente) ||
+             (_partyTypeFilter == "both" && c.PartyType == BusinessPartyType.Both)));
 
- /// <summary>
- /// Component initialization.
- /// </summary>
- protected override async Task OnInitializedAsync()
- {
- try
- {
- // Check authentication
- var isAuthenticated = await AuthService.IsAuthenticatedAsync();
- if (!isAuthenticated)
- {
- NavigationManager.NavigateTo("/login");
- return;
- }
+    /// <summary>
+    /// Component initialization.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Check authentication
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                NavigationManager.NavigateTo("/login");
+                return;
+            }
 
- _loadingMessage = TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...");
+            // Load customers
+            await LoadCustomersAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("customer.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading customers page");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
 
- // Load customers
- await LoadCustomersAsync();
- }
- catch (Exception ex)
- {
- Snackbar.Add(TranslationService.GetTranslation("customer.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
- Logger.LogError(ex, "Error loading customers page");
- }
- finally
- {
- _isLoading = false;
- }
- }
+    /// <summary>
+    /// Loads customer data (Cliente and ClienteFornitore types).
+    /// </summary>
+    private async Task LoadCustomersAsync()
+    {
+        try
+        {
+            _isLoadingCustomers = true;
+            
+            // Get customers (Cliente type)
+            var customers = await BusinessPartyService.GetBusinessPartiesByTypeAsync(BusinessPartyType.Cliente);
+            
+            // Get both types (Cliente/Fornitore)
+            var both = await BusinessPartyService.GetBusinessPartiesByTypeAsync(BusinessPartyType.Both);
+            
+            // Combine and sort
+            _customers = customers.Concat(both).OrderBy(c => c.Name).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("customer.loadingError", "Errore nel caricamento dei clienti: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading customers");
+        }
+        finally
+        {
+            _isLoadingCustomers = false;
+        }
+    }
 
- /// <summary>
- /// Loads customer data (Cliente and ClienteFornitore types).
- /// </summary>
- private async Task LoadCustomersAsync()
- {
- try
- {
- _isLoadingCustomers = true;
- _loadingMessage = TranslationService.GetTranslation("common.loading", "Caricamento...");
- 
- // Get customers (Cliente type)
- var customers = await BusinessPartyService.GetBusinessPartiesByTypeAsync(BusinessPartyType.Cliente);
- 
- // Get both types (Cliente/Fornitore)
- var both = await BusinessPartyService.GetBusinessPartiesByTypeAsync(BusinessPartyType.Both);
- 
- // Combine and sort
- _customers = customers.Concat(both).OrderBy(c => c.Name).ToList();
- }
- catch (Exception ex)
- {
- Snackbar.Add(TranslationService.GetTranslation("customer.loadingError", "Errore nel caricamento dei clienti: {0}", ex.Message), Severity.Error);
- Logger.LogError(ex, "Error loading customers");
- }
- finally
- {
- _isLoadingCustomers = false;
- }
- }
+    /// <summary>
+    /// Clears all active filters.
+    /// </summary>
+    private async Task ClearFilters()
+    {
+        _searchTerm = string.Empty;
+        _partyTypeFilter = "all";
+        await Task.CompletedTask;
+        StateHasChanged();
+    }
 
- /// <summary>
- /// Clears all active filters.
- /// </summary>
- private async Task ClearFilters()
- {
- _searchTerm = string.Empty;
- _partyTypeFilter = "all";
- await Task.CompletedTask;
- StateHasChanged();
- }
+    private async Task OnSearchChanged()
+    {
+        await Task.Delay(300); // Debounce
+        StateHasChanged();
+    }
 
- private async Task OnSearchChanged()
- {
- await Task.Delay(300); // Debounce
- StateHasChanged();
- }
+    private async Task OnPartyTypeFilterChanged()
+    {
+        await Task.CompletedTask;
+        StateHasChanged();
+    }
 
- private async Task OnPartyTypeFilterChanged()
- {
- await Task.CompletedTask;
- StateHasChanged();
- }
+    private async Task OpenCreateCustomerDrawer()
+    {
+        _customerDrawerMode = EntityDrawerMode.Create;
+        _selectedCustomer = null;
+        _customerDrawerOpen = true;
+        await Task.CompletedTask;
+    }
 
- private async Task OpenCreateCustomerDrawer()
- {
- _customerDrawerMode = EntityDrawerMode.Create;
- _selectedCustomer = null;
- _customerDrawerOpen = true;
- await Task.CompletedTask;
- }
+    private async Task OnCustomerCreated(BusinessPartyDto newCustomer)
+    {
+        _customers.Add(newCustomer);
+        _customers = _customers.OrderBy(c => c.Name).ToList();
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
 
- private async Task OnCustomerCreated(BusinessPartyDto newCustomer)
- {
- _customers.Add(newCustomer);
- _customers = _customers.OrderBy(c => c.Name).ToList();
- StateHasChanged();
- await Task.CompletedTask;
- }
+    private async Task OnCustomerUpdated(BusinessPartyDto updatedCustomer)
+    {
+        var index = _customers.FindIndex(c => c.Id == updatedCustomer.Id);
+        if (index >= 0)
+        {
+            _customers[index] = updatedCustomer;
+        }
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
 
- private async Task OnCustomerUpdated(BusinessPartyDto updatedCustomer)
- {
- var index = _customers.FindIndex(c => c.Id == updatedCustomer.Id);
- if (index >= 0)
- {
- _customers[index] = updatedCustomer;
- }
- StateHasChanged();
- await Task.CompletedTask;
- }
+    private async Task ViewCustomer(BusinessPartyDto customer)
+    {
+        _customerDrawerMode = EntityDrawerMode.View;
+        _selectedCustomer = customer;
+        _customerDrawerOpen = true;
+        await Task.CompletedTask;
+    }
 
- private async Task ViewCustomer(BusinessPartyDto customer)
- {
- _customerDrawerMode = EntityDrawerMode.View;
- _selectedCustomer = customer;
- _customerDrawerOpen = true;
- await Task.CompletedTask;
- }
+    private async Task EditCustomer(BusinessPartyDto customer)
+    {
+        _customerDrawerMode = EntityDrawerMode.Edit;
+        _selectedCustomer = customer;
+        _customerDrawerOpen = true;
+        await Task.CompletedTask;
+    }
 
- private async Task EditCustomer(BusinessPartyDto customer)
- {
- _customerDrawerMode = EntityDrawerMode.Edit;
- _selectedCustomer = customer;
- _customerDrawerOpen = true;
- await Task.CompletedTask;
- }
+    private async Task DeleteCustomer(BusinessPartyDto customer)
+    {
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslation("customer.confirmDelete", 
+            "Sei sicuro di voler eliminare il cliente '{0}'? Questa azione non può essere annullata.", 
+            customer.Name);
 
- private async Task DeleteCustomer(BusinessPartyDto customer)
- {
- var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
- var confirmMessage = TranslationService.GetTranslation("customer.confirmDelete", 
- "Sei sicuro di voler eliminare il cliente '{0}'? Questa azione non può essere annullata.", 
- customer.Name);
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
 
- var confirm = await DialogService.ShowMessageBox(
- confirmTitle,
- confirmMessage,
- yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
- cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+        if (confirm == true)
+        {
+            try
+            {
+                await BusinessPartyService.DeleteBusinessPartyAsync(customer.Id);
+                _customers.Remove(customer);
+                Snackbar.Add(TranslationService.GetTranslation("customer.deleted", "Cliente eliminato con successo!"), Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("customer.deleteError", 
+                    "Errore nell'eliminazione del cliente: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting customer {CustomerId}", customer.Id);
+            }
+        }
+    }
 
- if (confirm == true)
- {
- try
- {
- await BusinessPartyService.DeleteBusinessPartyAsync(customer.Id);
- _customers.Remove(customer);
- Snackbar.Add(TranslationService.GetTranslation("customer.deleted", "Cliente eliminato con successo!"), Severity.Success);
- StateHasChanged();
- }
- catch (Exception ex)
- {
- Snackbar.Add(TranslationService.GetTranslation("customer.deleteError", 
- "Errore nell'eliminazione del cliente: {0}", ex.Message), Severity.Error);
- Logger.LogError(ex, "Error deleting customer {CustomerId}", customer.Id);
- }
- }
- }
+    private Color GetPartyTypeColor(BusinessPartyType partyType)
+    {
+        return partyType switch
+        {
+            BusinessPartyType.Cliente => Color.Info,
+            BusinessPartyType.Supplier => Color.Primary,
+            BusinessPartyType.Both => Color.Success,
+            _ => Color.Default
+        };
+    }
 
- private Color GetPartyTypeColor(BusinessPartyType partyType)
- {
- return partyType switch
- {
- BusinessPartyType.Cliente => Color.Info,
- BusinessPartyType.Supplier => Color.Primary,
- BusinessPartyType.Both => Color.Success,
- _ => Color.Default
- };
- }
+    private string GetPartyTypeText(BusinessPartyType partyType)
+    {
+        return partyType switch
+        {
+            BusinessPartyType.Cliente => TranslationService.GetTranslation("partyType.cliente", "Cliente"),
+            BusinessPartyType.Supplier => TranslationService.GetTranslation("partyType.supplier", "Fornitore"),
+            BusinessPartyType.Both => TranslationService.GetTranslation("partyType.both", "Cliente/Fornitore"),
+            _ => partyType.ToString()
+        };
+    }
 
- private string GetPartyTypeText(BusinessPartyType partyType)
- {
- return partyType switch
- {
- BusinessPartyType.Cliente => TranslationService.GetTranslation("partyType.cliente", "Cliente"),
- BusinessPartyType.Supplier => TranslationService.GetTranslation("partyType.supplier", "Fornitore"),
- BusinessPartyType.Both => TranslationService.GetTranslation("partyType.both", "Cliente/Fornitore"),
- _ => partyType.ToString()
- };
- }
+    /// <summary>
+    /// Opens the audit log drawer for a customer.
+    /// </summary>
+    private async Task ViewCustomerAuditLog(BusinessPartyDto customer)
+    {
+        _selectedCustomerForAudit = customer;
+        _auditDrawerOpen = true;
+        await Task.CompletedTask;
+    }
 
- /// <summary>
- /// Opens the audit log drawer for a customer.
- /// </summary>
- private async Task ViewCustomerAuditLog(BusinessPartyDto customer)
- {
- _selectedCustomerForAudit = customer;
- _auditDrawerOpen = true;
- await Task.CompletedTask;
- }
+    /// <summary>
+    /// Toggles the active status of a customer.
+    /// </summary>
+    private async Task ToggleCustomerStatus(BusinessPartyDto customer)
+    {
+        var actionText = customer.IsActive ? 
+            TranslationService.GetTranslation("common.deactivate", "disattivare") : 
+            TranslationService.GetTranslation("common.activate", "attivare");
+            
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("customer.confirmStatusChange", 
+            "Sei sicuro di voler {0} il cliente '{1}'?", 
+            actionText, customer.Name);
 
- /// <summary>
- /// Toggles the active status of a customer.
- /// </summary>
- private async Task ToggleCustomerStatus(BusinessPartyDto customer)
- {
- var actionText = customer.IsActive ? 
- TranslationService.GetTranslation("common.deactivate", "disattivare") : 
- TranslationService.GetTranslation("common.activate", "attivare");
- 
- var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
- var confirmMessage = TranslationService.GetTranslationFormatted("customer.confirmStatusChange", 
- "Sei sicuro di voler {0} il cliente '{1}'?", 
- actionText, customer.Name);
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
 
- var confirm = await DialogService.ShowMessageBox(
- confirmTitle,
- confirmMessage,
- yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
- cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
-
- if (confirm == true)
- {
- try
- {
- // Toggle the status locally (in a real implementation, you would call a service method)
- customer.IsActive = !customer.IsActive;
- 
- var statusMessage = customer.IsActive ?
- TranslationService.GetTranslation("customer.activated", "Cliente attivato con successo!") :
- TranslationService.GetTranslation("customer.deactivated", "Cliente disattivato con successo!");
- 
- Snackbar.Add(statusMessage, Severity.Success);
- StateHasChanged();
- 
- // Note: In a real implementation, you would call:
- // await BusinessPartyService.ToggleBusinessPartyStatusAsync(customer.Id, customer.IsActive);
- }
- catch (Exception ex)
- {
- Snackbar.Add(TranslationService.GetTranslation("customer.statusChangeError", 
- "Errore nel cambio di stato: {0}", ex.Message), Severity.Error);
- Logger.LogError(ex, "Error toggling customer status {CustomerId}", customer.Id);
- // Revert the change on error
- customer.IsActive = !customer.IsActive;
- }
- }
- }
+        if (confirm == true)
+        {
+            try
+            {
+                // Toggle the status locally (in a real implementation, you would call a service method)
+                customer.IsActive = !customer.IsActive;
+                
+                var statusMessage = customer.IsActive ?
+                    TranslationService.GetTranslation("customer.activated", "Cliente attivato con successo!") :
+                    TranslationService.GetTranslation("customer.deactivated", "Cliente disattivato con successo!");
+                
+                Snackbar.Add(statusMessage, Severity.Success);
+                StateHasChanged();
+                
+                // Note: In a real implementation, you would call:
+                // await BusinessPartyService.ToggleBusinessPartyStatusAsync(customer.Id, customer.IsActive);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("customer.statusChangeError", 
+                    "Errore nel cambio di stato: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error toggling customer status {CustomerId}", customer.Id);
+                // Revert the change on error
+                customer.IsActive = !customer.IsActive;
+            }
+        }
+    }
 }

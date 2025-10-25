@@ -13,377 +13,381 @@
 
 <PageTitle>@TranslationService.GetTranslation("warehouse.lotManagement", "Gestione Lotti")</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4" Style="height:100vh; display:flex; flex-direction:column;">
- <PageLoadingOverlay IsVisible="_isLoading" 
- Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Outlined.QrCode" Class="mr-2" Size="Size.Medium" />
+        @TranslationService.GetTranslation("warehouse.lotManagement", "Gestione Lotti")
+    </MudText>
 
- <!-- Statistics and Filters Section -->
- <MudPaper Elevation="1" Class="pa-4 mb-4" Style="min-height:0;">
- <MudGrid Spacing="3">
- <!-- Quick Stats -->
- <MudItem xs="12" md="8">
- <MudGrid Spacing="2">
- <MudItem xs="6" sm="3">
- <MudPaper Class="d-flex justify-space-between align-center pa-3" Elevation="0" Style="background-color: var(--mud-palette-success-lighten);">
- <MudText Typo="Typo.caption">@TranslationService.GetTranslation("warehouse.activeLots", "Lotti Attivi")</MudText>
- <MudChip T="string" Color="Color.Success" Size="Size.Small">@_activeLotCount</MudChip>
- </MudPaper>
- </MudItem>
- <MudItem xs="6" sm="3">
- <MudPaper Class="d-flex justify-space-between align-center pa-3" Elevation="0" Style="background-color: var(--mud-palette-warning-lighten);">
- <MudText Typo="Typo.caption">@TranslationService.GetTranslation("warehouse.expiringLots", "In Scadenza")</MudText>
- <MudChip T="string" Color="Color.Warning" Size="Size.Small">@_expiringLotCount</MudChip>
- </MudPaper>
- </MudItem>
- <MudItem xs="6" sm="3">
- <MudPaper Class="d-flex justify-space-between align-center pa-3" Elevation="0" Style="background-color: var(--mud-palette-error-lighten);">
- <MudText Typo="Typo.caption">@TranslationService.GetTranslation("warehouse.blockedLots", "Lotti Bloccati")</MudText>
- <MudChip T="string" Color="Color.Error" Size="Size.Small">@_blockedLotCount</MudChip>
- </MudPaper>
- </MudItem>
- <MudItem xs="6" sm="3">
- <MudPaper Class="d-flex justify-space-between align-center pa-3" Elevation="0" Style="background-color: var(--mud-palette-info-lighten);">
- <MudText Typo="Typo.caption">@TranslationService.GetTranslation("warehouse.totalLots", "Totale Lotti")</MudText>
- <MudChip T="string" Color="Color.Info" Size="Size.Small">@_totalCount</MudChip>
- </MudPaper>
- </MudItem>
- </MudGrid>
- </MudItem>
+    @if (_isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Class="mb-4" />
+    }
 
- <!-- Action Buttons -->
- <MudItem xs="12" md="4">
- <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
- <MudButton StartIcon="@Icons.Material.Outlined.Add" 
- Color="Color.Primary" 
- Variant="Variant.Filled"
- OnClick="@(() => OpenCreateDialog())">
- @TranslationService.GetTranslation("common.create", "Crea")
- </MudButton>
- <MudButton StartIcon="@Icons.Material.Outlined.Warning" 
- Color="Color.Warning" 
- Variant="Variant.Outlined"
- OnClick="@(() => ShowExpiringLots())">
- @TranslationService.GetTranslation("warehouse.showExpiring", "In Scadenza")
- </MudButton>
- <MudButton StartIcon="@Icons.Material.Outlined.Refresh" 
- Color="Color.Default" 
- Variant="Variant.Outlined"
- OnClick="@RefreshData">
- @TranslationService.GetTranslation("common.refresh", "Aggiorna")
- </MudButton>
- </MudStack>
- </MudItem>
- </MudGrid>
- </MudPaper>
+    <!-- Statistics and Filters Section -->
+    <MudPaper Elevation="1" Class="pa-4 mb-4">
+        <MudGrid Spacing="3">
+            <!-- Quick Stats -->
+            <MudItem xs="12" md="8">
+                <MudGrid Spacing="2">
+                    <MudItem xs="6" sm="3">
+                        <MudPaper Class="d-flex justify-space-between align-center pa-3" Elevation="0" Style="background-color: var(--mud-palette-success-lighten);">
+                            <MudText Typo="Typo.caption">@TranslationService.GetTranslation("warehouse.activeLots", "Lotti Attivi")</MudText>
+                            <MudChip T="string" Color="Color.Success" Size="Size.Small">@_activeLotCount</MudChip>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudPaper Class="d-flex justify-space-between align-center pa-3" Elevation="0" Style="background-color: var(--mud-palette-warning-lighten);">
+                            <MudText Typo="Typo.caption">@TranslationService.GetTranslation("warehouse.expiringLots", "In Scadenza")</MudText>
+                            <MudChip T="string" Color="Color.Warning" Size="Size.Small">@_expiringLotCount</MudChip>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudPaper Class="d-flex justify-space-between align-center pa-3" Elevation="0" Style="background-color: var(--mud-palette-error-lighten);">
+                            <MudText Typo="Typo.caption">@TranslationService.GetTranslation("warehouse.blockedLots", "Lotti Bloccati")</MudText>
+                            <MudChip T="string" Color="Color.Error" Size="Size.Small">@_blockedLotCount</MudChip>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudPaper Class="d-flex justify-space-between align-center pa-3" Elevation="0" Style="background-color: var(--mud-palette-info-lighten);">
+                            <MudText Typo="Typo.caption">@TranslationService.GetTranslation("warehouse.totalLots", "Totale Lotti")</MudText>
+                            <MudChip T="string" Color="Color.Info" Size="Size.Small">@_totalCount</MudChip>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+            </MudItem>
 
- <!-- Filters -->
- <MudPaper Elevation="1" Class="pa-4 mb-4" Style="min-height:0;">
- <MudGrid Spacing="3" AlignItems="Center">
- <MudItem xs="12" sm="6" md="3">
- <MudTextField @bind-Value="_searchText" 
- Label="@TranslationService.GetTranslation("common.search", "Cerca")" 
- Variant="Variant.Outlined"
- Adornment="Adornment.Start" 
- AdornmentIcon="@Icons.Material.Outlined.Search" 
- OnKeyUp="@OnSearchKeyUp" />
- </MudItem>
- <MudItem xs="12" sm="6" md="3">
- <MudSelect @bind-Value="_selectedStatus" 
- Label="@TranslationService.GetTranslation("warehouse.status", "Stato")" 
- Variant="Variant.Outlined"
- Clearable="true">
- <MudSelectItem Value="@("Active")">@TranslationService.GetTranslation("warehouse.active", "Attivo")</MudSelectItem>
- <MudSelectItem Value="@("Blocked")">@TranslationService.GetTranslation("warehouse.blocked", "Bloccato")</MudSelectItem>
- <MudSelectItem Value="@("Expired")">@TranslationService.GetTranslation("warehouse.expired", "Scaduto")</MudSelectItem>
- <MudSelectItem Value="@("Recalled")">@TranslationService.GetTranslation("warehouse.recalled", "Richiamato")</MudSelectItem>
- </MudSelect>
- </MudItem>
- <MudItem xs="12" sm="6" md="3">
- <MudSelect @bind-Value="_selectedQualityStatus" 
- Label="@TranslationService.GetTranslation("warehouse.qualityStatus", "Stato Qualità")" 
- Variant="Variant.Outlined"
- Clearable="true">
- <MudSelectItem Value="@("Pending")">@TranslationService.GetTranslation("warehouse.pending", "In Attesa")</MudSelectItem>
- <MudSelectItem Value="@("Approved")">@TranslationService.GetTranslation("warehouse.approved", "Approvato")</MudSelectItem>
- <MudSelectItem Value="@("Rejected")">@TranslationService.GetTranslation("warehouse.rejected", "Rifiutato")</MudSelectItem>
- <MudSelectItem Value="@("OnHold")">@TranslationService.GetTranslation("warehouse.onHold", "In Sospeso")</MudSelectItem>
- </MudSelect>
- </MudItem>
- <MudItem xs="12" sm="6" md="3">
- <MudButton StartIcon="@Icons.Material.Outlined.FilterList" 
- Color="Color.Primary" 
- Variant="Variant.Outlined"
- OnClick="@ApplyFilters"
- FullWidth="true">
- @TranslationService.GetTranslation("common.filter", "Filtra")
- </MudButton>
- </MudItem>
- </MudGrid>
- </MudPaper>
+            <!-- Action Buttons -->
+            <MudItem xs="12" md="4">
+                <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+                    <MudButton StartIcon="@Icons.Material.Outlined.Add" 
+                               Color="Color.Primary" 
+                               Variant="Variant.Filled"
+                               OnClick="@(() => OpenCreateDialog())">
+                        @TranslationService.GetTranslation("common.create", "Crea")
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Outlined.Warning" 
+                               Color="Color.Warning" 
+                               Variant="Variant.Outlined"
+                               OnClick="@(() => ShowExpiringLots())">
+                        @TranslationService.GetTranslation("warehouse.showExpiring", "In Scadenza")
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Outlined.Refresh" 
+                               Color="Color.Default" 
+                               Variant="Variant.Outlined"
+                               OnClick="@RefreshData">
+                        @TranslationService.GetTranslation("common.refresh", "Aggiorna")
+                    </MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
 
- <!-- Lots Table -->
- <MudPaper Elevation="1" Class="pa-4 flex-grow-1 d-flex flex-column" Style="min-height:0;">
- <div Style="overflow:auto; min-height:0; flex:11 auto;">
- <MudTable Items="@_lots" 
- Hover="true" 
- Striped="true" 
- Loading="_isLoading"
- LoadingProgressColor="Color.Info" 
- Breakpoint="Breakpoint.None" Dense="false">
- <HeaderContent>
- <MudTh>@TranslationService.GetTranslation("warehouse.lotCode", "Codice Lotto")</MudTh>
- <MudTh>@TranslationService.GetTranslation("warehouse.product", "Prodotto")</MudTh>
- <MudTh>@TranslationService.GetTranslation("warehouse.status", "Stato")</MudTh>
- <MudTh>@TranslationService.GetTranslation("warehouse.qualityStatus", "Qualità")</MudTh>
- <MudTh>@TranslationService.GetTranslation("warehouse.originalQuantity", "Quantità Originale")</MudTh>
- <MudTh>@TranslationService.GetTranslation("warehouse.availableQuantity", "Disponibile")</MudTh>
- <MudTh>@TranslationService.GetTranslation("warehouse.expiryDate", "Data Scadenza")</MudTh>
- <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
- </HeaderContent>
- <RowTemplate>
- <MudTd DataLabel="Code">
- <MudText Typo="Typo.body2" Style="font-weight:600;">@context.Code</MudText>
- @if (!string.IsNullOrEmpty(context.Barcode))
- {
- <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Barcode</MudText>
- }
- </MudTd>
- <MudTd DataLabel="Product">
- <MudText Typo="Typo.body2">@context.ProductName</MudText>
- @if (!string.IsNullOrEmpty(context.ProductCode))
- {
- <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ProductCode</MudText>
- }
- </MudTd>
- <MudTd DataLabel="Status">
- <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
- @TranslationService.GetTranslation($"warehouse.{context.Status.ToLower()}", context.Status)
- </MudChip>
- </MudTd>
- <MudTd DataLabel="Quality">
- <MudChip T="string" Size="Size.Small" Color="@GetQualityStatusColor(context.QualityStatus)">
- @TranslationService.GetTranslation($"warehouse.{context.QualityStatus.ToLower()}", context.QualityStatus)
- </MudChip>
- </MudTd>
- <MudTd DataLabel="Original">@context.OriginalQuantity.ToString("N2")</MudTd>
- <MudTd DataLabel="Available">@context.AvailableQuantity.ToString("N2")</MudTd>
- <MudTd DataLabel="Expiry">
- @if (context.ExpiryDate.HasValue)
- {
- var daysToExpiry = (context.ExpiryDate.Value - DateTime.Now).Days;
- <MudText Typo="Typo.body2" Color="@(daysToExpiry <=30 ? Color.Warning : Color.Default)">
- @context.ExpiryDate.Value.ToString("dd/MM/yyyy")
- </MudText>
- if (daysToExpiry <=30 && daysToExpiry >0)
- {
- <MudText Typo="Typo.caption" Color="Color.Warning">
- @TranslationService.GetTranslation("warehouse.expireInDays", "{0} giorni", daysToExpiry)
- </MudText>
- }
- else if (daysToExpiry <=0)
- {
- <MudText Typo="Typo.caption" Color="Color.Error">
- @TranslationService.GetTranslation("warehouse.expired", "Scaduto")
- </MudText>
- }
- }
- else
- {
- <MudText Typo="Typo.body2" Color="Color.Secondary">-</MudText>
- }
- </MudTd>
- <MudTd DataLabel="Actions">
- <MudButtonGroup Variant="Variant.Text" Size="Size.Small">
- <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
- Color="Color.Primary" 
- Size="Size.Small"
- OnClick="@(() => OpenEditDialog(context))" />
- <MudIconButton Icon="@Icons.Material.Outlined.Block" 
- Color="Color.Error" 
- Size="Size.Small"
- OnClick="@(() => BlockLot(context))"
- Disabled="@(context.Status == "Blocked")" />
- <MudIconButton Icon="@Icons.Material.Outlined.Info" 
- Color="Color.Info" 
- Size="Size.Small"
- OnClick="@(() => ViewDetails(context))" />
- </MudButtonGroup>
- </MudTd>
- </RowTemplate>
- <NoRecordsContent>
- <MudText Align="Align.Center" Color="Color.Secondary">
- @TranslationService.GetTranslation("common.noRecords", "Nessun record trovato")
- </MudText>
- </NoRecordsContent>
- </MudTable>
- </div>
+    <!-- Filters -->
+    <MudPaper Elevation="1" Class="pa-4 mb-4">
+        <MudGrid Spacing="3" AlignItems="Center">
+            <MudItem xs="12" sm="6" md="3">
+                <MudTextField @bind-Value="_searchText" 
+                              Label="@TranslationService.GetTranslation("common.search", "Cerca")" 
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.Start" 
+                              AdornmentIcon="@Icons.Material.Outlined.Search" 
+                              OnKeyUp="@OnSearchKeyUp" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect @bind-Value="_selectedStatus" 
+                           Label="@TranslationService.GetTranslation("warehouse.status", "Stato")" 
+                           Variant="Variant.Outlined"
+                           Clearable="true">
+                    <MudSelectItem Value="@("Active")">@TranslationService.GetTranslation("warehouse.active", "Attivo")</MudSelectItem>
+                    <MudSelectItem Value="@("Blocked")">@TranslationService.GetTranslation("warehouse.blocked", "Bloccato")</MudSelectItem>
+                    <MudSelectItem Value="@("Expired")">@TranslationService.GetTranslation("warehouse.expired", "Scaduto")</MudSelectItem>
+                    <MudSelectItem Value="@("Recalled")">@TranslationService.GetTranslation("warehouse.recalled", "Richiamato")</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect @bind-Value="_selectedQualityStatus" 
+                           Label="@TranslationService.GetTranslation("warehouse.qualityStatus", "Stato Qualità")" 
+                           Variant="Variant.Outlined"
+                           Clearable="true">
+                    <MudSelectItem Value="@("Pending")">@TranslationService.GetTranslation("warehouse.pending", "In Attesa")</MudSelectItem>
+                    <MudSelectItem Value="@("Approved")">@TranslationService.GetTranslation("warehouse.approved", "Approvato")</MudSelectItem>
+                    <MudSelectItem Value="@("Rejected")">@TranslationService.GetTranslation("warehouse.rejected", "Rifiutato")</MudSelectItem>
+                    <MudSelectItem Value="@("OnHold")">@TranslationService.GetTranslation("warehouse.onHold", "In Sospeso")</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudButton StartIcon="@Icons.Material.Outlined.FilterList" 
+                           Color="Color.Primary" 
+                           Variant="Variant.Outlined"
+                           OnClick="@ApplyFilters"
+                           FullWidth="true">
+                    @TranslationService.GetTranslation("common.filter", "Filtra")
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
 
- <!-- Pagination -->
- @if (_pagedResult != null && _pagedResult.TotalPages >1)
- {
- <MudDivider Class="my-4" />
- <MudPagination Count="_pagedResult.TotalPages" 
- Selected="_currentPage" 
- Color="Color.Primary"
- Size="Size.Medium"
- ShowFirstButton="true"
- ShowLastButton="true"
- SelectedChanged="@OnPageChanged" />
- }
- </MudPaper>
+    <!-- Lots Table -->
+    <MudPaper Elevation="1" Class="pa-4">
+        <MudTable Items="@_lots" 
+                  Hover="true" 
+                  Striped="true" 
+                  Loading="_isLoading"
+                  LoadingProgressColor="Color.Info">
+            <HeaderContent>
+                <MudTh>@TranslationService.GetTranslation("warehouse.lotCode", "Codice Lotto")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("warehouse.product", "Prodotto")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("warehouse.status", "Stato")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("warehouse.qualityStatus", "Qualità")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("warehouse.originalQuantity", "Quantità Originale")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("warehouse.availableQuantity", "Disponibile")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("warehouse.expiryDate", "Data Scadenza")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Code">
+                    <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.Code</MudText>
+                    @if (!string.IsNullOrEmpty(context.Barcode))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Barcode</MudText>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Product">
+                    <MudText Typo="Typo.body2">@context.ProductName</MudText>
+                    @if (!string.IsNullOrEmpty(context.ProductCode))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ProductCode</MudText>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Status">
+                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+                        @TranslationService.GetTranslation($"warehouse.{context.Status.ToLower()}", context.Status)
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Quality">
+                    <MudChip T="string" Size="Size.Small" Color="@GetQualityStatusColor(context.QualityStatus)">
+                        @TranslationService.GetTranslation($"warehouse.{context.QualityStatus.ToLower()}", context.QualityStatus)
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Original">@context.OriginalQuantity.ToString("N2")</MudTd>
+                <MudTd DataLabel="Available">@context.AvailableQuantity.ToString("N2")</MudTd>
+                <MudTd DataLabel="Expiry">
+                    @if (context.ExpiryDate.HasValue)
+                    {
+                        var daysToExpiry = (context.ExpiryDate.Value - DateTime.Now).Days;
+                        <MudText Typo="Typo.body2" Color="@(daysToExpiry <= 30 ? Color.Warning : Color.Default)">
+                            @context.ExpiryDate.Value.ToString("dd/MM/yyyy")
+                        </MudText>
+                        @if (daysToExpiry <= 30 && daysToExpiry > 0)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Warning">
+                                @TranslationService.GetTranslation("warehouse.expireInDays", "{0} giorni", daysToExpiry)
+                            </MudText>
+                        }
+                        else if (daysToExpiry <= 0)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Error">
+                                @TranslationService.GetTranslation("warehouse.expired", "Scaduto")
+                            </MudText>
+                        }
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">-</MudText>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Actions">
+                    <MudButtonGroup Variant="Variant.Text" Size="Size.Small">
+                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
+                                       Color="Color.Primary" 
+                                       Size="Size.Small"
+                                       OnClick="@(() => OpenEditDialog(context))" />
+                        <MudIconButton Icon="@Icons.Material.Outlined.Block" 
+                                       Color="Color.Error" 
+                                       Size="Size.Small"
+                                       OnClick="@(() => BlockLot(context))"
+                                       Disabled="@(context.Status == "Blocked")" />
+                        <MudIconButton Icon="@Icons.Material.Outlined.Info" 
+                                       Color="Color.Info" 
+                                       Size="Size.Small"
+                                       OnClick="@(() => ViewDetails(context))" />
+                    </MudButtonGroup>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Align="Align.Center" Color="Color.Secondary">
+                    @TranslationService.GetTranslation("common.noRecords", "Nessun record trovato")
+                </MudText>
+            </NoRecordsContent>
+        </MudTable>
+
+        <!-- Pagination -->
+        @if (_pagedResult != null && _pagedResult.TotalPages > 1)
+        {
+            <MudDivider Class="my-4" />
+            <MudPagination Count="_pagedResult.TotalPages" 
+                           Selected="_currentPage" 
+                           Color="Color.Primary"
+                           Size="Size.Medium"
+                           ShowFirstButton="true"
+                           ShowLastButton="true"
+                           SelectedChanged="@OnPageChanged" />
+        }
+    </MudPaper>
 </MudContainer>
 
 @code {
- private bool _isLoading = true;
- private string _searchText = string.Empty;
- private string? _selectedStatus;
- private string? _selectedQualityStatus;
- 
- private PagedResult<LotDto>? _pagedResult;
- private List<LotDto> _lots = new();
- private int _currentPage =1;
- private int _pageSize =20;
- 
- // Statistics
- private int _totalCount =0;
- private int _activeLotCount =0;
- private int _expiringLotCount =0;
- private int _blockedLotCount =0;
+    private bool _isLoading = true;
+    private string _searchText = string.Empty;
+    private string? _selectedStatus;
+    private string? _selectedQualityStatus;
+    
+    private PagedResult<LotDto>? _pagedResult;
+    private List<LotDto> _lots = new();
+    private int _currentPage = 1;
+    private int _pageSize = 20;
+    
+    // Statistics
+    private int _totalCount = 0;
+    private int _activeLotCount = 0;
+    private int _expiringLotCount = 0;
+    private int _blockedLotCount = 0;
 
- protected override async Task OnInitializedAsync()
- {
- await LoadData();
- await LoadStatistics();
- }
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+        await LoadStatistics();
+    }
 
- private async Task LoadData()
- {
- try
- {
- _isLoading = true;
- 
- _pagedResult = await LotService.GetLotsAsync(_currentPage, _pageSize, null, _selectedStatus);
- if (_pagedResult != null)
- {
- _lots = _pagedResult.Items.ToList();
- _totalCount = (int)_pagedResult.TotalCount;
- }
- }
- catch (Exception ex)
- {
- Logger.LogError(ex, "Error loading lots");
- Snackbar.Add(TranslationService.GetTranslation("common.errorLoading", "Errore nel caricamento"), Severity.Error);
- }
- finally
- {
- _isLoading = false;
- }
- }
+    private async Task LoadData()
+    {
+        try
+        {
+            _isLoading = true;
+            
+            _pagedResult = await LotService.GetLotsAsync(_currentPage, _pageSize, null, _selectedStatus);
+            if (_pagedResult != null)
+            {
+                _lots = _pagedResult.Items.ToList();
+                _totalCount = (int)_pagedResult.TotalCount;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading lots");
+            Snackbar.Add(TranslationService.GetTranslation("common.errorLoading", "Errore nel caricamento"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
 
- private async Task LoadStatistics()
- {
- try
- {
- // Load active lots
- var activeLots = await LotService.GetLotsAsync(1,1000, null, "Active");
- _activeLotCount = (int)(activeLots?.TotalCount ??0);
+    private async Task LoadStatistics()
+    {
+        try
+        {
+            // Load active lots
+            var activeLots = await LotService.GetLotsAsync(1, 1000, null, "Active");
+            _activeLotCount = (int)(activeLots?.TotalCount ?? 0);
 
- // Load blocked lots  
- var blockedLots = await LotService.GetLotsAsync(1,1000, null, "Blocked");
- _blockedLotCount = (int)(blockedLots?.TotalCount ??0);
+            // Load blocked lots  
+            var blockedLots = await LotService.GetLotsAsync(1, 1000, null, "Blocked");
+            _blockedLotCount = (int)(blockedLots?.TotalCount ?? 0);
 
- // Load expiring lots
- var expiringLots = await LotService.GetExpiringLotsAsync(30);
- _expiringLotCount = expiringLots?.Count() ??0;
- }
- catch (Exception ex)
- {
- Logger.LogError(ex, "Error loading statistics");
- }
- }
+            // Load expiring lots
+            var expiringLots = await LotService.GetExpiringLotsAsync(30);
+            _expiringLotCount = expiringLots?.Count() ?? 0;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading statistics");
+        }
+    }
 
- private async Task RefreshData()
- {
- await LoadData();
- await LoadStatistics();
- Snackbar.Add(TranslationService.GetTranslation("common.refreshed", "Dati aggiornati"), Severity.Success);
- }
+    private async Task RefreshData()
+    {
+        await LoadData();
+        await LoadStatistics();
+        Snackbar.Add(TranslationService.GetTranslation("common.refreshed", "Dati aggiornati"), Severity.Success);
+    }
 
- private async Task ApplyFilters()
- {
- _currentPage =1;
- await LoadData();
- }
+    private async Task ApplyFilters()
+    {
+        _currentPage = 1;
+        await LoadData();
+    }
 
- private async Task OnPageChanged(int page)
- {
- _currentPage = page;
- await LoadData();
- }
+    private async Task OnPageChanged(int page)
+    {
+        _currentPage = page;
+        await LoadData();
+    }
 
- private async Task OnSearchKeyUp(KeyboardEventArgs e)
- {
- if (e.Key == "Enter")
- {
- await ApplyFilters();
- }
- }
+    private async Task OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await ApplyFilters();
+        }
+    }
 
- private async Task ShowExpiringLots()
- {
- _selectedStatus = null;
- await LoadData();
- // TODO: Filter for expiring lots
- }
+    private async Task ShowExpiringLots()
+    {
+        _selectedStatus = null;
+        await LoadData();
+        // TODO: Filter for expiring lots
+    }
 
- private void OpenCreateDialog()
- {
- // TODO: Implement create dialog
- Snackbar.Add(TranslationService.GetTranslation("common.notImplemented", "Funzionalità non ancora implementata"), Severity.Info);
- }
+    private void OpenCreateDialog()
+    {
+        // TODO: Implement create dialog
+        Snackbar.Add(TranslationService.GetTranslation("common.notImplemented", "Funzionalità non ancora implementata"), Severity.Info);
+    }
 
- private void OpenEditDialog(LotDto lot)
- {
- // TODO: Implement edit dialog
- Snackbar.Add(TranslationService.GetTranslation("common.notImplemented", "Funzionalità non ancora implementata"), Severity.Info);
- }
+    private void OpenEditDialog(LotDto lot)
+    {
+        // TODO: Implement edit dialog
+        Snackbar.Add(TranslationService.GetTranslation("common.notImplemented", "Funzionalità non ancora implementata"), Severity.Info);
+    }
 
- private async Task BlockLot(LotDto lot)
- {
- // TODO: Implement block dialog with reason
- var result = await LotService.BlockLotAsync(lot.Id, "Blocked via UI");
- if (result)
- {
- Snackbar.Add(TranslationService.GetTranslation("warehouse.lotBlocked", "Lotto bloccato"), Severity.Success);
- await RefreshData();
- }
- else
- {
- Snackbar.Add(TranslationService.GetTranslation("common.error", "Errore"), Severity.Error);
- }
- }
+    private async Task BlockLot(LotDto lot)
+    {
+        // TODO: Implement block dialog with reason
+        var result = await LotService.BlockLotAsync(lot.Id, "Blocked via UI");
+        if (result)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.lotBlocked", "Lotto bloccato"), Severity.Success);
+            await RefreshData();
+        }
+        else
+        {
+            Snackbar.Add(TranslationService.GetTranslation("common.error", "Errore"), Severity.Error);
+        }
+    }
 
- private void ViewDetails(LotDto lot)
- {
- // TODO: Navigate to lot details page
- NavigationManager.NavigateTo($"/warehouse/lots/{lot.Id}");
- }
+    private void ViewDetails(LotDto lot)
+    {
+        // TODO: Navigate to lot details page
+        NavigationManager.NavigateTo($"/warehouse/lots/{lot.Id}");
+    }
 
- private Color GetStatusColor(string status) => status switch
- {
- "Active" => Color.Success,
- "Blocked" => Color.Error,
- "Expired" => Color.Warning,
- "Recalled" => Color.Error,
- _ => Color.Default
- };
+    private Color GetStatusColor(string status) => status switch
+    {
+        "Active" => Color.Success,
+        "Blocked" => Color.Error,
+        "Expired" => Color.Warning,
+        "Recalled" => Color.Error,
+        _ => Color.Default
+    };
 
- private Color GetQualityStatusColor(string qualityStatus) => qualityStatus switch
- {
- "Approved" => Color.Success,
- "Rejected" => Color.Error,
- "Pending" => Color.Warning,
- "OnHold" => Color.Info,
- _ => Color.Default
- };
+    private Color GetQualityStatusColor(string qualityStatus) => qualityStatus switch
+    {
+        "Approved" => Color.Success,
+        "Rejected" => Color.Error,
+        "Pending" => Color.Warning,
+        "OnHold" => Color.Info,
+        _ => Color.Default
+    };
 }
