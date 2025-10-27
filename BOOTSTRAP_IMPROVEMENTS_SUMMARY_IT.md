@@ -50,11 +50,30 @@ Verifica sistematica di tutte le entità create durante il bootstrap:
 **Soluzione**: 
 - Implementato wrapping transazionale in `EntitySeeder.SeedTenantBaseEntitiesAsync`
 - Rollback automatico in caso di errore
+- Commit e dispose automatici al termine
 - Gestione speciale per database InMemory (che non supporta transazioni)
 
 ```csharp
 var isInMemory = _dbContext.Database.ProviderName?.Contains("InMemory") ?? false;
 var transaction = isInMemory ? null : await _dbContext.Database.BeginTransactionAsync();
+
+try
+{
+    // Operazioni di seeding...
+    
+    // Commit transaction se esiste
+    if (transaction != null)
+    {
+        await transaction.CommitAsync(cancellationToken);
+    }
+}
+finally
+{
+    if (transaction != null)
+    {
+        await transaction.DisposeAsync();
+    }
+}
 ```
 
 ### 2. Controlli di Esistenza a Livello Collezione ❌ → ✅
@@ -212,12 +231,14 @@ Bootstrap process completed successfully
 ### Dopo
 ```
 Found 3 existing tenants. Checking if base entities need to be seeded...
-Tenant abc-123 (Azienda A) is missing base entities (VatNatures:false, VatRates:true, UMs:true, Warehouses:false). Seeding now...
+Tenant abc-123 (Azienda A) is missing base entities (VatNatures:false, VatRates:false, UMs:true, Warehouses:false). Seeding now...
 Added 24 new VAT natures for tenant abc-123
 Successfully seeded base entities for tenant abc-123 (Azienda A)
 === Bootstrap process completed successfully ===
 Bootstrap Summary: 3 tenants, 5 users, 2 licenses
 ```
+
+**Nota**: I valori booleani indicano se il tipo di entità ESISTE (true) o è MANCANTE (false). Nell'esempio, le Nature IVA e i Magazzini sono mancanti (false) e verranno creati.
 
 ## Validazione e Test
 
@@ -237,14 +258,31 @@ Bootstrap Summary: 3 tenants, 5 users, 2 licenses
 ## Entità Bootstrap per Tenant
 
 ### Nature IVA (24 codici)
-Tutti i codici previsti dalla normativa italiana:
-- N1: Escluse ex art. 15
-- N2, N2.1, N2.2: Non soggette
-- N3, N3.1-N3.6: Non imponibili (esportazioni, intracomunitarie, ecc.)
-- N4: Esenti
-- N5: Regime del margine
-- N6, N6.1-N6.9: Inversione contabile (reverse charge)
-- N7: IVA assolta in altro stato UE
+Tutti i codici previsti dalla normativa italiana (elenco completo):
+- **N1**: Escluse ex art. 15
+- **N2**: Non soggette
+- **N2.1**: Non soggette - Cessioni senza presupposto territoriale
+- **N2.2**: Non soggette - Altre operazioni
+- **N3**: Non imponibili
+- **N3.1**: Non imponibili - Esportazioni
+- **N3.2**: Non imponibili - Cessioni intracomunitarie
+- **N3.3**: Non imponibili - Cessioni verso San Marino
+- **N3.4**: Non imponibili - Operazioni assimilate
+- **N3.5**: Non imponibili - Altre operazioni
+- **N3.6**: Non imponibili - Altre operazioni non imponibili
+- **N4**: Esenti
+- **N5**: Regime del margine
+- **N6**: Inversione contabile
+- **N6.1**: Inversione contabile - Cessioni di rottami
+- **N6.2**: Inversione contabile - Cessioni di oro e argento
+- **N6.3**: Inversione contabile - Subappalto
+- **N6.4**: Inversione contabile - Cessioni di fabbricati
+- **N6.5**: Inversione contabile - Cessioni di telefoni cellulari
+- **N6.6**: Inversione contabile - Cessioni di prodotti elettronici
+- **N6.7**: Inversione contabile - Prestazioni settore edile
+- **N6.8**: Inversione contabile - Operazioni settore energetico
+- **N6.9**: Inversione contabile - Altri casi
+- **N7**: IVA assolta in altro stato UE
 
 ### Aliquote IVA (5 aliquote)
 Aliquote IVA italiane standard:
@@ -342,9 +380,9 @@ Il bootstrap può essere eseguito più volte in sicurezza:
    - Riepilogo bootstrap con conteggi
 
 ### Linee di Codice
-- **Aggiunte**: ~350 linee
-- **Modificate**: ~120 linee
-- **Totale**: ~470 linee modificate
+- **Aggiunte**: ~350 linee (nuovo codice)
+- **Modificate**: ~120 linee (codice esistente refactorizzato)
+- **Note**: Queste metriche rappresentano modifiche distinte - il totale include sia nuovo codice che refactoring di codice esistente.
 
 ## Conclusioni
 
