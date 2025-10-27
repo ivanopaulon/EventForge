@@ -43,7 +43,7 @@
 @media (prefers-reduced-motion: reduce) {
     .walkthrough-highlight-element {
         animation: none !important;
-        outline: 3px solid rgba(33, 150, 243, 0.7);
+        outline: 4px solid rgba(33, 150, 243, 0.9);
         outline-offset: 2px;
     }
 }
