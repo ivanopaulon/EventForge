@@ -178,9 +178,9 @@
 
                     <MudItem xs="12" md="6">
                         <MudSwitch @bind-Value="_facility.IsFiscal"
+                                   @bind-Value:after="@(() => MarkChanged())"
                                    Label="@TranslationService.GetTranslation("drawer.field.magazzinoFiscale", "Magazzino Fiscale")"
                                    Color="Color.Primary"
-                                   OnBlur="@(() => MarkChanged())"
                                    aria-describedby="fiscal-help" />
                         <MudText id="fiscal-help" Typo="Typo.caption" Class="mud-input-helper-text">
                             @TranslationService.GetTranslation("drawer.helperText.magazzinoFiscale", "Se il magazzino è fiscale")
@@ -189,9 +189,9 @@
 
                     <MudItem xs="12" md="6">
                         <MudSwitch @bind-Value="_facility.IsRefrigerated"
+                                   @bind-Value:after="@(() => MarkChanged())"
                                    Label="@TranslationService.GetTranslation("drawer.field.magazzinoRefrigerato", "Magazzino Refrigerato")"
                                    Color="Color.Primary"
-                                   OnBlur="@(() => MarkChanged())"
                                    aria-describedby="refrigerated-help" />
                         <MudText id="refrigerated-help" Typo="Typo.caption" Class="mud-input-helper-text">
                             @TranslationService.GetTranslation("drawer.helperText.magazzinoRefrigerato", "Se il magazzino è refrigerato")
