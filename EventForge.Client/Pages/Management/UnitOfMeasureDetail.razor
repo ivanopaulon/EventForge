@@ -1,0 +1,348 @@
+@page "/settings/unit-of-measures/new"
+@page "/settings/unit-of-measures/{UnitId:guid}"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.UnitOfMeasures
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@attribute [Authorize]
+@inject IUMService UMService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<UnitOfMeasureDetail> Logger
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    @if (_isLoading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else if (_unit == null && !_isCreateMode)
+    {
+        <MudAlert Severity="Severity.Error">
+            @TranslationService.GetTranslation("um.notFound", "Unità di misura non trovata")
+        </MudAlert>
+    }
+    else
+    {
+        <!-- Page Header -->
+        <MudPaper Elevation="2" Class="pa-4 mb-4">
+            <div class="d-flex justify-space-between align-center">
+                <div>
+                    <div class="d-flex align-center gap-2 mb-2">
+                        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
+                                       Color="Color.Primary"
+                                       OnClick="@(() => TryNavigateAway("/settings/unit-of-measures"))"
+                                       Size="Size.Small" />
+                        <MudText Typo="Typo.h4">
+                            <MudIcon Icon="@Icons.Material.Outlined.Straighten" Class="mr-2" />
+                            @(_isCreateMode ? TranslationService.GetTranslation("um.createNew", "Crea Nuova Unità di Misura") : _unit?.Name)
+                        </MudText>
+
+                        @if (!_isCreateMode && _unit != null && _unit.IsDefault)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success">
+                                @TranslationService.GetTranslation("status.defaultUnit", "Unità Predefinita")
+                            </MudChip>
+                        }
+
+                        @if (HasUnsavedChanges())
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">
+                                @TranslationService.GetTranslation("um.unsavedChanges", "Modifiche non salvate")
+                            </MudChip>
+                        }
+                    </div>
+                    @if (!_isCreateMode && _unit != null)
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                            @TranslationService.GetTranslation("field.symbol", "Simbolo"): @_unit.Symbol | 
+                            @TranslationService.GetTranslation("field.createdAt", "Creato il"): @_unit.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                        </MudText>
+                    }
+                </div>
+                <div class="d-flex gap-2">
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Primary" 
+                               StartIcon="@Icons.Material.Filled.Save"
+                               OnClick="SaveUnitAsync"
+                               Disabled="_isSaving"
+                               Size="Size.Small">
+                        @TranslationService.GetTranslation("common.save", "Salva")
+                    </MudButton>
+                </div>
+            </div>
+        </MudPaper>
+
+        <!-- Form Section -->
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudForm @ref="_form">
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="UnitName"
+                                      Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
+                                      MaxLength="50"
+                                      Immediate="true"
+                                      OnBlur="@(() => MarkChanged())"
+                                      aria-describedby="name-help" />
+                        <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("drawer.helperText.umName", "Nome dell'unità di misura (es. Kilogrammo, Litro, Pezzo)")
+                        </MudText>
+                    </MudItem>
+                    
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="UnitSymbol"
+                                      Label="@($"{TranslationService.GetTranslation("field.symbol", "Simbolo")} *")"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="@TranslationService.GetTranslation("validation.symbolRequired", "Il simbolo è obbligatorio")"
+                                      MaxLength="10"
+                                      Immediate="true"
+                                      Disabled="@(!_isCreateMode)"
+                                      OnBlur="@(() => MarkChanged())"
+                                      aria-describedby="symbol-help" />
+                        <MudText id="symbol-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("drawer.helperText.umSymbol", "Simbolo dell'unità (es. kg, l, pz) - Non modificabile dopo la creazione")
+                        </MudText>
+                    </MudItem>
+                    
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="UnitDescription"
+                                      Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                                      Variant="Variant.Outlined"
+                                      Lines="3"
+                                      MaxLength="200"
+                                      OnBlur="@(() => MarkChanged())"
+                                      aria-describedby="description-help" />
+                        <MudText id="description-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("drawer.helperText.umDescription", "Descrizione opzionale dell'unità di misura")
+                        </MudText>
+                    </MudItem>
+                    
+                    <MudItem xs="12">
+                        <MudSwitch @bind-Value="UnitIsDefault"
+                                   Label="@TranslationService.GetTranslation("field.isDefault", "Unità Predefinita")"
+                                   Color="Color.Primary"
+                                   OnBlur="@(() => MarkChanged())"
+                                   aria-describedby="default-help" />
+                        <MudText id="default-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("drawer.helperText.umIsDefault", "Imposta come unità di misura predefinita")
+                        </MudText>
+                    </MudItem>
+                    
+                    @if (!_isCreateMode && _unit != null)
+                    {
+                        <MudItem xs="12" md="6">
+                            <MudTextField Value="@_unit.Id.ToString()"
+                                          Label="@TranslationService.GetTranslation("field.id", "ID")"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="true"
+                                          aria-label="@TranslationService.GetTranslation("drawer.aria.unitId", "Identificativo unità")" />
+                        </MudItem>
+                        
+                        @if (_unit.ModifiedAt.HasValue)
+                        {
+                            <MudItem xs="12" md="6">
+                                <MudTextField Value="@_unit.ModifiedAt.Value.ToString("dd/MM/yyyy HH:mm")"
+                                              Label="@TranslationService.GetTranslation("drawer.field.dataModifica", "Data Modifica")"
+                                              Variant="Variant.Outlined"
+                                              ReadOnly="true"
+                                              aria-label="@TranslationService.GetTranslation("drawer.aria.dataModifica", "Data ultima modifica")" />
+                            </MudItem>
+                        }
+                    }
+                </MudGrid>
+            </MudForm>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public Guid? UnitId { get; set; }
+
+    private UMDto? _unit;
+    private bool _isLoading = true;
+    private bool _isCreateMode => UnitId == null || UnitId == Guid.Empty;
+    private bool _isSaving = false;
+    private MudForm? _form;
+
+    // Snapshot for unsaved detection
+    private string _originalUnitSnapshot = string.Empty;
+    private bool _hasLocalChanges = false;
+
+    // Bound properties
+    private string UnitName
+    {
+        get => _unit?.Name ?? string.Empty;
+        set { if (_unit != null) _unit.Name = value; }
+    }
+
+    private string UnitSymbol
+    {
+        get => _unit?.Symbol ?? string.Empty;
+        set { if (_unit != null) _unit.Symbol = value; }
+    }
+
+    private string? UnitDescription
+    {
+        get => _unit?.Description;
+        set { if (_unit != null) _unit.Description = value; }
+    }
+
+    private bool UnitIsDefault
+    {
+        get => _unit?.IsDefault ?? false;
+        set { if (_unit != null) _unit.IsDefault = value; }
+    }
+
+    private static readonly System.Text.Json.JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUnitAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_unit?.Id != UnitId)
+            await LoadUnitAsync();
+    }
+
+    private async Task LoadUnitAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            if (_isCreateMode)
+            {
+                _unit = new UMDto { Name = string.Empty, Symbol = string.Empty };
+                _originalUnitSnapshot = SerializeUnit(_unit);
+            }
+            else if (UnitId.HasValue)
+            {
+                var unit = await UMService.GetUMByIdAsync(UnitId.Value);
+                _unit = unit;
+
+                if (_unit != null)
+                {
+                    _originalUnitSnapshot = SerializeUnit(_unit);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading unit of measure {UnitId}", UnitId);
+            Snackbar.Add(TranslationService.GetTranslation("um.loadError", "Errore nel caricamento dell'unità di misura"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            _hasLocalChanges = false;
+        }
+    }
+
+    private async Task SaveUnitAsync()
+    {
+        if (_unit == null || _form == null) return;
+
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _isSaving = true;
+        try
+        {
+            if (_isCreateMode)
+            {
+                var createDto = new CreateUMDto
+                {
+                    Name = _unit.Name,
+                    Symbol = _unit.Symbol,
+                    Description = _unit.Description,
+                    IsDefault = _unit.IsDefault
+                };
+
+                var created = await UMService.CreateUMAsync(createDto);
+                Snackbar.Add(TranslationService.GetTranslation("um.createSuccess", "Unità di misura creata con successo"), Severity.Success);
+                
+                // Navigate to edit page for the newly created unit
+                NavigationManager.NavigateTo($"/settings/unit-of-measures/{created.Id}");
+            }
+            else if (UnitId.HasValue)
+            {
+                var updateDto = new UpdateUMDto
+                {
+                    Name = _unit.Name,
+                    Description = _unit.Description,
+                    IsDefault = _unit.IsDefault
+                };
+
+                await UMService.UpdateUMAsync(UnitId.Value, updateDto);
+                Snackbar.Add(TranslationService.GetTranslation("um.updateSuccess", "Unità di misura aggiornata con successo"), Severity.Success);
+                await LoadUnitAsync(); // Refresh and reset snapshot
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving unit of measure");
+            Snackbar.Add(TranslationService.GetTranslation("um.saveError", "Errore nel salvataggio dell'unità di misura"), Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void MarkChanged()
+    {
+        _hasLocalChanges = true;
+        StateHasChanged();
+    }
+
+    private string SerializeUnit(UMDto? u)
+    {
+        if (u == null) return string.Empty;
+        return System.Text.Json.JsonSerializer.Serialize(u, _jsonOptions);
+    }
+
+    private bool HasUnsavedChanges()
+    {
+        if (_unit == null) return false;
+        if (_hasLocalChanges) return true;
+        var current = SerializeUnit(_unit);
+        return !string.Equals(current, _originalUnitSnapshot, StringComparison.Ordinal);
+    }
+
+    private async Task TryNavigateAway(string target)
+    {
+        if (!HasUnsavedChanges())
+        {
+            NavigationManager.NavigateTo(target);
+            return;
+        }
+
+        var title = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var message = TranslationService.GetTranslation("um.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?");
+        var saveText = TranslationService.GetTranslation("common.save", "Salva");
+        var discardText = TranslationService.GetTranslation("common.discard", "Non salvare");
+        var cancelText = TranslationService.GetTranslation("common.cancel", "Annulla");
+
+        var result = await DialogService.ShowMessageBox(title, message, yesText: saveText, noText: discardText, cancelText: cancelText);
+
+        if (result == true)
+        {
+            await SaveUnitAsync();
+            NavigationManager.NavigateTo(target);
+        }
+        else if (result == false)
+        {
+            NavigationManager.NavigateTo(target);
+        }
+    }
+}

@@ -82,7 +82,7 @@
                                            CreateTooltip="@TranslationService.GetTranslation("um.createNew", "Crea nuova unità di misura")"
                                            IsDisabled="_isLoadingUMs"
                                            OnRefresh="@LoadUMsAsync"
-                                           OnCreate="@OpenCreateUMDrawer" />
+                                           OnCreate="@CreateUM" />
                     </CardHeaderActions>
                 </MudCardHeader>
                 <MudCardContent Class="pa-1">
@@ -160,13 +160,12 @@
                                 <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
                                     <ActionButtonGroup EntityName="@context.Name"
                                                       ItemDisplayName="@context.Name"
-                                                      ShowView="true"
+                                                      ShowView="false"
                                                       ShowEdit="true"
                                                       ShowAuditLog="true"
                                                       ShowToggleStatus="true"
                                                       ShowDelete="true"
                                                       IsActive="@context.IsActive"
-                                                      OnView="@(() => ViewUM(context))"
                                                       OnEdit="@(() => EditUM(context))"
                                                       OnAuditLog="@(() => ViewUMAuditLog(context))"
                                                       OnToggleStatus="@(() => ToggleUMStatus(context))"
@@ -195,7 +194,7 @@
                                         <MudButton Variant="Variant.Filled" 
                                                    Color="Color.Primary" 
                                                    StartIcon="@Icons.Material.Outlined.Add"
-                                                   OnClick="@OpenCreateUMDrawer">
+                                                   OnClick="@CreateUM">
                                             @TranslationService.GetTranslation("um.createFirst", "Crea la prima unità di misura")
                                         </MudButton>
                                     }
@@ -211,14 +210,6 @@
             </MudPaper>
         </MudPaper>
 
-        <!-- Unit of Measure Drawer -->
-        <UMDrawer @bind-IsOpen="@_umDrawerOpen"
-                  @bind-Mode="@_umDrawerMode"
-                  OriginalUM="@_selectedUM"
-                  AllowEdit="true"
-                  OnUMCreated="@OnUMCreated"
-                  OnUMUpdated="@OnUMUpdated" />
-
         <!-- Audit History Drawer -->
         <AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
                             EntityType="UM"
@@ -233,12 +224,9 @@
     private bool _isLoadingUMs = false;
     
     // Drawer states
-    private bool _umDrawerOpen = false;
     private bool _auditDrawerOpen = false;
     
     // Drawer management
-    private EntityDrawerMode _umDrawerMode = EntityDrawerMode.Create;
-    private UMDto? _selectedUM;
     private UMDto? _selectedUMForAudit;
     
     // Filter and search state
@@ -337,47 +325,14 @@
         StateHasChanged();
     }
 
-    private async Task OpenCreateUMDrawer()
+    private void CreateUM()
     {
-        _umDrawerMode = EntityDrawerMode.Create;
-        _selectedUM = null;
-        _umDrawerOpen = true;
-        await Task.CompletedTask;
+        NavigationManager.NavigateTo("/settings/unit-of-measures/new");
     }
 
-    private async Task OnUMCreated(UMDto newUM)
+    private void EditUM(UMDto um)
     {
-        _unitOfMeasures.Add(newUM);
-        _unitOfMeasures = _unitOfMeasures.OrderBy(um => um.Name).ToList();
-        StateHasChanged();
-        await Task.CompletedTask;
-    }
-
-    private async Task OnUMUpdated(UMDto updatedUM)
-    {
-        var index = _unitOfMeasures.FindIndex(um => um.Id == updatedUM.Id);
-        if (index >= 0)
-        {
-            _unitOfMeasures[index] = updatedUM;
-        }
-        StateHasChanged();
-        await Task.CompletedTask;
-    }
-
-    private async Task ViewUM(UMDto um)
-    {
-        _umDrawerMode = EntityDrawerMode.View;
-        _selectedUM = um;
-        _umDrawerOpen = true;
-        await Task.CompletedTask;
-    }
-
-    private async Task EditUM(UMDto um)
-    {
-        _umDrawerMode = EntityDrawerMode.Edit;
-        _selectedUM = um;
-        _umDrawerOpen = true;
-        await Task.CompletedTask;
+        NavigationManager.NavigateTo($"/settings/unit-of-measures/{um.Id}");
     }
 
     private async Task DeleteUM(UMDto um)
@@ -423,7 +378,6 @@
     /// </summary>
     private async Task ViewUMAuditLog(UMDto um)
     {
-        _umDrawerOpen = false; // Close the UM drawer if open
         _selectedUMForAudit = um;
         _auditDrawerOpen = true;
         await Task.CompletedTask;
