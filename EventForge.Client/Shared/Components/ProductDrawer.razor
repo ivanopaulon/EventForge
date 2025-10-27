@@ -83,6 +83,7 @@
                 <MudSelect @bind-Value="_model.Status"
                            Label="@($"{TranslationService.GetTranslation("field.status", "Stato")} *")"
                            Variant="Variant.Outlined"
+                           Class="ef-select"
                            Required="true"
                            aria-describedby="status-help">
                     <MudSelectItem Value="@ProductStatus.Active">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
@@ -132,6 +133,7 @@
                 <MudSelect @bind-Value="_model.VatRateId"
                            Label="@TranslationService.GetTranslation("field.vatRate", "Aliquota IVA")"
                            Variant="Variant.Outlined"
+                           Class="ef-select"
                            Clearable="true"
                            aria-describedby="vatRate-help">
                     @if (_vatRates != null)
@@ -170,6 +172,7 @@
                 <MudSelect @bind-Value="_model.UnitOfMeasureId"
                            Label="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")"
                            Variant="Variant.Outlined"
+                           Class="ef-select"
                            Clearable="true"
                            aria-describedby="um-help">
                     @if (_unitsMeasure != null)
@@ -189,6 +192,7 @@
                 <MudSelect @bind-Value="_model.StationId"
                            Label="@TranslationService.GetTranslation("field.station", "Stazione")"
                            Variant="Variant.Outlined"
+                           Class="ef-select"
                            Clearable="true"
                            aria-describedby="station-help">
                     @if (_stations != null)
@@ -208,6 +212,7 @@
                 <MudSelect @bind-Value="_model.CategoryNodeId"
                            Label="@TranslationService.GetTranslation("field.category", "Categoria")"
                            Variant="Variant.Outlined"
+                           Class="ef-select"
                            Clearable="true"
                            aria-describedby="category-help">
                     @if (_classificationNodes != null)
@@ -227,6 +232,7 @@
                 <MudSelect @bind-Value="_model.FamilyNodeId"
                            Label="@TranslationService.GetTranslation("field.subcategory", "Sottocategoria")"
                            Variant="Variant.Outlined"
+                           Class="ef-select"
                            Clearable="true"
                            aria-describedby="subcategory-help">
                     @if (_classificationNodes != null)
@@ -246,6 +252,7 @@
                 <MudSelect @bind-Value="_model.GroupNodeId"
                            Label="@TranslationService.GetTranslation("field.line", "Linea")"
                            Variant="Variant.Outlined"
+                           Class="ef-select"
                            Clearable="true"
                            aria-describedby="line-help">
                     @if (_classificationNodes != null)
@@ -276,6 +283,7 @@
                            ValueChanged="@OnBrandChanged"
                            Label="@TranslationService.GetTranslation("field.brand", "Marchio")"
                            Variant="Variant.Outlined"
+                           Class="ef-select"
                            Clearable="true"
                            aria-describedby="brand-help">
                     @if (_brands != null)
@@ -295,6 +303,7 @@
                 <MudSelect @bind-Value="_model.ModelId"
                            Label="@TranslationService.GetTranslation("field.model", "Modello")"
                            Variant="Variant.Outlined"
+                           Class="ef-select"
                            Clearable="true"
                            Disabled="@(_model.BrandId == null || _models == null || !_models.Any())"
                            aria-describedby="model-help">
@@ -324,6 +333,7 @@
                 <MudSelect @bind-Value="_model.PreferredSupplierId"
                            Label="@TranslationService.GetTranslation("field.preferredSupplier", "Fornitore Preferito")"
                            Variant="Variant.Outlined"
+                           Class="ef-select"
                            Clearable="true"
                            aria-describedby="supplier-help">
                     @if (_businessParties != null)

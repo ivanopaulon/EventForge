@@ -30,6 +30,7 @@
                            @bind-Value="Product.VatRateId"
                            Label="@TranslationService.GetTranslation("field.vatRate", "Aliquota IVA")"
                            Variant="Variant.Outlined"
+                           Class="ef-select"
                            ReadOnly="@(!IsEditMode)"
                            Clearable="true"
                            @bind-Value:after="NotifyUpdated">

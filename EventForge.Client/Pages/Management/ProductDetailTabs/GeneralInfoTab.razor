@@ -73,6 +73,7 @@
                                    @bind-Value="Product.Status"
                                    Label="@($"{TranslationService.GetTranslation("field.status", "Stato")} *")"
                                    Variant="Variant.Outlined"
+                                   Class="ef-select"
                                    ReadOnly="@(!IsEditMode)"
                                    @bind-Value:after="NotifyUpdated">
                             <MudSelectItem T="ProductStatus" Value="@ProductStatus.Active">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
