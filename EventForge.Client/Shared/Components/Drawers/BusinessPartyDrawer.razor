@@ -931,7 +931,7 @@
         };
         
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<AddReferenceDialog>(
+        var dialog = await DialogService.ShowAsync<ReferenceDialog>(
             TranslationService.GetTranslation("dialog.addReference", "Aggiungi Referente"),
             parameters,
             options
@@ -952,7 +952,7 @@
         };
         
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<EditReferenceDialog>(
+        var dialog = await DialogService.ShowAsync<ReferenceDialog>(
             TranslationService.GetTranslation("dialog.editReference", "Modifica Referente"),
             parameters,
             options

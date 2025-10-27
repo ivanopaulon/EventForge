@@ -3,14 +3,14 @@
 @inject IEntityManagementService EntityManagementService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
-@inject ILogger<EditReferenceDialog> Logger
+@inject ILogger<ReferenceDialog> Logger
 
 <MudDialog>
     <DialogContent>
         <MudForm @ref="_form" @bind-IsValid="@_isValid">
             <MudGrid>
                 <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_model.FirstName"
+                    <MudTextField @bind-Value="_firstName"
                                  Label="@($"{TranslationService.GetTranslation("field.firstName", "Nome")} *")"
                                  Variant="Variant.Outlined"
                                  Required="true"
@@ -18,7 +18,7 @@
                 </MudItem>
                 
                 <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_model.LastName"
+                    <MudTextField @bind-Value="_lastName"
                                  Label="@($"{TranslationService.GetTranslation("field.lastName", "Cognome")} *")"
                                  Variant="Variant.Outlined"
                                  Required="true"
@@ -26,14 +26,14 @@
                 </MudItem>
                 
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="_model.Department"
+                    <MudTextField @bind-Value="_department"
                                  Label="@TranslationService.GetTranslation("field.department", "Dipartimento/Ruolo")"
                                  Variant="Variant.Outlined"
                                  MaxLength="50" />
                 </MudItem>
                 
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="_model.Notes"
+                    <MudTextField @bind-Value="_notes"
                                  Label="@TranslationService.GetTranslation("field.notes", "Note")"
                                  Variant="Variant.Outlined"
                                  Lines="3"
@@ -61,43 +61,92 @@
     [CascadingParameter] 
     private IMudDialogInstance MudDialog { get; set; } = null!;
 
+    // For Add mode
     [Parameter] 
-    public ReferenceDto Reference { get; set; } = null!;
+    public Guid? OwnerId { get; set; }
+
+    [Parameter] 
+    public string? OwnerType { get; set; }
+
+    // For Edit mode
+    [Parameter] 
+    public ReferenceDto? Reference { get; set; }
 
     private MudForm _form = null!;
     private bool _isValid;
     private bool _isProcessing;
-    private UpdateReferenceDto _model = new();
+    private string _firstName = string.Empty;
+    private string _lastName = string.Empty;
+    private string? _department;
+    private string? _notes;
+    private bool _isEditMode;
 
     protected override void OnParametersSet()
     {
         if (Reference != null)
         {
-            _model = new UpdateReferenceDto
-            {
-                FirstName = Reference.FirstName,
-                LastName = Reference.LastName,
-                Department = Reference.Department,
-                Notes = Reference.Notes
-            };
+            // Edit mode
+            _isEditMode = true;
+            _firstName = Reference.FirstName;
+            _lastName = Reference.LastName;
+            _department = Reference.Department;
+            _notes = Reference.Notes;
+        }
+        else
+        {
+            // Add mode
+            _isEditMode = false;
         }
     }
 
     private async Task Submit()
     {
-        if (!_isValid || Reference == null) return;
+        if (!_isValid) return;
 
         try
         {
             _isProcessing = true;
-            await EntityManagementService.UpdateReferenceAsync(Reference.Id, _model);
-            Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornamento completato con successo"), Severity.Success);
+
+            if (_isEditMode && Reference != null)
+            {
+                // Edit mode
+                var updateDto = new UpdateReferenceDto
+                {
+                    FirstName = _firstName,
+                    LastName = _lastName,
+                    Department = _department,
+                    Notes = _notes
+                };
+
+                await EntityManagementService.UpdateReferenceAsync(Reference.Id, updateDto);
+                Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornamento completato con successo"), Severity.Success);
+            }
+            else if (OwnerId.HasValue && !string.IsNullOrEmpty(OwnerType))
+            {
+                // Add mode
+                var createDto = new CreateReferenceDto
+                {
+                    OwnerId = OwnerId.Value,
+                    OwnerType = OwnerType,
+                    FirstName = _firstName,
+                    LastName = _lastName,
+                    Department = _department,
+                    Notes = _notes
+                };
+
+                await EntityManagementService.CreateReferenceAsync(createDto);
+                Snackbar.Add(TranslationService.GetTranslation("messages.createSuccessful", "Creazione completata con successo"), Severity.Success);
+            }
+
             MudDialog.Close(DialogResult.Ok(true));
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to update reference");
-            Snackbar.Add(TranslationService.GetTranslation("messages.updateFailed", "Errore durante l'aggiornamento"), Severity.Error);
+            Logger.LogError(ex, "Failed to {Action} reference", _isEditMode ? "update" : "create");
+            var errorMsg = _isEditMode 
+                ? TranslationService.GetTranslation("messages.updateFailed", "Errore durante l'aggiornamento")
+                : TranslationService.GetTranslation("messages.createFailed", "Errore durante la creazione");
+            Snackbar.Add(errorMsg, Severity.Error);
         }
         finally
         {
