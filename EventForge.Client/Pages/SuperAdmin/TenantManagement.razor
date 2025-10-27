@@ -100,7 +100,7 @@
                                    IsDisabled="_isLoadingTenants"
                                    OnRefresh="@LoadTenantsAsync"
                                    OnExport="@ExportTenants"
-                                   OnCreate="@OpenCreateTenantDrawer" />
+                                   OnCreate="@CreateTenant" />
             </CardHeaderActions>
         </MudCardHeader>
         <MudCardContent Class="pa-1">
@@ -160,14 +160,13 @@
                         <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
                             <ActionButtonGroup EntityName="@context.DisplayName"
                                               ItemDisplayName="@context.DisplayName"
-                                              ShowView="true"
+                                              ShowView="false"
                                               ShowEdit="true"
                                               ShowAuditLog="true"
                                               ShowToggleStatus="true"
                                               ShowDelete="true"
                                               IsActive="@context.IsActive"
-                                              OnView="@(() => ViewTenant(context))"
-                                              OnEdit="@(() => EditTenant(context))"
+                                              OnEdit="@(() => EditTenant(context.Id))"
                                               OnAuditLog="@(() => ViewTenantAuditLog(context))"
                                               OnToggleStatus="@(() => ToggleTenantStatus(context))"
                                               OnDelete="@(() => DeleteTenant(context))" />
@@ -200,14 +199,6 @@
 
 </SuperAdminPageLayout>
 
-<!-- Tenant Management Drawer -->
-<TenantDrawer @bind-IsOpen="_tenantDrawerOpen" 
-              @bind-Mode="_tenantDrawerMode"
-              OriginalTenant="_selectedTenant"
-              AllowEdit="true"
-              OnTenantCreated="@OnTenantCreated"
-              OnTenantUpdated="@OnTenantUpdated" />
-
 <!-- Audit History Drawer -->
 <AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
                     EntityType="Tenant"
@@ -219,16 +210,13 @@
     private bool _isLoading = true;
     private bool _isAuthorized = false;
     private bool _isLoadingTenants = false;
-    private bool _tenantDrawerOpen = false;
     private bool _auditDrawerOpen = false;
     
     // MudCollapse state management (all closed by default as per issue #98)
     private bool _statisticsExpanded = false;      // Closed by default
     private bool _filtersExpanded = false;         // Closed by default
     
-    // Drawer and modal management
-    private EntityDrawerMode _tenantDrawerMode = EntityDrawerMode.Create;
-    private TenantResponseDto? _selectedTenant;
+    // Audit management
     private TenantResponseDto? _selectedTenantForAudit;
     private UserDto? _currentUser;
     
@@ -371,46 +359,14 @@
         await Task.CompletedTask;
     }
 
-    private async Task OpenCreateTenantDrawer()
+    private void CreateTenant()
     {
-        _tenantDrawerMode = EntityDrawerMode.Create;
-        _selectedTenant = null;
-        _tenantDrawerOpen = true;
-        await Task.CompletedTask;
+        NavigationManager.NavigateTo("/superadmin/tenants/new");
     }
 
-    private async Task OnTenantCreated(TenantResponseDto newTenant)
+    private void EditTenant(Guid id)
     {
-        _tenants.Add(newTenant);
-        await LoadTenantStatisticsAsync();
-        StateHasChanged();
-    }
-
-    private async Task OnTenantUpdated(TenantResponseDto updatedTenant)
-    {
-        var index = _tenants.FindIndex(t => t.Id == updatedTenant.Id);
-        if (index >= 0)
-        {
-            _tenants[index] = updatedTenant;
-        }
-        await LoadTenantStatisticsAsync();
-        StateHasChanged();
-    }
-
-    private async Task ViewTenant(TenantResponseDto tenant)
-    {
-        _tenantDrawerMode = EntityDrawerMode.View;
-        _selectedTenant = tenant;
-        _tenantDrawerOpen = true;
-        await Task.CompletedTask;
-    }
-
-    private async Task EditTenant(TenantResponseDto tenant)
-    {
-        _tenantDrawerMode = EntityDrawerMode.Edit;
-        _selectedTenant = tenant;
-        _tenantDrawerOpen = true;
-        await Task.CompletedTask;
+        NavigationManager.NavigateTo($"/superadmin/tenants/{id}");
     }
 
     private async Task ViewTenantAuditLog(TenantResponseDto tenant)
