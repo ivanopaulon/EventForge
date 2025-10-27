@@ -25,6 +25,7 @@
                            @bind-Value="Product.BrandId"
                            Label="@TranslationService.GetTranslation("field.brand", "Marchio")"
                            Variant="Variant.Outlined"
+                           Class="ef-select"
                            ReadOnly="@(!IsEditMode)"
                            Clearable="true"
                            @bind-Value:after="OnBrandChanged">
@@ -43,6 +44,7 @@
                            @bind-Value="Product.ModelId"
                            Label="@TranslationService.GetTranslation("field.model", "Modello")"
                            Variant="Variant.Outlined"
+                           Class="ef-select"
                            ReadOnly="@(!IsEditMode)"
                            Clearable="true"
                            @bind-Value:after="NotifyUpdated">
@@ -61,6 +63,7 @@
                            @bind-Value="Product.UnitOfMeasureId"
                            Label="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")"
                            Variant="Variant.Outlined"
+                           Class="ef-select"
                            ReadOnly="@(!IsEditMode)"
                            Clearable="true"
                            @bind-Value:after="NotifyUpdated">
