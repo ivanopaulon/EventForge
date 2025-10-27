@@ -72,7 +72,7 @@
  CreateTooltip='@TranslationService.GetTranslation("financial.createNewVatNature", "Crea nuova natura IVA")'
  IsDisabled="_isLoadingVatNatures"
  OnRefresh="@LoadVatNaturesAsync"
- OnCreate="@OpenCreateVatNatureDrawer" />
+ OnCreate="@CreateVatNature" />
  </CardHeaderActions>
  </MudCardHeader>
  <MudCardContent Class="pa-1">
@@ -120,13 +120,12 @@
  <MudTd DataLabel='@TranslationService.GetTranslation("common.actions", "Azioni")' Class="text-center">
  <ActionButtonGroup EntityName="@context.Name"
  ItemDisplayName="@context.Name"
- ShowView="true"
+ ShowView="false"
  ShowEdit="true"
  ShowAuditLog="false"
  ShowToggleStatus="false"
  ShowDelete="true"
- OnView="@(() => ViewVatNature(context))"
- OnEdit="@(() => EditVatNature(context))"
+ OnEdit="@(() => EditVatNature(context.Id))"
  OnDelete="@(() => DeleteVatNature(context))" />
  </MudTd>
  </RowTemplate>
@@ -158,25 +157,10 @@
  }
 </MudContainer>
 
-<!-- VAT Nature Management Drawer -->
-<VatNatureDrawer @bind-IsOpen="_vatNatureDrawerOpen" 
- @bind-Mode="_vatNatureDrawerMode"
- OriginalVatNature="_selectedVatNature"
- AllowEdit="true"
- OnVatNatureCreated="@OnVatNatureCreated"
- OnVatNatureUpdated="@OnVatNatureUpdated" />
-
 @code {
  // Loading states
  private bool _isLoading = true;
  private bool _isLoadingVatNatures = false;
- 
- // Drawer states
- private bool _vatNatureDrawerOpen = false;
- 
- // Drawer management
- private EntityDrawerMode _vatNatureDrawerMode = EntityDrawerMode.Create;
- private VatNatureDto? _selectedVatNature;
  
  // Filter and search state
  private string _searchTerm = string.Empty;
@@ -263,53 +247,14 @@
  StateHasChanged();
  }
 
- private async Task OpenCreateVatNatureDrawer()
+ private void CreateVatNature()
  {
- _vatNatureDrawerMode = EntityDrawerMode.Create;
- _selectedVatNature = null;
- _vatNatureDrawerOpen = true;
- await Task.CompletedTask;
+ NavigationManager.NavigateTo("/financial/vat-natures/new");
  }
 
- private async Task OnVatNatureCreated(VatNatureDto newVatNature)
+ private void EditVatNature(Guid id)
  {
- _vatNatures.Add(newVatNature);
- _vatNatures = _vatNatures.OrderBy(vn => vn.Code).ToList();
- StateHasChanged();
- await Task.CompletedTask;
- }
-
- private async Task OnVatNatureUpdated(VatNatureDto updatedVatNature)
- {
- var index = _vatNatures.FindIndex(vn => vn.Id == updatedVatNature.Id);
- if (index >=0)
- {
- _vatNatures[index] = updatedVatNature;
- }
- else
- {
- // If not found, add it
- _vatNatures.Add(updatedVatNature);
- }
-
- _vatNatures = _vatNatures.OrderBy(vn => vn.Code).ToList();
- StateHasChanged();
- await Task.CompletedTask;
- }
-
- private void ViewVatNature(VatNatureDto vatNature)
- {
- _selectedVatNature = vatNature;
- _vatNatureDrawerMode = EntityDrawerMode.View;
- _vatNatureDrawerOpen = true;
- }
-
- private async Task EditVatNature(VatNatureDto vatNature)
- {
- _selectedVatNature = vatNature;
- _vatNatureDrawerMode = EntityDrawerMode.Edit;
- _vatNatureDrawerOpen = true;
- await Task.CompletedTask;
+ NavigationManager.NavigateTo($"/financial/vat-natures/{id}");
  }
 
  private async Task DeleteVatNature(VatNatureDto vatNature)
