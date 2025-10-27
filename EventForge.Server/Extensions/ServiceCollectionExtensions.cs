@@ -1,3 +1,4 @@
+using EventForge.Server.Services.Auth.Seeders;
 using EventForge.Server.Services.Banks;
 using EventForge.Server.Services.Business;
 using EventForge.Server.Services.Chat;
@@ -280,7 +281,13 @@ public static class ServiceCollectionExtensions
         _ = services.AddScoped<IPasswordService, PasswordService>();
         _ = services.AddScoped<IJwtTokenService, JwtTokenService>();
         _ = services.AddScoped<IAuthenticationService, AuthenticationService>();
+        
+        // Register bootstrap and seeder services
         _ = services.AddScoped<IBootstrapService, BootstrapService>();
+        _ = services.AddScoped<IUserSeeder, UserSeeder>();
+        _ = services.AddScoped<ITenantSeeder, TenantSeeder>();
+        _ = services.AddScoped<ILicenseSeeder, LicenseSeeder>();
+        _ = services.AddScoped<IEntitySeeder, EntitySeeder>();
 
         // Register tenant services
         _ = services.AddScoped<ITenantContext, TenantContext>();
