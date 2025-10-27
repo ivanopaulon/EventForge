@@ -11,7 +11,7 @@
     <Actions>
         <MudButton Variant="Variant.Filled" 
                    Color="Color.Primary" 
-                   StartIcon="@Icons.Material.Outlined.Add" 
+                   StartIcon="@Icons.Material.Filled.Add" 
                    OnClick="@OpenCreateDialog">
             @TranslationService.GetTranslation("common.add", "Aggiungi")
         </MudButton>
@@ -47,16 +47,14 @@
                     <MudTd DataLabel="@TranslationService.GetTranslation("field.isPreferred", "Preferito")">
                         @if (context.Preferred)
                         {
-                            <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" />
+                            <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" />
                         }
                     </MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
                         <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                       Size="Size.Small"
                                        Color="Color.Primary"
                                        OnClick="@(() => OpenEditDialog(context))" />
                         <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                       Size="Size.Small"
                                        Color="Color.Error"
                                        OnClick="@(() => DeleteSupplierAsync(context))" />
                     </MudTd>

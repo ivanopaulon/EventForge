@@ -44,8 +44,12 @@
                             </MudTd>
                             <MudTd DataLabel='@TranslationService.GetTranslation("field.quantity", "Quantità")'>@context.Quantity</MudTd>
                             <MudTd DataLabel='@TranslationService.GetTranslation("field.actions", "Azioni")' Style="text-align: right;">
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" OnClick="@(() => OpenEditDialog(context))" />
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteBundleItemAsync(context))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                               Color="Color.Primary" 
+                                               OnClick="@(() => OpenEditDialog(context))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                               Color="Color.Error" 
+                                               OnClick="@(() => DeleteBundleItemAsync(context))" />
                             </MudTd>
                         </RowTemplate>
                     </MudTable>
