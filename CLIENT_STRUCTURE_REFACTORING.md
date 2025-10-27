@@ -130,7 +130,7 @@ Shared/Components/
 └── Sales/
 ```
 
-**Nuova Struttura (Organizzata per Tipologia):**
+**Nuova Struttura (Organizzata per Tipologia - 4 categorie):**
 ```
 Shared/Components/
 ├── Dialogs/                      # 27 componenti - Finestre di dialogo
@@ -316,7 +316,7 @@ dotnet build EventForge.Client/EventForge.Client.csproj
 | File in Management/ root | 23 | 0 | -23 (100%) |
 | Sottocartelle Management/ | 1 | 4 | +3 (300%) |
 | File in Components/ root | 70 | 28 | -42 (60%) |
-| Sottocartelle Components/ | 1 | 3 | +2 (200%) |
+| Sottocartelle Components/ | 1 | 4 | +3 (300%) |
 | Pagine Demo | 2 | 0 | -2 (100%) |
 | Cognitive Load | Alto | Basso | Significativo |
 
@@ -358,7 +358,7 @@ Non è richiesta alcuna migrazione per il codice esistente. I namespace globali 
 ### Version 2.0.0 - Ottobre 2025
 - ✅ Rimossi file demo non utilizzati (LoadingDemo, PerformanceDemo)
 - ✅ Riorganizzato Management/ in 4 domini (Business, Products, Warehouse, Financial)
-- ✅ Riorganizzato Components/ in 3 categorie (Dialogs, Drawers, UI)
+- ✅ Riorganizzato Components/ in 4 categorie (Dialogs, Drawers, Sales, UI generali)
 - ✅ Aggiornati namespace in _Imports.razor
 - ✅ Verificata build e funzionalità
 
