@@ -62,7 +62,9 @@ Questo documento fornisce le istruzioni dettagliate per completare la conversion
                                        Size="Size.Small" />
                         <MudText Typo="Typo.h4">
                             <MudIcon Icon="@Icons.Material.Outlined.Icon" Class="mr-2" />
-                            @(_isCreateMode ? TranslationService.GetTranslation("entity.create", "Crea") : _entity?.Name)
+                            @(_isCreateMode 
+                                ? TranslationService.GetTranslation("entity.create", "Crea") 
+                                : (_entity?.Name ?? TranslationService.GetTranslation("entity.unknown", "Entità")))
                         </MudText>
                         
                         @if (HasUnsavedChanges())
@@ -169,14 +171,24 @@ Questo documento fornisce le istruzioni dettagliate per completare la conversion
         {
             if (_isCreateMode)
             {
-                var createDto = new CreateEntityDto { /* map properties */ };
+                var createDto = new CreateEntityDto 
+                { 
+                    // Map properties from _entity to DTO
+                    // Example: Name = _entity.Name,
+                    //          Description = _entity.Description
+                };
                 var created = await Service.CreateAsync(createDto);
                 Snackbar.Add(TranslationService.GetTranslation("entity.createSuccess", "Creato con successo"), Severity.Success);
                 NavigationManager.NavigateTo($"/route-base/{created.Id}");
             }
             else if (EntityId.HasValue)
             {
-                var updateDto = new UpdateEntityDto { /* map properties */ };
+                var updateDto = new UpdateEntityDto 
+                { 
+                    // Map properties from _entity to DTO
+                    // Example: Name = _entity.Name,
+                    //          Description = _entity.Description
+                };
                 await Service.UpdateAsync(EntityId.Value, updateDto);
                 Snackbar.Add(TranslationService.GetTranslation("entity.updateSuccess", "Aggiornato con successo"), Severity.Success);
                 await LoadEntityAsync();
