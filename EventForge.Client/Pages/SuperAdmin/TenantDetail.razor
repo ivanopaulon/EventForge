@@ -236,7 +236,7 @@
             }
             else if (TenantId.HasValue)
             {
-                var tenant = await SuperAdminService.GetTenantByIdAsync(TenantId.Value);
+                var tenant = await SuperAdminService.GetTenantAsync(TenantId.Value);
                 _tenant = tenant;
                 if (_tenant != null)
                 {
@@ -263,7 +263,7 @@
 
         try
         {
-            var users = await SuperAdminService.GetTenantUsersAsync(_tenant.Id);
+            var users = await SuperAdminService.GetUsersAsync(_tenant.Id);
             _userCount = users?.Count() ?? 0;
         }
         catch (Exception ex)
