@@ -1,0 +1,387 @@
+@page "/financial/vat-rates/new"
+@page "/financial/vat-rates/{VatRateId:guid}"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.VatRates
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@attribute [Authorize]
+@inject IFinancialService FinancialService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<VatRateDetail> Logger
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    @if (_isLoading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else if (_vatRate == null && !_isCreateMode)
+    {
+        <MudAlert Severity="Severity.Error">
+            @TranslationService.GetTranslation("vatRate.notFound", "Aliquota IVA non trovata")
+        </MudAlert>
+    }
+    else
+    {
+        <!-- Page Header -->
+        <MudPaper Elevation="2" Class="pa-4 mb-4">
+            <div class="d-flex justify-space-between align-center">
+                <div>
+                    <div class="d-flex align-center gap-2 mb-2">
+                        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
+                                       Color="Color.Primary"
+                                       OnClick="@(() => TryNavigateAway("/financial/vat-rates"))"
+                                       Size="Size.Small" />
+                        <MudText Typo="Typo.h4">
+                            <MudIcon Icon="@Icons.Material.Outlined.Percent" Class="mr-2" />
+                            @(_isCreateMode 
+                                ? TranslationService.GetTranslation("drawer.title.creaAliquotaIva", "Crea Nuova Aliquota IVA") 
+                                : _vatRate?.Name)
+                        </MudText>
+
+                        @if (HasUnsavedChanges())
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">
+                                @TranslationService.GetTranslation("vatRate.unsavedChanges", "Modifiche non salvate")
+                            </MudChip>
+                        }
+                    </div>
+                    @if (!_isCreateMode && _vatRate != null)
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                            @TranslationService.GetTranslation("field.createdAt", "Creato il"): @_vatRate.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                        </MudText>
+                    }
+                </div>
+                <div class="d-flex gap-2">
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Primary" 
+                               StartIcon="@Icons.Material.Filled.Save"
+                               OnClick="SaveVatRateAsync"
+                               Disabled="_isSaving"
+                               Size="Size.Small">
+                        @TranslationService.GetTranslation("common.save", "Salva")
+                    </MudButton>
+                </div>
+            </div>
+        </MudPaper>
+
+        <!-- Form Section -->
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudForm @ref="_form">
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_vatRate.Name"
+                                      Label="@($"{TranslationService.GetTranslation("drawer.field.nomeAliquotaIva", "Nome Aliquota IVA")} *")"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="@TranslationService.GetTranslation("drawer.error.nomeAliquotaIvaObbligatorio", "Il nome dell'aliquota IVA è obbligatorio")"
+                                      MaxLength="50"
+                                      Immediate="true"
+                                      OnBlur="@(() => MarkChanged())"
+                                      aria-describedby="name-help" />
+                        <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("drawer.helperText.nomeAliquotaIva", "Inserisci il nome dell'aliquota IVA")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudNumericField @bind-Value="_vatRate.Percentage"
+                                         Label="@($"{TranslationService.GetTranslation("drawer.field.percentualeAliquotaIva", "Percentuale")} *")"
+                                         Variant="Variant.Outlined"
+                                         Min="0"
+                                         Max="100"
+                                         Required="true"
+                                         Immediate="true"
+                                         OnBlur="@(() => MarkChanged())"
+                                         aria-describedby="percentage-help" />
+                        <MudText id="percentage-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("drawer.helperText.percentualeAliquotaIva", "Inserisci la percentuale dell'aliquota IVA (0-100)")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudSelect @bind-Value="_vatRate.Status"
+                                   Label="@($"{TranslationService.GetTranslation("drawer.field.stato", "Stato")} *")"
+                                   Variant="Variant.Outlined"
+                                   Required="true"
+                                   OnBlur="@(() => MarkChanged())"
+                                   aria-describedby="status-help">
+                            <MudSelectItem Value="@VatRateStatus.Active">@TranslationService.GetTranslation("drawer.status.attivo", "Attivo")</MudSelectItem>
+                            <MudSelectItem Value="@VatRateStatus.Suspended">@TranslationService.GetTranslation("drawer.status.sospeso", "Sospeso")</MudSelectItem>
+                            <MudSelectItem Value="@VatRateStatus.Deleted">@TranslationService.GetTranslation("drawer.status.eliminato", "Eliminato")</MudSelectItem>
+                        </MudSelect>
+                        <MudText id="status-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("drawer.helperText.statoAliquotaIva", "Stato dell'aliquota IVA")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudDatePicker @bind-Date="_validFrom"
+                                       Label="@TranslationService.GetTranslation("drawer.field.validoDa", "Valido Da")"
+                                       Variant="Variant.Outlined"
+                                       OnBlur="@(() => MarkChanged())"
+                                       aria-describedby="validFrom-help" />
+                        <MudText id="validFrom-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("drawer.helperText.validoDa", "Data di inizio validità")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudDatePicker @bind-Date="_validTo"
+                                       Label="@TranslationService.GetTranslation("drawer.field.validoA", "Valido A")"
+                                       Variant="Variant.Outlined"
+                                       OnBlur="@(() => MarkChanged())"
+                                       aria-describedby="validTo-help" />
+                        <MudText id="validTo-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("drawer.helperText.validoA", "Data di fine validità")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="Guid?" 
+                                   @bind-Value="_vatRate.VatNatureId"
+                                   Label="@TranslationService.GetTranslation("drawer.field.naturaIva", "Natura IVA")"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   OnBlur="@(() => MarkChanged())"
+                                   aria-describedby="vatNature-help">
+                            @foreach (var nature in _vatNatures)
+                            {
+                                <MudSelectItem Value="@((Guid?)nature.Id)">@nature.Code - @nature.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudText id="vatNature-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("drawer.helperText.naturaIva", "Natura IVA per conformità fiscale italiana (opzionale)")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_vatRate.Notes"
+                                      Label="@TranslationService.GetTranslation("drawer.field.note", "Note")"
+                                      Variant="Variant.Outlined"
+                                      Lines="3"
+                                      MaxLength="200"
+                                      OnBlur="@(() => MarkChanged())"
+                                      aria-describedby="notes-help" />
+                        <MudText id="notes-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("drawer.helperText.noteAliquotaIva", "Note aggiuntive")
+                        </MudText>
+                    </MudItem>
+
+                    @if (!_isCreateMode && _vatRate != null)
+                    {
+                        <MudItem xs="12" md="6">
+                            <MudTextField Value="@_vatRate.Id.ToString()"
+                                          Label="@TranslationService.GetTranslation("drawer.field.idAliquotaIva", "ID")"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="true"
+                                          aria-label="@TranslationService.GetTranslation("drawer.aria.identificativoUnico", "Identificativo unico")" />
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudForm>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public Guid? VatRateId { get; set; }
+
+    private VatRateDto? _vatRate;
+    private bool _isLoading = true;
+    private bool _isCreateMode => VatRateId == null || VatRateId == Guid.Empty;
+    private bool _isSaving = false;
+    private MudForm? _form;
+    private DateTime? _validFrom;
+    private DateTime? _validTo;
+    private List<VatNatureDto> _vatNatures = new();
+
+    private string _originalVatRateSnapshot = string.Empty;
+    private bool _hasLocalChanges = false;
+
+    private static readonly System.Text.Json.JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadVatNaturesAsync();
+        await LoadVatRateAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_vatRate?.Id != VatRateId)
+            await LoadVatRateAsync();
+    }
+
+    private async Task LoadVatRateAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            if (_isCreateMode)
+            {
+                _vatRate = new VatRateDto { Status = VatRateStatus.Active, Percentage = 0 };
+                _validFrom = null;
+                _validTo = null;
+                _originalVatRateSnapshot = SerializeVatRate(_vatRate);
+            }
+            else if (VatRateId.HasValue)
+            {
+                var vatRate = await FinancialService.GetVatRateAsync(VatRateId.Value);
+                _vatRate = vatRate;
+                if (_vatRate != null)
+                {
+                    _validFrom = _vatRate.ValidFrom;
+                    _validTo = _vatRate.ValidTo;
+                    _originalVatRateSnapshot = SerializeVatRate(_vatRate);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading VAT rate {VatRateId}", VatRateId);
+            Snackbar.Add(TranslationService.GetTranslation("vatRate.loadError", "Errore nel caricamento dell'aliquota IVA"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            _hasLocalChanges = false;
+        }
+    }
+
+    private async Task LoadVatNaturesAsync()
+    {
+        try
+        {
+            var result = await FinancialService.GetVatNaturesAsync();
+            _vatNatures = result.ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load VAT natures");
+            _vatNatures = new List<VatNatureDto>();
+        }
+    }
+
+    private async Task SaveVatRateAsync()
+    {
+        if (_vatRate == null || _form == null) return;
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _isSaving = true;
+        try
+        {
+            // Update model with date picker values
+            _vatRate.ValidFrom = _validFrom;
+            _vatRate.ValidTo = _validTo;
+
+            if (_isCreateMode)
+            {
+                var createDto = new CreateVatRateDto
+                {
+                    Name = _vatRate.Name,
+                    Percentage = _vatRate.Percentage,
+                    Status = _vatRate.Status,
+                    ValidFrom = _vatRate.ValidFrom,
+                    ValidTo = _vatRate.ValidTo,
+                    Notes = _vatRate.Notes,
+                    VatNatureId = _vatRate.VatNatureId
+                };
+                var created = await FinancialService.CreateVatRateAsync(createDto);
+                Snackbar.Add(TranslationService.GetTranslation("messages.createSuccessful", "Creato con successo"), Severity.Success);
+                NavigationManager.NavigateTo($"/financial/vat-rates/{created.Id}");
+            }
+            else if (VatRateId.HasValue)
+            {
+                var updateDto = new UpdateVatRateDto
+                {
+                    Name = _vatRate.Name,
+                    Percentage = _vatRate.Percentage,
+                    Status = _vatRate.Status,
+                    ValidFrom = _vatRate.ValidFrom,
+                    ValidTo = _vatRate.ValidTo,
+                    Notes = _vatRate.Notes,
+                    VatNatureId = _vatRate.VatNatureId
+                };
+                await FinancialService.UpdateVatRateAsync(VatRateId.Value, updateDto);
+                Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornato con successo"), Severity.Success);
+                await LoadVatRateAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving VAT rate");
+            Snackbar.Add(TranslationService.GetTranslation("vatRate.saveError", "Errore nel salvataggio dell'aliquota IVA"), Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void MarkChanged()
+    {
+        _hasLocalChanges = true;
+        StateHasChanged();
+    }
+
+    private string SerializeVatRate(VatRateDto? vatRate)
+    {
+        if (vatRate == null) return string.Empty;
+        // Create a copy with date picker values for comparison
+        var snapshot = new
+        {
+            vatRate.Name,
+            vatRate.Percentage,
+            vatRate.Status,
+            ValidFrom = _validFrom,
+            ValidTo = _validTo,
+            vatRate.Notes,
+            vatRate.VatNatureId
+        };
+        return System.Text.Json.JsonSerializer.Serialize(snapshot, _jsonOptions);
+    }
+
+    private bool HasUnsavedChanges()
+    {
+        if (_vatRate == null) return false;
+        if (_hasLocalChanges) return true;
+        var current = SerializeVatRate(_vatRate);
+        return !string.Equals(current, _originalVatRateSnapshot, StringComparison.Ordinal);
+    }
+
+    private async Task TryNavigateAway(string target)
+    {
+        if (!HasUnsavedChanges())
+        {
+            NavigationManager.NavigateTo(target);
+            return;
+        }
+
+        var title = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var message = TranslationService.GetTranslation("vatRate.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?");
+        var saveText = TranslationService.GetTranslation("common.save", "Salva");
+        var discardText = TranslationService.GetTranslation("common.discard", "Non salvare");
+        var cancelText = TranslationService.GetTranslation("common.cancel", "Annulla");
+
+        var result = await DialogService.ShowMessageBox(title, message, yesText: saveText, noText: discardText, cancelText: cancelText);
+
+        if (result == true)
+        {
+            await SaveVatRateAsync();
+            NavigationManager.NavigateTo(target);
+        }
+        else if (result == false)
+        {
+            NavigationManager.NavigateTo(target);
+        }
+    }
+}
