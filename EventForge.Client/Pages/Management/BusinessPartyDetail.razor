@@ -1,0 +1,334 @@
+@page "/business/suppliers/new"
+@page "/business/suppliers/{PartyId:guid}"
+@page "/business/customers/new"
+@page "/business/customers/{PartyId:guid}"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@attribute [Authorize]
+@inject IBusinessPartyService BusinessPartyService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<BusinessPartyDetail> Logger
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    @if (_isLoading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else if (_party == null && !_isCreateMode)
+    {
+        <MudAlert Severity="Severity.Error">
+            @TranslationService.GetTranslation("businessParty.notFound", "Business party non trovato")
+        </MudAlert>
+    }
+    else
+    {
+        <!-- Page Header -->
+        <MudPaper Elevation="2" Class="pa-4 mb-4">
+            <div class="d-flex justify-space-between align-center">
+                <div>
+                    <div class="d-flex align-center gap-2 mb-2">
+                        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
+                                       Color="Color.Primary"
+                                       OnClick="@(() => TryNavigateAway(GetBackRoute()))"
+                                       Size="Size.Small" />
+                        <MudText Typo="Typo.h4">
+                            <MudIcon Icon="@Icons.Material.Outlined.Business" Class="mr-2" />
+                            @if (_isCreateMode)
+                            {
+                                <text>@GetEntityTypeName() - @TranslationService.GetTranslation("common.create", "Crea")</text>
+                            }
+                            else
+                            {
+                                <text>@(_party?.Name ?? TranslationService.GetTranslation("businessParty.unknown", "Business Party"))</text>
+                            }
+                        </MudText>
+                        
+                        @if (HasUnsavedChanges())
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">
+                                @TranslationService.GetTranslation("common.unsavedChanges", "Modifiche non salvate")
+                            </MudChip>
+                        }
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Primary" 
+                               StartIcon="@Icons.Material.Filled.Save"
+                               OnClick="SavePartyAsync"
+                               Disabled="_isSaving"
+                               Size="Size.Small">
+                        @TranslationService.GetTranslation("common.save", "Salva")
+                    </MudButton>
+                </div>
+            </div>
+        </MudPaper>
+
+        <!-- Form Section -->
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudForm @ref="_form">
+                <MudGrid>
+                    <!-- Party Type -->
+                    <MudItem xs="12" md="6">
+                        <MudSelect @bind-Value="_party!.PartyType"
+                                   @bind-Value:after="MarkChanged"
+                                   Label="@($"{TranslationService.GetTranslation("field.partyType", "Tipo")} *")"
+                                   Variant="Variant.Outlined"
+                                   Required="true">
+                            <MudSelectItem Value="@BusinessPartyType.Cliente">@TranslationService.GetTranslation("partyType.cliente", "Cliente")</MudSelectItem>
+                            <MudSelectItem Value="@BusinessPartyType.Supplier">@TranslationService.GetTranslation("partyType.supplier", "Fornitore")</MudSelectItem>
+                            <MudSelectItem Value="@BusinessPartyType.Both">@TranslationService.GetTranslation("partyType.both", "Cliente/Fornitore")</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    
+                    <!-- Name -->
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_party!.Name"
+                                      @bind-Value:after="MarkChanged"
+                                      Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      MaxLength="200" />
+                    </MudItem>
+                    
+                    <!-- Tax Code -->
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_party!.TaxCode"
+                                      @bind-Value:after="MarkChanged"
+                                      Label="@TranslationService.GetTranslation("field.taxCode", "Codice Fiscale")"
+                                      Variant="Variant.Outlined"
+                                      MaxLength="20" />
+                    </MudItem>
+                    
+                    <!-- VAT Number -->
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_party!.VatNumber"
+                                      @bind-Value:after="MarkChanged"
+                                      Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
+                                      Variant="Variant.Outlined"
+                                      MaxLength="20" />
+                    </MudItem>
+                    
+                    <!-- SDI Code -->
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_party!.SdiCode"
+                                      @bind-Value:after="MarkChanged"
+                                      Label="@TranslationService.GetTranslation("field.sdiCode", "Codice SDI")"
+                                      Variant="Variant.Outlined"
+                                      MaxLength="10" />
+                    </MudItem>
+                    
+                    <!-- PEC -->
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_party!.Pec"
+                                      @bind-Value:after="MarkChanged"
+                                      Label="@TranslationService.GetTranslation("field.pec", "PEC")"
+                                      Variant="Variant.Outlined"
+                                      MaxLength="100" />
+                    </MudItem>
+                    
+                    <!-- Notes -->
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_party!.Notes"
+                                      @bind-Value:after="MarkChanged"
+                                      Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                      Variant="Variant.Outlined"
+                                      Lines="4"
+                                      MaxLength="1000" />
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public Guid? PartyId { get; set; }
+
+    private BusinessPartyDto? _party;
+    private bool _isLoading = true;
+    private bool _isCreateMode => PartyId == null || PartyId == Guid.Empty;
+    private bool _isSaving = false;
+    private MudForm? _form;
+
+    private string _originalPartySnapshot = string.Empty;
+    private bool _hasLocalChanges = false;
+
+    private static readonly System.Text.Json.JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+
+    // Determine if we're in supplier or customer mode based on route
+    private bool _isSupplierMode => NavigationManager.Uri.Contains("/suppliers");
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPartyAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_party?.Id != PartyId)
+            await LoadPartyAsync();
+    }
+
+    private async Task LoadPartyAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            if (_isCreateMode)
+            {
+                _party = new BusinessPartyDto
+                {
+                    PartyType = _isSupplierMode ? BusinessPartyType.Supplier : BusinessPartyType.Cliente,
+                    Name = string.Empty
+                };
+                _originalPartySnapshot = SerializeParty(_party);
+            }
+            else if (PartyId.HasValue)
+            {
+                var party = await BusinessPartyService.GetBusinessPartyAsync(PartyId.Value);
+                _party = party;
+                if (_party != null)
+                {
+                    _originalPartySnapshot = SerializeParty(_party);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading business party {PartyId}", PartyId);
+            Snackbar.Add(TranslationService.GetTranslation("businessParty.loadError", "Errore nel caricamento"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            _hasLocalChanges = false;
+        }
+    }
+
+    private async Task SavePartyAsync()
+    {
+        if (_party == null || _form == null) return;
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _isSaving = true;
+        try
+        {
+            if (_isCreateMode)
+            {
+                var createDto = new CreateBusinessPartyDto
+                {
+                    PartyType = _party.PartyType,
+                    Name = _party.Name ?? string.Empty,
+                    TaxCode = _party.TaxCode,
+                    VatNumber = _party.VatNumber,
+                    SdiCode = _party.SdiCode,
+                    Pec = _party.Pec,
+                    Notes = _party.Notes
+                };
+                var created = await BusinessPartyService.CreateBusinessPartyAsync(createDto);
+                Snackbar.Add(TranslationService.GetTranslation("businessParty.createSuccess", "Business party creato con successo"), Severity.Success);
+                NavigationManager.NavigateTo(GetDetailRoute(created.Id));
+            }
+            else if (PartyId.HasValue)
+            {
+                var updateDto = new UpdateBusinessPartyDto
+                {
+                    PartyType = _party.PartyType,
+                    Name = _party.Name ?? string.Empty,
+                    TaxCode = _party.TaxCode,
+                    VatNumber = _party.VatNumber,
+                    SdiCode = _party.SdiCode,
+                    Pec = _party.Pec,
+                    Notes = _party.Notes
+                };
+                await BusinessPartyService.UpdateBusinessPartyAsync(PartyId.Value, updateDto);
+                Snackbar.Add(TranslationService.GetTranslation("businessParty.updateSuccess", "Business party aggiornato con successo"), Severity.Success);
+                await LoadPartyAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving business party");
+            Snackbar.Add(TranslationService.GetTranslation("businessParty.saveError", "Errore nel salvataggio"), Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void MarkChanged()
+    {
+        _hasLocalChanges = true;
+        StateHasChanged();
+    }
+
+    private string SerializeParty(BusinessPartyDto? p)
+    {
+        if (p == null) return string.Empty;
+        return System.Text.Json.JsonSerializer.Serialize(p, _jsonOptions);
+    }
+
+    private bool HasUnsavedChanges()
+    {
+        if (_party == null) return false;
+        if (_hasLocalChanges) return true;
+        var current = SerializeParty(_party);
+        return !string.Equals(current, _originalPartySnapshot, StringComparison.Ordinal);
+    }
+
+    private async Task TryNavigateAway(string target)
+    {
+        if (!HasUnsavedChanges())
+        {
+            NavigationManager.NavigateTo(target);
+            return;
+        }
+
+        var title = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var message = TranslationService.GetTranslation("common.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?");
+        var saveText = TranslationService.GetTranslation("common.save", "Salva");
+        var discardText = TranslationService.GetTranslation("common.discard", "Non salvare");
+        var cancelText = TranslationService.GetTranslation("common.cancel", "Annulla");
+
+        var result = await DialogService.ShowMessageBox(title, message, yesText: saveText, noText: discardText, cancelText: cancelText);
+
+        if (result == true)
+        {
+            await SavePartyAsync();
+            NavigationManager.NavigateTo(target);
+        }
+        else if (result == false)
+        {
+            NavigationManager.NavigateTo(target);
+        }
+    }
+
+    private string GetBackRoute()
+    {
+        return _isSupplierMode ? "/business/suppliers" : "/business/customers";
+    }
+
+    private string GetDetailRoute(Guid id)
+    {
+        return _isSupplierMode ? $"/business/suppliers/{id}" : $"/business/customers/{id}";
+    }
+
+    private string GetEntityTypeName()
+    {
+        return _isSupplierMode 
+            ? TranslationService.GetTranslation("entity.supplier", "Fornitore")
+            : TranslationService.GetTranslation("entity.customer", "Cliente");
+    }
+}

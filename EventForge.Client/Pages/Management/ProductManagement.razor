@@ -67,7 +67,7 @@
                                        CreateTooltip="@TranslationService.GetTranslation("product.createNew", "Crea nuovo prodotto")"
                                        IsDisabled="_isLoadingProducts"
                                        OnRefresh="@LoadProductsAsync"
-                                       OnCreate="@OpenCreateProductDrawer" />
+                                       OnCreate="@CreateProduct" />
                 </CardHeaderActions>
             </MudCardHeader>
 
@@ -155,13 +155,6 @@
         </MudPaper>
     </MudPaper>
 
-    <ProductDrawer @bind-IsOpen="_productDrawerOpen"
-                   @bind-Mode="_productDrawerMode"
-                   OriginalProduct="_selectedProduct"
-                   AllowEdit="true"
-                   OnProductCreated="@HandleProductCreated"
-                   OnProductUpdated="@HandleProductUpdated" />
-
     <AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
                         EntityType="Product"
                         EntityId="@_selectedProductForAudit?.Id"
@@ -176,10 +169,6 @@
     
     private IEnumerable<ProductDto> _products = new List<ProductDto>();
     private IEnumerable<ProductDto> _filteredProducts = new List<ProductDto>();
-    
-    private bool _productDrawerOpen = false;
-    private EntityDrawerMode _productDrawerMode = EntityDrawerMode.Create;
-    private ProductDto? _selectedProduct;
 
     // Stores available quantity (sum across locations) per product
     private readonly Dictionary<Guid, decimal> _productAvailableQuantities = new();
@@ -298,16 +287,9 @@
         _filteredProducts = filtered.ToList();
     }
 
-    private void OpenCreateProductDrawer()
+    private void CreateProduct()
     {
-        _selectedProduct = null;
-        _productDrawerMode = EntityDrawerMode.Create;
-        _productDrawerOpen = true;
-    }
-
-    private void ViewProduct(Guid productId)
-    {
-        NavigationManager.NavigateTo($"/product-management/products/{productId}");
+        NavigationManager.NavigateTo("/product-management/products/new");
     }
 
     private void EditProduct(Guid productId)
@@ -426,16 +408,6 @@
             Logger.LogError(ex, "Error toggling status for product {ProductId}", product.Id);
             Snackbar.Add(TranslationService.GetTranslation("product.statusChangeError", "Errore nel cambio di stato del prodotto"), Severity.Error);
         }
-    }
-
-    private async Task HandleProductCreated(ProductDto product)
-    {
-        await LoadProductsAsync();
-    }
-
-    private async Task HandleProductUpdated(ProductDto product)
-    {
-        await LoadProductsAsync();
     }
 
     // Helper used for sorting header; fallback0 when unknown

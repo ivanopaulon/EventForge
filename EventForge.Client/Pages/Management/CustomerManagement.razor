@@ -79,7 +79,7 @@
                                            CreateTooltip="@TranslationService.GetTranslation("customer.createNew", "Crea nuovo cliente")"
                                            IsDisabled="_isLoadingCustomers"
                                            OnRefresh="@LoadCustomersAsync"
-                                           OnCreate="@OpenCreateCustomerDrawer" />
+                                           OnCreate="@CreateCustomer" />
                     </CardHeaderActions>
                 </MudCardHeader>
                 <MudCardContent Class="pa-1">
@@ -145,13 +145,12 @@
                                 <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
                                     <ActionButtonGroup EntityName="@context.Name"
                                                       ItemDisplayName="@context.Name"
-                                                      ShowView="true"
+                                                      ShowView="false"
                                                       ShowEdit="true"
                                                       ShowAuditLog="true"
                                                       ShowToggleStatus="true"
                                                       ShowDelete="true"
                                                       IsActive="@context.IsActive"
-                                                      OnView="@(() => ViewCustomer(context))"
                                                       OnEdit="@(() => EditCustomer(context))"
                                                       OnAuditLog="@(() => ViewCustomerAuditLog(context))"
                                                       OnToggleStatus="@(() => ToggleCustomerStatus(context))"
@@ -186,15 +185,6 @@
     }
 </MudContainer>
 
-<!-- Business Party Drawer -->
-<BusinessPartyDrawer @bind-IsOpen="_customerDrawerOpen" 
-                     @bind-Mode="_customerDrawerMode"
-                     OriginalBusinessParty="_selectedCustomer"
-                     DefaultPartyType="BusinessPartyType.Cliente"
-                     AllowEdit="true"
-                     OnBusinessPartyCreated="@OnCustomerCreated"
-                     OnBusinessPartyUpdated="@OnCustomerUpdated" />
-
 <!-- Audit History Drawer -->
 <AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
                     EntityType="BusinessParty"
@@ -205,12 +195,9 @@
     // UI State Management
     private bool _isLoading = true;
     private bool _isLoadingCustomers = false;
-    private bool _customerDrawerOpen = false;
     private bool _auditDrawerOpen = false;
     
     // Drawer management
-    private EntityDrawerMode _customerDrawerMode = EntityDrawerMode.Create;
-    private BusinessPartyDto? _selectedCustomer;
     private BusinessPartyDto? _selectedCustomerForAudit;
     
     // Filter and search state
@@ -316,47 +303,14 @@
         StateHasChanged();
     }
 
-    private async Task OpenCreateCustomerDrawer()
+    private void CreateCustomer()
     {
-        _customerDrawerMode = EntityDrawerMode.Create;
-        _selectedCustomer = null;
-        _customerDrawerOpen = true;
-        await Task.CompletedTask;
+        NavigationManager.NavigateTo("/business/customers/new");
     }
 
-    private async Task OnCustomerCreated(BusinessPartyDto newCustomer)
+    private void EditCustomer(BusinessPartyDto customer)
     {
-        _customers.Add(newCustomer);
-        _customers = _customers.OrderBy(c => c.Name).ToList();
-        StateHasChanged();
-        await Task.CompletedTask;
-    }
-
-    private async Task OnCustomerUpdated(BusinessPartyDto updatedCustomer)
-    {
-        var index = _customers.FindIndex(c => c.Id == updatedCustomer.Id);
-        if (index >= 0)
-        {
-            _customers[index] = updatedCustomer;
-        }
-        StateHasChanged();
-        await Task.CompletedTask;
-    }
-
-    private async Task ViewCustomer(BusinessPartyDto customer)
-    {
-        _customerDrawerMode = EntityDrawerMode.View;
-        _selectedCustomer = customer;
-        _customerDrawerOpen = true;
-        await Task.CompletedTask;
-    }
-
-    private async Task EditCustomer(BusinessPartyDto customer)
-    {
-        _customerDrawerMode = EntityDrawerMode.Edit;
-        _selectedCustomer = customer;
-        _customerDrawerOpen = true;
-        await Task.CompletedTask;
+        NavigationManager.NavigateTo($"/business/customers/{customer.Id}");
     }
 
     private async Task DeleteCustomer(BusinessPartyDto customer)
