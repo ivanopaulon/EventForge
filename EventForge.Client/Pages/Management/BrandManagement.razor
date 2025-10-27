@@ -72,7 +72,7 @@
                                            CreateTooltip="@TranslationService.GetTranslation("brand.createNew", "Crea nuovo marchio")"
                                            IsDisabled="_isLoadingBrands"
                                            OnRefresh="@LoadBrandsAsync"
-                                           OnCreate="@OpenCreateBrandDrawer" />
+                                           OnCreate="@CreateBrand" />
                     </CardHeaderActions>
                 </MudCardHeader>
                 <MudCardContent Class="pa-1">
@@ -133,11 +133,10 @@
                                 <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
                                     <ActionButtonGroup EntityName="@context.Name"
                                                        ItemDisplayName="@context.Name"
-                                                       ShowView="true"
+                                                       ShowView="false"
                                                        ShowEdit="true"
                                                        ShowAuditLog="true"
                                                        ShowDelete="true"
-                                                       OnView="@(() => ViewBrand(context.Id))"
                                                        OnEdit="@(() => EditBrand(context.Id))"
                                                        OnAuditLog="@(() => ViewBrandAuditLog(context))"
                                                        OnDelete="@(() => DeleteBrand(context))" />
@@ -168,8 +167,6 @@
     }
 </MudContainer>
 
-<BrandDrawer @ref="_brandDrawer" OnEntitySaved="HandleBrandSaved" />
-
 <!-- Audit History Drawer -->
 <AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
                     EntityType="Brand"
@@ -177,7 +174,6 @@
                     EntityName="@_selectedBrandForAudit?.Name" />
 
 @code {
-    private BrandDrawer _brandDrawer = default!;
     private IEnumerable<BrandDto> _brands = new List<BrandDto>();
     private IEnumerable<BrandDto> _filteredBrands = new List<BrandDto>();
     private bool _isLoading = true;
@@ -246,19 +242,14 @@
         StateHasChanged();
     }
 
-    private void OpenCreateBrandDrawer()
+    private void CreateBrand()
     {
-        _brandDrawer.OpenForCreate();
+        NavigationManager.NavigateTo("/product-management/brands/new");
     }
 
-    private async Task ViewBrand(Guid id)
+    private void EditBrand(Guid id)
     {
-        await _brandDrawer.OpenForView(id);
-    }
-
-    private async Task EditBrand(Guid id)
-    {
-        await _brandDrawer.OpenForEdit(id);
+        NavigationManager.NavigateTo($"/product-management/brands/{id}");
     }
 
     private async Task DeleteBrand(BrandDto brand)
@@ -287,11 +278,6 @@
                     Severity.Error);
             }
         }
-    }
-
-    private async Task HandleBrandSaved()
-    {
-        await LoadBrandsAsync();
     }
     
     /// <summary>
