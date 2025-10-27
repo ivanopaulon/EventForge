@@ -1,5 +1,6 @@
 using EventForge.Server.Data;
 using EventForge.Server.Services.Auth;
+using EventForge.Server.Services.Auth.Seeders;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -9,6 +10,27 @@ namespace EventForge.Tests.Services.Auth;
 [Trait("Category", "Unit")]
 public class BootstrapServiceTests
 {
+    private static BootstrapService CreateBootstrapService(EventForgeDbContext context, IConfiguration config)
+    {
+        var logger = new LoggerFactory().CreateLogger<BootstrapService>();
+        var passwordLogger = new LoggerFactory().CreateLogger<PasswordService>();
+        var passwordService = new PasswordService(config, passwordLogger);
+        
+        var userSeederLogger = new LoggerFactory().CreateLogger<UserSeeder>();
+        var userSeeder = new UserSeeder(context, passwordService, config, userSeederLogger);
+        
+        var tenantSeederLogger = new LoggerFactory().CreateLogger<TenantSeeder>();
+        var tenantSeeder = new TenantSeeder(context, tenantSeederLogger);
+        
+        var licenseSeederLogger = new LoggerFactory().CreateLogger<LicenseSeeder>();
+        var licenseSeeder = new LicenseSeeder(context, licenseSeederLogger);
+        
+        var entitySeederLogger = new LoggerFactory().CreateLogger<EntitySeeder>();
+        var entitySeeder = new EntitySeeder(context, entitySeederLogger);
+        
+        return new BootstrapService(context, userSeeder, tenantSeeder, licenseSeeder, entitySeeder, logger);
+    }
+
     [Fact]
     public async Task EnsureAdminBootstrappedAsync_WithEmptyDatabase_ShouldCreateInitialData()
     {
@@ -29,10 +51,7 @@ public class BootstrapServiceTests
             })
             .Build();
 
-        var logger = new LoggerFactory().CreateLogger<BootstrapService>();
-        var passwordLogger = new LoggerFactory().CreateLogger<PasswordService>();
-        var passwordService = new PasswordService(config, passwordLogger);
-        var bootstrapService = new BootstrapService(context, passwordService, config, logger);
+        var bootstrapService = CreateBootstrapService(context, config);
 
         // Act
         var result = await bootstrapService.EnsureAdminBootstrappedAsync();
@@ -135,10 +154,7 @@ public class BootstrapServiceTests
             })
             .Build();
 
-        var logger = new LoggerFactory().CreateLogger<BootstrapService>();
-        var passwordLogger = new LoggerFactory().CreateLogger<PasswordService>();
-        var passwordService = new PasswordService(config, passwordLogger);
-        var bootstrapService = new BootstrapService(context, passwordService, config, logger);
+        var bootstrapService = CreateBootstrapService(context, config);
 
         // Act
         var result = await bootstrapService.EnsureAdminBootstrappedAsync();
@@ -176,10 +192,7 @@ public class BootstrapServiceTests
             })
             .Build();
 
-        var logger = new LoggerFactory().CreateLogger<BootstrapService>();
-        var passwordLogger = new LoggerFactory().CreateLogger<PasswordService>();
-        var passwordService = new PasswordService(config, passwordLogger);
-        var bootstrapService = new BootstrapService(context, passwordService, config, logger);
+        var bootstrapService = CreateBootstrapService(context, config);
 
         try
         {
@@ -218,10 +231,7 @@ public class BootstrapServiceTests
             })
             .Build();
 
-        var logger = new LoggerFactory().CreateLogger<BootstrapService>();
-        var passwordLogger = new LoggerFactory().CreateLogger<PasswordService>();
-        var passwordService = new PasswordService(config, passwordLogger);
-        var bootstrapService = new BootstrapService(context, passwordService, config, logger);
+        var bootstrapService = CreateBootstrapService(context, config);
 
         // Act - First run: create everything
         var firstResult = await bootstrapService.EnsureAdminBootstrappedAsync();
@@ -297,10 +307,7 @@ public class BootstrapServiceTests
             })
             .Build();
 
-        var logger = new LoggerFactory().CreateLogger<BootstrapService>();
-        var passwordLogger = new LoggerFactory().CreateLogger<PasswordService>();
-        var passwordService = new PasswordService(config, passwordLogger);
-        var bootstrapService = new BootstrapService(context, passwordService, config, logger);
+        var bootstrapService = CreateBootstrapService(context, config);
 
         // First run to create everything
         _ = await bootstrapService.EnsureAdminBootstrappedAsync();
@@ -348,10 +355,7 @@ public class BootstrapServiceTests
             })
             .Build();
 
-        var logger = new LoggerFactory().CreateLogger<BootstrapService>();
-        var passwordLogger = new LoggerFactory().CreateLogger<PasswordService>();
-        var passwordService = new PasswordService(config, passwordLogger);
-        var bootstrapService = new BootstrapService(context, passwordService, config, logger);
+        var bootstrapService = CreateBootstrapService(context, config);
 
         // Act
         var result = await bootstrapService.EnsureAdminBootstrappedAsync();
@@ -425,10 +429,7 @@ public class BootstrapServiceTests
             })
             .Build();
 
-        var logger = new LoggerFactory().CreateLogger<BootstrapService>();
-        var passwordLogger = new LoggerFactory().CreateLogger<PasswordService>();
-        var passwordService = new PasswordService(config, passwordLogger);
-        var bootstrapService = new BootstrapService(context, passwordService, config, logger);
+        var bootstrapService = CreateBootstrapService(context, config);
 
         // Act
         var result = await bootstrapService.EnsureAdminBootstrappedAsync();
@@ -501,17 +502,14 @@ public class BootstrapServiceTests
             })
             .Build();
 
-        var logger = new LoggerFactory().CreateLogger<BootstrapService>();
-        var passwordLogger = new LoggerFactory().CreateLogger<PasswordService>();
-        var passwordService = new PasswordService(config, passwordLogger);
-        var bootstrapService = new BootstrapService(context, passwordService, config, logger);
+        var bootstrapService = CreateBootstrapService(context, config);
 
         // Act - Run bootstrap twice
         var result1 = await bootstrapService.EnsureAdminBootstrappedAsync();
 
         // Create a new service instance to simulate restart
         await using var context2 = new EventForgeDbContext(options);
-        var bootstrapService2 = new BootstrapService(context2, passwordService, config, logger);
+        var bootstrapService2 = CreateBootstrapService(context2, config);
         var result2 = await bootstrapService2.EnsureAdminBootstrappedAsync();
 
         // Assert
@@ -559,12 +557,9 @@ public class BootstrapServiceTests
             })
             .Build();
 
-        var logger = new LoggerFactory().CreateLogger<BootstrapService>();
-        var passwordLogger = new LoggerFactory().CreateLogger<PasswordService>();
-        var passwordService = new PasswordService(config, passwordLogger);
 
         // First, run complete bootstrap to create tenant and base entities
-        var bootstrapService1 = new BootstrapService(context, passwordService, config, logger);
+        var bootstrapService1 = CreateBootstrapService(context, config);
         var firstResult = await bootstrapService1.EnsureAdminBootstrappedAsync();
         Assert.True(firstResult);
 
@@ -595,7 +590,7 @@ public class BootstrapServiceTests
         Assert.False(await context.StorageFacilities.AnyAsync(w => w.TenantId == tenantId));
 
         // Act - Run bootstrap again, which should detect missing base entities and seed them
-        var bootstrapService2 = new BootstrapService(context, passwordService, config, logger);
+        var bootstrapService2 = CreateBootstrapService(context, config);
         var secondResult = await bootstrapService2.EnsureAdminBootstrappedAsync();
 
         // Assert
