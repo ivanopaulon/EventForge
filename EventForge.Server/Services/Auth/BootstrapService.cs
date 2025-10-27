@@ -142,6 +142,14 @@ public class BootstrapService : IBootstrapService
                         {
                             _logger.LogInformation("Successfully seeded base entities for tenant {TenantId} ({TenantName})",
                                 tenant.Id, tenant.Name);
+                            
+                            // Validate the seeded entities
+                            var (validationResult, validationIssues) = await _entitySeeder.ValidateTenantBaseEntitiesAsync(tenant.Id, cancellationToken);
+                            if (!validationResult)
+                            {
+                                _logger.LogWarning("Validation found issues for tenant {TenantId}: {Issues}",
+                                    tenant.Id, string.Join("; ", validationIssues));
+                            }
                         }
                     }
                     else
@@ -200,6 +208,13 @@ public class BootstrapService : IBootstrapService
             {
                 _logger.LogError("Failed to seed base entities for tenant");
                 return false;
+            }
+
+            // Validate base entities were created correctly
+            var (isValid, issues) = await _entitySeeder.ValidateTenantBaseEntitiesAsync(defaultTenant.Id, cancellationToken);
+            if (!isValid)
+            {
+                _logger.LogWarning("Base entities validation found issues: {Issues}", string.Join("; ", issues));
             }
 
             _logger.LogInformation("=== BOOTSTRAP COMPLETED SUCCESSFULLY ===");
