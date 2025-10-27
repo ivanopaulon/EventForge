@@ -3,14 +3,14 @@
 @inject IEntityManagementService EntityManagementService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
-@inject ILogger<EditAddressDialog> Logger
+@inject ILogger<AddressDialog> Logger
 
 <MudDialog>
     <DialogContent>
         <MudForm @ref="_form" @bind-IsValid="@_isValid">
             <MudGrid>
                 <MudItem xs="12">
-                    <MudSelect @bind-Value="_model.AddressType"
+                    <MudSelect @bind-Value="_addressType"
                               Label="@TranslationService.GetTranslation("field.addressType", "Tipo Indirizzo")"
                               Variant="Variant.Outlined"
                               Required="true">
@@ -21,42 +21,42 @@
                 </MudItem>
                 
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="_model.Street"
+                    <MudTextField @bind-Value="_street"
                                  Label="@TranslationService.GetTranslation("field.street", "Via")"
                                  Variant="Variant.Outlined"
                                  MaxLength="100" />
                 </MudItem>
                 
                 <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_model.City"
+                    <MudTextField @bind-Value="_city"
                                  Label="@TranslationService.GetTranslation("field.city", "Città")"
                                  Variant="Variant.Outlined"
                                  MaxLength="50" />
                 </MudItem>
                 
                 <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_model.ZipCode"
+                    <MudTextField @bind-Value="_zipCode"
                                  Label="@TranslationService.GetTranslation("field.zipCode", "CAP")"
                                  Variant="Variant.Outlined"
                                  MaxLength="10" />
                 </MudItem>
                 
                 <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_model.Province"
+                    <MudTextField @bind-Value="_province"
                                  Label="@TranslationService.GetTranslation("field.province", "Provincia")"
                                  Variant="Variant.Outlined"
                                  MaxLength="50" />
                 </MudItem>
                 
                 <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_model.Country"
+                    <MudTextField @bind-Value="_country"
                                  Label="@TranslationService.GetTranslation("field.country", "Paese")"
                                  Variant="Variant.Outlined"
                                  MaxLength="50" />
                 </MudItem>
                 
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="_model.Notes"
+                    <MudTextField @bind-Value="_notes"
                                  Label="@TranslationService.GetTranslation("field.notes", "Note")"
                                  Variant="Variant.Outlined"
                                  Lines="3"
@@ -84,46 +84,104 @@
     [CascadingParameter] 
     private IMudDialogInstance MudDialog { get; set; } = null!;
 
+    // For Add mode
     [Parameter] 
-    public AddressDto Address { get; set; } = null!;
+    public Guid? OwnerId { get; set; }
+
+    [Parameter] 
+    public string? OwnerType { get; set; }
+
+    // For Edit mode
+    [Parameter] 
+    public AddressDto? Address { get; set; }
 
     private MudForm _form = null!;
     private bool _isValid;
     private bool _isProcessing;
-    private UpdateAddressDto _model = new();
+    private AddressType _addressType = AddressType.Legal;
+    private string? _street;
+    private string? _city;
+    private string? _zipCode;
+    private string? _province;
+    private string? _country;
+    private string? _notes;
+    private bool _isEditMode;
 
     protected override void OnParametersSet()
     {
         if (Address != null)
         {
-            _model = new UpdateAddressDto
-            {
-                AddressType = Address.AddressType,
-                Street = Address.Street,
-                City = Address.City,
-                ZipCode = Address.ZipCode,
-                Province = Address.Province,
-                Country = Address.Country,
-                Notes = Address.Notes
-            };
+            // Edit mode
+            _isEditMode = true;
+            _addressType = Address.AddressType;
+            _street = Address.Street;
+            _city = Address.City;
+            _zipCode = Address.ZipCode;
+            _province = Address.Province;
+            _country = Address.Country;
+            _notes = Address.Notes;
+        }
+        else
+        {
+            // Add mode
+            _isEditMode = false;
         }
     }
 
     private async Task Submit()
     {
-        if (!_isValid || Address == null) return;
+        if (!_isValid) return;
 
         try
         {
             _isProcessing = true;
-            await EntityManagementService.UpdateAddressAsync(Address.Id, _model);
-            Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornamento completato con successo"), Severity.Success);
+
+            if (_isEditMode && Address != null)
+            {
+                // Edit mode
+                var updateDto = new UpdateAddressDto
+                {
+                    AddressType = _addressType,
+                    Street = _street,
+                    City = _city,
+                    ZipCode = _zipCode,
+                    Province = _province,
+                    Country = _country,
+                    Notes = _notes
+                };
+
+                await EntityManagementService.UpdateAddressAsync(Address.Id, updateDto);
+                Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornamento completato con successo"), Severity.Success);
+            }
+            else if (OwnerId.HasValue && !string.IsNullOrEmpty(OwnerType))
+            {
+                // Add mode
+                var createDto = new CreateAddressDto
+                {
+                    OwnerId = OwnerId.Value,
+                    OwnerType = OwnerType,
+                    AddressType = _addressType,
+                    Street = _street,
+                    City = _city,
+                    ZipCode = _zipCode,
+                    Province = _province,
+                    Country = _country,
+                    Notes = _notes
+                };
+
+                await EntityManagementService.CreateAddressAsync(createDto);
+                Snackbar.Add(TranslationService.GetTranslation("messages.createSuccessful", "Creazione completata con successo"), Severity.Success);
+            }
+
             MudDialog.Close(DialogResult.Ok(true));
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to update address");
-            Snackbar.Add(TranslationService.GetTranslation("messages.updateFailed", "Errore durante l'aggiornamento"), Severity.Error);
+            Logger.LogError(ex, "Failed to {Action} address", _isEditMode ? "update" : "create");
+            var errorMsg = _isEditMode 
+                ? TranslationService.GetTranslation("messages.updateFailed", "Errore durante l'aggiornamento")
+                : TranslationService.GetTranslation("messages.createFailed", "Errore durante la creazione");
+            Snackbar.Add(errorMsg, Severity.Error);
         }
         finally
         {
