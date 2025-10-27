@@ -96,27 +96,6 @@ window.highlightElement = function(selector, highlightClass = 'walkthrough-highl
         const element = document.querySelector(selector);
         if (element) {
             element.classList.add(highlightClass);
-            
-            // Add CSS if not already present
-            if (!document.getElementById('walkthrough-styles')) {
-                const style = document.createElement('style');
-                style.id = 'walkthrough-styles';
-                style.textContent = `
-                    .${highlightClass} {
-                        animation: pulse-highlight 2s infinite;
-                        position: relative;
-                        z-index: 9998;
-                    }
-                    
-                    @keyframes pulse-highlight {
-                        0% { box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.7); }
-                        70% { box-shadow: 0 0 0 10px rgba(33, 150, 243, 0); }
-                        100% { box-shadow: 0 0 0 0 rgba(33, 150, 243, 0); }
-                    }
-                `;
-                document.head.appendChild(style);
-            }
-            
             return true;
         }
         return false;

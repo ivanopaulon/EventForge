@@ -1,0 +1,47 @@
+/**
+ * EventForge - Help System Styles
+ * Path: wwwroot/css/help-system.css
+ * 
+ * Styles for the interactive walkthrough and help system
+ * - Highlight animations for walkthrough elements
+ * - Accessibility helpers for screen readers
+ */
+
+/* Walkthrough highlight animation */
+.walkthrough-highlight-element {
+    animation: pulse-highlight 2s infinite;
+    position: relative;
+    z-index: 9998;
+}
+
+@keyframes pulse-highlight {
+    0% {
+        box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(33, 150, 243, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(33, 150, 243, 0);
+    }
+}
+
+/* Screen reader only content (for accessibility announcements) */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+    .walkthrough-highlight-element {
+        animation: none !important;
+    }
+}
