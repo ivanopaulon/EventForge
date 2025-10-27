@@ -116,7 +116,7 @@
                                        IsDisabled="_isLoading"
                                        OnRefresh="@LoadLicenses"
                                        OnExport="@ExportLicenses"
-                                       OnCreate="@OpenCreateLicenseDrawer" />
+                                       OnCreate="@CreateLicense" />
                 </CardHeaderActions>
             </MudCardHeader>
             <MudCardContent Class="pa-1">
@@ -181,11 +181,10 @@
                                 <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
                                     <ActionButtonGroup EntityName="@context.DisplayName"
                                                       ItemDisplayName="@context.DisplayName"
-                                                      ShowView="true"
+                                                      ShowView="false"
                                                       ShowEdit="true"
                                                       ShowDelete="true"
-                                                      OnView="@(() => ViewLicense(context))"
-                                                      OnEdit="@(() => EditLicense(context))"
+                                                      OnEdit="@(() => EditLicense(context.Id))"
                                                       OnDelete="@(() => DeleteLicense(context))" />
                                 </MudTd>
                             </RowTemplate>
@@ -232,7 +231,7 @@
                                 @if (string.IsNullOrWhiteSpace(_searchTerm) && _statusFilter == null && _tierFilter == null)
                                 {
                                     <MudButton StartIcon="@Icons.Material.Outlined.Add"
-                                               OnClick="OpenCreateLicenseDrawer"
+                                               OnClick="CreateLicense"
                                                Variant="Variant.Filled"
                                                Color="Color.Primary"
                                                Class="mt-4">
@@ -247,13 +246,6 @@
         </MudPaper>
 
 </SuperAdminPageLayout>
-
-<!-- License Drawer -->
-<LicenseDrawer @bind-IsOpen="_drawerOpen"
-               @bind-Mode="_drawerMode"
-               @bind-License="_selectedLicense"
-               OnEntitySaved="RefreshLicenses"
-               AllowEdit="true" />
 
 @code {
     private bool _isLoading = true;
@@ -271,11 +263,6 @@
     private string _searchTerm = string.Empty;
     private bool? _statusFilter;
     private int? _tierFilter;
-
-    // Drawer state
-    private bool _drawerOpen = false;
-    private EntityDrawerMode _drawerMode = EntityDrawerMode.Create;
-    private LicenseDto? _selectedLicense;
 
     protected override async Task OnInitializedAsync()
     {
@@ -399,26 +386,15 @@
         };
     }
 
-    // Drawer actions
-    private void OpenCreateLicenseDrawer()
+    // Navigation actions
+    private void CreateLicense()
     {
-        _selectedLicense = null;
-        _drawerMode = EntityDrawerMode.Create;
-        _drawerOpen = true;
+        NavigationManager.NavigateTo("/superadmin/licenses/new");
     }
 
-    private void ViewLicense(LicenseDto license)
+    private void EditLicense(Guid id)
     {
-        _selectedLicense = license;
-        _drawerMode = EntityDrawerMode.View;
-        _drawerOpen = true;
-    }
-
-    private void EditLicense(LicenseDto license)
-    {
-        _selectedLicense = license;
-        _drawerMode = EntityDrawerMode.Edit;
-        _drawerOpen = true;
+        NavigationManager.NavigateTo($"/superadmin/licenses/{id}");
     }
 
     private async Task DeleteLicense(LicenseDto license)

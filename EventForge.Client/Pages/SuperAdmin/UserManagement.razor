@@ -214,7 +214,7 @@ else
                                            IsDisabled="_isLoadingUsers"
                                            OnRefresh="@LoadUsersAsync"
                                            OnExport="@ExportUsers"
-                                           OnCreate="@OpenCreateUserDrawer"
+                                           OnCreate="@CreateUser"
                                            OnAuditLog="@OpenAuditLogDrawer" />
                     </CardHeaderActions>
                 </MudCardHeader>
@@ -367,14 +367,13 @@ else
                                     <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
                                         <ActionButtonGroup EntityName="@context.FullName"
                                                           ItemDisplayName="@context.FullName"
-                                                          ShowView="true"
+                                                          ShowView="false"
                                                           ShowEdit="true"
                                                           ShowAuditLog="true"
                                                           ShowToggleStatus="true"
                                                           ShowDelete="true"
                                                           IsActive="@context.IsActive"
-                                                          OnView="@(() => ViewUser(context))"
-                                                          OnEdit="@(() => EditUser(context))"
+                                                          OnEdit="@(() => EditUser(context.Id))"
                                                           OnAuditLog="@(() => ViewUserAuditHistory(context))"
                                                           OnToggleStatus="@(() => ToggleUserStatus(context))"
                                                           OnDelete="@(() => DeleteUser(context))">
@@ -426,14 +425,6 @@ else
     </MudContainer>
 }
 
-<!-- User Management Drawer -->
-<UserDrawer @bind-IsOpen="_userDrawerOpen" 
-            @bind-Mode="_userDrawerMode"
-            OriginalUser="_selectedUser"
-            AllowEdit="true"
-            OnUserCreated="@OnUserCreated"
-            OnUserUpdated="@OnUserUpdated" />
-
 <!-- Audit Log Drawer -->
 <AuditLogDrawer @bind-IsOpen="_auditLogDrawerOpen"
                 EntityId="@_auditEntityId"
@@ -452,7 +443,6 @@ else
     private bool _isAuthorized = false;
     private bool _isLoadingTenants = false;
     private bool _isLoadingUsers = false;
-    private bool _userDrawerOpen = false;
     
     // MudCollapse state management (all closed by default to align with TenantManagement page)
     private bool _statisticsExpanded = false;      // Closed by default
@@ -460,7 +450,6 @@ else
     private bool _tenantSelectorExpanded = false;  // Closed by default (no auto-selection)
     
     // Drawer and modal management
-    private EntityDrawerMode _userDrawerMode = EntityDrawerMode.Create;
     private UserManagementDto? _selectedUser;
     private UserDto? _currentUser;
     
@@ -736,10 +725,19 @@ else
 
     private async Task OpenCreateUserDrawer()
     {
-        _userDrawerMode = EntityDrawerMode.Create;
-        _selectedUser = null;
-        _userDrawerOpen = true;
+        NavigationManager.NavigateTo("/superadmin/users/new");
         await Task.CompletedTask;
+    }
+
+    // Navigation actions
+    private void CreateUser()
+    {
+        NavigationManager.NavigateTo("/superadmin/users/new");
+    }
+
+    private void EditUser(Guid id)
+    {
+        NavigationManager.NavigateTo($"/superadmin/users/{id}");
     }
 
     private async Task OnUserCreated(UserManagementDto newUser)
@@ -758,22 +756,6 @@ else
         }
         await LoadUserStatisticsAsync();
         StateHasChanged();
-    }
-
-    private async Task ViewUser(UserManagementDto user)
-    {
-        _userDrawerMode = EntityDrawerMode.View;
-        _selectedUser = user;
-        _userDrawerOpen = true;
-        await Task.CompletedTask;
-    }
-
-    private async Task EditUser(UserManagementDto user)
-    {
-        _userDrawerMode = EntityDrawerMode.Edit;
-        _selectedUser = user;
-        _userDrawerOpen = true;
-        await Task.CompletedTask;
     }
 
     /// <summary>
