@@ -15,7 +15,11 @@
 
 <MudStack Spacing="3">
     <MudPaper Elevation="1" Class="pa-4">
-        <MudGrid>
+        <MudText Typo="Typo.h6" Class="mb-3">
+            <MudIcon Icon="@Icons.Material.Outlined.Category" Class="mr-2" />
+            @TranslationService.GetTranslation("product.classificationInfo", "Classificazione Prodotto")
+        </MudText>
+        <MudGrid Spacing="3">
             <MudItem xs="12" md="6">
                 <MudSelect T="Guid?"
                            @bind-Value="Product.BrandId"
@@ -23,7 +27,6 @@
                            Variant="Variant.Outlined"
                            ReadOnly="@(!IsEditMode)"
                            Clearable="true"
-                           Size="Size.Small"
                            @bind-Value:after="OnBrandChanged">
                     @if (_brands != null)
                     {
@@ -42,7 +45,6 @@
                            Variant="Variant.Outlined"
                            ReadOnly="@(!IsEditMode)"
                            Clearable="true"
-                           Size="Size.Small"
                            @bind-Value:after="NotifyUpdated">
                     @if (_models != null)
                     {
@@ -61,7 +63,6 @@
                            Variant="Variant.Outlined"
                            ReadOnly="@(!IsEditMode)"
                            Clearable="true"
-                           Size="Size.Small"
                            @bind-Value:after="NotifyUpdated">
                     @if (_unitsOfMeasure != null)
                     {
@@ -73,50 +74,37 @@
                 </MudSelect>
             </MudItem>
 
-            <!-- Category / Family / Group pickers stacked for clarity -->
-            <MudItem xs="12">
-                <MudText Typo="Typo.caption" Class="mb-1">@TranslationService.GetTranslation("product.categoryLabel","Categoria")</MudText>
-                <div class="d-flex gap-2">
-                    <MudTextField Value="@(_categoryName ?? Product.CategoryNodeId?.ToString() ?? "-")"
-                                  Variant="Variant.Outlined"
-                                  ReadOnly="true"
-                                  Size="Size.Small"
-                                  Style="flex:1" />
-                    <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.Category))" Size="Size.Small">
-                        @TranslationService.GetTranslation("common.select","Seleziona")
-                    </MudButton>
-                    <MudIconButton Icon="@Icons.Material.Filled.Clear" Disabled="!IsEditMode || Product.CategoryNodeId == null" OnClick="ClearCategory" Size="Size.Small" />
-                </div>
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(_categoryName ?? "-")"
+                              Label="@TranslationService.GetTranslation("product.categoryLabel","Categoria")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              OnAdornmentClick="@(() => OpenPicker(ProductClassificationType.Category))"
+                              AdornmentAriaLabel="@TranslationService.GetTranslation("common.select","Seleziona")" />
             </MudItem>
 
-            <MudItem xs="12">
-                <MudText Typo="Typo.caption" Class="mb-1">@TranslationService.GetTranslation("product.familyLabel","Famiglia")</MudText>
-                <div class="d-flex gap-2">
-                    <MudTextField Value="@(_familyName ?? Product.FamilyNodeId?.ToString() ?? "-")"
-                                  Variant="Variant.Outlined"
-                                  ReadOnly="true"
-                                  Size="Size.Small"
-                                  Style="flex:1" />
-                    <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.Family))" Size="Size.Small">
-                        @TranslationService.GetTranslation("common.select","Seleziona")
-                    </MudButton>
-                    <MudIconButton Icon="@Icons.Material.Filled.Clear" Disabled="!IsEditMode || Product.FamilyNodeId == null" OnClick="ClearFamily" Size="Size.Small" />
-                </div>
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(_familyName ?? "-")"
+                              Label="@TranslationService.GetTranslation("product.familyLabel","Famiglia")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              OnAdornmentClick="@(() => OpenPicker(ProductClassificationType.Family))"
+                              AdornmentAriaLabel="@TranslationService.GetTranslation("common.select","Seleziona")" />
             </MudItem>
 
-            <MudItem xs="12">
-                <MudText Typo="Typo.caption" Class="mb-1">@TranslationService.GetTranslation("product.groupLabel","Gruppo")</MudText>
-                <div class="d-flex gap-2">
-                    <MudTextField Value="@(_groupName ?? Product.GroupNodeId?.ToString() ?? "-")"
-                                  Variant="Variant.Outlined"
-                                  ReadOnly="true"
-                                  Size="Size.Small"
-                                  Style="flex:1" />
-                    <MudButton Variant="Variant.Outlined" Disabled="!IsEditMode" OnClick="@(() => OpenPicker(ProductClassificationType.MerchandiseGroup))" Size="Size.Small">
-                        @TranslationService.GetTranslation("common.select","Seleziona")
-                    </MudButton>
-                    <MudIconButton Icon="@Icons.Material.Filled.Clear" Disabled="!IsEditMode || Product.GroupNodeId == null" OnClick="ClearGroup" Size="Size.Small" />
-                </div>
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(_groupName ?? "-")"
+                              Label="@TranslationService.GetTranslation("product.groupLabel","Gruppo")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              OnAdornmentClick="@(() => OpenPicker(ProductClassificationType.MerchandiseGroup))"
+                              AdornmentAriaLabel="@TranslationService.GetTranslation("common.select","Seleziona")" />
             </MudItem>
         </MudGrid>
     </MudPaper>
@@ -414,6 +402,8 @@
 
     private async Task OpenPicker(ProductClassificationType type)
     {
+        if (!IsEditMode) return;
+        
         try
         {
             var parameters = new DialogParameters
@@ -531,26 +521,5 @@
             await NotifyUpdated();
             StateHasChanged();
         }
-    }
-
-    private void ClearCategory()
-    {
-        Product.CategoryNodeId = null;
-        _categoryName = null;
-        _ = NotifyUpdated();
-    }
-
-    private void ClearFamily()
-    {
-        Product.FamilyNodeId = null;
-        _familyName = null;
-        _ = NotifyUpdated();
-    }
-
-    private void ClearGroup()
-    {
-        Product.GroupNodeId = null;
-        _groupName = null;
-        _ = NotifyUpdated();
     }
 }

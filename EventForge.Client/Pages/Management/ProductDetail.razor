@@ -136,9 +136,8 @@
     private IEnumerable<ProductSupplierDto>? _productSuppliers;
     private IEnumerable<ProductBundleItemDto>? _bundleItems;
 
-    // snapshot for unsaved detection
+    // snapshot for unsaved detection - use lightweight approach
     private string _originalProductSnapshot = string.Empty;
-    private bool _hasLocalChanges = false;
 
     // reuse options to avoid allocations
     private static readonly System.Text.Json.JsonSerializerOptions _jsonOptions = new()
@@ -170,8 +169,7 @@
             if (_product != null)
             {
                 await LoadRelatedEntitiesAsync();
-                _originalProductSnapshot = SerializeProduct(_product); // baseline
-                _hasLocalChanges = false;
+                _originalProductSnapshot = SerializeProduct(_product);
             }
         }
         catch (Exception ex)
@@ -260,16 +258,15 @@
     // Called by child tabs when they modify the product locally
     private void HandleProductLocallyChanged()
     {
-        _hasLocalChanges = true;
-        // no heavy processing here; snapshot diff is done on demand
+        // Product state updated - will be checked on save attempt
+        StateHasChanged();
     }
 
     // Called by children when a change has already been persisted (ex: image uploaded)
-    private void HandleProductPersistedChange()
+    private async Task HandleProductPersistedChange()
     {
-        // refresh snapshot to treat current state as baseline
-        _originalProductSnapshot = SerializeProduct(_product);
-        _hasLocalChanges = false;
+        // Reload to get the latest state and refresh snapshot
+        await LoadProductAsync();
     }
 
     private string SerializeProduct(ProductDto? p)
@@ -281,7 +278,6 @@
     private bool HasUnsavedChanges()
     {
         if (_product == null) return false;
-        if (_hasLocalChanges) return true;
         var current = SerializeProduct(_product);
         return !string.Equals(current, _originalProductSnapshot, StringComparison.Ordinal);
     }

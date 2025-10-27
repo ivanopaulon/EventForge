@@ -78,7 +78,7 @@
                 }
                 else
                 {
-                    <!-- Altezza calcolata per non superare la viewport; regola il valore220px se necessario -->
+                    <!-- Dynamic height calculation for responsive behavior -->
                     <MudTable T="ProductDto" 
                               Items="_filteredProducts" 
                               Hover="true" 
@@ -88,7 +88,7 @@
                               SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
                               AllowUnsorted="false"
                               FixedHeader="true"
-                              Height="calc(100vh -220px)">
+                              Height="calc(100vh - 280px)">
                         <HeaderContent>
                             <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => x.Code)">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel></MudTh>
                             <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => x.Name)">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
@@ -234,42 +234,47 @@
 
     private async Task LoadStockForProductsAsync(List<Guid> productIds)
     {
+        if (productIds == null || !productIds.Any())
+            return;
+
         _isLoadingStocks = true;
         try
         {
             _productAvailableQuantities.Clear();
 
-            if (productIds == null || !productIds.Any())
-                return;
-
-            // Parallelize requests but keep reasonable concurrency
-            var tasks = productIds.Select(id => Task.Run(async () =>
+            // Batch process in chunks to avoid overwhelming the server
+            const int batchSize = 10;
+            for (int i = 0; i < productIds.Count; i += batchSize)
             {
-                try
-                {
-                    var stocks = await StockService.GetStockByProductIdAsync(id);
-                    // Sum available quantities across locations/lots for product
-                    var totalAvailable = stocks?.Sum(s => s.AvailableQuantity) ?? 0m;
-                    return (ProductId: id, Available: totalAvailable);
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogDebug(ex, "Failed loading stock for product {ProductId}", id);
-                    return (ProductId: id, Available: 0m);
-                }
-            })).ToArray();
-
-            var results = await Task.WhenAll(tasks);
-
-            foreach (var r in results)
-            {
-                _productAvailableQuantities[r.ProductId] = r.Available;
+                var batch = productIds.Skip(i).Take(batchSize).ToList();
+                var tasks = batch.Select(id => LoadStockForSingleProductAsync(id));
+                await Task.WhenAll(tasks);
+                
+                // Update UI after each batch for progressive loading
+                StateHasChanged();
             }
         }
         finally
         {
             _isLoadingStocks = false;
             StateHasChanged();
+        }
+    }
+
+    private async Task<(Guid ProductId, decimal Available)> LoadStockForSingleProductAsync(Guid productId)
+    {
+        try
+        {
+            var stocks = await StockService.GetStockByProductIdAsync(productId);
+            var totalAvailable = stocks?.Sum(s => s.AvailableQuantity) ?? 0m;
+            _productAvailableQuantities[productId] = totalAvailable;
+            return (productId, totalAvailable);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogDebug(ex, "Failed loading stock for product {ProductId}", productId);
+            _productAvailableQuantities[productId] = 0m;
+            return (productId, 0m);
         }
     }
 
