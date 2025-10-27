@@ -130,6 +130,27 @@ public class LicenseSeeder : ILicenseSeeder
     {
         try
         {
+            // Check if license is already assigned to this tenant
+            var existingAssignment = await _dbContext.TenantLicenses
+                .FirstOrDefaultAsync(tl => tl.TargetTenantId == tenantId && tl.LicenseId == licenseId, cancellationToken);
+            
+            if (existingAssignment != null)
+            {
+                _logger.LogInformation("License {LicenseId} is already assigned to tenant {TenantId}", licenseId, tenantId);
+                
+                // Ensure assignment is active
+                if (!existingAssignment.IsAssignmentActive)
+                {
+                    existingAssignment.IsAssignmentActive = true;
+                    existingAssignment.ModifiedBy = "system";
+                    existingAssignment.ModifiedAt = DateTime.UtcNow;
+                    _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                    _logger.LogInformation("Reactivated license assignment for tenant {TenantId}", tenantId);
+                }
+                
+                return true;
+            }
+
             var tenantLicense = new TenantLicense
             {
                 TargetTenantId = tenantId,

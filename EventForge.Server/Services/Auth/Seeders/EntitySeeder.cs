@@ -24,43 +24,83 @@ public class EntitySeeder : IEntitySeeder
         {
             _logger.LogInformation("Seeding base entities for tenant {TenantId}...", tenantId);
 
-            // Seed VAT natures first (needed for VAT rates)
-            if (!await SeedVatNaturesAsync(tenantId, cancellationToken))
+            // Validate tenantId
+            if (tenantId == Guid.Empty)
             {
-                _logger.LogError("Failed to seed VAT natures");
+                _logger.LogError("Cannot seed base entities for empty tenant ID");
                 return false;
             }
 
-            // Seed VAT rates
-            if (!await SeedVatRatesAsync(tenantId, cancellationToken))
+            // Verify tenant exists
+            var tenantExists = await _dbContext.Tenants.AnyAsync(t => t.Id == tenantId, cancellationToken);
+            if (!tenantExists)
             {
-                _logger.LogError("Failed to seed VAT rates");
+                _logger.LogError("Tenant {TenantId} does not exist. Cannot seed base entities.", tenantId);
                 return false;
             }
 
-            // Seed units of measure
-            if (!await SeedUnitsOfMeasureAsync(tenantId, cancellationToken))
+            // Use transaction only if not using InMemory database (InMemory doesn't support transactions)
+            var isInMemory = _dbContext.Database.ProviderName?.Contains("InMemory", StringComparison.OrdinalIgnoreCase) ?? false;
+            var transaction = isInMemory ? null : await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            
+            try
             {
-                _logger.LogError("Failed to seed units of measure");
-                return false;
-            }
+                // Seed VAT natures first (needed for VAT rates)
+                if (!await SeedVatNaturesAsync(tenantId, cancellationToken))
+                {
+                    _logger.LogError("Failed to seed VAT natures");
+                    if (transaction != null) await transaction.RollbackAsync(cancellationToken);
+                    return false;
+                }
 
-            // Seed default warehouse and storage location
-            if (!await SeedDefaultWarehouseAsync(tenantId, cancellationToken))
+                // Seed VAT rates
+                if (!await SeedVatRatesAsync(tenantId, cancellationToken))
+                {
+                    _logger.LogError("Failed to seed VAT rates");
+                    if (transaction != null) await transaction.RollbackAsync(cancellationToken);
+                    return false;
+                }
+
+                // Seed units of measure
+                if (!await SeedUnitsOfMeasureAsync(tenantId, cancellationToken))
+                {
+                    _logger.LogError("Failed to seed units of measure");
+                    if (transaction != null) await transaction.RollbackAsync(cancellationToken);
+                    return false;
+                }
+
+                // Seed default warehouse and storage location
+                if (!await SeedDefaultWarehouseAsync(tenantId, cancellationToken))
+                {
+                    _logger.LogError("Failed to seed default warehouse");
+                    if (transaction != null) await transaction.RollbackAsync(cancellationToken);
+                    return false;
+                }
+
+                // Seed document types
+                if (!await SeedDocumentTypesAsync(tenantId, cancellationToken))
+                {
+                    _logger.LogError("Failed to seed document types");
+                    if (transaction != null) await transaction.RollbackAsync(cancellationToken);
+                    return false;
+                }
+
+                // Commit transaction if exists
+                if (transaction != null)
+                {
+                    await transaction.CommitAsync(cancellationToken);
+                }
+                
+                _logger.LogInformation("Base entities seeded successfully for tenant {TenantId}", tenantId);
+                return true;
+            }
+            finally
             {
-                _logger.LogError("Failed to seed default warehouse");
-                return false;
+                if (transaction != null)
+                {
+                    await transaction.DisposeAsync();
+                }
             }
-
-            // Seed document types
-            if (!await SeedDocumentTypesAsync(tenantId, cancellationToken))
-            {
-                _logger.LogError("Failed to seed document types");
-                return false;
-            }
-
-            _logger.LogInformation("Base entities seeded successfully for tenant {TenantId}", tenantId);
-            return true;
         }
         catch (Exception ex)
         {
@@ -71,6 +111,7 @@ public class EntitySeeder : IEntitySeeder
 
     /// <summary>
     /// Seeds Italian VAT nature codes (Natura IVA).
+    /// Ensures all required codes exist, adding only missing ones.
     /// </summary>
     private async Task<bool> SeedVatNaturesAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
@@ -78,14 +119,17 @@ public class EntitySeeder : IEntitySeeder
         {
             _logger.LogInformation("Seeding VAT natures for tenant {TenantId}...", tenantId);
 
-            // Check if VAT natures already exist for this tenant
-            var existingNatures = await _dbContext.VatNatures
-                .AnyAsync(v => v.TenantId == tenantId, cancellationToken);
+            // Get existing VAT nature codes for this tenant
+            var existingCodes = await _dbContext.VatNatures
+                .Where(v => v.TenantId == tenantId)
+                .Select(v => v.Code)
+                .ToListAsync(cancellationToken);
 
-            if (existingNatures)
+            var existingCodesSet = existingCodes.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (existingCodesSet.Count > 0)
             {
-                _logger.LogInformation("VAT natures already exist for tenant {TenantId}", tenantId);
-                return true;
+                _logger.LogInformation("Found {Count} existing VAT natures for tenant {TenantId}", existingCodesSet.Count, tenantId);
             }
 
             // Italian VAT nature codes as per current legislation
@@ -333,10 +377,27 @@ public class EntitySeeder : IEntitySeeder
                 }
             };
 
-            _dbContext.VatNatures.AddRange(vatNatures);
-            _ = await _dbContext.SaveChangesAsync(cancellationToken);
+            // Filter to only add missing VAT natures
+            var naturesToAdd = vatNatures.Where(vn => !existingCodesSet.Contains(vn.Code)).ToList();
 
-            _logger.LogInformation("Seeded {Count} VAT natures for tenant {TenantId}", vatNatures.Length, tenantId);
+            if (naturesToAdd.Any())
+            {
+                _dbContext.VatNatures.AddRange(naturesToAdd);
+                _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation("Added {Count} new VAT natures for tenant {TenantId}", naturesToAdd.Count, tenantId);
+            }
+            else
+            {
+                _logger.LogInformation("All VAT natures already exist for tenant {TenantId}", tenantId);
+            }
+
+            // Verify all expected natures are present
+            var finalCount = await _dbContext.VatNatures.CountAsync(v => v.TenantId == tenantId, cancellationToken);
+            if (finalCount < 24)
+            {
+                _logger.LogWarning("Expected 24 VAT natures but found {Count} for tenant {TenantId}", finalCount, tenantId);
+            }
+
             return true;
         }
         catch (Exception ex)
@@ -348,6 +409,7 @@ public class EntitySeeder : IEntitySeeder
 
     /// <summary>
     /// Seeds Italian VAT rates (current legislation).
+    /// Ensures all required rates exist, adding only missing ones.
     /// </summary>
     private async Task<bool> SeedVatRatesAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
@@ -355,14 +417,17 @@ public class EntitySeeder : IEntitySeeder
         {
             _logger.LogInformation("Seeding VAT rates for tenant {TenantId}...", tenantId);
 
-            // Check if VAT rates already exist for this tenant
-            var existingRates = await _dbContext.VatRates
-                .AnyAsync(v => v.TenantId == tenantId, cancellationToken);
+            // Get existing VAT rate percentages for this tenant
+            var existingPercentages = await _dbContext.VatRates
+                .Where(v => v.TenantId == tenantId)
+                .Select(v => v.Percentage)
+                .ToListAsync(cancellationToken);
 
-            if (existingRates)
+            var existingPercentagesSet = existingPercentages.ToHashSet();
+
+            if (existingPercentagesSet.Count > 0)
             {
-                _logger.LogInformation("VAT rates already exist for tenant {TenantId}", tenantId);
-                return true;
+                _logger.LogInformation("Found {Count} existing VAT rates for tenant {TenantId}", existingPercentagesSet.Count, tenantId);
             }
 
             // Italian VAT rates as per current legislation (2024-2025)
@@ -425,10 +490,27 @@ public class EntitySeeder : IEntitySeeder
                 }
             };
 
-            _dbContext.VatRates.AddRange(vatRates);
-            _ = await _dbContext.SaveChangesAsync(cancellationToken);
+            // Filter to only add missing VAT rates
+            var ratesToAdd = vatRates.Where(vr => !existingPercentagesSet.Contains(vr.Percentage)).ToList();
 
-            _logger.LogInformation("Seeded {Count} VAT rates for tenant {TenantId}", vatRates.Length, tenantId);
+            if (ratesToAdd.Any())
+            {
+                _dbContext.VatRates.AddRange(ratesToAdd);
+                _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation("Added {Count} new VAT rates for tenant {TenantId}", ratesToAdd.Count, tenantId);
+            }
+            else
+            {
+                _logger.LogInformation("All VAT rates already exist for tenant {TenantId}", tenantId);
+            }
+
+            // Verify all expected rates are present
+            var finalCount = await _dbContext.VatRates.CountAsync(v => v.TenantId == tenantId, cancellationToken);
+            if (finalCount < 5)
+            {
+                _logger.LogWarning("Expected 5 VAT rates but found {Count} for tenant {TenantId}", finalCount, tenantId);
+            }
+
             return true;
         }
         catch (Exception ex)
@@ -440,6 +522,7 @@ public class EntitySeeder : IEntitySeeder
 
     /// <summary>
     /// Seeds common units of measure for warehouse management.
+    /// Ensures all required units exist, adding only missing ones.
     /// </summary>
     private async Task<bool> SeedUnitsOfMeasureAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
@@ -447,14 +530,17 @@ public class EntitySeeder : IEntitySeeder
         {
             _logger.LogInformation("Seeding units of measure for tenant {TenantId}...", tenantId);
 
-            // Check if units of measure already exist for this tenant
-            var existingUnits = await _dbContext.UMs
-                .AnyAsync(u => u.TenantId == tenantId, cancellationToken);
+            // Get existing unit symbols for this tenant
+            var existingSymbols = await _dbContext.UMs
+                .Where(u => u.TenantId == tenantId)
+                .Select(u => u.Symbol)
+                .ToListAsync(cancellationToken);
 
-            if (existingUnits)
+            var existingSymbolsSet = existingSymbols.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (existingSymbolsSet.Count > 0)
             {
-                _logger.LogInformation("Units of measure already exist for tenant {TenantId}", tenantId);
-                return true;
+                _logger.LogInformation("Found {Count} existing units of measure for tenant {TenantId}", existingSymbolsSet.Count, tenantId);
             }
 
             // Common units of measure for warehouse management
@@ -667,10 +753,34 @@ public class EntitySeeder : IEntitySeeder
                 }
             };
 
-            _dbContext.UMs.AddRange(unitsOfMeasure);
-            _ = await _dbContext.SaveChangesAsync(cancellationToken);
+            // Filter to only add missing units of measure
+            var unitsToAdd = unitsOfMeasure.Where(um => !existingSymbolsSet.Contains(um.Symbol)).ToList();
 
-            _logger.LogInformation("Seeded {Count} units of measure for tenant {TenantId}", unitsOfMeasure.Length, tenantId);
+            if (unitsToAdd.Any())
+            {
+                _dbContext.UMs.AddRange(unitsToAdd);
+                _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation("Added {Count} new units of measure for tenant {TenantId}", unitsToAdd.Count, tenantId);
+            }
+            else
+            {
+                _logger.LogInformation("All units of measure already exist for tenant {TenantId}", tenantId);
+            }
+
+            // Verify all expected units are present
+            var finalCount = await _dbContext.UMs.CountAsync(u => u.TenantId == tenantId, cancellationToken);
+            if (finalCount < 20)
+            {
+                _logger.LogWarning("Expected 20 units of measure but found {Count} for tenant {TenantId}", finalCount, tenantId);
+            }
+
+            // Ensure at least one default unit exists
+            var hasDefault = await _dbContext.UMs.AnyAsync(u => u.TenantId == tenantId && u.IsDefault, cancellationToken);
+            if (!hasDefault)
+            {
+                _logger.LogWarning("No default unit of measure found for tenant {TenantId}", tenantId);
+            }
+
             return true;
         }
         catch (Exception ex)
@@ -682,6 +792,7 @@ public class EntitySeeder : IEntitySeeder
 
     /// <summary>
     /// Seeds a default warehouse and storage location for the tenant.
+    /// Ensures default warehouse exists, creating it if missing.
     /// </summary>
     private async Task<bool> SeedDefaultWarehouseAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
@@ -689,13 +800,40 @@ public class EntitySeeder : IEntitySeeder
         {
             _logger.LogInformation("Seeding default warehouse for tenant {TenantId}...", tenantId);
 
-            // Check if warehouses already exist for this tenant
-            var existingWarehouses = await _dbContext.StorageFacilities
-                .AnyAsync(w => w.TenantId == tenantId, cancellationToken);
+            // Check if a default warehouse already exists for this tenant
+            var existingWarehouse = await _dbContext.StorageFacilities
+                .Where(w => w.TenantId == tenantId && w.Code == "MAG-01")
+                .FirstOrDefaultAsync(cancellationToken);
 
-            if (existingWarehouses)
+            if (existingWarehouse != null)
             {
-                _logger.LogInformation("Warehouses already exist for tenant {TenantId}", tenantId);
+                _logger.LogInformation("Default warehouse '{WarehouseName}' already exists for tenant {TenantId}", existingWarehouse.Name, tenantId);
+                
+                // Check if default location exists for this warehouse
+                var hasLocation = await _dbContext.StorageLocations
+                    .AnyAsync(l => l.TenantId == tenantId && l.WarehouseId == existingWarehouse.Id, cancellationToken);
+                
+                if (!hasLocation)
+                {
+                    _logger.LogWarning("Default warehouse exists but has no storage locations. Creating default location...");
+                    var newLocation = new StorageLocation
+                    {
+                        Code = "UB-DEF",
+                        Description = "Ubicazione predefinita",
+                        WarehouseId = existingWarehouse.Id,
+                        IsActive = true,
+                        TenantId = tenantId,
+                        CreatedBy = "system",
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    _ = _dbContext.StorageLocations.Add(newLocation);
+                    _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                    
+                    _logger.LogInformation("Created default location '{LocationCode}' for warehouse {WarehouseId} in tenant {TenantId}",
+                        newLocation.Code, existingWarehouse.Id, tenantId);
+                }
+                
                 return true;
             }
 
@@ -745,6 +883,7 @@ public class EntitySeeder : IEntitySeeder
 
     /// <summary>
     /// Seeds standard document types for the tenant.
+    /// Ensures all required document types exist, adding only missing ones.
     /// </summary>
     private async Task<bool> SeedDocumentTypesAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
@@ -752,14 +891,17 @@ public class EntitySeeder : IEntitySeeder
         {
             _logger.LogInformation("Seeding document types for tenant {TenantId}...", tenantId);
 
-            // Check if document types already exist for this tenant
-            var existingDocTypes = await _dbContext.DocumentTypes
-                .AnyAsync(dt => dt.TenantId == tenantId, cancellationToken);
+            // Get existing document type codes for this tenant
+            var existingCodes = await _dbContext.DocumentTypes
+                .Where(dt => dt.TenantId == tenantId)
+                .Select(dt => dt.Code)
+                .ToListAsync(cancellationToken);
 
-            if (existingDocTypes)
+            var existingCodesSet = existingCodes.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (existingCodesSet.Count > 0)
             {
-                _logger.LogInformation("Document types already exist for tenant {TenantId}", tenantId);
-                return true;
+                _logger.LogInformation("Found {Count} existing document types for tenant {TenantId}", existingCodesSet.Count, tenantId);
             }
 
             // Get the default warehouse for document type configuration
@@ -927,16 +1069,133 @@ public class EntitySeeder : IEntitySeeder
                 }
             };
 
-            _dbContext.DocumentTypes.AddRange(documentTypes);
-            _ = await _dbContext.SaveChangesAsync(cancellationToken);
+            // Filter to only add missing document types
+            var typesToAdd = documentTypes.Where(dt => !existingCodesSet.Contains(dt.Code)).ToList();
 
-            _logger.LogInformation("Seeded {Count} document types for tenant {TenantId}", documentTypes.Length, tenantId);
+            if (typesToAdd.Any())
+            {
+                _dbContext.DocumentTypes.AddRange(typesToAdd);
+                _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation("Added {Count} new document types for tenant {TenantId}", typesToAdd.Count, tenantId);
+            }
+            else
+            {
+                _logger.LogInformation("All document types already exist for tenant {TenantId}", tenantId);
+            }
+
+            // Verify all expected document types are present
+            var finalCount = await _dbContext.DocumentTypes.CountAsync(dt => dt.TenantId == tenantId, cancellationToken);
+            if (finalCount < 12)
+            {
+                _logger.LogWarning("Expected 12 document types but found {Count} for tenant {TenantId}", finalCount, tenantId);
+            }
+
             return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error seeding document types for tenant {TenantId}", tenantId);
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Validates that all required base entities exist for a tenant with correct TenantId assignments.
+    /// </summary>
+    /// <param name="tenantId">The tenant ID to validate</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Validation result with details</returns>
+    public async Task<(bool IsValid, List<string> Issues)> ValidateTenantBaseEntitiesAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    {
+        var issues = new List<string>();
+
+        try
+        {
+            _logger.LogInformation("Validating base entities for tenant {TenantId}...", tenantId);
+
+            // Validate VAT natures
+            var vatNatureCount = await _dbContext.VatNatures
+                .CountAsync(v => v.TenantId == tenantId, cancellationToken);
+            if (vatNatureCount < 24)
+            {
+                issues.Add($"Expected 24 VAT natures but found {vatNatureCount}");
+            }
+
+            // Validate VAT rates
+            var vatRateCount = await _dbContext.VatRates
+                .CountAsync(v => v.TenantId == tenantId, cancellationToken);
+            if (vatRateCount < 5)
+            {
+                issues.Add($"Expected 5 VAT rates but found {vatRateCount}");
+            }
+
+            // Validate units of measure
+            var umCount = await _dbContext.UMs
+                .CountAsync(u => u.TenantId == tenantId, cancellationToken);
+            if (umCount < 20)
+            {
+                issues.Add($"Expected 20 units of measure but found {umCount}");
+            }
+
+            // Validate default unit exists
+            var hasDefaultUM = await _dbContext.UMs
+                .AnyAsync(u => u.TenantId == tenantId && u.IsDefault, cancellationToken);
+            if (!hasDefaultUM)
+            {
+                issues.Add("No default unit of measure found");
+            }
+
+            // Validate warehouses
+            var warehouseCount = await _dbContext.StorageFacilities
+                .CountAsync(w => w.TenantId == tenantId, cancellationToken);
+            if (warehouseCount == 0)
+            {
+                issues.Add("No warehouses found");
+            }
+
+            // Validate storage locations
+            var locationCount = await _dbContext.StorageLocations
+                .CountAsync(l => l.TenantId == tenantId, cancellationToken);
+            if (locationCount == 0)
+            {
+                issues.Add("No storage locations found");
+            }
+
+            // Validate document types
+            var docTypeCount = await _dbContext.DocumentTypes
+                .CountAsync(dt => dt.TenantId == tenantId, cancellationToken);
+            if (docTypeCount < 12)
+            {
+                issues.Add($"Expected 12 document types but found {docTypeCount}");
+            }
+
+            // Check for TenantId consistency - ensure no entities have wrong TenantId
+            var wrongTenantIdVatNatures = await _dbContext.VatNatures
+                .CountAsync(v => v.TenantId != tenantId && v.TenantId != Guid.Empty, cancellationToken);
+            if (wrongTenantIdVatNatures > 0)
+            {
+                issues.Add($"Found {wrongTenantIdVatNatures} VAT natures with incorrect TenantId");
+            }
+
+            var isValid = issues.Count == 0;
+            
+            if (isValid)
+            {
+                _logger.LogInformation("Base entities validation passed for tenant {TenantId}", tenantId);
+            }
+            else
+            {
+                _logger.LogWarning("Base entities validation found {IssueCount} issues for tenant {TenantId}: {Issues}",
+                    issues.Count, tenantId, string.Join("; ", issues));
+            }
+
+            return (isValid, issues);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating base entities for tenant {TenantId}", tenantId);
+            issues.Add($"Validation error: {ex.Message}");
+            return (false, issues);
         }
     }
 }

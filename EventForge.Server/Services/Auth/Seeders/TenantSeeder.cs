@@ -22,6 +22,17 @@ public class TenantSeeder : ITenantSeeder
     {
         try
         {
+            // Check if default tenant already exists
+            var existingTenant = await _dbContext.Tenants
+                .FirstOrDefaultAsync(t => t.Code == "default", cancellationToken);
+            
+            if (existingTenant != null)
+            {
+                _logger.LogInformation("Default tenant already exists: {TenantName} (Code: {TenantCode})",
+                    existingTenant.Name, existingTenant.Code);
+                return existingTenant;
+            }
+
             // Create default tenant
             var defaultTenant = new Tenant
             {
@@ -56,6 +67,17 @@ public class TenantSeeder : ITenantSeeder
     {
         try
         {
+            // Check if AdminTenant record already exists
+            var existingRecord = await _dbContext.AdminTenants
+                .FirstOrDefaultAsync(at => at.UserId == userId && at.ManagedTenantId == tenantId, cancellationToken);
+            
+            if (existingRecord != null)
+            {
+                _logger.LogInformation("AdminTenant record already exists for user {UserId} managing tenant {TenantId}",
+                    userId, tenantId);
+                return true;
+            }
+
             var adminTenant = new AdminTenant
             {
                 UserId = userId,
