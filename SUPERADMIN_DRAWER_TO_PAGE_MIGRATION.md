@@ -82,6 +82,8 @@ Each detail page implements:
 
 None - All SuperAdmin management pages have been successfully converted from drawer-based editing to full-page detail views.
 
+**Note**: Audit log drawers (AuditLogDrawer, AuditHistoryDrawer) are intentionally kept as drawers since they serve as auxiliary viewing components rather than entity editing interfaces.
+
 ## Implementation Guide
 
 ### Step 1: Create Detail Page
