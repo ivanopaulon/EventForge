@@ -382,6 +382,12 @@
     }
 </MudContainer>
 
+<ProductDrawer @bind-IsOpen="_productDrawerOpen"
+               @bind-Mode="_productDrawerMode"
+               OriginalProduct="_productForDrawer"
+               AllowEdit="false"
+               OnProductCreated="@HandleProductCreated" />
+
 @code {
     private bool _isLoading = false;
     private string _scannedBarcode = string.Empty;
@@ -400,6 +406,11 @@
     
     // Operation log for audit trail
     private List<OperationLogEntry> _operationLog = new();
+    
+    // ProductDrawer related fields
+    private bool _productDrawerOpen = false;
+    private EntityDrawerMode _productDrawerMode = EntityDrawerMode.Create;
+    private ProductDto? _productForDrawer;
 
     // Helper class for operation logging
     private class OperationLogEntry
@@ -1113,11 +1124,79 @@
 
     private void CreateNewProduct()
     {
-        // Navigate to ProductDetail page to create a new product
-        // The user will need to manually enter the barcode and then return to inventory
-        NavigationManager.NavigateTo("/product-management/products/new");
+        // Create a new ProductDto with the scanned barcode as Code
+        _productForDrawer = new ProductDto
+        {
+            Code = _scannedBarcode,
+            Name = string.Empty,
+            Status = ProductStatus.Active
+        };
+        
+        _productDrawerMode = EntityDrawerMode.Create;
+        _productDrawerOpen = true;
     }
     
+    private async Task HandleProductCreated(ProductDto createdProduct)
+    {
+        // Product created successfully, re-open ProductNotFoundDialog with the product pre-selected
+        await ShowProductNotFoundDialogWithProduct(createdProduct);
+    }
+    
+    private async Task ShowProductNotFoundDialogWithProduct(ProductDto preSelectedProduct)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Barcode", _scannedBarcode },
+            { "IsInventoryContext", true },
+            { "PreSelectedProduct", preSelectedProduct }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ProductNotFoundDialog>(
+            TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato"),
+            parameters,
+            options
+        );
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data != null)
+        {
+            // Handle string actions (skip only, since create was already done)
+            if (result.Data is string action)
+            {
+                if (action == "skip")
+                {
+                    // Skip this product and continue with inventory
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato: {0}", _scannedBarcode), 
+                        Severity.Info
+                    );
+                    AddOperationLog(
+                        TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato"),
+                        $"Codice: {_scannedBarcode}",
+                        "Info"
+                    );
+                    
+                    // Clear the form and refocus on barcode input
+                    ClearProductForm();
+                }
+            }
+            // Handle assignment result from integrated search
+            else
+            {
+                // Product was assigned directly from the dialog, search again to load it
+                await SearchBarcode();
+            }
+        }
+    }
+
     private async Task EditInventoryRow(InventoryDocumentRowDto row)
     {
         if (_currentDocument == null)
