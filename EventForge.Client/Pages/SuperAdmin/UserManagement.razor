@@ -13,7 +13,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ITenantContextService TenantContextService
-@inject IJSRuntime _jsRuntime
+@inject IJSRuntime JSRuntime
 @inject ILogger<UserManagement> Logger
 
 <PageTitle>@TranslationService.GetTranslation("superAdmin.pageTitle", "{0} - EventForge Super Admin", TranslationService.GetTranslation("superAdmin.userManagement", "Gestione Utenti Tenant"))</PageTitle>
@@ -710,7 +710,7 @@ else
             var csvContent = csv.ToString();
             
             // Use JavaScript to download the file
-            await _jsRuntime.InvokeVoidAsync("downloadFile", fileName, "text/csv", csvContent);
+            await JSRuntime.InvokeVoidAsync("downloadFile", fileName, "text/csv", csvContent);
             
             Snackbar.Add(TranslationService.GetTranslation("superAdmin.exportSuccessful", 
                 "Esportazione completata: {0} utenti esportati", usersToExport.Count), Severity.Success);
