@@ -9,13 +9,12 @@
 
 <MudStack Spacing="3">
     <MudPaper Elevation="1" Class="pa-4">
-        <MudGrid>
+        <MudGrid Spacing="3">
             <MudItem xs="12" Class="d-flex justify-end align-center mb-2">
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Add"
-                           OnClick="@OpenCreateDialog"
-                           Size="Size.Small">
+                           OnClick="@OpenCreateDialog">
                     @TranslationService.GetTranslation("common.add", "Aggiungi")
                 </MudButton>
             </MudItem>
