@@ -9,199 +9,182 @@
 @inject NavigationManager NavigationManager
 
 <MudStack Spacing="3">
- <MudGrid>
- <!-- Left: Basic Info wrapped in its own Paper -->
- <MudItem xs="12" md="8">
- <MudPaper Elevation="1" Class="pa-4">
- <MudGrid>
- <MudItem xs="12">
- <MudText Typo="Typo.h6" Class="mb-3">
- <MudIcon Icon="@Icons.Material.Outlined.Info" Class="mr-2" />
- @TranslationService.GetTranslation("product.basicInfo", "Informazioni di Base")
- </MudText>
- <!-- divider removed as requested -->
- </MudItem>
+    <MudGrid Spacing="3">
+        <!-- Left: Basic Info wrapped in its own Paper -->
+        <MudItem xs="12" md="8">
+            <MudPaper Elevation="1" Class="pa-4" Style="height:100%;">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Outlined.Info" Class="mr-2" />
+                    @TranslationService.GetTranslation("product.basicInfo", "Informazioni di Base")
+                </MudText>
+                <MudGrid Spacing="3">
+                    <!-- Code -->
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="Product.Code"
+                                      Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="@(!IsEditMode)"
+                                      MaxLength="100"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.QrCode"
+                                      @bind-Value:after="NotifyUpdated"
+                                      HelperText="@TranslationService.GetTranslation("products.codeHelper", "Codice SKU o simile")" />
+                    </MudItem>
 
- <!-- Code -->
- <MudItem xs="12">
- <MudTextField @bind-Value="Product.Code"
- Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
- Variant="Variant.Outlined"
- ReadOnly="@(!IsEditMode)"
- MaxLength="100"
- Adornment="Adornment.Start"
- AdornmentIcon="@Icons.Material.Filled.QrCode"
- @bind-Value:after="NotifyUpdated"
- HelperText="@TranslationService.GetTranslation("products.codeHelper", "Codice SKU o simile")" />
- </MudItem>
+                    <!-- Name -->
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="Product.Name"
+                                      Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="@(!IsEditMode)"
+                                      MaxLength="100"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Label"
+                                      @bind-Value:after="NotifyUpdated" />
+                    </MudItem>
 
- <!-- Name -->
- <MudItem xs="12">
- <MudTextField @bind-Value="Product.Name"
- Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
- Variant="Variant.Outlined"
- ReadOnly="@(!IsEditMode)"
- MaxLength="100"
- Adornment="Adornment.Start"
- AdornmentIcon="@Icons.Material.Filled.Label"
- @bind-Value:after="NotifyUpdated" />
- </MudItem>
+                    <!-- Short description -->
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="Product.ShortDescription"
+                                      Label="@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="@(!IsEditMode)"
+                                      MaxLength="50"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Subject"
+                                      @bind-Value:after="NotifyUpdated" />
+                    </MudItem>
 
- <!-- Short description -->
- <MudItem xs="12">
- <MudTextField @bind-Value="Product.ShortDescription"
- Label="@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")"
- Variant="Variant.Outlined"
- ReadOnly="@(!IsEditMode)"
- MaxLength="50"
- Adornment="Adornment.Start"
- AdornmentIcon="@Icons.Material.Filled.Subject"
- @bind-Value:after="NotifyUpdated" />
- </MudItem>
+                    <!-- Description -->
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="Product.Description"
+                                      Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                                      Variant="Variant.Outlined"
+                                      Lines="5"
+                                      ReadOnly="@(!IsEditMode)"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Description"
+                                      @bind-Value:after="NotifyUpdated" />
+                    </MudItem>
 
- <!-- Description -->
- <MudItem xs="12">
- <MudTextField @bind-Value="Product.Description"
- Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
- Variant="Variant.Outlined"
- Lines="5"
- ReadOnly="@(!IsEditMode)"
- Adornment="Adornment.Start"
- AdornmentIcon="@Icons.Material.Filled.Description"
- @bind-Value:after="NotifyUpdated" />
- </MudItem>
+                    <!-- Status and Bundle -->
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="ProductStatus"
+                                   @bind-Value="Product.Status"
+                                   Label="@($"{TranslationService.GetTranslation("field.status", "Stato")} *")"
+                                   Variant="Variant.Outlined"
+                                   ReadOnly="@(!IsEditMode)"
+                                   @bind-Value:after="NotifyUpdated">
+                            <MudSelectItem T="ProductStatus" Value="@ProductStatus.Active">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
+                            <MudSelectItem T="ProductStatus" Value="@ProductStatus.Suspended">@TranslationService.GetTranslation("status.suspended", "Sospeso")</MudSelectItem>
+                            <MudSelectItem T="ProductStatus" Value="@ProductStatus.OutOfStock">@TranslationService.GetTranslation("status.outOfStock", "Esaurito")</MudSelectItem>
+                            <MudSelectItem T="ProductStatus" Value="@ProductStatus.Deleted">@TranslationService.GetTranslation("status.deleted", "Eliminato")</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
 
- <!-- Status and Bundle -->
- <MudItem xs="12" md="6">
- <MudSelect T="ProductStatus"
- @bind-Value="Product.Status"
- Label="@($"{TranslationService.GetTranslation("field.status", "Stato")} *")"
- Variant="Variant.Outlined"
- ReadOnly="@(!IsEditMode)"
- @bind-Value:after="NotifyUpdated">
- <MudSelectItem T="ProductStatus" Value="@ProductStatus.Active">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
- <MudSelectItem T="ProductStatus" Value="@ProductStatus.Suspended">@TranslationService.GetTranslation("status.suspended", "Sospeso")</MudSelectItem>
- <MudSelectItem T="ProductStatus" Value="@ProductStatus.OutOfStock">@TranslationService.GetTranslation("status.outOfStock", "Esaurito")</MudSelectItem>
- <MudSelectItem T="ProductStatus" Value="@ProductStatus.Deleted">@TranslationService.GetTranslation("status.deleted", "Eliminato")</MudSelectItem>
- </MudSelect>
- </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudSwitch T="bool"
+                                   @bind-Checked="Product.IsBundle"
+                                   @bind-Checked:after="OnBundleChanged"
+                                   Label="@TranslationService.GetTranslation("product.isBundle", "È un Bundle")"
+                                   Color="Color.Primary"
+                                   ReadOnly="@(!IsEditMode)" />
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
 
- <MudItem xs="12" md="6">
- <MudSwitch T="bool"
- @bind-Checked="Product.IsBundle"
- @bind-Checked:after="OnBundleChanged"
- Label="@TranslationService.GetTranslation("product.isBundle", "È un Bundle")"
- Color="Color.Primary"
- ReadOnly="@(!IsEditMode)" />
- </MudItem>
- </MudGrid>
- </MudPaper>
- </MudItem>
+        <!-- Right: Image section -->
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="1" Class="pa-4" Style="height:100%;">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Outlined.Image" Class="mr-2" />
+                    @TranslationService.GetTranslation("product.productImage", "Immagine")
+                </MudText>
+                @if (!string.IsNullOrEmpty(Product.ThumbnailUrl))
+                {
+                    <MudImage Src="@_thumbnailAbsoluteUrl"
+                              Alt="@Product.Name"
+                              Class="mb-3"
+                              Style="height:200px; width:100%; object-fit:scale-down; background-color:rgba(0,0,0,0.03); border-radius:4px;" />
+                }
+                else
+                {
+                    <div class="mb-3" style="height:200px; display:flex; align-items:center; justify-content:center; background-color:rgba(0,0,0,0.03); border-radius:4px;">
+                        <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">
+                            @TranslationService.GetTranslation("product.noImage", "Nessuna immagine")
+                        </MudText>
+                    </div>
+                }
 
- <!-- Right: Image section -->
- <MudItem xs="12" md="4">
- <MudPaper Elevation="1" Class="pa-4">
- @if (!string.IsNullOrEmpty(Product.ThumbnailUrl))
- {
- <MudImage Src="@_thumbnailAbsoluteUrl"
- Alt="@Product.Name"
- Style="height:180px; width:100%; object-fit:scale-down; background-color:rgba(0,0,0,0.03);" />
- }
- else
- {
- <div style="height:180px; display:flex; align-items:center; justify-content:center; background-color:rgba(0,0,0,0.03);">
- <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">
- @TranslationService.GetTranslation("product.noImage", "Nessuna immagine")
- </MudText>
- </div>
- }
+                @if (IsEditMode)
+                {
+                    <MudStack Spacing="2">
+                        <MudFileUpload T="IBrowserFile"
+                                       Accept="image/*"
+                                       @bind-Files="_selectedImage"
+                                       MaximumFileCount="1">
+                            <ActivatorContent>
+                                <MudButton HtmlTag="label"
+                                           Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.CloudUpload"
+                                           FullWidth="true"
+                                           Disabled="_isUploadingImage">
+                                    @TranslationService.GetTranslation("product.selectImage", "Seleziona Immagine")
+                                </MudButton>
+                            </ActivatorContent>
+                        </MudFileUpload>
 
- <div class="mt-3">
- @if (IsEditMode)
- {
- <div class="d-flex gap-2 align-center">
- <MudFileUpload T="IBrowserFile"
- Accept="image/*"
- @bind-Files="_selectedImage"
- MaximumFileCount="1">
- <ActivatorContent>
- <MudButton HtmlTag="label"
- Variant="Variant.Filled"
- Color="Color.Primary"
- StartIcon="@Icons.Material.Filled.CloudUpload"
- Size="Size.Small"
- Class="ef-image-action"
- Disabled="_isUploadingImage">
- @TranslationService.GetTranslation("product.selectImage", "Seleziona Immagine")
- </MudButton>
- </ActivatorContent>
- </MudFileUpload>
+                        <MudButton OnClick="@UploadImage"
+                                   Variant="Variant.Filled"
+                                   Color="Color.Success"
+                                   StartIcon="@Icons.Material.Filled.Upload"
+                                   Disabled="_isUploadingImage || SelectedFile == null"
+                                   FullWidth="true">
+                            @TranslationService.GetTranslation("common.upload", "Carica")
+                        </MudButton>
 
- <MudButton OnClick="@UploadImage"
- Variant="Variant.Filled"
- Color="Color.Success"
- StartIcon="@Icons.Material.Filled.Upload"
- Disabled="_isUploadingImage || SelectedFile == null"
- Size="Size.Small"
- Class="ef-image-action">
- @TranslationService.GetTranslation("common.upload", "Carica")
- </MudButton>
+                        @if (Product.ImageDocumentId.HasValue)
+                        {
+                            <MudButton OnClick="@RemoveImage"
+                                       Variant="Variant.Filled"
+                                       Color="Color.Error"
+                                       StartIcon="@Icons.Material.Filled.Delete"
+                                       Disabled="_isUploadingImage"
+                                       FullWidth="true">
+                                @TranslationService.GetTranslation("common.remove", "Rimuovi")
+                            </MudButton>
+                        }
 
- @if (Product.ImageDocumentId.HasValue)
- {
- <MudButton OnClick="@RemoveImage"
- Variant="Variant.Filled"
- Color="Color.Error"
- StartIcon="@Icons.Material.Filled.Delete"
- Disabled="_isUploadingImage"
- Size="Size.Small"
- Class="ef-image-action">
- @TranslationService.GetTranslation("common.remove", "Rimuovi")
- </MudButton>
- }
- </div>
+                        @if (SelectedFile != null)
+                        {
+                            <MudChip T="string" Color="Color.Info" Icon="@Icons.Material.Filled.Image" OnClose="@ClearImage">
+                                @SelectedFile.Name
+                            </MudChip>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@FormatFileSize(SelectedFile.Size)</MudText>
+                        }
 
- @if (SelectedFile != null)
- {
- <MudChip T="string" Color="Color.Info" Icon="@Icons.Material.Filled.Image" OnClose="@ClearImage" Class="mt-2">
- @SelectedFile.Name
- </MudChip>
- <MudText Typo="Typo.caption" Class="mt-1 mud-text-secondary">@FormatFileSize(SelectedFile.Size)</MudText>
- }
+                        @if (_isUploadingImage)
+                        {
+                            <MudProgressLinear Indeterminate="true" />
+                        }
+                    </MudStack>
 
- @if (_isUploadingImage)
- {
- <MudProgressLinear Indeterminate="true" Class="mt-2" />
- }
- }
- else
- {
- <MudText Typo="Typo.caption" Class="mud-text-secondary">
- @TranslationService.GetTranslation("product.imageViewOnly", "Solo visualizzazione immagine (modalità lettura)")
- </MudText>
- }
- </div>
-
- <MudText Typo="Typo.caption" Class="mt-2 mud-text-secondary">
- @TranslationService.GetTranslation("product.imageHelp", "Formati supportati: JPEG, PNG, GIF, WebP. Dimensione massima:5MB")
- </MudText>
- </MudPaper>
- </MudItem>
- </MudGrid>
+                    <MudText Typo="Typo.caption" Class="mt-2 mud-text-secondary">
+                        @TranslationService.GetTranslation("product.imageHelp", "Formati supportati: JPEG, PNG, GIF, WebP. Dimensione massima: 5MB")
+                    </MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("product.imageViewOnly", "Solo visualizzazione immagine (modalità lettura)")
+                    </MudText>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
 </MudStack>
-
-<style>
- .ef-image-action {
- min-width: 110px;
- height: 36px;
- display: inline-flex;
- align-items: center;
- justify-content: center;
- padding: 6px 12px;
- }
-
- /* Responsive fallback: buttons will shrink naturally on small screens */
-</style>
 
 @code {
  [Parameter, EditorRequired]

@@ -7,9 +7,12 @@
 
 <MudStack Spacing="3">
     <MudPaper Elevation="1" Class="pa-4">
-        <MudGrid>
-            <MudItem xs="12">
-                <!-- Fields presented in column (stacked) -->
+        <MudText Typo="Typo.h6" Class="mb-3">
+            <MudIcon Icon="@Icons.Material.Outlined.AttachMoney" Class="mr-2" />
+            @TranslationService.GetTranslation("product.pricingInfo", "Informazioni Prezzi e Finanza")
+        </MudText>
+        <MudGrid Spacing="3">
+            <MudItem xs="12" md="6">
                 <MudNumericField @bind-Value="Product.DefaultPrice"
                                  Label="@TranslationService.GetTranslation("field.defaultPrice", "Prezzo Predefinito")"
                                  Variant="Variant.Outlined"
@@ -18,27 +21,17 @@
                                  Format="N2"
                                  Adornment="Adornment.Start"
                                  AdornmentText="€"
-                                 Size="Size.Small"
+                                 HelperText="@TranslationService.GetTranslation("helper.defaultPrice", "Prezzo base del prodotto")"
                                  @bind-Value:after="NotifyUpdated" />
             </MudItem>
 
-            <MudItem xs="12">
-                <MudSwitch T="bool"
-                           @bind-Checked="Product.IsVatIncluded"
-                           @bind-Checked:after="OnVatIncludedChanged"
-                           Label="@TranslationService.GetTranslation("product.isVatIncluded", "IVA Inclusa")"
-                           Color="Color.Primary"
-                           ReadOnly="@(!IsEditMode)" />
-            </MudItem>
-
-            <MudItem xs="12">
+            <MudItem xs="12" md="6">
                 <MudSelect T="Guid?"
                            @bind-Value="Product.VatRateId"
                            Label="@TranslationService.GetTranslation("field.vatRate", "Aliquota IVA")"
                            Variant="Variant.Outlined"
                            ReadOnly="@(!IsEditMode)"
                            Clearable="true"
-                           Size="Size.Small"
                            @bind-Value:after="NotifyUpdated">
                     @if (_vatRates != null)
                     {
@@ -48,6 +41,15 @@
                         }
                     }
                 </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudSwitch T="bool"
+                           @bind-Checked="Product.IsVatIncluded"
+                           @bind-Checked:after="OnVatIncludedChanged"
+                           Label="@TranslationService.GetTranslation("product.isVatIncluded", "IVA Inclusa nel Prezzo")"
+                           Color="Color.Primary"
+                           ReadOnly="@(!IsEditMode)" />
             </MudItem>
         </MudGrid>
     </MudPaper>
