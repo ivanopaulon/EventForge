@@ -77,7 +77,7 @@
                                            CreateTooltip="@TranslationService.GetTranslation("warehouse.createNewFacility", "Crea nuovo magazzino")"
                                            IsDisabled="_isLoadingFacilities"
                                            OnRefresh="@LoadStorageFacilitiesAsync"
-                                           OnCreate="@OpenCreateStorageFacilityDrawer" />
+                                           OnCreate="@CreateStorageFacility" />
                     </CardHeaderActions>
                 </MudCardHeader>
                 <MudCardContent Class="pa-1">
@@ -151,14 +151,13 @@
                                 <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
                                     <ActionButtonGroup EntityName="@context.Name"
                                                       ItemDisplayName="@context.Name"
-                                                      ShowView="true"
+                                                      ShowView="false"
                                                       ShowEdit="true"
                                                       ShowAuditLog="true"
                                                       ShowToggleStatus="true"
                                                       ShowDelete="true"
                                                       IsActive="@context.IsActive"
-                                                      OnView="@(() => ViewStorageFacility(context))"
-                                                      OnEdit="@(() => EditStorageFacility(context))"
+                                                      OnEdit="@(() => EditStorageFacility(context.Id))"
                                                       OnAuditLog="@(() => ViewStorageFacilityAuditLog(context))"
                                                       OnToggleStatus="@(() => ToggleStorageFacilityStatus(context))"
                                                       OnDelete="@(() => DeleteStorageFacility(context))" />
@@ -192,14 +191,6 @@
     }
 </MudContainer>
 
-<!-- Storage Facility Management Drawer -->
-<StorageFacilityDrawer @bind-IsOpen="_storageFacilityDrawerOpen" 
-                       @bind-Mode="_storageFacilityDrawerMode"
-                       OriginalStorageFacility="_selectedStorageFacility"
-                       AllowEdit="true"
-                       OnStorageFacilityCreated="@OnStorageFacilityCreated"
-                       OnStorageFacilityUpdated="@OnStorageFacilityUpdated" />
-
 <!-- Audit History Drawer -->
 <AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
                     EntityType="StorageFacility"
@@ -210,12 +201,9 @@
     // UI State Management
     private bool _isLoading = true;
     private bool _isLoadingFacilities = false;
-    private bool _storageFacilityDrawerOpen = false;
     private bool _auditDrawerOpen = false;
     
-    // Drawer management
-    private EntityDrawerMode _storageFacilityDrawerMode = EntityDrawerMode.Create;
-    private StorageFacilityDto? _selectedStorageFacility;
+    // Audit management
     private StorageFacilityDto? _selectedFacilityForAudit;
     
     // Filter and search state
@@ -319,46 +307,14 @@
         StateHasChanged();
     }
 
-    private async Task OpenCreateStorageFacilityDrawer()
+    private void CreateStorageFacility()
     {
-        _storageFacilityDrawerMode = EntityDrawerMode.Create;
-        _selectedStorageFacility = null;
-        _storageFacilityDrawerOpen = true;
-        await Task.CompletedTask;
+        NavigationManager.NavigateTo("/warehouse/facilities/new");
     }
 
-    private async Task OnStorageFacilityCreated(StorageFacilityDto newStorageFacility)
+    private void EditStorageFacility(Guid id)
     {
-        _storageFacilities.Add(newStorageFacility);
-        StateHasChanged();
-        await Task.CompletedTask;
-    }
-
-    private async Task OnStorageFacilityUpdated(StorageFacilityDto updatedStorageFacility)
-    {
-        var index = _storageFacilities.FindIndex(f => f.Id == updatedStorageFacility.Id);
-        if (index >= 0)
-        {
-            _storageFacilities[index] = updatedStorageFacility;
-        }
-        StateHasChanged();
-        await Task.CompletedTask;
-    }
-
-    private async Task ViewStorageFacility(StorageFacilityDto facility)
-    {
-        _storageFacilityDrawerMode = EntityDrawerMode.View;
-        _selectedStorageFacility = facility;
-        _storageFacilityDrawerOpen = true;
-        await Task.CompletedTask;
-    }
-
-    private async Task EditStorageFacility(StorageFacilityDto facility)
-    {
-        _storageFacilityDrawerMode = EntityDrawerMode.Edit;
-        _selectedStorageFacility = facility;
-        _storageFacilityDrawerOpen = true;
-        await Task.CompletedTask;
+        NavigationManager.NavigateTo($"/warehouse/facilities/{id}");
     }
 
     private async Task DeleteStorageFacility(StorageFacilityDto facility)
