@@ -89,7 +89,15 @@ public class BootstrapHostedService : IHostedService
 
                 if (bootstrapResult)
                 {
-                    _logger.LogInformation("Bootstrap process completed successfully");
+                    _logger.LogInformation("=== Bootstrap process completed successfully ===");
+                    
+                    // Log summary of what was bootstrapped
+                    var tenantCount = await dbContext.Tenants.CountAsync(t => t.Id != Guid.Empty, cancellationToken);
+                    var userCount = await dbContext.Users.CountAsync(cancellationToken);
+                    var licenseCount = await dbContext.Licenses.CountAsync(cancellationToken);
+                    
+                    _logger.LogInformation("Bootstrap Summary: {TenantCount} tenants, {UserCount} users, {LicenseCount} licenses",
+                        tenantCount, userCount, licenseCount);
                 }
                 else
                 {

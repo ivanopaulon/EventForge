@@ -103,35 +103,56 @@ public class BootstrapService : IBootstrapService
             }
 
             // Check if any tenants exist
-            var existingTenants = await _dbContext.Tenants.ToListAsync(cancellationToken);
+            var existingTenants = await _dbContext.Tenants
+                .Where(t => t.Id != Guid.Empty) // Skip system-level tenant
+                .ToListAsync(cancellationToken);
+            
             if (existingTenants.Any())
             {
-                _logger.LogInformation("Tenants already exist. Checking if base entities need to be seeded...");
+                _logger.LogInformation("Found {TenantCount} existing tenants. Checking if base entities need to be seeded...", existingTenants.Count);
+
+                // Get all tenant IDs for batch query
+                var tenantIds = existingTenants.Select(t => t.Id).ToList();
+
+                // Batch query to check which tenants have base entities (more efficient than individual queries)
+                var tenantsWithVatNatures = await _dbContext.VatNatures
+                    .Where(v => tenantIds.Contains(v.TenantId))
+                    .Select(v => v.TenantId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+                
+                var tenantsWithVatRates = await _dbContext.VatRates
+                    .Where(v => tenantIds.Contains(v.TenantId))
+                    .Select(v => v.TenantId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+                
+                var tenantsWithUnitsMeasure = await _dbContext.UMs
+                    .Where(u => tenantIds.Contains(u.TenantId))
+                    .Select(u => u.TenantId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+                
+                var tenantsWithWarehouses = await _dbContext.StorageFacilities
+                    .Where(w => tenantIds.Contains(w.TenantId))
+                    .Select(w => w.TenantId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
 
                 // Check each tenant to see if it needs base entities seeded
                 foreach (var tenant in existingTenants)
                 {
-                    // Skip system-level tenant (Guid.Empty is used for system entities)
-                    if (tenant.Id == Guid.Empty)
-                    {
-                        continue;
-                    }
-
-                    // Check if this tenant has base entities
-                    var hasVatNatures = await _dbContext.VatNatures
-                        .AnyAsync(v => v.TenantId == tenant.Id, cancellationToken);
-                    var hasVatRates = await _dbContext.VatRates
-                        .AnyAsync(v => v.TenantId == tenant.Id, cancellationToken);
-                    var hasUnitsMeasure = await _dbContext.UMs
-                        .AnyAsync(u => u.TenantId == tenant.Id, cancellationToken);
-                    var hasWarehouses = await _dbContext.StorageFacilities
-                        .AnyAsync(w => w.TenantId == tenant.Id, cancellationToken);
+                    // Check if this tenant has base entities (using batch query results)
+                    var hasVatNatures = tenantsWithVatNatures.Contains(tenant.Id);
+                    var hasVatRates = tenantsWithVatRates.Contains(tenant.Id);
+                    var hasUnitsMeasure = tenantsWithUnitsMeasure.Contains(tenant.Id);
+                    var hasWarehouses = tenantsWithWarehouses.Contains(tenant.Id);
 
                     // If any base entities are missing, seed them
                     if (!hasVatNatures || !hasVatRates || !hasUnitsMeasure || !hasWarehouses)
                     {
-                        _logger.LogWarning("Tenant {TenantId} ({TenantName}) is missing base entities. Seeding now...",
-                            tenant.Id, tenant.Name);
+                        _logger.LogWarning("Tenant {TenantId} ({TenantName}) is missing base entities (VatNatures:{HasVat}, VatRates:{HasRates}, UMs:{HasUM}, Warehouses:{HasWH}). Seeding now...",
+                            tenant.Id, tenant.Name, hasVatNatures, hasVatRates, hasUnitsMeasure, hasWarehouses);
 
                         if (!await _entitySeeder.SeedTenantBaseEntitiesAsync(tenant.Id, cancellationToken))
                         {
