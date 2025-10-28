@@ -50,8 +50,10 @@ public class TenantSeeder : ITenantSeeder
             };
 
             // For InMemory database or databases that generate IDs, we need to ensure Guid.Empty is used
+            // EF Core typically auto-generates GUIDs for entities. To use Guid.Empty as the ID,
+            // we must explicitly set it after Add() but before SaveChanges().
+            // This approach works reliably across EF Core In-Memory and SQL Server providers.
             var entry = _dbContext.Tenants.Add(systemTenant);
-            // After Add, explicitly set the ID back to Guid.Empty to prevent auto-generation
             entry.Property(t => t.Id).CurrentValue = Guid.Empty;
             _ = await _dbContext.SaveChangesAsync(cancellationToken);
 

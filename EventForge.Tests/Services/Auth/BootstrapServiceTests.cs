@@ -163,12 +163,7 @@ public class BootstrapServiceTests
         // Assert
         Assert.True(result);
 
-        // Debug: List all tenants
-        var allTenants = await context.Tenants.ToListAsync();
-        // Expected: System (Guid.Empty), ExistingTenant, DefaultTenant = 3 total
-        // But we filter out System, so should be 2 non-system tenants
-
-        // Verify default tenant was created (in addition to system and existing tenant)
+        // Verify default tenant was created (in addition to existing tenant)
         var tenantCount = await context.Tenants.CountAsync(t => t.Id != Guid.Empty);
         Assert.Equal(2, tenantCount); // ExistingTenant + DefaultTenant
 
@@ -328,7 +323,7 @@ public class BootstrapServiceTests
         // First run to create everything
         _ = await bootstrapService.EnsureAdminBootstrappedAsync();
 
-        // Get initial counts (system tenant + default tenant)
+        // Get initial counts (excludes system tenant with Guid.Empty)
         var initialTenantCount = await context.Tenants.CountAsync();
         var initialUserCount = await context.Users.CountAsync();
 
