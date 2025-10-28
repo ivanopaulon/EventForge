@@ -104,7 +104,7 @@
     
     private List<TableInfo> AvailableTables { get; set; } = new();
     
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
         // Load available tables
         // TODO: Replace with actual API call
@@ -112,15 +112,17 @@
         
         // Mock data for demonstration
         AvailableTables = GenerateMockTables();
+        return Task.CompletedTask;
     }
     
-    protected override async Task OnParametersSetAsync()
+    protected override Task OnParametersSetAsync()
     {
         // Refresh tables when sale type changes
         if (ShowTableManagement && !AvailableTables.Any())
         {
             AvailableTables = GenerateMockTables();
         }
+        return Task.CompletedTask;
     }
     
     private List<TableInfo> GenerateMockTables()
