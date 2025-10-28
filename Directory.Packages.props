@@ -33,7 +33,7 @@
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="9.0.10" />
     <PackageVersion Include="System.Security.Cryptography.X509Certificates" Version="4.3.2" />
     <!-- Syncfusion Blazor - all-in-one package -->
-    <PackageVersion Include="Syncfusion.Blazor" Version="28.1.33" />
+    <PackageVersion Include="Syncfusion.Blazor" Version="31.2.4" />
     <!-- Health Checks and Resiliency packages -->
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="9.0.10" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.10" />
