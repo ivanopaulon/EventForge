@@ -1,0 +1,425 @@
+@page "/documents/create"
+@page "/documents/edit/{DocumentId:guid}"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Common
+@using EventForge.DTOs.Documents
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.Products
+@using EventForge.Client.Shared.Components.Dialogs.Documents
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
+@inject IDocumentHeaderService DocumentHeaderService
+@inject IDocumentTypeService DocumentTypeService
+@inject IBusinessPartyService BusinessPartyService
+@inject IProductService ProductService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<GenericDocumentProcedure> Logger
+@inject NavigationManager NavigationManager
+
+<PageTitle>@_pageTitle</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" md="8">
+            <MudText Typo="Typo.h4">
+                <MudIcon Icon="@Icons.Material.Outlined.Description" Class="mr-2" Size="Size.Medium" />
+                @_pageTitle
+            </MudText>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudStack Row="true" Justify="Justify.FlexEnd">
+                <MudButton StartIcon="@Icons.Material.Outlined.ArrowBack"
+                           Color="Color.Default"
+                           Variant="Variant.Outlined"
+                           OnClick="@(() => NavigationManager.NavigateTo("/documents/list"))">
+                    @TranslationService.GetTranslation("common.back", "Indietro")
+                </MudButton>
+            </MudStack>
+        </MudItem>
+    </MudGrid>
+
+    @if (_isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Class="mb-4" />
+    }
+
+    <!-- Document Header Section -->
+    <MudPaper Elevation="2" Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-3">
+            @TranslationService.GetTranslation("documents.headerInfo", "Informazioni Documento")
+        </MudText>
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudSelect T="Guid" Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")" @bind-Value="_model.DocumentTypeId" Required="true" Disabled="@_isEditMode">
+                    @if (_documentTypes != null)
+                    {
+                        @foreach (var type in _documentTypes)
+                        {
+                            <MudSelectItem T="Guid" Value="@type.Id">@type.Name</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudTextField T="string" Label="@TranslationService.GetTranslation("documents.series", "Serie")" @bind-Value="_model.Series" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudTextField T="string" Label="@TranslationService.GetTranslation("documents.number", "Numero")" @bind-Value="_model.Number" Required="true" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudDatePicker Label="@TranslationService.GetTranslation("documents.date", "Data")" @bind-Date="_documentDate" Required="true" />
+            </MudItem>
+            <MudItem xs="12" md="8">
+                <MudAutocomplete T="BusinessPartyDto"
+                                 Label="@TranslationService.GetTranslation("documents.businessParty", "Controparte")"
+                                 @bind-Value="_selectedBusinessParty"
+                                 SearchFunc="@SearchBusinessPartiesAsync"
+                                 ToStringFunc="@(bp => bp?.Name ?? string.Empty)"
+                                 Required="true"
+                                 ShowProgressIndicator="true"
+                                 Dense="true">
+                    <ItemTemplate Context="bp">
+                        <MudText>@bp.Name</MudText>
+                        @if (!string.IsNullOrEmpty(bp.TaxCode))
+                        {
+                            <MudText Typo="Typo.caption">@bp.TaxCode</MudText>
+                        }
+                    </ItemTemplate>
+                </MudAutocomplete>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" Label="@TranslationService.GetTranslation("documents.notes", "Note")" @bind-Value="_model.Notes" Lines="3" />
+            </MudItem>
+        </MudGrid>
+        <MudStack Row="true" Class="mt-4">
+            <MudButton StartIcon="@Icons.Material.Outlined.Save"
+                       Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       OnClick="@SaveDocumentHeaderAsync"
+                       Disabled="@(!CanSaveHeader())">
+                @TranslationService.GetTranslation("common.save", "Salva")
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+
+    <!-- Document Rows Section -->
+    @if (_currentDocument != null)
+    {
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                <MudText Typo="Typo.h6">
+                    @TranslationService.GetTranslation("documents.rows", "Righe Documento")
+                </MudText>
+                <MudButton StartIcon="@Icons.Material.Outlined.Add"
+                           Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           Size="Size.Small"
+                           OnClick="@AddRowAsync">
+                    @TranslationService.GetTranslation("documents.addRow", "Aggiungi Riga")
+                </MudButton>
+            </MudStack>
+
+            @if (_currentDocument.Rows != null && _currentDocument.Rows.Any())
+            {
+                <MudTable Items="@_currentDocument.Rows" Dense="true" Hover="true" Striped="true">
+                    <HeaderContent>
+                        <MudTh>@TranslationService.GetTranslation("documents.productCode", "Codice")</MudTh>
+                        <MudTh>@TranslationService.GetTranslation("documents.description", "Descrizione")</MudTh>
+                        <MudTh>@TranslationService.GetTranslation("documents.quantity", "Quantità")</MudTh>
+                        <MudTh>@TranslationService.GetTranslation("documents.unitPrice", "Prezzo")</MudTh>
+                        <MudTh>@TranslationService.GetTranslation("documents.total", "Totale")</MudTh>
+                        <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.productCode", "Codice")">@context.ProductCode</MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.description", "Descrizione")">@context.Description</MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.quantity", "Quantità")">@context.Quantity</MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo")">@context.UnitPrice.ToString("C2")</MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.total", "Totale")">@((context.Quantity * context.UnitPrice).ToString("C2"))</MudTd>
+                        <MudTd>
+                            <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                                           Size="Size.Small"
+                                           Color="Color.Error"
+                                           OnClick="@(() => DeleteRowAsync(context.Id))"
+                                           Title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+
+                <MudDivider Class="my-4" />
+                <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
+                    <MudText Typo="Typo.h6">
+                        @TranslationService.GetTranslation("documents.totalAmount", "Totale"): @CalculateTotalAmount().ToString("C2")
+                    </MudText>
+                </MudStack>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info">
+                    @TranslationService.GetTranslation("documents.noRows", "Nessuna riga presente. Aggiungi righe al documento.")
+                </MudAlert>
+            }
+        </MudPaper>
+
+        <!-- Actions -->
+        <MudStack Row="true" Class="mt-4" Justify="Justify.FlexEnd">
+            @if (_currentDocument.Status == DocumentStatus.Draft)
+            {
+                <MudButton StartIcon="@Icons.Material.Outlined.Check"
+                           Color="Color.Success"
+                           Variant="Variant.Filled"
+                           OnClick="@ApproveDocumentAsync"
+                           Disabled="@(!_currentDocument.Rows.Any())">
+                    @TranslationService.GetTranslation("documents.approve", "Approva")
+                </MudButton>
+            }
+            <MudButton StartIcon="@Icons.Material.Outlined.Close"
+                       Color="Color.Default"
+                       Variant="Variant.Outlined"
+                       OnClick="@(() => NavigationManager.NavigateTo("/documents/list"))">
+                @TranslationService.GetTranslation("common.close", "Chiudi")
+            </MudButton>
+        </MudStack>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public Guid? DocumentId { get; set; }
+
+    private bool _isLoading = false;
+    private bool _isEditMode => DocumentId.HasValue;
+    private string _pageTitle = "";
+    private CreateDocumentHeaderDto _model = new();
+    private DocumentHeaderDto? _currentDocument = null;
+    private DateTime? _documentDate = DateTime.Now;
+    private List<DocumentTypeDto> _documentTypes = new();
+    private BusinessPartyDto? _selectedBusinessParty = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _pageTitle = _isEditMode
+            ? TranslationService.GetTranslation("documents.editDocument", "Modifica Documento")
+            : TranslationService.GetTranslation("documents.createDocument", "Nuovo Documento");
+
+        await LoadDocumentTypesAsync();
+
+        if (_isEditMode && DocumentId.HasValue)
+        {
+            await LoadDocumentAsync(DocumentId.Value);
+        }
+        else
+        {
+            _model.Date = DateTime.UtcNow;
+        }
+    }
+
+    private async Task LoadDocumentTypesAsync()
+    {
+        try
+        {
+            var types = await DocumentTypeService.GetAllDocumentTypesAsync();
+            _documentTypes = types?.ToList() ?? new List<DocumentTypeDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading document types");
+            Snackbar.Add(TranslationService.GetTranslation("documents.errorLoadingTypes", "Errore durante il caricamento dei tipi di documento"), Severity.Error);
+        }
+    }
+
+    private async Task LoadDocumentAsync(Guid documentId)
+    {
+        _isLoading = true;
+        try
+        {
+            _currentDocument = await DocumentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true);
+            if (_currentDocument != null)
+            {
+                _model.DocumentTypeId = _currentDocument.DocumentTypeId;
+                _model.Series = _currentDocument.Series;
+                _model.Number = _currentDocument.Number;
+                _model.Date = _currentDocument.Date;
+                _model.BusinessPartyId = _currentDocument.BusinessPartyId;
+                _model.Notes = _currentDocument.Notes;
+                _documentDate = _currentDocument.Date.ToLocalTime();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading document");
+            Snackbar.Add(TranslationService.GetTranslation("documents.errorLoading", "Errore durante il caricamento del documento"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task<IEnumerable<BusinessPartyDto>> SearchBusinessPartiesAsync(string searchTerm, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return Array.Empty<BusinessPartyDto>();
+
+        try
+        {
+            // Use GetBusinessPartiesAsync and filter locally for simplicity
+            var result = await BusinessPartyService.GetBusinessPartiesAsync(1, 50);
+            return result?.Items.Where(bp => 
+                (bp.Name?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (bp.TaxCode?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
+            ) ?? Array.Empty<BusinessPartyDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error searching business parties");
+            return Array.Empty<BusinessPartyDto>();
+        }
+    }
+
+    private bool CanSaveHeader()
+    {
+        return _model.DocumentTypeId != Guid.Empty
+               && !string.IsNullOrWhiteSpace(_model.Number)
+               && _selectedBusinessParty != null
+               && _documentDate.HasValue;
+    }
+
+    private decimal CalculateTotalAmount()
+    {
+        if (_currentDocument?.Rows == null || !_currentDocument.Rows.Any())
+            return 0;
+        
+        return _currentDocument.Rows.Sum(row => row.Quantity * row.UnitPrice);
+    }
+
+    private async Task SaveDocumentHeaderAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _model.BusinessPartyId = _selectedBusinessParty!.Id;
+            _model.Date = _documentDate!.Value.ToUniversalTime();
+
+            if (_isEditMode && DocumentId.HasValue)
+            {
+                var updateDto = new UpdateDocumentHeaderDto
+                {
+                    Series = _model.Series,
+                    Number = _model.Number,
+                    Date = _model.Date,
+                    BusinessPartyId = _model.BusinessPartyId,
+                    Notes = _model.Notes
+                };
+                var updated = await DocumentHeaderService.UpdateDocumentHeaderAsync(DocumentId.Value, updateDto);
+                if (updated != null)
+                {
+                    _currentDocument = updated;
+                    Snackbar.Add(TranslationService.GetTranslation("documents.updateSuccess", "Documento aggiornato con successo"), Severity.Success);
+                }
+            }
+            else
+            {
+                var created = await DocumentHeaderService.CreateDocumentHeaderAsync(_model);
+                if (created != null)
+                {
+                    _currentDocument = created;
+                    Snackbar.Add(TranslationService.GetTranslation("documents.createSuccess", "Documento creato con successo"), Severity.Success);
+                    NavigationManager.NavigateTo($"/documents/edit/{created.Id}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving document header");
+            Snackbar.Add(TranslationService.GetTranslation("documents.saveError", "Errore durante il salvataggio del documento"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task AddRowAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            { "DocumentHeaderId", _currentDocument!.Id }
+        };
+
+        var dialog = await DialogService.ShowAsync<AddDocumentRowDialog>(
+            TranslationService.GetTranslation("documents.addRow", "Aggiungi Riga"),
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadDocumentAsync(_currentDocument.Id);
+        }
+    }
+
+    private async Task DeleteRowAsync(Guid rowId)
+    {
+        bool? confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("documents.confirmDeleteRow", "Conferma Eliminazione"),
+            TranslationService.GetTranslation("documents.confirmDeleteRowMessage", "Sei sicuro di voler eliminare questa riga?"),
+            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+            noText: TranslationService.GetTranslation("common.no", "No"));
+
+        if (confirmed == true)
+        {
+            _isLoading = true;
+            try
+            {
+                bool success = await DocumentHeaderService.DeleteDocumentRowAsync(rowId);
+                if (success)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowSuccess", "Riga eliminata con successo"), Severity.Success);
+                    await LoadDocumentAsync(_currentDocument!.Id);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowError", "Errore durante l'eliminazione della riga"), Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting document row");
+                Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowError", "Errore durante l'eliminazione della riga"), Severity.Error);
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
+    }
+
+    private async Task ApproveDocumentAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            var result = await DocumentHeaderService.ApproveDocumentAsync(_currentDocument!.Id);
+            if (result != null)
+            {
+                _currentDocument = result;
+                Snackbar.Add(TranslationService.GetTranslation("documents.approveSuccess", "Documento approvato con successo"), Severity.Success);
+                NavigationManager.NavigateTo("/documents/list");
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("documents.approveError", "Errore durante l'approvazione del documento"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error approving document");
+            Snackbar.Add(TranslationService.GetTranslation("documents.approveError", "Errore durante l'approvazione del documento"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}
