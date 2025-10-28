@@ -577,9 +577,12 @@
                         @if (context.Id == _editingRowId)
                         {
                             <!-- Inline Edit Mode -->
-                            <MudTd DataLabel="Product" ColSpan="2">
+                            <MudTd DataLabel="Product">
                                 <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.ProductName</MudText>
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ProductCode</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Location">
+                                <MudText Typo="Typo.body2">@context.LocationName</MudText>
                             </MudTd>
                             <MudTd DataLabel="Quantity">
                                 <MudNumericField @bind-Value="_editQuantity"
@@ -626,7 +629,7 @@
                         else if (context.Id == _confirmDeleteRowId)
                         {
                             <!-- Inline Delete Confirmation -->
-                            <MudTd DataLabel="Product" ColSpan="6">
+                            <MudTd DataLabel="Confirmation" ColSpan="7">
                                 <MudAlert Severity="Severity.Warning" Dense="true" NoIcon="false">
                                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                                         <MudText Typo="Typo.body2">
@@ -650,9 +653,6 @@
                                         </MudStack>
                                     </MudStack>
                                 </MudAlert>
-                            </MudTd>
-                            <MudTd DataLabel="Actions">
-                                <!-- Empty during confirmation -->
                             </MudTd>
                         }
                         else
