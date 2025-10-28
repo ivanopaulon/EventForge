@@ -76,7 +76,7 @@
             <MudForm @ref="_form">
                 <MudGrid>
                     <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="_tenant.Name"
+                        <MudTextField @bind-Value="_tenant!.Name"
                                       Label="@($"{TranslationService.GetTranslation("drawer.field.nomeTenant", "Nome Tenant")} *")"
                                       Variant="Variant.Outlined"
                                       Required="true"
@@ -94,7 +94,7 @@
                     </MudItem>
 
                     <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="_tenant.DisplayName"
+                        <MudTextField @bind-Value="_tenant!.DisplayName"
                                       Label="@($"{TranslationService.GetTranslation("drawer.field.nomeVisualizzato", "Nome Visualizzato")} *")"
                                       Variant="Variant.Outlined"
                                       Required="true"
@@ -109,7 +109,7 @@
                     </MudItem>
 
                     <MudItem xs="12">
-                        <MudTextField @bind-Value="_tenant.Description"
+                        <MudTextField @bind-Value="_tenant!.Description"
                                       Label="@TranslationService.GetTranslation("drawer.field.descrizione", "Descrizione")"
                                       Variant="Variant.Outlined"
                                       Lines="3"
@@ -122,7 +122,7 @@
                     </MudItem>
 
                     <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="_tenant.Domain"
+                        <MudTextField @bind-Value="_tenant!.Domain"
                                       Label="@TranslationService.GetTranslation("drawer.field.dominio", "Dominio")"
                                       Variant="Variant.Outlined"
                                       MaxLength="100"
@@ -134,7 +134,7 @@
                     </MudItem>
 
                     <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="_tenant.ContactEmail"
+                        <MudTextField @bind-Value="_tenant!.ContactEmail"
                                       Label="@($"{TranslationService.GetTranslation("drawer.field.emailContatto", "Email Contatto")} *")"
                                       Variant="Variant.Outlined"
                                       InputType="InputType.Email"
@@ -150,7 +150,7 @@
                     </MudItem>
 
                     <MudItem xs="12" md="6">
-                        <MudNumericField @bind-Value="_tenant.MaxUsers"
+                        <MudNumericField @bind-Value="_tenant!.MaxUsers"
                                          Label="@($"{TranslationService.GetTranslation("drawer.field.massimoUtenti", "Massimo Utenti")} *")"
                                          Variant="Variant.Outlined"
                                          Min="1"

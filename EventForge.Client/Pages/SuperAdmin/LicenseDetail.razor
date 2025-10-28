@@ -79,7 +79,7 @@
             <MudForm @ref="_form">
                 <MudGrid>
                     <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="_license.Name"
+                        <MudTextField @bind-Value="_license!.Name"
                                       Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
                                       Variant="Variant.Outlined"
                                       Required="true"
@@ -97,7 +97,7 @@
                     </MudItem>
 
                     <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="_license.DisplayName"
+                        <MudTextField @bind-Value="_license!.DisplayName"
                                       Label="@($"{TranslationService.GetTranslation("field.displayName", "Nome visualizzato")} *")"
                                       Variant="Variant.Outlined"
                                       Required="true"
@@ -112,7 +112,7 @@
                     </MudItem>
 
                     <MudItem xs="12">
-                        <MudTextField @bind-Value="_license.Description"
+                        <MudTextField @bind-Value="_license!.Description"
                                       Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
                                       Variant="Variant.Outlined"
                                       Lines="3"
@@ -126,7 +126,7 @@
                     </MudItem>
 
                     <MudItem xs="12" md="4">
-                        <MudNumericField @bind-Value="_license.MaxUsers"
+                        <MudNumericField @bind-Value="_license!.MaxUsers"
                                          Label="@($"{TranslationService.GetTranslation("license.field.maxUsers", "Utenti massimi")} *")"
                                          Variant="Variant.Outlined"
                                          Required="true"
@@ -142,7 +142,7 @@
                     </MudItem>
 
                     <MudItem xs="12" md="4">
-                        <MudNumericField @bind-Value="_license.MaxApiCallsPerMonth"
+                        <MudNumericField @bind-Value="_license!.MaxApiCallsPerMonth"
                                          Label="@($"{TranslationService.GetTranslation("license.field.maxApiCalls", "API calls/mese")} *")"
                                          Variant="Variant.Outlined"
                                          Required="true"
@@ -158,7 +158,7 @@
                     </MudItem>
 
                     <MudItem xs="12" md="4">
-                        <MudNumericField @bind-Value="_license.TierLevel"
+                        <MudNumericField @bind-Value="_license!.TierLevel"
                                          Label="@($"{TranslationService.GetTranslation("license.field.tierLevel", "Livello tier")} *")"
                                          Variant="Variant.Outlined"
                                          Required="true"
@@ -174,7 +174,7 @@
                     </MudItem>
 
                     <MudItem xs="12">
-                        <MudSwitch @bind-Value="_license.IsActive"
+                        <MudSwitch @bind-Value="_license!.IsActive"
                                    Label="@TranslationService.GetTranslation("field.isActive", "Attiva")"
                                    Color="Color.Primary"
                                    @onchange="@(() => MarkChanged())"
