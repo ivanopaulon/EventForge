@@ -19,7 +19,8 @@
             <MudItem xs="12">
                 <MudAutocomplete T="ProductDto"
                                  Label="@TranslationService.GetTranslation("documents.product", "Prodotto")"
-                                 @bind-Value="_selectedProduct"
+                                 Value="_selectedProduct"
+                                 ValueChanged="@OnProductSelected"
                                  SearchFunc="@SearchProductsAsync"
                                  ToStringFunc="@(p => p?.Name ?? string.Empty)"
                                  ShowProgressIndicator="true"
@@ -90,11 +91,13 @@
         _model.DocumentHeaderId = DocumentHeaderId;
     }
 
-    protected override void OnAfterRender(bool firstRender)
+    private void OnProductSelected(ProductDto? product)
     {
-        if (firstRender && _selectedProduct != null)
+        _selectedProduct = product;
+        if (product != null)
         {
-            PopulateFromProduct(_selectedProduct);
+            PopulateFromProduct(product);
+            StateHasChanged();
         }
     }
 
