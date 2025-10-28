@@ -192,6 +192,14 @@
     private ProductDto? _selectedProduct;
     private CreateProductCodeDto _createCodeDto = new();
     private List<ProductDto> _allProducts = new();
+    
+    // Typed result class for assignment
+    public class AssignResult
+    {
+        public string Action { get; set; } = "assigned";
+        public ProductDto Product { get; set; } = default!;
+        public bool AutoAdvanceToQuantity { get; set; } = true;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -261,7 +269,16 @@
                     TranslationService.GetTranslation("products.barcodeAssignedSuccess", "Codice a barre assegnato con successo a {0}", _selectedProduct.Name), 
                     Severity.Success
                 );
-                MudDialog.Close(DialogResult.Ok(new { action = "assigned", product = _selectedProduct }));
+                
+                // Use typed result
+                var assignResult = new AssignResult
+                {
+                    Action = "assigned",
+                    Product = _selectedProduct,
+                    AutoAdvanceToQuantity = true
+                };
+                
+                MudDialog.Close(DialogResult.Ok(assignResult));
             }
             else
             {
