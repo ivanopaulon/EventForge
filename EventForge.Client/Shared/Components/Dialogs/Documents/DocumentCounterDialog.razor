@@ -181,35 +181,24 @@
             {
                 // Update existing counter
                 var result = await DocumentCounterService.UpdateDocumentCounterAsync(Counter.Id, _updateModel);
-                if (result != null)
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("documentCounter.updateSuccess", "Contatore aggiornato con successo"), Severity.Success);
-                    MudDialog.Close(DialogResult.Ok(result));
-                }
-                else
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("documentCounter.updateError", "Errore durante l'aggiornamento del contatore"), Severity.Error);
-                }
+                Snackbar.Add(TranslationService.GetTranslation("documentCounter.updateSuccess", "Contatore aggiornato con successo"), Severity.Success);
+                MudDialog.Close(DialogResult.Ok(result));
             }
             else
             {
                 // Create new counter
                 var result = await DocumentCounterService.CreateDocumentCounterAsync(_model);
-                if (result != null)
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("documentCounter.createSuccess", "Contatore creato con successo"), Severity.Success);
-                    MudDialog.Close(DialogResult.Ok(result));
-                }
-                else
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("documentCounter.createError", "Errore durante la creazione del contatore"), Severity.Error);
-                }
+                Snackbar.Add(TranslationService.GetTranslation("documentCounter.createSuccess", "Contatore creato con successo"), Severity.Success);
+                MudDialog.Close(DialogResult.Ok(result));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving document counter");
-            Snackbar.Add(TranslationService.GetTranslation("documentCounter.saveError", "Errore durante il salvataggio del contatore"), Severity.Error);
+            var errorMessage = _isEditMode 
+                ? TranslationService.GetTranslation("documentCounter.updateError", "Errore durante l'aggiornamento del contatore")
+                : TranslationService.GetTranslation("documentCounter.createError", "Errore durante la creazione del contatore");
+            Snackbar.Add($"{errorMessage}: {ex.Message}", Severity.Error);
         }
         finally
         {

@@ -271,7 +271,8 @@
             // Get the selected document type to filter by required party type
             var selectedDocType = _documentTypes.FirstOrDefault(dt => dt.Id == _model.DocumentTypeId);
             
-            // Use GetBusinessPartiesAsync to get all parties
+            // Note: Currently loads up to 100 parties and filters client-side
+            // TODO: Implement server-side search API for better performance with large datasets
             var result = await BusinessPartyService.GetBusinessPartiesAsync(1, 100);
             if (result?.Items == null)
                 return Array.Empty<BusinessPartyDto>();

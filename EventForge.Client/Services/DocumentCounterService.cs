@@ -98,7 +98,8 @@ public class DocumentCounterService : IDocumentCounterService
         try
         {
             var response = await _httpClient.DeleteAsync($"{BaseUrl}/{id}");
-            return response.IsSuccessStatusCode;
+            response.EnsureSuccessStatusCode();
+            return true;
         }
         catch (Exception ex)
         {
