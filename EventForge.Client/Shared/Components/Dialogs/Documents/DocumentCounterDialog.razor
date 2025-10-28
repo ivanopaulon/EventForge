@@ -1,0 +1,221 @@
+@using EventForge.DTOs.Documents
+@using MudBlazor
+@inject IDocumentCounterService DocumentCounterService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<DocumentCounterDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudSelect T="Guid" 
+                               @bind-Value="_model.DocumentTypeId"
+                               Label="@($"{TranslationService.GetTranslation("documentCounter.documentType", "Tipo Documento")} *")"
+                               Required="true"
+                               Disabled="@_isEditMode">
+                        @if (DocumentTypes != null)
+                        {
+                            @foreach (var type in DocumentTypes)
+                            {
+                                <MudSelectItem T="Guid" Value="@type.Id">@type.Name</MudSelectItem>
+                            }
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string"
+                                  @bind-Value="_model.Series"
+                                  Label="@($"{TranslationService.GetTranslation("documentCounter.series", "Serie")} *")"
+                                  Required="true"
+                                  MaxLength="10"
+                                  Disabled="@_isEditMode"
+                                  HelperText="@TranslationService.GetTranslation("documentCounter.seriesHelper", "Es: A, B, 2025")" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="int?"
+                                     @bind-Value="_model.Year"
+                                     Label="@TranslationService.GetTranslation("documentCounter.year", "Anno")"
+                                     Min="2000"
+                                     Max="2100"
+                                     Disabled="@_isEditMode"
+                                     HelperText="@TranslationService.GetTranslation("documentCounter.yearHelper", "Lascia vuoto per contatore generale")" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string"
+                                  @bind-Value="_model.Prefix"
+                                  Label="@TranslationService.GetTranslation("documentCounter.prefix", "Prefisso")"
+                                  MaxLength="10"
+                                  HelperText="@TranslationService.GetTranslation("documentCounter.prefixHelper", "Es: INV, DOC")" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="int"
+                                     @bind-Value="_model.PaddingLength"
+                                     Label="@($"{TranslationService.GetTranslation("documentCounter.paddingLength", "Lunghezza Padding")} *")"
+                                     Min="1"
+                                     Max="10"
+                                     Required="true"
+                                     HelperText="@TranslationService.GetTranslation("documentCounter.paddingHelper", "5 = 00001")" />
+                </MudItem>
+
+                @if (_isEditMode)
+                {
+                    <MudItem xs="12" md="6">
+                        <MudNumericField T="int"
+                                         @bind-Value="_updateModel.CurrentValue"
+                                         Label="@($"{TranslationService.GetTranslation("documentCounter.currentValue", "Valore Corrente")} *")"
+                                         Min="0"
+                                         Required="true"
+                                         HelperText="@TranslationService.GetTranslation("documentCounter.currentValueHelper", "Prossimo numero da generare")" />
+                    </MudItem>
+                }
+
+                <MudItem xs="12">
+                    <MudTextField T="string"
+                                  @bind-Value="_model.FormatPattern"
+                                  Label="@TranslationService.GetTranslation("documentCounter.formatPattern", "Pattern Formato")"
+                                  MaxLength="50"
+                                  HelperText="@TranslationService.GetTranslation("documentCounter.formatPatternHelper", "Placeholders: {PREFIX}, {SERIES}, {YEAR}, {NUMBER}")"
+                                  Placeholder="{SERIES}/{YEAR}/{NUMBER}" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudSwitch T="bool"
+                               @bind-Value="_model.ResetOnYearChange"
+                               Label="@TranslationService.GetTranslation("documentCounter.resetOnYearChange", "Reset al Cambio Anno")"
+                               Color="Color.Primary" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField T="string"
+                                  @bind-Value="_model.Notes"
+                                  Label="@TranslationService.GetTranslation("common.notes", "Note")"
+                                  Lines="3"
+                                  MaxLength="200" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="SaveAsync"
+                   Disabled="@(!_isValid || _isSaving)">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">@TranslationService.GetTranslation("common.saving", "Salvataggio...")</MudText>
+            }
+            else
+            {
+                <MudText>@TranslationService.GetTranslation("common.save", "Salva")</MudText>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter] public DocumentCounterDto? Counter { get; set; }
+    [Parameter] public List<DocumentTypeDto>? DocumentTypes { get; set; }
+
+    private MudForm? _form;
+    private bool _isValid = false;
+    private bool _isSaving = false;
+    private bool _isEditMode => Counter != null;
+    
+    private CreateDocumentCounterDto _model = new()
+    {
+        Series = string.Empty,
+        PaddingLength = 5,
+        ResetOnYearChange = true
+    };
+    
+    private UpdateDocumentCounterDto _updateModel = new()
+    {
+        CurrentValue = 0,
+        PaddingLength = 5,
+        ResetOnYearChange = true
+    };
+
+    protected override void OnInitialized()
+    {
+        if (_isEditMode && Counter != null)
+        {
+            _model.DocumentTypeId = Counter.DocumentTypeId;
+            _model.Series = Counter.Series;
+            _model.Year = Counter.Year;
+            _model.Prefix = Counter.Prefix;
+            _model.PaddingLength = Counter.PaddingLength;
+            _model.FormatPattern = Counter.FormatPattern;
+            _model.ResetOnYearChange = Counter.ResetOnYearChange;
+            _model.Notes = Counter.Notes;
+            
+            _updateModel.CurrentValue = Counter.CurrentValue;
+            _updateModel.Prefix = Counter.Prefix;
+            _updateModel.PaddingLength = Counter.PaddingLength;
+            _updateModel.FormatPattern = Counter.FormatPattern;
+            _updateModel.ResetOnYearChange = Counter.ResetOnYearChange;
+            _updateModel.Notes = Counter.Notes;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_form == null || !_isValid)
+            return;
+
+        _isSaving = true;
+        try
+        {
+            if (_isEditMode && Counter != null)
+            {
+                // Update existing counter
+                var result = await DocumentCounterService.UpdateDocumentCounterAsync(Counter.Id, _updateModel);
+                if (result != null)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documentCounter.updateSuccess", "Contatore aggiornato con successo"), Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(result));
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documentCounter.updateError", "Errore durante l'aggiornamento del contatore"), Severity.Error);
+                }
+            }
+            else
+            {
+                // Create new counter
+                var result = await DocumentCounterService.CreateDocumentCounterAsync(_model);
+                if (result != null)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documentCounter.createSuccess", "Contatore creato con successo"), Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(result));
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documentCounter.createError", "Errore durante la creazione del contatore"), Severity.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving document counter");
+            Snackbar.Add(TranslationService.GetTranslation("documentCounter.saveError", "Errore durante il salvataggio del contatore"), Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

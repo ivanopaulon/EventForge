@@ -91,6 +91,7 @@ builder.Services.AddScoped<IModelService, ModelService>();
 // Add document management services
 builder.Services.AddScoped<IDocumentHeaderService, DocumentHeaderService>();
 builder.Services.AddScoped<IDocumentTypeService, DocumentTypeService>();
+builder.Services.AddScoped<IDocumentCounterService, DocumentCounterService>();
 
 // Add SuperAdmin services
 builder.Services.AddScoped<ISuperAdminService, SuperAdminService>();

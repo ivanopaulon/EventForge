@@ -1,0 +1,287 @@
+@page "/documents/counters"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Documents
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dialogs.Documents
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+@inject IDocumentCounterService DocumentCounterService
+@inject IDocumentTypeService DocumentTypeService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<DocumentCounterManagement> Logger
+
+<PageTitle>@TranslationService.GetTranslation("documentCounter.management", "Gestione Contatori Documenti")</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" md="8">
+            <MudText Typo="Typo.h4">
+                <MudIcon Icon="@Icons.Material.Outlined.Pin" Class="mr-2" Size="Size.Medium" />
+                @TranslationService.GetTranslation("documentCounter.management", "Gestione Contatori Documenti")
+            </MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+                @TranslationService.GetTranslation("documentCounter.description", "Configura i contatori automatici per la numerazione dei documenti")
+            </MudText>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudStack Row="true" Justify="Justify.FlexEnd">
+                <MudButton StartIcon="@Icons.Material.Outlined.Add"
+                           Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           OnClick="@OpenCreateDialog">
+                    @TranslationService.GetTranslation("documentCounter.create", "Nuovo Contatore")
+                </MudButton>
+            </MudStack>
+        </MudItem>
+    </MudGrid>
+
+    @if (_isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Class="mb-4" />
+    }
+
+    <!-- Filters -->
+    <MudPaper Elevation="2" Class="pa-4 mb-4">
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudSelect T="Guid?" 
+                           Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")"
+                           @bind-Value="_selectedDocumentTypeId"
+                           Clearable="true">
+                    @if (_documentTypes != null)
+                    {
+                        @foreach (var type in _documentTypes)
+                        {
+                            <MudSelectItem T="Guid?" Value="@type.Id">@type.Name</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudButton StartIcon="@Icons.Material.Outlined.Search"
+                           Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           OnClick="@ApplyFilters">
+                    @TranslationService.GetTranslation("common.apply", "Applica")
+                </MudButton>
+                <MudButton StartIcon="@Icons.Material.Outlined.Clear"
+                           Color="Color.Default"
+                           Variant="Variant.Outlined"
+                           OnClick="@ClearFilters"
+                           Class="ml-2">
+                    @TranslationService.GetTranslation("common.clearFilters", "Pulisci Filtri")
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <!-- Counters Table -->
+    <MudTable Items="@_filteredCounters"
+              Dense="true"
+              Hover="true"
+              Striped="true"
+              Loading="@_isLoading"
+              LoadingProgressColor="Color.Primary">
+        <HeaderContent>
+            <MudTh>@TranslationService.GetTranslation("documentCounter.documentType", "Tipo Documento")</MudTh>
+            <MudTh>@TranslationService.GetTranslation("documentCounter.series", "Serie")</MudTh>
+            <MudTh>@TranslationService.GetTranslation("documentCounter.year", "Anno")</MudTh>
+            <MudTh>@TranslationService.GetTranslation("documentCounter.currentValue", "Valore Corrente")</MudTh>
+            <MudTh>@TranslationService.GetTranslation("documentCounter.prefix", "Prefisso")</MudTh>
+            <MudTh>@TranslationService.GetTranslation("documentCounter.formatPattern", "Pattern")</MudTh>
+            <MudTh>@TranslationService.GetTranslation("documentCounter.resetOnYearChange", "Reset Anno")</MudTh>
+            <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.documentType", "Tipo Documento")">
+                <MudChip T="string" Size="Size.Small" Color="Color.Primary">@context.DocumentTypeName</MudChip>
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.series", "Serie")">
+                <strong>@(string.IsNullOrEmpty(context.Series) ? "-" : context.Series)</strong>
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.year", "Anno")">
+                @(context.Year?.ToString() ?? "-")
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.currentValue", "Valore Corrente")">
+                <MudChip T="string" Size="Size.Small" Color="Color.Success">@context.CurrentValue</MudChip>
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.prefix", "Prefisso")">
+                @(context.Prefix ?? "-")
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.formatPattern", "Pattern")">
+                <MudText Typo="Typo.caption">@(context.FormatPattern ?? "Default")</MudText>
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("documentCounter.resetOnYearChange", "Reset Anno")">
+                @if (context.ResetOnYearChange)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Default" Size="Size.Small" />
+                }
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")">
+                <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                               Size="Size.Small"
+                               Color="Color.Info"
+                               OnClick="@(() => OpenEditDialog(context))"
+                               Title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
+                <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                               Size="Size.Small"
+                               Color="Color.Error"
+                               OnClick="@(() => DeleteCounter(context))"
+                               Title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudAlert Severity="Severity.Info">
+                @TranslationService.GetTranslation("documentCounter.noCounters", "Nessun contatore trovato. Crea un nuovo contatore per iniziare.")
+            </MudAlert>
+        </NoRecordsContent>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private bool _isLoading = false;
+    private List<DocumentCounterDto> _counters = new();
+    private List<DocumentCounterDto> _filteredCounters = new();
+    private List<DocumentTypeDto> _documentTypes = new();
+    private Guid? _selectedDocumentTypeId = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDocumentTypesAsync();
+        await LoadCountersAsync();
+    }
+
+    private async Task LoadDocumentTypesAsync()
+    {
+        try
+        {
+            var types = await DocumentTypeService.GetAllDocumentTypesAsync();
+            _documentTypes = types?.ToList() ?? new List<DocumentTypeDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading document types");
+            Snackbar.Add(TranslationService.GetTranslation("documentCounter.errorLoadingTypes", "Errore durante il caricamento dei tipi di documento"), Severity.Error);
+        }
+    }
+
+    private async Task LoadCountersAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            var counters = await DocumentCounterService.GetAllDocumentCountersAsync();
+            _counters = counters?.ToList() ?? new List<DocumentCounterDto>();
+            ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading document counters");
+            Snackbar.Add(TranslationService.GetTranslation("documentCounter.errorLoading", "Errore durante il caricamento dei contatori"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void ApplyFilters()
+    {
+        _filteredCounters = _counters;
+
+        if (_selectedDocumentTypeId.HasValue)
+        {
+            _filteredCounters = _filteredCounters.Where(c => c.DocumentTypeId == _selectedDocumentTypeId.Value).ToList();
+        }
+
+        StateHasChanged();
+    }
+
+    private void ClearFilters()
+    {
+        _selectedDocumentTypeId = null;
+        ApplyFilters();
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters
+        {
+            { "DocumentTypes", _documentTypes }
+        };
+
+        var dialog = await DialogService.ShowAsync<DocumentCounterDialog>(
+            TranslationService.GetTranslation("documentCounter.create", "Nuovo Contatore"),
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadCountersAsync();
+        }
+    }
+
+    private async Task OpenEditDialog(DocumentCounterDto counter)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Counter", counter },
+            { "DocumentTypes", _documentTypes }
+        };
+
+        var dialog = await DialogService.ShowAsync<DocumentCounterDialog>(
+            TranslationService.GetTranslation("documentCounter.edit", "Modifica Contatore"),
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadCountersAsync();
+        }
+    }
+
+    private async Task DeleteCounter(DocumentCounterDto counter)
+    {
+        bool? confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("documentCounter.confirmDelete", "Conferma Eliminazione"),
+            TranslationService.GetTranslation("documentCounter.confirmDeleteMessage", $"Sei sicuro di voler eliminare il contatore per '{counter.DocumentTypeName}' - Serie '{counter.Series}'?"),
+            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+            noText: TranslationService.GetTranslation("common.no", "No"));
+
+        if (confirmed == true)
+        {
+            _isLoading = true;
+            try
+            {
+                bool success = await DocumentCounterService.DeleteDocumentCounterAsync(counter.Id);
+                if (success)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documentCounter.deleteSuccess", "Contatore eliminato con successo"), Severity.Success);
+                    await LoadCountersAsync();
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documentCounter.deleteError", "Errore durante l'eliminazione del contatore"), Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting document counter");
+                Snackbar.Add(TranslationService.GetTranslation("documentCounter.deleteError", "Errore durante l'eliminazione del contatore"), Severity.Error);
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
+    }
+}
