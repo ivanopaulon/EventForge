@@ -45,7 +45,7 @@
                                        OnClick="@(() => TryNavigateAway("/product-management/products"))"
                                        Size="Size.Small" />
                         <MudText Typo="Typo.h4">
-                            <MudIcon Icon="@Icons.Material.Filled.Inventory2" Class="mr-2" />
+                            <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Class="mr-2" />
                             @_product.Name
                         </MudText>
                         <MudChip T="string" Size="Size.Small" Color="GetStatusColor(_product.Status)">
