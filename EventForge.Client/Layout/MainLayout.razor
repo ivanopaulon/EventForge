@@ -18,8 +18,7 @@
                        OnClick="@(() => _drawerOpen = !_drawerOpen)"
                        aria-label="@TranslationService.GetTranslation("navigation.openMenu", "Open navigation menu")"
                        aria-expanded="@_drawerOpen"
-                       aria-controls="navigation-drawer" 
-                       Style="color: white;" />
+                       aria-controls="navigation-drawer" />
         
         <!-- Logo and brand with improved accessibility -->
         <div class="d-flex align-center" role="img" aria-label="EventForge Logo">
@@ -162,98 +161,25 @@
         // Light theme variants
         return themeKey switch
         {
-            "dark" => new PaletteLight()
+            "carbon-neon-light" => new PaletteLight()
             {
-                Black = "#1a1a2e",
-                Background = "#1a1a2e",
-                Surface = "#2d2d30",
-                TextPrimary = "#e0e0e0",
-                TextSecondary = "#b0b0b0",
-                AppbarBackground = "#1a1a2e",
-                AppbarText = "#e0e0e0",
-                DrawerBackground = "#1a1a2e",
-                DrawerText = "#b0b0b0",
-                Primary = "#4fc3f7",
-                Secondary = "#ffb74d",
-                Tertiary = "#4fc3f7",
-                Info = "#4fc3f7",
-                Success = "#66bb6a",
-                Warning = "#ffb74d",
-                Error = "#f06292"
+                Primary = "#0099CC",        // Bright Cyan
+                Secondary = "#00D9FF",      // Electric Blue
+                Tertiary = "#7B68EE",       // Medium Slate Blue
+                AppbarBackground = "#FFFFFF",
+                AppbarText = "#1A1A1A",
+                Background = "#F5F5F5",     // Light Gray
+                Surface = "#FFFFFF",
+                DrawerBackground = "#FFFFFF",
+                DrawerText = "#1A1A1A",
+                TextPrimary = "#1A1A1A",    // Near Black
+                TextSecondary = "#6B6B6B",  // Medium Gray
+                Info = "#0099CC",
+                Success = "#00C853",
+                Warning = "#FFB300",
+                Error = "#FF3D00"
             },
-            "warm" => new PaletteLight()
-            {
-                Primary = "#c0392b",        // Rust Red
-                Secondary = "#e67e22",      // Burnt Orange
-                Tertiary = "#f39c12",       // Golden Yellow
-                AppbarBackground = "#c0392b",
-                AppbarText = "#ffffff",
-                Background = "#fdf2e9",     // Warm Beige
-                Surface = "#ffffff",
-                DrawerBackground = "#c0392b",
-                DrawerText = "#f8d7da",
-                TextPrimary = "#5d4037",    // Coffee Brown
-                TextSecondary = "#8d6e63",
-                Info = "#e67e22",
-                Success = "#689f38",
-                Warning = "#ffa000",
-                Error = "#d32f2f"
-            },
-            "cool" => new PaletteLight()
-            {
-                Primary = "#006064",        // Deep Teal
-                Secondary = "#0097a7",      // Cyan Blue
-                Tertiary = "#4db6ac",       // Mint Green
-                AppbarBackground = "#006064",
-                AppbarText = "#ffffff",
-                Background = "#e0f2f1",     // Ice Blue
-                Surface = "#ffffff",
-                DrawerBackground = "#006064",
-                DrawerText = "#b2dfdb",
-                TextPrimary = "#37474f",    // Slate Gray
-                TextSecondary = "#607d8b",
-                Info = "#0097a7",
-                Success = "#388e3c",
-                Warning = "#f57c00",
-                Error = "#d32f2f"
-            },
-            "high-contrast" => new PaletteLight()
-            {
-                Primary = "#000000",        // Pure Black
-                Secondary = "#ffeb3b",      // Bright Yellow
-                Tertiary = "#ff9800",       // Warning Orange
-                AppbarBackground = "#000000",
-                AppbarText = "#ffffff",
-                Background = "#ffffff",     // Pure White
-                Surface = "#f5f5f5",
-                DrawerBackground = "#000000",
-                DrawerText = "#ffffff",
-                TextPrimary = "#000000",
-                TextSecondary = "#000000",
-                Info = "#1565c0",
-                Success = "#2e7d32",
-                Warning = "#e65100",
-                Error = "#c62828"
-            },
-            "fun" => new PaletteLight()
-            {
-                Primary = "#9c27b0",        // Vibrant Purple
-                Secondary = "#e91e63",      // Hot Pink
-                Tertiary = "#8bc34a",       // Lime Green
-                AppbarBackground = "#9c27b0",
-                AppbarText = "#ffffff",
-                Background = "#f3e5f5",     // Soft Lavender
-                Surface = "#ffffff",
-                DrawerBackground = "#9c27b0",
-                DrawerText = "#e1bee7",
-                TextPrimary = "#4a148c",    // Deep Purple
-                TextSecondary = "#7b1fa2",
-                Info = "#e91e63",
-                Success = "#4caf50",
-                Warning = "#ff9800",
-                Error = "#f44336"
-            },
-            _ => new PaletteLight() // Default "light" theme
+            _ => new PaletteLight() // Default fallback light theme
             {
                 Primary = "#1F2F46",        // Navy Blue
                 Secondary = "#247BFF",      // Electric Blue
@@ -276,25 +202,47 @@
 
     private PaletteDark GetDarkPalette(string themeKey)
     {
-        // For now, use a consistent dark palette that works well with all themes
-        return new PaletteDark()
+        // Dark theme variants
+        return themeKey switch
         {
-            Black = "#1a1a2e",
-            Background = "#1a1a2e",
-            Surface = "#2d2d30",
-            TextPrimary = "#e0e0e0",
-            TextSecondary = "#b0b0b0",
-            AppbarBackground = "#1a1a2e",
-            AppbarText = "#e0e0e0",
-            DrawerBackground = "#1a1a2e",
-            DrawerText = "#b0b0b0",
-            Primary = "#4fc3f7",
-            Secondary = "#ffb74d",
-            Tertiary = "#4fc3f7",
-            Info = "#4fc3f7",
-            Success = "#66bb6a",
-            Warning = "#ffb74d",
-            Error = "#f06292"
+            "carbon-neon-dark" => new PaletteDark()
+            {
+                Black = "#0D0D0D",
+                Background = "#0D0D0D",     // Deep Black
+                Surface = "#1A1A1A",        // Carbon Surface
+                TextPrimary = "#E0E0E0",    // Light Gray
+                TextSecondary = "#A0A0A0",  // Medium Gray
+                AppbarBackground = "#1A1A1A",
+                AppbarText = "#00FFFF",     // Neon Cyan
+                DrawerBackground = "#1A1A1A",
+                DrawerText = "#E0E0E0",
+                Primary = "#00FFFF",        // Neon Cyan
+                Secondary = "#FF00FF",      // Neon Magenta
+                Tertiary = "#00FF00",       // Neon Green
+                Info = "#00D9FF",
+                Success = "#00FF88",
+                Warning = "#FFD700",
+                Error = "#FF1744"
+            },
+            _ => new PaletteDark() // Default fallback dark theme
+            {
+                Black = "#1a1a2e",
+                Background = "#1a1a2e",
+                Surface = "#2d2d30",
+                TextPrimary = "#e0e0e0",
+                TextSecondary = "#b0b0b0",
+                AppbarBackground = "#1a1a2e",
+                AppbarText = "#e0e0e0",
+                DrawerBackground = "#1a1a2e",
+                DrawerText = "#b0b0b0",
+                Primary = "#4fc3f7",
+                Secondary = "#ffb74d",
+                Tertiary = "#4fc3f7",
+                Info = "#4fc3f7",
+                Success = "#66bb6a",
+                Warning = "#ffb74d",
+                Error = "#f06292"
+            }
         };
     }
 

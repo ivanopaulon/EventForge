@@ -1,0 +1,342 @@
+/* ========================================
+   EventForge Carbon/Neon Theme System
+   Modern theming with CSS variables
+   ======================================== */
+
+/* ========================================
+   CARBON NEON DARK THEME
+   ======================================== */
+[data-theme="carbon-neon-dark"] {
+    /* Core Colors */
+    --primary: #00FFFF;           /* Neon Cyan */
+    --secondary: #FF00FF;         /* Neon Magenta */
+    --accent: #00FF00;            /* Neon Green */
+    
+    /* Backgrounds */
+    --background: #0D0D0D;        /* Deep Black */
+    --surface: #1A1A1A;           /* Carbon Surface */
+    --surface-2: #262626;         /* Elevated Surface */
+    --card-background: #1A1A1A;   /* Card Background */
+    --card-border: #333333;       /* Card Border */
+    
+    /* Text Colors */
+    --text-primary: #E0E0E0;      /* Light Gray */
+    --text-secondary: #A0A0A0;    /* Medium Gray */
+    --text-muted: #707070;        /* Muted Gray */
+    
+    /* Interactive Elements */
+    --button-primary-bg: #00FFFF;
+    --button-primary-text: #0D0D0D;
+    --button-primary-hover: #00D9FF;
+    --link: #00FFFF;
+    --link-hover: #00D9FF;
+    
+    /* Borders & Dividers */
+    --border: #333333;
+    --divider: #262626;
+    
+    /* Effects */
+    --shadow-neon: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+/* ========================================
+   CARBON NEON LIGHT THEME
+   ======================================== */
+[data-theme="carbon-neon-light"] {
+    /* Core Colors */
+    --primary: #0099CC;           /* Bright Cyan */
+    --secondary: #00D9FF;         /* Electric Blue */
+    --accent: #7B68EE;            /* Medium Slate Blue */
+    
+    /* Backgrounds */
+    --background: #F5F5F5;        /* Light Gray */
+    --surface: #FFFFFF;           /* White */
+    --surface-2: #FAFAFA;         /* Elevated Surface */
+    --card-background: #FFFFFF;   /* Card Background */
+    --card-border: #E0E0E0;       /* Card Border */
+    
+    /* Text Colors */
+    --text-primary: #1A1A1A;      /* Near Black */
+    --text-secondary: #6B6B6B;    /* Medium Gray */
+    --text-muted: #9E9E9E;        /* Muted Gray */
+    
+    /* Interactive Elements */
+    --button-primary-bg: #0099CC;
+    --button-primary-text: #FFFFFF;
+    --button-primary-hover: #007A99;
+    --link: #0099CC;
+    --link-hover: #007A99;
+    
+    /* Borders & Dividers */
+    --border: #E0E0E0;
+    --divider: #F0F0F0;
+    
+    /* Effects */
+    --shadow-neon: 0 0 10px rgba(0, 153, 204, 0.2);
+}
+
+/* ========================================
+   MUDBLAZOR COMPONENT OVERRIDES
+   Non-destructive styling using variables
+   ======================================== */
+
+/* Cards */
+.mud-card {
+    background-color: var(--card-background) !important;
+    border: 1px solid var(--card-border) !important;
+}
+
+.mud-card-header {
+    background-color: var(--surface) !important;
+    border-bottom: 1px solid var(--card-border) !important;
+    color: var(--text-primary) !important;
+}
+
+.mud-card-content {
+    color: var(--text-primary) !important;
+}
+
+/* Buttons */
+.mud-button-root.mud-button-filled.mud-button-filled-primary {
+    background-color: var(--button-primary-bg) !important;
+    color: var(--button-primary-text) !important;
+}
+
+.mud-button-root.mud-button-filled.mud-button-filled-primary:hover {
+    background-color: var(--button-primary-hover) !important;
+}
+
+.mud-button-root.mud-button-outlined {
+    border-color: var(--border) !important;
+    color: var(--primary) !important;
+}
+
+/* Input Fields */
+.mud-input {
+    color: var(--text-primary) !important;
+}
+
+.mud-input-root {
+    background-color: var(--surface) !important;
+}
+
+.mud-input-outlined .mud-input-outlined-border {
+    border-color: var(--border) !important;
+}
+
+.mud-input-outlined:hover .mud-input-outlined-border {
+    border-color: var(--primary) !important;
+}
+
+/* Dividers */
+.mud-divider {
+    border-color: var(--divider) !important;
+}
+
+/* Drawer */
+.mud-drawer {
+    background-color: var(--surface) !important;
+    border-right: 1px solid var(--border) !important;
+}
+
+.mud-drawer-content {
+    color: var(--text-primary) !important;
+}
+
+/* AppBar */
+.mud-appbar {
+    background-color: var(--surface) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Paper */
+.mud-paper {
+    background-color: var(--surface) !important;
+}
+
+/* Tables */
+.mud-table {
+    background-color: var(--surface) !important;
+}
+
+.mud-table-head {
+    background-color: var(--surface-2) !important;
+}
+
+.mud-table-cell {
+    color: var(--text-primary) !important;
+    border-bottom-color: var(--border) !important;
+}
+
+.mud-table-row:hover {
+    background-color: var(--surface-2) !important;
+}
+
+/* Dialogs */
+.mud-dialog {
+    background-color: var(--card-background) !important;
+}
+
+.mud-dialog-title {
+    color: var(--text-primary) !important;
+}
+
+.mud-dialog-content {
+    color: var(--text-primary) !important;
+}
+
+/* Chips */
+.mud-chip {
+    background-color: var(--surface-2) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Lists */
+.mud-list-item {
+    color: var(--text-primary) !important;
+}
+
+.mud-list-item:hover {
+    background-color: var(--surface-2) !important;
+}
+
+.mud-list-item-text {
+    color: var(--text-primary) !important;
+}
+
+/* Navigation Menu */
+.mud-nav-link {
+    color: var(--text-primary) !important;
+}
+
+.mud-nav-link:hover {
+    background-color: var(--surface-2) !important;
+}
+
+.mud-nav-link.active {
+    color: var(--primary) !important;
+    background-color: var(--surface-2) !important;
+}
+
+/* ========================================
+   SYNCFUSION COMPONENT OVERRIDES
+   Non-destructive styling using variables
+   ======================================== */
+
+/* Syncfusion Buttons */
+.e-btn.e-primary {
+    background-color: var(--button-primary-bg) !important;
+    color: var(--button-primary-text) !important;
+    border-color: var(--button-primary-bg) !important;
+}
+
+.e-btn.e-primary:hover {
+    background-color: var(--button-primary-hover) !important;
+}
+
+.e-btn.e-outline {
+    border-color: var(--border) !important;
+    color: var(--primary) !important;
+}
+
+/* Syncfusion Grid */
+.e-grid {
+    background-color: var(--surface) !important;
+    color: var(--text-primary) !important;
+}
+
+.e-grid .e-headercell {
+    background-color: var(--surface-2) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border) !important;
+}
+
+.e-grid .e-rowcell {
+    background-color: var(--surface) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border) !important;
+}
+
+.e-grid .e-row:hover .e-rowcell {
+    background-color: var(--surface-2) !important;
+}
+
+.e-grid .e-altrow .e-rowcell {
+    background-color: var(--surface) !important;
+}
+
+/* Syncfusion Input Fields */
+.e-input-group,
+.e-input-group.e-control-wrapper {
+    background-color: var(--surface) !important;
+    border-color: var(--border) !important;
+}
+
+.e-input-group input,
+.e-input-group textarea {
+    color: var(--text-primary) !important;
+    background-color: var(--surface) !important;
+}
+
+.e-input-group:hover {
+    border-color: var(--primary) !important;
+}
+
+.e-input-group.e-input-focus {
+    border-color: var(--primary) !important;
+}
+
+/* Syncfusion Dropdowns */
+.e-dropdownbase {
+    background-color: var(--surface) !important;
+    color: var(--text-primary) !important;
+}
+
+.e-dropdownbase .e-list-item {
+    color: var(--text-primary) !important;
+}
+
+.e-dropdownbase .e-list-item:hover {
+    background-color: var(--surface-2) !important;
+}
+
+/* Syncfusion Dialogs */
+.e-dialog {
+    background-color: var(--card-background) !important;
+}
+
+.e-dialog .e-dlg-header {
+    background-color: var(--surface) !important;
+    color: var(--text-primary) !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+.e-dialog .e-dlg-content {
+    color: var(--text-primary) !important;
+}
+
+/* Syncfusion Toolbar */
+.e-toolbar {
+    background-color: var(--surface) !important;
+    border-color: var(--border) !important;
+}
+
+.e-toolbar .e-toolbar-item {
+    color: var(--text-primary) !important;
+}
+
+/* Syncfusion Cards */
+.e-card {
+    background-color: var(--card-background) !important;
+    border: 1px solid var(--card-border) !important;
+}
+
+.e-card .e-card-header {
+    background-color: var(--surface) !important;
+    color: var(--text-primary) !important;
+    border-bottom: 1px solid var(--card-border) !important;
+}
+
+.e-card .e-card-content {
+    color: var(--text-primary) !important;
+}
