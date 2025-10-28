@@ -246,6 +246,7 @@ public static class ServiceCollectionExtensions
 
         // Register document services  
         _ = services.AddScoped<IDocumentTypeService, DocumentTypeService>();
+        _ = services.AddScoped<IDocumentCounterService, DocumentCounterService>();
         _ = services.AddScoped<IDocumentHeaderService, DocumentHeaderService>();
         _ = services.AddScoped<IDocumentAttachmentService, DocumentAttachmentService>();
         _ = services.AddScoped<IDocumentCommentService, DocumentCommentService>();

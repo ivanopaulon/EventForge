@@ -41,6 +41,7 @@ public partial class EventForgeDbContext : DbContext
 
     // Document Entities
     public DbSet<DocumentType> DocumentTypes { get; set; }
+    public DbSet<DocumentCounter> DocumentCounters { get; set; }
     public DbSet<DocumentHeader> DocumentHeaders { get; set; }
     public DbSet<DocumentRow> DocumentRows { get; set; }
     public DbSet<DocumentSummaryLink> DocumentSummaryLinks { get; set; }
@@ -280,6 +281,19 @@ public partial class EventForgeDbContext : DbContext
 
     private static void ConfigureDocumentRelationships(ModelBuilder modelBuilder)
     {
+        // DocumentCounter → DocumentType
+        _ = modelBuilder.Entity<DocumentCounter>()
+            .HasOne(dc => dc.DocumentType)
+            .WithMany()
+            .HasForeignKey(dc => dc.DocumentTypeId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Unique constraint on DocumentType + Series + Year
+        _ = modelBuilder.Entity<DocumentCounter>()
+            .HasIndex(dc => new { dc.DocumentTypeId, dc.Series, dc.Year })
+            .IsUnique()
+            .HasDatabaseName("IX_DocumentCounters_DocumentTypeId_Series_Year");
+
         // DocumentHeader → BusinessParty
         _ = modelBuilder.Entity<DocumentHeader>()
             .HasOne(d => d.BusinessParty)

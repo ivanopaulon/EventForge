@@ -9,17 +9,20 @@ public class DocumentHeaderService : IDocumentHeaderService
     private readonly EventForgeDbContext _context;
     private readonly IAuditLogService _auditLogService;
     private readonly ITenantContext _tenantContext;
+    private readonly IDocumentCounterService _documentCounterService;
     private readonly ILogger<DocumentHeaderService> _logger;
 
     public DocumentHeaderService(
         EventForgeDbContext context,
         IAuditLogService auditLogService,
         ITenantContext tenantContext,
+        IDocumentCounterService documentCounterService,
         ILogger<DocumentHeaderService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
+        _documentCounterService = documentCounterService ?? throw new ArgumentNullException(nameof(documentCounterService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -139,6 +142,20 @@ public class DocumentHeaderService : IDocumentHeaderService
             documentHeader.TenantId = tenantId.Value;
             documentHeader.CreatedBy = currentUser;
             documentHeader.CreatedAt = DateTime.UtcNow;
+
+            // Auto-generate document number if not provided
+            if (string.IsNullOrWhiteSpace(documentHeader.Number))
+            {
+                var series = documentHeader.Series ?? string.Empty;
+                documentHeader.Number = await _documentCounterService.GenerateDocumentNumberAsync(
+                    documentHeader.DocumentTypeId,
+                    series,
+                    currentUser,
+                    cancellationToken);
+
+                _logger.LogInformation("Auto-generated document number '{Number}' for document type {DocumentTypeId}, series '{Series}'.",
+                    documentHeader.Number, documentHeader.DocumentTypeId, series);
+            }
 
             _ = _context.DocumentHeaders.Add(documentHeader);
 
