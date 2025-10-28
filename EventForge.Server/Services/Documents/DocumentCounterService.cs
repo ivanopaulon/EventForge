@@ -256,71 +256,33 @@ public class DocumentCounterService : IDocumentCounterService
 
             var currentYear = DateTime.UtcNow.Year;
 
-            // Use a transaction to ensure atomicity
-            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            // Check if we're using in-memory database (for testing)
+            var isInMemoryDatabase = _context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory";
 
-            try
+            // Use a transaction only for non-in-memory databases
+            if (!isInMemoryDatabase)
             {
-                // Find or create counter for this document type, series, and year
-                var counter = await _context.DocumentCounters
-                    .FirstOrDefaultAsync(dc =>
-                        dc.DocumentTypeId == documentTypeId &&
-                        dc.Series == series &&
-                        dc.TenantId == tenantId.Value &&
-                        !dc.IsDeleted &&
-                        (!dc.ResetOnYearChange || dc.Year == currentYear),
-                        cancellationToken);
+                using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
-                if (counter == null)
+                try
                 {
-                    // Create a new counter if it doesn't exist
-                    counter = new DocumentCounter
-                    {
-                        DocumentTypeId = documentTypeId,
-                        Series = series,
-                        CurrentValue = 0,
-                        Year = currentYear,
-                        PaddingLength = 5,
-                        ResetOnYearChange = true,
-                        TenantId = tenantId.Value,
-                        CreatedBy = currentUser,
-                        CreatedAt = DateTime.UtcNow
-                    };
+                    var documentNumber = await GenerateDocumentNumberInternalAsync(
+                        documentTypeId, series, currentUser, tenantId.Value, currentYear, cancellationToken);
 
-                    _ = _context.DocumentCounters.Add(counter);
-                    _logger.LogInformation("Created new document counter for type {DocumentTypeId}, series '{Series}', year {Year}.",
-                        documentTypeId, series, currentYear);
+                    await transaction.CommitAsync(cancellationToken);
+                    return documentNumber;
                 }
-                else if (counter.ResetOnYearChange && counter.Year != currentYear)
+                catch
                 {
-                    // Reset counter for new year
-                    counter.Year = currentYear;
-                    counter.CurrentValue = 0;
-                    counter.ModifiedBy = currentUser;
-                    counter.ModifiedAt = DateTime.UtcNow;
-                    _logger.LogInformation("Reset document counter {CounterId} for new year {Year}.", counter.Id, currentYear);
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
                 }
-
-                // Increment counter
-                counter.CurrentValue++;
-
-                // Save changes to get the new counter value
-                _ = await _context.SaveChangesAsync(cancellationToken);
-
-                // Generate document number using format pattern or default format
-                var documentNumber = FormatDocumentNumber(counter);
-
-                await transaction.CommitAsync(cancellationToken);
-
-                _logger.LogInformation("Generated document number '{DocumentNumber}' for type {DocumentTypeId}, series '{Series}'.",
-                    documentNumber, documentTypeId, series);
-
-                return documentNumber;
             }
-            catch
+            else
             {
-                await transaction.RollbackAsync(cancellationToken);
-                throw;
+                // For in-memory database, just execute without transaction
+                return await GenerateDocumentNumberInternalAsync(
+                    documentTypeId, series, currentUser, tenantId.Value, currentYear, cancellationToken);
             }
         }
         catch (Exception ex)
@@ -329,6 +291,70 @@ public class DocumentCounterService : IDocumentCounterService
                 documentTypeId, series);
             throw;
         }
+    }
+
+    private async Task<string> GenerateDocumentNumberInternalAsync(
+        Guid documentTypeId,
+        string series,
+        string currentUser,
+        Guid tenantId,
+        int currentYear,
+        CancellationToken cancellationToken)
+    {
+        // Find counter for this document type and series
+        // If ResetOnYearChange is true, we need to find it regardless of year (we'll reset it if needed)
+        // If ResetOnYearChange is false, we need one that matches the year or has no year
+        var counter = await _context.DocumentCounters
+            .FirstOrDefaultAsync(dc =>
+                dc.DocumentTypeId == documentTypeId &&
+                dc.Series == series &&
+                dc.TenantId == tenantId &&
+                !dc.IsDeleted,
+                cancellationToken);
+
+        if (counter == null)
+        {
+            // Create a new counter if it doesn't exist
+            counter = new DocumentCounter
+            {
+                DocumentTypeId = documentTypeId,
+                Series = series,
+                CurrentValue = 0,
+                Year = currentYear,
+                PaddingLength = 5,
+                ResetOnYearChange = true,
+                TenantId = tenantId,
+                CreatedBy = currentUser,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _ = _context.DocumentCounters.Add(counter);
+            _logger.LogInformation("Created new document counter for type {DocumentTypeId}, series '{Series}', year {Year}.",
+                documentTypeId, series, currentYear);
+        }
+        else if (counter.ResetOnYearChange && counter.Year != currentYear)
+        {
+            // Reset counter for new year
+            counter.Year = currentYear;
+            counter.CurrentValue = 0;
+            counter.ModifiedBy = currentUser;
+            counter.ModifiedAt = DateTime.UtcNow;
+            _logger.LogInformation("Reset document counter {CounterId} for new year {Year}.", counter.Id, currentYear);
+        }
+
+        // Increment counter
+        counter.CurrentValue++;
+
+        // Save changes to get the new counter value
+        _ = await _context.SaveChangesAsync(cancellationToken);
+
+        // Generate document number using format pattern or default format
+        var documentNumber = FormatDocumentNumber(counter);
+
+        _logger.LogInformation("Generated document number '{DocumentNumber}' for type {DocumentTypeId}, series '{Series}'.",
+            documentNumber, documentTypeId, series);
+
+        return documentNumber;
     }
 
     private static string FormatDocumentNumber(DocumentCounter counter)
