@@ -1,5 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using EventForge.DTOs.Common;
+
 namespace EventForge.DTOs.Documents
 {
 
@@ -36,6 +38,11 @@ namespace EventForge.DTOs.Documents
         /// Indicates if the document is fiscal
         /// </summary>
         public bool IsFiscal { get; set; }
+
+        /// <summary>
+        /// Required business party type for this document (Customer, Supplier, or Both)
+        /// </summary>
+        public BusinessPartyType RequiredPartyType { get; set; }
 
         /// <summary>
         /// Additional notes or description

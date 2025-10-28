@@ -49,6 +49,12 @@ public class DocumentType : AuditableEntity
     public bool IsFiscal { get; set; }
 
     /// <summary>
+    /// Required business party type for this document (Customer, Supplier, or Both).
+    /// </summary>
+    [Display(Name = "Required Party Type", Description = "Required business party type for this document.")]
+    public Business.BusinessPartyType RequiredPartyType { get; set; } = Business.BusinessPartyType.ClienteFornitore;
+
+    /// <summary>
     /// Additional notes or description.
     /// </summary>
     [StringLength(200, ErrorMessage = "The notes cannot exceed 200 characters.")]
