@@ -15,21 +15,21 @@ public class BootstrapServiceTests
         var logger = new LoggerFactory().CreateLogger<BootstrapService>();
         var passwordLogger = new LoggerFactory().CreateLogger<PasswordService>();
         var passwordService = new PasswordService(config, passwordLogger);
-        
+
         var userSeederLogger = new LoggerFactory().CreateLogger<UserSeeder>();
         var userSeeder = new UserSeeder(context, passwordService, config, userSeederLogger);
-        
+
         var tenantSeederLogger = new LoggerFactory().CreateLogger<TenantSeeder>();
         var tenantSeeder = new TenantSeeder(context, tenantSeederLogger);
-        
+
         var licenseSeederLogger = new LoggerFactory().CreateLogger<LicenseSeeder>();
         var licenseSeeder = new LicenseSeeder(context, licenseSeederLogger);
-        
+
         var entitySeederLogger = new LoggerFactory().CreateLogger<EntitySeeder>();
         var productSeederLogger = new LoggerFactory().CreateLogger<ProductSeeder>();
         var productSeeder = new ProductSeeder(context, productSeederLogger);
         var entitySeeder = new EntitySeeder(context, entitySeederLogger, productSeeder);
-        
+
         return new BootstrapService(context, userSeeder, tenantSeeder, licenseSeeder, entitySeeder, logger);
     }
 
@@ -178,7 +178,7 @@ public class BootstrapServiceTests
         var defaultTenant = await context.Tenants.FirstOrDefaultAsync(t => t.Code == "default");
         Assert.NotNull(defaultTenant);
         Assert.All(users, u => Assert.Equal(defaultTenant.Id, u.TenantId));
-        
+
         // Verify base entities were seeded for default tenant
         var hasVatRates = await context.VatRates.AnyAsync(v => v.TenantId == defaultTenant.Id);
         Assert.True(hasVatRates);

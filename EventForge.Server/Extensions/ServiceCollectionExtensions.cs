@@ -282,7 +282,7 @@ public static class ServiceCollectionExtensions
         _ = services.AddScoped<IPasswordService, PasswordService>();
         _ = services.AddScoped<IJwtTokenService, JwtTokenService>();
         _ = services.AddScoped<IAuthenticationService, AuthenticationService>();
-        
+
         // Register bootstrap and seeder services
         _ = services.AddScoped<IBootstrapService, BootstrapService>();
         _ = services.AddScoped<IUserSeeder, UserSeeder>();

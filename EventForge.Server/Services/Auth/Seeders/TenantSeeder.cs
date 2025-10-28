@@ -25,7 +25,7 @@ public class TenantSeeder : ITenantSeeder
             // Check if system tenant already exists
             var systemTenant = await _dbContext.Tenants
                 .FirstOrDefaultAsync(t => t.Id == Guid.Empty, cancellationToken);
-            
+
             if (systemTenant != null)
             {
                 _logger.LogInformation("System tenant already exists");
@@ -72,7 +72,7 @@ public class TenantSeeder : ITenantSeeder
             // Check if default tenant already exists
             var existingTenant = await _dbContext.Tenants
                 .FirstOrDefaultAsync(t => t.Code == "default", cancellationToken);
-            
+
             if (existingTenant != null)
             {
                 _logger.LogInformation("Default tenant already exists: {TenantName} (Code: {TenantCode})",
@@ -117,7 +117,7 @@ public class TenantSeeder : ITenantSeeder
             // Check if AdminTenant record already exists
             var existingRecord = await _dbContext.AdminTenants
                 .FirstOrDefaultAsync(at => at.UserId == userId && at.ManagedTenantId == tenantId, cancellationToken);
-            
+
             if (existingRecord != null)
             {
                 _logger.LogInformation("AdminTenant record already exists for user {UserId} managing tenant {TenantId}",

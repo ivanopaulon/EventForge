@@ -1,5 +1,5 @@
-using System;
 using EventForge.DTOs.Common;
+using System;
 
 namespace EventForge.DTOs.Documents
 {

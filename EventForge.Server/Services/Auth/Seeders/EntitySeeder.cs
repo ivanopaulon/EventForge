@@ -45,7 +45,7 @@ public class EntitySeeder : IEntitySeeder
             // Use transaction only if not using InMemory database (InMemory doesn't support transactions)
             var isInMemory = _dbContext.Database.ProviderName?.Contains("InMemory", StringComparison.OrdinalIgnoreCase) ?? false;
             var transaction = isInMemory ? null : await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-            
+
             try
             {
                 // Seed VAT natures first (needed for VAT rates)
@@ -101,7 +101,7 @@ public class EntitySeeder : IEntitySeeder
                 {
                     await transaction.CommitAsync(cancellationToken);
                 }
-                
+
                 _logger.LogInformation("Base entities seeded successfully for tenant {TenantId}", tenantId);
                 return true;
             }
@@ -819,11 +819,11 @@ public class EntitySeeder : IEntitySeeder
             if (existingWarehouse != null)
             {
                 _logger.LogInformation("Default warehouse '{WarehouseName}' already exists for tenant {TenantId}", existingWarehouse.Name, tenantId);
-                
+
                 // Check if default location exists for this warehouse
                 var hasLocation = await _dbContext.StorageLocations
                     .AnyAsync(l => l.TenantId == tenantId && l.WarehouseId == existingWarehouse.Id, cancellationToken);
-                
+
                 if (!hasLocation)
                 {
                     _logger.LogWarning("Default warehouse exists but has no storage locations. Creating default location...");
@@ -840,11 +840,11 @@ public class EntitySeeder : IEntitySeeder
 
                     _ = _dbContext.StorageLocations.Add(newLocation);
                     _ = await _dbContext.SaveChangesAsync(cancellationToken);
-                    
+
                     _logger.LogInformation("Created default location '{LocationCode}' for warehouse {WarehouseId} in tenant {TenantId}",
                         newLocation.Code, existingWarehouse.Id, tenantId);
                 }
-                
+
                 return true;
             }
 
@@ -1189,7 +1189,7 @@ public class EntitySeeder : IEntitySeeder
             }
 
             var isValid = issues.Count == 0;
-            
+
             if (isValid)
             {
                 _logger.LogInformation("Base entities validation passed for tenant {TenantId}", tenantId);

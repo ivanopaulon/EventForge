@@ -32,7 +32,7 @@ public class ProductSeeder : IProductSeeder
 
             if (existingProductCount > 0)
             {
-                _logger.LogInformation("Tenant {TenantId} already has {Count} products. Skipping demo product seeding.", 
+                _logger.LogInformation("Tenant {TenantId} already has {Count} products. Skipping demo product seeding.",
                     tenantId, existingProductCount);
                 return true;
             }
@@ -274,7 +274,7 @@ public class ProductSeeder : IProductSeeder
             await _dbContext.Products.AddRangeAsync(demoProducts, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Successfully seeded {Count} demo products for tenant {TenantId}", 
+            _logger.LogInformation("Successfully seeded {Count} demo products for tenant {TenantId}",
                 demoProducts.Length, tenantId);
 
             return true;

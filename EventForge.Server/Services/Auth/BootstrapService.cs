@@ -1,5 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using EventForge.Server.Services.Auth.Seeders;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Auth;
 
@@ -121,14 +121,14 @@ public class BootstrapService : IBootstrapService
 
             // Determine if we need to create default tenant and users
             Tenant? defaultTenant = null;
-            
+
             if (superAdminUser == null)
             {
                 _logger.LogInformation("SuperAdmin user not found. Proceeding with initial bootstrap...");
 
                 // Check if a default tenant already exists
                 defaultTenant = existingTenants.FirstOrDefault(t => t.Code == "default");
-                
+
                 if (defaultTenant == null)
                 {
                     // Create default tenant
@@ -139,7 +139,7 @@ public class BootstrapService : IBootstrapService
                         _logger.LogError("Failed to create default tenant");
                         return false;
                     }
-                    
+
                     // Add to existingTenants list for later processing
                     existingTenants.Add(defaultTenant);
                 }
@@ -178,12 +178,12 @@ public class BootstrapService : IBootstrapService
                     _logger.LogError("Failed to create AdminTenant record");
                     return false;
                 }
-                
+
                 _logger.LogInformation("SuperAdmin user and default tenant setup completed successfully");
             }
             else
             {
-                _logger.LogInformation("SuperAdmin user already exists: {Username} ({Email})", 
+                _logger.LogInformation("SuperAdmin user already exists: {Username} ({Email})",
                     superAdminUser.Username, superAdminUser.Email);
             }
 
@@ -201,19 +201,19 @@ public class BootstrapService : IBootstrapService
                     .Select(v => v.TenantId)
                     .Distinct()
                     .ToListAsync(cancellationToken);
-                
+
                 var tenantsWithVatRates = await _dbContext.VatRates
                     .Where(v => tenantIds.Contains(v.TenantId))
                     .Select(v => v.TenantId)
                     .Distinct()
                     .ToListAsync(cancellationToken);
-                
+
                 var tenantsWithUnitsMeasure = await _dbContext.UMs
                     .Where(u => tenantIds.Contains(u.TenantId))
                     .Select(u => u.TenantId)
                     .Distinct()
                     .ToListAsync(cancellationToken);
-                
+
                 var tenantsWithWarehouses = await _dbContext.StorageFacilities
                     .Where(w => tenantIds.Contains(w.TenantId))
                     .Select(w => w.TenantId)
@@ -244,7 +244,7 @@ public class BootstrapService : IBootstrapService
                         {
                             _logger.LogInformation("Successfully seeded base entities for tenant {TenantId} ({TenantName})",
                                 tenant.Id, tenant.Name);
-                            
+
                             // Validate the seeded entities
                             var (validationResult, validationIssues) = await _entitySeeder.ValidateTenantBaseEntitiesAsync(tenant.Id, cancellationToken);
                             if (!validationResult)
@@ -273,29 +273,29 @@ public class BootstrapService : IBootstrapService
             }
 
             _logger.LogInformation("=== BOOTSTRAP COMPLETED SUCCESSFULLY ===");
-            
+
             // Log summary of what exists
             var allTenants = await _dbContext.Tenants.Where(t => t.Id != Guid.Empty).ToListAsync(cancellationToken);
             var allUsers = await _dbContext.Users.ToListAsync(cancellationToken);
-            
+
             _logger.LogInformation("Tenants in system: {TenantCount}", allTenants.Count);
             foreach (var tenant in allTenants)
             {
                 _logger.LogInformation("  - {TenantName} (Code: {TenantCode})", tenant.Name, tenant.Code);
             }
-            
+
             _logger.LogInformation("Users in system: {UserCount}", allUsers.Count);
             foreach (var user in allUsers)
             {
                 _logger.LogInformation("  - {Username} ({Email}) - Tenant: {TenantId}", user.Username, user.Email, user.TenantId);
             }
-            
+
             if (defaultTenant != null)
             {
                 _logger.LogInformation("Default tenant setup completed: {TenantName} (Code: {TenantCode})", defaultTenant.Name, defaultTenant.Code);
                 _logger.LogWarning("SECURITY: Please change the SuperAdmin and Manager passwords immediately after first login!");
             }
-            
+
             _logger.LogInformation("SuperAdmin license assigned with unlimited users and API calls, including all features");
             _logger.LogInformation("==========================================");
 
