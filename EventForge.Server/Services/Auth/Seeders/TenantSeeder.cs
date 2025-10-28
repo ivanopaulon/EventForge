@@ -49,12 +49,10 @@ public class TenantSeeder : ITenantSeeder
                 TenantId = Guid.Empty // Self-referencing for the base property
             };
 
-            // For InMemory database or databases that generate IDs, we need to ensure Guid.Empty is used
-            // EF Core typically auto-generates GUIDs for entities. To use Guid.Empty as the ID,
-            // we must explicitly set it after Add() but before SaveChanges().
-            // This approach works reliably across EF Core In-Memory and SQL Server providers.
-            var entry = _dbContext.Tenants.Add(systemTenant);
-            entry.Property(t => t.Id).CurrentValue = Guid.Empty;
+            // Add tenant and save changes
+            // The Tenant entity is configured with ValueGeneratedNever() in DbContext
+            // to allow explicit Id values including Guid.Empty for the System tenant
+            _ = _dbContext.Tenants.Add(systemTenant);
             _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("System tenant created with Id = Guid.Empty");
