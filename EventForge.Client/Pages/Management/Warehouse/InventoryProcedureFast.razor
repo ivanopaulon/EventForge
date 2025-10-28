@@ -769,12 +769,26 @@
             {
                 // Update existing row by summing quantities
                 var newQuantity = existingRow.Quantity + _quantity;
+                
+                // Determine notes for the updated row
+                string? combinedNotes;
+                if (string.IsNullOrEmpty(_notes))
+                {
+                    combinedNotes = existingRow.Notes;
+                }
+                else if (string.IsNullOrEmpty(existingRow.Notes))
+                {
+                    combinedNotes = _notes;
+                }
+                else
+                {
+                    combinedNotes = $"{existingRow.Notes}; {_notes}";
+                }
+                
                 var updateDto = new UpdateInventoryDocumentRowDto 
                 { 
                     Quantity = newQuantity, 
-                    Notes = string.IsNullOrEmpty(_notes) ? existingRow.Notes : 
-                            string.IsNullOrEmpty(existingRow.Notes) ? _notes : 
-                            $"{existingRow.Notes}; {_notes}"
+                    Notes = combinedNotes
                 };
                 
                 updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(_currentDocument.Id, existingRow.Id, updateDto);
