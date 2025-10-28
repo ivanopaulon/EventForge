@@ -16,40 +16,40 @@
 */
 
 :root {
- --ef-input-height:48px; /* target height for main form fields */
- --ef-button-height:48px; /* primary and toolbar buttons */
+ --ef-input-height:40px; /* target height for main form fields */
+ --ef-button-height:40px; /* primary and toolbar buttons */
  --ef-icon-size-small:20px;
  --ef-icon-size-medium:24px;
  --ef-gap:16px; /* gap-2 baseline */
  --ef-gap-lg:24px; /* gap-3 */
- --ef-field-height:48px; /* unified field height for consistency */
+ --ef-field-height:40px; /* unified field height for consistency */
 }
 
 /* -------------------------
 Height Normalization
-Apply to all MudBlazor inputs, selects, and buttons for consistent 48px height
+Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
 ------------------------- */
 
 /* Inputs and Selects - height normalization using ef-* helper classes */
-.ef-input .mud-input-slot,
-.ef-select .mud-input-slot {
+/* Only apply height to the root container to avoid stacking */
+.ef-input .mud-input-root,
+.ef-select .mud-input-root {
     min-height: var(--ef-field-height) !important;
+    height: var(--ef-field-height) !important;
 }
 
-.ef-input .mud-input-control,
-.ef-select .mud-input-control {
-    min-height: var(--ef-field-height) !important;
+/* Ensure internal elements flex to fit without adding extra height */
+.ef-input .mud-input-slot,
+.ef-select .mud-input-slot {
+    min-height: unset !important;
+    height: 100%;
 }
 
 .ef-select .mud-select-input {
-    min-height: var(--ef-field-height) !important;
+    min-height: unset !important;
+    height: 100%;
     display: flex;
     align-items: center;
-}
-
-.ef-input .mud-input,
-.ef-select .mud-input {
-    min-height: var(--ef-field-height) !important;
 }
 
 /* Buttons - standardize height excluding icon-only buttons */
@@ -102,18 +102,18 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 48px height
  Apply to root element of MudTextField/MudSelect/etc using Class="ef-input"
  ------------------------- */
 .ef-input .mud-input-root,
-.ef-input .mud-input-slot,
-.ef-select .mud-input-root,
 .ef-textarea .mud-input-root {
  min-height: var(--ef-input-height);
  height: var(--ef-input-height);
  box-sizing: border-box;
 }
 
+/* Select already handled above with .ef-select */
+
 /* Fix alignment for adornments/icons inside inputs */
 .ef-input .mud-input-adornment,
 .ef-select .mud-input-adornment {
- height: var(--ef-input-height);
+ height: 100%;
  display: inline-flex;
  align-items: center;
 }

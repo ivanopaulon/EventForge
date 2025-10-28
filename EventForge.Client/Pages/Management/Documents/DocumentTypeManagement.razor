@@ -40,6 +40,7 @@
                 <div class="d-flex gap-3 align-center flex-wrap">
                     <MudTextField @bind-Value="_searchTerm"
                                   @bind-Value:after="OnSearchChanged"
+                                  Class="ef-input"
                                   Label="@TranslationService.GetTranslation("documentType.search", "Cerca tipi documento")"
                                   Placeholder="@TranslationService.GetTranslation("documentType.searchPlaceholder", "Inserisci nome o codice...")"
                                   Variant="Variant.Outlined"

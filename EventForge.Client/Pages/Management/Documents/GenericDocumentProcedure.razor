@@ -51,7 +51,9 @@
         </MudText>
         <MudGrid>
             <MudItem xs="12" md="4">
-                <MudSelect T="Guid" Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")" @bind-Value="_model.DocumentTypeId" Required="true" Disabled="@_isEditMode">
+                <MudSelect T="Guid" Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")" 
+                           Class="ef-select"
+                           @bind-Value="_model.DocumentTypeId" Required="true" Disabled="@_isEditMode">
                     @if (_documentTypes != null)
                     {
                         @foreach (var type in _documentTypes)
@@ -62,10 +64,13 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudTextField T="string" Label="@TranslationService.GetTranslation("documents.series", "Serie")" @bind-Value="_model.Series" />
+                <MudTextField T="string" Label="@TranslationService.GetTranslation("documents.series", "Serie")" 
+                              Class="ef-input"
+                              @bind-Value="_model.Series" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudTextField T="string" 
+                             Class="ef-input"
                              Label="@TranslationService.GetTranslation("documents.number", "Numero")" 
                              @bind-Value="_model.Number" 
                              Required="false"
@@ -73,10 +78,13 @@
                              HelperText="@TranslationService.GetTranslation("documents.numberHelperText", "Lascia vuoto per generazione automatica")" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudDatePicker Label="@TranslationService.GetTranslation("documents.date", "Data")" @bind-Date="_documentDate" Required="true" />
+                <MudDatePicker Label="@TranslationService.GetTranslation("documents.date", "Data")" 
+                               Class="ef-input"
+                               @bind-Date="_documentDate" Required="true" />
             </MudItem>
             <MudItem xs="12" md="8">
                 <MudAutocomplete T="BusinessPartyDto"
+                                 Class="ef-input"
                                  Label="@TranslationService.GetTranslation("documents.businessParty", "Controparte")"
                                  @bind-Value="_selectedBusinessParty"
                                  SearchFunc="@SearchBusinessPartiesAsync"
@@ -94,7 +102,9 @@
                 </MudAutocomplete>
             </MudItem>
             <MudItem xs="12">
-                <MudTextField T="string" Label="@TranslationService.GetTranslation("documents.notes", "Note")" @bind-Value="_model.Notes" Lines="3" />
+                <MudTextField T="string" Label="@TranslationService.GetTranslation("documents.notes", "Note")" 
+                              Class="ef-input"
+                              @bind-Value="_model.Notes" Lines="3" />
             </MudItem>
         </MudGrid>
         <MudStack Row="true" Class="mt-4">

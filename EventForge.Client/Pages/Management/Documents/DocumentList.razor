@@ -43,6 +43,7 @@
         <MudGrid>
             <MudItem xs="12" md="3">
                 <MudSelect T="Guid?" Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")"
+                           Class="ef-select"
                            @bind-Value="_selectedDocumentTypeId"
                            Clearable="true"
                            OnClearButtonClick="@(() => { _selectedDocumentTypeId = null; LoadDocumentsAsync(); })">
@@ -57,6 +58,7 @@
             </MudItem>
             <MudItem xs="12" md="3">
                 <MudSelect T="DocumentStatus?" Label="@TranslationService.GetTranslation("documents.status", "Stato")"
+                           Class="ef-select"
                            @bind-Value="_selectedStatus"
                            Clearable="true"
                            OnClearButtonClick="@(() => { _selectedStatus = null; LoadDocumentsAsync(); })">
@@ -68,11 +70,13 @@
             </MudItem>
             <MudItem xs="12" md="3">
                 <MudDatePicker Label="@TranslationService.GetTranslation("documents.fromDate", "Da Data")"
+                               Class="ef-input"
                                @bind-Date="_fromDate"
                                Clearable="true" />
             </MudItem>
             <MudItem xs="12" md="3">
                 <MudDatePicker Label="@TranslationService.GetTranslation("documents.toDate", "A Data")"
+                               Class="ef-input"
                                @bind-Date="_toDate"
                                Clearable="true" />
             </MudItem>
