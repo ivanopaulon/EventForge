@@ -289,6 +289,7 @@ public static class ServiceCollectionExtensions
         _ = services.AddScoped<ITenantSeeder, TenantSeeder>();
         _ = services.AddScoped<ILicenseSeeder, LicenseSeeder>();
         _ = services.AddScoped<IEntitySeeder, EntitySeeder>();
+        _ = services.AddScoped<IProductSeeder, ProductSeeder>();
 
         // Register tenant services
         _ = services.AddScoped<ITenantContext, TenantContext>();

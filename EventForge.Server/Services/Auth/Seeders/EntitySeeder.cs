@@ -9,13 +9,16 @@ public class EntitySeeder : IEntitySeeder
 {
     private readonly EventForgeDbContext _dbContext;
     private readonly ILogger<EntitySeeder> _logger;
+    private readonly IProductSeeder _productSeeder;
 
     public EntitySeeder(
         EventForgeDbContext dbContext,
-        ILogger<EntitySeeder> logger)
+        ILogger<EntitySeeder> logger,
+        IProductSeeder productSeeder)
     {
         _dbContext = dbContext;
         _logger = logger;
+        _productSeeder = productSeeder;
     }
 
     public async Task<bool> SeedTenantBaseEntitiesAsync(Guid tenantId, CancellationToken cancellationToken = default)
@@ -81,6 +84,14 @@ public class EntitySeeder : IEntitySeeder
                 if (!await SeedDocumentTypesAsync(tenantId, cancellationToken))
                 {
                     _logger.LogError("Failed to seed document types");
+                    if (transaction != null) await transaction.RollbackAsync(cancellationToken);
+                    return false;
+                }
+
+                // Seed demo products
+                if (!await _productSeeder.SeedDemoProductsAsync(tenantId, cancellationToken))
+                {
+                    _logger.LogError("Failed to seed demo products");
                     if (transaction != null) await transaction.RollbackAsync(cancellationToken);
                     return false;
                 }

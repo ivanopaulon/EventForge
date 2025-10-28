@@ -26,7 +26,9 @@ public class BootstrapServiceTests
         var licenseSeeder = new LicenseSeeder(context, licenseSeederLogger);
         
         var entitySeederLogger = new LoggerFactory().CreateLogger<EntitySeeder>();
-        var entitySeeder = new EntitySeeder(context, entitySeederLogger);
+        var productSeederLogger = new LoggerFactory().CreateLogger<ProductSeeder>();
+        var productSeeder = new ProductSeeder(context, productSeederLogger);
+        var entitySeeder = new EntitySeeder(context, entitySeederLogger, productSeeder);
         
         return new BootstrapService(context, userSeeder, tenantSeeder, licenseSeeder, entitySeeder, logger);
     }
@@ -492,6 +494,13 @@ public class BootstrapServiceTests
         var location = locations.First();
         Assert.Equal("UB-DEF", location.Code);
         Assert.Equal(warehouse.Id, location.WarehouseId);
+
+        // Verify demo products were seeded (10 products)
+        var products = await context.Products.Where(p => p.TenantId == tenant.Id).ToListAsync();
+        Assert.Equal(10, products.Count);
+        Assert.Contains(products, p => p.Code == "LAP-DELL-XPS13");
+        Assert.Contains(products, p => p.Code == "CAFFE-ARA-1KG");
+        Assert.Contains(products, p => p.Code == "OLIO-EVO-TOSC-1L");
     }
 
     [Fact]
