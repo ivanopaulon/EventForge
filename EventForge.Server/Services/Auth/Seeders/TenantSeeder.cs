@@ -130,7 +130,7 @@ public class TenantSeeder : ITenantSeeder
                 GrantedAt = DateTime.UtcNow,
                 CreatedBy = "system",
                 CreatedAt = DateTime.UtcNow,
-                TenantId = Guid.Empty // System-level entity
+                TenantId = tenantId // Admin assignment belongs to the managed tenant
             };
 
             _ = _dbContext.AdminTenants.Add(adminTenant);
