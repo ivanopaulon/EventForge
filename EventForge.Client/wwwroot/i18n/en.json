@@ -1970,6 +1970,7 @@
     "createDocument": "New Document",
     "editDocument": "Edit Document",
     "documentType": "Document Type",
+    "requiredPartyType": "Required Party Type",
     "type": "Type",
     "number": "Number",
     "series": "Series",

@@ -263,12 +263,26 @@
 
         try
         {
+            // Get the selected document type to filter by required party type
+            var selectedDocType = _documentTypes.FirstOrDefault(dt => dt.Id == _model.DocumentTypeId);
+            
             // Use GetBusinessPartiesAsync and filter locally for simplicity
             var result = await BusinessPartyService.GetBusinessPartiesAsync(1, 50);
-            return result?.Items.Where(bp => 
+            var filtered = result?.Items.Where(bp => 
                 (bp.Name?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
                 (bp.TaxCode?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
             ) ?? Array.Empty<BusinessPartyDto>();
+
+            // Filter by required party type if a document type is selected
+            if (selectedDocType != null && selectedDocType.RequiredPartyType != BusinessPartyType.Both)
+            {
+                filtered = filtered.Where(bp => 
+                    bp.PartyType == selectedDocType.RequiredPartyType || 
+                    bp.PartyType == BusinessPartyType.Both
+                );
+            }
+
+            return filtered;
         }
         catch (Exception ex)
         {
