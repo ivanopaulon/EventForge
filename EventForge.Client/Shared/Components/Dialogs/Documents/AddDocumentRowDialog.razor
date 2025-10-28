@@ -1,0 +1,167 @@
+@using EventForge.DTOs.Documents
+@using EventForge.DTOs.Products
+@using MudBlazor
+@inject IDocumentHeaderService DocumentHeaderService
+@inject IProductService ProductService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<AddDocumentRowDialog> Logger
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.Add" Class="mr-2" />
+            @TranslationService.GetTranslation("documents.addRow", "Aggiungi Riga")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudAutocomplete T="ProductDto"
+                                 Label="@TranslationService.GetTranslation("documents.product", "Prodotto")"
+                                 @bind-Value="_selectedProduct"
+                                 SearchFunc="@SearchProductsAsync"
+                                 ToStringFunc="@(p => p?.Name ?? string.Empty)"
+                                 ShowProgressIndicator="true"
+                                 Dense="true">
+                    <ItemTemplate Context="product">
+                        <MudText>@product.Name</MudText>
+                        <MudText Typo="Typo.caption">@product.Code</MudText>
+                    </ItemTemplate>
+                </MudAutocomplete>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField T="string"
+                              Label="@TranslationService.GetTranslation("documents.description", "Descrizione")"
+                              @bind-Value="_model.Description"
+                              Required="true"
+                              Disabled="@(_selectedProduct != null)" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField T="string"
+                              Label="@TranslationService.GetTranslation("documents.productCode", "Codice")"
+                              @bind-Value="_model.ProductCode"
+                              Disabled="@(_selectedProduct != null)" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudNumericField T="int"
+                                 Label="@TranslationService.GetTranslation("documents.quantity", "Quantità")"
+                                 @bind-Value="_model.Quantity"
+                                 Min="1"
+                                 Required="true" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudNumericField T="decimal"
+                                 Label="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo Unitario")"
+                                 @bind-Value="_model.UnitPrice"
+                                 Min="0"
+                                 Format="N2" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudTextField T="string"
+                              Label="@TranslationService.GetTranslation("documents.unitOfMeasure", "UM")"
+                              @bind-Value="_model.UnitOfMeasure" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string"
+                              Label="@TranslationService.GetTranslation("documents.notes", "Note")"
+                              @bind-Value="_model.Notes"
+                              Lines="2" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save" Disabled="@(!IsValid())">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid DocumentHeaderId { get; set; }
+
+    private CreateDocumentRowDto _model = new() { Quantity = 1 };
+    private ProductDto? _selectedProduct = null;
+
+    protected override void OnParametersSet()
+    {
+        _model.DocumentHeaderId = DocumentHeaderId;
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender && _selectedProduct != null)
+        {
+            PopulateFromProduct(_selectedProduct);
+        }
+    }
+
+    private async Task<IEnumerable<ProductDto>> SearchProductsAsync(string searchTerm, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return Array.Empty<ProductDto>();
+
+        try
+        {
+            // Use GetProductsAsync and filter locally for simplicity
+            var result = await ProductService.GetProductsAsync(1, 50);
+            return result?.Items.Where(p => 
+                (p.Name?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (p.Code?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
+            ) ?? Array.Empty<ProductDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error searching products");
+            return Array.Empty<ProductDto>();
+        }
+    }
+
+    private void PopulateFromProduct(ProductDto product)
+    {
+        _model.ProductId = product.Id;
+        _model.ProductCode = product.Code;
+        _model.Description = product.Name;
+        _model.UnitPrice = product.DefaultPrice ?? 0;
+        _model.UnitOfMeasure = "Pcs"; // Default unit
+    }
+
+    private bool IsValid()
+    {
+        return !string.IsNullOrWhiteSpace(_model.Description) && _model.Quantity > 0;
+    }
+
+    private async Task Save()
+    {
+        if (_selectedProduct != null)
+        {
+            PopulateFromProduct(_selectedProduct);
+        }
+
+        try
+        {
+            var result = await DocumentHeaderService.AddDocumentRowAsync(_model);
+            if (result != null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("documents.rowAddedSuccess", "Riga aggiunta con successo"), Severity.Success);
+                MudDialog.Close(DialogResult.Ok(result));
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("documents.rowAddedError", "Errore durante l'aggiunta della riga"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error adding document row");
+            Snackbar.Add(TranslationService.GetTranslation("documents.rowAddedError", "Errore durante l'aggiunta della riga"), Severity.Error);
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}
