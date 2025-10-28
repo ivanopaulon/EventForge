@@ -17,54 +17,92 @@ public interface IThemeService
     Task InitializeAsync();
 }
 
+public class ThemeInfo
+{
+    public required string Key { get; init; }
+    public required string Name { get; init; }
+    public string? Description { get; init; }
+    public string? ColorPreview { get; init; }
+    public bool IsDark { get; init; }
+
+    public static readonly ThemeInfo CarbonNeonDark = new()
+    {
+        Key = "carbon-neon-dark",
+        Name = "Carbon Neon Dark",
+        Description = "Modern dark theme with neon accents",
+        ColorPreview = "#00FFFF",
+        IsDark = true
+    };
+
+    public static readonly ThemeInfo CarbonNeonLight = new()
+    {
+        Key = "carbon-neon-light",
+        Name = "Carbon Neon Light",
+        Description = "Clean light theme with modern colors",
+        ColorPreview = "#0099CC",
+        IsDark = false
+    };
+}
+
 public class ThemeService : IThemeService
 {
     private readonly IJSRuntime _jsRuntime;
     private const string ThemeKey = "eventforge-theme";
-    private string _currentTheme = "light";
 
-    public bool IsDarkMode => _currentTheme == "dark";
+    public static readonly List<ThemeInfo> AvailableThemes = new()
+    {
+        ThemeInfo.CarbonNeonDark,
+        ThemeInfo.CarbonNeonLight
+    };
+
+    private string _currentTheme = ThemeInfo.CarbonNeonLight.Key;
+
+    public bool IsDarkMode => AvailableThemes.FirstOrDefault(t => t.Key == _currentTheme)?.IsDark ?? false;
     public string CurrentTheme => _currentTheme;
     public event Action? OnThemeChanged;
 
-    public ThemeService(IJSRuntime jsRuntime)
-    {
-        _jsRuntime = jsRuntime;
-    }
+    public ThemeService(IJSRuntime jsRuntime) => _jsRuntime = jsRuntime;
 
     public async Task InitializeAsync()
     {
         try
         {
-            var storedTheme = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", ThemeKey);
-            if (storedTheme == "dark" || storedTheme == "true")
-                _currentTheme = "dark";
+            var stored = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", ThemeKey);
+
+            // Backward compatibility with old "light"/"dark" values
+            if (string.Equals(stored, "dark", StringComparison.OrdinalIgnoreCase))
+                _currentTheme = ThemeInfo.CarbonNeonDark.Key;
+            else if (string.Equals(stored, "light", StringComparison.OrdinalIgnoreCase))
+                _currentTheme = ThemeInfo.CarbonNeonLight.Key;
+            else if (!string.IsNullOrWhiteSpace(stored) && AvailableThemes.Any(t => t.Key == stored))
+                _currentTheme = stored!;
             else
-                _currentTheme = "light";
+                _currentTheme = ThemeInfo.CarbonNeonLight.Key;
 
             await ApplyThemeToDocumentAsync();
         }
         catch
         {
-            _currentTheme = "light";
+            _currentTheme = ThemeInfo.CarbonNeonLight.Key;
         }
     }
 
     public async Task ToggleThemeAsync()
     {
-        await SetThemeAsync(CurrentTheme == "dark" ? "light" : "dark");
+        var next = _currentTheme == ThemeInfo.CarbonNeonDark.Key
+            ? ThemeInfo.CarbonNeonLight.Key
+            : ThemeInfo.CarbonNeonDark.Key;
+
+        await SetThemeAsync(next);
     }
 
-    public async Task SetThemeAsync(bool isDarkMode)
-    {
-        await SetThemeAsync(isDarkMode ? "dark" : "light");
-    }
+    public Task SetThemeAsync(bool isDarkMode)
+        => SetThemeAsync(isDarkMode ? ThemeInfo.CarbonNeonDark.Key : ThemeInfo.CarbonNeonLight.Key);
 
     public async Task SetThemeAsync(string themeKey)
     {
-        // Accept only "light" or "dark"; fallback to light
-        if (themeKey != "dark")
-            themeKey = "light";
+        if (!AvailableThemes.Any(t => t.Key == themeKey))
+            themeKey = ThemeInfo.CarbonNeonLight.Key;
 
         _currentTheme = themeKey;
 
@@ -82,7 +120,7 @@ public class ThemeService : IThemeService
     {
         try
         {
-            await _jsRuntime.InvokeVoidAsync("eval", $"document.documentElement.setAttribute('data-theme', '{_currentTheme}')");
+            await _jsRuntime.InvokeVoidAsync("document.documentElement.setAttribute", "data-theme", _currentTheme);
         }
         catch { }
     }
