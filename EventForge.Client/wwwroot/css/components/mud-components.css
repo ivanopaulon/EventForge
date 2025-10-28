@@ -5,7 +5,7 @@
  Scopo:
  - Centralizzare classi riutilizzabili per i componenti MudBlazor usati nel client
  - Fornire helper classes per allineare al design system: altezze uniformi, spacing, toolbar/action groups, drawer/dialogs
- - Supportare modalità dark, high-contrast e prefer-reduced-motion
+ - Supportare modalitï¿½ dark, high-contrast e prefer-reduced-motion
 
  Uso:
  - Applicare la classe EF corrispondente al componente Blazor, es:
@@ -22,6 +22,44 @@
  --ef-icon-size-medium:24px;
  --ef-gap:16px; /* gap-2 baseline */
  --ef-gap-lg:24px; /* gap-3 */
+ --ef-field-height:48px; /* unified field height for consistency */
+}
+
+/* -------------------------
+Height Normalization
+Apply to all MudBlazor inputs, selects, and buttons for consistent 48px height
+------------------------- */
+
+/* Inputs and Selects - height normalization using ef-* helper classes */
+.ef-input .mud-input-slot,
+.ef-select .mud-input-slot {
+    min-height: var(--ef-field-height) !important;
+}
+
+.ef-input .mud-input-control,
+.ef-select .mud-input-control {
+    min-height: var(--ef-field-height) !important;
+}
+
+.ef-select .mud-select-input {
+    min-height: var(--ef-field-height) !important;
+    display: flex;
+    align-items: center;
+}
+
+.ef-input .mud-input,
+.ef-select .mud-input {
+    min-height: var(--ef-field-height) !important;
+}
+
+/* Buttons - standardize height excluding icon-only buttons */
+.mud-button-root:not(.mud-icon-button) {
+    min-height: var(--ef-button-height) !important;
+}
+
+/* Icon buttons preserve their compact size */
+.mud-icon-button {
+    /* No height override - keep default compact size */
 }
 
 /* -------------------------
