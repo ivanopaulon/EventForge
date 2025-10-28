@@ -374,3 +374,6 @@ FodyWeavers.xsd
 app.db*
 EventForge.Server/app.db*
 *.backup
+
+# Syncfusion license configuration (ignored - use sample file)
+EventForge.Client/appsettings.Syncfusion.Development.json

@@ -1,0 +1,159 @@
+@inject ITranslationService TranslationService
+
+@if (Rows?.Any() == true)
+{
+    <div class="sf-card p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6>
+                <span class="e-icons e-list-unordered"></span>
+                @TranslationService.GetTranslation("warehouse.inventoryItems", "Articoli nel Documento di Inventario")
+                <span class="badge bg-primary ms-2">@TotalItems</span>
+            </h6>
+            <div class="d-flex align-items-center">
+                <label class="d-flex align-items-center">
+                    <input type="checkbox" @bind="ShowOnlyAdjustmentsValue" class="form-check-input me-2" />
+                    <span>Solo Differenze</span>
+                </label>
+            </div>
+        </div>
+
+        <div style="max-height: 400px; overflow-y: auto;">
+            <table class="table table-sm table-hover">
+                <thead>
+                    <tr>
+                        <th>@TranslationService.GetTranslation("warehouse.product", "Prodotto")</th>
+                        <th>@TranslationService.GetTranslation("warehouse.location", "Ubicazione")</th>
+                        <th>@TranslationService.GetTranslation("warehouse.quantity", "Quantità")</th>
+                        <th>@TranslationService.GetTranslation("warehouse.adjustment", "Aggiustamento")</th>
+                        <th>@TranslationService.GetTranslation("warehouse.notes", "Note")</th>
+                        <th>@TranslationService.GetTranslation("warehouse.time", "Ora")</th>
+                        <th>@TranslationService.GetTranslation("common.actions", "Azioni")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in GetFilteredRows())
+                    {
+                        <tr>
+                            @if (row.Id == ConfirmDeleteRowId)
+                            {
+                                <td colspan="7">
+                                    <div class="sf-alert sf-alert-warning">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span>@TranslationService.GetTranslation("warehouse.confirmDeleteRow", "Confermi l'eliminazione di '{0}'?", row.ProductName)</span>
+                                            <div class="d-flex gap-1">
+                                                <SfButton IconCss="e-icons e-check" CssClass="e-small e-danger"
+                                                         OnClick="@(() => OnConfirmDelete.InvokeAsync(row.Id))">
+                                                    OK
+                                                </SfButton>
+                                                <SfButton IconCss="e-icons e-close" CssClass="e-small e-outline"
+                                                         OnClick="@(() => OnCancelDelete.InvokeAsync())">
+                                                    Annulla
+                                                </SfButton>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            }
+                            else
+                            {
+                                <td>
+                                    <div><strong>@row.ProductName</strong></div>
+                                    <small class="text-muted">@row.ProductCode</small>
+                                </td>
+                                <td>@row.LocationName</td>
+                                <td>
+                                    @if (row.Id == EditingRowId)
+                                    {
+                                        <input type="number" class="form-control form-control-sm" @bind="EditQuantityValue" min="0" step="0.01" />
+                                    }
+                                    else
+                                    {
+                                        <span>@row.Quantity</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (row.AdjustmentQuantity.HasValue)
+                                    {
+                                        var cssClass = row.AdjustmentQuantity > 0 ? "badge bg-success" : 
+                                                      row.AdjustmentQuantity < 0 ? "badge bg-warning" : "badge bg-secondary";
+                                        <span class="@cssClass">
+                                            @(row.AdjustmentQuantity > 0 ? "+" : "")@row.AdjustmentQuantity
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (row.Id == EditingRowId)
+                                    {
+                                        <input type="text" class="form-control form-control-sm" @bind="EditNotesValue" />
+                                    }
+                                    else
+                                    {
+                                        <span>@row.Notes</span>
+                                    }
+                                </td>
+                                <td><small>@row.CreatedAt.ToLocalTime().ToString("HH:mm")</small></td>
+                                <td>
+                                    @if (row.Id == EditingRowId)
+                                    {
+                                        <div class="d-flex gap-1">
+                                            <SfButton IconCss="e-icons e-check" CssClass="e-small e-success"
+                                                     OnClick="@(() => OnSaveEdit.InvokeAsync(row.Id))">
+                                            </SfButton>
+                                            <SfButton IconCss="e-icons e-close" CssClass="e-small e-outline"
+                                                     OnClick="@(() => OnCancelEdit.InvokeAsync())">
+                                            </SfButton>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="d-flex gap-1">
+                                            <SfButton IconCss="e-icons e-edit" CssClass="e-small e-outline"
+                                                     OnClick="@(() => OnBeginEdit.InvokeAsync(row.Id))">
+                                            </SfButton>
+                                            <SfButton IconCss="e-icons e-trash" CssClass="e-small e-outline e-danger"
+                                                     OnClick="@(() => OnRequestDelete.InvokeAsync(row.Id))">
+                                            </SfButton>
+                                        </div>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public List<InventoryDocumentRowDto>? Rows { get; set; }
+    [Parameter] public int TotalItems { get; set; }
+    [Parameter] public bool ShowOnlyAdjustmentsValue { get; set; }
+    [Parameter] public EventCallback<bool> ShowOnlyAdjustmentsValueChanged { get; set; }
+    [Parameter] public Guid? EditingRowId { get; set; }
+    [Parameter] public decimal? EditQuantityValue { get; set; }
+    [Parameter] public EventCallback<decimal?> EditQuantityValueChanged { get; set; }
+    [Parameter] public string EditNotesValue { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> EditNotesValueChanged { get; set; }
+    [Parameter] public Guid? ConfirmDeleteRowId { get; set; }
+    
+    [Parameter] public EventCallback<Guid> OnBeginEdit { get; set; }
+    [Parameter] public EventCallback<Guid> OnSaveEdit { get; set; }
+    [Parameter] public EventCallback OnCancelEdit { get; set; }
+    [Parameter] public EventCallback<Guid> OnRequestDelete { get; set; }
+    [Parameter] public EventCallback<Guid> OnConfirmDelete { get; set; }
+    [Parameter] public EventCallback OnCancelDelete { get; set; }
+
+    private IEnumerable<InventoryDocumentRowDto> GetFilteredRows()
+    {
+        if (Rows == null) return Enumerable.Empty<InventoryDocumentRowDto>();
+        
+        if (ShowOnlyAdjustmentsValue)
+        {
+            return Rows.Where(r => r.AdjustmentQuantity.HasValue && r.AdjustmentQuantity != 0)
+                      .OrderByDescending(r => r.CreatedAt);
+        }
+        
+        return Rows.OrderByDescending(r => r.CreatedAt);
+    }
+}

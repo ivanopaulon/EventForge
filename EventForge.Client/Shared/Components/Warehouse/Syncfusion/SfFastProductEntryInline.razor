@@ -1,0 +1,159 @@
+@inject ITranslationService TranslationService
+
+<div class="sf-card p-4 mb-4" style="border: 2px solid #4caf50; background-color: #e8f5e9;">
+    <div class="mb-3">
+        <!-- Product Information Display with Undo Button -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center">
+                <span class="e-icons e-check-circle text-success me-2" style="font-size: 2rem;"></span>
+                <div>
+                    <h6 class="mb-0">@CurrentProduct?.Name</h6>
+                    <small class="text-muted">@TranslationService.GetTranslation("warehouse.productCode", "Codice"): @CurrentProduct?.Code</small>
+                </div>
+            </div>
+            @if (ShowUndo && LastAddedRow != null)
+            {
+                <SfButton IconCss="e-icons e-undo" CssClass="e-outline e-warning"
+                         OnClick="@(() => OnUndo.InvokeAsync())">
+                    @TranslationService.GetTranslation("warehouse.undoLast", "Annulla ultima")
+                </SfButton>
+            }
+        </div>
+
+        <!-- Entry Form -->
+        <div class="row g-2">
+            <div class="col-sm-5">
+                <SfAutoComplete TValue="string" TItem="StorageLocationDto"
+                               Value="@LocationValue"
+                               DataSource="@_locations"
+                               Placeholder="@TranslationService.GetTranslation("warehouse.storageLocation", "Ubicazione")"
+                               FloatLabelType="FloatLabelType.Auto"
+                               @ref="_locationAutocomplete"
+                               AllowCustom="false"
+                               IgnoreAccent="true"
+                               Filtering="@OnLocationFiltering"
+                               ValueChange="@OnLocationSelected">
+                    <AutoCompleteFieldSettings Value="Code" />
+                    <AutoCompleteTemplates TItem="StorageLocationDto">
+                        <ItemTemplate Context="location">
+                            <div>
+                                <div>@location.Code</div>
+                                @if (!string.IsNullOrEmpty(location.Description))
+                                {
+                                    <small class="text-muted">@location.Description</small>
+                                }
+                            </div>
+                        </ItemTemplate>
+                    </AutoCompleteTemplates>
+                </SfAutoComplete>
+            </div>
+            <div class="col-sm-4">
+                <SfNumericTextBox TValue="decimal?" Value="@QuantityValue" ValueChange="@OnQuantityChanged"
+                                 Placeholder="@TranslationService.GetTranslation("warehouse.quantity", "Quantità")"
+                                 FloatLabelType="FloatLabelType.Auto"
+                                 Min="0"
+                                 Format="N2"
+                                 @ref="_quantityField" />
+            </div>
+            <div class="col-sm-3">
+                <SfButton CssClass="e-success w-100" IconCss="e-icons e-plus"
+                         OnClick="@(() => OnConfirm.InvokeAsync())"
+                         Disabled="@(!SelectedLocationId.HasValue || !QuantityValue.HasValue || QuantityValue < 0)">
+                    @TranslationService.GetTranslation("warehouse.confirmAdd", "✓ Conferma")
+                </SfButton>
+            </div>
+            <div class="col-12">
+                <SfTextBox @bind-Value="@NotesValue"
+                          Placeholder="@TranslationService.GetTranslation("warehouse.notes", "Note (opzionale)")"
+                          FloatLabelType="FloatLabelType.Auto"
+                          Multiline="false" />
+            </div>
+        </div>
+
+        <!-- Quick Tips -->
+        <div class="sf-info-panel mt-3">
+            <small>
+                <span class="e-icons e-keyboard"></span>
+                <strong>Suggerimento:</strong> Usa Tab per passare al campo successivo | Invio su Quantità = Conferma rapida | Esc = Annulla
+            </small>
+        </div>
+    </div>
+</div>
+
+@code {
+    private SfAutoComplete<string, StorageLocationDto>? _locationAutocomplete;
+    private SfNumericTextBox<decimal?>? _quantityField;
+    private List<StorageLocationDto> _locations = new();
+    private string LocationValue { get; set; } = string.Empty;
+    
+    [Parameter] public ProductDto? CurrentProduct { get; set; }
+    [Parameter] public StorageLocationDto? SelectedLocation { get; set; }
+    [Parameter] public EventCallback<StorageLocationDto?> SelectedLocationChanged { get; set; }
+    [Parameter] public Guid? SelectedLocationId { get; set; }
+    [Parameter] public EventCallback<Guid?> SelectedLocationIdChanged { get; set; }
+    [Parameter] public decimal? QuantityValue { get; set; } = 1;
+    [Parameter] public EventCallback<decimal?> QuantityValueChanged { get; set; }
+    [Parameter] public string NotesValue { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> NotesValueChanged { get; set; }
+    [Parameter] public bool ShowUndo { get; set; } = true;
+    [Parameter] public InventoryDocumentRowDto? LastAddedRow { get; set; }
+    
+    [Parameter] public Func<string, CancellationToken, Task<IEnumerable<StorageLocationDto>>>? OnSearchLocations { get; set; }
+    [Parameter] public EventCallback OnConfirm { get; set; }
+    [Parameter] public EventCallback OnUndo { get; set; }
+    
+    public async Task FocusLocationAsync()
+    {
+        if (_locationAutocomplete != null)
+        {
+            await Task.Delay(100);
+            await _locationAutocomplete.FocusAsync();
+        }
+    }
+    
+    public async Task FocusQuantityAsync()
+    {
+        if (_quantityField != null)
+        {
+            await Task.Delay(100);
+            await _quantityField.FocusAsync();
+        }
+    }
+
+    private async Task OnLocationFiltering(global::Syncfusion.Blazor.DropDowns.FilteringEventArgs args)
+    {
+        if (OnSearchLocations == null || string.IsNullOrWhiteSpace(args.Text))
+        {
+            _locations.Clear();
+            return;
+        }
+
+        var results = await OnSearchLocations(args.Text, CancellationToken.None);
+        _locations = results.ToList();
+    }
+
+    private async Task OnLocationSelected(global::Syncfusion.Blazor.DropDowns.ChangeEventArgs<string, StorageLocationDto> args)
+    {
+        if (args.ItemData != null)
+        {
+            SelectedLocation = args.ItemData;
+            await SelectedLocationChanged.InvokeAsync(args.ItemData);
+            await SelectedLocationIdChanged.InvokeAsync(args.ItemData.Id);
+            
+            // Auto-focus quantity after location selected
+            await FocusQuantityAsync();
+        }
+        else
+        {
+            SelectedLocation = null;
+            await SelectedLocationChanged.InvokeAsync(null);
+            await SelectedLocationIdChanged.InvokeAsync(null);
+        }
+    }
+
+    private async Task OnQuantityChanged(global::Syncfusion.Blazor.Inputs.ChangeEventArgs<decimal?> args)
+    {
+        QuantityValue = args.Value;
+        await QuantityValueChanged.InvokeAsync(args.Value);
+    }
+}
