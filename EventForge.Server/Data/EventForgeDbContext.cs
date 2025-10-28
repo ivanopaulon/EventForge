@@ -159,12 +159,22 @@ public partial class EventForgeDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        ConfigureTenantEntity(modelBuilder);
         ConfigureDecimalPrecision(modelBuilder);
         ConfigureGlobalQueryFilters(modelBuilder);
         ConfigureDocumentRelationships(modelBuilder);
         ConfigureProductAndPriceListRelationships(modelBuilder);
         ConfigureStoreAndTeamRelationships(modelBuilder);
         ConfigureSalesAndOtherRelationships(modelBuilder);
+    }
+
+    private static void ConfigureTenantEntity(ModelBuilder modelBuilder)
+    {
+        // Configure Tenant entity to never generate Id values automatically
+        // This allows us to explicitly set Id = Guid.Empty for the System tenant
+        _ = modelBuilder.Entity<Tenant>()
+            .Property(t => t.Id)
+            .ValueGeneratedNever();
     }
 
     private static void ConfigureDecimalPrecision(ModelBuilder modelBuilder)
