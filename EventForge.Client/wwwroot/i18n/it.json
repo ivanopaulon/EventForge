@@ -2320,5 +2320,50 @@
       "rejected": "Rifiutato",
       "cancelled": "Annullato"
     }
+  },
+  "documentType": {
+    "management": "Gestione Tipi Documento",
+    "managementDescription": "Gestisci i tipi di documento utilizzati nel sistema",
+    "list": "Lista Tipi Documento",
+    "search": "Cerca tipi documento",
+    "searchPlaceholder": "Inserisci nome o codice...",
+    "onlyFiscal": "Solo fiscali",
+    "onlyStockIncrease": "Solo aumento stock",
+    "createNew": "Crea nuovo tipo documento",
+    "noDocumentTypesFound": "Nessun tipo documento trovato",
+    "loadError": "Errore nel caricamento dei tipi documento",
+    "confirmDelete": "Sei sicuro di voler eliminare il tipo documento '{0}'?",
+    "deleteSuccess": "Tipo documento eliminato con successo",
+    "deleteError": "Errore nell'eliminazione del tipo documento",
+    "notFound": "Tipo documento non trovato",
+    "unsavedChanges": "Modifiche non salvate",
+    "unsavedChangesConfirm": "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?",
+    "createSuccess": "Tipo documento creato con successo",
+    "updateSuccess": "Tipo documento aggiornato con successo",
+    "saveError": "Errore nel salvataggio del tipo documento",
+    "error": {
+      "nameRequired": "Il nome è obbligatorio",
+      "codeRequired": "Il codice è obbligatorio"
+    },
+    "helperText": {
+      "name": "Inserisci il nome del tipo documento",
+      "code": "Codice univoco per il tipo documento (es: DDT, FT, NC)",
+      "notes": "Note o descrizione aggiuntiva",
+      "partyType": "Tipo di controparte richiesto per questo documento",
+      "warehouse": "Magazzino predefinito per i documenti di questo tipo",
+      "isFiscal": "Indica se il documento ha valore fiscale",
+      "isStockIncrease": "Indica se il documento aumenta lo stock di magazzino"
+    },
+    "aria": {
+      "uniqueId": "Identificativo unico"
+    }
+  },
+  "nav": {
+    "documentTypes": "Tipi Documento"
+  },
+  "businessPartyType": {
+    "customer": "Cliente",
+    "supplier": "Fornitore",
+    "both": "Entrambi"
   }
 }

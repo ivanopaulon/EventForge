@@ -1,0 +1,429 @@
+@page "/documents/types/new"
+@page "/documents/types/{DocumentTypeId:guid}"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Documents
+@using EventForge.DTOs.Common
+@using EventForge.DTOs.Warehouse
+@using EventForge.Client.Shared.Components
+@attribute [Authorize]
+@inject IDocumentTypeService DocumentTypeService
+@inject IWarehouseService WarehouseService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<DocumentTypeDetail> Logger
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    @if (_isLoading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else if (_documentType == null && !_isCreateMode)
+    {
+        <MudAlert Severity="Severity.Error">
+            @TranslationService.GetTranslation("documentType.notFound", "Tipo documento non trovato")
+        </MudAlert>
+    }
+    else
+    {
+        <!-- Page Header -->
+        <MudPaper Elevation="2" Class="pa-4 mb-4">
+            <div class="d-flex justify-space-between align-center">
+                <div>
+                    <div class="d-flex align-center gap-2 mb-2">
+                        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
+                                       Color="Color.Primary"
+                                       OnClick="@(() => TryNavigateAway("/documents/types"))"
+                                       Size="Size.Small" />
+                        <MudText Typo="Typo.h4">
+                            <MudIcon Icon="@Icons.Material.Outlined.Category" Class="mr-2" />
+                            @(_isCreateMode ? TranslationService.GetTranslation("documentType.createNew", "Crea Nuovo Tipo Documento") : _documentType?.Name)
+                        </MudText>
+
+                        @if (HasUnsavedChanges())
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">
+                                @TranslationService.GetTranslation("documentType.unsavedChanges", "Modifiche non salvate")
+                            </MudChip>
+                        }
+                    </div>
+                    @if (!_isCreateMode && _documentType != null)
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                            @TranslationService.GetTranslation("field.createdAt", "Creato il"): @_documentType.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                        </MudText>
+                    }
+                </div>
+                <div class="d-flex gap-2">
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Primary" 
+                               StartIcon="@Icons.Material.Filled.Save"
+                               OnClick="SaveDocumentTypeAsync"
+                               Disabled="_isSaving"
+                               Size="Size.Small">
+                        @TranslationService.GetTranslation("common.save", "Salva")
+                    </MudButton>
+                </div>
+            </div>
+        </MudPaper>
+
+        <!-- Form Section -->
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudForm @ref="_form" Class="pa-2">
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="DocumentTypeName"
+                                      Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="@TranslationService.GetTranslation("documentType.error.nameRequired", "Il nome è obbligatorio")"
+                                      MaxLength="50"
+                                      Immediate="true"
+                                      OnBlur="@(() => MarkChanged())"
+                                      aria-describedby="name-help" />
+                        <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("documentType.helperText.name", "Inserisci il nome del tipo documento")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="DocumentTypeCode"
+                                      Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="@TranslationService.GetTranslation("documentType.error.codeRequired", "Il codice è obbligatorio")"
+                                      MaxLength="10"
+                                      Immediate="true"
+                                      OnBlur="@(() => MarkChanged())"
+                                      aria-describedby="code-help" />
+                        <MudText id="code-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("documentType.helperText.code", "Codice univoco per il tipo documento (es: DDT, FT, NC)")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="DocumentTypeNotes"
+                                      Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                      Variant="Variant.Outlined"
+                                      Lines="3"
+                                      MaxLength="200"
+                                      OnBlur="@(() => MarkChanged())"
+                                      aria-describedby="notes-help" />
+                        <MudText id="notes-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("documentType.helperText.notes", "Note o descrizione aggiuntiva")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="BusinessPartyType" 
+                                   @bind-Value="DocumentTypeRequiredPartyType"
+                                   Label="@TranslationService.GetTranslation("field.requiredPartyType", "Tipo Controparte Richiesto")"
+                                   Variant="Variant.Outlined"
+                                   OnClose="@(() => MarkChanged())"
+                                   aria-describedby="party-type-help">
+                            <MudSelectItem T="BusinessPartyType" Value="BusinessPartyType.Customer">
+                                @TranslationService.GetTranslation("businessPartyType.customer", "Cliente")
+                            </MudSelectItem>
+                            <MudSelectItem T="BusinessPartyType" Value="BusinessPartyType.Supplier">
+                                @TranslationService.GetTranslation("businessPartyType.supplier", "Fornitore")
+                            </MudSelectItem>
+                            <MudSelectItem T="BusinessPartyType" Value="BusinessPartyType.Both">
+                                @TranslationService.GetTranslation("businessPartyType.both", "Entrambi")
+                            </MudSelectItem>
+                        </MudSelect>
+                        <MudText id="party-type-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("documentType.helperText.partyType", "Tipo di controparte richiesto per questo documento")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="Guid?" 
+                                   @bind-Value="DocumentTypeDefaultWarehouseId"
+                                   Label="@TranslationService.GetTranslation("field.defaultWarehouse", "Magazzino Predefinito")"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   OnClose="@(() => MarkChanged())"
+                                   aria-describedby="warehouse-help">
+                            @if (_warehouses != null)
+                            {
+                                @foreach (var warehouse in _warehouses)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@warehouse.Id">@warehouse.Name</MudSelectItem>
+                                }
+                            }
+                        </MudSelect>
+                        <MudText id="warehouse-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("documentType.helperText.warehouse", "Magazzino predefinito per i documenti di questo tipo")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudSwitch @bind-Value="DocumentTypeIsFiscal"
+                                   Label="@TranslationService.GetTranslation("field.isFiscal", "Documento Fiscale")"
+                                   Color="Color.Primary"
+                                   ThumbIcon="@(DocumentTypeIsFiscal ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)"
+                                   OnChange="@(() => MarkChanged())" />
+                        <MudText Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("documentType.helperText.isFiscal", "Indica se il documento ha valore fiscale")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudSwitch @bind-Value="DocumentTypeIsStockIncrease"
+                                   Label="@TranslationService.GetTranslation("field.isStockIncrease", "Aumento Stock")"
+                                   Color="Color.Success"
+                                   ThumbIcon="@(DocumentTypeIsStockIncrease ? Icons.Material.Filled.TrendingUp : Icons.Material.Filled.TrendingDown)"
+                                   OnChange="@(() => MarkChanged())" />
+                        <MudText Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("documentType.helperText.isStockIncrease", "Indica se il documento aumenta lo stock di magazzino")
+                        </MudText>
+                    </MudItem>
+
+                    @if (!_isCreateMode && _documentType != null)
+                    {
+                        <MudItem xs="12" md="4">
+                            <MudTextField Value="@_documentType.Id.ToString()"
+                                          Label="@TranslationService.GetTranslation("field.id", "ID")"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="true"
+                                          aria-label="@TranslationService.GetTranslation("documentType.aria.uniqueId", "Identificativo unico")" />
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudForm>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public Guid? DocumentTypeId { get; set; }
+
+    private DocumentTypeDto? _documentType;
+    private IEnumerable<StorageFacilityDto>? _warehouses;
+    private bool _isLoading = true;
+    private bool _isCreateMode => DocumentTypeId == null || DocumentTypeId == Guid.Empty;
+    private bool _isSaving = false;
+    private MudForm? _form;
+
+    // Snapshot for unsaved detection
+    private string _originalDocumentTypeSnapshot = string.Empty;
+    private bool _hasLocalChanges = false;
+
+    // Bound properties
+    private string DocumentTypeName
+    {
+        get => _documentType?.Name ?? string.Empty;
+        set { if (_documentType != null) _documentType.Name = value; }
+    }
+
+    private string DocumentTypeCode
+    {
+        get => _documentType?.Code ?? string.Empty;
+        set { if (_documentType != null) _documentType.Code = value; }
+    }
+
+    private string? DocumentTypeNotes
+    {
+        get => _documentType?.Notes;
+        set { if (_documentType != null) _documentType.Notes = value; }
+    }
+
+    private bool DocumentTypeIsFiscal
+    {
+        get => _documentType?.IsFiscal ?? false;
+        set { if (_documentType != null) _documentType.IsFiscal = value; }
+    }
+
+    private bool DocumentTypeIsStockIncrease
+    {
+        get => _documentType?.IsStockIncrease ?? false;
+        set { if (_documentType != null) _documentType.IsStockIncrease = value; }
+    }
+
+    private BusinessPartyType DocumentTypeRequiredPartyType
+    {
+        get => _documentType?.RequiredPartyType ?? BusinessPartyType.Both;
+        set { if (_documentType != null) _documentType.RequiredPartyType = value; }
+    }
+
+    private Guid? DocumentTypeDefaultWarehouseId
+    {
+        get => _documentType?.DefaultWarehouseId;
+        set { if (_documentType != null) _documentType.DefaultWarehouseId = value; }
+    }
+
+    private static readonly System.Text.Json.JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadDocumentTypeAsync(), LoadWarehousesAsync());
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_documentType?.Id != DocumentTypeId)
+            await LoadDocumentTypeAsync();
+    }
+
+    private async Task LoadDocumentTypeAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            if (_isCreateMode)
+            {
+                _documentType = new DocumentTypeDto 
+                { 
+                    Name = string.Empty, 
+                    Code = string.Empty,
+                    RequiredPartyType = BusinessPartyType.Both
+                };
+                _originalDocumentTypeSnapshot = SerializeDocumentType(_documentType);
+            }
+            else if (DocumentTypeId.HasValue)
+            {
+                var documentType = await DocumentTypeService.GetDocumentTypeByIdAsync(DocumentTypeId.Value);
+                _documentType = documentType;
+
+                if (_documentType != null)
+                {
+                    _originalDocumentTypeSnapshot = SerializeDocumentType(_documentType);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading document type {DocumentTypeId}", DocumentTypeId);
+            Snackbar.Add(TranslationService.GetTranslation("documentType.loadError", "Errore nel caricamento del tipo documento"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            _hasLocalChanges = false;
+        }
+    }
+
+    private async Task LoadWarehousesAsync()
+    {
+        try
+        {
+            var result = await WarehouseService.GetStorageFacilitiesAsync(page: 1, pageSize: 100);
+            _warehouses = result.Items ?? new List<StorageFacilityDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading warehouses");
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.loadError", "Errore nel caricamento dei magazzini"), Severity.Warning);
+        }
+    }
+
+    private async Task SaveDocumentTypeAsync()
+    {
+        if (_documentType == null || _form == null) return;
+
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _isSaving = true;
+        try
+        {
+            if (_isCreateMode)
+            {
+                var createDto = new CreateDocumentTypeDto
+                {
+                    Name = _documentType.Name,
+                    Code = _documentType.Code,
+                    Notes = _documentType.Notes,
+                    IsFiscal = _documentType.IsFiscal,
+                    IsStockIncrease = _documentType.IsStockIncrease,
+                    RequiredPartyType = _documentType.RequiredPartyType,
+                    DefaultWarehouseId = _documentType.DefaultWarehouseId
+                };
+
+                var created = await DocumentTypeService.CreateDocumentTypeAsync(createDto);
+                Snackbar.Add(TranslationService.GetTranslation("documentType.createSuccess", "Tipo documento creato con successo"), Severity.Success);
+                
+                // Navigate to edit page for the newly created document type
+                NavigationManager.NavigateTo($"/documents/types/{created.Id}");
+            }
+            else if (DocumentTypeId.HasValue)
+            {
+                var updateDto = new UpdateDocumentTypeDto
+                {
+                    Name = _documentType.Name,
+                    Code = _documentType.Code,
+                    Notes = _documentType.Notes,
+                    IsFiscal = _documentType.IsFiscal,
+                    IsStockIncrease = _documentType.IsStockIncrease,
+                    RequiredPartyType = _documentType.RequiredPartyType,
+                    DefaultWarehouseId = _documentType.DefaultWarehouseId
+                };
+
+                await DocumentTypeService.UpdateDocumentTypeAsync(DocumentTypeId.Value, updateDto);
+                Snackbar.Add(TranslationService.GetTranslation("documentType.updateSuccess", "Tipo documento aggiornato con successo"), Severity.Success);
+                await LoadDocumentTypeAsync(); // Refresh and reset snapshot
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving document type");
+            Snackbar.Add(TranslationService.GetTranslation("documentType.saveError", "Errore nel salvataggio del tipo documento"), Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void MarkChanged()
+    {
+        _hasLocalChanges = true;
+        StateHasChanged();
+    }
+
+    private string SerializeDocumentType(DocumentTypeDto? dt)
+    {
+        if (dt == null) return string.Empty;
+        return System.Text.Json.JsonSerializer.Serialize(dt, _jsonOptions);
+    }
+
+    private bool HasUnsavedChanges()
+    {
+        if (_documentType == null) return false;
+        if (_hasLocalChanges) return true;
+        var current = SerializeDocumentType(_documentType);
+        return !string.Equals(current, _originalDocumentTypeSnapshot, StringComparison.Ordinal);
+    }
+
+    private async Task TryNavigateAway(string target)
+    {
+        if (!HasUnsavedChanges())
+        {
+            NavigationManager.NavigateTo(target);
+            return;
+        }
+
+        var title = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var message = TranslationService.GetTranslation("documentType.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?");
+        var saveText = TranslationService.GetTranslation("common.save", "Salva");
+        var discardText = TranslationService.GetTranslation("common.discard", "Non salvare");
+        var cancelText = TranslationService.GetTranslation("common.cancel", "Annulla");
+
+        var result = await DialogService.ShowMessageBox(title, message, yesText: saveText, noText: discardText, cancelText: cancelText);
+
+        if (result == true)
+        {
+            await SaveDocumentTypeAsync();
+            NavigationManager.NavigateTo(target);
+        }
+        else if (result == false)
+        {
+            NavigationManager.NavigateTo(target);
+        }
+    }
+}
