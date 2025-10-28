@@ -455,7 +455,7 @@
         };
 
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<AddModelDialog>(
+        var dialog = await DialogService.ShowAsync<ModelDialog>(
             TranslationService.GetTranslation("dialog.addModel", "Aggiungi Modello"),
             parameters,
             options
@@ -476,7 +476,7 @@
         };
 
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<EditModelDialog>(
+        var dialog = await DialogService.ShowAsync<ModelDialog>(
             TranslationService.GetTranslation("dialog.editModel", "Modifica Modello"),
             parameters,
             options

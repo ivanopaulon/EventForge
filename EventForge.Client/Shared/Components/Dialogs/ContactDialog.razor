@@ -3,14 +3,14 @@
 @inject IEntityManagementService EntityManagementService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
-@inject ILogger<AddContactDialog> Logger
+@inject ILogger<ContactDialog> Logger
 
 <MudDialog>
     <DialogContent>
         <MudForm @ref="_form" @bind-IsValid="@_isValid">
             <MudGrid>
                 <MudItem xs="12" md="6">
-                    <MudSelect @bind-Value="_model.ContactType"
+                    <MudSelect @bind-Value="_contactType"
                               Label="@($"{TranslationService.GetTranslation("field.contactType", "Tipo Contatto")} *")"
                               Variant="Variant.Outlined"
                               Required="true">
@@ -21,7 +21,7 @@
                 </MudItem>
                 
                 <MudItem xs="12" md="6">
-                    <MudSelect @bind-Value="_model.Purpose"
+                    <MudSelect @bind-Value="_purpose"
                               Label="@TranslationService.GetTranslation("field.purpose", "Scopo")"
                               Variant="Variant.Outlined">
                         <MudSelectItem Value="@ContactPurpose.Primary">@TranslationService.GetTranslation("contactPurpose.primary", "Primario")</MudSelectItem>
@@ -32,7 +32,7 @@
                 </MudItem>
                 
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="_model.Value"
+                    <MudTextField @bind-Value="_value"
                                  Label="@($"{TranslationService.GetTranslation("field.value", "Valore")} *")"
                                  Variant="Variant.Outlined"
                                  Required="true"
@@ -40,20 +40,20 @@
                 </MudItem>
                 
                 <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_model.Relationship"
+                    <MudTextField @bind-Value="_relationship"
                                  Label="@TranslationService.GetTranslation("field.relationship", "Relazione")"
                                  Variant="Variant.Outlined"
                                  MaxLength="50" />
                 </MudItem>
                 
                 <MudItem xs="12" md="6">
-                    <MudSwitch @bind-Value="_model.IsPrimary" 
-                              Label="@TranslationService.GetTranslation("field.isPrimary", "Contatto Primario")" 
+                    <MudSwitch @bind-Value="_isPrimary" 
+                              Label="@TranslationService.GetTranslation("field.isPrimary", "Primario")"
                               Color="Color.Primary" />
                 </MudItem>
                 
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="_model.Notes"
+                    <MudTextField @bind-Value="_notes"
                                  Label="@TranslationService.GetTranslation("field.notes", "Note")"
                                  Variant="Variant.Outlined"
                                  Lines="3"
@@ -81,21 +81,46 @@
     [CascadingParameter] 
     private IMudDialogInstance MudDialog { get; set; } = null!;
 
+    // For Add mode
     [Parameter] 
-    public Guid OwnerId { get; set; }
+    public Guid? OwnerId { get; set; }
 
     [Parameter] 
-    public string OwnerType { get; set; } = string.Empty;
+    public string? OwnerType { get; set; }
+
+    // For Edit mode
+    [Parameter] 
+    public ContactDto? Contact { get; set; }
 
     private MudForm _form = null!;
     private bool _isValid;
     private bool _isProcessing;
-    private CreateContactDto _model = new();
+    private ContactType _contactType = ContactType.Email;
+    private ContactPurpose _purpose = ContactPurpose.Primary;
+    private string _value = string.Empty;
+    private string? _relationship;
+    private bool _isPrimary;
+    private string? _notes;
+    private bool _isEditMode;
 
     protected override void OnParametersSet()
     {
-        _model.OwnerId = OwnerId;
-        _model.OwnerType = OwnerType;
+        if (Contact != null)
+        {
+            // Edit mode
+            _isEditMode = true;
+            _contactType = Contact.ContactType;
+            _purpose = Contact.Purpose;
+            _value = Contact.Value;
+            _relationship = Contact.Relationship;
+            _isPrimary = Contact.IsPrimary;
+            _notes = Contact.Notes;
+        }
+        else
+        {
+            // Add mode
+            _isEditMode = false;
+        }
     }
 
     private async Task Submit()
@@ -105,14 +130,51 @@
         try
         {
             _isProcessing = true;
-            await EntityManagementService.CreateContactAsync(_model);
-            Snackbar.Add(TranslationService.GetTranslation("messages.createSuccessful", "Creazione completata con successo"), Severity.Success);
+
+            if (_isEditMode && Contact != null)
+            {
+                // Edit mode
+                var updateDto = new UpdateContactDto
+                {
+                    ContactType = _contactType,
+                    Purpose = _purpose,
+                    Value = _value,
+                    Relationship = _relationship,
+                    IsPrimary = _isPrimary,
+                    Notes = _notes
+                };
+
+                await EntityManagementService.UpdateContactAsync(Contact.Id, updateDto);
+                Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornamento completato con successo"), Severity.Success);
+            }
+            else if (OwnerId.HasValue && !string.IsNullOrEmpty(OwnerType))
+            {
+                // Add mode
+                var createDto = new CreateContactDto
+                {
+                    OwnerId = OwnerId.Value,
+                    OwnerType = OwnerType,
+                    ContactType = _contactType,
+                    Purpose = _purpose,
+                    Value = _value,
+                    Relationship = _relationship,
+                    IsPrimary = _isPrimary,
+                    Notes = _notes
+                };
+
+                await EntityManagementService.CreateContactAsync(createDto);
+                Snackbar.Add(TranslationService.GetTranslation("messages.createSuccessful", "Creazione completata con successo"), Severity.Success);
+            }
+
             MudDialog.Close(DialogResult.Ok(true));
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to create contact");
-            Snackbar.Add(TranslationService.GetTranslation("messages.createFailed", "Errore durante la creazione"), Severity.Error);
+            Logger.LogError(ex, "Failed to {Action} contact", _isEditMode ? "update" : "create");
+            var errorMsg = _isEditMode 
+                ? TranslationService.GetTranslation("messages.updateFailed", "Errore durante l'aggiornamento")
+                : TranslationService.GetTranslation("messages.createFailed", "Errore durante la creazione");
+            Snackbar.Add(errorMsg, Severity.Error);
         }
         finally
         {
