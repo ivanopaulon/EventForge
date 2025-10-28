@@ -253,6 +253,10 @@
                 if (_currentDocument.BusinessPartyId != Guid.Empty)
                 {
                     _selectedBusinessParty = await BusinessPartyService.GetBusinessPartyAsync(_currentDocument.BusinessPartyId);
+                    if (_selectedBusinessParty == null)
+                    {
+                        Logger.LogWarning("Business party with ID {BusinessPartyId} not found for document {DocumentId}", _currentDocument.BusinessPartyId, documentId);
+                    }
                 }
             }
         }
