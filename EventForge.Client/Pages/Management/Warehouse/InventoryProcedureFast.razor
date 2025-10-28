@@ -534,6 +534,9 @@
     // Undo last row tracking
     private InventoryDocumentRowDto? _lastAddedRow = null;
     
+    // Location search constants
+    private const int MaxLocationSearchResults = 20;
+    
     // Operation log for audit trail
     private List<OperationLogEntry> _operationLog = new();
     
@@ -1157,17 +1160,17 @@
     }
     
     // Search function for location autocomplete
-    private async Task<IEnumerable<StorageLocationDto>> SearchLocations(string value, CancellationToken token)
+    private Task<IEnumerable<StorageLocationDto>> SearchLocations(string value, CancellationToken token)
     {
-        await Task.CompletedTask; // Make async to match signature
-        
         if (string.IsNullOrWhiteSpace(value))
-            return _locations.Take(20);
+            return Task.FromResult(_locations.Take(MaxLocationSearchResults));
         
-        return _locations
+        var results = _locations
             .Where(l => l.Code.Contains(value, StringComparison.OrdinalIgnoreCase) ||
                        (l.Description?.Contains(value, StringComparison.OrdinalIgnoreCase) ?? false))
-            .Take(20);
+            .Take(MaxLocationSearchResults);
+        
+        return Task.FromResult(results);
     }
     
     // Handle location value change to sync the ID
@@ -1399,11 +1402,19 @@
             {
                 try
                 {
+                    // Property names for reflection fallback
+                    const string ActionPropertyName = "Action";
+                    const string ActionPropertyNameLower = "action";
+                    const string ProductPropertyName = "Product";
+                    const string ProductPropertyNameLower = "product";
+                    const string AutoAdvancePropertyName = "AutoAdvanceToQuantity";
+                    const string AutoAdvancePropertyNameLower = "autoAdvanceToQuantity";
+                    
                     // Try to get the assigned product info from the dialog result
                     var resultType = result.Data.GetType();
-                    var actionProp = resultType.GetProperty("Action") ?? resultType.GetProperty("action");
-                    var productProp = resultType.GetProperty("Product") ?? resultType.GetProperty("product");
-                    var autoAdvanceProp = resultType.GetProperty("AutoAdvanceToQuantity") ?? resultType.GetProperty("autoAdvanceToQuantity");
+                    var actionProp = resultType.GetProperty(ActionPropertyName) ?? resultType.GetProperty(ActionPropertyNameLower);
+                    var productProp = resultType.GetProperty(ProductPropertyName) ?? resultType.GetProperty(ProductPropertyNameLower);
+                    var autoAdvanceProp = resultType.GetProperty(AutoAdvancePropertyName) ?? resultType.GetProperty(AutoAdvancePropertyNameLower);
 
                     if (actionProp != null && actionProp.GetValue(result.Data)?.ToString() == "assigned")
                     {
