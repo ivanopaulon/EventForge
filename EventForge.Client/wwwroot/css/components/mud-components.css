@@ -192,7 +192,7 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
  Responsive & Accessibility
  ------------------------- */
 @media (max-width:768px) {
- :root { --ef-input-height:44px; --ef-button-height:44px; }
+ :root { --ef-input-height:36px; --ef-button-height:36px; --ef-field-height:36px; }
  .ef-drawer { width:100vw !important; }
 }
 
