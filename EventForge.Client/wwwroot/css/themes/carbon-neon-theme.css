@@ -14,8 +14,6 @@
     
     /* Backgrounds */
     --background: #121212;        /* Pure MD dark */
-    --background-primary: #121212;
-    --background-secondary: #262626;
     --surface: #262626;
     --surface-2: #262626;         /* Elevated Surface */
     --card-background: #262626;
@@ -63,6 +61,12 @@
     --surface-2: #FAFAFA;         /* Elevated Surface */
     --card-background: #FFFFFF;   /* Card Background */
     --card-border: #E0E0E0;       /* Card Border */
+    
+    /* AppBar & Drawer */
+    --appbar-background: #FFFFFF;
+    --appbar-text: #1A1A1A;
+    --drawer-background: #FFFFFF;
+    --drawer-text: #1A1A1A;
     
     /* Text Colors */
     --text-primary: #1A1A1A;      /* Near Black */
@@ -150,18 +154,18 @@
 
 /* Drawer */
 .mud-drawer {
-    background-color: var(--surface) !important;
+    background-color: var(--drawer-background) !important;
     border-right: 1px solid var(--border) !important;
 }
 
 .mud-drawer-content {
-    color: var(--text-primary) !important;
+    color: var(--drawer-text) !important;
 }
 
 /* AppBar */
 .mud-appbar {
-    background-color: var(--surface) !important;
-    color: var(--text-primary) !important;
+    background-color: var(--appbar-background) !important;
+    color: var(--appbar-text) !important;
 }
 
 /* Paper */
