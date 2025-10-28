@@ -10,7 +10,6 @@
 @inject IStorageLocationService StorageLocationService
 @inject IWarehouseService WarehouseService
 @inject ISnackbar Snackbar
-@inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<InventoryProcedureFast> Logger
 @inject NavigationManager NavigationManager
@@ -154,6 +153,72 @@
         </MudGrid>
     }
 
+    <!-- Finalize Confirmation Banner -->
+    @if (_showFinalizeConfirmation)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4" Variant="Variant.Filled">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <div>
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                        @TranslationService.GetTranslation("warehouse.confirmFinalize", "Conferma Finalizzazione")
+                    </MudText>
+                    <MudText Typo="Typo.body2">
+                        @TranslationService.GetTranslation("warehouse.finalizeMessage", 
+                            "Confermi di voler finalizzare l'inventario? Verranno applicati tutti gli aggiustamenti di stock per {0} articoli.", 
+                            _currentDocument?.TotalItems ?? 0)
+                    </MudText>
+                </div>
+                <MudStack Row="true" Spacing="2">
+                    <MudButton StartIcon="@Icons.Material.Outlined.Close"
+                              Color="Color.Default"
+                              Variant="Variant.Outlined"
+                              OnClick="@(() => _showFinalizeConfirmation = false)">
+                        @TranslationService.GetTranslation("common.cancel", "Annulla")
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Outlined.Check"
+                              Color="Color.Success"
+                              Variant="Variant.Filled"
+                              OnClick="@ConfirmFinalizeAsync">
+                        @TranslationService.GetTranslation("common.confirm", "Conferma")
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudAlert>
+    }
+
+    <!-- Cancel Session Confirmation Banner -->
+    @if (_showCancelConfirmation)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <div>
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                        @TranslationService.GetTranslation("warehouse.confirmCancel", "Conferma Annullamento")
+                    </MudText>
+                    <MudText Typo="Typo.body2">
+                        @TranslationService.GetTranslation("warehouse.cancelMessage", 
+                            "Confermi di voler annullare la sessione di inventario? Tutti i dati inseriti ({0} articoli) andranno persi.", 
+                            _currentDocument?.TotalItems ?? 0)
+                    </MudText>
+                </div>
+                <MudStack Row="true" Spacing="2">
+                    <MudButton StartIcon="@Icons.Material.Outlined.Close"
+                              Color="Color.Default"
+                              Variant="Variant.Outlined"
+                              OnClick="@(() => _showCancelConfirmation = false)">
+                        @TranslationService.GetTranslation("common.no", "No")
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Outlined.Check"
+                              Color="Color.Error"
+                              Variant="Variant.Filled"
+                              OnClick="@ConfirmCancelAsync">
+                        @TranslationService.GetTranslation("common.yes", "Sì")
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudAlert>
+    }
+
     <!-- Storage Facility Selection -->
     <MudPaper Elevation="2" Class="pa-4 mb-4">
         <MudText Typo="Typo.h6" Class="mb-3">
@@ -243,6 +308,139 @@
                 </MudItem>
             </MudGrid>
         </MudPaper>
+
+        <!-- Inline Product Assignment Panel (replaces ProductNotFoundDialog) -->
+        @if (_showAssignPanel)
+        {
+            <MudPaper Elevation="3" Class="pa-4 mb-4" Style="border: 2px solid var(--mud-palette-warning); background-color: var(--mud-palette-warning-lighten);">
+                <MudStack Spacing="3">
+                    <!-- Header -->
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.h6">
+                            <MudIcon Icon="@Icons.Material.Outlined.SearchOff" Class="mr-2" />
+                            @TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato")
+                        </MudText>
+                        <MudIconButton Icon="@Icons.Material.Outlined.Close"
+                                      Color="Color.Default"
+                                      Size="Size.Small"
+                                      OnClick="@HideAssignPanel" />
+                    </MudStack>
+
+                    <!-- Barcode Chip -->
+                    <MudPaper Elevation="0" Class="pa-3" Style="background-color: var(--mud-palette-info-lighten);">
+                        <MudText Typo="Typo.body2" Class="mb-2">
+                            @TranslationService.GetTranslation("warehouse.barcodeToAssign", "Codice da Assegnare")
+                        </MudText>
+                        <MudChip T="string" Icon="@Icons.Material.Outlined.QrCode" Color="Color.Primary">@_assignPanelBarcode</MudChip>
+                    </MudPaper>
+
+                    <!-- Product Search Autocomplete -->
+                    <MudAutocomplete T="ProductDto"
+                                     @bind-Value="_assignSelectedProduct"
+                                     Label="@TranslationService.GetTranslation("products.searchProduct", "Cerca Prodotto")"
+                                     Variant="Variant.Outlined"
+                                     SearchFunc="@SearchProductsForAssignment"
+                                     ToStringFunc="@(p => p?.Name ?? string.Empty)"
+                                     Immediate="true"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true"
+                                     CoerceValue="false"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Outlined.Search"
+                                     HelperText="@TranslationService.GetTranslation("products.searchByCodeOrDescription", "Cerca per codice o descrizione")">
+                        <ItemTemplate Context="product">
+                            <MudText Typo="Typo.body2">@product.Name</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@product.Code @(!string.IsNullOrEmpty(product.ShortDescription) ? " - " + product.ShortDescription : "")</MudText>
+                        </ItemTemplate>
+                        <NoItemsTemplate>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @TranslationService.GetTranslation("products.noProductsFound", "Nessun prodotto trovato")
+                            </MudText>
+                        </NoItemsTemplate>
+                    </MudAutocomplete>
+
+                    <!-- Assignment Form (shown when product is selected) -->
+                    @if (_assignSelectedProduct != null)
+                    {
+                        <MudPaper Elevation="1" Class="pa-3">
+                            <MudText Typo="Typo.subtitle2" Class="mb-3">
+                                @TranslationService.GetTranslation("products.selectedProduct", "Prodotto Selezionato")
+                            </MudText>
+
+                            <MudGrid Spacing="2" Class="mb-3">
+                                <MudItem xs="12" md="6">
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("products.productName", "Nome Prodotto")</MudText>
+                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@_assignSelectedProduct.Name</MudText>
+                                </MudItem>
+                                <MudItem xs="12" md="6">
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("products.productCode", "Codice Prodotto")</MudText>
+                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@_assignSelectedProduct.Code</MudText>
+                                </MudItem>
+                            </MudGrid>
+
+                            <!-- Code Assignment Fields -->
+                            <MudForm @ref="_assignForm" @bind-IsValid="@_assignFormValid">
+                                <MudGrid Spacing="2">
+                                    <MudItem xs="12" md="6">
+                                        <MudSelect @bind-Value="_assignCodeType"
+                                                   Label="@TranslationService.GetTranslation("products.codeType", "Tipo Codice")"
+                                                   Variant="Variant.Outlined"
+                                                   Required="true">
+                                            <MudSelectItem Value="@("EAN")">EAN</MudSelectItem>
+                                            <MudSelectItem Value="@("UPC")">UPC</MudSelectItem>
+                                            <MudSelectItem Value="@("SKU")">SKU</MudSelectItem>
+                                            <MudSelectItem Value="@("QR")">QR Code</MudSelectItem>
+                                            <MudSelectItem Value="@("Barcode")">@TranslationService.GetTranslation("products.barcode", "Codice a Barre")</MudSelectItem>
+                                            <MudSelectItem Value="@("Other")">@TranslationService.GetTranslation("products.other", "Altro")</MudSelectItem>
+                                        </MudSelect>
+                                    </MudItem>
+                                    <MudItem xs="12" md="6">
+                                        <MudTextField @bind-Value="_assignCode"
+                                                      Label="@TranslationService.GetTranslation("field.code", "Codice")"
+                                                      Variant="Variant.Outlined"
+                                                      Required="true"
+                                                      MaxLength="100" />
+                                    </MudItem>
+                                    <MudItem xs="12">
+                                        <MudTextField @bind-Value="_assignAlternativeDescription"
+                                                      Label="@TranslationService.GetTranslation("products.alternativeDescription", "Descrizione Alternativa (opzionale)")"
+                                                      Variant="Variant.Outlined"
+                                                      Lines="2"
+                                                      MaxLength="200" />
+                                    </MudItem>
+                                </MudGrid>
+                            </MudForm>
+                        </MudPaper>
+                    }
+
+                    <!-- Action Buttons -->
+                    <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+                        <MudButton StartIcon="@Icons.Material.Outlined.SkipNext"
+                                  Color="Color.Default"
+                                  Variant="Variant.Outlined"
+                                  OnClick="@SkipAssignment">
+                            @TranslationService.GetTranslation("warehouse.skipProduct", "Salta")
+                        </MudButton>
+                        <MudButton StartIcon="@Icons.Material.Outlined.Inventory"
+                                  Color="Color.Info"
+                                  Variant="Variant.Outlined"
+                                  OnClick="@OpenProductManagement">
+                            @TranslationService.GetTranslation("warehouse.openProductManagement", "Apri gestione prodotti")
+                        </MudButton>
+                        @if (_assignSelectedProduct != null)
+                        {
+                            <MudButton StartIcon="@Icons.Material.Outlined.Link"
+                                      Color="Color.Primary"
+                                      Variant="Variant.Filled"
+                                      OnClick="@AssignBarcodeToProductAsync"
+                                      Disabled="@(!_assignFormValid || _isLoading)">
+                                @TranslationService.GetTranslation("warehouse.assignAndContinue", "Assegna e continua")
+                            </MudButton>
+                        }
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+        }
 
         <!-- Inline Product Entry Form (NEW FAST PROCEDURE) -->
         @if (_currentProduct != null)
@@ -376,63 +574,148 @@
                         <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd DataLabel="Product">
-                            <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.ProductName</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ProductCode</MudText>
-                        </MudTd>
-                        <MudTd DataLabel="Location">
-                            <MudText Typo="Typo.body2">@context.LocationName</MudText>
-                        </MudTd>
-                        <MudTd DataLabel="Quantity">
-                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.Quantity</MudChip>
-                        </MudTd>
-                        <MudTd DataLabel="Adjustment">
-                            @if (context.AdjustmentQuantity.HasValue)
-                            {
-                                var adjColor = context.AdjustmentQuantity > 0 ? Color.Success : 
-                                               context.AdjustmentQuantity < 0 ? Color.Warning : Color.Default;
-                                var adjIcon = context.AdjustmentQuantity > 0 ? Icons.Material.Filled.TrendingUp : 
-                                              context.AdjustmentQuantity < 0 ? Icons.Material.Filled.TrendingDown : 
-                                              Icons.Material.Filled.Remove;
-                                
-                                <MudChip T="string" Size="Size.Small" Color="@adjColor" Icon="@adjIcon">
-                                    @(context.AdjustmentQuantity > 0 ? "+" : "")@context.AdjustmentQuantity
-                                </MudChip>
-                            }
-                            else
-                            {
-                                <MudChip T="string" Size="Size.Small" Color="Color.Default">
-                                    @TranslationService.GetTranslation("warehouse.noAdjustment", "N/A")
-                                </MudChip>
-                            }
-                        </MudTd>
-                        <MudTd DataLabel="Notes">
-                            @if (!string.IsNullOrEmpty(context.Notes))
-                            {
-                                <MudTooltip Text="@context.Notes">
-                                    <MudIcon Icon="@Icons.Material.Filled.Comment" Size="Size.Small" Color="Color.Info" />
-                                </MudTooltip>
-                            }
-                        </MudTd>
-                        <MudTd DataLabel="Time">
-                            <MudText Typo="Typo.caption">@context.CreatedAt.ToLocalTime().ToString("HH:mm:ss")</MudText>
-                        </MudTd>
-                        <MudTd DataLabel="Actions">
-                            <MudStack Row="true" Spacing="1">
-                                <MudTooltip Text="@TranslationService.GetTranslation("common.edit", "Modifica")">
-                                    <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
-                                                   Size="Size.Small" 
-                                                   Color="Color.Primary"
-                                                   OnClick="@(() => EditInventoryRow(context))" />
-                                </MudTooltip>
-                                <MudTooltip Text="@TranslationService.GetTranslation("common.delete", "Elimina")">
-                                    <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
-                                                   Size="Size.Small" 
-                                                   Color="Color.Error"
-                                                   OnClick="@(() => DeleteInventoryRow(context))" />
-                                </MudTooltip>
-                            </MudStack>
-                        </MudTd>
+                        @if (context.Id == _editingRowId)
+                        {
+                            <!-- Inline Edit Mode -->
+                            <MudTd DataLabel="Product">
+                                <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.ProductName</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ProductCode</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Location">
+                                <MudText Typo="Typo.body2">@context.LocationName</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Quantity">
+                                <MudNumericField @bind-Value="_editQuantity"
+                                               Label=""
+                                               Variant="Variant.Outlined"
+                                               Min="0"
+                                               Dense="true"
+                                               Margin="Margin.Dense" />
+                            </MudTd>
+                            <MudTd DataLabel="Adjustment">
+                                @if (context.AdjustmentQuantity.HasValue)
+                                {
+                                    var adjColor = context.AdjustmentQuantity > 0 ? Color.Success : 
+                                                   context.AdjustmentQuantity < 0 ? Color.Warning : Color.Default;
+                                    <MudChip T="string" Size="Size.Small" Color="@adjColor">
+                                        @(context.AdjustmentQuantity > 0 ? "+" : "")@context.AdjustmentQuantity
+                                    </MudChip>
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="Notes" ColSpan="2">
+                                <MudTextField @bind-Value="_editNotes"
+                                            Label=""
+                                            Variant="Variant.Outlined"
+                                            Dense="true"
+                                            Margin="Margin.Dense" />
+                            </MudTd>
+                            <MudTd DataLabel="Actions">
+                                <MudStack Row="true" Spacing="1">
+                                    <MudTooltip Text="@TranslationService.GetTranslation("common.save", "Salva")">
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Check"
+                                                       Size="Size.Small"
+                                                       Color="Color.Success"
+                                                       OnClick="@(() => SaveEditRowAsync(context))" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="@TranslationService.GetTranslation("common.cancel", "Annulla")">
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Close"
+                                                       Size="Size.Small"
+                                                       Color="Color.Default"
+                                                       OnClick="@CancelEdit" />
+                                    </MudTooltip>
+                                </MudStack>
+                            </MudTd>
+                        }
+                        else if (context.Id == _confirmDeleteRowId)
+                        {
+                            <!-- Inline Delete Confirmation -->
+                            <MudTd DataLabel="Confirmation" ColSpan="7">
+                                <MudAlert Severity="Severity.Warning" Dense="true" NoIcon="false">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <MudText Typo="Typo.body2">
+                                            @TranslationService.GetTranslation("warehouse.confirmDeleteRow", "Confermi l'eliminazione di '{0}'?", context.ProductName)
+                                        </MudText>
+                                        <MudStack Row="true" Spacing="1">
+                                            <MudButton StartIcon="@Icons.Material.Outlined.Check"
+                                                      Size="Size.Small"
+                                                      Color="Color.Error"
+                                                      Variant="Variant.Filled"
+                                                      OnClick="@(() => ConfirmDeleteAsync(context))">
+                                                @TranslationService.GetTranslation("common.confirm", "Conferma")
+                                            </MudButton>
+                                            <MudButton StartIcon="@Icons.Material.Outlined.Close"
+                                                      Size="Size.Small"
+                                                      Color="Color.Default"
+                                                      Variant="Variant.Outlined"
+                                                      OnClick="@CancelDelete">
+                                                @TranslationService.GetTranslation("common.cancel", "Annulla")
+                                            </MudButton>
+                                        </MudStack>
+                                    </MudStack>
+                                </MudAlert>
+                            </MudTd>
+                        }
+                        else
+                        {
+                            <!-- Normal Display Mode -->
+                            <MudTd DataLabel="Product">
+                                <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.ProductName</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ProductCode</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Location">
+                                <MudText Typo="Typo.body2">@context.LocationName</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Quantity">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.Quantity</MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="Adjustment">
+                                @if (context.AdjustmentQuantity.HasValue)
+                                {
+                                    var adjColor = context.AdjustmentQuantity > 0 ? Color.Success : 
+                                                   context.AdjustmentQuantity < 0 ? Color.Warning : Color.Default;
+                                    var adjIcon = context.AdjustmentQuantity > 0 ? Icons.Material.Filled.TrendingUp : 
+                                                  context.AdjustmentQuantity < 0 ? Icons.Material.Filled.TrendingDown : 
+                                                  Icons.Material.Filled.Remove;
+                                    
+                                    <MudChip T="string" Size="Size.Small" Color="@adjColor" Icon="@adjIcon">
+                                        @(context.AdjustmentQuantity > 0 ? "+" : "")@context.AdjustmentQuantity
+                                    </MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Default">
+                                        @TranslationService.GetTranslation("warehouse.noAdjustment", "N/A")
+                                    </MudChip>
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="Notes">
+                                @if (!string.IsNullOrEmpty(context.Notes))
+                                {
+                                    <MudTooltip Text="@context.Notes">
+                                        <MudIcon Icon="@Icons.Material.Filled.Comment" Size="Size.Small" Color="Color.Info" />
+                                    </MudTooltip>
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="Time">
+                                <MudText Typo="Typo.caption">@context.CreatedAt.ToLocalTime().ToString("HH:mm:ss")</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Actions">
+                                <MudStack Row="true" Spacing="1">
+                                    <MudTooltip Text="@TranslationService.GetTranslation("common.edit", "Modifica")">
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
+                                                       Size="Size.Small" 
+                                                       Color="Color.Primary"
+                                                       OnClick="@(() => BeginEditRow(context))" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="@TranslationService.GetTranslation("common.delete", "Elimina")">
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
+                                                       Size="Size.Small" 
+                                                       Color="Color.Error"
+                                                       OnClick="@(() => StartDeleteConfirm(context))" />
+                                    </MudTooltip>
+                                </MudStack>
+                            </MudTd>
+                        }
                     </RowTemplate>
                 </MudTable>
             </MudPaper>
@@ -498,12 +781,6 @@
     }
 </MudContainer>
 
-<ProductDrawer @bind-IsOpen="_productDrawerOpen"
-               @bind-Mode="_productDrawerMode"
-               OriginalProduct="_productForDrawer"
-               AllowEdit="false"
-               OnProductCreated="@HandleProductCreated" />
-
 @code {
     private bool _isLoading = false;
     private string _scannedBarcode = string.Empty;
@@ -540,10 +817,28 @@
     // Operation log for audit trail
     private List<OperationLogEntry> _operationLog = new();
     
-    // ProductDrawer related fields
-    private bool _productDrawerOpen = false;
-    private EntityDrawerMode _productDrawerMode = EntityDrawerMode.Create;
-    private ProductDto? _productForDrawer;
+    // Inline product assignment panel state (replaces ProductNotFoundDialog)
+    private bool _showAssignPanel = false;
+    private string _assignPanelBarcode = string.Empty;
+    private ProductDto? _assignSelectedProduct;
+    private MudForm? _assignForm;
+    private bool _assignFormValid = false;
+    private string _assignCodeType = "Barcode";
+    private string _assignCode = string.Empty;
+    private string? _assignAlternativeDescription;
+    private List<ProductDto> _allProducts = new();
+    
+    // Inline row edit state (replaces EditInventoryRowDialog)
+    private Guid? _editingRowId;
+    private decimal _editQuantity;
+    private string? _editNotes;
+    
+    // Inline delete confirmation state (replaces MessageBox)
+    private Guid? _confirmDeleteRowId;
+    
+    // Inline finalize/cancel confirmation state (replaces MessageBox)
+    private bool _showFinalizeConfirmation = false;
+    private bool _showCancelConfirmation = false;
 
     // Helper class for operation logging
     private class OperationLogEntry
@@ -767,7 +1062,8 @@
     {
         await Task.WhenAll(
             LoadStorageFacilities(),
-            LoadLocations()
+            LoadLocations(),
+            LoadProducts()
         );
         
         // Try to restore active inventory session
@@ -826,6 +1122,28 @@
         {
             Logger.LogError(ex, "Error loading storage locations");
             Snackbar.Add(TranslationService.GetTranslation("warehouse.loadLocationsError", "Errore nel caricamento ubicazioni"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadProducts()
+    {
+        _isLoading = true;
+        try
+        {
+            var result = await ProductService.GetProductsAsync(1, 100);
+            if (result != null)
+            {
+                _allProducts = result.Items.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading products");
+            Snackbar.Add(TranslationService.GetTranslation("products.loadError", "Errore nel caricamento prodotti"), Severity.Error);
         }
         finally
         {
@@ -1034,8 +1352,8 @@
                     "Warning"
                 );
                 
-                // Product not found - show dialog to choose action
-                await ShowProductNotFoundDialog();
+                // Product not found - show inline assign panel
+                ShowAssignPanel(_scannedBarcode);
             }
         }
         catch (Exception ex)
@@ -1044,6 +1362,144 @@
             Snackbar.Add(TranslationService.GetTranslation("warehouse.searchError", "Errore nella ricerca"), Severity.Error);
             AddOperationLog(
                 TranslationService.GetTranslation("warehouse.searchError", "Errore nella ricerca"),
+                ex.Message,
+                "Error"
+            );
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    // Inline product assignment panel methods (replaces ProductNotFoundDialog)
+    private void ShowAssignPanel(string barcode)
+    {
+        _assignPanelBarcode = barcode;
+        _assignCode = barcode;
+        _assignCodeType = "Barcode";
+        _assignAlternativeDescription = null;
+        _assignSelectedProduct = null;
+        _assignFormValid = false;
+        _showAssignPanel = true;
+        StateHasChanged();
+    }
+
+    private void HideAssignPanel()
+    {
+        _showAssignPanel = false;
+        _assignPanelBarcode = string.Empty;
+        _assignSelectedProduct = null;
+        _assignCode = string.Empty;
+        _assignCodeType = "Barcode";
+        _assignAlternativeDescription = null;
+        ClearProductForm();
+    }
+
+    private void SkipAssignment()
+    {
+        Snackbar.Add(
+            TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato: {0}", _assignPanelBarcode), 
+            Severity.Info
+        );
+        AddOperationLog(
+            TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato"),
+            $"Codice: {_assignPanelBarcode}",
+            "Info"
+        );
+        HideAssignPanel();
+    }
+
+    private void OpenProductManagement()
+    {
+        // Navigate to product management page
+        NavigationManager.NavigateTo("/product-management/products");
+    }
+
+    private async Task<IEnumerable<ProductDto>> SearchProductsForAssignment(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return _allProducts.Take(10);
+
+        return _allProducts
+            .Where(p => p.Name.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+                       p.Code.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+                       (!string.IsNullOrEmpty(p.ShortDescription) && p.ShortDescription.Contains(value, StringComparison.OrdinalIgnoreCase)) ||
+                       (!string.IsNullOrEmpty(p.Description) && p.Description.Contains(value, StringComparison.OrdinalIgnoreCase)))
+            .Take(20)
+            .ToList();
+    }
+
+    private async Task AssignBarcodeToProductAsync()
+    {
+        if (!_assignFormValid || _assignSelectedProduct == null)
+            return;
+
+        _isLoading = true;
+        try
+        {
+            var createCodeDto = new CreateProductCodeDto
+            {
+                ProductId = _assignSelectedProduct.Id,
+                CodeType = _assignCodeType,
+                Code = _assignCode,
+                AlternativeDescription = _assignAlternativeDescription,
+                Status = ProductCodeStatus.Active
+            };
+
+            var result = await ProductService.CreateProductCodeAsync(createCodeDto);
+
+            if (result != null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("products.barcodeAssignedSuccess", "Codice a barre assegnato con successo a {0}", _assignSelectedProduct.Name), 
+                    Severity.Success
+                );
+
+                AddOperationLog(
+                    TranslationService.GetTranslation("products.barcodeAssigned", "Codice assegnato"),
+                    $"{_assignSelectedProduct.Name} - Codice: {_assignCode}",
+                    "Success"
+                );
+
+                // Set current product and proceed to inline entry without rescanning
+                _currentProduct = _assignSelectedProduct;
+                _showAssignPanel = false;
+
+                // Auto-select location if only one exists
+                if (_locations?.Count == 1)
+                {
+                    _selectedLocationId = _locations[0].Id;
+                    _selectedLocation = _locations[0];
+                    StateHasChanged();
+                    if (_quantityField != null)
+                    {
+                        await Task.Delay(100);
+                        await _quantityField.FocusAsync();
+                    }
+                }
+                else if (_locationAutocomplete != null)
+                {
+                    StateHasChanged();
+                    await Task.Delay(100);
+                    await _locationAutocomplete.FocusAsync();
+                }
+                else
+                {
+                    StateHasChanged();
+                }
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("products.assignError", "Errore nell'assegnazione del codice"), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error assigning barcode to product");
+            Snackbar.Add(TranslationService.GetTranslation("products.assignError", "Errore nell'assegnazione del codice"), Severity.Error);
+            AddOperationLog(
+                TranslationService.GetTranslation("products.assignError", "Errore nell'assegnazione del codice"),
                 ex.Message,
                 "Error"
             );
@@ -1203,23 +1659,22 @@
         await AddInventoryRow();
     }
 
-    private async Task FinalizeInventory()
+    private void FinalizeInventory()
     {
         if (_currentDocument == null)
             return;
 
-        var confirmed = await DialogService.ShowMessageBox(
-            TranslationService.GetTranslation("warehouse.confirmFinalize", "Conferma Finalizzazione"),
-            TranslationService.GetTranslation("warehouse.finalizeMessage", 
-                "Confermi di voler finalizzare l'inventario? Verranno applicati tutti gli aggiustamenti di stock per {0} articoli.", 
-                _currentDocument.TotalItems),
-            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
-            cancelText: TranslationService.GetTranslation("common.no", "No")
-        );
+        // Show inline confirmation banner
+        _showFinalizeConfirmation = true;
+        StateHasChanged();
+    }
 
-        if (confirmed != true)
+    private async Task ConfirmFinalizeAsync()
+    {
+        if (_currentDocument == null)
             return;
 
+        _showFinalizeConfirmation = false;
         _isLoading = true;
         try
         {
@@ -1276,22 +1731,22 @@
         }
     }
 
-    private async Task CancelInventorySession()
+    private void CancelInventorySession()
     {
         if (_currentDocument == null)
             return;
 
-        var confirmed = await DialogService.ShowMessageBox(
-            TranslationService.GetTranslation("warehouse.confirmCancel", "Conferma Annullamento"),
-            TranslationService.GetTranslation("warehouse.cancelMessage", 
-                "Confermi di voler annullare la sessione di inventario? Tutti i dati inseriti ({0} articoli) andranno persi.", 
-                _currentDocument.TotalItems),
-            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
-            cancelText: TranslationService.GetTranslation("common.no", "No")
-        );
+        // Show inline confirmation banner
+        _showCancelConfirmation = true;
+        StateHasChanged();
+    }
 
-        if (confirmed != true)
+    private async Task ConfirmCancelAsync()
+    {
+        if (_currentDocument == null)
             return;
+
+        _showCancelConfirmation = false;
 
         AddOperationLog(
             TranslationService.GetTranslation("warehouse.sessionCanceled", "Sessione annullata"),
@@ -1308,343 +1763,90 @@
         Snackbar.Add(TranslationService.GetTranslation("warehouse.sessionCanceled", "Sessione annullata"), Severity.Info);
     }
 
-    private async Task ShowProductNotFoundDialog()
+    // Inline row editing methods (replaces EditInventoryRowDialog)
+    private void BeginEditRow(InventoryDocumentRowDto row)
     {
-        var parameters = new DialogParameters
-        {
-            { "Barcode", _scannedBarcode },
-            { "IsInventoryContext", true }
-        };
-
-        var options = new DialogOptions
-        {
-            CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
-
-        // Show a simple dialog to ask what the user wants to do
-        var dialog = await DialogService.ShowAsync<ProductNotFoundDialog>(
-            TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato"),
-            parameters,
-            options
-        );
-
-        var result = await dialog.Result;
-
-        if (!result.Canceled && result.Data != null)
-        {
-            // Try typed result first
-            if (result.Data is ProductNotFoundDialog.AssignResult assignResult)
-            {
-                _currentProduct = assignResult.Product;
-                
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.barcodeAssignedAutoAdvance", "Codice assegnato: {0}. Procedi con l'inventario.", assignResult.Product.Name),
-                    Severity.Success
-                );
-                
-                // Auto-advance to inline form
-                if (assignResult.AutoAdvanceToQuantity)
-                {
-                    // Auto-select location if only one exists
-                    if (_locations?.Count == 1)
-                    {
-                        _selectedLocationId = _locations[0].Id;
-                        _selectedLocation = _locations[0];
-                        StateHasChanged();
-                        if (_quantityField != null)
-                        {
-                            await Task.Delay(100);
-                            await _quantityField.FocusAsync();
-                        }
-                    }
-                    else if (_locationAutocomplete != null)
-                    {
-                        StateHasChanged();
-                        await Task.Delay(100);
-                        await _locationAutocomplete.FocusAsync();
-                    }
-                    else
-                    {
-                        StateHasChanged();
-                    }
-                }
-                return;
-            }
-            
-            // Handle string actions (create, skip)
-            if (result.Data is string action)
-            {
-                if (action == "create")
-                {
-                    CreateNewProduct();
-                }
-                else if (action == "skip")
-                {
-                    // Skip this product and continue with inventory
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato: {0}", _scannedBarcode), 
-                        Severity.Info
-                    );
-                    AddOperationLog(
-                        TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato"),
-                        $"Codice: {_scannedBarcode}",
-                        "Info"
-                    );
-                    
-                    // Clear the form and refocus on barcode input
-                    ClearProductForm();
-                }
-            }
-            // FAST PROCEDURE: Fallback to reflection for backward compatibility
-            else
-            {
-                try
-                {
-                    // Property names for reflection fallback
-                    const string ActionPropertyName = "Action";
-                    const string ActionPropertyNameLower = "action";
-                    const string ProductPropertyName = "Product";
-                    const string ProductPropertyNameLower = "product";
-                    const string AutoAdvancePropertyName = "AutoAdvanceToQuantity";
-                    const string AutoAdvancePropertyNameLower = "autoAdvanceToQuantity";
-                    
-                    // Try to get the assigned product info from the dialog result
-                    var resultType = result.Data.GetType();
-                    var actionProp = resultType.GetProperty(ActionPropertyName) ?? resultType.GetProperty(ActionPropertyNameLower);
-                    var productProp = resultType.GetProperty(ProductPropertyName) ?? resultType.GetProperty(ProductPropertyNameLower);
-                    var autoAdvanceProp = resultType.GetProperty(AutoAdvancePropertyName) ?? resultType.GetProperty(AutoAdvancePropertyNameLower);
-
-                    if (actionProp != null && actionProp.GetValue(result.Data)?.ToString() == "assigned")
-                    {
-                        if (productProp != null && productProp.GetValue(result.Data) is ProductDto assignedProduct)
-                        {
-                            _currentProduct = assignedProduct;
-                            
-                            // Auto-advance to inline form
-                            var autoAdvance = autoAdvanceProp != null && autoAdvanceProp.GetValue(result.Data) is bool autoVal && autoVal;
-                            if (autoAdvance)
-                            {
-                                Snackbar.Add(
-                                    TranslationService.GetTranslation("warehouse.barcodeAssignedAutoAdvance", "Codice assegnato: {0}. Procedi con l'inventario.", assignedProduct.Name),
-                                    Severity.Success
-                                );
-                                
-                                // Auto-select location if only one exists
-                                if (_locations?.Count == 1)
-                                {
-                                    _selectedLocationId = _locations[0].Id;
-                                    _selectedLocation = _locations[0];
-                                    StateHasChanged();
-                                    if (_quantityField != null)
-                                    {
-                                        await Task.Delay(100);
-                                        await _quantityField.FocusAsync();
-                                    }
-                                }
-                                else if (_locationAutocomplete != null)
-                                {
-                                    StateHasChanged();
-                                    await Task.Delay(100);
-                                    await _locationAutocomplete.FocusAsync();
-                                }
-                                else
-                                {
-                                    StateHasChanged();
-                                }
-                            }
-                            else
-                            {
-                                // Fallback: just search again to load it
-                                await SearchBarcode();
-                            }
-                        }
-                    }
-                }
-                catch
-                {
-                    // Fallback: Product was assigned directly from the dialog, search again to load it
-                    await SearchBarcode();
-                }
-            }
-        }
-        else
-        {
-            // Dialog was canceled, clear and refocus
-            ClearProductForm();
-        }
+        _editingRowId = row.Id;
+        _editQuantity = row.Quantity;
+        _editNotes = row.Notes;
+        StateHasChanged();
     }
 
-    private void CreateNewProduct()
+    private async Task SaveEditRowAsync(InventoryDocumentRowDto row)
     {
-        // Create a new ProductDto with the scanned barcode as Code
-        _productForDrawer = new ProductDto
-        {
-            Code = _scannedBarcode,
-            Name = string.Empty,
-            Status = ProductStatus.Active
-        };
-        
-        _productDrawerMode = EntityDrawerMode.Create;
-        _productDrawerOpen = true;
-    }
-    
-    private async Task HandleProductCreated(ProductDto createdProduct)
-    {
-        // Product created successfully, re-open ProductNotFoundDialog with the product pre-selected
-        await ShowProductNotFoundDialogWithProduct(createdProduct);
-    }
-    
-    private async Task ShowProductNotFoundDialogWithProduct(ProductDto preSelectedProduct)
-    {
-        var parameters = new DialogParameters
-        {
-            { "Barcode", _scannedBarcode },
-            { "IsInventoryContext", true },
-            { "PreSelectedProduct", preSelectedProduct }
-        };
-
-        var options = new DialogOptions
-        {
-            CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
-
-        var dialog = await DialogService.ShowAsync<ProductNotFoundDialog>(
-            TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato"),
-            parameters,
-            options
-        );
-
-        var result = await dialog.Result;
-
-        if (!result.Canceled && result.Data != null)
-        {
-            // Handle string actions (skip only, since create was already done)
-            if (result.Data is string action)
-            {
-                if (action == "skip")
-                {
-                    // Skip this product and continue with inventory
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato: {0}", _scannedBarcode), 
-                        Severity.Info
-                    );
-                    AddOperationLog(
-                        TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato"),
-                        $"Codice: {_scannedBarcode}",
-                        "Info"
-                    );
-                    
-                    // Clear the form and refocus on barcode input
-                    ClearProductForm();
-                }
-            }
-            // Handle assignment result from integrated search
-            else
-            {
-                // Product was assigned directly from the dialog, search again to load it
-                await SearchBarcode();
-            }
-        }
-    }
-
-    private async Task EditInventoryRow(InventoryDocumentRowDto row)
-    {
-        if (_currentDocument == null)
+        if (_currentDocument == null || _editingRowId == null)
             return;
 
-        var parameters = new DialogParameters
+        _isLoading = true;
+        try
         {
-            { "Quantity", row.Quantity },
-            { "Notes", row.Notes ?? string.Empty },
-            { "ProductName", row.ProductName }
-        };
-
-        var options = new DialogOptions
-        {
-            CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Small,
-            FullWidth = true
-        };
-
-        var dialog = await DialogService.ShowAsync<EditInventoryRowDialog>(
-            TranslationService.GetTranslation("warehouse.editRow", "Modifica Riga Inventario"),
-            parameters,
-            options
-        );
-
-        var result = await dialog.Result;
-
-        if (!result.Canceled && result.Data is EditInventoryRowDialog.EditInventoryRowResult editResult)
-        {
-            _isLoading = true;
-            try
+            var updateDto = new UpdateInventoryDocumentRowDto
             {
-                var updateDto = new UpdateInventoryDocumentRowDto
-                {
-                    Quantity = editResult.Quantity,
-                    Notes = editResult.Notes
-                };
+                Quantity = _editQuantity,
+                Notes = _editNotes
+            };
 
-                var updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(_currentDocument.Id, row.Id, updateDto);
+            var updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(_currentDocument.Id, row.Id, updateDto);
 
-                if (updatedDocument != null)
-                {
-                    _currentDocument = updatedDocument;
-                    
-                    AddOperationLog(
-                        TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata"),
-                        $"{row.ProductName} - Nuova quantità: {editResult.Quantity}",
-                        "Success"
-                    );
+            if (updatedDocument != null)
+            {
+                _currentDocument = updatedDocument;
+                
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata"),
+                    $"{row.ProductName} - Nuova quantità: {_editQuantity}",
+                    "Success"
+                );
 
-                    Snackbar.Add(TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata con successo"), Severity.Success);
-                    
-                    StateHasChanged();
-                }
-                else
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"), Severity.Error);
-                    AddOperationLog(
-                        TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"),
-                        "",
-                        "Error"
-                    );
-                }
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata con successo"), Severity.Success);
+                
+                _editingRowId = null;
+                StateHasChanged();
             }
-            catch (Exception ex)
+            else
             {
-                Logger.LogError(ex, "Error updating inventory row {RowId}", row.Id);
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"), Severity.Error);
                 AddOperationLog(
                     TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"),
-                    ex.Message,
+                    "",
                     "Error"
                 );
             }
-            finally
-            {
-                _isLoading = false;
-            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating inventory row {RowId}", row.Id);
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"), Severity.Error);
+            AddOperationLog(
+                TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"),
+                ex.Message,
+                "Error"
+            );
+        }
+        finally
+        {
+            _isLoading = false;
         }
     }
 
-    private async Task DeleteInventoryRow(InventoryDocumentRowDto row)
+    private void CancelEdit()
+    {
+        _editingRowId = null;
+        _editQuantity = 0;
+        _editNotes = null;
+        StateHasChanged();
+    }
+
+    // Inline delete confirmation methods (replaces MessageBox)
+    private void StartDeleteConfirm(InventoryDocumentRowDto row)
+    {
+        _confirmDeleteRowId = row.Id;
+        StateHasChanged();
+    }
+
+    private async Task ConfirmDeleteAsync(InventoryDocumentRowDto row)
     {
         if (_currentDocument == null)
-            return;
-
-        var confirmed = await DialogService.ShowMessageBox(
-            TranslationService.GetTranslation("warehouse.confirmDelete", "Conferma Eliminazione"),
-            TranslationService.GetTranslation("warehouse.deleteRowMessage", "Confermi di voler eliminare la riga per il prodotto '{0}'?", row.ProductName),
-            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
-            cancelText: TranslationService.GetTranslation("common.no", "No")
-        );
-
-        if (confirmed != true)
             return;
 
         _isLoading = true;
@@ -1670,6 +1872,7 @@
 
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.rowDeleted", "Riga eliminata con successo"), Severity.Success);
                 
+                _confirmDeleteRowId = null;
                 StateHasChanged();
             }
             else
@@ -1696,6 +1899,12 @@
         {
             _isLoading = false;
         }
+    }
+
+    private void CancelDelete()
+    {
+        _confirmDeleteRowId = null;
+        StateHasChanged();
     }
     
     private async Task UndoLastAsync()
