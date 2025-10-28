@@ -31,11 +31,11 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
 ------------------------- */
 
 /* Inputs and Selects - height normalization using ef-* helper classes */
-/* Only apply height to the root container to avoid stacking */
+/* Use min-height instead of fixed height for better flexibility */
 .ef-input .mud-input-root,
 .ef-select .mud-input-root {
     min-height: var(--ef-field-height) !important;
-    height: var(--ef-field-height) !important;
+    box-sizing: border-box !important;
 }
 
 /* Ensure internal elements flex to fit without adding extra height */
@@ -46,10 +46,13 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
 }
 
 .ef-select .mud-select-input {
-    min-height: unset !important;
-    height: 100%;
+    min-height: var(--ef-field-height) !important;
+    height: auto;
+    padding-top: 6px;
+    padding-bottom: 6px;
     display: flex;
     align-items: center;
+    box-sizing: border-box !important;
 }
 
 /* Buttons - standardize height excluding icon-only buttons */
@@ -104,7 +107,6 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
 .ef-input .mud-input-root,
 .ef-textarea .mud-input-root {
  min-height: var(--ef-input-height);
- height: var(--ef-input-height);
  box-sizing: border-box;
 }
 
