@@ -1,7 +1,7 @@
 # Syncfusion Inventory Procedure - Fast Version Alignment Summary
 
 **Date**: 2025-10-28  
-**Issue**: Allineamento funzionalità tra InventoryProcedureFast e InventoryProcedureSyncfusion  
+**Issue**: Allineamento delle funzionalità tra InventoryProcedureFast e InventoryProcedureSyncfusion  
 **Status**: ✅ Completato
 
 ## Panoramica
