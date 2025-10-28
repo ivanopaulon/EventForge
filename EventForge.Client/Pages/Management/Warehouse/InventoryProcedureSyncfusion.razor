@@ -82,11 +82,11 @@
             <div class="col-md-8">
                 <SfDropDownList TValue="Guid?" TItem="StorageFacilityDto"
                                Value="@_selectedStorageFacilityId"
+                               ValueChanged="@((Guid? value) => _selectedStorageFacilityId = value)"
                                DataSource="@_storageFacilities"
                                Placeholder="@TranslationService.GetTranslation("warehouse.storageFacility", "Magazzino")"
                                FloatLabelType="FloatLabelType.Auto"
-                               Enabled="@(_currentDocument == null)"
-                               ValueChange="@HandleFacilityChange">
+                               Enabled="@(_currentDocument == null)">
                     <DropDownListFieldSettings Value="Id" Text="Name" />
                 </SfDropDownList>
             </div>
@@ -241,11 +241,6 @@
         });
 
         Logger.LogInformation("Inventory Operation: {Message} - {Details}", message, details);
-    }
-
-    private void HandleFacilityChange(Syncfusion.Blazor.DropDowns.ChangeEventArgs<Guid?, StorageFacilityDto> args)
-    {
-        _selectedStorageFacilityId = args.Value;
     }
 
     private int GetPositiveAdjustmentsCount()
