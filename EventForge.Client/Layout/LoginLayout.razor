@@ -164,7 +164,34 @@
 
     private PaletteDark GetDarkPalette(string themeKey)
     {
-        // For now, use a consistent dark palette that works well with all themes
+        // Dark theme variants - consistent with MainLayout
+        return themeKey switch
+        {
+            "carbon-neon-dark" => new PaletteDark()
+            {
+                Primary = "#00F5FF",           // Neon cyan
+                Secondary = "#FF006E",         // Vivid magenta
+                Background = "#121212",        // Pure MD dark
+                Surface = "#262626",
+                DrawerBackground = "#1A1A1A",
+                DrawerText = "#F5F5F5",
+                AppbarBackground = "#000000",
+                AppbarText = "#FFFFFF",
+                TextPrimary = "#FFFFFF",
+                TextSecondary = "#B3B3B3",
+                ActionDefault = "#00E5FF",
+                Divider = "rgba(255,255,255,0.1)",
+                Info = "#00E5FF",
+                Success = "#10B981",
+                Warning = "#F59E0B",
+                Error = "#EF4444"
+            },
+            _ => GetDefaultDarkPalette()
+        };
+    }
+
+    private PaletteDark GetDefaultDarkPalette()
+    {
         return new PaletteDark()
         {
             Black = "#1a1a2e",

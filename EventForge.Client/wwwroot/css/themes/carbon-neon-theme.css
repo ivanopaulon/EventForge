@@ -7,36 +7,45 @@
    CARBON NEON DARK THEME
    ======================================== */
 [data-theme="carbon-neon-dark"] {
-    /* Core Colors */
-    --primary: #00FFFF;           /* Neon Cyan */
-    --secondary: #FF00FF;         /* Neon Magenta */
-    --accent: #00FF00;            /* Neon Green */
+    /* Core Colors - Aligned with MudBlazor palette spec */
+    --primary: #00F5FF;           /* Neon Cyan */
+    --secondary: #FF006E;         /* Vivid Magenta */
+    --accent: #00E5FF;            /* Action Default / Info */
     
     /* Backgrounds */
-    --background: #0D0D0D;        /* Deep Black */
-    --surface: #1A1A1A;           /* Carbon Surface */
+    --background: #121212;        /* Pure MD dark */
+    --background-primary: #121212;
+    --background-secondary: #262626;
+    --surface: #262626;
     --surface-2: #262626;         /* Elevated Surface */
-    --card-background: #1A1A1A;   /* Card Background */
-    --card-border: #333333;       /* Card Border */
+    --card-background: #262626;
+    --card-border: rgba(255,255,255,0.1);
+    
+    /* AppBar & Drawer */
+    --appbar-background: #000000;
+    --appbar-text: #FFFFFF;
+    --drawer-background: #1A1A1A;
+    --drawer-text: #F5F5F5;
     
     /* Text Colors */
-    --text-primary: #E0E0E0;      /* Light Gray */
-    --text-secondary: #A0A0A0;    /* Medium Gray */
-    --text-muted: #707070;        /* Muted Gray */
+    --text-primary: #FFFFFF;
+    --text-secondary: #B3B3B3;
+    --text-muted: #B3B3B3;
     
     /* Interactive Elements */
-    --button-primary-bg: #00FFFF;
-    --button-primary-text: #0D0D0D;
-    --button-primary-hover: #00D9FF;
-    --link: #00FFFF;
-    --link-hover: #00D9FF;
+    --button-primary-bg: #00F5FF;
+    --button-primary-text: #121212;
+    --button-primary-hover: #00E5FF;
+    --link: #00F5FF;
+    --link-hover: #00E5FF;
+    --action-default: #00E5FF;
     
     /* Borders & Dividers */
-    --border: #333333;
-    --divider: #262626;
+    --border: rgba(255,255,255,0.1);
+    --divider: rgba(255,255,255,0.1);
     
     /* Effects */
-    --shadow-neon: 0 0 10px rgba(0, 255, 255, 0.3);
+    --shadow-neon: 0 0 10px rgba(0, 245, 255, 0.3);
 }
 
 /* ========================================
