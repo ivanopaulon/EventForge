@@ -193,6 +193,29 @@
                 </MudGrid>
             </MudForm>
         </MudPaper>
+
+        <!-- Document Counters Section (only in edit mode) -->
+        @if (!_isCreateMode && _documentType != null)
+        {
+            <MudPaper Elevation="2" Class="pa-4 mt-4">
+                <div class="d-flex justify-space-between align-center mb-4">
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Outlined.Pin" Class="mr-2" />
+                        @TranslationService.GetTranslation("documentType.counters", "Contatori Numerazione")
+                    </MudText>
+                    <MudButton StartIcon="@Icons.Material.Outlined.Add"
+                               Color="Color.Primary"
+                               Variant="Variant.Filled"
+                               Size="Size.Small"
+                               OnClick="@(() => NavigationManager.NavigateTo("/documents/counters"))">
+                        @TranslationService.GetTranslation("documentType.manageCounters", "Gestisci Contatori")
+                    </MudButton>
+                </div>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+                    @TranslationService.GetTranslation("documentType.countersDescription", "I contatori gestiscono la numerazione automatica dei documenti. Vai alla pagina di gestione contatori per configurarli.")
+                </MudText>
+            </MudPaper>
+        }
     }
 </MudContainer>
 
