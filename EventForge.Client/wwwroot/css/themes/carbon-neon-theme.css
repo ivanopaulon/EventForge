@@ -78,6 +78,12 @@
 /* ========================================
    MUDBLAZOR COMPONENT OVERRIDES
    Non-destructive styling using variables
+   
+   Note: !important is used intentionally here
+   to override MudBlazor and Syncfusion default
+   styles without modifying their source CSS.
+   This is the recommended approach for theme
+   customization in component libraries.
    ======================================== */
 
 /* Cards */

@@ -120,7 +120,7 @@ public class ThemeService : IThemeService
     {
         try
         {
-            await _jsRuntime.InvokeVoidAsync("eval", $"document.documentElement.setAttribute('data-theme', '{_currentTheme}')");
+            await _jsRuntime.InvokeVoidAsync("document.documentElement.setAttribute", "data-theme", _currentTheme);
         }
         catch { }
     }

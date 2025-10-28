@@ -179,24 +179,29 @@
                 Warning = "#FFB300",
                 Error = "#FF3D00"
             },
-            _ => new PaletteLight() // Default fallback light theme
-            {
-                Primary = "#1F2F46",        // Navy Blue
-                Secondary = "#247BFF",      // Electric Blue
-                Tertiary = "#FF6B2C",       // Orange Fire
-                AppbarBackground = "#1F2F46",
-                AppbarText = "#ffffff",
-                Background = "#F5F6FA",     // Light Gray
-                Surface = "#ffffff",
-                DrawerBackground = "#1F2F46",
-                DrawerText = "#d7d7d7",
-                TextPrimary = "#2D2D2D",    // Charcoal
-                TextSecondary = "#666666",
-                Info = "#247BFF",
-                Success = "#4caf50",
-                Warning = "#ff9800",
-                Error = "#f44336"
-            }
+            _ => GetDefaultLightPalette()
+        };
+    }
+
+    private PaletteLight GetDefaultLightPalette()
+    {
+        return new PaletteLight()
+        {
+            Primary = "#1F2F46",        // Navy Blue
+            Secondary = "#247BFF",      // Electric Blue
+            Tertiary = "#FF6B2C",       // Orange Fire
+            AppbarBackground = "#1F2F46",
+            AppbarText = "#ffffff",
+            Background = "#F5F6FA",     // Light Gray
+            Surface = "#ffffff",
+            DrawerBackground = "#1F2F46",
+            DrawerText = "#d7d7d7",
+            TextPrimary = "#2D2D2D",    // Charcoal
+            TextSecondary = "#666666",
+            Info = "#247BFF",
+            Success = "#4caf50",
+            Warning = "#ff9800",
+            Error = "#f44336"
         };
     }
 
@@ -224,25 +229,30 @@
                 Warning = "#FFD700",
                 Error = "#FF1744"
             },
-            _ => new PaletteDark() // Default fallback dark theme
-            {
-                Black = "#1a1a2e",
-                Background = "#1a1a2e",
-                Surface = "#2d2d30",
-                TextPrimary = "#e0e0e0",
-                TextSecondary = "#b0b0b0",
-                AppbarBackground = "#1a1a2e",
-                AppbarText = "#e0e0e0",
-                DrawerBackground = "#1a1a2e",
-                DrawerText = "#b0b0b0",
-                Primary = "#4fc3f7",
-                Secondary = "#ffb74d",
-                Tertiary = "#4fc3f7",
-                Info = "#4fc3f7",
-                Success = "#66bb6a",
-                Warning = "#ffb74d",
-                Error = "#f06292"
-            }
+            _ => GetDefaultDarkPalette()
+        };
+    }
+
+    private PaletteDark GetDefaultDarkPalette()
+    {
+        return new PaletteDark()
+        {
+            Black = "#1a1a2e",
+            Background = "#1a1a2e",
+            Surface = "#2d2d30",
+            TextPrimary = "#e0e0e0",
+            TextSecondary = "#b0b0b0",
+            AppbarBackground = "#1a1a2e",
+            AppbarText = "#e0e0e0",
+            DrawerBackground = "#1a1a2e",
+            DrawerText = "#b0b0b0",
+            Primary = "#4fc3f7",
+            Secondary = "#ffb74d",
+            Tertiary = "#4fc3f7",
+            Info = "#4fc3f7",
+            Success = "#66bb6a",
+            Warning = "#ffb74d",
+            Error = "#f06292"
         };
     }
 
