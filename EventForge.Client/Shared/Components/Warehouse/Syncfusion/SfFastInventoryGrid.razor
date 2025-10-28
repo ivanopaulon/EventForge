@@ -10,155 +10,118 @@
                 <span class="badge bg-primary ms-2">@TotalItems</span>
             </h6>
             <div class="d-flex align-items-center">
-                <SfSwitch @bind-Checked="ShowOnlyAdjustmentsValue"
-                         OnLabel="Solo Differenze" OffLabel="Tutti"
-                         ValueChange="@OnFilterChanged">
-                </SfSwitch>
+                <label class="d-flex align-items-center">
+                    <input type="checkbox" @bind="ShowOnlyAdjustmentsValue" class="form-check-input me-2" />
+                    <span>Solo Differenze</span>
+                </label>
             </div>
         </div>
 
-        <SfGrid DataSource="@GetFilteredRows()"
-                AllowPaging="false"
-                Height="400"
-                AllowResizing="true">
-            <GridColumns>
-                <GridColumn HeaderText="@TranslationService.GetTranslation("warehouse.product", "Prodotto")" Width="200">
-                    <Template>
-                        @{
-                            var row = (context as InventoryDocumentRowDto);
-                            if (row != null)
+        <div style="max-height: 400px; overflow-y: auto;">
+            <table class="table table-sm table-hover">
+                <thead>
+                    <tr>
+                        <th>@TranslationService.GetTranslation("warehouse.product", "Prodotto")</th>
+                        <th>@TranslationService.GetTranslation("warehouse.location", "Ubicazione")</th>
+                        <th>@TranslationService.GetTranslation("warehouse.quantity", "Quantità")</th>
+                        <th>@TranslationService.GetTranslation("warehouse.adjustment", "Aggiustamento")</th>
+                        <th>@TranslationService.GetTranslation("warehouse.notes", "Note")</th>
+                        <th>@TranslationService.GetTranslation("warehouse.time", "Ora")</th>
+                        <th>@TranslationService.GetTranslation("common.actions", "Azioni")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in GetFilteredRows())
+                    {
+                        <tr>
+                            @if (row.Id == ConfirmDeleteRowId)
                             {
-                                <div>
-                                    <strong>@row.ProductName</strong><br/>
+                                <td colspan="7">
+                                    <div class="sf-alert sf-alert-warning">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span>@TranslationService.GetTranslation("warehouse.confirmDeleteRow", "Confermi l'eliminazione di '{0}'?", row.ProductName)</span>
+                                            <div class="d-flex gap-1">
+                                                <SfButton IconCss="e-icons e-check" CssClass="e-small e-danger"
+                                                         OnClick="@(() => OnConfirmDelete.InvokeAsync(row.Id))">
+                                                    OK
+                                                </SfButton>
+                                                <SfButton IconCss="e-icons e-close" CssClass="e-small e-outline"
+                                                         OnClick="@(() => OnCancelDelete.InvokeAsync())">
+                                                    Annulla
+                                                </SfButton>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            }
+                            else
+                            {
+                                <td>
+                                    <div><strong>@row.ProductName</strong></div>
                                     <small class="text-muted">@row.ProductCode</small>
-                                </div>
+                                </td>
+                                <td>@row.LocationName</td>
+                                <td>
+                                    @if (row.Id == EditingRowId)
+                                    {
+                                        <input type="number" class="form-control form-control-sm" @bind="EditQuantityValue" min="0" step="0.01" />
+                                    }
+                                    else
+                                    {
+                                        <span>@row.Quantity</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (row.AdjustmentQuantity.HasValue)
+                                    {
+                                        var cssClass = row.AdjustmentQuantity > 0 ? "badge bg-success" : 
+                                                      row.AdjustmentQuantity < 0 ? "badge bg-warning" : "badge bg-secondary";
+                                        <span class="@cssClass">
+                                            @(row.AdjustmentQuantity > 0 ? "+" : "")@row.AdjustmentQuantity
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (row.Id == EditingRowId)
+                                    {
+                                        <input type="text" class="form-control form-control-sm" @bind="EditNotesValue" />
+                                    }
+                                    else
+                                    {
+                                        <span>@row.Notes</span>
+                                    }
+                                </td>
+                                <td><small>@row.CreatedAt.ToLocalTime().ToString("HH:mm")</small></td>
+                                <td>
+                                    @if (row.Id == EditingRowId)
+                                    {
+                                        <div class="d-flex gap-1">
+                                            <SfButton IconCss="e-icons e-check" CssClass="e-small e-success"
+                                                     OnClick="@(() => OnSaveEdit.InvokeAsync(row.Id))">
+                                            </SfButton>
+                                            <SfButton IconCss="e-icons e-close" CssClass="e-small e-outline"
+                                                     OnClick="@(() => OnCancelEdit.InvokeAsync())">
+                                            </SfButton>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="d-flex gap-1">
+                                            <SfButton IconCss="e-icons e-edit" CssClass="e-small e-outline"
+                                                     OnClick="@(() => OnBeginEdit.InvokeAsync(row.Id))">
+                                            </SfButton>
+                                            <SfButton IconCss="e-icons e-trash" CssClass="e-small e-outline e-danger"
+                                                     OnClick="@(() => OnRequestDelete.InvokeAsync(row.Id))">
+                                            </SfButton>
+                                        </div>
+                                    }
+                                </td>
                             }
-                        }
-                    </Template>
-                </GridColumn>
-                <GridColumn HeaderText="@TranslationService.GetTranslation("warehouse.location", "Ubicazione")" Width="150">
-                    <Template>
-                        @{
-                            var row = (context as InventoryDocumentRowDto);
-                            if (row != null)
-                            {
-                                <span>@row.LocationName</span>
-                            }
-                        }
-                    </Template>
-                </GridColumn>
-                <GridColumn HeaderText="@TranslationService.GetTranslation("warehouse.quantity", "Quantità")" Width="120">
-                    <Template>
-                        @{
-                            var row = (context as InventoryDocumentRowDto);
-                            if (row != null)
-                            {
-                                if (row.Id == EditingRowId)
-                                {
-                                    <SfNumericTextBox TValue="decimal?" @bind-Value="@EditQuantityValue" Min="0" Format="N2" />
-                                }
-                                else
-                                {
-                                    <span>@row.CountedQuantity</span>
-                                }
-                            }
-                        }
-                    </Template>
-                </GridColumn>
-                <GridColumn HeaderText="@TranslationService.GetTranslation("warehouse.adjustment", "Aggiustamento")" Width="120">
-                    <Template>
-                        @{
-                            var row = (context as InventoryDocumentRowDto);
-                            if (row?.AdjustmentQuantity.HasValue == true)
-                            {
-                                var cssClass = row.AdjustmentQuantity > 0 ? "badge bg-success" : 
-                                              row.AdjustmentQuantity < 0 ? "badge bg-warning" : "badge bg-secondary";
-                                <span class="@cssClass">
-                                    @(row.AdjustmentQuantity > 0 ? "+" : "")@row.AdjustmentQuantity
-                                </span>
-                            }
-                        }
-                    </Template>
-                </GridColumn>
-                <GridColumn HeaderText="@TranslationService.GetTranslation("warehouse.notes", "Note")" Width="180">
-                    <Template>
-                        @{
-                            var row = (context as InventoryDocumentRowDto);
-                            if (row != null)
-                            {
-                                if (row.Id == EditingRowId)
-                                {
-                                    <SfTextBox @bind-Value="@EditNotesValue" />
-                                }
-                                else
-                                {
-                                    <span>@row.Notes</span>
-                                }
-                            }
-                        }
-                    </Template>
-                </GridColumn>
-                <GridColumn HeaderText="@TranslationService.GetTranslation("warehouse.time", "Ora")" Width="100">
-                    <Template>
-                        @{
-                            var row = (context as InventoryDocumentRowDto);
-                            if (row != null)
-                            {
-                                <small>@row.CreatedAt.ToLocalTime().ToString("HH:mm")</small>
-                            }
-                        }
-                    </Template>
-                </GridColumn>
-                <GridColumn HeaderText="@TranslationService.GetTranslation("common.actions", "Azioni")" Width="150">
-                    <Template>
-                        @{
-                            var row = (context as InventoryDocumentRowDto);
-                            if (row != null)
-                            {
-                                if (row.Id == ConfirmDeleteRowId)
-                                {
-                                    <!-- Inline Delete Confirmation -->
-                                    <div class="d-flex gap-1">
-                                        <SfButton IconCss="e-icons e-check" CssClass="e-small e-danger"
-                                                 OnClick="@(() => OnConfirmDelete.InvokeAsync(row.Id))">
-                                            OK
-                                        </SfButton>
-                                        <SfButton IconCss="e-icons e-close" CssClass="e-small e-outline"
-                                                 OnClick="@(() => OnCancelDelete.InvokeAsync())">
-                                            Annulla
-                                        </SfButton>
-                                    </div>
-                                }
-                                else if (row.Id == EditingRowId)
-                                {
-                                    <!-- Edit Mode Actions -->
-                                    <div class="d-flex gap-1">
-                                        <SfButton IconCss="e-icons e-check" CssClass="e-small e-success"
-                                                 OnClick="@(() => OnSaveEdit.InvokeAsync(row.Id))">
-                                        </SfButton>
-                                        <SfButton IconCss="e-icons e-close" CssClass="e-small e-outline"
-                                                 OnClick="@(() => OnCancelEdit.InvokeAsync())">
-                                        </SfButton>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <!-- Normal Mode Actions -->
-                                    <div class="d-flex gap-1">
-                                        <SfButton IconCss="e-icons e-edit" CssClass="e-small e-outline"
-                                                 OnClick="@(() => OnBeginEdit.InvokeAsync(row.Id))">
-                                        </SfButton>
-                                        <SfButton IconCss="e-icons e-trash" CssClass="e-small e-outline e-danger"
-                                                 OnClick="@(() => OnRequestDelete.InvokeAsync(row.Id))">
-                                        </SfButton>
-                                    </div>
-                                }
-                            }
-                        }
-                    </Template>
-                </GridColumn>
-            </GridColumns>
-        </SfGrid>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 }
 
@@ -192,11 +155,5 @@
         }
         
         return Rows.OrderByDescending(r => r.CreatedAt);
-    }
-
-    private async Task OnFilterChanged(global::Syncfusion.Blazor.Buttons.ChangeEventArgs<bool> args)
-    {
-        ShowOnlyAdjustmentsValue = args.Checked;
-        await ShowOnlyAdjustmentsValueChanged.InvokeAsync(args.Checked);
     }
 }

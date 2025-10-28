@@ -8,11 +8,10 @@
 
     <div class="row g-3">
         <div class="col-md-8">
-            <SfTextBox Value="@BarcodeValue"
+            <SfTextBox @bind-Value="@BarcodeValue"
                       Placeholder="@TranslationService.GetTranslation("warehouse.barcodeInput", "Codice a Barre")"
                       FloatLabelType="FloatLabelType.Auto"
                       @ref="_barcodeInput"
-                      @bind-Value="@BarcodeValue"
                       @onkeydown="@OnKeyDown">
             </SfTextBox>
             <small class="text-muted">@TranslationService.GetTranslation("warehouse.scanOrTypeBarcode", "Scansiona o digita il codice a barre e premi Invio")</small>
@@ -26,11 +25,8 @@
         </div>
         <div class="col-12">
             <div class="d-flex align-items-center">
-                <SfSwitch Checked="@FastConfirmEnabledValue"
-                         OnLabel="ON" OffLabel="OFF"
-                         ValueChange="@OnToggleFastConfirm">
-                </SfSwitch>
-                <span class="ms-2">@TranslationService.GetTranslation("warehouse.fastConfirm", "Conferma rapida")</span>
+                <input type="checkbox" @bind="FastConfirmEnabledValue" class="form-check-input me-2" id="fastConfirmCheck" />
+                <label for="fastConfirmCheck">@TranslationService.GetTranslation("warehouse.fastConfirm", "Conferma rapida")</label>
             </div>
             <small class="text-muted">
                 @TranslationService.GetTranslation("warehouse.fastConfirmHelp", "Quando attivo, le scansioni ripetute dello stesso prodotto vengono confermate automaticamente")
@@ -105,12 +101,6 @@
                 _scanLock = false;
             }
         }
-    }
-    
-    private async Task OnToggleFastConfirm(global::Syncfusion.Blazor.Buttons.ChangeEventArgs<bool> args)
-    {
-        FastConfirmEnabledValue = args.Checked;
-        await FastConfirmEnabledValueChanged.InvokeAsync(args.Checked);
     }
     
     private static string SanitizeBarcode(string raw) => raw?.Trim().Trim('\r', '\n') ?? string.Empty;
