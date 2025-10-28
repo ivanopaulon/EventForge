@@ -1,0 +1,87 @@
+/* Fast Inventory Procedure Styling */
+
+.product-entry-inline {
+    transition: all 0.3s ease;
+}
+
+.product-entry-inline:focus-within {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Focus state for scanner input */
+.fast-scanner-input:focus {
+    border-color: var(--mud-palette-primary);
+    box-shadow: 0 0 0 2px rgba(var(--mud-palette-primary-rgb), 0.2);
+}
+
+/* Inline confirmation banners */
+.inline-confirm-banner {
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Product assignment panel */
+.product-assignment-panel {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Inventory table row transitions */
+.inventory-row-edit {
+    background-color: var(--mud-palette-info-lighten);
+    transition: background-color 0.2s ease;
+}
+
+.inventory-row-delete {
+    background-color: var(--mud-palette-error-lighten);
+    transition: background-color 0.2s ease;
+}
+
+/* Operation log panel */
+.operation-log-collapsed {
+    max-height: 60px;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.operation-log-expanded {
+    max-height: 600px;
+    transition: max-height 0.3s ease;
+}
+
+/* Fast confirm toggle */
+.fast-confirm-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 960px) {
+    .product-entry-inline .mud-grid {
+        gap: 12px;
+    }
+    
+    .inline-confirm-banner .mud-stack {
+        flex-direction: column;
+        gap: 12px;
+    }
+}
