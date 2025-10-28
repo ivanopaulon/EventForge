@@ -138,11 +138,6 @@
 
     private async Task Save()
     {
-        if (_selectedProduct != null)
-        {
-            PopulateFromProduct(_selectedProduct);
-        }
-
         try
         {
             var result = await DocumentHeaderService.AddDocumentRowAsync(_model);
