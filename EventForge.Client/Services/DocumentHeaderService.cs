@@ -75,7 +75,8 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            return await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
+            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
+            return true;
         }
         catch (Exception ex)
         {
@@ -142,7 +143,8 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            return await _httpClientService.DeleteAsync($"api/v1/documents/rows/{rowId}");
+            await _httpClientService.DeleteAsync($"api/v1/documents/rows/{rowId}");
+            return true;
         }
         catch (Exception ex)
         {
