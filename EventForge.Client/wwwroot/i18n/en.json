@@ -2017,5 +2017,50 @@
       "rejected": "Rejected",
       "cancelled": "Cancelled"
     }
+  },
+  "documentType": {
+    "management": "Document Type Management",
+    "managementDescription": "Manage document types used in the system",
+    "list": "Document Type List",
+    "search": "Search document types",
+    "searchPlaceholder": "Enter name or code...",
+    "onlyFiscal": "Fiscal only",
+    "onlyStockIncrease": "Stock increase only",
+    "createNew": "Create new document type",
+    "noDocumentTypesFound": "No document types found",
+    "loadError": "Error loading document types",
+    "confirmDelete": "Are you sure you want to delete the document type '{0}'?",
+    "deleteSuccess": "Document type deleted successfully",
+    "deleteError": "Error deleting document type",
+    "notFound": "Document type not found",
+    "unsavedChanges": "Unsaved changes",
+    "unsavedChangesConfirm": "There are unsaved changes. Do you want to save before exiting?",
+    "createSuccess": "Document type created successfully",
+    "updateSuccess": "Document type updated successfully",
+    "saveError": "Error saving document type",
+    "error": {
+      "nameRequired": "Name is required",
+      "codeRequired": "Code is required"
+    },
+    "helperText": {
+      "name": "Enter the document type name",
+      "code": "Unique code for the document type (e.g.: DDT, FT, NC)",
+      "notes": "Additional notes or description",
+      "partyType": "Required party type for this document",
+      "warehouse": "Default warehouse for documents of this type",
+      "isFiscal": "Indicates if the document has fiscal value",
+      "isStockIncrease": "Indicates if the document increases warehouse stock"
+    },
+    "aria": {
+      "uniqueId": "Unique identifier"
+    }
+  },
+  "nav": {
+    "documentTypes": "Document Types"
+  },
+  "businessPartyType": {
+    "customer": "Customer",
+    "supplier": "Supplier",
+    "both": "Both"
   }
 }
