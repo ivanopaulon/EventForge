@@ -2190,7 +2190,9 @@
     "inventoryDocuments": "Doc. Inventario",
     "documentManagement": "Documenti",
     "documentList": "Lista Documenti",
-    "createDocument": "Nuovo Documento"
+    "createDocument": "Nuovo Documento",
+    "documentTypes": "Tipi Documento",
+    "documentCounters": "Contatori Documenti"
   },
   "tour": {
     "chat": "Tour Chat",
@@ -2357,9 +2359,6 @@
     "aria": {
       "uniqueId": "Identificativo unico"
     }
-  },
-  "nav": {
-    "documentTypes": "Tipi Documento"
   },
   "businessPartyType": {
     "customer": "Cliente",

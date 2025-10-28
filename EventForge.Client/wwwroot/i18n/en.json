@@ -1956,7 +1956,9 @@
     "warehouseManagement": "Warehouses",
     "productManagement": "Products",
     "vatRateManagement": "VAT Rates",
-    "brandManagement": "Brands"
+    "brandManagement": "Brands",
+    "documentTypes": "Document Types",
+    "documentCounters": "Document Counters"
   },
   "tour": {
     "chat": "Chat Tour",
@@ -2054,9 +2056,6 @@
     "aria": {
       "uniqueId": "Unique identifier"
     }
-  },
-  "nav": {
-    "documentTypes": "Document Types"
   },
   "businessPartyType": {
     "customer": "Customer",
