@@ -23,11 +23,10 @@ namespace EventForge.DTOs.Documents
         public string? Series { get; set; }
 
         /// <summary>
-        /// Document number.
+        /// Document number. If not provided, it will be auto-generated based on the document type counter.
         /// </summary>
-        [Required(ErrorMessage = "Document number is required.")]
         [StringLength(30, ErrorMessage = "Number cannot exceed 30 characters.")]
-        public string Number { get; set; } = string.Empty;
+        public string? Number { get; set; }
 
         /// <summary>
         /// Document date.
