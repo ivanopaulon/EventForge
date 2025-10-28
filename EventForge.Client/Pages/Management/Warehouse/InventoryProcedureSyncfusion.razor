@@ -1,0 +1,1029 @@
+@page "/warehouse/inventory-procedure-syncfusion"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Common
+@using EventForge.DTOs.Warehouse
+@using EventForge.DTOs.Products
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Warehouse
+@using EventForge.Client.Shared.Components.Warehouse.SyncfusionComponents
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
+@inject IProductService ProductService
+@inject IInventoryService InventoryService
+@inject IStorageLocationService StorageLocationService
+@inject IWarehouseService WarehouseService
+@inject MudBlazor.ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<InventoryProcedureSyncfusion> Logger
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject IInventorySessionService InventorySessionService
+
+<PageTitle>@TranslationService.GetTranslation("warehouse.inventoryProcedureSyncfusion", "Procedura Inventario (Syncfusion)")</PageTitle>
+
+<link href="css/inventory-syncfusion.css" rel="stylesheet" />
+
+<div class="container-fluid mt-4" style="max-width: 1400px;">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h4>
+                <span class="e-icons e-barcode-scanner me-2"></span>
+                @TranslationService.GetTranslation("warehouse.inventoryProcedureSyncfusion", "Procedura Inventario (Syncfusion)")
+            </h4>
+            <p class="text-muted mb-0">
+                @TranslationService.GetTranslation("warehouse.syncfusionProcedureDescription", "Implementazione pilota con componenti Syncfusion per valutazione")
+            </p>
+        </div>
+        <div class="col-md-4 text-end">
+            <SfButton IconCss="e-icons e-list-unordered" 
+                     CssClass="e-outline me-2"
+                     OnClick="@(() => NavigationManager.NavigateTo("/warehouse/inventory-list"))">
+                @TranslationService.GetTranslation("warehouse.viewInventory", "Visualizza Inventario")
+            </SfButton>
+            <SfButton IconCss="e-icons e-lightning" 
+                     CssClass="e-outline"
+                     OnClick="@(() => NavigationManager.NavigateTo("/warehouse/inventory-procedure-fast"))">
+                @TranslationService.GetTranslation("warehouse.fastProcedure", "Procedura Rapida")
+            </SfButton>
+        </div>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="sf-card p-3 mb-4">
+            <SfProgressBar Type="ProgressType.Linear" Value="40" IsIndeterminate="true" />
+        </div>
+    }
+
+    <!-- Inventory Header Component (session banner, stats, confirmations) -->
+    <SfFastInventoryHeader 
+        CurrentDocument="@_currentDocument"
+        SessionStartTime="@_sessionStartTime"
+        PositiveAdjustmentsCount="@GetPositiveAdjustmentsCount()"
+        NegativeAdjustmentsCount="@GetNegativeAdjustmentsCount()"
+        SessionDuration="@GetSessionDuration()"
+        ShowFinalizeConfirmation="@_showFinalizeConfirmation"
+        ShowCancelConfirmation="@_showCancelConfirmation"
+        OnExport="@ExportInventoryDocument"
+        OnRequestFinalize="@FinalizeInventory"
+        OnConfirmFinalize="@ConfirmFinalizeAsync"
+        OnCancelFinalize="@(() => _showFinalizeConfirmation = false)"
+        OnRequestCancel="@CancelInventorySession"
+        OnConfirmCancel="@ConfirmCancelAsync"
+        OnCancelCancel="@(() => _showCancelConfirmation = false)" />
+
+    <!-- Storage Facility Selection -->
+    <div class="sf-card p-4 mb-4">
+        <h6 class="mb-3">
+            <span class="e-icons e-warehouse"></span>
+            @TranslationService.GetTranslation("warehouse.selectStorageFacility", "Seleziona Magazzino")
+        </h6>
+        
+        <div class="row g-3">
+            <div class="col-md-8">
+                <SfDropDownList TValue="Guid?" TItem="StorageFacilityDto"
+                               Value="@_selectedStorageFacilityId"
+                               DataSource="@_storageFacilities"
+                               Placeholder="@TranslationService.GetTranslation("warehouse.storageFacility", "Magazzino")"
+                               FloatLabelType="FloatLabelType.Auto"
+                               Enabled="@(_currentDocument == null)"
+                               ValueChange="@HandleFacilityChange">
+                    <DropDownListFieldSettings Value="Id" Text="Name" />
+                </SfDropDownList>
+            </div>
+            <div class="col-md-4">
+                @if (_currentDocument == null)
+                {
+                    <SfButton IconCss="e-icons e-play" CssClass="e-success w-100"
+                             OnClick="@StartInventorySession"
+                             Disabled="@(!_selectedStorageFacilityId.HasValue)">
+                        @TranslationService.GetTranslation("warehouse.startSession", "Avvia Sessione")
+                    </SfButton>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (_currentDocument != null)
+    {
+        <!-- Scanner Component -->
+        <SfFastScanner @ref="_scannerComponent"
+                      BarcodeValue="@_scannedBarcode"
+                      BarcodeValueChanged="@((value) => _scannedBarcode = value)"
+                      FastConfirmEnabledValue="@_fastConfirmEnabled"
+                      FastConfirmEnabledValueChanged="@((value) => _fastConfirmEnabled = value)"
+                      OnBarcodeScanned="@HandleBarcodeScanned"
+                      OnSearch="@HandleBarcodeScanned" />
+
+        <!-- Product Not Found Panel (conditional) -->
+        @if (_showAssignPanel)
+        {
+            <SfFastNotFoundPanel 
+                ScannedBarcode="@_assignPanelBarcode"
+                SelectedProduct="@_assignSelectedProduct"
+                SelectedProductChanged="@((product) => _assignSelectedProduct = product)"
+                CodeType="@_assignCodeType"
+                CodeTypeChanged="@((value) => _assignCodeType = value)"
+                Code="@_assignCode"
+                CodeChanged="@((value) => _assignCode = value)"
+                AlternativeDescription="@_assignAlternativeDescription"
+                AlternativeDescriptionChanged="@((value) => _assignAlternativeDescription = value)"
+                IsLoading="@_isLoading"
+                OnSearchProducts="@SearchProducts"
+                OnAssign="@AssignBarcodeToProduct"
+                OnSkip="@SkipBarcodeAssignment"
+                OnOpenProducts="@(() => NavigationManager.NavigateTo("/products/product-management"))" />
+        }
+
+        <!-- Product Entry Inline (conditional) -->
+        @if (_currentProduct != null && !_showAssignPanel)
+        {
+            <SfFastProductEntryInline @ref="_productEntryComponent"
+                                     CurrentProduct="@_currentProduct"
+                                     SelectedLocation="@_selectedLocation"
+                                     SelectedLocationChanged="@((location) => _selectedLocation = location)"
+                                     SelectedLocationId="@_selectedLocationId"
+                                     SelectedLocationIdChanged="@((id) => _selectedLocationId = id)"
+                                     QuantityValue="@_quantity"
+                                     QuantityValueChanged="@((value) => _quantity = value)"
+                                     NotesValue="@_notes"
+                                     NotesValueChanged="@((value) => _notes = value)"
+                                     ShowUndo="@(_lastAddedRow != null)"
+                                     LastAddedRow="@_lastAddedRow"
+                                     OnSearchLocations="@SearchLocations"
+                                     OnConfirm="@ConfirmAndNext"
+                                     OnUndo="@UndoLastRow" />
+        }
+
+        <!-- Inventory Grid -->
+        <SfFastInventoryGrid 
+            Rows="@_currentDocument.Rows"
+            TotalItems="@_currentDocument.TotalItems"
+            ShowOnlyAdjustmentsValue="@_showOnlyAdjustments"
+            ShowOnlyAdjustmentsValueChanged="@((value) => _showOnlyAdjustments = value)"
+            EditingRowId="@_editingRowId"
+            EditQuantityValue="@_editQuantity"
+            EditQuantityValueChanged="@((value) => _editQuantity = value)"
+            EditNotesValue="@_editNotes"
+            EditNotesValueChanged="@((value) => _editNotes = value)"
+            ConfirmDeleteRowId="@_confirmDeleteRowId"
+            OnBeginEdit="@BeginEditRow"
+            OnSaveEdit="@SaveEditRow"
+            OnCancelEdit="@CancelEditRow"
+            OnRequestDelete="@RequestDeleteRow"
+            OnConfirmDelete="@ConfirmDeleteRow"
+            OnCancelDelete="@CancelDeleteRow" />
+
+        <!-- Operation Log Panel -->
+        <SfOperationLogPanel LogEntries="@_operationLog" />
+    }
+</div>
+
+@code {
+    // Component references
+    private SfFastScanner? _scannerComponent;
+    private SfFastProductEntryInline? _productEntryComponent;
+    
+    // State fields
+    private bool _isLoading = false;
+    private string _scannedBarcode = string.Empty;
+    private ProductDto? _currentProduct;
+    private List<StorageLocationDto> _locations = new();
+    private List<StorageFacilityDto> _storageFacilities = new();
+    private Guid? _selectedLocationId;
+    private StorageLocationDto? _selectedLocation;
+    private Guid? _selectedStorageFacilityId;
+    private decimal? _quantity = 1;
+    private string _notes = string.Empty;
+    private InventoryDocumentDto? _currentDocument = null;
+    private DateTime _sessionStartTime = DateTime.UtcNow;
+    private bool _showOnlyAdjustments = false;
+    
+    // Fast confirm toggle
+    private bool _fastConfirmEnabled = true;
+    
+    // Undo last row tracking
+    private InventoryDocumentRowDto? _lastAddedRow = null;
+    
+    // Location search constants
+    private const int MaxLocationSearchResults = 20;
+    
+    // Operation log for audit trail
+    private List<OperationLogEntry> _operationLog = new();
+    
+    // Inline product assignment panel state
+    private bool _showAssignPanel = false;
+    private string _assignPanelBarcode = string.Empty;
+    private ProductDto? _assignSelectedProduct;
+    private string _assignCodeType = "Barcode";
+    private string _assignCode = string.Empty;
+    private string? _assignAlternativeDescription;
+    
+    // Inline row edit state
+    private Guid? _editingRowId;
+    private decimal? _editQuantity;
+    private string? _editNotes;
+    
+    // Inline delete confirmation state
+    private Guid? _confirmDeleteRowId;
+    
+    // Inline finalize/cancel confirmation state
+    private bool _showFinalizeConfirmation = false;
+    private bool _showCancelConfirmation = false;
+
+    private void AddOperationLog(string message, string details = "", string type = "Info")
+    {
+        _operationLog.Add(new OperationLogEntry
+        {
+            Timestamp = DateTime.UtcNow,
+            Message = message,
+            Details = details,
+            Type = type
+        });
+
+        Logger.LogInformation("Inventory Operation: {Message} - {Details}", message, details);
+    }
+
+    private void HandleFacilityChange(Syncfusion.Blazor.DropDowns.ChangeEventArgs<Guid?, StorageFacilityDto> args)
+    {
+        _selectedStorageFacilityId = args.Value;
+    }
+
+    private int GetPositiveAdjustmentsCount()
+    {
+        if (_currentDocument?.Rows == null) return 0;
+        return _currentDocument.Rows.Count(r => r.AdjustmentQuantity.HasValue && r.AdjustmentQuantity > 0);
+    }
+
+    private int GetNegativeAdjustmentsCount()
+    {
+        if (_currentDocument?.Rows == null) return 0;
+        return _currentDocument.Rows.Count(r => r.AdjustmentQuantity.HasValue && r.AdjustmentQuantity < 0);
+    }
+
+    private string GetSessionDuration()
+    {
+        if (_currentDocument == null) return "00:00";
+        
+        var duration = DateTime.UtcNow - _sessionStartTime;
+        return $"{(int)duration.TotalMinutes:D2}:{duration.Seconds:D2}";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadStorageFacilities(), LoadLocations(), LoadProducts());
+        await RestoreInventorySessionAsync();
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _scannerComponent != null && _currentDocument != null)
+        {
+            await _scannerComponent.FocusAsync();
+        }
+    }
+
+    private List<ProductDto> _allProducts = new();
+
+    private async Task LoadProducts()
+    {
+        _isLoading = true;
+        try
+        {
+            var result = await ProductService.GetProductsAsync(1, 1000);
+            if (result != null)
+            {
+                _allProducts = result.Items.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading products");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadStorageFacilities()
+    {
+        _isLoading = true;
+        try
+        {
+            var result = await WarehouseService.GetStorageFacilitiesAsync(1, 100);
+            if (result?.Items != null)
+            {
+                _storageFacilities = result.Items.ToList();
+                if (_storageFacilities.Count == 1)
+                {
+                    _selectedStorageFacilityId = _storageFacilities[0].Id;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading storage facilities");
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.loadFacilitiesError", "Errore nel caricamento dei magazzini"), MudBlazor.Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadLocations()
+    {
+        _isLoading = true;
+        try
+        {
+            var result = await StorageLocationService.GetStorageLocationsAsync(1, 1000);
+            if (result?.Items != null)
+            {
+                _locations = result.Items.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading storage locations");
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.loadLocationsError", "Errore nel caricamento ubicazioni"), MudBlazor.Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task RestoreInventorySessionAsync()
+    {
+        try
+        {
+            InventoryDocumentDto? document = null;
+            Guid? warehouseId = null;
+            DateTime? sessionStartTime = null;
+            string restorationSource = "localStorage";
+
+            var sessionState = await InventorySessionService.LoadSessionAsync();
+            if (sessionState != null)
+            {
+                document = await InventoryService.GetInventoryDocumentAsync(sessionState.DocumentId);
+                
+                if (document != null && document.Status == "Open")
+                {
+                    warehouseId = sessionState.WarehouseId;
+                    sessionStartTime = sessionState.SessionStartTime;
+                }
+                else
+                {
+                    await InventorySessionService.ClearSessionAsync();
+                    document = null;
+                    Logger.LogInformation("Inventory session in localStorage is invalid");
+                }
+            }
+
+            if (document == null)
+            {
+                document = await InventoryService.GetMostRecentOpenInventoryDocumentAsync();
+                if (document != null)
+                {
+                    warehouseId = document.WarehouseId;
+                    sessionStartTime = document.CreatedAt;
+                    restorationSource = "server";
+                    
+                    await InventorySessionService.SaveSessionAsync(new InventorySessionState
+                    {
+                        DocumentId = document.Id,
+                        DocumentNumber = document.Number,
+                        WarehouseId = warehouseId,
+                        SessionStartTime = sessionStartTime ?? DateTime.UtcNow
+                    });
+                    
+                    Logger.LogInformation("Inventory session restored from most recent open document: {DocumentId}", document.Id);
+                }
+            }
+
+            if (document != null)
+            {
+                _currentDocument = document;
+                _selectedStorageFacilityId = warehouseId;
+                _sessionStartTime = sessionStartTime ?? DateTime.UtcNow;
+                
+                string sourceMessage = restorationSource == "localStorage" 
+                    ? TranslationService.GetTranslation("warehouse.sessionRestoredFromCache", "Sessione ripristinata dalla cache")
+                    : TranslationService.GetTranslation("warehouse.sessionRestoredFromServer", "Sessione ripristinata dal server");
+                
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.sessionRestored", "Sessione di inventario ripristinata"),
+                    $"{sourceMessage} - Documento #{_currentDocument.Number}",
+                    "Success"
+                );
+                
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.sessionRestored", "Sessione di inventario ripristinata"), MudBlazor.Severity.Info);
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error restoring inventory session");
+            try
+            {
+                if (await InventorySessionService.HasActiveSessionAsync())
+                {
+                    await InventorySessionService.ClearSessionAsync();
+                }
+            }
+            catch (Exception clearEx)
+            {
+                Logger.LogError(clearEx, "Error clearing invalid session");
+            }
+        }
+    }
+
+    private async Task StartInventorySession()
+    {
+        if (!_selectedStorageFacilityId.HasValue) return;
+
+        _isLoading = true;
+        try
+        {
+            _sessionStartTime = DateTime.UtcNow;
+
+            var createDto = new CreateInventoryDocumentDto
+            {
+                WarehouseId = _selectedStorageFacilityId,
+                InventoryDate = DateTime.UtcNow,
+                Notes = $"Inventario del {DateTime.Now:dd/MM/yyyy HH:mm}"
+            };
+
+            _currentDocument = await InventoryService.StartInventoryDocumentAsync(createDto);
+            
+            if (_currentDocument != null)
+            {
+                await InventorySessionService.SaveSessionAsync(new InventorySessionState
+                {
+                    DocumentId = _currentDocument.Id,
+                    DocumentNumber = _currentDocument.Number,
+                    WarehouseId = _selectedStorageFacilityId.Value,
+                    SessionStartTime = _sessionStartTime
+                });
+
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.sessionStarted", "Sessione di inventario avviata"),
+                    $"Documento #{_currentDocument.Number}",
+                    "Success"
+                );
+
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.sessionStarted", "Sessione di inventario avviata"), MudBlazor.Severity.Success);
+                
+                await Task.Delay(100);
+                if (_scannerComponent != null)
+                {
+                    await _scannerComponent.FocusAsync();
+                }
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.startSessionError", "Errore nell'avvio della sessione"), MudBlazor.Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error starting inventory session");
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.startSessionError", "Errore nell'avvio della sessione"), MudBlazor.Severity.Error);
+            AddOperationLog(TranslationService.GetTranslation("warehouse.startSessionError", "Errore nell'avvio della sessione"), ex.Message, "Error");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task HandleBarcodeScanned(string barcode)
+    {
+        if (string.IsNullOrWhiteSpace(barcode)) return;
+        if (_currentDocument == null) return;
+
+        _scannedBarcode = barcode;
+        _isLoading = true;
+        
+        try
+        {
+            var product = await ProductService.GetProductByCodeAsync(barcode);
+            
+            if (product != null)
+            {
+                // Product found - handle fast confirm or show entry panel
+                _currentProduct = product;
+                _showAssignPanel = false;
+                
+                // Check for repeated scan with fast confirm
+                if (_fastConfirmEnabled && _selectedLocationId.HasValue)
+                {
+                    var lastRow = _currentDocument.Rows?.OrderByDescending(r => r.CreatedAt).FirstOrDefault();
+                    if (lastRow != null && lastRow.ProductId == product.Id && lastRow.LocationId == _selectedLocationId.Value)
+                    {
+                        // Auto-increment quantity
+                        _quantity = lastRow.Quantity + 1;
+                        await AddInventoryRow();
+                        return;
+                    }
+                }
+
+                // Show entry form
+                _quantity = 1;
+                _notes = string.Empty;
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato"),
+                    $"{product.Code} - {product.Name}",
+                    "Info"
+                );
+
+                StateHasChanged();
+                
+                // Focus location or quantity based on state
+                if (_productEntryComponent != null)
+                {
+                    await Task.Delay(100);
+                    if (_selectedLocationId.HasValue)
+                    {
+                        await _productEntryComponent.FocusQuantityAsync();
+                    }
+                    else
+                    {
+                        await _productEntryComponent.FocusLocationAsync();
+                    }
+                }
+            }
+            else
+            {
+                // Product not found - show assignment panel
+                _currentProduct = null;
+                _showAssignPanel = true;
+                _assignPanelBarcode = barcode;
+                _assignCode = barcode;
+                _assignSelectedProduct = null;
+                _assignCodeType = "Barcode";
+                _assignAlternativeDescription = null;
+                
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato"),
+                    $"Codice: {barcode}",
+                    "Warning"
+                );
+                
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error handling barcode scan");
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.scanError", "Errore nella scansione"), MudBlazor.Severity.Error);
+            AddOperationLog(TranslationService.GetTranslation("warehouse.scanError", "Errore nella scansione"), ex.Message, "Error");
+        }
+        finally
+        {
+            _isLoading = false;
+            if (_scannerComponent != null && _showAssignPanel)
+            {
+                _scannerComponent.ClearBarcode();
+            }
+        }
+    }
+
+    private Task<IEnumerable<ProductDto>> SearchProducts(string searchTerm, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return Task.FromResult(_allProducts.Take(10));
+
+        var results = _allProducts
+            .Where(p => p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                       p.Code.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                       (!string.IsNullOrEmpty(p.ShortDescription) && p.ShortDescription.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)))
+            .Take(20)
+            .ToList();
+        
+        return Task.FromResult<IEnumerable<ProductDto>>(results);
+    }
+
+    private async Task AssignBarcodeToProduct((Guid productId, string codeType, string code, string? altDesc) args)
+    {
+        if (_currentDocument == null) return;
+
+        _isLoading = true;
+        try
+        {
+            // Create ProductCodeDto for assignment
+            var createCodeDto = new CreateProductCodeDto
+            {
+                ProductId = args.productId,
+                CodeType = args.codeType,
+                Code = args.code,
+                AlternativeDescription = args.altDesc,
+                Status = ProductCodeStatus.Active
+            };
+
+            var result = await ProductService.CreateProductCodeAsync(createCodeDto);
+
+            if (result != null)
+            {
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.codeAssigned", "Codice assegnato"),
+                    $"Codice {args.code} assegnato al prodotto",
+                    "Success"
+                );
+
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.codeAssigned", "Codice assegnato"), MudBlazor.Severity.Success);
+
+                // After assignment, scan again to find the product
+                await HandleBarcodeScanned(args.code);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error assigning barcode to product");
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.assignError", "Errore nell'assegnazione"), MudBlazor.Severity.Error);
+            AddOperationLog(TranslationService.GetTranslation("warehouse.assignError", "Errore nell'assegnazione"), ex.Message, "Error");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SkipBarcodeAssignment()
+    {
+        _showAssignPanel = false;
+        _assignPanelBarcode = string.Empty;
+        _assignSelectedProduct = null;
+        ClearProductForm();
+        
+        if (_scannerComponent != null)
+        {
+            await _scannerComponent.FocusAsync();
+        }
+    }
+
+    private Task<IEnumerable<StorageLocationDto>> SearchLocations(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult(_locations.Take(MaxLocationSearchResults));
+        
+        var results = _locations
+            .Where(l => l.Code.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+                       (l.Description?.Contains(value, StringComparison.OrdinalIgnoreCase) ?? false))
+            .Take(MaxLocationSearchResults);
+        
+        return Task.FromResult(results);
+    }
+
+    private async Task ConfirmAndNext()
+    {
+        if (_currentProduct == null || !_selectedLocationId.HasValue || !_quantity.HasValue || _quantity < 0) return;
+        await AddInventoryRow();
+    }
+
+    private async Task AddInventoryRow()
+    {
+        if (_currentDocument == null || _currentProduct == null || !_selectedLocationId.HasValue || !_quantity.HasValue) return;
+
+        _isLoading = true;
+        try
+        {
+            var location = _locations.FirstOrDefault(l => l.Id == _selectedLocationId.Value);
+
+            var rowDto = new AddInventoryDocumentRowDto
+            {
+                ProductId = _currentProduct.Id,
+                LocationId = _selectedLocationId.Value,
+                Quantity = _quantity.Value,
+                Notes = _notes
+            };
+
+            var updatedDocument = await InventoryService.AddInventoryDocumentRowAsync(_currentDocument.Id, rowDto);
+            
+            if (updatedDocument != null)
+            {
+                _currentDocument = updatedDocument;
+                
+                _lastAddedRow = _currentDocument.Rows?
+                    .Where(r => r.ProductId == _currentProduct.Id && r.LocationId == _selectedLocationId.Value && r.Quantity == _quantity.Value)
+                    .OrderByDescending(r => r.CreatedAt)
+                    .FirstOrDefault();
+
+                await InventorySessionService.SaveSessionAsync(new InventorySessionState
+                {
+                    DocumentId = _currentDocument.Id,
+                    DocumentNumber = _currentDocument.Number,
+                    WarehouseId = _selectedStorageFacilityId!.Value,
+                    SessionStartTime = _sessionStartTime
+                });
+
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.rowAdded", "Riga aggiunta"),
+                    $"{_currentProduct.Code} - Q.tà: {_quantity.Value} - {location?.Code}",
+                    "Success"
+                );
+
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.rowAdded", "Riga aggiunta"), MudBlazor.Severity.Success);
+                
+                ClearProductForm();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error adding inventory row");
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.addItemError", "Errore nell'aggiunta dell'articolo"), MudBlazor.Severity.Error);
+            AddOperationLog(TranslationService.GetTranslation("warehouse.addItemError", "Errore nell'aggiunta dell'articolo"), ex.Message, "Error");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void ClearProductForm()
+    {
+        _scannedBarcode = string.Empty;
+        _currentProduct = null;
+        // Keep location and quantity for next scan
+        _notes = string.Empty;
+        
+        if (_scannerComponent != null)
+        {
+            _scannerComponent.ClearBarcode();
+            InvokeAsync(async () => await _scannerComponent.FocusAsync());
+        }
+    }
+
+    private async Task UndoLastRow()
+    {
+        if (_lastAddedRow == null || _currentDocument == null) return;
+
+        _isLoading = true;
+        try
+        {
+            var updatedDocument = await InventoryService.DeleteInventoryDocumentRowAsync(_currentDocument.Id, _lastAddedRow.Id);
+            
+            if (updatedDocument != null)
+            {
+                _currentDocument = updatedDocument;
+                
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.rowUndone", "Ultima riga annullata"),
+                    $"{_lastAddedRow.ProductCode} - Q.tà: {_lastAddedRow.Quantity}",
+                    "Info"
+                );
+
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.rowUndone", "Ultima riga annullata"), MudBlazor.Severity.Info);
+                _lastAddedRow = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error undoing last row");
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.undoError", "Errore nell'annullamento"), MudBlazor.Severity.Error);
+            AddOperationLog(TranslationService.GetTranslation("warehouse.undoError", "Errore nell'annullamento"), ex.Message, "Error");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    // Grid edit/delete operations
+    private void BeginEditRow(Guid rowId)
+    {
+        var row = _currentDocument?.Rows?.FirstOrDefault(r => r.Id == rowId);
+        if (row == null) return;
+
+        _editingRowId = rowId;
+        _editQuantity = row.Quantity;
+        _editNotes = row.Notes ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private async Task SaveEditRow(Guid rowId)
+    {
+        if (_currentDocument == null || _editingRowId == null || !_editQuantity.HasValue) return;
+
+        var row = _currentDocument.Rows?.FirstOrDefault(r => r.Id == rowId);
+        if (row == null) return;
+
+        _isLoading = true;
+        try
+        {
+            var updateDto = new UpdateInventoryDocumentRowDto 
+            { 
+                Quantity = _editQuantity.Value, 
+                Notes = _editNotes 
+            };
+            
+            var updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(_currentDocument.Id, row.Id, updateDto);
+
+            if (updatedDocument != null)
+            {
+                _currentDocument = updatedDocument;
+
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata"),
+                    $"{row.ProductCode} - Q.tà: {_editQuantity.Value}",
+                    "Success"
+                );
+
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata"), MudBlazor.Severity.Success);
+            }
+
+            _editingRowId = null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating row");
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento"), MudBlazor.Severity.Error);
+            AddOperationLog(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento"), ex.Message, "Error");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void CancelEditRow()
+    {
+        _editingRowId = null;
+        StateHasChanged();
+    }
+
+    private void RequestDeleteRow(Guid rowId)
+    {
+        _confirmDeleteRowId = rowId;
+        StateHasChanged();
+    }
+
+    private async Task ConfirmDeleteRow(Guid rowId)
+    {
+        if (_currentDocument == null) return;
+
+        var row = _currentDocument.Rows?.FirstOrDefault(r => r.Id == rowId);
+        if (row == null) return;
+
+        _isLoading = true;
+        try
+        {
+            var updatedDocument = await InventoryService.DeleteInventoryDocumentRowAsync(_currentDocument.Id, row.Id);
+            
+            if (updatedDocument != null)
+            {
+                _currentDocument = updatedDocument;
+                if (_lastAddedRow?.Id == row.Id) _lastAddedRow = null;
+
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.rowDeleted", "Riga eliminata"),
+                    $"{row.ProductCode} - Q.tà: {row.Quantity}",
+                    "Info"
+                );
+
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.rowDeleted", "Riga eliminata"), MudBlazor.Severity.Info);
+            }
+            
+            _confirmDeleteRowId = null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting row");
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.deleteError", "Errore nell'eliminazione"), MudBlazor.Severity.Error);
+            AddOperationLog(TranslationService.GetTranslation("warehouse.deleteError", "Errore nell'eliminazione"), ex.Message, "Error");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void CancelDeleteRow()
+    {
+        _confirmDeleteRowId = null;
+        StateHasChanged();
+    }
+
+    // Finalize and Cancel operations
+    private void FinalizeInventory()
+    {
+        if (_currentDocument == null) return;
+        _showFinalizeConfirmation = true;
+        StateHasChanged();
+    }
+
+    private async Task ConfirmFinalizeAsync()
+    {
+        if (_currentDocument == null) return;
+
+        _showFinalizeConfirmation = false;
+        _isLoading = true;
+        try
+        {
+            AddOperationLog(TranslationService.GetTranslation("warehouse.finalizingInventory", "Finalizzazione inventario in corso"),
+                $"Documento #{_currentDocument.Number} con {_currentDocument.TotalItems} articoli", "Info");
+
+            var finalizedDocument = await InventoryService.FinalizeInventoryDocumentAsync(_currentDocument.Id);
+
+            if (finalizedDocument != null)
+            {
+                var sessionDuration = DateTime.UtcNow - _sessionStartTime;
+                AddOperationLog(TranslationService.GetTranslation("warehouse.inventoryFinalized", "Inventario finalizzato con successo"),
+                    $"Durata sessione: {(int)sessionDuration.TotalMinutes} minuti", "Success");
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.inventoryFinalized", "Inventario finalizzato con successo"), MudBlazor.Severity.Success);
+                await InventorySessionService.ClearSessionAsync();
+                _currentDocument = null;
+                ClearProductForm();
+            }
+            else
+            {
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.finalizeError", "Errore nella finalizzazione"), MudBlazor.Severity.Error);
+                AddOperationLog(TranslationService.GetTranslation("warehouse.finalizeError", "Errore nella finalizzazione"), "", "Error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error finalizing inventory");
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.finalizeError", "Errore nella finalizzazione"), MudBlazor.Severity.Error);
+            AddOperationLog(TranslationService.GetTranslation("warehouse.finalizeError", "Errore nella finalizzazione"), ex.Message, "Error");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void CancelInventorySession()
+    {
+        if (_currentDocument == null) return;
+        _showCancelConfirmation = true;
+        StateHasChanged();
+    }
+
+    private async Task ConfirmCancelAsync()
+    {
+        if (_currentDocument == null) return;
+
+        _showCancelConfirmation = false;
+        try
+        {
+            AddOperationLog(
+                TranslationService.GetTranslation("warehouse.sessionCanceled", "Sessione annullata"),
+                $"Documento #{_currentDocument.Number} - {_currentDocument.TotalItems} articoli scartati",
+                "Warning"
+            );
+            
+            await InventorySessionService.ClearSessionAsync();
+            _currentDocument = null;
+            ClearProductForm();
+            
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.sessionCanceled", "Sessione annullata"), MudBlazor.Severity.Info);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error cancelling inventory session");
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.cancelError", "Errore nell'annullamento"), MudBlazor.Severity.Error);
+            AddOperationLog(TranslationService.GetTranslation("warehouse.cancelError", "Errore nell'annullamento"), ex.Message, "Error");
+        }
+    }
+
+    private async Task ExportInventoryDocument()
+    {
+        if (_currentDocument == null) return;
+
+        try
+        {
+            AddOperationLog(
+                TranslationService.GetTranslation("warehouse.exportStarted", "Esportazione documento iniziata"),
+                $"Documento #{_currentDocument.Number} - {_currentDocument.TotalItems} articoli",
+                "Info"
+            );
+
+            var csv = new System.Text.StringBuilder();
+            csv.AppendLine("Codice Prodotto,Nome Prodotto,Ubicazione,Quantità Contata,Aggiustamento,Note,Data/Ora");
+            
+            foreach (var row in _currentDocument.Rows)
+            {
+                csv.AppendLine($"\"{row.ProductCode}\",\"{row.ProductName}\",\"{row.LocationName}\",{row.Quantity},{row.AdjustmentQuantity ?? 0},\"{row.Notes ?? ""}\",\"{row.CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm:ss}\"");
+            }
+
+            var fileName = $"Inventario_{_currentDocument.Number}_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            await JSRuntime.InvokeVoidAsync("downloadCsv", fileName, csv.ToString());
+
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.exportSuccess", "Documento esportato con successo"), MudBlazor.Severity.Success);
+
+            AddOperationLog(
+                TranslationService.GetTranslation("warehouse.exportCompleted", "Esportazione completata"),
+                $"File: {fileName}",
+                "Success"
+            );
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error exporting inventory document");
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.exportError", "Errore durante l'esportazione"), MudBlazor.Severity.Error);
+            AddOperationLog(TranslationService.GetTranslation("warehouse.exportFailed", "Esportazione fallita"), ex.Message, "Error");
+        }
+    }
+}
