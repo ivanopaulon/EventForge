@@ -1,0 +1,66 @@
+@inject ITranslationService TranslationService
+
+@if (LogEntries?.Any() == true)
+{
+    <div class="sf-card p-3 mb-4">
+        <SfAccordion>
+            <AccordionItems>
+                <AccordionItem Expanded="false">
+                    <HeaderTemplate>
+                        <div>
+                            <span class="e-icons e-list-unordered"></span>
+                            @TranslationService.GetTranslation("warehouse.operationLog", "Log Operazioni")
+                            <span class="badge bg-secondary ms-2">@LogEntries.Count()</span>
+                        </div>
+                    </HeaderTemplate>
+                    <ContentTemplate>
+                        <div class="sf-log-panel">
+                            @foreach (var entry in LogEntries.OrderByDescending(e => e.Timestamp).Take(50))
+                            {
+                                <div class="sf-log-entry @GetLogEntryCssClass(entry.Type)">
+                                    <div class="sf-log-time">
+                                        <small>@entry.Timestamp.ToLocalTime().ToString("HH:mm:ss")</small>
+                                    </div>
+                                    <div class="sf-log-icon">
+                                        <span class="e-icons @GetLogEntryIcon(entry.Type)"></span>
+                                    </div>
+                                    <div class="sf-log-message">
+                                        @entry.Message
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </ContentTemplate>
+                </AccordionItem>
+            </AccordionItems>
+        </SfAccordion>
+    </div>
+}
+
+@code {
+    [Parameter] public IEnumerable<OperationLogEntry>? LogEntries { get; set; }
+    
+    private string GetLogEntryCssClass(string type)
+    {
+        return type.ToLower() switch
+        {
+            "success" => "sf-log-success",
+            "error" => "sf-log-error",
+            "warning" => "sf-log-warning",
+            "info" => "sf-log-info",
+            _ => "sf-log-default"
+        };
+    }
+
+    private string GetLogEntryIcon(string type)
+    {
+        return type.ToLower() switch
+        {
+            "success" => "e-check",
+            "error" => "e-close",
+            "warning" => "e-warning",
+            "info" => "e-info",
+            _ => "e-circle"
+        };
+    }
+}

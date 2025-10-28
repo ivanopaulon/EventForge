@@ -1,0 +1,196 @@
+@inject ITranslationService TranslationService
+
+<div class="sf-card p-4 mb-4" style="border: 2px solid #ff9800; background-color: #fff3e0;">
+    <div class="mb-3">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6>
+                <span class="e-icons e-search"></span>
+                @TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato")
+            </h6>
+            <SfButton IconCss="e-icons e-close" CssClass="e-flat" OnClick="@(() => OnSkip.InvokeAsync())" />
+        </div>
+
+        <!-- Barcode Display -->
+        <div class="sf-info-panel mb-3">
+            <small>@TranslationService.GetTranslation("warehouse.barcodeToAssign", "Codice da Assegnare")</small>
+            <div class="mt-1">
+                <strong>@ScannedBarcode</strong>
+            </div>
+        </div>
+
+        <!-- Product Search -->
+        <div class="mb-3">
+            <SfAutoComplete TValue="string" TItem="ProductDto"
+                           Value="@SearchValue"
+                           DataSource="@_products"
+                           Placeholder="@TranslationService.GetTranslation("products.searchProduct", "Cerca Prodotto")"
+                           FloatLabelType="FloatLabelType.Auto"
+                           Filtering="@OnProductFiltering"
+                           ValueChange="@OnProductSelected">
+                <AutoCompleteFieldSettings Value="Name" />
+                <AutoCompleteTemplates TItem="ProductDto">
+                    <ItemTemplate Context="product">
+                        <div>
+                            <div>@product.Name</div>
+                            <small class="text-muted">@product.Code @(!string.IsNullOrEmpty(product.ShortDescription) ? " - " + product.ShortDescription : "")</small>
+                        </div>
+                    </ItemTemplate>
+                </AutoCompleteTemplates>
+            </SfAutoComplete>
+            <small class="text-muted">@TranslationService.GetTranslation("products.searchByCodeOrDescription", "Cerca per codice o descrizione")</small>
+        </div>
+
+        <!-- Assignment Form (shown when product is selected) -->
+        @if (SelectedProduct != null)
+        {
+            <div class="sf-card p-3 mb-3">
+                <p class="mb-3"><strong>@TranslationService.GetTranslation("products.selectedProduct", "Prodotto Selezionato")</strong></p>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <small class="text-muted">@TranslationService.GetTranslation("products.productName", "Nome Prodotto")</small>
+                        <div><strong>@SelectedProduct.Name</strong></div>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted">@TranslationService.GetTranslation("products.productCode", "Codice Prodotto")</small>
+                        <div><strong>@SelectedProduct.Code</strong></div>
+                    </div>
+                </div>
+
+                <!-- Code Assignment Fields -->
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <SfDropDownList TValue="string" TItem="CodeTypeOption"
+                                       Value="@CodeType"
+                                       DataSource="@_codeTypes"
+                                       Placeholder="@TranslationService.GetTranslation("products.codeType", "Tipo Codice")"
+                                       FloatLabelType="FloatLabelType.Auto"
+                                       ValueChange="@OnCodeTypeChanged">
+                            <DropDownListFieldSettings Value="Value" Text="Text" />
+                        </SfDropDownList>
+                    </div>
+                    <div class="col-md-6">
+                        <SfTextBox @bind-Value="@Code"
+                                  Placeholder="@TranslationService.GetTranslation("field.code", "Codice")"
+                                  FloatLabelType="FloatLabelType.Auto" />
+                    </div>
+                    <div class="col-12">
+                        <SfTextBox @bind-Value="@AlternativeDescription"
+                                  Placeholder="@TranslationService.GetTranslation("products.alternativeDescription", "Descrizione Alternativa (opzionale)")"
+                                  FloatLabelType="FloatLabelType.Auto"
+                                  Multiline="true" />
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-end gap-2">
+            <SfButton IconCss="e-icons e-skip-forward" CssClass="e-outline"
+                     OnClick="@(() => OnSkip.InvokeAsync())">
+                @TranslationService.GetTranslation("warehouse.skipProduct", "Salta")
+            </SfButton>
+            <SfButton IconCss="e-icons e-folder-open" CssClass="e-outline e-info"
+                     OnClick="@(() => OnOpenProducts.InvokeAsync())">
+                @TranslationService.GetTranslation("warehouse.openProductManagement", "Apri gestione prodotti")
+            </SfButton>
+            @if (SelectedProduct != null)
+            {
+                <SfButton IconCss="e-icons e-link" CssClass="e-primary"
+                         OnClick="@HandleAssign"
+                         Disabled="@(!IsFormValid() || IsLoading)">
+                    @TranslationService.GetTranslation("warehouse.assignAndContinue", "Assegna e continua")
+                </SfButton>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ProductDto> _products = new();
+    private string SearchValue { get; set; } = string.Empty;
+    
+    private List<CodeTypeOption> _codeTypes = new()
+    {
+        new("EAN", "EAN"),
+        new("UPC", "UPC"),
+        new("SKU", "SKU"),
+        new("QR", "QR Code"),
+        new("Barcode", "Codice a Barre"),
+        new("Other", "Altro")
+    };
+    
+    [Parameter] public string ScannedBarcode { get; set; } = string.Empty;
+    [Parameter] public ProductDto? SelectedProduct { get; set; }
+    [Parameter] public EventCallback<ProductDto?> SelectedProductChanged { get; set; }
+    [Parameter] public string CodeType { get; set; } = "Barcode";
+    [Parameter] public EventCallback<string> CodeTypeChanged { get; set; }
+    [Parameter] public string Code { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> CodeChanged { get; set; }
+    [Parameter] public string? AlternativeDescription { get; set; }
+    [Parameter] public EventCallback<string?> AlternativeDescriptionChanged { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+    
+    [Parameter] public Func<string, CancellationToken, Task<IEnumerable<ProductDto>>>? OnSearchProducts { get; set; }
+    [Parameter] public EventCallback<(Guid productId, string codeType, string code, string? altDesc)> OnAssign { get; set; }
+    [Parameter] public EventCallback OnSkip { get; set; }
+    [Parameter] public EventCallback OnOpenProducts { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        // Pre-fill the code field with scanned barcode
+        if (string.IsNullOrEmpty(Code) && !string.IsNullOrEmpty(ScannedBarcode))
+        {
+            Code = ScannedBarcode;
+        }
+    }
+
+    private async Task OnProductFiltering(global::Syncfusion.Blazor.DropDowns.FilteringEventArgs args)
+    {
+        if (OnSearchProducts == null || string.IsNullOrWhiteSpace(args.Text))
+        {
+            _products.Clear();
+            return;
+        }
+
+        var results = await OnSearchProducts(args.Text, CancellationToken.None);
+        _products = results.ToList();
+    }
+
+    private async Task OnProductSelected(global::Syncfusion.Blazor.DropDowns.ChangeEventArgs<string, ProductDto> args)
+    {
+        if (args.ItemData != null)
+        {
+            SelectedProduct = args.ItemData;
+            await SelectedProductChanged.InvokeAsync(args.ItemData);
+            
+            // Pre-fill code with scanned barcode
+            if (string.IsNullOrEmpty(Code))
+            {
+                Code = ScannedBarcode;
+            }
+        }
+    }
+
+    private async Task OnCodeTypeChanged(global::Syncfusion.Blazor.DropDowns.ChangeEventArgs<string, CodeTypeOption> args)
+    {
+        CodeType = args.Value;
+        await CodeTypeChanged.InvokeAsync(args.Value);
+    }
+
+    private bool IsFormValid()
+    {
+        return SelectedProduct != null && !string.IsNullOrWhiteSpace(CodeType) && !string.IsNullOrWhiteSpace(Code);
+    }
+
+    private async Task HandleAssign()
+    {
+        if (SelectedProduct != null && IsFormValid())
+        {
+            await OnAssign.InvokeAsync((SelectedProduct.Id, CodeType, Code, AlternativeDescription));
+        }
+    }
+
+    private record CodeTypeOption(string Value, string Text);
+}
