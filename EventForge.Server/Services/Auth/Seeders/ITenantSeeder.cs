@@ -6,6 +6,11 @@ namespace EventForge.Server.Services.Auth.Seeders;
 public interface ITenantSeeder
 {
     /// <summary>
+    /// Ensures the system tenant exists.
+    /// </summary>
+    Task<Tenant?> EnsureSystemTenantAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Creates the default tenant.
     /// </summary>
     Task<Tenant?> CreateDefaultTenantAsync(CancellationToken cancellationToken = default);

@@ -161,7 +161,7 @@ public class LicenseSeeder : ILicenseSeeder
                 ApiCallsResetAt = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1),
                 CreatedBy = "system",
                 CreatedAt = DateTime.UtcNow,
-                TenantId = Guid.Empty // System-level entity
+                TenantId = tenantId // License assignment belongs to the tenant it's assigned to
             };
 
             _ = _dbContext.TenantLicenses.Add(tenantLicense);

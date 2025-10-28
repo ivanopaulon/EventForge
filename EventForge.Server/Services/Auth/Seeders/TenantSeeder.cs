@@ -18,6 +18,50 @@ public class TenantSeeder : ITenantSeeder
         _logger = logger;
     }
 
+    public async Task<Tenant?> EnsureSystemTenantAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Check if system tenant already exists
+            var systemTenant = await _dbContext.Tenants
+                .FirstOrDefaultAsync(t => t.Id == Guid.Empty, cancellationToken);
+            
+            if (systemTenant != null)
+            {
+                _logger.LogInformation("System tenant already exists");
+                return systemTenant;
+            }
+
+            // Create system tenant with Id = Guid.Empty
+            systemTenant = new Tenant
+            {
+                Id = Guid.Empty,
+                Name = "System",
+                Code = "system",
+                DisplayName = "System Tenant",
+                Description = "System-level tenant for global entities",
+                ContactEmail = "system@localhost",
+                Domain = "system",
+                MaxUsers = int.MaxValue,
+                IsActive = true,
+                CreatedBy = "system",
+                CreatedAt = DateTime.UtcNow,
+                TenantId = Guid.Empty // Self-referencing for the base property
+            };
+
+            _ = _dbContext.Tenants.Add(systemTenant);
+            _ = await _dbContext.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("System tenant created with Id = Guid.Empty");
+            return systemTenant;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error ensuring system tenant");
+            return null;
+        }
+    }
+
     public async Task<Tenant?> CreateDefaultTenantAsync(CancellationToken cancellationToken = default)
     {
         try
