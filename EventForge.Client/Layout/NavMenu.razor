@@ -126,6 +126,25 @@
                     </MudNavGroup>
                 }
 
+                <!-- Document Management Group -->
+                @if (_canManageWarehouse || _isAdmin || _isSuperAdmin)
+                {
+                    <MudNavGroup title="@TranslationService.GetTranslation("nav.documentManagement", "Gestione Documenti")" 
+                                 Icon="@Icons.Material.Outlined.Description" 
+                                 Expanded="false">
+                        <MudNavLink Href="/documents/list" 
+                                    Icon="@Icons.Material.Outlined.ListAlt" 
+                                    Match="NavLinkMatch.All">
+                            @TranslationService.GetTranslation("nav.documentList", "Elenco Documenti")
+                        </MudNavLink>
+                        <MudNavLink Href="/documents/create" 
+                                    Icon="@Icons.Material.Outlined.Add" 
+                                    Match="NavLinkMatch.All">
+                            @TranslationService.GetTranslation("nav.createDocument", "Nuovo Documento")
+                        </MudNavLink>
+                    </MudNavGroup>
+                }
+
                 <!-- Business Partners Group -->
                 <MudNavGroup title="@TranslationService.GetTranslation("nav.businessPartners", "Gestione Partner")" 
                              Icon="@Icons.Material.Outlined.Handshake" 
