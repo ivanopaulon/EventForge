@@ -87,6 +87,14 @@ public class BootstrapService : IBootstrapService
             // Ensure database is created
             _ = await _dbContext.Database.EnsureCreatedAsync(cancellationToken);
 
+            // Ensure system tenant exists first (required for system-level entities)
+            var systemTenant = await _tenantSeeder.EnsureSystemTenantAsync(cancellationToken);
+            if (systemTenant == null)
+            {
+                _logger.LogError("Failed to ensure system tenant");
+                return false;
+            }
+
             // Seed/update default roles and permissions using dedicated seeder
             if (!await RolePermissionSeeder.SeedAsync(_dbContext, _logger, cancellationToken))
             {
