@@ -46,6 +46,7 @@
         <MudGrid>
             <MudItem xs="12" md="6">
                 <MudSelect T="Guid?" 
+                           Class="ef-select"
                            Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")"
                            @bind-Value="_selectedDocumentTypeId"
                            Clearable="true">

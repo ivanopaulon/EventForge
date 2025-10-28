@@ -18,6 +18,7 @@
         <MudGrid>
             <MudItem xs="12">
                 <MudAutocomplete T="ProductDto"
+                                 Class="ef-input"
                                  Label="@TranslationService.GetTranslation("documents.product", "Prodotto")"
                                  Value="_selectedProduct"
                                  ValueChanged="@OnProductSelected"
@@ -33,6 +34,7 @@
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudTextField T="string"
+                              Class="ef-input"
                               Label="@TranslationService.GetTranslation("documents.description", "Descrizione")"
                               @bind-Value="_model.Description"
                               Required="true"
@@ -40,12 +42,14 @@
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudTextField T="string"
+                              Class="ef-input"
                               Label="@TranslationService.GetTranslation("documents.productCode", "Codice")"
                               @bind-Value="_model.ProductCode"
                               Disabled="@(_selectedProduct != null)" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudNumericField T="int"
+                                 Class="ef-input"
                                  Label="@TranslationService.GetTranslation("documents.quantity", "Quantità")"
                                  @bind-Value="_model.Quantity"
                                  Min="1"
@@ -53,6 +57,7 @@
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudNumericField T="decimal"
+                                 Class="ef-input"
                                  Label="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo Unitario")"
                                  @bind-Value="_model.UnitPrice"
                                  Min="0"
@@ -60,11 +65,13 @@
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudTextField T="string"
+                              Class="ef-input"
                               Label="@TranslationService.GetTranslation("documents.unitOfMeasure", "UM")"
                               @bind-Value="_model.UnitOfMeasure" />
             </MudItem>
             <MudItem xs="12">
                 <MudTextField T="string"
+                              Class="ef-input"
                               Label="@TranslationService.GetTranslation("documents.notes", "Note")"
                               @bind-Value="_model.Notes"
                               Lines="2" />

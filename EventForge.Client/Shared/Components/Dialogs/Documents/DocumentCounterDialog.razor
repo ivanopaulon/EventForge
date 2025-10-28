@@ -11,6 +11,7 @@
             <MudGrid>
                 <MudItem xs="12">
                     <MudSelect T="Guid" 
+                               Class="ef-select"
                                @bind-Value="_model.DocumentTypeId"
                                Label="@($"{TranslationService.GetTranslation("documentCounter.documentType", "Tipo Documento")} *")"
                                Required="true"
@@ -27,6 +28,7 @@
 
                 <MudItem xs="12" md="6">
                     <MudTextField T="string"
+                                  Class="ef-input"
                                   @bind-Value="_model.Series"
                                   Label="@($"{TranslationService.GetTranslation("documentCounter.series", "Serie")} *")"
                                   Required="true"
@@ -37,6 +39,7 @@
 
                 <MudItem xs="12" md="6">
                     <MudNumericField T="int?"
+                                     Class="ef-input"
                                      @bind-Value="_model.Year"
                                      Label="@TranslationService.GetTranslation("documentCounter.year", "Anno")"
                                      Min="2000"
@@ -47,6 +50,7 @@
 
                 <MudItem xs="12" md="6">
                     <MudTextField T="string"
+                                  Class="ef-input"
                                   @bind-Value="_model.Prefix"
                                   Label="@TranslationService.GetTranslation("documentCounter.prefix", "Prefisso")"
                                   MaxLength="10"
@@ -55,6 +59,7 @@
 
                 <MudItem xs="12" md="6">
                     <MudNumericField T="int"
+                                     Class="ef-input"
                                      @bind-Value="_model.PaddingLength"
                                      Label="@($"{TranslationService.GetTranslation("documentCounter.paddingLength", "Lunghezza Padding")} *")"
                                      Min="1"
@@ -67,6 +72,7 @@
                 {
                     <MudItem xs="12" md="6">
                         <MudNumericField T="int"
+                                         Class="ef-input"
                                          @bind-Value="_updateModel.CurrentValue"
                                          Label="@($"{TranslationService.GetTranslation("documentCounter.currentValue", "Valore Corrente")} *")"
                                          Min="0"
@@ -77,6 +83,7 @@
 
                 <MudItem xs="12">
                     <MudTextField T="string"
+                                  Class="ef-input"
                                   @bind-Value="_model.FormatPattern"
                                   Label="@TranslationService.GetTranslation("documentCounter.formatPattern", "Pattern Formato")"
                                   MaxLength="50"
@@ -93,6 +100,7 @@
 
                 <MudItem xs="12">
                     <MudTextField T="string"
+                                  Class="ef-input"
                                   @bind-Value="_model.Notes"
                                   Label="@TranslationService.GetTranslation("common.notes", "Note")"
                                   Lines="3"

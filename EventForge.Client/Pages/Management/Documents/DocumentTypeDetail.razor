@@ -74,6 +74,7 @@
                 <MudGrid>
                     <MudItem xs="12" md="6">
                         <MudTextField @bind-Value="DocumentTypeName"
+                                      Class="ef-input"
                                       Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
                                       Variant="Variant.Outlined"
                                       Required="true"
@@ -89,6 +90,7 @@
 
                     <MudItem xs="12" md="6">
                         <MudTextField @bind-Value="DocumentTypeCode"
+                                      Class="ef-input"
                                       Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
                                       Variant="Variant.Outlined"
                                       Required="true"
@@ -104,6 +106,7 @@
 
                     <MudItem xs="12">
                         <MudTextField @bind-Value="DocumentTypeNotes"
+                                      Class="ef-input"
                                       Label="@TranslationService.GetTranslation("field.notes", "Note")"
                                       Variant="Variant.Outlined"
                                       Lines="3"
@@ -117,6 +120,7 @@
 
                     <MudItem xs="12" md="6">
                         <MudSelect T="BusinessPartyType" 
+                                   Class="ef-select"
                                    @bind-Value="DocumentTypeRequiredPartyType"
                                    Label="@TranslationService.GetTranslation("field.requiredPartyType", "Tipo Controparte Richiesto")"
                                    Variant="Variant.Outlined"
@@ -139,6 +143,7 @@
 
                     <MudItem xs="12" md="6">
                         <MudSelect T="Guid?" 
+                                   Class="ef-select"
                                    @bind-Value="DocumentTypeDefaultWarehouseId"
                                    Label="@TranslationService.GetTranslation("field.defaultWarehouse", "Magazzino Predefinito")"
                                    Variant="Variant.Outlined"
@@ -184,6 +189,7 @@
                     {
                         <MudItem xs="12" md="4">
                             <MudTextField Value="@_documentType.Id.ToString()"
+                                          Class="ef-input"
                                           Label="@TranslationService.GetTranslation("field.id", "ID")"
                                           Variant="Variant.Outlined"
                                           ReadOnly="true"
