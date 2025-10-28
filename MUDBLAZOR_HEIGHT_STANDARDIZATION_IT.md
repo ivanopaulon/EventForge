@@ -211,7 +211,7 @@ Il sistema include breakpoint responsive per schermi più piccoli:
 }
 ```
 
-Su dispositivi mobili, l'altezza si riduce a 36px per una migliore usabilità touch.
+**Nota:** Questi valori devono essere mantenuti sincronizzati con le dichiarazioni principali nel selettore `:root` (linee 18-26) per evitare inconsistenze. Su dispositivi mobili, l'altezza si riduce a 36px per una migliore usabilità touch.
 
 ## Pattern Stabilito (da PR #531)
 
@@ -296,7 +296,7 @@ Per verificare la corretta implementazione:
 - `EventForge.Client/wwwroot/css/components/mud-components.css`
   - +53 linee aggiunte
   - -7 linee rimosse
-  - Totale: 46 linee modificate
+  - Totale netto: +46 linee
 
 ## Benefici
 
