@@ -12,6 +12,10 @@
  <MudButton Class="ef-btn">...</MudButton>
  <MudTextField Class="ef-input">...</MudTextField>
  <MudSelect Class="ef-select">...</MudSelect>
+ <MudNumericField Class="ef-numeric">...</MudNumericField>
+ <MudDatePicker Class="ef-datepicker">...</MudDatePicker>
+ <MudTimePicker Class="ef-timepicker">...</MudTimePicker>
+ <MudAutocomplete Class="ef-autocomplete">...</MudAutocomplete>
  - Le classi non sovrascrivono il comportamento di MudBlazor ma garantiscono coerenza visiva
 */
 
@@ -33,19 +37,56 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
 /* Inputs and Selects - height normalization using ef-* helper classes */
 /* Use min-height instead of fixed height for better flexibility */
 .ef-input .mud-input-root,
-.ef-select .mud-input-root {
+.ef-select .mud-input-root,
+.ef-numeric .mud-input-root,
+.ef-datepicker .mud-input-root,
+.ef-timepicker .mud-input-root,
+.ef-autocomplete .mud-input-root {
     min-height: var(--ef-field-height) !important;
     box-sizing: border-box !important;
 }
 
 /* Ensure internal elements flex to fit without adding extra height */
 .ef-input .mud-input-slot,
-.ef-select .mud-input-slot {
+.ef-select .mud-input-slot,
+.ef-numeric .mud-input-slot,
+.ef-datepicker .mud-input-slot,
+.ef-timepicker .mud-input-slot,
+.ef-autocomplete .mud-input-slot {
     min-height: unset !important;
     height: 100%;
 }
 
+/* Select input internal styling */
 .ef-select .mud-select-input {
+    height: auto;
+    padding: 6px 0;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box !important;
+}
+
+/* Numeric field input internal styling */
+.ef-numeric .mud-input-input-control {
+    height: auto;
+    padding: 6px 0;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box !important;
+}
+
+/* DatePicker and TimePicker input internal styling */
+.ef-datepicker .mud-input-input-control,
+.ef-timepicker .mud-input-input-control {
+    height: auto;
+    padding: 6px 0;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box !important;
+}
+
+/* Autocomplete input internal styling */
+.ef-autocomplete .mud-input-control {
     height: auto;
     padding: 6px 0;
     display: flex;
@@ -100,19 +141,24 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
 
 /* -------------------------
  Inputs / Selects / Textareas
- Apply to root element of MudTextField/MudSelect/etc using Class="ef-input"
+ Apply to root element of MudTextField/MudSelect/MudNumericField/MudDatePicker/MudTimePicker/MudAutocomplete using Class="ef-*"
+ All non-multiline input components use consistent height normalization
  ------------------------- */
-.ef-input .mud-input-root,
 .ef-textarea .mud-input-root {
  min-height: var(--ef-input-height);
  box-sizing: border-box;
 }
 
-/* Select already handled above with .ef-select */
+/* All other input types (ef-input, ef-select, ef-numeric, ef-datepicker, ef-timepicker, ef-autocomplete) 
+   are handled in the Height Normalization section above */
 
-/* Fix alignment for adornments/icons inside inputs */
+/* Fix alignment for adornments/icons inside all input types */
 .ef-input .mud-input-adornment,
-.ef-select .mud-input-adornment {
+.ef-select .mud-input-adornment,
+.ef-numeric .mud-input-adornment,
+.ef-datepicker .mud-input-adornment,
+.ef-timepicker .mud-input-adornment,
+.ef-autocomplete .mud-input-adornment {
  height: 100%;
  display: inline-flex;
  align-items: center;
