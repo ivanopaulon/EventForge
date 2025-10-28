@@ -1950,6 +1950,9 @@
     "unitOfMeasureManagement": "Unit of Measure Management",
     "vatNatureManagement": "VAT Nature Management",
     "inventoryDocuments": "Inventory Documents",
+    "documentManagement": "Document Management",
+    "documentList": "Document List",
+    "createDocument": "New Document",
     "warehouseManagement": "Warehouse Management",
     "productManagement": "Product Management",
     "vatRateManagement": "VAT Rate Management",
@@ -1973,7 +1976,6 @@
     "date": "Date",
     "businessParty": "Business Party",
     "notes": "Notes",
-    "status": "Status",
     "headerInfo": "Document Information",
     "rows": "Document Rows",
     "addRow": "Add Row",
@@ -2014,10 +2016,5 @@
       "rejected": "Rejected",
       "cancelled": "Cancelled"
     }
-  },
-  "nav": {
-    "documentManagement": "Document Management",
-    "documentList": "Document List",
-    "createDocument": "New Document"
   }
 }

@@ -2187,7 +2187,10 @@
     "classificationNodeManagement": "Gestione Classificazione",
     "unitOfMeasureManagement": "Gestione Unità di Misura",
     "vatNatureManagement": "Gestione Nature IVA",
-    "inventoryDocuments": "Documenti Inventario"
+    "inventoryDocuments": "Documenti Inventario",
+    "documentManagement": "Gestione Documenti",
+    "documentList": "Elenco Documenti",
+    "createDocument": "Nuovo Documento"
   },
   "tour": {
     "chat": "Tour Chat",
@@ -2276,7 +2279,6 @@
     "date": "Data",
     "businessParty": "Controparte",
     "notes": "Note",
-    "status": "Stato",
     "headerInfo": "Informazioni Documento",
     "rows": "Righe Documento",
     "addRow": "Aggiungi Riga",
@@ -2317,10 +2319,5 @@
       "rejected": "Rifiutato",
       "cancelled": "Annullato"
     }
-  },
-  "nav": {
-    "documentManagement": "Gestione Documenti",
-    "documentList": "Elenco Documenti",
-    "createDocument": "Nuovo Documento"
   }
 }
