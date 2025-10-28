@@ -60,7 +60,7 @@ public class BootstrapServiceTests
         Assert.True(result);
 
         // Verify tenant was created
-        var tenant = await context.Tenants.FirstOrDefaultAsync();
+        var tenant = await context.Tenants.FirstOrDefaultAsync(t => t.Code == "default");
         Assert.NotNull(tenant);
         Assert.Equal("DefaultTenant", tenant.Name);
         Assert.Equal("default", tenant.Code);
@@ -122,7 +122,7 @@ public class BootstrapServiceTests
     }
 
     [Fact]
-    public async Task EnsureAdminBootstrappedAsync_WithExistingTenants_ShouldSkipBootstrap()
+    public async Task EnsureAdminBootstrappedAsync_WithExistingTenants_ShouldCreateUsersAndSeedEntities()
     {
         // Arrange
         var options = new DbContextOptionsBuilder<EventForgeDbContext>()
@@ -131,8 +131,8 @@ public class BootstrapServiceTests
 
         await using var context = new EventForgeDbContext(options);
 
-        // Add an existing tenant
-        _ = context.Tenants.Add(new EventForge.Server.Data.Entities.Auth.Tenant
+        // Add an existing tenant (not the default one)
+        var existingTenant = new EventForge.Server.Data.Entities.Auth.Tenant
         {
             Name = "ExistingTenant",
             Code = "existing",
@@ -143,7 +143,8 @@ public class BootstrapServiceTests
             CreatedBy = "test",
             CreatedAt = DateTime.UtcNow,
             TenantId = Guid.Empty
-        });
+        };
+        _ = context.Tenants.Add(existingTenant);
         _ = await context.SaveChangesAsync();
 
         var config = new ConfigurationBuilder()
@@ -162,13 +163,28 @@ public class BootstrapServiceTests
         // Assert
         Assert.True(result);
 
-        // Verify no additional tenants were created
-        var tenantCount = await context.Tenants.CountAsync();
-        Assert.Equal(1, tenantCount);
+        // Debug: List all tenants
+        var allTenants = await context.Tenants.ToListAsync();
+        // Expected: System (Guid.Empty), ExistingTenant, DefaultTenant = 3 total
+        // But we filter out System, so should be 2 non-system tenants
 
-        // Verify no users were created
+        // Verify default tenant was created (in addition to system and existing tenant)
+        var tenantCount = await context.Tenants.CountAsync(t => t.Id != Guid.Empty);
+        Assert.Equal(2, tenantCount); // ExistingTenant + DefaultTenant
+
+        // Verify SuperAdmin and Manager users were created
         var userCount = await context.Users.CountAsync();
-        Assert.Equal(0, userCount);
+        Assert.Equal(2, userCount); // SuperAdmin + Manager
+
+        // Verify users are assigned to default tenant (not the existing one)
+        var users = await context.Users.ToListAsync();
+        var defaultTenant = await context.Tenants.FirstOrDefaultAsync(t => t.Code == "default");
+        Assert.NotNull(defaultTenant);
+        Assert.All(users, u => Assert.Equal(defaultTenant.Id, u.TenantId));
+        
+        // Verify base entities were seeded for default tenant
+        var hasVatRates = await context.VatRates.AnyAsync(v => v.TenantId == defaultTenant.Id);
+        Assert.True(hasVatRates);
     }
 
     [Fact]
@@ -312,6 +328,7 @@ public class BootstrapServiceTests
         // First run to create everything
         _ = await bootstrapService.EnsureAdminBootstrappedAsync();
 
+        // Get initial counts (system tenant + default tenant)
         var initialTenantCount = await context.Tenants.CountAsync();
         var initialUserCount = await context.Users.CountAsync();
 
@@ -437,7 +454,7 @@ public class BootstrapServiceTests
         // Assert
         Assert.True(result);
 
-        var tenant = await context.Tenants.FirstOrDefaultAsync();
+        var tenant = await context.Tenants.FirstOrDefaultAsync(t => t.Code == "default");
         Assert.NotNull(tenant);
 
         // Verify VAT natures were seeded (24 Italian VAT nature codes)
@@ -517,7 +534,7 @@ public class BootstrapServiceTests
         Assert.True(result2);
 
         await using var verifyContext = new EventForgeDbContext(options);
-        var tenant = await verifyContext.Tenants.FirstOrDefaultAsync();
+        var tenant = await verifyContext.Tenants.FirstOrDefaultAsync(t => t.Id != Guid.Empty);
         Assert.NotNull(tenant);
 
         // Verify counts are still correct (no duplication)
@@ -563,8 +580,8 @@ public class BootstrapServiceTests
         var firstResult = await bootstrapService1.EnsureAdminBootstrappedAsync();
         Assert.True(firstResult);
 
-        // Get tenant ID for verification
-        var tenant = await context.Tenants.FirstOrDefaultAsync();
+        // Get tenant ID for verification (skip system tenant)
+        var tenant = await context.Tenants.FirstOrDefaultAsync(t => t.Id != Guid.Empty);
         Assert.NotNull(tenant);
         var tenantId = tenant.Id;
 

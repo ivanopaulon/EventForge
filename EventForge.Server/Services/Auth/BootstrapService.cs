@@ -110,14 +110,87 @@ public class BootstrapService : IBootstrapService
                 return false;
             }
 
-            // Check if any tenants exist
+            // Check if SuperAdmin user already exists
+            var superAdminUser = await _dbContext.Users
+                .FirstOrDefaultAsync(u => u.Username == "superadmin" || u.Email == "superadmin@localhost", cancellationToken);
+
+            // Get existing non-system tenants
             var existingTenants = await _dbContext.Tenants
                 .Where(t => t.Id != Guid.Empty) // Skip system-level tenant
                 .ToListAsync(cancellationToken);
+
+            // Determine if we need to create default tenant and users
+            Tenant? defaultTenant = null;
             
+            if (superAdminUser == null)
+            {
+                _logger.LogInformation("SuperAdmin user not found. Proceeding with initial bootstrap...");
+
+                // Check if a default tenant already exists
+                defaultTenant = existingTenants.FirstOrDefault(t => t.Code == "default");
+                
+                if (defaultTenant == null)
+                {
+                    // Create default tenant
+                    _logger.LogInformation("Creating default tenant...");
+                    defaultTenant = await _tenantSeeder.CreateDefaultTenantAsync(cancellationToken);
+                    if (defaultTenant == null)
+                    {
+                        _logger.LogError("Failed to create default tenant");
+                        return false;
+                    }
+                    
+                    // Add to existingTenants list for later processing
+                    existingTenants.Add(defaultTenant);
+                }
+                else
+                {
+                    _logger.LogInformation("Default tenant already exists: {TenantName} (Code: {TenantCode})",
+                        defaultTenant.Name, defaultTenant.Code);
+                }
+
+                // Assign SuperAdmin license to default tenant
+                if (!await _licenseSeeder.AssignLicenseToTenantAsync(defaultTenant.Id, superAdminLicense.Id, cancellationToken))
+                {
+                    _logger.LogError("Failed to assign SuperAdmin license to default tenant");
+                    return false;
+                }
+
+                // Create SuperAdmin user
+                superAdminUser = await _userSeeder.CreateSuperAdminUserAsync(defaultTenant.Id, cancellationToken);
+                if (superAdminUser == null)
+                {
+                    _logger.LogError("Failed to create SuperAdmin user");
+                    return false;
+                }
+
+                // Create default Manager user
+                var managerUser = await _userSeeder.CreateDefaultManagerUserAsync(defaultTenant.Id, cancellationToken);
+                if (managerUser == null)
+                {
+                    _logger.LogWarning("Failed to create default Manager user");
+                    // Not fatal
+                }
+
+                // Create AdminTenant record
+                if (!await _tenantSeeder.CreateAdminTenantRecordAsync(superAdminUser.Id, defaultTenant.Id, cancellationToken))
+                {
+                    _logger.LogError("Failed to create AdminTenant record");
+                    return false;
+                }
+                
+                _logger.LogInformation("SuperAdmin user and default tenant setup completed successfully");
+            }
+            else
+            {
+                _logger.LogInformation("SuperAdmin user already exists: {Username} ({Email})", 
+                    superAdminUser.Username, superAdminUser.Email);
+            }
+
+            // Now ensure all tenants have base entities seeded
             if (existingTenants.Any())
             {
-                _logger.LogInformation("Found {TenantCount} existing tenants. Checking if base entities need to be seeded...", existingTenants.Count);
+                _logger.LogInformation("Checking {TenantCount} tenants for base entities...", existingTenants.Count);
 
                 // Get all tenant IDs for batch query
                 var tenantIds = existingTenants.Select(t => t.Id).ToList();
@@ -187,75 +260,42 @@ public class BootstrapService : IBootstrapService
                             tenant.Id, tenant.Name);
                     }
                 }
-
-                _logger.LogInformation("Bootstrap data update completed.");
-                return true;
             }
 
-            _logger.LogInformation("No tenants found. Starting initial bootstrap...");
-
-            // Create default tenant
-            var defaultTenant = await _tenantSeeder.CreateDefaultTenantAsync(cancellationToken);
-            if (defaultTenant == null)
+            // Final validation for default tenant if it was just created
+            if (defaultTenant != null)
             {
-                _logger.LogError("Failed to create default tenant");
-                return false;
-            }
-
-            // Assign SuperAdmin license to default tenant
-            if (!await _licenseSeeder.AssignLicenseToTenantAsync(defaultTenant.Id, superAdminLicense.Id, cancellationToken))
-            {
-                _logger.LogError("Failed to assign SuperAdmin license to default tenant");
-                return false;
-            }
-
-            // Create SuperAdmin user
-            var superAdminUser = await _userSeeder.CreateSuperAdminUserAsync(defaultTenant.Id, cancellationToken);
-            if (superAdminUser == null)
-            {
-                _logger.LogError("Failed to create SuperAdmin user");
-                return false;
-            }
-
-            // Create default Manager user
-            var managerUser = await _userSeeder.CreateDefaultManagerUserAsync(defaultTenant.Id, cancellationToken);
-            if (managerUser == null)
-            {
-                _logger.LogWarning("Failed to create default Manager user");
-                // Not fatal
-            }
-
-            // Create AdminTenant record
-            if (!await _tenantSeeder.CreateAdminTenantRecordAsync(superAdminUser.Id, defaultTenant.Id, cancellationToken))
-            {
-                _logger.LogError("Failed to create AdminTenant record");
-                return false;
-            }
-
-            // Seed base entities for the tenant
-            if (!await _entitySeeder.SeedTenantBaseEntitiesAsync(defaultTenant.Id, cancellationToken))
-            {
-                _logger.LogError("Failed to seed base entities for tenant");
-                return false;
-            }
-
-            // Validate base entities were created correctly
-            var (isValid, issues) = await _entitySeeder.ValidateTenantBaseEntitiesAsync(defaultTenant.Id, cancellationToken);
-            if (!isValid)
-            {
-                _logger.LogWarning("Base entities validation found issues: {Issues}", string.Join("; ", issues));
+                var (isValid, issues) = await _entitySeeder.ValidateTenantBaseEntitiesAsync(defaultTenant.Id, cancellationToken);
+                if (!isValid)
+                {
+                    _logger.LogWarning("Base entities validation found issues for default tenant: {Issues}", string.Join("; ", issues));
+                }
             }
 
             _logger.LogInformation("=== BOOTSTRAP COMPLETED SUCCESSFULLY ===");
-            _logger.LogInformation("Default tenant created: {TenantName} (Code: {TenantCode})", defaultTenant.Name, defaultTenant.Code);
-            _logger.LogInformation("SuperAdmin user created: {Username} ({Email})", superAdminUser.Username, superAdminUser.Email);
-            _logger.LogInformation("SuperAdmin account created. (Password suppressed in logs for security)");
-            if (managerUser != null)
+            
+            // Log summary of what exists
+            var allTenants = await _dbContext.Tenants.Where(t => t.Id != Guid.Empty).ToListAsync(cancellationToken);
+            var allUsers = await _dbContext.Users.ToListAsync(cancellationToken);
+            
+            _logger.LogInformation("Tenants in system: {TenantCount}", allTenants.Count);
+            foreach (var tenant in allTenants)
             {
-                _logger.LogInformation("Manager user created: {Username} ({Email})", managerUser.Username, managerUser.Email);
-                _logger.LogInformation("Manager account created. (Password suppressed in logs for security)");
+                _logger.LogInformation("  - {TenantName} (Code: {TenantCode})", tenant.Name, tenant.Code);
             }
-            _logger.LogWarning("SECURITY: Please change the SuperAdmin and Manager passwords immediately after first login!");
+            
+            _logger.LogInformation("Users in system: {UserCount}", allUsers.Count);
+            foreach (var user in allUsers)
+            {
+                _logger.LogInformation("  - {Username} ({Email}) - Tenant: {TenantId}", user.Username, user.Email, user.TenantId);
+            }
+            
+            if (defaultTenant != null)
+            {
+                _logger.LogInformation("Default tenant setup completed: {TenantName} (Code: {TenantCode})", defaultTenant.Name, defaultTenant.Code);
+                _logger.LogWarning("SECURITY: Please change the SuperAdmin and Manager passwords immediately after first login!");
+            }
+            
             _logger.LogInformation("SuperAdmin license assigned with unlimited users and API calls, including all features");
             _logger.LogInformation("==========================================");
 

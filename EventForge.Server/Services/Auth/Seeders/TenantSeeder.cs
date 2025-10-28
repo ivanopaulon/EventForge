@@ -49,7 +49,10 @@ public class TenantSeeder : ITenantSeeder
                 TenantId = Guid.Empty // Self-referencing for the base property
             };
 
-            _ = _dbContext.Tenants.Add(systemTenant);
+            // For InMemory database or databases that generate IDs, we need to ensure Guid.Empty is used
+            var entry = _dbContext.Tenants.Add(systemTenant);
+            // After Add, explicitly set the ID back to Guid.Empty to prevent auto-generation
+            entry.Property(t => t.Id).CurrentValue = Guid.Empty;
             _ = await _dbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("System tenant created with Id = Guid.Empty");
