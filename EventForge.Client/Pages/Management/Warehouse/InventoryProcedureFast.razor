@@ -759,30 +759,66 @@
             var location = _locations.FirstOrDefault(l => l.Id == _selectedLocationId.Value);
             var locationName = location?.Code ?? "N/A";
 
-            var rowDto = new AddInventoryDocumentRowDto
-            {
-                ProductId = _currentProduct.Id,
-                LocationId = _selectedLocationId.Value,
-                Quantity = _quantity,
-                Notes = _notes
-            };
+            // Check if there's already a row with the same product and location
+            var existingRow = _currentDocument.Rows?
+                .FirstOrDefault(r => r.ProductId == _currentProduct.Id && r.LocationId == _selectedLocationId.Value);
 
-            var updatedDocument = await InventoryService.AddInventoryDocumentRowAsync(_currentDocument.Id, rowDto);
+            InventoryDocumentDto? updatedDocument = null;
+
+            if (existingRow != null)
+            {
+                // Update existing row by summing quantities
+                var newQuantity = existingRow.Quantity + _quantity;
+                var updateDto = new UpdateInventoryDocumentRowDto 
+                { 
+                    Quantity = newQuantity, 
+                    Notes = string.IsNullOrEmpty(_notes) ? existingRow.Notes : 
+                            string.IsNullOrEmpty(existingRow.Notes) ? _notes : 
+                            $"{existingRow.Notes}; {_notes}"
+                };
+                
+                updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(_currentDocument.Id, existingRow.Id, updateDto);
+                
+                if (updatedDocument != null)
+                {
+                    AddOperationLog(TranslationService.GetTranslation("warehouse.itemUpdated", "Quantità aggiornata"),
+                        $"{_currentProduct.Name} - Ubicazione: {locationName} - Quantità precedente: {existingRow.Quantity} - Aggiunta: {_quantity} - Nuova quantità: {newQuantity}" + 
+                        (!string.IsNullOrEmpty(_notes) ? $" - Note: {_notes}" : ""), "Success");
+
+                    Snackbar.Add(TranslationService.GetTranslation("warehouse.quantityUpdated", "Quantità aggiornata nel documento"), Severity.Success);
+                }
+            }
+            else
+            {
+                // Add new row
+                var rowDto = new AddInventoryDocumentRowDto
+                {
+                    ProductId = _currentProduct.Id,
+                    LocationId = _selectedLocationId.Value,
+                    Quantity = _quantity,
+                    Notes = _notes
+                };
+
+                updatedDocument = await InventoryService.AddInventoryDocumentRowAsync(_currentDocument.Id, rowDto);
+                
+                if (updatedDocument != null)
+                {
+                    AddOperationLog(TranslationService.GetTranslation("warehouse.itemAdded", "Articolo aggiunto"),
+                        $"{_currentProduct.Name} - Ubicazione: {locationName} - Quantità: {_quantity}" + 
+                        (!string.IsNullOrEmpty(_notes) ? $" - Note: {_notes}" : ""), "Success");
+
+                    Snackbar.Add(TranslationService.GetTranslation("warehouse.itemAdded", "Articolo aggiunto al documento"), Severity.Success);
+                }
+            }
 
             if (updatedDocument != null)
             {
                 _currentDocument = updatedDocument;
                 
                 _lastAddedRow = _currentDocument.Rows?
-                    .Where(r => r.ProductId == _currentProduct.Id && r.LocationId == _selectedLocationId.Value && r.Quantity == _quantity)
+                    .Where(r => r.ProductId == _currentProduct.Id && r.LocationId == _selectedLocationId.Value)
                     .OrderByDescending(r => r.CreatedAt)
                     .FirstOrDefault();
-                
-                AddOperationLog(TranslationService.GetTranslation("warehouse.itemAdded", "Articolo aggiunto"),
-                    $"{_currentProduct.Name} - Ubicazione: {locationName} - Quantità: {_quantity}" + 
-                    (!string.IsNullOrEmpty(_notes) ? $" - Note: {_notes}" : ""), "Success");
-
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.itemAdded", "Articolo aggiunto al documento"), Severity.Success);
                 
                 ClearProductForm();
                 StateHasChanged();
