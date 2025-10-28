@@ -248,6 +248,12 @@
                 _model.BusinessPartyId = _currentDocument.BusinessPartyId;
                 _model.Notes = _currentDocument.Notes;
                 _documentDate = _currentDocument.Date.ToLocalTime();
+                
+                // Load the business party to populate the autocomplete
+                if (_currentDocument.BusinessPartyId != Guid.Empty)
+                {
+                    _selectedBusinessParty = await BusinessPartyService.GetBusinessPartyAsync(_currentDocument.BusinessPartyId);
+                }
             }
         }
         catch (Exception ex)
