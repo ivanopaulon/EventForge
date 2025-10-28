@@ -32,6 +32,125 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
     }
 
+    public async Task<DocumentHeaderDto?> GetDocumentHeaderByIdAsync(Guid id, bool includeRows = false)
+    {
+        try
+        {
+            return await _httpClientService.GetAsync<DocumentHeaderDto>($"{BaseUrl}/{id}?includeRows={includeRows}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving document header with ID {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<DocumentHeaderDto?> CreateDocumentHeaderAsync(CreateDocumentHeaderDto createDto)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<CreateDocumentHeaderDto, DocumentHeaderDto>(BaseUrl, createDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating document header");
+            return null;
+        }
+    }
+
+    public async Task<DocumentHeaderDto?> UpdateDocumentHeaderAsync(Guid id, UpdateDocumentHeaderDto updateDto)
+    {
+        try
+        {
+            return await _httpClientService.PutAsync<UpdateDocumentHeaderDto, DocumentHeaderDto>($"{BaseUrl}/{id}", updateDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating document header with ID {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<bool> DeleteDocumentHeaderAsync(Guid id)
+    {
+        try
+        {
+            return await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting document header with ID {Id}", id);
+            return false;
+        }
+    }
+
+    public async Task<DocumentHeaderDto?> ApproveDocumentAsync(Guid id)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<object, DocumentHeaderDto>($"{BaseUrl}/{id}/approve", new { });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error approving document with ID {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<DocumentHeaderDto?> CloseDocumentAsync(Guid id)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<object, DocumentHeaderDto>($"{BaseUrl}/{id}/close", new { });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error closing document with ID {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<DocumentRowDto?> AddDocumentRowAsync(CreateDocumentRowDto createRowDto)
+    {
+        try
+        {
+            // The AddDocumentRow is exposed via DocumentHeaderService on the server
+            // We need to check the actual endpoint - it might be in a different controller
+            return await _httpClientService.PostAsync<CreateDocumentRowDto, DocumentRowDto>("api/v1/documents/rows", createRowDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding document row");
+            return null;
+        }
+    }
+
+    public async Task<DocumentRowDto?> UpdateDocumentRowAsync(Guid rowId, UpdateDocumentRowDto updateRowDto)
+    {
+        try
+        {
+            return await _httpClientService.PutAsync<UpdateDocumentRowDto, DocumentRowDto>($"api/v1/documents/rows/{rowId}", updateRowDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating document row with ID {RowId}", rowId);
+            return null;
+        }
+    }
+
+    public async Task<bool> DeleteDocumentRowAsync(Guid rowId)
+    {
+        try
+        {
+            return await _httpClientService.DeleteAsync($"api/v1/documents/rows/{rowId}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting document row with ID {RowId}", rowId);
+            return false;
+        }
+    }
+
     private static string BuildQueryString(DocumentHeaderQueryParameters parameters)
     {
         var queryParams = new List<string>
