@@ -6,33 +6,33 @@
 */
 
 /* Navigation Drawer Width - optimized for long labels (Material Design compliant)
-   Default MudDrawer width is 240px, increased to 280px to accommodate Italian labels
+   Default MudDrawer width is 240px, increased to 300px to accommodate Italian labels
    Reference: https://m3.material.io/components/navigation-drawer/specs
    Best practice: 256-320px for standard navigation drawers
 */
 ::deep .mud-drawer {
-    width: 280px !important;
+    width: 300px !important;
 }
 
 /* Responsive navigation drawer widths */
 @media (max-width: 640px) {
     /* Mobile: Maintain appropriate width for touch targets */
     ::deep .mud-drawer {
-        width: 280px !important;
+        width: 300px !important;
     }
 }
 
 @media (min-width: 641px) and (max-width: 1024px) {
     /* Tablet: Slightly narrower but still comfortable */
     ::deep .mud-drawer {
-        width: 280px !important;
+        width: 300px !important;
     }
 }
 
 @media (min-width: 1025px) {
     /* Desktop: Full width for comfortable reading */
     ::deep .mud-drawer {
-        width: 280px !important;
+        width: 300px !important;
     }
 }
 
