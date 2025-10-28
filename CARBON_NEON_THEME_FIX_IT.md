@@ -80,15 +80,22 @@ Il tema Carbon Neon Dark aveva diversi problemi di coerenza nella versione scura
 --background-secondary: #262626;
 ```
 
-### 4. Aggiunta Variabili Mancanti (Tema Light)
+### 4. Aggiunta Variabili per Coerenza (Tema Light)
+Le seguenti variabili sono state aggiunte al tema carbon-neon-light per garantire la stessa struttura del tema dark:
+
 ```css
-/* AGGIUNTO al tema carbon-neon-light */
+/* AGGIUNTO al tema carbon-neon-light per coerenza strutturale */
 /* AppBar & Drawer */
 --appbar-background: #FFFFFF;
 --appbar-text: #1A1A1A;
 --drawer-background: #FFFFFF;
 --drawer-text: #1A1A1A;
 ```
+
+Anche se visivamente queste variabili hanno lo stesso valore di `--surface` nel tema light, la loro presenza garantisce:
+- Coerenza strutturale tra i temi light e dark
+- Facilità di personalizzazione futura
+- Manutenibilità del codice
 
 ## Risultati Attesi
 
@@ -160,9 +167,9 @@ Per verificare le correzioni:
 ## File Modificati
 
 - `EventForge.Client/wwwroot/css/themes/carbon-neon-theme.css`
-  - Linee modificate: 15-26 (Dark theme)
-  - Linee modificate: 58-69 (Light theme)  
-  - Linee modificate: 155-169 (MudBlazor overrides)
+  - Variabili tema dark: linee 22-26 (rimosse variabili obsolete)
+  - Variabili tema light: linee 65-69 (aggiunte variabili AppBar/Drawer)
+  - Override MudBlazor: linee 155-169 (corretti riferimenti alle variabili)
 
 ## Impatto
 
