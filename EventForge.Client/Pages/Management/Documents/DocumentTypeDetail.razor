@@ -160,10 +160,10 @@
 
                     <MudItem xs="12" md="4">
                         <MudSwitch @bind-Value="DocumentTypeIsFiscal"
+                                   @bind-Value:after="@(() => MarkChanged())"
                                    Label="@TranslationService.GetTranslation("field.isFiscal", "Documento Fiscale")"
                                    Color="Color.Primary"
-                                   ThumbIcon="@(DocumentTypeIsFiscal ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)"
-                                   OnChange="@(() => MarkChanged())" />
+                                   ThumbIcon="@(DocumentTypeIsFiscal ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)" />
                         <MudText Typo="Typo.caption" Class="mud-input-helper-text">
                             @TranslationService.GetTranslation("documentType.helperText.isFiscal", "Indica se il documento ha valore fiscale")
                         </MudText>
@@ -171,10 +171,10 @@
 
                     <MudItem xs="12" md="4">
                         <MudSwitch @bind-Value="DocumentTypeIsStockIncrease"
+                                   @bind-Value:after="@(() => MarkChanged())"
                                    Label="@TranslationService.GetTranslation("field.isStockIncrease", "Aumento Stock")"
                                    Color="Color.Success"
-                                   ThumbIcon="@(DocumentTypeIsStockIncrease ? Icons.Material.Filled.TrendingUp : Icons.Material.Filled.TrendingDown)"
-                                   OnChange="@(() => MarkChanged())" />
+                                   ThumbIcon="@(DocumentTypeIsStockIncrease ? Icons.Material.Filled.TrendingUp : Icons.Material.Filled.TrendingDown)" />
                         <MudText Typo="Typo.caption" Class="mud-input-helper-text">
                             @TranslationService.GetTranslation("documentType.helperText.isStockIncrease", "Indica se il documento aumenta lo stock di magazzino")
                         </MudText>
