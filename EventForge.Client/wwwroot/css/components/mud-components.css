@@ -80,10 +80,10 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 48px height
  justify-content: center;
  min-height: var(--ef-button-height);
  height: var(--ef-button-height);
- padding:012px;
+ padding:0 12px;
 }
 /* Small variant for table rows / compact toolbars */
-.ef-btn-small { min-height:36px; height:36px; padding:08px; }
+.ef-btn-small { min-height:36px; height:36px; padding:0 8px; }
 
 /* Ensure icon buttons preserve circular hit area */
 .ef-icon-btn {
