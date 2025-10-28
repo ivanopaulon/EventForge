@@ -81,8 +81,8 @@
 </div>
 
 @code {
-    private SfAutoComplete<string, StorageLocationDto>? _locationAutocomplete;
-    private SfNumericTextBox<decimal?>? _quantityField;
+    private global::Syncfusion.Blazor.DropDowns.SfAutoComplete<string, StorageLocationDto>? _locationAutocomplete;
+    private global::Syncfusion.Blazor.Inputs.SfNumericTextBox<decimal?>? _quantityField;
     private List<StorageLocationDto> _locations = new();
     private string LocationValue { get; set; } = string.Empty;
     
@@ -120,7 +120,7 @@
         }
     }
 
-    private async Task OnLocationFiltering(global::Syncfusion.Blazor.DropDowns.FilteringEventArgs args)
+    private async Task OnLocationFiltering(SfDropDowns.FilteringEventArgs args)
     {
         if (OnSearchLocations == null || string.IsNullOrWhiteSpace(args.Text))
         {
@@ -132,7 +132,7 @@
         _locations = results.ToList();
     }
 
-    private async Task OnLocationSelected(global::Syncfusion.Blazor.DropDowns.ChangeEventArgs<string, StorageLocationDto> args)
+    private async Task OnLocationSelected(SfDropDowns.ChangeEventArgs<string, StorageLocationDto> args)
     {
         if (args.ItemData != null)
         {
@@ -151,7 +151,7 @@
         }
     }
 
-    private async Task OnQuantityChanged(global::Syncfusion.Blazor.Inputs.ChangeEventArgs<decimal?> args)
+    private async Task OnQuantityChanged(SfInputs.ChangeEventArgs<decimal?> args)
     {
         QuantityValue = args.Value;
         await QuantityValueChanged.InvokeAsync(args.Value);

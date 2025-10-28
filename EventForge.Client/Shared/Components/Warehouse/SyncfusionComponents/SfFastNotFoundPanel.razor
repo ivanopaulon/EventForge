@@ -146,7 +146,7 @@
         }
     }
 
-    private async Task OnProductFiltering(global::Syncfusion.Blazor.DropDowns.FilteringEventArgs args)
+    private async Task OnProductFiltering(SfDropDowns.FilteringEventArgs args)
     {
         if (OnSearchProducts == null || string.IsNullOrWhiteSpace(args.Text))
         {
@@ -158,7 +158,7 @@
         _products = results.ToList();
     }
 
-    private async Task OnProductSelected(global::Syncfusion.Blazor.DropDowns.ChangeEventArgs<string, ProductDto> args)
+    private async Task OnProductSelected(SfDropDowns.ChangeEventArgs<string, ProductDto> args)
     {
         if (args.ItemData != null)
         {
@@ -173,7 +173,7 @@
         }
     }
 
-    private async Task OnCodeTypeChanged(global::Syncfusion.Blazor.DropDowns.ChangeEventArgs<string, CodeTypeOption> args)
+    private async Task OnCodeTypeChanged(SfDropDowns.ChangeEventArgs<string, CodeTypeOption> args)
     {
         CodeType = args.Value;
         await CodeTypeChanged.InvokeAsync(args.Value);
