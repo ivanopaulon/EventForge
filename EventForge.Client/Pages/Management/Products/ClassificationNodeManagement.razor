@@ -548,7 +548,7 @@
                 {
                     try
                     {
-                        await ClassificationNodeService.DeleteClassificationNodeAsync(node.Id);
+                        await EntityManagementService.DeleteClassificationNodeAsync(node.Id);
                         _nodes.RemoveAll(n => n.Id == node.Id);
                         deletedCount++;
                     }
