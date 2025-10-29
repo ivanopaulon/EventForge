@@ -78,7 +78,7 @@ This document provides practical examples for using the new foundation component
                 await BrandService.DeleteAsync(item.Id);
             }
             
-            Snackbar.Add("Eliminazione completata", Severity.Success);
+            Snackbar.Add(TranslationService.GetTranslation("success.deleteCompleted", "Eliminazione completata"), Severity.Success);
             _selectedItems.Clear();
             await LoadDataAsync();
         }
@@ -130,11 +130,13 @@ This document provides practical examples for using the new foundation component
 @code {
     private async Task ExportToExcel()
     {
+        Snackbar.Add(TranslationService.GetTranslation("messages.exportInProgress", "Esportazione in corso..."), Severity.Info);
         // Export logic
     }
     
     private async Task ImportData()
     {
+        Snackbar.Add(TranslationService.GetTranslation("messages.importInProgress", "Importazione in corso..."), Severity.Info);
         // Import logic
     }
 }
@@ -151,7 +153,7 @@ This document provides practical examples for using the new foundation component
 @inject ITranslationService TranslationService
 
 <MudButton OnClick="@(() => _showAuditHistory = true)">
-    Visualizza Cronologia
+    @TranslationService.GetTranslation("audit.viewHistory", "Visualizza Cronologia")
 </MudButton>
 
 <AuditHistoryDialog IsOpen="_showAuditHistory"
@@ -202,7 +204,7 @@ This document provides practical examples for using the new foundation component
         else
         {
             <MudText Align="Align.Center" Class="pa-4">
-                Nessuna modifica trovata
+                @TranslationService.GetTranslation("audit.noChangesFound", "Nessuna modifica trovata")
             </MudText>
         }
     </ContentTemplate>
@@ -420,7 +422,7 @@ This document provides practical examples for using the new foundation component
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            Snackbar.Add(TranslationService.GetTranslationFormatted("error.loadingData", "Errore nel caricamento: {0}", ex.Message), Severity.Error);
         }
         finally
         {
@@ -435,10 +437,10 @@ This document provides practical examples for using the new foundation component
             return;
 
         var result = await DialogService.ShowMessageBox(
-            "Conferma eliminazione",
-            $"Sei sicuro di voler eliminare {_selectedBrands.Count} marchi?",
-            yesText: "Elimina", 
-            cancelText: "Annulla");
+            TranslationService.GetTranslation("dialog.confirmDelete", "Conferma eliminazione"),
+            TranslationService.GetTranslationFormatted("dialog.confirmDeleteMultiple", "Sei sicuro di voler eliminare {0} marchi?", _selectedBrands.Count),
+            yesText: TranslationService.GetTranslation("button.delete", "Elimina"), 
+            cancelText: TranslationService.GetTranslation("button.cancel", "Annulla"));
 
         if (result != true)
             return;
@@ -453,13 +455,13 @@ This document provides practical examples for using the new foundation component
                 await BrandService.DeleteAsync(brand.Id);
             }
             
-            Snackbar.Add("Eliminazione completata", Severity.Success);
+            Snackbar.Add(TranslationService.GetTranslation("success.deleteCompleted", "Eliminazione completata"), Severity.Success);
             _selectedBrands.Clear();
             await LoadBrandsAsync();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            Snackbar.Add(TranslationService.GetTranslationFormatted("error.deleteFailed", "Errore nell'eliminazione: {0}", ex.Message), Severity.Error);
         }
         finally
         {
@@ -486,6 +488,10 @@ This document provides practical examples for using the new foundation component
             // Load audit history
             _auditLogs = await AuditService.GetHistoryAsync(brand.Id);
         }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslationFormatted("error.loadingAuditHistory", "Errore nel caricamento della cronologia: {0}", ex.Message), Severity.Error);
+        }
         finally
         {
             _isLoadingAudit = false;
@@ -495,6 +501,7 @@ This document provides practical examples for using the new foundation component
 
     private async Task ExportToExcel()
     {
+        Snackbar.Add(TranslationService.GetTranslation("messages.exportInProgress", "Esportazione in corso..."), Severity.Info);
         // Export implementation
     }
 
