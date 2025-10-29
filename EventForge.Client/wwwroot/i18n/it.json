@@ -128,14 +128,18 @@
     "modifiedBy": "Modificato da",
     "newValue": "Nuovo valore",
     "noHistory": "Nessuna cronologia",
-    "noHistoryDescription": "Non ci sono modifiche registrate per questo elemento",
+    "noHistoryDescription": "Non sono state trovate modifiche per questo elemento.",
     "noMatchingHistory": "Nessuna cronologia corrispondente",
     "noMatchingHistoryDescription": "Nessun record corrisponde ai filtri applicati",
     "oldValue": "Valore precedente",
     "operationType": "Tipo operazione",
     "toDate": "A data",
     "updated": "Aggiornato",
-    "userPlaceholder": "Seleziona utente..."
+    "userPlaceholder": "Seleziona utente...",
+    "historyDialog": {
+      "title": "Cronologia Modifiche"
+    },
+    "noHistoryAvailable": "Nessuna cronologia disponibile"
   },
   "auditLog": {
     "advancedFilters": "Filtri avanzati",
@@ -2364,5 +2368,15 @@
     "customer": "Cliente",
     "supplier": "Fornitore",
     "both": "Entrambi"
+  },
+  "toolbar": {
+    "itemsSelected": "{0} elementi selezionati"
+  },
+  "button": {
+    "cancel": "Annulla",
+    "close": "Chiudi",
+    "create": "Crea",
+    "delete": "Elimina",
+    "save": "Salva"
   }
 }

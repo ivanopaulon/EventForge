@@ -128,14 +128,18 @@
     "modifiedBy": "Modified by",
     "newValue": "New value",
     "noHistory": "No history",
-    "noHistoryDescription": "There are no recorded changes for this item",
+    "noHistoryDescription": "No changes found for this item.",
     "noMatchingHistory": "No matching history",
     "noMatchingHistoryDescription": "No records match the applied filters",
     "oldValue": "Old value",
     "operationType": "Operation type",
     "toDate": "To date",
     "updated": "Updated",
-    "userPlaceholder": "Select user..."
+    "userPlaceholder": "Select user...",
+    "historyDialog": {
+      "title": "Modification History"
+    },
+    "noHistoryAvailable": "No history available"
   },
   "auditLog": {
     "advancedFilters": "Advanced filters",
@@ -2061,5 +2065,15 @@
     "customer": "Customer",
     "supplier": "Supplier",
     "both": "Both"
+  },
+  "toolbar": {
+    "itemsSelected": "{0} items selected"
+  },
+  "button": {
+    "cancel": "Cancel",
+    "close": "Close",
+    "create": "Create",
+    "delete": "Delete",
+    "save": "Save"
   }
 }
