@@ -6,6 +6,7 @@
 @using EventForge.Client.Shared.Components
 @attribute [Authorize]
 @inject IWarehouseService WarehouseService
+@inject IStorageLocationService StorageLocationService
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -67,161 +68,228 @@
             </div>
         </MudPaper>
 
-        <!-- Form Section -->
-        <MudPaper Elevation="2" Class="pa-4">
-            <MudForm @ref="_form">
-                <MudGrid>
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="_facility!.Name"
-                                      Label="@($"{TranslationService.GetTranslation("drawer.field.nomeMagazzino", "Nome Magazzino")} *")"
-                                      Variant="Variant.Outlined"
-                                      Required="true"
-                                      RequiredError="@TranslationService.GetTranslation("drawer.error.nomeObbligatorio", "Il nome è obbligatorio")"
-                                      MaxLength="100"
-                                      Immediate="true"
-                                      OnBlur="@(() => MarkChanged())"
-                                      aria-describedby="name-help" />
-                        <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("drawer.helperText.nomeMagazzino", "Nome del magazzino")
-                        </MudText>
-                    </MudItem>
+        <!-- Tabs Section -->
+        <MudPaper Elevation="2" Class="pa-2">
+            <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" @bind-ActivePanelIndex="_activeTab" Color="Color.Primary">
+                <MudTabPanel Text="@TranslationService.GetTranslation("warehouse.generalInfo", "Informazioni Generali")" Icon="@Icons.Material.Filled.Info">
+                    <MudForm @ref="_form">
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="_facility!.Name"
+                                              Label="@($"{TranslationService.GetTranslation("drawer.field.nomeMagazzino", "Nome Magazzino")} *")"
+                                              Variant="Variant.Outlined"
+                                              Required="true"
+                                              RequiredError="@TranslationService.GetTranslation("drawer.error.nomeObbligatorio", "Il nome è obbligatorio")"
+                                              MaxLength="100"
+                                              Immediate="true"
+                                              @bind-Value:after="@MarkChanged"
+                                              aria-describedby="name-help" />
+                                <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                                    @TranslationService.GetTranslation("drawer.helperText.nomeMagazzino", "Nome del magazzino")
+                                </MudText>
+                            </MudItem>
 
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="_facility!.Code"
-                                      Label="@($"{TranslationService.GetTranslation("drawer.field.codiceMagazzino", "Codice")} *")"
-                                      Variant="Variant.Outlined"
-                                      Required="true"
-                                      RequiredError="@TranslationService.GetTranslation("drawer.error.codiceObbligatorio", "Il codice è obbligatorio")"
-                                      MaxLength="30"
-                                      Immediate="true"
-                                      ReadOnly="@(!_isCreateMode)"
-                                      OnBlur="@(() => MarkChanged())"
-                                      aria-describedby="code-help" />
-                        <MudText id="code-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("drawer.helperText.codiceMagazzino", "Codice identificativo")
-                        </MudText>
-                    </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="_facility!.Code"
+                                              Label="@($"{TranslationService.GetTranslation("drawer.field.codiceMagazzino", "Codice")} *")"
+                                              Variant="Variant.Outlined"
+                                              Required="true"
+                                              RequiredError="@TranslationService.GetTranslation("drawer.error.codiceObbligatorio", "Il codice è obbligatorio")"
+                                              MaxLength="30"
+                                              Immediate="true"
+                                              ReadOnly="@(!_isCreateMode)"
+                                              @bind-Value:after="@MarkChanged"
+                                              aria-describedby="code-help" />
+                                <MudText id="code-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                                    @TranslationService.GetTranslation("drawer.helperText.codiceMagazzino", "Codice identificativo")
+                                </MudText>
+                            </MudItem>
 
-                    <MudItem xs="12">
-                        <MudTextField @bind-Value="_facility!.Address"
-                                      Label="@TranslationService.GetTranslation("drawer.field.indirizzo", "Indirizzo")"
-                                      Variant="Variant.Outlined"
-                                      MaxLength="200"
-                                      OnBlur="@(() => MarkChanged())"
-                                      aria-describedby="address-help" />
-                        <MudText id="address-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("drawer.helperText.indirizzo", "Indirizzo del magazzino")
-                        </MudText>
-                    </MudItem>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_facility!.Address"
+                                              Label="@TranslationService.GetTranslation("drawer.field.indirizzo", "Indirizzo")"
+                                              Variant="Variant.Outlined"
+                                              MaxLength="200"
+                                              @bind-Value:after="@MarkChanged"
+                                              aria-describedby="address-help" />
+                                <MudText id="address-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                                    @TranslationService.GetTranslation("drawer.helperText.indirizzo", "Indirizzo del magazzino")
+                                </MudText>
+                            </MudItem>
 
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="_facility!.Phone"
-                                      Label="@TranslationService.GetTranslation("drawer.field.telefono", "Telefono")"
-                                      Variant="Variant.Outlined"
-                                      MaxLength="30"
-                                      OnBlur="@(() => MarkChanged())"
-                                      aria-describedby="phone-help" />
-                        <MudText id="phone-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("drawer.helperText.telefono", "Numero di telefono")
-                        </MudText>
-                    </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="_facility!.Phone"
+                                              Label="@TranslationService.GetTranslation("drawer.field.telefono", "Telefono")"
+                                              Variant="Variant.Outlined"
+                                              MaxLength="30"
+                                              @bind-Value:after="@MarkChanged"
+                                              aria-describedby="phone-help" />
+                                <MudText id="phone-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                                    @TranslationService.GetTranslation("drawer.helperText.telefono", "Numero di telefono")
+                                </MudText>
+                            </MudItem>
 
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="_facility!.Email"
-                                      Label="@TranslationService.GetTranslation("drawer.field.email", "Email")"
-                                      Variant="Variant.Outlined"
-                                      MaxLength="100"
-                                      InputType="InputType.Email"
-                                      OnBlur="@(() => MarkChanged())"
-                                      aria-describedby="email-help" />
-                        <MudText id="email-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("drawer.helperText.email", "Indirizzo email")
-                        </MudText>
-                    </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="_facility!.Email"
+                                              Label="@TranslationService.GetTranslation("drawer.field.email", "Email")"
+                                              Variant="Variant.Outlined"
+                                              MaxLength="100"
+                                              InputType="InputType.Email"
+                                              @bind-Value:after="@MarkChanged"
+                                              aria-describedby="email-help" />
+                                <MudText id="email-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                                    @TranslationService.GetTranslation("drawer.helperText.email", "Indirizzo email")
+                                </MudText>
+                            </MudItem>
 
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="_facility!.Manager"
-                                      Label="@TranslationService.GetTranslation("drawer.field.responsabile", "Responsabile")"
-                                      Variant="Variant.Outlined"
-                                      MaxLength="100"
-                                      OnBlur="@(() => MarkChanged())"
-                                      aria-describedby="manager-help" />
-                        <MudText id="manager-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("drawer.helperText.responsabile", "Nome del responsabile")
-                        </MudText>
-                    </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="_facility!.Manager"
+                                              Label="@TranslationService.GetTranslation("drawer.field.responsabile", "Responsabile")"
+                                              Variant="Variant.Outlined"
+                                              MaxLength="100"
+                                              @bind-Value:after="@MarkChanged"
+                                              aria-describedby="manager-help" />
+                                <MudText id="manager-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                                    @TranslationService.GetTranslation("drawer.helperText.responsabile", "Nome del responsabile")
+                                </MudText>
+                            </MudItem>
 
-                    <MudItem xs="12" md="6">
-                        <MudNumericField @bind-Value="_facility!.AreaSquareMeters"
-                                         Label="@TranslationService.GetTranslation("drawer.field.superficieMq", "Superficie (m²)")"
-                                         Variant="Variant.Outlined"
-                                         Min="0"
-                                         OnBlur="@(() => MarkChanged())"
-                                         aria-describedby="area-help" />
-                        <MudText id="area-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("drawer.helperText.superficieMq", "Superficie in metri quadrati")
-                        </MudText>
-                    </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudNumericField @bind-Value="_facility!.AreaSquareMeters"
+                                                 Label="@TranslationService.GetTranslation("drawer.field.superficieMq", "Superficie (m²)")"
+                                                 Variant="Variant.Outlined"
+                                                 Min="0"
+                                                 @bind-Value:after="@MarkChanged"
+                                                 aria-describedby="area-help" />
+                                <MudText id="area-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                                    @TranslationService.GetTranslation("drawer.helperText.superficieMq", "Superficie in metri quadrati")
+                                </MudText>
+                            </MudItem>
 
-                    <MudItem xs="12" md="6">
-                        <MudNumericField @bind-Value="_facility!.Capacity"
-                                         Label="@TranslationService.GetTranslation("drawer.field.capacitaMassima", "Capacità Massima")"
-                                         Variant="Variant.Outlined"
-                                         Min="0"
-                                         OnBlur="@(() => MarkChanged())"
-                                         aria-describedby="capacity-help" />
-                        <MudText id="capacity-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("drawer.helperText.capacitaMassima", "Capacità massima del magazzino")
-                        </MudText>
-                    </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudNumericField @bind-Value="_facility!.Capacity"
+                                                 Label="@TranslationService.GetTranslation("drawer.field.capacitaMassima", "Capacità Massima")"
+                                                 Variant="Variant.Outlined"
+                                                 Min="0"
+                                                 @bind-Value:after="@MarkChanged"
+                                                 aria-describedby="capacity-help" />
+                                <MudText id="capacity-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                                    @TranslationService.GetTranslation("drawer.helperText.capacitaMassima", "Capacità massima del magazzino")
+                                </MudText>
+                            </MudItem>
 
-                    <MudItem xs="12" md="6">
-                        <MudSwitch @bind-Value="_facility!.IsFiscal"
-                                   @bind-Value:after="@(() => MarkChanged())"
-                                   Label="@TranslationService.GetTranslation("drawer.field.magazzinoFiscale", "Magazzino Fiscale")"
-                                   Color="Color.Primary"
-                                   aria-describedby="fiscal-help" />
-                        <MudText id="fiscal-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("drawer.helperText.magazzinoFiscale", "Se il magazzino è fiscale")
-                        </MudText>
-                    </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudSwitch @bind-Value="_facility!.IsFiscal"
+                                           @bind-Value:after="@MarkChanged"
+                                           Label="@TranslationService.GetTranslation("drawer.field.magazzinoFiscale", "Magazzino Fiscale")"
+                                           Color="Color.Primary"
+                                           aria-describedby="fiscal-help" />
+                                <MudText id="fiscal-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                                    @TranslationService.GetTranslation("drawer.helperText.magazzinoFiscale", "Se il magazzino è fiscale")
+                                </MudText>
+                            </MudItem>
 
-                    <MudItem xs="12" md="6">
-                        <MudSwitch @bind-Value="_facility!.IsRefrigerated"
-                                   @bind-Value:after="@(() => MarkChanged())"
-                                   Label="@TranslationService.GetTranslation("drawer.field.magazzinoRefrigerato", "Magazzino Refrigerato")"
-                                   Color="Color.Primary"
-                                   aria-describedby="refrigerated-help" />
-                        <MudText id="refrigerated-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("drawer.helperText.magazzinoRefrigerato", "Se il magazzino è refrigerato")
-                        </MudText>
-                    </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudSwitch @bind-Value="_facility!.IsRefrigerated"
+                                           @bind-Value:after="@MarkChanged"
+                                           Label="@TranslationService.GetTranslation("drawer.field.magazzinoRefrigerato", "Magazzino Refrigerato")"
+                                           Color="Color.Primary"
+                                           aria-describedby="refrigerated-help" />
+                                <MudText id="refrigerated-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                                    @TranslationService.GetTranslation("drawer.helperText.magazzinoRefrigerato", "Se il magazzino è refrigerato")
+                                </MudText>
+                            </MudItem>
 
-                    <MudItem xs="12">
-                        <MudTextField @bind-Value="_facility!.Notes"
-                                      Label="@TranslationService.GetTranslation("drawer.field.note", "Note")"
-                                      Variant="Variant.Outlined"
-                                      Lines="3"
-                                      MaxLength="500"
-                                      OnBlur="@(() => MarkChanged())"
-                                      aria-describedby="notes-help" />
-                        <MudText id="notes-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("drawer.helperText.noteMagazzino", "Note aggiuntive")
-                        </MudText>
-                    </MudItem>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_facility!.Notes"
+                                              Label="@TranslationService.GetTranslation("drawer.field.note", "Note")"
+                                              Variant="Variant.Outlined"
+                                              Lines="3"
+                                              MaxLength="500"
+                                              @bind-Value:after="@MarkChanged"
+                                              aria-describedby="notes-help" />
+                                <MudText id="notes-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                                    @TranslationService.GetTranslation("drawer.helperText.noteMagazzino", "Note aggiuntive")
+                                </MudText>
+                            </MudItem>
 
-                    @if (!_isCreateMode && _facility != null)
-                    {
-                        <MudItem xs="12" md="6">
-                            <MudTextField Value="@_facility.Id.ToString()"
-                                          Label="@TranslationService.GetTranslation("drawer.field.id", "ID")"
-                                          Variant="Variant.Outlined"
-                                          ReadOnly="true"
-                                          aria-label="@TranslationService.GetTranslation("drawer.aria.identificativoUnico", "Identificativo unico")" />
-                        </MudItem>
-                    }
-                </MudGrid>
-            </MudForm>
+                            @if (!_isCreateMode && _facility != null)
+                            {
+                                <MudItem xs="12" md="6">
+                                    <MudTextField Value="@_facility.Id.ToString()"
+                                                  Label="@TranslationService.GetTranslation("drawer.field.id", "ID")"
+                                                  Variant="Variant.Outlined"
+                                                  ReadOnly="true"
+                                                  aria-label="@TranslationService.GetTranslation("drawer.aria.identificativoUnico", "Identificativo unico")" />
+                                </MudItem>
+                            }
+                        </MudGrid>
+                    </MudForm>
+                </MudTabPanel>
+
+                @if (!_isCreateMode)
+                {
+                    <MudTabPanel Text="@TranslationService.GetTranslation("warehouse.locations", "Ubicazioni")" Icon="@Icons.Material.Filled.Place" BadgeData="@_storageLocations?.Count()" BadgeDot="@(_storageLocations?.Any() ?? false)">
+                        <MudStack Spacing="3">
+                            @if (_isLoadingLocations)
+                            {
+                                <div class="d-flex justify-center pa-4">
+                                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                                </div>
+                            }
+                            else if (_storageLocations?.Any() == true)
+                            {
+                                <MudText Typo="Typo.h6" Class="mb-2">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Place" Class="mr-2" />
+                                    @TranslationService.GetTranslation("warehouse.storageLocations", "Ubicazioni di Magazzino")
+                                </MudText>
+                                
+                                <MudTable Items="@_storageLocations" Hover="true" Striped="true" Dense="false" Elevation="0">
+                                    <HeaderContent>
+                                        <MudTh>@TranslationService.GetTranslation("warehouse.locationCode", "Codice")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("warehouse.locationDescription", "Descrizione")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("warehouse.locationType", "Tipo")</MudTh>
+                                        <MudTh Class="text-right">@TranslationService.GetTranslation("warehouse.capacity", "Capacità")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("common.status", "Stato")</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd DataLabel="Codice">
+                                            <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.Code</MudText>
+                                        </MudTd>
+                                        <MudTd DataLabel="Descrizione">
+                                            <MudText Typo="Typo.body2">@(context.Description ?? "-")</MudText>
+                                        </MudTd>
+                                        <MudTd DataLabel="Tipo">
+                                            <MudChip T="string" Size="Size.Small" Color="@(context.IsRefrigerated ? Color.Info : Color.Default)">
+                                                @(context.IsRefrigerated ? TranslationService.GetTranslation("warehouse.refrigerated", "Refrigerato") : TranslationService.GetTranslation("warehouse.standard", "Standard"))
+                                            </MudChip>
+                                        </MudTd>
+                                        <MudTd DataLabel="Capacità" Class="text-right">
+                                            <MudText Typo="Typo.body2">@(context.Capacity?.ToString("N2") ?? "-")</MudText>
+                                        </MudTd>
+                                        <MudTd DataLabel="Stato">
+                                            <MudChip T="string" Size="Size.Small" Color="@(context.IsActive ? Color.Success : Color.Default)">
+                                                @(context.IsActive ? TranslationService.GetTranslation("common.active", "Attivo") : TranslationService.GetTranslation("common.inactive", "Inattivo"))
+                                            </MudChip>
+                                        </MudTd>
+                                    </RowTemplate>
+                                    <PagerContent>
+                                        <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+                                    </PagerContent>
+                                </MudTable>
+                            }
+                            else
+                            {
+                                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-4">
+                                    <MudText Typo="Typo.body1">
+                                        @TranslationService.GetTranslation("warehouse.noLocations", "Nessuna ubicazione configurata per questo magazzino.")
+                                    </MudText>
+                                </MudAlert>
+                            }
+                        </MudStack>
+                    </MudTabPanel>
+                }
+            </MudTabs>
         </MudPaper>
     }
 </MudContainer>
@@ -234,9 +302,14 @@
     private bool _isCreateMode => FacilityId == null || FacilityId == Guid.Empty;
     private bool _isSaving = false;
     private MudForm? _form;
+    private int _activeTab = 0;
 
     private string _originalFacilitySnapshot = string.Empty;
     private bool _hasLocalChanges = false;
+
+    // Storage locations for this facility
+    private List<StorageLocationDto>? _storageLocations;
+    private bool _isLoadingLocations = false;
 
     private static readonly System.Text.Json.JsonSerializerOptions _jsonOptions = new()
     {
@@ -272,6 +345,8 @@
                 if (_facility != null)
                 {
                     _originalFacilitySnapshot = SerializeFacility(_facility);
+                    // Load storage locations for this facility
+                    await LoadStorageLocationsAsync();
                 }
             }
         }
@@ -284,6 +359,33 @@
         {
             _isLoading = false;
             _hasLocalChanges = false;
+        }
+    }
+
+    private async Task LoadStorageLocationsAsync()
+    {
+        if (!FacilityId.HasValue) return;
+
+        _isLoadingLocations = true;
+        try
+        {
+            var result = await StorageLocationService.GetStorageLocationsAsync(1, 1000);
+            if (result?.Items != null)
+            {
+                // Filter locations for this facility
+                _storageLocations = result.Items
+                    .Where(l => l.WarehouseId == FacilityId.Value)
+                    .ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading storage locations for facility {FacilityId}", FacilityId);
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.loadLocationsError", "Errore nel caricamento ubicazioni"), Severity.Error);
+        }
+        finally
+        {
+            _isLoadingLocations = false;
         }
     }
 
