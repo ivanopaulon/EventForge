@@ -16,11 +16,7 @@
     <PageLoadingOverlay IsVisible="_isLoading || _isLoadingDocumentTypes"
                         Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-    @if (_isLoading)
-    {
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-    }
-    else
+    @if (!_isLoading)
     {
         <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4">
             <div class="d-flex justify-space-between align-center mb-4">

@@ -24,17 +24,16 @@
 @inject ILogger<ProductDetail> Logger
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    @if (_isLoading)
-    {
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-    }
-    else if (_product == null)
+    <PageLoadingOverlay IsVisible="_isLoading || _isSaving"
+                        Message="@(_isSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
+    @if (!_isLoading && _product == null)
     {
         <MudAlert Severity="Severity.Error">
             @TranslationService.GetTranslation("product.notFound", "Prodotto non trovato")
         </MudAlert>
     }
-    else
+    else if (!_isLoading)
     {
         <!-- Page Header -->
         <MudPaper Elevation="2" Class="pa-4 mb-4">

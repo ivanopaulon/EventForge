@@ -14,17 +14,17 @@
 <PageTitle>@TranslationService.GetTranslation("warehouse.lotManagement", "Gestione Lotti")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <MudText Typo="Typo.h4" Class="mb-4">
-        <MudIcon Icon="@Icons.Material.Outlined.QrCode" Class="mr-2" Size="Size.Medium" />
-        @TranslationService.GetTranslation("warehouse.lotManagement", "Gestione Lotti")
-    </MudText>
+    <PageLoadingOverlay IsVisible="_isLoading"
+                        Message="@TranslationService.GetTranslation("common.loading", "Caricamento...")" />
 
-    @if (_isLoading)
+    @if (!_isLoading)
     {
-        <MudProgressLinear Indeterminate="true" Class="mb-4" />
-    }
+        <MudText Typo="Typo.h4" Class="mb-4">
+            <MudIcon Icon="@Icons.Material.Outlined.QrCode" Class="mr-2" Size="Size.Medium" />
+            @TranslationService.GetTranslation("warehouse.lotManagement", "Gestione Lotti")
+        </MudText>
 
-    <!-- Statistics and Filters Section -->
+        <!-- Statistics and Filters Section -->
     <MudPaper Elevation="1" Class="pa-4 mb-4">
         <MudGrid Spacing="3">
             <!-- Quick Stats -->
@@ -235,6 +235,7 @@
                            SelectedChanged="@OnPageChanged" />
         }
     </MudPaper>
+    }
 </MudContainer>
 
 @code {
