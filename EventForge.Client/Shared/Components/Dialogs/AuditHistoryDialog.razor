@@ -1,0 +1,163 @@
+@using MudBlazor
+@inject ITranslationService TranslationService
+
+<MudDialog @bind-IsOpen="@IsOpen" 
+           Options="@_dialogOptions"
+           Class="audit-history-dialog">
+    <TitleContent>
+        <MudAppBar Elevation="1" Class="audit-history-appbar">
+            <MudIcon Icon="@Icons.Material.Outlined.History" Class="mr-3" />
+            <MudText Typo="Typo.h6">
+                @TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche")
+            </MudText>
+            @if (!string.IsNullOrEmpty(EntityName))
+            {
+                <MudText Typo="Typo.body2" Class="ml-2 mud-text-secondary">
+                    - @EntityName
+                </MudText>
+            }
+            <MudSpacer />
+            <MudIconButton Icon="@Icons.Material.Outlined.Close"
+                           Color="Color.Inherit"
+                           OnClick="@CloseDialog"
+                           aria-label="@TranslationService.GetTranslation("button.close", "Chiudi")" />
+        </MudAppBar>
+    </TitleContent>
+    <DialogContent>
+        <div class="audit-history-content pa-4">
+            <PageLoadingOverlay IsVisible="@IsLoading"
+                                Message="@TranslationService.GetTranslation("audit.loadingHistory", "Caricamento cronologia...")" />
+            
+            @if (!IsLoading)
+            {
+                @if (ContentTemplate != null)
+                {
+                    @ContentTemplate
+                }
+                else
+                {
+                    <!-- Default placeholder content -->
+                    <div class="d-flex flex-column align-center justify-center pa-8">
+                        <MudIcon Icon="@Icons.Material.Outlined.HistoryToggleOff"
+                                 Size="Size.Large"
+                                 Color="Color.Default"
+                                 Class="mb-4" />
+                        <MudText Typo="Typo.h6" Align="Align.Center" Class="mb-2">
+                            @TranslationService.GetTranslation("audit.noHistoryAvailable", "Nessuna cronologia disponibile")
+                        </MudText>
+                        <MudText Typo="Typo.body2" Align="Align.Center" Class="mud-text-secondary">
+                            @TranslationService.GetTranslation("audit.noHistoryDescription", "Non sono state trovate modifiche per questo elemento.")
+                        </MudText>
+                    </div>
+                }
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text"
+                   Color="Color.Secondary"
+                   OnClick="@CloseDialog"
+                   StartIcon="@Icons.Material.Outlined.Close">
+            @TranslationService.GetTranslation("button.close", "Chiudi")
+        </MudButton>
+        
+        @if (ActionButtons != null)
+        {
+            @ActionButtons
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private DialogOptions _dialogOptions = new DialogOptions
+    {
+        MaxWidth = MaxWidth.Large,
+        FullWidth = true,
+        CloseButton = false,
+        Position = DialogPosition.Center,
+        CloseOnEscapeKey = true
+    };
+    
+    /// <summary>
+    /// Controls the visibility of the dialog.
+    /// </summary>
+    [Parameter]
+    public bool IsOpen { get; set; }
+    
+    /// <summary>
+    /// Event callback for when IsOpen changes.
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> IsOpenChanged { get; set; }
+    
+    /// <summary>
+    /// Type of entity being audited (e.g., "Event", "Tenant", "Product").
+    /// </summary>
+    [Parameter]
+    public string EntityType { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// ID of the entity being audited.
+    /// </summary>
+    [Parameter]
+    public Guid? EntityId { get; set; }
+    
+    /// <summary>
+    /// Display name of the entity being audited.
+    /// </summary>
+    [Parameter]
+    public string EntityName { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Shows loading overlay while data is being fetched.
+    /// </summary>
+    [Parameter]
+    public bool IsLoading { get; set; } = false;
+    
+    /// <summary>
+    /// Custom content template for the dialog body.
+    /// If not provided, shows a default placeholder.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ContentTemplate { get; set; }
+    
+    /// <summary>
+    /// Additional action buttons to display in the dialog footer.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ActionButtons { get; set; }
+    
+    /// <summary>
+    /// Callback invoked when the dialog is closed.
+    /// </summary>
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+    
+    private async Task CloseDialog()
+    {
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(false);
+        
+        if (OnClose.HasDelegate)
+        {
+            await OnClose.InvokeAsync();
+        }
+    }
+}
+
+<style>
+    .audit-history-dialog {
+        min-height: 80vh;
+    }
+    
+    .audit-history-appbar {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+    
+    .audit-history-content {
+        position: relative;
+        min-height: 400px;
+    }
+</style>

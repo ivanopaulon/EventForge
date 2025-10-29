@@ -128,14 +128,20 @@
     "modifiedBy": "Modificato da",
     "newValue": "Nuovo valore",
     "noHistory": "Nessuna cronologia",
-    "noHistoryDescription": "Non ci sono modifiche registrate per questo elemento",
+    "noHistoryDescription": "Non sono state trovate modifiche per questo elemento.",
     "noMatchingHistory": "Nessuna cronologia corrispondente",
     "noMatchingHistoryDescription": "Nessun record corrisponde ai filtri applicati",
     "oldValue": "Valore precedente",
     "operationType": "Tipo operazione",
     "toDate": "A data",
     "updated": "Aggiornato",
-    "userPlaceholder": "Seleziona utente..."
+    "userPlaceholder": "Seleziona utente...",
+    "historyDialog": {
+      "title": "Cronologia Modifiche"
+    },
+    "noHistoryAvailable": "Nessuna cronologia disponibile",
+    "viewHistory": "Visualizza Cronologia",
+    "noChangesFound": "Nessuna modifica trovata"
   },
   "auditLog": {
     "advancedFilters": "Filtri avanzati",
@@ -323,7 +329,8 @@
     "confirmDeleteSupplier": "Sei sicuro di voler eliminare questo fornitore?",
     "confirmDeleteCode": "Sei sicuro di voler eliminare questo codice?",
     "confirmDeleteUnit": "Sei sicuro di voler eliminare questa unità di misura?",
-    "confirmDeleteBundleItem": "Sei sicuro di voler eliminare questo componente?"
+    "confirmDeleteBundleItem": "Sei sicuro di voler eliminare questo componente?",
+    "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} elementi?"
   },
   "drawer": {
     "aria": {
@@ -588,7 +595,7 @@
     "adminRoleRequired": "Non hai i permessi per accedere a questa pagina. È richiesto il ruolo di amministratore.",
     "apiLimitExceeded": "Limite API superato",
     "connectionError": "Errore di connessione al server. Verificare la connessione di rete.",
-    "deleteFailed": "Eliminazione fallita",
+    "deleteFailed": "Errore nell'eliminazione: {0}",
     "eventCategoryCreateFailed": "Errore durante la creazione della categoria evento",
     "eventCategoryUpdateFailed": "Errore durante l'aggiornamento della categoria evento",
     "eventCreateFailed": "Errore durante la creazione dell'evento",
@@ -614,7 +621,9 @@
     "title": "Si è verificato un errore",
     "type": "Tipo",
     "unauthorizedOperation": "Non si dispone delle autorizzazioni necessarie per questa operazione.",
-    "unexpectedError": "Si è verificato un errore imprevisto. Riprovare o contattare l'assistenza se il problema persiste."
+    "unexpectedError": "Si è verificato un errore imprevisto. Riprovare o contattare l'assistenza se il problema persiste.",
+    "loadingData": "Errore nel caricamento: {0}",
+    "loadingAuditHistory": "Errore nel caricamento della cronologia: {0}"
   },
   "eventStatus": {
     "cancelled": "Annullato",
@@ -955,7 +964,9 @@
     "noCodes": "Nessun codice alternativo disponibile",
     "noUnits": "Nessuna unità di misura alternativa disponibile",
     "noBundleItems": "Nessun componente disponibile",
-    "featureNotImplemented": "Funzionalità non ancora implementata"
+    "featureNotImplemented": "Funzionalità non ancora implementata",
+    "exportInProgress": "Esportazione in corso...",
+    "importInProgress": "Importazione in corso..."
   },
   "mobileBadge": {
     "activities": "Attività",
@@ -1391,7 +1402,8 @@
     "eventCreated": "Evento creato con successo",
     "eventTypeCreated": "Tipo evento creato con successo",
     "eventTypeUpdated": "Tipo evento aggiornato con successo",
-    "eventUpdated": "Evento aggiornato con successo"
+    "eventUpdated": "Evento aggiornato con successo",
+    "deleteCompleted": "Eliminazione completata"
   },
   "superAdmin": {
     "accessDeniedSuperAdmin": "Accesso negato. È richiesto il ruolo Super Amministratore.",
@@ -2364,5 +2376,15 @@
     "customer": "Cliente",
     "supplier": "Fornitore",
     "both": "Entrambi"
+  },
+  "toolbar": {
+    "itemsSelected": "{0} elementi selezionati"
+  },
+  "button": {
+    "cancel": "Annulla",
+    "close": "Chiudi",
+    "create": "Crea",
+    "delete": "Elimina",
+    "save": "Salva"
   }
 }
