@@ -80,7 +80,7 @@
                                       RequiredError="@TranslationService.GetTranslation("drawer.error.nomeAliquotaIvaObbligatorio", "Il nome dell'aliquota IVA è obbligatorio")"
                                       MaxLength="50"
                                       Immediate="true"
-                                      OnBlur="@(() => MarkChanged())"
+                                      OnBlur="@HandleBlur"
                                       aria-describedby="name-help" />
                         <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
                             @TranslationService.GetTranslation("drawer.helperText.nomeAliquotaIva", "Inserisci il nome dell'aliquota IVA")
@@ -95,7 +95,7 @@
                                          Max="100"
                                          Required="true"
                                          Immediate="true"
-                                         OnBlur="@(() => MarkChanged())"
+                                         OnBlur="@HandleBlur"
                                          aria-describedby="percentage-help" />
                         <MudText id="percentage-help" Typo="Typo.caption" Class="mud-input-helper-text">
                             @TranslationService.GetTranslation("drawer.helperText.percentualeAliquotaIva", "Inserisci la percentuale dell'aliquota IVA (0-100)")
@@ -107,7 +107,7 @@
                                    Label="@($"{TranslationService.GetTranslation("drawer.field.stato", "Stato")} *")"
                                    Variant="Variant.Outlined"
                                    Required="true"
-                                   OnBlur="@(() => MarkChanged())"
+                                   OnBlur="@HandleBlur"
                                    aria-describedby="status-help">
                             <MudSelectItem Value="@VatRateStatus.Active">@TranslationService.GetTranslation("drawer.status.attivo", "Attivo")</MudSelectItem>
                             <MudSelectItem Value="@VatRateStatus.Suspended">@TranslationService.GetTranslation("drawer.status.sospeso", "Sospeso")</MudSelectItem>
@@ -122,7 +122,7 @@
                         <MudDatePicker @bind-Date="_validFrom"
                                        Label="@TranslationService.GetTranslation("drawer.field.validoDa", "Valido Da")"
                                        Variant="Variant.Outlined"
-                                       OnBlur="@(() => MarkChanged())"
+                                       OnBlur="@HandleBlur"
                                        aria-describedby="validFrom-help" />
                         <MudText id="validFrom-help" Typo="Typo.caption" Class="mud-input-helper-text">
                             @TranslationService.GetTranslation("drawer.helperText.validoDa", "Data di inizio validità")
@@ -133,7 +133,7 @@
                         <MudDatePicker @bind-Date="_validTo"
                                        Label="@TranslationService.GetTranslation("drawer.field.validoA", "Valido A")"
                                        Variant="Variant.Outlined"
-                                       OnBlur="@(() => MarkChanged())"
+                                       OnBlur="@HandleBlur"
                                        aria-describedby="validTo-help" />
                         <MudText id="validTo-help" Typo="Typo.caption" Class="mud-input-helper-text">
                             @TranslationService.GetTranslation("drawer.helperText.validoA", "Data di fine validità")
@@ -146,7 +146,7 @@
                                    Label="@TranslationService.GetTranslation("drawer.field.naturaIva", "Natura IVA")"
                                    Variant="Variant.Outlined"
                                    Clearable="true"
-                                   OnBlur="@(() => MarkChanged())"
+                                   OnBlur="@HandleBlur"
                                    aria-describedby="vatNature-help">
                             @foreach (var nature in _vatNatures)
                             {
@@ -164,7 +164,7 @@
                                       Variant="Variant.Outlined"
                                       Lines="3"
                                       MaxLength="200"
-                                      OnBlur="@(() => MarkChanged())"
+                                      OnBlur="@HandleBlur"
                                       aria-describedby="notes-help" />
                         <MudText id="notes-help" Typo="Typo.caption" Class="mud-input-helper-text">
                             @TranslationService.GetTranslation("drawer.helperText.noteAliquotaIva", "Note aggiuntive")
@@ -331,6 +331,11 @@
     {
         _hasLocalChanges = true;
         StateHasChanged();
+    }
+
+    private void HandleBlur(FocusEventArgs args)
+    {
+        MarkChanged();
     }
 
     private string SerializeVatRate(VatRateDto? vatRate)
