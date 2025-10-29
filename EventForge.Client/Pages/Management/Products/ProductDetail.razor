@@ -1,4 +1,5 @@
 @page "/product-management/products/{ProductId:guid}"
+@page "/product-management/products/{ProductIdString}"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.Common
@@ -46,7 +47,7 @@
                                        Size="Size.Small" />
                         <MudText Typo="Typo.h4">
                             <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Class="mr-2" />
-                            @_product.Name
+                            @(_isNewProduct ? TranslationService.GetTranslation("product.newProduct", "Nuovo Prodotto") : _product.Name)
                         </MudText>
                         <MudChip T="string" Size="Size.Small" Color="GetStatusColor(_product.Status)">
                             @GetStatusText(_product.Status)
@@ -59,9 +60,12 @@
                             </MudChip>
                         }
                     </div>
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                        @TranslationService.GetTranslation("field.code", "Codice"): @_product.Code
-                    </MudText>
+                    @if (!_isNewProduct)
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                            @TranslationService.GetTranslation("field.code", "Codice"): @_product.Code
+                        </MudText>
+                    }
                 </div>
                 <div class="d-flex gap-2">
                     <!-- Page now ALWAYS in edit mode -->
@@ -123,13 +127,15 @@
 </MudContainer>
 
 @code {
-    [Parameter] public Guid ProductId { get; set; }
+    [Parameter] public Guid? ProductId { get; set; }
+    [Parameter] public string? ProductIdString { get; set; }
 
     private ProductDto? _product;
     private bool _isLoading = true;
     private bool _isEditMode = true;
     private bool _isSaving = false;
     private int _activeTab = 0;
+    private bool _isNewProduct = false;
 
     private IEnumerable<ProductCodeDto>? _productCodes;
     private IEnumerable<ProductUnitDto>? _productUnits;
@@ -153,8 +159,26 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (_product?.Id != ProductId)
+        var currentId = GetCurrentProductId();
+        if (_product?.Id != currentId || _isNewProduct)
             await LoadProductAsync();
+    }
+
+    private Guid GetCurrentProductId()
+    {
+        if (ProductId.HasValue)
+            return ProductId.Value;
+        
+        if (string.IsNullOrEmpty(ProductIdString))
+            return Guid.Empty;
+        
+        if (ProductIdString.Equals("new", StringComparison.OrdinalIgnoreCase))
+            return Guid.Empty;
+        
+        if (Guid.TryParse(ProductIdString, out var parsedGuid))
+            return parsedGuid;
+        
+        return Guid.Empty;
     }
 
     private async Task LoadProductAsync()
@@ -162,19 +186,43 @@
         _isLoading = true;
         try
         {
-            // Prefer detailed payload if available on client service
-            var productResult = await ProductService.GetProductDetailAsync(ProductId) ?? await ProductService.GetProductByIdAsync(ProductId);
-            _product = productResult;
-
-            if (_product != null)
+            var productId = GetCurrentProductId();
+            
+            // Check if this is a new product
+            if (productId == Guid.Empty)
             {
-                await LoadRelatedEntitiesAsync();
+                _isNewProduct = true;
+                _product = new ProductDto
+                {
+                    Id = Guid.Empty,
+                    Code = string.Empty,
+                    Name = string.Empty,
+                    ShortDescription = string.Empty,
+                    Description = string.Empty,
+                    Status = ProductStatus.Active,
+                    IsVatIncluded = false,
+                    IsBundle = false,
+                    DefaultPrice = null
+                };
                 _originalProductSnapshot = SerializeProduct(_product);
+            }
+            else
+            {
+                _isNewProduct = false;
+                // Prefer detailed payload if available on client service
+                var productResult = await ProductService.GetProductDetailAsync(productId) ?? await ProductService.GetProductByIdAsync(productId);
+                _product = productResult;
+
+                if (_product != null)
+                {
+                    await LoadRelatedEntitiesAsync();
+                    _originalProductSnapshot = SerializeProduct(_product);
+                }
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading product {ProductId}", ProductId);
+            Logger.LogError(ex, "Error loading product {ProductId}", GetCurrentProductId());
             Snackbar.Add(TranslationService.GetTranslation("product.loadError", "Errore nel caricamento del prodotto"), Severity.Error);
         }
         finally
@@ -185,21 +233,32 @@
 
     private async Task LoadRelatedEntitiesAsync()
     {
+        if (_isNewProduct)
+        {
+            // Initialize empty collections for new product
+            _productCodes = new List<ProductCodeDto>();
+            _productUnits = new List<ProductUnitDto>();
+            _productSuppliers = new List<ProductSupplierDto>();
+            _bundleItems = new List<ProductBundleItemDto>();
+            return;
+        }
+
         try
         {
-            var codesTask = ProductService.GetProductCodesAsync(ProductId);
-            var unitsTask = ProductService.GetProductUnitsAsync(ProductId);
-            var suppliersTask = ProductService.GetProductSuppliersAsync(ProductId);
+            var productId = GetCurrentProductId();
+            var codesTask = ProductService.GetProductCodesAsync(productId);
+            var unitsTask = ProductService.GetProductUnitsAsync(productId);
+            var suppliersTask = ProductService.GetProductSuppliersAsync(productId);
             await Task.WhenAll(codesTask, unitsTask, suppliersTask);
             _productCodes = codesTask.Result;
             _productUnits = unitsTask.Result;
             _productSuppliers = suppliersTask.Result;
             if (_product?.IsBundle == true)
-                _bundleItems = await ProductService.GetProductBundleItemsAsync(ProductId);
+                _bundleItems = await ProductService.GetProductBundleItemsAsync(productId);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading related entities for product {ProductId}", ProductId);
+            Logger.LogError(ex, "Error loading related entities for product {ProductId}", GetCurrentProductId());
         }
     }
 
@@ -209,44 +268,87 @@
         _isSaving = true;
         try
         {
-            var dto = new UpdateProductDto
+            if (_isNewProduct)
             {
-                Name = _product.Name,
-                ShortDescription = _product.ShortDescription,
-                Description = _product.Description,
-                Status = _product.Status,
-                IsVatIncluded = _product.IsVatIncluded,
-                DefaultPrice = _product.DefaultPrice,
-                VatRateId = _product.VatRateId,
-                UnitOfMeasureId = _product.UnitOfMeasureId,
-                CategoryNodeId = _product.CategoryNodeId,
-                FamilyNodeId = _product.FamilyNodeId,
-                GroupNodeId = _product.GroupNodeId,
-                StationId = _product.StationId,
-                BrandId = _product.BrandId,
-                ModelId = _product.ModelId,
-                PreferredSupplierId = _product.PreferredSupplierId,
-                ReorderPoint = _product.ReorderPoint,
-                SafetyStock = _product.SafetyStock,
-                TargetStockLevel = _product.TargetStockLevel,
-                AverageDailyDemand = _product.AverageDailyDemand,
-                ImageDocumentId = _product.ImageDocumentId
-            };
+                // Create new product
+                var createDto = new CreateProductDto
+                {
+                    Code = _product.Code,
+                    Name = _product.Name,
+                    ShortDescription = _product.ShortDescription,
+                    Description = _product.Description,
+                    Status = _product.Status,
+                    IsVatIncluded = _product.IsVatIncluded,
+                    DefaultPrice = _product.DefaultPrice,
+                    VatRateId = _product.VatRateId,
+                    UnitOfMeasureId = _product.UnitOfMeasureId,
+                    CategoryNodeId = _product.CategoryNodeId,
+                    FamilyNodeId = _product.FamilyNodeId,
+                    GroupNodeId = _product.GroupNodeId,
+                    StationId = _product.StationId,
+                    BrandId = _product.BrandId,
+                    ModelId = _product.ModelId,
+                    PreferredSupplierId = _product.PreferredSupplierId,
+                    ReorderPoint = _product.ReorderPoint,
+                    SafetyStock = _product.SafetyStock,
+                    TargetStockLevel = _product.TargetStockLevel,
+                    AverageDailyDemand = _product.AverageDailyDemand
+                };
 
-            var updated = await ProductService.UpdateProductAsync(ProductId, dto);
-            if (updated != null)
-            {
-                Snackbar.Add(TranslationService.GetTranslation("product.saveSuccess", "Prodotto salvato con successo"), Severity.Success);
-                await LoadProductAsync(); // refresh and reset snapshot
+                var created = await ProductService.CreateProductAsync(createDto);
+                if (created != null)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("product.createSuccess", "Prodotto creato con successo"), Severity.Success);
+                    // Navigate to the newly created product's detail page
+                    NavigationManager.NavigateTo($"/product-management/products/{created.Id}");
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("product.createError", "Errore nella creazione del prodotto"), Severity.Error);
+                }
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("product.saveError", "Errore nel salvataggio del prodotto"), Severity.Error);
+                // Update existing product
+                var updateDto = new UpdateProductDto
+                {
+                    Name = _product.Name,
+                    ShortDescription = _product.ShortDescription,
+                    Description = _product.Description,
+                    Status = _product.Status,
+                    IsVatIncluded = _product.IsVatIncluded,
+                    DefaultPrice = _product.DefaultPrice,
+                    VatRateId = _product.VatRateId,
+                    UnitOfMeasureId = _product.UnitOfMeasureId,
+                    CategoryNodeId = _product.CategoryNodeId,
+                    FamilyNodeId = _product.FamilyNodeId,
+                    GroupNodeId = _product.GroupNodeId,
+                    StationId = _product.StationId,
+                    BrandId = _product.BrandId,
+                    ModelId = _product.ModelId,
+                    PreferredSupplierId = _product.PreferredSupplierId,
+                    ReorderPoint = _product.ReorderPoint,
+                    SafetyStock = _product.SafetyStock,
+                    TargetStockLevel = _product.TargetStockLevel,
+                    AverageDailyDemand = _product.AverageDailyDemand,
+                    ImageDocumentId = _product.ImageDocumentId
+                };
+
+                var updated = await ProductService.UpdateProductAsync(GetCurrentProductId(), updateDto);
+                if (updated != null)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("product.saveSuccess", "Prodotto salvato con successo"), Severity.Success);
+                    await LoadProductAsync(); // refresh and reset snapshot
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("product.saveError", "Errore nel salvataggio del prodotto"), Severity.Error);
+                }
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error saving product {ProductId}", ProductId);
+            Logger.LogError(ex, "Error saving product {ProductId}", GetCurrentProductId());
             Snackbar.Add(TranslationService.GetTranslation("product.saveError", "Errore nel salvataggio del prodotto"), Severity.Error);
         }
         finally
