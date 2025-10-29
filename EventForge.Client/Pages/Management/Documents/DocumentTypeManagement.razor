@@ -61,29 +61,27 @@
 
             <!-- Document Types Data Table -->
             <MudPaper Elevation="1" Class="border-rounded">
-                <MudCardHeader Class="pa-2">
-                    <CardHeaderContent>
-                        <MudText Typo="Typo.h6">
-                            <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
-                            @TranslationService.GetTranslation("documentType.list", "Lista Tipi Documento")
-                            <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
-                                (@_filteredDocumentTypes.Count() @TranslationService.GetTranslation("common.itemsFound", "elementi trovati"))
-                            </MudText>
+                <div class="pa-2">
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
+                        @TranslationService.GetTranslation("documentType.list", "Lista Tipi Documento")
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                            (@_filteredDocumentTypes.Count() @TranslationService.GetTranslation("common.itemsFound", "elementi trovati"))
                         </MudText>
-                    </CardHeaderContent>
-                    <CardHeaderActions>
-                        <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
-                                           ShowRefresh="true"
-                                           ShowExport="false" 
-                                           ShowCreate="true"
-                                           ShowAuditLog="false"
-                                           CreateIcon="@Icons.Material.Outlined.Add"
-                                           CreateTooltip="@TranslationService.GetTranslation("documentType.createNew", "Crea nuovo tipo documento")"
-                                           IsDisabled="_isLoadingDocumentTypes"
-                                           OnRefresh="@LoadDocumentTypesAsync"
-                                           OnCreate="@CreateDocumentType" />
-                    </CardHeaderActions>
-                </MudCardHeader>
+                    </MudText>
+                    
+                    <ManagementTableToolbar ShowSelectionBadge="true"
+                                            SelectedCount="@_selectedDocumentTypes.Count"
+                                            ShowRefresh="true"
+                                            ShowCreate="true"
+                                            ShowDelete="true"
+                                            CreateLabel="documentType.create"
+                                            CreateTooltip="documentType.createNew"
+                                            IsDisabled="_isLoadingDocumentTypes"
+                                            OnRefresh="@LoadDocumentTypesAsync"
+                                            OnCreate="@CreateDocumentType"
+                                            OnDelete="@DeleteSelectedDocumentTypes" />
+                </div>
                 <MudCardContent Class="pa-1">
                     @if (_isLoadingDocumentTypes)
                     {
@@ -92,7 +90,9 @@
                     else
                     {
                         <MudTable T="DocumentTypeDto" 
-                                  Items="_filteredDocumentTypes" 
+                                  Items="_filteredDocumentTypes"
+                                  MultiSelection="true"
+                                  @bind-SelectedItems="_selectedDocumentTypes"
                                   Hover="true" 
                                   Striped="true"
                                   Loading="_isLoadingDocumentTypes"
@@ -193,6 +193,7 @@
 @code {
     private IEnumerable<DocumentTypeDto> _documentTypes = new List<DocumentTypeDto>();
     private IEnumerable<DocumentTypeDto> _filteredDocumentTypes = new List<DocumentTypeDto>();
+    private HashSet<DocumentTypeDto> _selectedDocumentTypes = new();
     private bool _isLoading = true;
     private bool _isLoadingDocumentTypes = false;
     private bool _auditDrawerOpen = false;
@@ -331,5 +332,69 @@
             BusinessPartyType.Both => TranslationService.GetTranslation("businessPartyType.both", "Entrambi"),
             _ => "-"
         };
+    }
+
+    /// <summary>
+    /// Deletes all selected document types.
+    /// </summary>
+    private async Task DeleteSelectedDocumentTypes()
+    {
+        if (_selectedDocumentTypes.Count == 0)
+            return;
+
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("documentType.confirmDeleteMultiple", 
+            "Sei sicuro di voler eliminare {0} tipi documento selezionati? Questa azione non può essere annullata.", 
+            _selectedDocumentTypes.Count);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                var deletedCount = 0;
+                var failedCount = 0;
+                
+                foreach (var documentType in _selectedDocumentTypes.ToList())
+                {
+                    try
+                    {
+                        await DocumentTypeService.DeleteDocumentTypeAsync(documentType.Id);
+                        deletedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failedCount++;
+                        Logger.LogError(ex, "Error deleting document type {DocumentTypeId}", documentType.Id);
+                    }
+                }
+                
+                _selectedDocumentTypes.Clear();
+                
+                if (failedCount == 0)
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("documentType.deletedMultiple", 
+                        "{0} tipi documento eliminati con successo!", deletedCount), Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("documentType.deletedMultiplePartial", 
+                        "{0} tipi documento eliminati, {1} falliti", deletedCount, failedCount), Severity.Warning);
+                }
+                
+                await LoadDocumentTypesAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslationFormatted("documentType.deleteError", 
+                    "Errore nell'eliminazione dei tipi documento: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting selected document types");
+            }
+        }
     }
 }
