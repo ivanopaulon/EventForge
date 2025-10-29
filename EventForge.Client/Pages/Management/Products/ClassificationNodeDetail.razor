@@ -193,15 +193,21 @@
                 </MudTabPanel>
 
                 <MudTabPanel Text="@TranslationService.GetTranslation("classificationNode.audit", "Audit")" Icon="@Icons.Material.Outlined.History">
-                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("messages.auditInDrawer", "Storia modifiche disponibile nell'audit drawer")</MudText>
-                    <MudButton Class="mt-3" OnClick="@OpenAuditDrawer">@TranslationService.GetTranslation("classificationNode.viewAudit", "Apri cronologia")</MudButton>
+                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("messages.auditFullscreen", "Storia modifiche disponibile in modalità fullscreen")</MudText>
+                    <MudButton Class="mt-3" 
+                               Variant="Variant.Filled" 
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Outlined.History"
+                               OnClick="@OpenAuditDialog">
+                        @TranslationService.GetTranslation("classificationNode.viewAudit", "Apri cronologia")
+                    </MudButton>
                 </MudTabPanel>
             </MudTabs>
         </MudPaper>
     }
 </MudContainer>
 
-<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+<AuditHistoryDialog @bind-IsOpen="_auditDialogOpen"
                     EntityType="ClassificationNode"
                     EntityId="@(_isCreateMode ? null : _node?.Id)"
                     EntityName="@(_isCreateMode ? null : _node?.Name)" />
@@ -214,7 +220,7 @@
     private bool _isSaving = false;
     private bool _isCreateMode = false;
     private bool _childrenLoading = false;
-    private bool _auditDrawerOpen = false;
+    private bool _auditDialogOpen = false;
     private int _activeTab = 0;
 
     private ClassificationNodeDto? _node;
@@ -600,9 +606,9 @@
         // else cancel
     }
 
-    private void OpenAuditDrawer()
+    private void OpenAuditDialog()
     {
-        _auditDrawerOpen = true;
+        _auditDialogOpen = true;
     }
 
     private string GetNodeDisplayName(ClassificationNodeDto node)
