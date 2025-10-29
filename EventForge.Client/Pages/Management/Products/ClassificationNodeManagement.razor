@@ -179,8 +179,8 @@
     }
 </MudContainer>
 
-<!-- Audit History Drawer (unico drawer autorizzato da policy) -->
-<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+<!-- Audit History Dialog -->
+<AuditHistoryDialog @bind-IsOpen="_auditDialogOpen"
                     EntityType="ClassificationNode"
                     EntityId="@_selectedNodeForAudit?.Id"
                     EntityName="@_selectedNodeForAudit?.Name" />
@@ -190,7 +190,7 @@
 
     private bool _isLoading = true;
     private bool _isLoadingNodes = false;
-    private bool _auditDrawerOpen = false;
+    private bool _auditDialogOpen = false;
     private ViewMode _viewMode = ViewMode.Tree;
 
     private ClassificationNodeDto? _selectedNodeForAudit;
@@ -489,7 +489,7 @@
         _ => status.ToString()
     };
 
-    private Task ViewNodeAuditLog(ClassificationNodeDto node) { _selectedNodeForAudit = node; _auditDrawerOpen = true; return Task.CompletedTask; }
+    private Task ViewNodeAuditLog(ClassificationNodeDto node) { _selectedNodeForAudit = node; _auditDialogOpen = true; return Task.CompletedTask; }
 
     private async Task ToggleNodeStatus(ClassificationNodeDto node)
     {

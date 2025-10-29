@@ -184,8 +184,8 @@
     }
 </MudContainer>
 
-<!-- Audit History Drawer -->
-<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+<!-- Audit History Dialog -->
+<AuditHistoryDialog @bind-IsOpen="_auditDialogOpen"
                     EntityType="DocumentType"
                     EntityId="@_selectedDocumentTypeForAudit?.Id"
                     EntityName="@_selectedDocumentTypeForAudit?.Name" />
@@ -196,7 +196,7 @@
     private HashSet<DocumentTypeDto> _selectedDocumentTypes = new();
     private bool _isLoading = true;
     private bool _isLoadingDocumentTypes = false;
-    private bool _auditDrawerOpen = false;
+    private bool _auditDialogOpen = false;
     private string _searchTerm = string.Empty;
     private bool _showOnlyFiscal = false;
     private bool _showOnlyStockIncrease = false;
@@ -319,7 +319,7 @@
     private async Task ViewDocumentTypeAuditLog(DocumentTypeDto documentType)
     {
         _selectedDocumentTypeForAudit = documentType;
-        _auditDrawerOpen = true;
+        _auditDialogOpen = true;
         await Task.CompletedTask;
     }
 

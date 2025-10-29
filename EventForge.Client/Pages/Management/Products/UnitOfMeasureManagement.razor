@@ -210,8 +210,8 @@
             </MudPaper>
         </MudPaper>
 
-        <!-- Audit History Drawer -->
-        <AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+        <!-- Audit History Dialog -->
+        <AuditHistoryDialog @bind-IsOpen="_auditDialogOpen"
                             EntityType="UM"
                             EntityId="@_selectedUMForAudit?.Id"
                             EntityName="@_selectedUMForAudit?.Name" />
@@ -223,8 +223,8 @@
     private bool _isLoading = true;
     private bool _isLoadingUMs = false;
     
-    // Drawer states
-    private bool _auditDrawerOpen = false;
+    // Dialog states
+    private bool _auditDialogOpen = false;
     
     // Drawer management
     private UMDto? _selectedUMForAudit;
@@ -380,7 +380,7 @@
     private async Task ViewUMAuditLog(UMDto um)
     {
         _selectedUMForAudit = um;
-        _auditDrawerOpen = true;
+        _auditDialogOpen = true;
         await Task.CompletedTask;
     }
 
