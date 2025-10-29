@@ -80,7 +80,7 @@
                                       RequiredError="@TranslationService.GetTranslation("drawer.error.codiceObbligatorio", "Il codice è obbligatorio")"
                                       MaxLength="10"
                                       Immediate="true"
-                                      OnBlur="@(() => MarkChanged())"
+                                      OnBlur="@HandleBlur"
                                       aria-describedby="code-help" />
                         <MudText id="code-help" Typo="Typo.caption" Class="mud-input-helper-text">
                             @TranslationService.GetTranslation("drawer.helperText.codiceNaturaIva", "Codice della natura IVA (es. N1, N2, N3)")
@@ -95,7 +95,7 @@
                                       RequiredError="@TranslationService.GetTranslation("drawer.error.nomeObbligatorio", "Il nome è obbligatorio")"
                                       MaxLength="100"
                                       Immediate="true"
-                                      OnBlur="@(() => MarkChanged())"
+                                      OnBlur="@HandleBlur"
                                       aria-describedby="name-help" />
                         <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
                             @TranslationService.GetTranslation("drawer.helperText.nomeNaturaIva", "Nome descrittivo della natura IVA")
@@ -108,7 +108,7 @@
                                       Variant="Variant.Outlined"
                                       Lines="4"
                                       MaxLength="500"
-                                      OnBlur="@(() => MarkChanged())"
+                                      OnBlur="@HandleBlur"
                                       aria-describedby="description-help" />
                         <MudText id="description-help" Typo="Typo.caption" Class="mud-input-helper-text">
                             @TranslationService.GetTranslation("drawer.helperText.descrizioneNaturaIva", "Descrizione dello scopo e utilizzo della natura IVA")
@@ -241,6 +241,11 @@
     {
         _hasLocalChanges = true;
         StateHasChanged();
+    }
+
+    private void HandleBlur(FocusEventArgs args)
+    {
+        MarkChanged();
     }
 
     private string SerializeVatNature(VatNatureDto? vatNature)
