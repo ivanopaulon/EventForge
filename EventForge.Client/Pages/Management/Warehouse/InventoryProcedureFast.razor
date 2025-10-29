@@ -120,55 +120,60 @@
         </MudGrid>
     </MudPaper>
 
-    <!-- Scanner Component -->
+    <!-- Scanner and Product Entry Section - Responsive Layout -->
     @if (_currentDocument != null)
     {
-        <FastScanner @ref="_scannerComponent"
-                     BarcodeValue="@_scannedBarcode"
-                     BarcodeValueChanged="@(v => _scannedBarcode = v)"
-                     FastConfirmEnabledValue="@_fastConfirmEnabled"
-                     FastConfirmEnabledValueChanged="@(v => _fastConfirmEnabled = v)"
-                     OnBarcodeScanned="@HandleBarcodeScanned"
-                     OnSearch="@(code => SearchBarcode())" />
+        <MudGrid Spacing="3">
+            <!-- Scanner Component -->
+            <MudItem xs="12" lg="6">
+                <FastScanner @ref="_scannerComponent"
+                             BarcodeValue="@_scannedBarcode"
+                             BarcodeValueChanged="@(v => _scannedBarcode = v)"
+                             FastConfirmEnabledValue="@_fastConfirmEnabled"
+                             FastConfirmEnabledValueChanged="@(v => _fastConfirmEnabled = v)"
+                             OnBarcodeScanned="@HandleBarcodeScanned"
+                             OnSearch="@(code => SearchBarcode())" />
+            </MudItem>
 
-        <!-- Not Found Panel Component -->
-        @if (_showAssignPanel)
-        {
-            <FastNotFoundPanel 
-                ScannedBarcode="@_assignPanelBarcode"
-                SelectedProduct="@_assignSelectedProduct"
-                SelectedProductChanged="@(p => _assignSelectedProduct = p)"
-                CodeType="@_assignCodeType"
-                CodeTypeChanged="@(ct => _assignCodeType = ct)"
-                Code="@_assignCode"
-                CodeChanged="@(c => _assignCode = c)"
-                AlternativeDescription="@_assignAlternativeDescription"
-                AlternativeDescriptionChanged="@(ad => _assignAlternativeDescription = ad)"
-                IsLoading="@_isLoading"
-                OnSearchProducts="@SearchProductsForAssignment"
-                OnAssign="@AssignBarcodeToProductAsync"
-                OnSkip="@SkipAssignment"
-                OnOpenProducts="@OpenProductManagement" />
-        }
-
-        <!-- Product Entry Component -->
-        @if (_currentProduct != null)
-        {
-            <FastProductEntryInline @ref="_productEntryComponent"
-                CurrentProduct="@_currentProduct"
-                SelectedLocation="@_selectedLocation"
-                SelectedLocationChanged="@(l => _selectedLocation = l)"
-                SelectedLocationId="@_selectedLocationId"
-                SelectedLocationIdChanged="@(id => _selectedLocationId = id)"
-                QuantityValue="@_quantity"
-                QuantityValueChanged="@(q => _quantity = q)"
-                NotesValue="@_notes"
-                NotesValueChanged="@(n => _notes = n)"
-                LastAddedRow="@_lastAddedRow"
-                OnSearchLocations="@SearchLocations"
-                OnConfirm="@ConfirmAndNext"
-                OnUndo="@UndoLastAsync" />
-        }
+            <!-- Product Entry or Not Found Panel -->
+            <MudItem xs="12" lg="6">
+                @if (_showAssignPanel)
+                {
+                    <FastNotFoundPanel 
+                        ScannedBarcode="@_assignPanelBarcode"
+                        SelectedProduct="@_assignSelectedProduct"
+                        SelectedProductChanged="@(p => _assignSelectedProduct = p)"
+                        CodeType="@_assignCodeType"
+                        CodeTypeChanged="@(ct => _assignCodeType = ct)"
+                        Code="@_assignCode"
+                        CodeChanged="@(c => _assignCode = c)"
+                        AlternativeDescription="@_assignAlternativeDescription"
+                        AlternativeDescriptionChanged="@(ad => _assignAlternativeDescription = ad)"
+                        IsLoading="@_isLoading"
+                        OnSearchProducts="@SearchProductsForAssignment"
+                        OnAssign="@AssignBarcodeToProductAsync"
+                        OnSkip="@SkipAssignment"
+                        OnOpenProducts="@OpenProductManagement" />
+                }
+                else if (_currentProduct != null)
+                {
+                    <FastProductEntryInline @ref="_productEntryComponent"
+                        CurrentProduct="@_currentProduct"
+                        SelectedLocation="@_selectedLocation"
+                        SelectedLocationChanged="@(l => _selectedLocation = l)"
+                        SelectedLocationId="@_selectedLocationId"
+                        SelectedLocationIdChanged="@(id => _selectedLocationId = id)"
+                        QuantityValue="@_quantity"
+                        QuantityValueChanged="@(q => _quantity = q)"
+                        NotesValue="@_notes"
+                        NotesValueChanged="@(n => _notes = n)"
+                        LastAddedRow="@_lastAddedRow"
+                        OnSearchLocations="@SearchLocations"
+                        OnConfirm="@ConfirmAndNext"
+                        OnUndo="@UndoLastAsync" />
+                }
+            </MudItem>
+        </MudGrid>
 
         <!-- Inventory Table Component -->
         <FastInventoryTable 
@@ -179,8 +184,6 @@
             EditingRowId="@_editingRowId"
             EditQuantityValue="@_editQuantity"
             EditQuantityValueChanged="@(q => _editQuantity = q)"
-            EditNotesValue="@_editNotes"
-            EditNotesValueChanged="@(n => _editNotes = n)"
             ConfirmDeleteRowId="@_confirmDeleteRowId"
             OnBeginEdit="@BeginEditRow"
             OnSaveEdit="@SaveEditRowAsync"
@@ -188,12 +191,6 @@
             OnRequestDelete="@StartDeleteConfirm"
             OnConfirmDelete="@ConfirmDeleteAsync"
             OnCancelDelete="@CancelDelete" />
-
-        <!-- Operation Log Component -->
-        <OperationLogPanel 
-            OperationLog="@_operationLog"
-            ExpandedValue="@_operationLogExpanded"
-            ExpandedValueChanged="@(v => _operationLogExpanded = v)" />
     }
     else
     {
@@ -224,7 +221,6 @@
     private InventoryDocumentDto? _currentDocument = null;
     private DateTime _sessionStartTime = DateTime.UtcNow;
     private bool _showOnlyAdjustments = false;
-    private bool _operationLogExpanded = false;
     
     // Fast confirm toggle
     private bool _fastConfirmEnabled = true;
@@ -234,9 +230,6 @@
     
     // Location search constants
     private const int MaxLocationSearchResults = 20;
-    
-    // Operation log for audit trail
-    private List<OperationLogEntry> _operationLog = new();
     
     // Inline product assignment panel state
     private bool _showAssignPanel = false;
@@ -250,7 +243,6 @@
     // Inline row edit state
     private Guid? _editingRowId;
     private decimal _editQuantity;
-    private string? _editNotes;
     
     // Inline delete confirmation state
     private Guid? _confirmDeleteRowId;
@@ -258,19 +250,6 @@
     // Inline finalize/cancel confirmation state
     private bool _showFinalizeConfirmation = false;
     private bool _showCancelConfirmation = false;
-
-    private void AddOperationLog(string message, string details = "", string type = "Info")
-    {
-        _operationLog.Add(new OperationLogEntry
-        {
-            Timestamp = DateTime.UtcNow,
-            Message = message,
-            Details = details,
-            Type = type
-        });
-
-        Logger.LogInformation("Inventory Operation: {Message} - {Details}", message, details);
-    }
 
     private int GetPositiveAdjustmentsCount()
     {
@@ -298,12 +277,6 @@
 
         try
         {
-            AddOperationLog(
-                TranslationService.GetTranslation("warehouse.exportStarted", "Esportazione documento iniziata"),
-                $"Documento #{_currentDocument.Number} - {_currentDocument.TotalItems} articoli",
-                "Info"
-            );
-
             var csv = new System.Text.StringBuilder();
             csv.AppendLine("Codice Prodotto,Nome Prodotto,Ubicazione,Quantità Contata,Aggiustamento,Note,Data/Ora");
             
@@ -316,18 +289,11 @@
             await JSRuntime.InvokeVoidAsync("downloadCsv", fileName, csv.ToString());
 
             Snackbar.Add(TranslationService.GetTranslation("warehouse.exportSuccess", "Documento esportato con successo"), Severity.Success);
-
-            AddOperationLog(
-                TranslationService.GetTranslation("warehouse.exportCompleted", "Esportazione completata"),
-                $"File: {fileName}",
-                "Success"
-            );
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error exporting inventory document");
             Snackbar.Add(TranslationService.GetTranslation("warehouse.exportError", "Errore durante l'esportazione"), Severity.Error);
-            AddOperationLog(TranslationService.GetTranslation("warehouse.exportFailed", "Esportazione fallita"), ex.Message, "Error");
         }
     }
 
@@ -384,16 +350,6 @@
                 _currentDocument = document;
                 _selectedStorageFacilityId = warehouseId;
                 _sessionStartTime = sessionStartTime ?? DateTime.UtcNow;
-                
-                string sourceMessage = restorationSource == "localStorage" 
-                    ? TranslationService.GetTranslation("warehouse.sessionRestoredFromCache", "Sessione ripristinata dalla cache")
-                    : TranslationService.GetTranslation("warehouse.sessionRestoredFromServer", "Sessione ripristinata dal server");
-                
-                AddOperationLog(
-                    TranslationService.GetTranslation("warehouse.sessionRestored", "Sessione di inventario ripristinata"),
-                    $"{sourceMessage} - Documento #{_currentDocument.Number}",
-                    "Success"
-                );
                 
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.sessionRestored", "Sessione di inventario ripristinata"), Severity.Info);
                 StateHasChanged();
@@ -520,9 +476,6 @@
             if (_currentDocument != null)
             {
                 _sessionStartTime = DateTime.UtcNow;
-                _operationLog.Clear();
-                
-                var facilityName = _storageFacilities.FirstOrDefault(f => f.Id == _selectedStorageFacilityId)?.Name ?? "N/A";
                 
                 await InventorySessionService.SaveSessionAsync(new InventorySessionState
                 {
@@ -531,9 +484,6 @@
                     WarehouseId = _selectedStorageFacilityId,
                     SessionStartTime = _sessionStartTime
                 });
-                
-                AddOperationLog(TranslationService.GetTranslation("warehouse.sessionStarted", "Sessione di inventario avviata"),
-                    $"Magazzino: {facilityName}, Documento: #{_currentDocument.Number}", "Success");
 
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.sessionStarted", "Sessione di inventario avviata"), Severity.Success);
                 
@@ -545,14 +495,12 @@
             else
             {
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.sessionStartError", "Errore nell'avvio della sessione"), Severity.Error);
-                AddOperationLog(TranslationService.GetTranslation("warehouse.sessionStartError", "Errore nell'avvio della sessione"), "", "Error");
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error starting inventory session");
             Snackbar.Add(TranslationService.GetTranslation("warehouse.sessionStartError", "Errore nell'avvio della sessione"), Severity.Error);
-            AddOperationLog(TranslationService.GetTranslation("warehouse.sessionStartError", "Errore nell'avvio della sessione"), ex.Message, "Error");
         }
         finally
         {
@@ -573,8 +521,6 @@
         _isLoading = true;
         try
         {
-            AddOperationLog(TranslationService.GetTranslation("warehouse.searchingProduct", "Ricerca prodotto"), $"Codice: {_scannedBarcode}", "Info");
-
             var foundProduct = await ProductService.GetProductByCodeAsync(_scannedBarcode);
 
             if (foundProduct != null)
@@ -582,8 +528,6 @@
                 if (_currentProduct != null && _currentProduct.Id == foundProduct.Id && _selectedLocationId.HasValue)
                 {
                     _quantity += 1;
-                    AddOperationLog(TranslationService.GetTranslation("warehouse.repeatedScanIncrement", "Scansione ripetuta, quantità incrementata"),
-                        $"{foundProduct.Name} - Nuova quantità: {_quantity}", "Info");
                     
                     if (_fastConfirmEnabled)
                     {
@@ -604,8 +548,6 @@
                 
                 _currentProduct = foundProduct;
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato: {0}", _currentProduct.Name), Severity.Success);
-                AddOperationLog(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato"),
-                    $"{_currentProduct.Name} ({_currentProduct.Code})", "Success");
 
                 if (_locations?.Count == 1)
                 {
@@ -632,7 +574,6 @@
             else
             {
                 _currentProduct = null;
-                AddOperationLog(TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato"), $"Codice: {_scannedBarcode}", "Warning");
                 ShowAssignPanel(_scannedBarcode);
             }
         }
@@ -640,7 +581,6 @@
         {
             Logger.LogError(ex, "Error searching product by barcode {Barcode}", _scannedBarcode);
             Snackbar.Add(TranslationService.GetTranslation("warehouse.searchError", "Errore nella ricerca"), Severity.Error);
-            AddOperationLog(TranslationService.GetTranslation("warehouse.searchError", "Errore nella ricerca"), ex.Message, "Error");
         }
         finally
         {
@@ -662,7 +602,6 @@
     private void SkipAssignment()
     {
         Snackbar.Add(TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato: {0}", _assignPanelBarcode), Severity.Info);
-        AddOperationLog(TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato"), $"Codice: {_assignPanelBarcode}", "Info");
         _showAssignPanel = false;
     }
 
@@ -705,7 +644,6 @@
             {
                 var productName = _assignSelectedProduct?.Name ?? "Product";
                 Snackbar.Add(TranslationService.GetTranslation("products.barcodeAssignedSuccess", "Codice a barre assegnato con successo a {0}", productName), Severity.Success);
-                AddOperationLog(TranslationService.GetTranslation("products.barcodeAssigned", "Codice assegnato"), $"{productName} - Codice: {args.code}", "Success");
 
                 _currentProduct = _assignSelectedProduct;
                 _showAssignPanel = false;
@@ -741,7 +679,6 @@
         {
             Logger.LogError(ex, "Error assigning barcode to product");
             Snackbar.Add(TranslationService.GetTranslation("products.assignError", "Errore nell'assegnazione del codice"), Severity.Error);
-            AddOperationLog(TranslationService.GetTranslation("products.assignError", "Errore nell'assegnazione del codice"), ex.Message, "Error");
         }
         finally
         {
@@ -795,10 +732,6 @@
                 
                 if (updatedDocument != null)
                 {
-                    AddOperationLog(TranslationService.GetTranslation("warehouse.itemUpdated", "Quantità aggiornata"),
-                        $"{_currentProduct.Name} - Ubicazione: {locationName} - Quantità precedente: {existingRow.Quantity} - Aggiunta: {_quantity} - Nuova quantità: {newQuantity}" + 
-                        (!string.IsNullOrEmpty(_notes) ? $" - Note: {_notes}" : ""), "Success");
-
                     Snackbar.Add(TranslationService.GetTranslation("warehouse.quantityUpdated", "Quantità aggiornata nel documento"), Severity.Success);
                 }
             }
@@ -817,10 +750,6 @@
                 
                 if (updatedDocument != null)
                 {
-                    AddOperationLog(TranslationService.GetTranslation("warehouse.itemAdded", "Articolo aggiunto"),
-                        $"{_currentProduct.Name} - Ubicazione: {locationName} - Quantità: {_quantity}" + 
-                        (!string.IsNullOrEmpty(_notes) ? $" - Note: {_notes}" : ""), "Success");
-
                     Snackbar.Add(TranslationService.GetTranslation("warehouse.itemAdded", "Articolo aggiunto al documento"), Severity.Success);
                 }
             }
@@ -840,14 +769,12 @@
             else
             {
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.addItemError", "Errore nell'aggiunta dell'articolo"), Severity.Error);
-                AddOperationLog(TranslationService.GetTranslation("warehouse.addItemError", "Errore nell'aggiunta dell'articolo"), $"Prodotto: {_currentProduct.Name}", "Error");
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error adding inventory row");
             Snackbar.Add(TranslationService.GetTranslation("warehouse.addItemError", "Errore nell'aggiunta dell'articolo"), Severity.Error);
-            AddOperationLog(TranslationService.GetTranslation("warehouse.addItemError", "Errore nell'aggiunta dell'articolo"), ex.Message, "Error");
         }
         finally
         {
@@ -905,16 +832,10 @@
         _isLoading = true;
         try
         {
-            AddOperationLog(TranslationService.GetTranslation("warehouse.finalizingInventory", "Finalizzazione inventario in corso"),
-                $"Documento #{_currentDocument.Number} con {_currentDocument.TotalItems} articoli", "Info");
-
             var finalizedDocument = await InventoryService.FinalizeInventoryDocumentAsync(_currentDocument.Id);
 
             if (finalizedDocument != null)
             {
-                var sessionDuration = DateTime.UtcNow - _sessionStartTime;
-                AddOperationLog(TranslationService.GetTranslation("warehouse.inventoryFinalized", "Inventario finalizzato con successo"),
-                    $"Durata sessione: {(int)sessionDuration.TotalMinutes} minuti", "Success");
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.inventoryFinalized", "Inventario finalizzato con successo"), Severity.Success);
                 await InventorySessionService.ClearSessionAsync();
                 _currentDocument = null;
@@ -923,14 +844,12 @@
             else
             {
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.finalizeError", "Errore nella finalizzazione"), Severity.Error);
-                AddOperationLog(TranslationService.GetTranslation("warehouse.finalizeError", "Errore nella finalizzazione"), "", "Error");
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error finalizing inventory");
             Snackbar.Add(TranslationService.GetTranslation("warehouse.finalizeError", "Errore nella finalizzazione"), Severity.Error);
-            AddOperationLog(TranslationService.GetTranslation("warehouse.finalizeError", "Errore nella finalizzazione"), ex.Message, "Error");
         }
         finally
         {
@@ -950,8 +869,6 @@
         if (_currentDocument == null) return;
 
         _showCancelConfirmation = false;
-        AddOperationLog(TranslationService.GetTranslation("warehouse.sessionCanceled", "Sessione annullata"),
-            $"Documento #{_currentDocument.Number} - {_currentDocument.TotalItems} articoli scartati", "Warning");
         await InventorySessionService.ClearSessionAsync();
         _currentDocument = null;
         ClearProductForm();
@@ -965,7 +882,6 @@
         
         _editingRowId = row.Id;
         _editQuantity = row.Quantity;
-        _editNotes = row.Notes;
         StateHasChanged();
     }
 
@@ -979,14 +895,12 @@
         _isLoading = true;
         try
         {
-            var updateDto = new UpdateInventoryDocumentRowDto { Quantity = _editQuantity, Notes = _editNotes };
+            var updateDto = new UpdateInventoryDocumentRowDto { Quantity = _editQuantity };
             var updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(_currentDocument.Id, row.Id, updateDto);
 
             if (updatedDocument != null)
             {
                 _currentDocument = updatedDocument;
-                AddOperationLog(TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata"),
-                    $"{row.ProductName} - Nuova quantità: {_editQuantity}", "Success");
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata con successo"), Severity.Success);
                 _editingRowId = null;
                 StateHasChanged();
@@ -994,14 +908,12 @@
             else
             {
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"), Severity.Error);
-                AddOperationLog(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"), "", "Error");
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error updating inventory row {RowId}", rowId);
             Snackbar.Add(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"), Severity.Error);
-            AddOperationLog(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"), ex.Message, "Error");
         }
         finally
         {
@@ -1013,7 +925,6 @@
     {
         _editingRowId = null;
         _editQuantity = 0;
-        _editNotes = null;
         StateHasChanged();
     }
 
@@ -1039,8 +950,6 @@
             {
                 _currentDocument = updatedDocument;
                 if (_lastAddedRow?.Id == row.Id) _lastAddedRow = null;
-                AddOperationLog(TranslationService.GetTranslation("warehouse.rowDeleted", "Riga eliminata"),
-                    $"{row.ProductName} - Quantità: {row.Quantity}", "Success");
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.rowDeleted", "Riga eliminata con successo"), Severity.Success);
                 _confirmDeleteRowId = null;
                 StateHasChanged();
@@ -1048,14 +957,12 @@
             else
             {
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.deleteError", "Errore nell'eliminazione della riga"), Severity.Error);
-                AddOperationLog(TranslationService.GetTranslation("warehouse.deleteError", "Errore nell'eliminazione della riga"), "", "Error");
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error deleting inventory row {RowId}", rowId);
             Snackbar.Add(TranslationService.GetTranslation("warehouse.deleteError", "Errore nell'eliminazione della riga"), Severity.Error);
-            AddOperationLog(TranslationService.GetTranslation("warehouse.deleteError", "Errore nell'eliminazione della riga"), ex.Message, "Error");
         }
         finally
         {
@@ -1081,8 +988,6 @@
             if (updatedDocument != null)
             {
                 _currentDocument = updatedDocument;
-                AddOperationLog(TranslationService.GetTranslation("warehouse.undoLast", "Annulla ultima"),
-                    $"Riga annullata: {_lastAddedRow.ProductName} - Quantità: {_lastAddedRow.Quantity}", "Success");
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.undoLastSuccess", "Ultima riga annullata con successo"), Severity.Success);
                 _lastAddedRow = null;
                 StateHasChanged();
@@ -1090,14 +995,12 @@
             else
             {
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.undoLastError", "Errore nell'annullamento dell'ultima riga"), Severity.Error);
-                AddOperationLog(TranslationService.GetTranslation("warehouse.undoLastError", "Errore nell'annullamento dell'ultima riga"), "", "Error");
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error undoing last inventory row {RowId}", _lastAddedRow.Id);
             Snackbar.Add(TranslationService.GetTranslation("warehouse.undoLastError", "Errore nell'annullamento dell'ultima riga"), Severity.Error);
-            AddOperationLog(TranslationService.GetTranslation("warehouse.undoLastError", "Errore nell'annullamento dell'ultima riga"), ex.Message, "Error");
         }
         finally
         {
