@@ -13,11 +13,10 @@
 @inject ILogger<WarehouseManagement> Logger
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    @if (_isLoading)
-    {
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-    }
-    else
+    <PageLoadingOverlay IsVisible="_isLoading || _isLoadingFacilities"
+                         Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
+    @if (!_isLoading)
     {
         <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4">
             <div class="d-flex justify-space-between align-center mb-4">
@@ -57,29 +56,27 @@
 
             <!-- Storage Facilities Data Table -->
             <MudPaper Elevation="1" Class="border-rounded">
-                <MudCardHeader Class="pa-2">
-                    <CardHeaderContent>
-                        <MudText Typo="Typo.h6">
-                            <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
-                            @TranslationService.GetTranslation("warehouse.facilityList", "Lista Magazzini")
-                            <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
-                                (@_filteredFacilities.Count() @TranslationService.GetTranslation("warehouse.itemsFound", "elementi trovati"))
-                            </MudText>
+                <div class="pa-2">
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
+                        @TranslationService.GetTranslation("warehouse.facilityList", "Lista Magazzini")
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                            (@_filteredFacilities.Count() @TranslationService.GetTranslation("warehouse.itemsFound", "elementi trovati"))
                         </MudText>
-                    </CardHeaderContent>
-                    <CardHeaderActions>
-                        <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
-                                           ShowRefresh="true"
-                                           ShowExport="false" 
-                                           ShowCreate="true"
-                                           ShowAuditLog="false"
-                                           CreateIcon="@Icons.Material.Outlined.Add"
-                                           CreateTooltip="@TranslationService.GetTranslation("warehouse.createNewFacility", "Crea nuovo magazzino")"
-                                           IsDisabled="_isLoadingFacilities"
-                                           OnRefresh="@LoadStorageFacilitiesAsync"
-                                           OnCreate="@CreateStorageFacility" />
-                    </CardHeaderActions>
-                </MudCardHeader>
+                    </MudText>
+                    
+                    <ManagementTableToolbar ShowSelectionBadge="true"
+                                            SelectedCount="@_selectedFacilities.Count"
+                                            ShowRefresh="true"
+                                            ShowCreate="true"
+                                            ShowDelete="true"
+                                            CreateLabel="warehouse.createFacility"
+                                            CreateTooltip="warehouse.createNewFacility"
+                                            IsDisabled="_isLoadingFacilities"
+                                            OnRefresh="@LoadStorageFacilitiesAsync"
+                                            OnCreate="@CreateStorageFacility"
+                                            OnDelete="@DeleteSelectedFacilities" />
+                </div>
                 <MudCardContent Class="pa-1">
                     @if (_isLoadingFacilities)
                     {
@@ -88,7 +85,9 @@
                     else
                     {
                         <MudTable T="StorageFacilityDto" 
-                                  Items="_filteredFacilities" 
+                                  Items="_filteredFacilities"
+                                  MultiSelection="true"
+                                  @bind-SelectedItems="_selectedFacilities"
                                   Hover="true" 
                                   Striped="true"
                                   Loading="_isLoadingFacilities"
@@ -202,6 +201,9 @@
     private bool _isLoading = true;
     private bool _isLoadingFacilities = false;
     private bool _auditDrawerOpen = false;
+    
+    // Selection management
+    private HashSet<StorageFacilityDto> _selectedFacilities = new();
     
     // Audit management
     private StorageFacilityDto? _selectedFacilityForAudit;
@@ -409,6 +411,71 @@
                 Logger.LogError(ex, "Error toggling storage facility status {FacilityId}", facility.Id);
                 // Revert the change on error
                 facility.IsActive = !facility.IsActive;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Deletes all selected storage facilities.
+    /// </summary>
+    private async Task DeleteSelectedFacilities()
+    {
+        if (_selectedFacilities.Count == 0)
+            return;
+
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("warehouse.confirmDeleteMultiple", 
+            "Sei sicuro di voler eliminare {0} magazzini selezionati? Questa azione non può essere annullata.", 
+            _selectedFacilities.Count);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                var deletedCount = 0;
+                var failedCount = 0;
+                
+                foreach (var facility in _selectedFacilities.ToList())
+                {
+                    try
+                    {
+                        await WarehouseService.DeleteStorageFacilityAsync(facility.Id);
+                        _storageFacilities.Remove(facility);
+                        deletedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failedCount++;
+                        Logger.LogError(ex, "Error deleting storage facility {FacilityId}", facility.Id);
+                    }
+                }
+                
+                _selectedFacilities.Clear();
+                
+                if (failedCount == 0)
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("warehouse.deletedMultiple", 
+                        "{0} magazzini eliminati con successo!", deletedCount), Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("warehouse.deletedMultiplePartial", 
+                        "{0} magazzini eliminati, {1} falliti", deletedCount, failedCount), Severity.Warning);
+                }
+                
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.deleteError", 
+                    "Errore nell'eliminazione dei magazzini: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting selected storage facilities");
             }
         }
     }

@@ -47,29 +47,27 @@
 
         <!-- Products Data Table -->
         <MudPaper Elevation="1" Class="border-rounded mx-0 flex-grow-1 d-flex flex-column" Style="min-height:0;">
-            <MudCardHeader Class="pa-2">
-                <CardHeaderContent>
-                    <MudText Typo="Typo.h6">
-                        <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
-                        @TranslationService.GetTranslation("product.list", "Lista Prodotti")
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
-                            (@_filteredProducts.Count() @TranslationService.GetTranslation("common.itemsFound", "elementi trovati"))
-                        </MudText>
+            <div class="pa-2">
+                <MudText Typo="Typo.h6" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
+                    @TranslationService.GetTranslation("product.list", "Lista Prodotti")
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                        (@_filteredProducts.Count() @TranslationService.GetTranslation("common.itemsFound", "elementi trovati"))
                     </MudText>
-                </CardHeaderContent>
-                <CardHeaderActions>
-                    <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
-                                       ShowRefresh="true"
-                                       ShowExport="false" 
-                                       ShowCreate="true"
-                                       ShowAuditLog="false"
-                                       CreateIcon="@Icons.Material.Outlined.Add"
-                                       CreateTooltip="@TranslationService.GetTranslation("product.createNew", "Crea nuovo prodotto")"
-                                       IsDisabled="_isLoadingProducts"
-                                       OnRefresh="@LoadProductsAsync"
-                                       OnCreate="@CreateProduct" />
-                </CardHeaderActions>
-            </MudCardHeader>
+                </MudText>
+                
+                <ManagementTableToolbar ShowSelectionBadge="true"
+                                        SelectedCount="@_selectedProducts.Count"
+                                        ShowRefresh="true"
+                                        ShowCreate="true"
+                                        ShowDelete="true"
+                                        CreateLabel="product.create"
+                                        CreateTooltip="product.createNew"
+                                        IsDisabled="_isLoadingProducts"
+                                        OnRefresh="@LoadProductsAsync"
+                                        OnCreate="@CreateProduct"
+                                        OnDelete="@DeleteSelectedProducts" />
+            </div>
 
             <MudCardContent Class="pa-1 flex-grow-1" Style="min-height:0;">
                 @if (_isLoadingProducts)
@@ -80,7 +78,9 @@
                 {
                     <!-- Dynamic height calculation for responsive behavior -->
                     <MudTable T="ProductDto" 
-                              Items="_filteredProducts" 
+                              Items="_filteredProducts"
+                              MultiSelection="true"
+                              @bind-SelectedItems="_selectedProducts"
                               Hover="true" 
                               Striped="true"
                               Loading="_isLoadingProducts"
@@ -166,6 +166,9 @@
     private bool _isLoadingProducts = false;
     private bool _isLoadingStocks = false;
     private string _searchTerm = string.Empty;
+    
+    // Selection management
+    private HashSet<ProductDto> _selectedProducts = new();
     
     private IEnumerable<ProductDto> _products = new List<ProductDto>();
     private IEnumerable<ProductDto> _filteredProducts = new List<ProductDto>();
@@ -413,4 +416,68 @@
     // Helper used for sorting header; fallback0 when unknown
     private object GetAvailableQuantityForSort(Guid productId)
         => _productAvailableQuantities.TryGetValue(productId, out var v) ? v :0m;
+
+    /// <summary>
+    /// Deletes all selected products.
+    /// </summary>
+    private async Task DeleteSelectedProducts()
+    {
+        if (_selectedProducts.Count == 0)
+            return;
+
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("product.confirmDeleteMultiple", 
+            "Sei sicuro di voler eliminare {0} prodotti selezionati? Questa azione non può essere annullata.", 
+            _selectedProducts.Count);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                var deletedCount = 0;
+                var failedCount = 0;
+                
+                foreach (var product in _selectedProducts.ToList())
+                {
+                    try
+                    {
+                        await ProductService.DeleteProductAsync(product.Id);
+                        deletedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failedCount++;
+                        Logger.LogError(ex, "Error deleting product {ProductId}", product.Id);
+                    }
+                }
+                
+                _selectedProducts.Clear();
+                
+                if (failedCount == 0)
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("product.deletedMultiple", 
+                        "{0} prodotti eliminati con successo!", deletedCount), Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("product.deletedMultiplePartial", 
+                        "{0} prodotti eliminati, {1} falliti", deletedCount, failedCount), Severity.Warning);
+                }
+                
+                await LoadProductsAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("product.deleteError", 
+                    "Errore nell'eliminazione dei prodotti: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting selected products");
+            }
+        }
+    }
 }

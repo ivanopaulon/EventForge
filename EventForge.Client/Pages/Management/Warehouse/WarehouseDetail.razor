@@ -13,17 +13,16 @@
 @inject ILogger<WarehouseDetail> Logger
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    @if (_isLoading)
-    {
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-    }
-    else if (_facility == null && !_isCreateMode)
+    <PageLoadingOverlay IsVisible="_isLoading || _isSaving"
+                         Message="@(_isSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
+    @if (_facility == null && !_isCreateMode && !_isLoading)
     {
         <MudAlert Severity="Severity.Error">
             @TranslationService.GetTranslation("warehouse.facilityNotFound", "Magazzino non trovato")
         </MudAlert>
     }
-    else
+    else if (!_isLoading)
     {
         <!-- Page Header -->
         <MudPaper Elevation="2" Class="pa-4 mb-4">
