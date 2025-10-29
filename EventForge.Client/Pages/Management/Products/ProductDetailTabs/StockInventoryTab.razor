@@ -82,7 +82,7 @@
                     }
                     else if (_stockLevels?.Any() == true)
                     {
-                        <MudTable Items="@_stockLevels" Hover="true" Striped="true" Dense="true" Class="mb-0">
+                        <MudTable Items="@_stockLevels" Hover="true" Striped="true" Dense="true" Class="mb-0" GroupBy="@_groupDefinition">
                             <HeaderContent>
                                 <MudTh>@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")</MudTh>
                                 <MudTh>@TranslationService.GetTranslation("warehouse.location", "Ubicazione")</MudTh>
@@ -92,13 +92,27 @@
                                 <MudTh Class="text-right">@TranslationService.GetTranslation("warehouse.available", "Disponibile")</MudTh>
                                 <MudTh>@TranslationService.GetTranslation("warehouse.lastMovement", "Ultimo Movimento")</MudTh>
                             </HeaderContent>
+                            <GroupHeaderTemplate>
+                                <MudTh colspan="7" Class="mud-table-cell-custom-group">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Warehouse" Size="Size.Small" Class="mr-2" />
+                                    <strong>@($"{context.Key ?? TranslationService.GetTranslation("warehouse.unknownWarehouse", "Magazzino Sconosciuto")}")</strong>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="ml-2">
+                                        @context.Items.Sum(x => x.AvailableQuantity).ToString("N2") @TranslationService.GetTranslation("warehouse.available", "disponibili")
+                                    </MudChip>
+                                </MudTh>
+                            </GroupHeaderTemplate>
                             <RowTemplate>
                                 <MudTd>@(context.WarehouseName ?? "-")</MudTd>
-                                <MudTd>@(context.StorageLocationCode ?? "-")</MudTd>
+                                <MudTd>
+                                    <MudIcon Icon="@Icons.Material.Outlined.LocationOn" Size="Size.Small" Class="mr-1" />
+                                    @(context.StorageLocationCode ?? "-")
+                                </MudTd>
                                 <MudTd>@(context.LotCode ?? "-")</MudTd>
                                 <MudTd Class="text-right">@context.Quantity.ToString("N2")</MudTd>
                                 <MudTd Class="text-right">@context.ReservedQuantity.ToString("N2")</MudTd>
-                                <MudTd Class="text-right">@context.AvailableQuantity.ToString("N2")</MudTd>
+                                <MudTd Class="text-right">
+                                    <strong>@context.AvailableQuantity.ToString("N2")</strong>
+                                </MudTd>
                                 <MudTd>@(context.LastMovementDate?.ToString("dd/MM/yyyy") ?? "-")</MudTd>
                             </RowTemplate>
                         </MudTable>
@@ -230,6 +244,16 @@
     private IEnumerable<StockDto> _stockLevels = Enumerable.Empty<StockDto>();
     private int _currentPage =1;
     private const int PageSize =10;
+
+    // Group definition for warehouse grouping
+    private TableGroupDefinition<StockDto> _groupDefinition = new()
+    {
+        GroupName = "Magazzino",
+        Indentation = false,
+        Expandable = true,
+        IsInitiallyExpanded = true,
+        Selector = (e) => e.WarehouseName
+    };
 
     // Filters
     private DateTime? _fromDate;
