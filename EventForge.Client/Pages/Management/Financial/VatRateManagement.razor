@@ -187,8 +187,8 @@
     }
 </MudContainer>
 
-<!-- Audit History Drawer -->
-<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+<!-- Audit History Dialog -->
+<AuditHistoryDialog @bind-IsOpen="_auditDialogOpen"
                     EntityType="VatRate"
                     EntityId="@_selectedVatRateForAudit?.Id"
                     EntityName="@_selectedVatRateForAudit?.Name" />
@@ -197,7 +197,7 @@
     // UI State Management
     private bool _isLoading = true;
     private bool _isLoadingVatRates = false;
-    private bool _auditDrawerOpen = false;
+    private bool _auditDialogOpen = false;
     
     // Audit management
     private VatRateDto? _selectedVatRateForAudit;
@@ -378,7 +378,7 @@
     private async Task ViewVatRateAuditLog(VatRateDto vatRate)
     {
         _selectedVatRateForAudit = vatRate;
-        _auditDrawerOpen = true;
+        _auditDialogOpen = true;
         await Task.CompletedTask;
     }
 

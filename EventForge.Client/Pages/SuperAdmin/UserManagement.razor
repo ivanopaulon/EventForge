@@ -431,11 +431,11 @@ else
                 EntityName="@_auditEntityName"
                 EntityDisplayName="@_auditEntityDisplayName" />
 
-<!-- User Audit History Drawer -->
-<AuditHistoryDrawer @bind-IsOpen="_userAuditDrawerOpen"
+<!-- User Audit History Dialog -->
+<AuditHistoryDialog @bind-IsOpen="_userAuditDialogOpen"
+                    EntityType="User"
                     EntityId="@_selectedUserIdGuid"
-                    EntityName="User"
-                    EntityDisplayName="@_selectedUserDisplayName" />
+                    EntityName="@_selectedUserDisplayName" />
 
 @code {
     // UI State Management
@@ -455,7 +455,7 @@ else
     
     // Audit log drawers state
     private bool _auditLogDrawerOpen = false;
-    private bool _userAuditDrawerOpen = false;
+    private bool _userAuditDialogOpen = false;
     private string? _auditEntityId;
     private string? _auditEntityName;
     private string? _auditEntityDisplayName;
@@ -969,7 +969,7 @@ else
             _selectedUserId = user.Id.ToString();
             _selectedUserIdGuid = user.Id;
             _selectedUserDisplayName = user.FullName;
-            _userAuditDrawerOpen = true;
+            _userAuditDialogOpen = true;
             await Task.CompletedTask;
         }
         catch (Exception ex)

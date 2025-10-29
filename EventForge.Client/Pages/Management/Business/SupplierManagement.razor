@@ -181,8 +181,8 @@
     </MudPaper>
 </MudContainer>
 
-<!-- Audit History Drawer -->
-<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+<!-- Audit History Dialog -->
+<AuditHistoryDialog @bind-IsOpen="_auditDialogOpen"
                     EntityType="BusinessParty"
                     EntityId="@_selectedSupplierForAudit?.Id"
                     EntityName="@_selectedSupplierForAudit?.Name" />
@@ -191,7 +191,7 @@
     // UI State Management
     private bool _isLoading = true;
     private bool _isLoadingSuppliers = false;
-    private bool _auditDrawerOpen = false;
+    private bool _auditDialogOpen = false;
     
     // Selection management
     private HashSet<BusinessPartyDto> _selectedSuppliers = new();
@@ -373,7 +373,7 @@
     private async Task ViewSupplierAuditLog(BusinessPartyDto supplier)
     {
         _selectedSupplierForAudit = supplier;
-        _auditDrawerOpen = true;
+        _auditDialogOpen = true;
         await Task.CompletedTask;
     }
 

@@ -167,8 +167,8 @@
     }
 </MudContainer>
 
-<!-- Audit History Drawer -->
-<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+<!-- Audit History Dialog -->
+<AuditHistoryDialog @bind-IsOpen="_auditDialogOpen"
                     EntityType="Brand"
                     EntityId="@_selectedBrandForAudit?.Id"
                     EntityName="@_selectedBrandForAudit?.Name" />
@@ -179,7 +179,7 @@
     private HashSet<BrandDto> _selectedBrands = new();
     private bool _isLoading = true;
     private bool _isLoadingBrands = false;
-    private bool _auditDrawerOpen = false;
+    private bool _auditDialogOpen = false;
     private string _searchTerm = string.Empty;
     private BrandDto? _selectedBrandForAudit;
 
@@ -287,7 +287,7 @@
     private async Task ViewBrandAuditLog(BrandDto brand)
     {
         _selectedBrandForAudit = brand;
-        _auditDrawerOpen = true;
+        _auditDialogOpen = true;
         await Task.CompletedTask;
     }
 

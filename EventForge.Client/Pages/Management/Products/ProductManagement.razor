@@ -155,7 +155,7 @@
         </MudPaper>
     </MudPaper>
 
-    <AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+    <AuditHistoryDialog @bind-IsOpen="_auditDialogOpen"
                         EntityType="Product"
                         EntityId="@_selectedProductForAudit?.Id"
                         EntityName="@_selectedProductForAudit?.Name" />
@@ -176,8 +176,8 @@
     // Stores available quantity (sum across locations) per product
     private readonly Dictionary<Guid, decimal> _productAvailableQuantities = new();
 
-    // Audit drawer state
-    private bool _auditDrawerOpen = false;
+    // Audit dialog state
+    private bool _auditDialogOpen = false;
     private ProductDto? _selectedProductForAudit;
 
     protected override async Task OnInitializedAsync()
@@ -303,7 +303,7 @@
     private async Task ViewProductAuditLog(ProductDto product)
     {
         _selectedProductForAudit = product;
-        _auditDrawerOpen = true;
+        _auditDialogOpen = true;
         await Task.CompletedTask;
     }
 

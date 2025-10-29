@@ -184,8 +184,8 @@
     }
 </MudContainer>
 
-<!-- Audit History Drawer -->
-<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+<!-- Audit History Dialog -->
+<AuditHistoryDialog @bind-IsOpen="_auditDialogOpen"
                     EntityType="BusinessParty"
                     EntityId="@_selectedCustomerForAudit?.Id"
                     EntityName="@_selectedCustomerForAudit?.Name" />
@@ -194,7 +194,7 @@
     // UI State Management
     private bool _isLoading = true;
     private bool _isLoadingCustomers = false;
-    private bool _auditDrawerOpen = false;
+    private bool _auditDialogOpen = false;
     
     // Selection management
     private HashSet<BusinessPartyDto> _selectedCustomers = new();
@@ -374,7 +374,7 @@
     private async Task ViewCustomerAuditLog(BusinessPartyDto customer)
     {
         _selectedCustomerForAudit = customer;
-        _auditDrawerOpen = true;
+        _auditDialogOpen = true;
         await Task.CompletedTask;
     }
 

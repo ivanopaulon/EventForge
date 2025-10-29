@@ -199,8 +199,8 @@
 
 </SuperAdminPageLayout>
 
-<!-- Audit History Drawer -->
-<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+<!-- Audit History Dialog -->
+<AuditHistoryDialog @bind-IsOpen="_auditDialogOpen"
                     EntityType="Tenant"
                     EntityId="@_selectedTenantForAudit?.Id"
                     EntityName="@_selectedTenantForAudit?.DisplayName" />
@@ -210,7 +210,7 @@
     private bool _isLoading = true;
     private bool _isAuthorized = false;
     private bool _isLoadingTenants = false;
-    private bool _auditDrawerOpen = false;
+    private bool _auditDialogOpen = false;
     
     // MudCollapse state management (all closed by default as per issue #98)
     private bool _statisticsExpanded = false;      // Closed by default
@@ -372,7 +372,7 @@
     private async Task ViewTenantAuditLog(TenantResponseDto tenant)
     {
         _selectedTenantForAudit = tenant;
-        _auditDrawerOpen = true;
+        _auditDialogOpen = true;
         await Task.CompletedTask;
     }
 

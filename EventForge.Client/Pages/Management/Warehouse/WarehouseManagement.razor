@@ -190,8 +190,8 @@
     }
 </MudContainer>
 
-<!-- Audit History Drawer -->
-<AuditHistoryDrawer @bind-IsOpen="_auditDrawerOpen"
+<!-- Audit History Dialog -->
+<AuditHistoryDialog @bind-IsOpen="_auditDialogOpen"
                     EntityType="StorageFacility"
                     EntityId="@_selectedFacilityForAudit?.Id"
                     EntityName="@_selectedFacilityForAudit?.Name" />
@@ -200,7 +200,7 @@
     // UI State Management
     private bool _isLoading = true;
     private bool _isLoadingFacilities = false;
-    private bool _auditDrawerOpen = false;
+    private bool _auditDialogOpen = false;
     
     // Selection management
     private HashSet<StorageFacilityDto> _selectedFacilities = new();
@@ -363,7 +363,7 @@
     private async Task ViewStorageFacilityAuditLog(StorageFacilityDto facility)
     {
         _selectedFacilityForAudit = facility;
-        _auditDrawerOpen = true;
+        _auditDialogOpen = true;
         await Task.CompletedTask;
     }
 
