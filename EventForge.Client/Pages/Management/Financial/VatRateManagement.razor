@@ -63,29 +63,27 @@
 
             <!-- VAT Rates Data Table -->
             <MudPaper Elevation="1" Class="border-rounded">
-                <MudCardHeader Class="pa-2">
-                    <CardHeaderContent>
-                        <MudText Typo="Typo.h6">
-                            <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
-                            @TranslationService.GetTranslation("financial.vatRateList", "Lista Aliquote IVA")
-                            <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
-                                (@_filteredVatRates.Count() @TranslationService.GetTranslation("financial.itemsFound", "elementi trovati"))
-                            </MudText>
+                <div class="pa-2">
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
+                        @TranslationService.GetTranslation("financial.vatRateList", "Lista Aliquote IVA")
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                            (@_filteredVatRates.Count() @TranslationService.GetTranslation("financial.itemsFound", "elementi trovati"))
                         </MudText>
-                    </CardHeaderContent>
-                    <CardHeaderActions>
-                        <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
-                                           ShowRefresh="true"
-                                           ShowExport="false" 
-                                           ShowCreate="true"
-                                           ShowAuditLog="false"
-                                           CreateIcon="@Icons.Material.Outlined.Add"
-                                           CreateTooltip="@TranslationService.GetTranslation("financial.createNewVatRate", "Crea nuova aliquota IVA")"
-                                           IsDisabled="_isLoadingVatRates"
-                                           OnRefresh="@LoadVatRatesAsync"
-                                           OnCreate="@CreateVatRate" />
-                    </CardHeaderActions>
-                </MudCardHeader>
+                    </MudText>
+                    
+                    <ManagementTableToolbar ShowSelectionBadge="true"
+                                            SelectedCount="@_selectedVatRates.Count"
+                                            ShowRefresh="true"
+                                            ShowCreate="true"
+                                            ShowDelete="true"
+                                            CreateLabel="financial.createVatRate"
+                                            CreateTooltip="financial.createNewVatRate"
+                                            IsDisabled="_isLoadingVatRates"
+                                            OnRefresh="@LoadVatRatesAsync"
+                                            OnCreate="@CreateVatRate"
+                                            OnDelete="@DeleteSelectedVatRates" />
+                </div>
                 <MudCardContent Class="pa-1">
                     @if (_isLoadingVatRates)
                     {
@@ -94,7 +92,9 @@
                     else
                     {
                         <MudTable T="VatRateDto" 
-                                  Items="_filteredVatRates" 
+                                  Items="_filteredVatRates"
+                                  MultiSelection="true"
+                                  @bind-SelectedItems="_selectedVatRates"
                                   Hover="true" 
                                   Striped="true"
                                   Loading="_isLoadingVatRates"
@@ -208,6 +208,7 @@
     
     // Data collections
     private List<VatRateDto> _vatRates = new();
+    private HashSet<VatRateDto> _selectedVatRates = new();
 
     /// <summary>
     /// Computed property for filtered VAT rates based on search criteria.
@@ -425,6 +426,71 @@
                 Logger.LogError(ex, "Error toggling VAT rate status {VatRateId}", vatRate.Id);
                 // Revert the change on error
                 vatRate.IsActive = !vatRate.IsActive;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Deletes all selected VAT rates.
+    /// </summary>
+    private async Task DeleteSelectedVatRates()
+    {
+        if (_selectedVatRates.Count == 0)
+            return;
+
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("financial.confirmDeleteMultipleVatRates", 
+            "Sei sicuro di voler eliminare {0} aliquote IVA selezionate? Questa azione non può essere annullata.", 
+            _selectedVatRates.Count);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                var deletedCount = 0;
+                var failedCount = 0;
+                
+                foreach (var vatRate in _selectedVatRates.ToList())
+                {
+                    try
+                    {
+                        await FinancialService.DeleteVatRateAsync(vatRate.Id);
+                        _vatRates.RemoveAll(v => v.Id == vatRate.Id);
+                        deletedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failedCount++;
+                        Logger.LogError(ex, "Error deleting VAT rate {VatRateId}", vatRate.Id);
+                    }
+                }
+                
+                _selectedVatRates.Clear();
+                
+                if (failedCount == 0)
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("financial.deletedMultipleVatRates", 
+                        "{0} aliquote IVA eliminate con successo!", deletedCount), Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("financial.deletedMultipleVatRatesPartial", 
+                        "{0} aliquote IVA eliminate, {1} fallite", deletedCount, failedCount), Severity.Warning);
+                }
+                
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslationFormatted("financial.deleteVatRateError", 
+                    "Errore nell'eliminazione delle aliquote IVA: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting selected VAT rates");
             }
         }
     }
