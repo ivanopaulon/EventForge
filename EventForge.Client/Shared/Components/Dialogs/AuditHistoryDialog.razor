@@ -10,36 +10,38 @@
 @inject ITranslationService TranslationService
 @inject ISnackbar Snackbar
 
-<MudDialog @bind-IsOpen="@IsOpen" 
-           Options="@_dialogOptions"
-           Class="audit-history-dialog-enhanced">
-    <TitleContent>
-        <MudAppBar Elevation="1" Dense="true">
-            <MudIcon Icon="@Icons.Material.Outlined.History" Class="mr-3" />
-            <MudText Typo="Typo.h6">
-                @TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche")
-            </MudText>
-            @if (!string.IsNullOrEmpty(EntityName))
-            {
-                <MudText Typo="Typo.body2" Class="ml-2 mud-text-secondary">
-                    - @EntityType: @EntityName
+@if (IsOpen)
+{
+    <MudDialog Class="audit-history-dialog-enhanced" 
+               DefaultFocus="DefaultFocus.None" 
+               FullScreen="true">
+        <TitleContent>
+            <MudAppBar Elevation="1" Dense="true">
+                <MudIcon Icon="@Icons.Material.Outlined.History" Class="mr-3" />
+                <MudText Typo="Typo.h6">
+                    @TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche")
                 </MudText>
-            }
-            <MudSpacer />
-            <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
-                           Color="Color.Inherit"
-                           OnClick="@LoadAuditHistory"
-                           aria-label="@TranslationService.GetTranslation("common.refresh", "Aggiorna")" />
-            <MudIconButton Icon="@Icons.Material.Outlined.Close"
-                           Color="Color.Inherit"
-                           OnClick="@CloseDialog"
-                           aria-label="@TranslationService.GetTranslation("button.close", "Chiudi")" />
-        </MudAppBar>
-    </TitleContent>
-    <DialogContent>
-        <div class="audit-dialog-content">
-            <PageLoadingOverlay IsVisible="@_isLoading"
-                                Message="@TranslationService.GetTranslation("audit.loadingHistory", "Caricamento cronologia...")" />
+                @if (!string.IsNullOrEmpty(EntityName))
+                {
+                    <MudText Typo="Typo.body2" Class="ml-2 mud-text-secondary">
+                        - @EntityType: @EntityName
+                    </MudText>
+                }
+                <MudSpacer />
+                <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
+                               Color="Color.Inherit"
+                               OnClick="@LoadAuditHistory"
+                               aria-label="@TranslationService.GetTranslation("common.refresh", "Aggiorna")" />
+                <MudIconButton Icon="@Icons.Material.Outlined.Close"
+                               Color="Color.Inherit"
+                               OnClick="@CloseDialog"
+                               aria-label="@TranslationService.GetTranslation("button.close", "Chiudi")" />
+            </MudAppBar>
+        </TitleContent>
+        <DialogContent>
+            <div class="audit-dialog-content">
+                <PageLoadingOverlay IsVisible="@_isLoading"
+                                    Message="@TranslationService.GetTranslation("audit.loadingHistory", "Caricamento cronologia...")" />
             
             @if (!_isLoading)
             {
@@ -252,15 +254,9 @@
         </div>
     </DialogContent>
 </MudDialog>
+}
 
 @code {
-    private DialogOptions _dialogOptions = new DialogOptions
-    {
-        FullScreen = true,
-        CloseButton = false,
-        CloseOnEscapeKey = true
-    };
-    
     private bool _isLoading = false;
     private bool _filtersExpanded = false;
     private List<AuditLogDto> _auditLogs = new();

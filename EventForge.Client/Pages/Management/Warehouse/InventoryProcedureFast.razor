@@ -440,7 +440,8 @@
         _isLoading = true;
         try
         {
-            var result = await ProductService.GetProductsAsync(1, 100);
+            // Load more products for better autocomplete experience (up to 1000)
+            var result = await ProductService.GetProductsAsync(1, 1000);
             if (result != null)
             {
                 _allProducts = result.Items.ToList();
