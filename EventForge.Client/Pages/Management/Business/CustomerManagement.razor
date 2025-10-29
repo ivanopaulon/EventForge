@@ -13,11 +13,10 @@
 @inject ILogger<CustomerManagement> Logger
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    @if (_isLoading)
-    {
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-    }
-    else
+    <PageLoadingOverlay IsVisible="_isLoading || _isLoadingCustomers"
+                         Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
+    @if (!_isLoading)
     {
         <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4">
             <div class="d-flex justify-space-between align-center mb-4">
@@ -59,29 +58,27 @@
 
             <!-- Customers Data Table -->
             <MudPaper Elevation="1" Class="border-rounded">
-                <MudCardHeader Class="pa-2">
-                    <CardHeaderContent>
-                        <MudText Typo="Typo.h6">
-                            <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
-                            @TranslationService.GetTranslation("customer.list", "Lista Clienti")
-                            <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
-                                (@_filteredCustomers.Count() @TranslationService.GetTranslation("customer.itemsFound", "elementi trovati"))
-                            </MudText>
+                <div class="pa-2">
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
+                        @TranslationService.GetTranslation("customer.list", "Lista Clienti")
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                            (@_filteredCustomers.Count() @TranslationService.GetTranslation("customer.itemsFound", "elementi trovati"))
                         </MudText>
-                    </CardHeaderContent>
-                    <CardHeaderActions>
-                        <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
-                                           ShowRefresh="true"
-                                           ShowExport="false" 
-                                           ShowCreate="true"
-                                           ShowAuditLog="false"
-                                           CreateIcon="@Icons.Material.Outlined.Add"
-                                           CreateTooltip="@TranslationService.GetTranslation("customer.createNew", "Crea nuovo cliente")"
-                                           IsDisabled="_isLoadingCustomers"
-                                           OnRefresh="@LoadCustomersAsync"
-                                           OnCreate="@CreateCustomer" />
-                    </CardHeaderActions>
-                </MudCardHeader>
+                    </MudText>
+                    
+                    <ManagementTableToolbar ShowSelectionBadge="true"
+                                            SelectedCount="@_selectedCustomers.Count"
+                                            ShowRefresh="true"
+                                            ShowCreate="true"
+                                            ShowDelete="true"
+                                            CreateLabel="customer.create"
+                                            CreateTooltip="customer.createNew"
+                                            IsDisabled="_isLoadingCustomers"
+                                            OnRefresh="@LoadCustomersAsync"
+                                            OnCreate="@CreateCustomer"
+                                            OnDelete="@DeleteSelectedCustomers" />
+                </div>
                 <MudCardContent Class="pa-1">
                     @if (_isLoadingCustomers)
                     {
@@ -90,7 +87,9 @@
                     else
                     {
                         <MudTable T="BusinessPartyDto" 
-                                  Items="_filteredCustomers" 
+                                  Items="_filteredCustomers"
+                                  MultiSelection="true"
+                                  @bind-SelectedItems="_selectedCustomers"
                                   Hover="true" 
                                   Striped="true"
                                   Loading="_isLoadingCustomers"
@@ -196,6 +195,9 @@
     private bool _isLoading = true;
     private bool _isLoadingCustomers = false;
     private bool _auditDrawerOpen = false;
+    
+    // Selection management
+    private HashSet<BusinessPartyDto> _selectedCustomers = new();
     
     // Audit drawer management
     private BusinessPartyDto? _selectedCustomerForAudit;
@@ -420,6 +422,71 @@
                 Logger.LogError(ex, "Error toggling customer status {CustomerId}", customer.Id);
                 // Revert the change on error
                 customer.IsActive = !customer.IsActive;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Deletes all selected customers.
+    /// </summary>
+    private async Task DeleteSelectedCustomers()
+    {
+        if (_selectedCustomers.Count == 0)
+            return;
+
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("customer.confirmDeleteMultiple", 
+            "Sei sicuro di voler eliminare {0} clienti selezionati? Questa azione non può essere annullata.", 
+            _selectedCustomers.Count);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                var deletedCount = 0;
+                var failedCount = 0;
+                
+                foreach (var customer in _selectedCustomers.ToList())
+                {
+                    try
+                    {
+                        await BusinessPartyService.DeleteBusinessPartyAsync(customer.Id);
+                        _customers.Remove(customer);
+                        deletedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failedCount++;
+                        Logger.LogError(ex, "Error deleting customer {CustomerId}", customer.Id);
+                    }
+                }
+                
+                _selectedCustomers.Clear();
+                
+                if (failedCount == 0)
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("customer.deletedMultiple", 
+                        "{0} clienti eliminati con successo!", deletedCount), Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("customer.deletedMultiplePartial", 
+                        "{0} clienti eliminati, {1} falliti", deletedCount, failedCount), Severity.Warning);
+                }
+                
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("customer.deleteError", 
+                    "Errore nell'eliminazione dei clienti: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting selected customers");
             }
         }
     }
