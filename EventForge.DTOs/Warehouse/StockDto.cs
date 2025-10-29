@@ -20,7 +20,7 @@ namespace EventForge.DTOs.Warehouse
         [Required]
         public Guid StorageLocationId { get; set; }
         public string? StorageLocationCode { get; set; }
-        
+
         public Guid? WarehouseId { get; set; }
         public string? WarehouseName { get; set; }
 
