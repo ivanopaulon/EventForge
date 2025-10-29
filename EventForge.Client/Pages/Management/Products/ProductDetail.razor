@@ -160,7 +160,7 @@
     protected override async Task OnParametersSetAsync()
     {
         var currentId = GetCurrentProductId();
-        if (_product?.Id != currentId || (_isNewProduct && currentId == Guid.Empty))
+        if (_product?.Id != currentId || _isNewProduct)
             await LoadProductAsync();
     }
 
@@ -169,12 +169,13 @@
         if (ProductId.HasValue)
             return ProductId.Value;
         
-        if (!string.IsNullOrEmpty(ProductIdString) && 
-            ProductIdString.Equals("new", StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrEmpty(ProductIdString))
             return Guid.Empty;
         
-        if (!string.IsNullOrEmpty(ProductIdString) && 
-            Guid.TryParse(ProductIdString, out var parsedGuid))
+        if (ProductIdString.Equals("new", StringComparison.OrdinalIgnoreCase))
+            return Guid.Empty;
+        
+        if (Guid.TryParse(ProductIdString, out var parsedGuid))
             return parsedGuid;
         
         return Guid.Empty;
