@@ -19,7 +19,7 @@ This document summarizes the work completed for issues #542 (Audit Drawer to Dia
 - Integrated `PageLoadingOverlay` in management pages
 - Unified detail page layouts with consistent headers
 
-**Review Comments**: 4 comments about incorrect translation method usage
+**Review Comments**: 4 comments about incorrect translation method usage (GetTranslation with placeholders should use GetTranslationFormatted)
 - **Resolution**: ✅ Fixed in PR #547
 
 ### PR #547 - Complete PR #546
@@ -157,7 +157,7 @@ Successfully migrated `ClassificationNodeDetail.razor` from drawer to dialog:
 
 The following pages still use `AuditHistoryDrawer` and should be migrated in future work:
 
-**Management Pages** (12+):
+**Management Pages** (11+ identified):
 1. CustomerManagement.razor
 2. SupplierManagement.razor
 3. WarehouseManagement.razor
@@ -169,7 +169,8 @@ The following pages still use `AuditHistoryDrawer` and should be migrated in fut
 9. ClassificationNodeManagement.razor
 10. SuperAdmin/TenantManagement.razor
 11. SuperAdmin/UserManagement.razor
-12. Additional pages to be identified
+
+**Note**: There may be additional management pages using the drawer that need to be identified through a comprehensive code search.
 
 **Detail Pages**: ✅ All complete (only ClassificationNodeDetail used it)
 

@@ -113,6 +113,8 @@ If your page uses `messages.auditInDrawer`, consider updating it:
 <MudText>@TranslationService.GetTranslation("messages.auditFullscreen", "Storia modifiche disponibile in modalità fullscreen")</MudText>
 ```
 
+**Note**: The TranslationService.GetTranslation method uses fallback text (second parameter) if the translation key is not found, so the application will continue to work even if new keys haven't been added to translation resources yet.
+
 ## Complete Example: ClassificationNodeDetail Migration
 
 ### Before Migration
@@ -203,7 +205,8 @@ These management pages still use AuditHistoryDrawer:
 9. `ClassificationNodeManagement.razor`
 10. `SuperAdmin/TenantManagement.razor`
 11. `SuperAdmin/UserManagement.razor`
-12. Additional management pages (to be identified)
+
+**Note**: A comprehensive code search may reveal additional management pages using AuditHistoryDrawer.
 
 **Note**: Management pages have a slightly different pattern - the audit button is typically in a toolbar action area rather than in a tab panel.
 
