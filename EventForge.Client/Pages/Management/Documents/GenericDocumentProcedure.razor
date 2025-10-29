@@ -185,7 +185,7 @@
                            Color="Color.Success"
                            Variant="Variant.Filled"
                            OnClick="@ApproveDocumentAsync"
-                           Disabled="@(!_currentDocument.Rows.Any())">
+                           Disabled="@(_currentDocument.Rows == null || !_currentDocument.Rows.Any())">
                     @TranslationService.GetTranslation("documents.approve", "Approva")
                 </MudButton>
             }

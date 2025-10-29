@@ -190,10 +190,11 @@
         _searchResults = null;
     }
 
-    private async Task ScanBarcode()
+    private Task ScanBarcode()
     {
         // TODO: Implement barcode scanner integration
         Snackbar.Add("Scanner barcode non ancora implementato", Severity.Info);
+        return Task.CompletedTask;
     }
 
     private void ClearSearch()

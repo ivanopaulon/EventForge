@@ -73,7 +73,7 @@
             <MudForm @ref="_form">
                 <MudGrid>
                     <MudItem xs="12" md="4">
-                        <MudTextField @bind-Value="_vatNature.Code"
+                        <MudTextField @bind-Value="_vatNature!.Code"
                                       Label="@($"{TranslationService.GetTranslation("drawer.field.codiceNaturaIva", "Codice")} *")"
                                       Variant="Variant.Outlined"
                                       Required="true"
@@ -88,7 +88,7 @@
                     </MudItem>
 
                     <MudItem xs="12" md="8">
-                        <MudTextField @bind-Value="_vatNature.Name"
+                        <MudTextField @bind-Value="_vatNature!.Name"
                                       Label="@($"{TranslationService.GetTranslation("drawer.field.nomeNaturaIva", "Nome")} *")"
                                       Variant="Variant.Outlined"
                                       Required="true"
@@ -103,7 +103,7 @@
                     </MudItem>
 
                     <MudItem xs="12">
-                        <MudTextField @bind-Value="_vatNature.Description"
+                        <MudTextField @bind-Value="_vatNature!.Description"
                                       Label="@TranslationService.GetTranslation("drawer.field.descrizione", "Descrizione")"
                                       Variant="Variant.Outlined"
                                       Lines="4"

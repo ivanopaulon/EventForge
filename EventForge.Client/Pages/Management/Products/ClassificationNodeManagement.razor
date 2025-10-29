@@ -208,7 +208,7 @@
         public ClassificationNodeDto Node { get; set; }
         public new List<ClassificationNodeTreeItem> Children { get; set; } = new();
         public bool IsMatch { get; set; }
-        public bool Expanded { get; set; }
+        public new bool Expanded { get; set; }
 
         public ClassificationNodeTreeItem(ClassificationNodeDto node)
         {
