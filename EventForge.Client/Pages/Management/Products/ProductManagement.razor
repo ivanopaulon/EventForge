@@ -474,7 +474,7 @@
             }
             catch (Exception ex)
             {
-                Snackbar.Add(TranslationService.GetTranslation("product.deleteError", 
+                Snackbar.Add(TranslationService.GetTranslationFormatted("product.deleteError", 
                     "Errore nell'eliminazione dei prodotti: {0}", ex.Message), Severity.Error);
                 Logger.LogError(ex, "Error deleting selected products");
             }
