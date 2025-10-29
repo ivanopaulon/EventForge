@@ -23,21 +23,21 @@
 
         <MudTable Items="@GetFilteredRows()" Hover="true" Dense="true" Striped="true" FixedHeader="true" Height="400px">
             <HeaderContent>
-                <MudTh>@TranslationService.GetTranslation("warehouse.product", "Prodotto")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("warehouse.productCode", "Codice")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("warehouse.description", "Descrizione")</MudTh>
                 <MudTh>@TranslationService.GetTranslation("warehouse.location", "Ubicazione")</MudTh>
                 <MudTh>@TranslationService.GetTranslation("warehouse.quantity", "Quantità")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("warehouse.adjustment", "Aggiustamento")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("warehouse.notes", "Note")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("warehouse.time", "Ora")</MudTh>
                 <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
             </HeaderContent>
             <RowTemplate>
                 @if (context.Id == EditingRowId)
                 {
                     <!-- Inline Edit Mode -->
-                    <MudTd DataLabel="Product">
-                        <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.ProductName</MudText>
+                    <MudTd DataLabel="ProductCode">
                         <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ProductCode</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Description">
+                        <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.ProductName</MudText>
                     </MudTd>
                     <MudTd DataLabel="Location">
                         <MudText Typo="Typo.body2">@context.LocationName</MudText>
@@ -49,23 +49,6 @@
                                        Min="0"
                                        Dense="true"
                                        Margin="Margin.Dense" />
-                    </MudTd>
-                    <MudTd DataLabel="Adjustment">
-                        @if (context.AdjustmentQuantity.HasValue)
-                        {
-                            var adjColor = context.AdjustmentQuantity > 0 ? Color.Success : 
-                                           context.AdjustmentQuantity < 0 ? Color.Warning : Color.Default;
-                            <MudChip T="string" Size="Size.Small" Color="@adjColor">
-                                @(context.AdjustmentQuantity > 0 ? "+" : "")@context.AdjustmentQuantity
-                            </MudChip>
-                        }
-                    </MudTd>
-                    <MudTd DataLabel="Notes" ColSpan="2">
-                        <MudTextField @bind-Value="EditNotesValue"
-                                    Label=""
-                                    Variant="Variant.Outlined"
-                                    Dense="true"
-                                    Margin="Margin.Dense" />
                     </MudTd>
                     <MudTd DataLabel="Actions">
                         <MudStack Row="true" Spacing="1">
@@ -87,7 +70,7 @@
                 else if (context.Id == ConfirmDeleteRowId)
                 {
                     <!-- Inline Delete Confirmation -->
-                    <MudTd DataLabel="Confirmation" ColSpan="7">
+                    <MudTd DataLabel="Confirmation" ColSpan="5">
                         <MudAlert Severity="Severity.Warning" Dense="true" NoIcon="false">
                             <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                                 <MudText Typo="Typo.body2">
@@ -116,46 +99,26 @@
                 else
                 {
                     <!-- Normal Display Mode -->
-                    <MudTd DataLabel="Product">
-                        <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.ProductName</MudText>
+                    <MudTd DataLabel="ProductCode">
                         <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ProductCode</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Description">
+                        <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.ProductName</MudText>
                     </MudTd>
                     <MudTd DataLabel="Location">
                         <MudText Typo="Typo.body2">@context.LocationName</MudText>
                     </MudTd>
                     <MudTd DataLabel="Quantity">
                         <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.Quantity</MudChip>
-                    </MudTd>
-                    <MudTd DataLabel="Adjustment">
-                        @if (context.AdjustmentQuantity.HasValue)
+                        @if (context.AdjustmentQuantity.HasValue && context.AdjustmentQuantity != 0)
                         {
-                            var adjColor = context.AdjustmentQuantity > 0 ? Color.Success : 
-                                           context.AdjustmentQuantity < 0 ? Color.Warning : Color.Default;
-                            var adjIcon = context.AdjustmentQuantity > 0 ? Icons.Material.Filled.TrendingUp : 
-                                          context.AdjustmentQuantity < 0 ? Icons.Material.Filled.TrendingDown : 
-                                          Icons.Material.Filled.Remove;
+                            var adjColor = context.AdjustmentQuantity > 0 ? Color.Success : Color.Warning;
+                            var adjIcon = context.AdjustmentQuantity > 0 ? Icons.Material.Filled.TrendingUp : Icons.Material.Filled.TrendingDown;
                             
-                            <MudChip T="string" Size="Size.Small" Color="@adjColor" Icon="@adjIcon">
+                            <MudChip T="string" Size="Size.Small" Color="@adjColor" Icon="@adjIcon" Class="ml-1">
                                 @(context.AdjustmentQuantity > 0 ? "+" : "")@context.AdjustmentQuantity
                             </MudChip>
                         }
-                        else
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Default">
-                                @TranslationService.GetTranslation("warehouse.noAdjustment", "N/A")
-                            </MudChip>
-                        }
-                    </MudTd>
-                    <MudTd DataLabel="Notes">
-                        @if (!string.IsNullOrEmpty(context.Notes))
-                        {
-                            <MudTooltip Text="@context.Notes">
-                                <MudIcon Icon="@Icons.Material.Filled.Comment" Size="Size.Small" Color="Color.Info" />
-                            </MudTooltip>
-                        }
-                    </MudTd>
-                    <MudTd DataLabel="Time">
-                        <MudText Typo="Typo.caption">@context.CreatedAt.ToLocalTime().ToString("HH:mm:ss")</MudText>
                     </MudTd>
                     <MudTd DataLabel="Actions">
                         <MudStack Row="true" Spacing="1">
@@ -187,8 +150,6 @@
     [Parameter] public Guid? EditingRowId { get; set; }
     [Parameter] public decimal EditQuantityValue { get; set; }
     [Parameter] public EventCallback<decimal> EditQuantityValueChanged { get; set; }
-    [Parameter] public string? EditNotesValue { get; set; }
-    [Parameter] public EventCallback<string?> EditNotesValueChanged { get; set; }
     [Parameter] public Guid? ConfirmDeleteRowId { get; set; }
     
     [Parameter] public EventCallback<Guid> OnBeginEdit { get; set; }
