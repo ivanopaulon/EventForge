@@ -1,3 +1,15 @@
+@*
+    DEPRECATED: This drawer component should be replaced with AuditHistoryDialog (fullscreen).
+    The drawer-based approach is being phased out in favor of fullscreen dialogs for better UX.
+    See issue #542 for migration details.
+    
+    Current usage:
+    - Management pages: CustomerManagement, SupplierManagement, WarehouseManagement, ProductManagement, etc.
+    - Detail pages: ClassificationNodeDetail
+    
+    Migration target: EventForge.Client/Shared/Components/Dialogs/AuditHistoryDialog.razor
+*@
+
 @using MudBlazor
 @using EventForge.DTOs.Audit
 @using EventForge.Client.Shared.Components
