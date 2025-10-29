@@ -484,7 +484,7 @@
             }
             catch (Exception ex)
             {
-                Snackbar.Add(TranslationService.GetTranslation("customer.deleteError", 
+                Snackbar.Add(TranslationService.GetTranslationFormatted("customer.deleteError", 
                     "Errore nell'eliminazione dei clienti: {0}", ex.Message), Severity.Error);
                 Logger.LogError(ex, "Error deleting selected customers");
             }

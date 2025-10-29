@@ -52,29 +52,27 @@
 
             <!-- Brands Data Table -->
             <MudPaper Elevation="1" Class="border-rounded">
-                <MudCardHeader Class="pa-2">
-                    <CardHeaderContent>
-                        <MudText Typo="Typo.h6">
-                            <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
-                            @TranslationService.GetTranslation("brand.list", "Lista Marchi")
-                            <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
-                                (@_filteredBrands.Count() @TranslationService.GetTranslation("common.itemsFound", "elementi trovati"))
-                            </MudText>
+                <div class="pa-2">
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
+                        @TranslationService.GetTranslation("brand.list", "Lista Marchi")
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                            (@_filteredBrands.Count() @TranslationService.GetTranslation("common.itemsFound", "elementi trovati"))
                         </MudText>
-                    </CardHeaderContent>
-                    <CardHeaderActions>
-                        <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
-                                           ShowRefresh="true"
-                                           ShowExport="false" 
-                                           ShowCreate="true"
-                                           ShowAuditLog="false"
-                                           CreateIcon="@Icons.Material.Outlined.Add"
-                                           CreateTooltip="@TranslationService.GetTranslation("brand.createNew", "Crea nuovo marchio")"
-                                           IsDisabled="_isLoadingBrands"
-                                           OnRefresh="@LoadBrandsAsync"
-                                           OnCreate="@CreateBrand" />
-                    </CardHeaderActions>
-                </MudCardHeader>
+                    </MudText>
+                    
+                    <ManagementTableToolbar ShowSelectionBadge="true"
+                                            SelectedCount="@_selectedBrands.Count"
+                                            ShowRefresh="true"
+                                            ShowCreate="true"
+                                            ShowDelete="true"
+                                            CreateLabel="brand.create"
+                                            CreateTooltip="brand.createNew"
+                                            IsDisabled="_isLoadingBrands"
+                                            OnRefresh="@LoadBrandsAsync"
+                                            OnCreate="@CreateBrand"
+                                            OnDelete="@DeleteSelectedBrands" />
+                </div>
                 <MudCardContent Class="pa-1">
                     @if (_isLoadingBrands)
                     {
@@ -83,7 +81,9 @@
                     else
                     {
                         <MudTable T="BrandDto" 
-                                  Items="_filteredBrands" 
+                                  Items="_filteredBrands"
+                                  MultiSelection="true"
+                                  @bind-SelectedItems="_selectedBrands"
                                   Hover="true" 
                                   Striped="true"
                                   Loading="_isLoadingBrands"
@@ -176,6 +176,7 @@
 @code {
     private IEnumerable<BrandDto> _brands = new List<BrandDto>();
     private IEnumerable<BrandDto> _filteredBrands = new List<BrandDto>();
+    private HashSet<BrandDto> _selectedBrands = new();
     private bool _isLoading = true;
     private bool _isLoadingBrands = false;
     private bool _auditDrawerOpen = false;
@@ -288,5 +289,69 @@
         _selectedBrandForAudit = brand;
         _auditDrawerOpen = true;
         await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Deletes all selected brands.
+    /// </summary>
+    private async Task DeleteSelectedBrands()
+    {
+        if (_selectedBrands.Count == 0)
+            return;
+
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("brand.confirmDeleteMultiple", 
+            "Sei sicuro di voler eliminare {0} marchi selezionati? Questa azione non può essere annullata.", 
+            _selectedBrands.Count);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                var deletedCount = 0;
+                var failedCount = 0;
+                
+                foreach (var brand in _selectedBrands.ToList())
+                {
+                    try
+                    {
+                        await BrandService.DeleteBrandAsync(brand.Id);
+                        deletedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failedCount++;
+                        Logger.LogError(ex, "Error deleting brand {BrandId}", brand.Id);
+                    }
+                }
+                
+                _selectedBrands.Clear();
+                
+                if (failedCount == 0)
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("brand.deletedMultiple", 
+                        "{0} marchi eliminati con successo!", deletedCount), Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("brand.deletedMultiplePartial", 
+                        "{0} marchi eliminati, {1} falliti", deletedCount, failedCount), Severity.Warning);
+                }
+                
+                await LoadBrandsAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslationFormatted("brand.deleteError", 
+                    "Errore nell'eliminazione dei marchi: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting selected brands");
+            }
+        }
     }
 }

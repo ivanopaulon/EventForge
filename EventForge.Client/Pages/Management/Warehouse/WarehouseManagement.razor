@@ -473,7 +473,7 @@
             }
             catch (Exception ex)
             {
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.deleteError", 
+                Snackbar.Add(TranslationService.GetTranslationFormatted("warehouse.deleteError", 
                     "Errore nell'eliminazione dei magazzini: {0}", ex.Message), Severity.Error);
                 Logger.LogError(ex, "Error deleting selected storage facilities");
             }

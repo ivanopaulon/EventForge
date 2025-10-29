@@ -514,7 +514,7 @@
             }
             catch (Exception ex)
             {
-                Snackbar.Add(TranslationService.GetTranslation("supplier.deleteError", 
+                Snackbar.Add(TranslationService.GetTranslationFormatted("supplier.deleteError", 
                     "Errore nell'eliminazione dei fornitori: {0}", ex.Message), Severity.Error);
                 Logger.LogError(ex, "Error deleting selected suppliers");
             }

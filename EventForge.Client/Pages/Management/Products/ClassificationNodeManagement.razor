@@ -61,28 +61,34 @@
             </MudPaper>
 
             <MudPaper Elevation="1" Class="border-rounded">
-                <MudCardHeader Class="pa-2">
-                    <CardHeaderContent>
-                        <MudText Typo="Typo.h6">
-                            <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
-                            @TranslationService.GetTranslation("classificationNode.list","Lista Nodi")
-                            <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">(@_filteredNodes.Count @TranslationService.GetTranslation("classificationNode.itemsFound","elementi trovati"))</MudText>
-                        </MudText>
-                    </CardHeaderContent>
-                    <CardHeaderActions>
-                        <MudButtonGroup>
+                <div class="pa-2">
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
+                        @TranslationService.GetTranslation("classificationNode.list","Lista Nodi")
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">(@_filteredNodes.Count @TranslationService.GetTranslation("classificationNode.itemsFound","elementi trovati"))</MudText>
+                    </MudText>
+                    
+                    <div class="d-flex justify-space-between align-center">
+                        <MudButtonGroup Class="mr-2">
                             <MudIconButton Icon="@(_viewMode == ViewMode.Tree ? Icons.Material.Outlined.List : Icons.Material.Outlined.AccountTree)"
                                            OnClick="@ToggleViewMode" Size="Size.Small" />
                             <MudIconButton Icon="@Icons.Material.Outlined.ExpandMore" OnClick="@ExpandAll" Size="Size.Small" />
                             <MudIconButton Icon="@Icons.Material.Outlined.ExpandLess" OnClick="@CollapseAll" Size="Size.Small" />
                         </MudButtonGroup>
-
-                        <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
-                                           ShowRefresh="true" ShowCreate="true" ShowExport="false"
-                                           CreateIcon="@Icons.Material.Outlined.Add" CreateTooltip="@TranslationService.GetTranslation("classificationNode.createNew","Crea nuovo nodo")"
-                                           IsDisabled="_isLoadingNodes" OnRefresh="@LoadNodesAsync" OnCreate="@OpenCreatePage" />
-                    </CardHeaderActions>
-                </MudCardHeader>
+                        
+                        <ManagementTableToolbar ShowSelectionBadge="true"
+                                                SelectedCount="@_selectedNodes.Count"
+                                                ShowRefresh="true"
+                                                ShowCreate="true"
+                                                ShowDelete="true"
+                                                CreateLabel="classificationNode.create"
+                                                CreateTooltip="classificationNode.createNew"
+                                                IsDisabled="_isLoadingNodes"
+                                                OnRefresh="@LoadNodesAsync"
+                                                OnCreate="@OpenCreatePage"
+                                                OnDelete="@DeleteSelectedNodes" />
+                    </div>
+                </div>
 
                 <MudCardContent Class="pa-1">
                     @if (_isLoadingNodes)
@@ -138,7 +144,7 @@
                     }
                     else
                     {
-                        <MudTable T="ClassificationNodeDto" Items="_filteredNodes" Hover="true" Striped="true" Loading="_isLoadingNodes" LoadingProgressColor="Color.Info" Breakpoint="Breakpoint.Sm">
+                        <MudTable T="ClassificationNodeDto" Items="_filteredNodes" MultiSelection="true" @bind-SelectedItems="_selectedNodes" Hover="true" Striped="true" Loading="_isLoadingNodes" LoadingProgressColor="Color.Info" Breakpoint="Breakpoint.Sm">
                             <HeaderContent>
                                 <MudTh><MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name","Nome")</MudTableSortLabel></MudTh>
                                 <MudTh><MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Code ?? ""))">@TranslationService.GetTranslation("field.code","Codice")</MudTableSortLabel></MudTh>
@@ -195,6 +201,7 @@
 
     private List<ClassificationNodeDto> _nodes = new();
     private List<ClassificationNodeDto> _filteredNodesCache = new();
+    private HashSet<ClassificationNodeDto> _selectedNodes = new();
     private ILookup<Guid?, ClassificationNodeDto> _childrenLookup = Enumerable.Empty<ClassificationNodeDto>().ToLookup(n => (Guid?)null);
     private IReadOnlyList<ClassificationNodeDto> _filteredNodes => _filteredNodesCache;
 
@@ -508,6 +515,72 @@
             Snackbar.Add(TranslationService.GetTranslation("classificationNode.statusChangeError","Errore nel cambio di stato: {0}", ex.Message), Severity.Error);
             RecomputeFilteredNodes();
             StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Deletes all selected classification nodes.
+    /// </summary>
+    private async Task DeleteSelectedNodes()
+    {
+        if (_selectedNodes.Count == 0)
+            return;
+
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("classificationNode.confirmDeleteMultiple", 
+            "Sei sicuro di voler eliminare {0} nodi selezionati? Questa azione non può essere annullata.", 
+            _selectedNodes.Count);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                var deletedCount = 0;
+                var failedCount = 0;
+                
+                foreach (var node in _selectedNodes.ToList())
+                {
+                    try
+                    {
+                        await EntityManagementService.DeleteClassificationNodeAsync(node.Id);
+                        _nodes.RemoveAll(n => n.Id == node.Id);
+                        deletedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failedCount++;
+                        Logger.LogError(ex, "Error deleting classification node {NodeId}", node.Id);
+                    }
+                }
+                
+                _selectedNodes.Clear();
+                
+                if (failedCount == 0)
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("classificationNode.deletedMultiple", 
+                        "{0} nodi eliminati con successo!", deletedCount), Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("classificationNode.deletedMultiplePartial", 
+                        "{0} nodi eliminati, {1} falliti", deletedCount, failedCount), Severity.Warning);
+                }
+                
+                RecomputeFilteredNodes();
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslationFormatted("classificationNode.deleteError", 
+                    "Errore nell'eliminazione dei nodi: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting selected classification nodes");
+            }
         }
     }
 }
