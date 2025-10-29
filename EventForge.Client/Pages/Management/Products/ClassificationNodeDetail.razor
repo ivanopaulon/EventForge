@@ -77,7 +77,7 @@
                                                       Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
                                                       Variant="Variant.Outlined"
                                                       Required="true"
-                                                      RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome � obbligatorio")"
+                                                      RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
                                                       MaxLength="100"
                                                       Immediate="true"
                                                       OnBlur="@(()=> MarkChanged())" />
@@ -607,8 +607,8 @@
 
     private string GetNodeDisplayName(ClassificationNodeDto node)
     {
-        var indent = new string('�', Math.Max(0, node.Level));
-        return $"{indent} {node.Name} ({GetTypeDisplayName(node.Type)})";
+        var indent = new string(' ', Math.Max(0, node.Level * 2));
+        return $"{indent}{node.Name} ({GetTypeDisplayName(node.Type)})";
     }
 
     private Color GetStatusColor(ProductClassificationNodeStatus status) => status switch
