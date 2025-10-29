@@ -57,32 +57,32 @@
 
         <!-- Suppliers Data Table -->
         <MudPaper Elevation="1" Class="border-rounded">
-            <MudCardHeader Class="pa-2">
-                <CardHeaderContent>
-                    <MudText Typo="Typo.h6">
-                        <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
-                        @TranslationService.GetTranslation("supplier.list", "Lista Fornitori")
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
-                            (@_filteredSuppliers.Count() @TranslationService.GetTranslation("supplier.itemsFound", "elementi trovati"))
-                        </MudText>
+            <div class="pa-2">
+                <MudText Typo="Typo.h6" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
+                    @TranslationService.GetTranslation("supplier.list", "Lista Fornitori")
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
+                        (@_filteredSuppliers.Count() @TranslationService.GetTranslation("supplier.itemsFound", "elementi trovati"))
                     </MudText>
-                </CardHeaderContent>
-                <CardHeaderActions>
-                    <ActionButtonGroup Mode="ActionButtonGroupMode.Toolbar"
-                                       ShowRefresh="true"
-                                       ShowExport="false" 
-                                       ShowCreate="true"
-                                       ShowAuditLog="false"
-                                       CreateIcon="@Icons.Material.Outlined.Add"
-                                       CreateTooltip="@TranslationService.GetTranslation("supplier.createNew", "Crea nuovo fornitore")"
-                                       IsDisabled="_isLoadingSuppliers"
-                                       OnRefresh="@LoadSuppliersAsync"
-                                       OnCreate="@CreateSupplier" />
-                </CardHeaderActions>
-            </MudCardHeader>
+                </MudText>
+                
+                <ManagementTableToolbar ShowSelectionBadge="true"
+                                        SelectedCount="@_selectedSuppliers.Count"
+                                        ShowRefresh="true"
+                                        ShowCreate="true"
+                                        ShowDelete="true"
+                                        CreateLabel="supplier.create"
+                                        CreateTooltip="supplier.createNew"
+                                        IsDisabled="_isLoadingSuppliers"
+                                        OnRefresh="@LoadSuppliersAsync"
+                                        OnCreate="@CreateSupplier"
+                                        OnDelete="@DeleteSelectedSuppliers" />
+            </div>
             <MudCardContent Class="pa-1">
                 <MudTable T="BusinessPartyDto" 
-                          Items="_filteredSuppliers" 
+                          Items="_filteredSuppliers"
+                          MultiSelection="true"
+                          @bind-SelectedItems="_selectedSuppliers"
                           Hover="true" 
                           Striped="true"
                           Loading="_isLoadingSuppliers"
@@ -192,6 +192,9 @@
     private bool _isLoading = true;
     private bool _isLoadingSuppliers = false;
     private bool _auditDrawerOpen = false;
+    
+    // Selection management
+    private HashSet<BusinessPartyDto> _selectedSuppliers = new();
     
     // Audit drawer management
     private BusinessPartyDto? _selectedSupplierForAudit;
@@ -450,6 +453,71 @@
         {
             // Optionally refresh the supplier list or show success message
             StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Deletes all selected suppliers.
+    /// </summary>
+    private async Task DeleteSelectedSuppliers()
+    {
+        if (_selectedSuppliers.Count == 0)
+            return;
+
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslationFormatted("supplier.confirmDeleteMultiple", 
+            "Sei sicuro di voler eliminare {0} fornitori selezionati? Questa azione non può essere annullata.", 
+            _selectedSuppliers.Count);
+
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
+        {
+            try
+            {
+                var deletedCount = 0;
+                var failedCount = 0;
+                
+                foreach (var supplier in _selectedSuppliers.ToList())
+                {
+                    try
+                    {
+                        await BusinessPartyService.DeleteBusinessPartyAsync(supplier.Id);
+                        _suppliers.Remove(supplier);
+                        deletedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failedCount++;
+                        Logger.LogError(ex, "Error deleting supplier {SupplierId}", supplier.Id);
+                    }
+                }
+                
+                _selectedSuppliers.Clear();
+                
+                if (failedCount == 0)
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("supplier.deletedMultiple", 
+                        "{0} fornitori eliminati con successo!", deletedCount), Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("supplier.deletedMultiplePartial", 
+                        "{0} fornitori eliminati, {1} falliti", deletedCount, failedCount), Severity.Warning);
+                }
+                
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("supplier.deleteError", 
+                    "Errore nell'eliminazione dei fornitori: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting selected suppliers");
+            }
         }
     }
 }
