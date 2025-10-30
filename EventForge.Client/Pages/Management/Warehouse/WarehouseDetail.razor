@@ -13,7 +13,7 @@
 @inject ITranslationService TranslationService
 @inject ILogger<WarehouseDetail> Logger
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <PageLoadingOverlay IsVisible="_isLoading || _isSaving"
                          Message="@(_isSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
