@@ -63,6 +63,11 @@ main {
     }
 }
 
+/* Fixed color for menu toggle button in appbar */
+::deep .menu-toggle-button {
+    color: #F1F3F5 !important;
+}
+
 @media (min-width: 641px) {
     .page {
         flex-direction: row;
