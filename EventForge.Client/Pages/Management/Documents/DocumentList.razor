@@ -105,13 +105,15 @@
               Hover="true"
               Striped="true"
               Loading="@_isLoading"
-              LoadingProgressColor="Color.Primary">
+              LoadingProgressColor="Color.Primary"
+              SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
+              AllowUnsorted="false">
         <HeaderContent>
-            <MudTh>@TranslationService.GetTranslation("documents.number", "Numero")</MudTh>
-            <MudTh>@TranslationService.GetTranslation("documents.type", "Tipo")</MudTh>
-            <MudTh>@TranslationService.GetTranslation("documents.date", "Data")</MudTh>
-            <MudTh>@TranslationService.GetTranslation("documents.businessParty", "Controparte")</MudTh>
-            <MudTh>@TranslationService.GetTranslation("documents.status", "Stato")</MudTh>
+            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.Number))">@TranslationService.GetTranslation("documents.number", "Numero")</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.DocumentTypeName ?? string.Empty))">@TranslationService.GetTranslation("documents.type", "Tipo")</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<DocumentHeaderDto, object>(x => x.Date))">@TranslationService.GetTranslation("documents.date", "Data")</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.BusinessPartyName ?? string.Empty))">@TranslationService.GetTranslation("documents.businessParty", "Controparte")</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.Status))">@TranslationService.GetTranslation("documents.status", "Stato")</MudTableSortLabel></MudTh>
             <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
         </HeaderContent>
         <RowTemplate>
