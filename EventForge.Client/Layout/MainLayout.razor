@@ -18,7 +18,8 @@
                        OnClick="@(() => _drawerOpen = !_drawerOpen)"
                        aria-label="@TranslationService.GetTranslation("navigation.openMenu", "Open navigation menu")"
                        aria-expanded="@_drawerOpen"
-                       aria-controls="navigation-drawer" />
+                       aria-controls="navigation-drawer"
+                       Class="menu-toggle-button" />
         
         <!-- Logo and brand with improved accessibility -->
         <div class="d-flex align-center" role="img" aria-label="EventForge Logo">
