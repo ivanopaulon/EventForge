@@ -64,7 +64,7 @@ main {
 }
 
 /* Fixed color for menu toggle button in appbar */
-::deep .menu-toggle-button {
+.menu-toggle-button {
     color: #F1F3F5 !important;
 }
 
