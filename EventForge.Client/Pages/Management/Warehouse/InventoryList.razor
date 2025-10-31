@@ -117,15 +117,21 @@
         </MudGrid>
 
         <!-- Documents Table -->
-        <MudTable Items="_inventoryDocuments" Hover="true" Dense="true" Loading="_isLoading" Striped="true">
+        <MudTable Items="_inventoryDocuments" 
+                  Hover="true" 
+                  Dense="true" 
+                  Loading="_isLoading" 
+                  Striped="true"
+                  SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
+                  AllowUnsorted="false">
             <HeaderContent>
-                <MudTh>@TranslationService.GetTranslation("document.number", "Numero")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("document.date", "Data")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("document.status", "Stato")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("document.totalItems", "Articoli")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("common.createdBy", "Creato Da")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("common.createdAt", "Data Creazione")</MudTh>
+                <MudTh><MudTableSortLabel SortBy="@(new Func<InventoryDocumentDto, object>(x => x.Number))">@TranslationService.GetTranslation("document.number", "Numero")</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<InventoryDocumentDto, object>(x => x.InventoryDate))">@TranslationService.GetTranslation("document.date", "Data")</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="@(new Func<InventoryDocumentDto, object>(x => x.WarehouseName ?? string.Empty))">@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="@(new Func<InventoryDocumentDto, object>(x => x.Status))">@TranslationService.GetTranslation("document.status", "Stato")</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="@(new Func<InventoryDocumentDto, object>(x => x.TotalItems))">@TranslationService.GetTranslation("document.totalItems", "Articoli")</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="@(new Func<InventoryDocumentDto, object>(x => x.CreatedBy ?? string.Empty))">@TranslationService.GetTranslation("common.createdBy", "Creato Da")</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="@(new Func<InventoryDocumentDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("common.createdAt", "Data Creazione")</MudTableSortLabel></MudTh>
                 <MudTh Class="text-center">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
             </HeaderContent>
             <RowTemplate>

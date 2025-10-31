@@ -134,15 +134,17 @@
                   Hover="true" 
                   Striped="true" 
                   Loading="_isLoading"
-                  LoadingProgressColor="Color.Info">
+                  LoadingProgressColor="Color.Info"
+                  SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
+                  AllowUnsorted="false">
             <HeaderContent>
-                <MudTh>@TranslationService.GetTranslation("warehouse.lotCode", "Codice Lotto")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("warehouse.product", "Prodotto")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("warehouse.status", "Stato")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("warehouse.qualityStatus", "Qualità")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("warehouse.originalQuantity", "Quantità Originale")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("warehouse.availableQuantity", "Disponibile")</MudTh>
-                <MudTh>@TranslationService.GetTranslation("warehouse.expiryDate", "Data Scadenza")</MudTh>
+                <MudTh><MudTableSortLabel SortBy="@(new Func<LotDto, object>(x => x.Code))">@TranslationService.GetTranslation("warehouse.lotCode", "Codice Lotto")</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="@(new Func<LotDto, object>(x => x.ProductName ?? string.Empty))">@TranslationService.GetTranslation("warehouse.product", "Prodotto")</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="@(new Func<LotDto, object>(x => x.Status))">@TranslationService.GetTranslation("warehouse.status", "Stato")</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="@(new Func<LotDto, object>(x => x.QualityStatus))">@TranslationService.GetTranslation("warehouse.qualityStatus", "Qualità")</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="@(new Func<LotDto, object>(x => x.OriginalQuantity))">@TranslationService.GetTranslation("warehouse.originalQuantity", "Quantità Originale")</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="@(new Func<LotDto, object>(x => x.AvailableQuantity))">@TranslationService.GetTranslation("warehouse.availableQuantity", "Disponibile")</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<LotDto, object>(x => x.ExpiryDate ?? DateTime.MaxValue))">@TranslationService.GetTranslation("warehouse.expiryDate", "Data Scadenza")</MudTableSortLabel></MudTh>
                 <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
             </HeaderContent>
             <RowTemplate>
