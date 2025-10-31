@@ -147,12 +147,12 @@
 
 /* Drawer */
 .mud-drawer {
-    background-color: var(--drawer-background) !important;
+    background-color: #92A0AD !important;
     border-right: 1px solid var(--border) !important;
 }
 
 .mud-drawer-content {
-    color: var(--drawer-text) !important;
+    color: #ADB8C2 !important;
 }
 
 /* AppBar */
@@ -162,6 +162,7 @@
     color: #F1F3F5 !important;
     font-weight: bold !important;
 }
+
 
 /* Paper */
 .mud-paper {
@@ -174,8 +175,10 @@
 }
 
 .mud-table-head {
-    background-color: var(--surface-2) !important;
+    background-color: #F1F3F5 !important;
+    color: #ADB8C2 !important;
 }
+
 
 .mud-table-cell {
     color: var(--text-primary) !important;
@@ -183,7 +186,7 @@
 }
 
 .mud-table-row:hover {
-    background-color: var(--surface-2) !important;
+    background-color: var(--surface-2) ;
 }
 
 /* Dialogs */
@@ -237,10 +240,18 @@
         color: #F1F3F5 !important;
         background-color: #BBC4CC !important;
     }
+    .mud-nav-link.active .mud-icon-root {
+        color: #778899 !important;
+    }
 
     .mud-nav-link .mud-nav-link-icon {
         color: #778899 !important;
     }
+
+    .mud-nav-link .mud-icon-root {
+        color: #778899 !important;
+    }
+
 
 
 
