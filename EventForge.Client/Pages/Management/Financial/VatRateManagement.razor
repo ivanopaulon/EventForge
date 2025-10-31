@@ -12,7 +12,7 @@
 @inject ITranslationService TranslationService
 @inject ILogger<VatRateManagement> Logger
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4 px-0" Style="width:100%; min-height:100vh; display:flex; flex-direction:column;">
     <PageLoadingOverlay IsVisible="_isLoading || _isLoadingVatRates"
                          Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
