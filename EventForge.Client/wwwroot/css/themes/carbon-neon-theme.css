@@ -8,28 +8,24 @@
    ======================================== */
 [data-theme="carbon-neon-dark"] {
     /* Core Colors - Aligned with MudBlazor palette spec */
-    --primary: #00F5FF;           /* Neon Cyan */
-    --secondary: #FF006E;         /* Vivid Magenta */
-    --accent: #00E5FF;            /* Action Default / Info */
-    
+    --primary: #00F5FF; /* Neon Cyan */
+    --secondary: #FF006E; /* Vivid Magenta */
+    --accent: #00E5FF; /* Action Default / Info */
     /* Backgrounds */
-    --background: #121212;        /* Pure MD dark */
+    --background: #121212; /* Pure MD dark */
     --surface: #262626;
-    --surface-2: #262626;         /* Elevated Surface */
+    --surface-2: #262626; /* Elevated Surface */
     --card-background: #262626;
     --card-border: rgba(255,255,255,0.1);
-    
     /* AppBar & Drawer */
     --appbar-background: #000000;
     --appbar-text: #FFFFFF;
     --drawer-background: #1A1A1A;
     --drawer-text: #F5F5F5;
-    
     /* Text Colors */
     --text-primary: #FFFFFF;
     --text-secondary: #B3B3B3;
     --text-muted: #B3B3B3;
-    
     /* Interactive Elements */
     --button-primary-bg: #00F5FF;
     --button-primary-text: #121212;
@@ -37,11 +33,9 @@
     --link: #00F5FF;
     --link-hover: #00E5FF;
     --action-default: #00E5FF;
-    
     /* Borders & Dividers */
     --border: rgba(255,255,255,0.1);
     --divider: rgba(255,255,255,0.1);
-    
     /* Effects */
     --shadow-neon: 0 0 10px rgba(0, 245, 255, 0.3);
 }
@@ -51,39 +45,33 @@
    ======================================== */
 [data-theme="carbon-neon-light"] {
     /* Core Colors */
-    --primary: #0099CC;           /* Bright Cyan */
-    --secondary: #00D9FF;         /* Electric Blue */
-    --accent: #7B68EE;            /* Medium Slate Blue */
-    
+    --primary: #0099CC; /* Bright Cyan */
+    --secondary: #00D9FF; /* Electric Blue */
+    --accent: #7B68EE; /* Medium Slate Blue */
     /* Backgrounds */
-    --background: #F5F5F5;        /* Light Gray */
-    --surface: #FFFFFF;           /* White */
-    --surface-2: #FAFAFA;         /* Elevated Surface */
-    --card-background: #FFFFFF;   /* Card Background */
-    --card-border: #E0E0E0;       /* Card Border */
-    
+    --background: #F5F5F5; /* Light Gray */
+    --surface: #FFFFFF; /* White */
+    --surface-2: #FAFAFA; /* Elevated Surface */
+    --card-background: #FFFFFF; /* Card Background */
+    --card-border: #E0E0E0; /* Card Border */
     /* AppBar & Drawer */
-    --appbar-background: #FFFFFF;
-    --appbar-text: #1A1A1A;
+    --appbar-background: #92A0AD;
+    --appbar-text: #F1F3F5;
     --drawer-background: #FFFFFF;
     --drawer-text: #1A1A1A;
-    
     /* Text Colors */
-    --text-primary: #1A1A1A;      /* Near Black */
-    --text-secondary: #6B6B6B;    /* Medium Gray */
-    --text-muted: #9E9E9E;        /* Muted Gray */
-    
+    --text-primary: #1A1A1A; /* Near Black */
+    --text-secondary: #6B6B6B; /* Medium Gray */
+    --text-muted: #9E9E9E; /* Muted Gray */
     /* Interactive Elements */
     --button-primary-bg: #0099CC;
     --button-primary-text: #FFFFFF;
     --button-primary-hover: #007A99;
     --link: #0099CC;
     --link-hover: #007A99;
-    
     /* Borders & Dividers */
     --border: #E0E0E0;
     --divider: #F0F0F0;
-    
     /* Effects */
     --shadow-neon: 0 0 10px rgba(0, 153, 204, 0.2);
 }
@@ -121,9 +109,9 @@
     color: var(--button-primary-text) !important;
 }
 
-.mud-button-root.mud-button-filled.mud-button-filled-primary:hover {
-    background-color: var(--button-primary-hover) !important;
-}
+    .mud-button-root.mud-button-filled.mud-button-filled-primary:hover {
+        background-color: var(--button-primary-hover) !important;
+    }
 
 .mud-button-root.mud-button-outlined {
     border-color: var(--border) !important;
@@ -163,9 +151,11 @@
 }
 
 /* AppBar */
+/* Modifica per colori fissi per tutti i temi, Ivano 31/10/2025 */
 .mud-appbar {
-    background-color: var(--appbar-background) !important;
-    color: var(--appbar-text) !important;
+    background-color: #92A0AD !important;
+    color: #F1F3F5 !important;
+    font-weight: bold !important;
 }
 
 /* Paper */
@@ -215,33 +205,45 @@
     color: var(--text-primary) !important;
 }
 
-.mud-list-item:hover {
-    background-color: var(--surface-2) !important;
-}
+    .mud-list-item:hover {
+        background-color: var(--surface-2) !important;
+    }
 
 .mud-list-item-text {
     color: var(--text-primary) !important;
+    width: max-content !important;
 }
 
 /* Navigation Menu */
 .mud-nav-link {
-    color: var(--text-primary) !important;
+    color: #778899 !important;
+    background-color: #F1F3F5 !important;
 }
 
-.mud-nav-link:hover {
-    background-color: var(--surface-2) !important;
-}
+    .mud-nav-link:hover {
+        color: #F1F3F5 !important;
+        background-color: #ADB8C2 !important;
+    }
+        .mud-nav-link:hover .mud-nav-link-icon {
+            color: #F1F3F5 !important;
+        }
 
-.mud-nav-link.active {
-    color: var(--primary) !important;
-    background-color: var(--surface-2) !important;
-}
+    .mud-nav-link.active {
+        color: #F1F3F5 !important;
+        background-color: #BBC4CC !important;
+    }
 
+    .mud-nav-link .mud-nav-link-icon {
+        color: #778899 !important;
+    }
+
+
+
+}
 /* ========================================
    SYNCFUSION COMPONENT OVERRIDES
    Non-destructive styling using variables
    ======================================== */
-
 /* Syncfusion Buttons */
 .e-btn.e-primary {
     background-color: var(--button-primary-bg) !important;
@@ -249,9 +251,9 @@
     border-color: var(--button-primary-bg) !important;
 }
 
-.e-btn.e-primary:hover {
-    background-color: var(--button-primary-hover) !important;
-}
+    .e-btn.e-primary:hover {
+        background-color: var(--button-primary-hover) !important;
+    }
 
 .e-btn.e-outline {
     border-color: var(--border) !important;
@@ -264,25 +266,25 @@
     color: var(--text-primary) !important;
 }
 
-.e-grid .e-headercell {
-    background-color: var(--surface-2) !important;
-    color: var(--text-primary) !important;
-    border-color: var(--border) !important;
-}
+    .e-grid .e-headercell {
+        background-color: var(--surface-2) !important;
+        color: var(--text-primary) !important;
+        border-color: var(--border) !important;
+    }
 
-.e-grid .e-rowcell {
-    background-color: var(--surface) !important;
-    color: var(--text-primary) !important;
-    border-color: var(--border) !important;
-}
+    .e-grid .e-rowcell {
+        background-color: var(--surface) !important;
+        color: var(--text-primary) !important;
+        border-color: var(--border) !important;
+    }
 
-.e-grid .e-row:hover .e-rowcell {
-    background-color: var(--surface-2) !important;
-}
+    .e-grid .e-row:hover .e-rowcell {
+        background-color: var(--surface-2) !important;
+    }
 
-.e-grid .e-altrow .e-rowcell {
-    background-color: var(--surface) !important;
-}
+    .e-grid .e-altrow .e-rowcell {
+        background-color: var(--surface) !important;
+    }
 
 /* Syncfusion Input Fields */
 .e-input-group,
@@ -291,19 +293,19 @@
     border-color: var(--border) !important;
 }
 
-.e-input-group input,
-.e-input-group textarea {
-    color: var(--text-primary) !important;
-    background-color: var(--surface) !important;
-}
+    .e-input-group input,
+    .e-input-group textarea {
+        color: var(--text-primary) !important;
+        background-color: var(--surface) !important;
+    }
 
-.e-input-group:hover {
-    border-color: var(--primary) !important;
-}
+    .e-input-group:hover {
+        border-color: var(--primary) !important;
+    }
 
-.e-input-group.e-input-focus {
-    border-color: var(--primary) !important;
-}
+    .e-input-group.e-input-focus {
+        border-color: var(--primary) !important;
+    }
 
 /* Syncfusion Dropdowns */
 .e-dropdownbase {
@@ -311,28 +313,28 @@
     color: var(--text-primary) !important;
 }
 
-.e-dropdownbase .e-list-item {
-    color: var(--text-primary) !important;
-}
+    .e-dropdownbase .e-list-item {
+        color: var(--text-primary) !important;
+    }
 
-.e-dropdownbase .e-list-item:hover {
-    background-color: var(--surface-2) !important;
-}
+        .e-dropdownbase .e-list-item:hover {
+            background-color: var(--surface-2) !important;
+        }
 
 /* Syncfusion Dialogs */
 .e-dialog {
     background-color: var(--card-background) !important;
 }
 
-.e-dialog .e-dlg-header {
-    background-color: var(--surface) !important;
-    color: var(--text-primary) !important;
-    border-bottom: 1px solid var(--border) !important;
-}
+    .e-dialog .e-dlg-header {
+        background-color: var(--surface) !important;
+        color: var(--text-primary) !important;
+        border-bottom: 1px solid var(--border) !important;
+    }
 
-.e-dialog .e-dlg-content {
-    color: var(--text-primary) !important;
-}
+    .e-dialog .e-dlg-content {
+        color: var(--text-primary) !important;
+    }
 
 /* Syncfusion Toolbar */
 .e-toolbar {
@@ -340,9 +342,9 @@
     border-color: var(--border) !important;
 }
 
-.e-toolbar .e-toolbar-item {
-    color: var(--text-primary) !important;
-}
+    .e-toolbar .e-toolbar-item {
+        color: var(--text-primary) !important;
+    }
 
 /* Syncfusion Cards */
 .e-card {
@@ -350,12 +352,12 @@
     border: 1px solid var(--card-border) !important;
 }
 
-.e-card .e-card-header {
-    background-color: var(--surface) !important;
-    color: var(--text-primary) !important;
-    border-bottom: 1px solid var(--card-border) !important;
-}
+    .e-card .e-card-header {
+        background-color: var(--surface) !important;
+        color: var(--text-primary) !important;
+        border-bottom: 1px solid var(--card-border) !important;
+    }
 
-.e-card .e-card-content {
-    color: var(--text-primary) !important;
-}
+    .e-card .e-card-content {
+        color: var(--text-primary) !important;
+    }

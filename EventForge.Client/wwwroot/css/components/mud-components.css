@@ -20,13 +20,13 @@
 */
 
 :root {
- --ef-input-height:40px; /* target height for main form fields */
- --ef-button-height:40px; /* primary and toolbar buttons */
- --ef-icon-size-small:20px;
- --ef-icon-size-medium:24px;
- --ef-gap:16px; /* gap-2 baseline */
- --ef-gap-lg:24px; /* gap-3 */
- --ef-field-height:40px; /* unified field height for consistency */
+    --ef-input-height: 40px; /* target height for main form fields */
+    --ef-button-height: 40px; /* primary and toolbar buttons */
+    --ef-icon-size-small: 20px;
+    --ef-icon-size-medium: 24px;
+    --ef-gap: 16px; /* gap-2 baseline */
+    --ef-gap-lg: 24px; /* gap-3 */
+    --ef-field-height: 40px; /* unified field height for consistency */
 }
 
 /* -------------------------
@@ -107,36 +107,54 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
 /* -------------------------
  Generic spacing helpers
  ------------------------- */
-.ef-pa-standard { padding:16px; }
-.ef-pa-compact { padding:8px; }
-.ef-mb-4 { margin-bottom:16px; }
-.ef-gap { gap: var(--ef-gap); }
-.ef-gap-lg { gap: var(--ef-gap-lg); }
+.ef-pa-standard {
+    padding: 16px;
+}
+
+.ef-pa-compact {
+    padding: 8px;
+}
+
+.ef-mb-4 {
+    margin-bottom: 16px;
+}
+
+.ef-gap {
+    gap: var(--ef-gap);
+}
+
+.ef-gap-lg {
+    gap: var(--ef-gap-lg);
+}
 
 /* -------------------------
  Buttons
  ------------------------- */
 .ef-btn {
- display: inline-flex;
- align-items: center;
- justify-content: center;
- min-height: var(--ef-button-height);
- height: var(--ef-button-height);
- padding:0 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--ef-button-height);
+    height: var(--ef-button-height);
+    padding: 0 12px;
 }
 /* Small variant for table rows / compact toolbars */
-.ef-btn-small { min-height:36px; height:36px; padding:0 8px; }
+.ef-btn-small {
+    min-height: 36px;
+    height: 36px;
+    padding: 0 8px;
+}
 
 /* Ensure icon buttons preserve circular hit area */
 .ef-icon-btn {
- min-width: var(--ef-button-height);
- min-height: var(--ef-button-height);
- width: var(--ef-button-height);
- height: var(--ef-button-height);
- display: inline-flex;
- align-items: center;
- justify-content: center;
- border-radius:6px;
+    min-width: var(--ef-button-height);
+    min-height: var(--ef-button-height);
+    width: var(--ef-button-height);
+    height: var(--ef-button-height);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
 }
 
 /* -------------------------
@@ -145,8 +163,8 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
  All non-multiline input components use consistent height normalization
  ------------------------- */
 .ef-textarea .mud-input-root {
- min-height: var(--ef-input-height);
- box-sizing: border-box;
+    min-height: var(--ef-input-height);
+    box-sizing: border-box;
 }
 
 /* All other input types (ef-input, ef-select, ef-numeric, ef-datepicker, ef-timepicker, ef-autocomplete) 
@@ -159,103 +177,228 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
 .ef-datepicker .mud-input-adornment,
 .ef-timepicker .mud-input-adornment,
 .ef-autocomplete .mud-input-adornment {
- height: 100%;
- display: inline-flex;
- align-items: center;
+    height: 100%;
+    display: inline-flex;
+    align-items: center;
 }
 
 /* Helper for helper text styling (consistent across drawers and forms) */
-.ef-helper-text { font-size:0.75rem; margin-top:4px; color: var(--mud-palette-text-secondary); }
+.ef-helper-text {
+    font-size: 0.75rem;
+    margin-top: 4px;
+    color: var(--mud-palette-text-secondary);
+}
 
 /* -------------------------
  Cards and containers
  ------------------------- */
-.ef-card { padding:16px; border-radius:8px; }
-.ef-card-compact { padding:12px; }
-.ef-card-header { display: flex; align-items: center; justify-content: space-between; gap:12px; }
+.ef-card {
+    padding: 16px;
+    border-radius: 8px;
+}
+
+.ef-card-compact {
+    padding: 12px;
+}
+
+.ef-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
 
 /* Standardized card spacing for full-width sections */
-.ef-section { margin-bottom:16px; }
+.ef-section {
+    margin-bottom: 16px;
+}
 
 /* -------------------------
  Tables
  ------------------------- */
 .ef-table .mud-table-container {
- width:100%;
+    width: 100%;
 }
-.ef-table .mud-table thead th { font-weight:600; }
-.ef-table .ef-truncate { max-width:200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.ef-table .mud-table thead th {
+    font-weight: 600;
+}
+
+.ef-table .ef-truncate {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 
 /* Table toolbar and pager alignment */
-.ef-table-toolbar { display: flex; align-items: center; justify-content: space-between; gap:12px; }
+.ef-table-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
 
 /* -------------------------
  Drawer / Dialog
  ------------------------- */
-.ef-drawer { display: flex; flex-direction: column; }
-.ef-drawer .ef-drawer-header { padding:12px; border-bottom:1px solid var(--mud-palette-lines-default); }
-.ef-drawer .ef-drawer-content { padding:12px; overflow-y: auto; }
-.ef-drawer .ef-drawer-actions { padding:12px; border-top:1px solid var(--mud-palette-lines-default); display:flex; justify-content:flex-end; gap:12px; }
+.ef-drawer {
+    display: flex;
+    flex-direction: column;
+}
+
+    .ef-drawer .ef-drawer-header {
+        padding: 12px;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .ef-drawer .ef-drawer-content {
+        padding: 12px;
+        overflow-y: auto;
+    }
+
+    .ef-drawer .ef-drawer-actions {
+        padding: 12px;
+        border-top: 1px solid var(--mud-palette-lines-default);
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
 
 /* Dialog actions consistent sizing */
-.ef-dialog-action .mud-button { min-height: var(--ef-button-height); height: var(--ef-button-height); }
+.ef-dialog-action .mud-button {
+    min-height: var(--ef-button-height);
+    height: var(--ef-button-height);
+}
 
 /* -------------------------
  Action button groups / toolbars
  ------------------------- */
-.ef-action-group { display: inline-flex; align-items: center; gap:8px; }
-.ef-action-group.toolbar { gap:12px; }
-.ef-action-group .mud-icon-button { padding:6px; }
+.ef-action-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
 
-/* Ensure toolbar mode uses medium-size buttons by default */
-.ef-action-group.toolbar .ef-btn,
-.ef-action-group.toolbar .mud-icon-button { min-height: var(--ef-button-height); height: var(--ef-button-height); }
+    .ef-action-group.toolbar {
+        gap: 12px;
+    }
+
+    .ef-action-group .mud-icon-button {
+        padding: 6px;
+    }
+
+    /* Ensure toolbar mode uses medium-size buttons by default */
+    .ef-action-group.toolbar .ef-btn,
+    .ef-action-group.toolbar .mud-icon-button {
+        min-height: var(--ef-button-height);
+        height: var(--ef-button-height);
+    }
 
 /* -------------------------
  Chips / Badges / Avatars
  ------------------------- */
-.ef-chip-small .mud-chip { height:28px; min-height:28px; }
-.ef-chip-medium .mud-chip { height:36px; min-height:36px; }
+.ef-chip-small .mud-chip {
+    height: 28px;
+    min-height: 28px;
+}
 
-.ef-badge { line-height:1; }
-.ef-avatar-sm { width:32px; height:32px; font-size:0.9rem; }
-.ef-avatar-md { width:40px; height:40px; font-size:1rem; }
-.ef-avatar-lg { width:56px; height:56px; font-size:1.25rem; }
+.ef-chip-medium .mud-chip {
+    height: 36px;
+    min-height: 36px;
+}
+
+.ef-badge {
+    line-height: 1;
+}
+
+.ef-avatar-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+}
+
+.ef-avatar-md {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+}
+
+.ef-avatar-lg {
+    width: 56px;
+    height: 56px;
+    font-size: 1.25rem;
+}
 
 /* -------------------------
  Icons
  ------------------------- */
-.ef-icon-sm { font-size: var(--ef-icon-size-small); }
-.ef-icon-md { font-size: var(--ef-icon-size-medium); }
+.ef-icon-sm {
+    font-size: var(--ef-icon-size-small);
+}
+
+.ef-icon-md {
+    font-size: var(--ef-icon-size-medium);
+}
 
 /* -------------------------
  Tooltip / Help
  ------------------------- */
-.ef-help-tooltip .mud-tooltip { max-width:300px; }
-.ef-help-tooltip .mud-tooltip .mud-text { line-height:1.3; }
+.ef-help-tooltip .mud-tooltip {
+    max-width: 300px;
+}
+
+    .ef-help-tooltip .mud-tooltip .mud-text {
+        line-height: 1.3;
+    }
 
 /* -------------------------
  Responsive & Accessibility
  ------------------------- */
 @media (max-width:768px) {
- :root { --ef-input-height:36px; --ef-button-height:36px; --ef-field-height:36px; }
- .ef-drawer { width:100vw !important; }
+    :root {
+        --ef-input-height: 36px;
+        --ef-button-height: 36px;
+        --ef-field-height: 36px;
+    }
+
+    .ef-drawer {
+        width: 100vw !important;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
- * { transition: none !important; animation: none !important; }
+    * {
+        transition: none !important;
+        animation: none !important;
+    }
 }
 
 @media (prefers-contrast: high) {
- .ef-drawer .ef-drawer-header,
- .ef-drawer .ef-drawer-actions { border-color: var(--mud-palette-text-primary); }
+    .ef-drawer .ef-drawer-header,
+    .ef-drawer .ef-drawer-actions {
+        border-color: var(--mud-palette-text-primary);
+    }
 }
 
 /* -------------------------
  Migration helpers - utility classes to apply quickly
  ------------------------- */
-.ef-full-width { width:100%; }
-.ef-compact-row { display:flex; gap:12px; align-items:center; }
-.ef-form-row { display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+.ef-full-width {
+    width: 100%;
+}
+
+.ef-compact-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.ef-form-row {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+}
 
 /* End of EventForge MudBlazor component styles */

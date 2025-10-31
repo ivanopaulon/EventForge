@@ -266,25 +266,6 @@
         <MudNavLink Href="/profile" Icon="@Icons.Material.Outlined.Person" Match="NavLinkMatch.All">
             @TranslationService.GetTranslation("nav.profile", "Profilo")
         </MudNavLink>
-
-        <!-- Help Section -->
-        <MudDivider Class="my-4" />
-        <MudNavGroup title="@TranslationService.GetTranslation("nav.help", "Aiuto e Supporto")" 
-                     Icon="@Icons.Material.Outlined.Help" 
-                     Expanded="false">
-            <MudNavLink Icon="@Icons.Material.Outlined.QuestionMark" 
-                        OnClick="@ShowGeneralHelp">
-                @TranslationService.GetTranslation("nav.helpCenter", "Centro Aiuto")
-            </MudNavLink>
-            <MudNavLink Icon="@Icons.Material.Outlined.Tour" 
-                        OnClick="@ShowInteractiveTour">
-                @TranslationService.GetTranslation("nav.interactiveTour", "Tour Interattivo")
-            </MudNavLink>
-            <MudNavLink Icon="@Icons.Material.Outlined.School" 
-                        OnClick="@ShowOnboarding">
-                @TranslationService.GetTranslation("nav.tutorialCenter", "Centro Tutorial")
-            </MudNavLink>
-        </MudNavGroup>
     }
     else
     {
