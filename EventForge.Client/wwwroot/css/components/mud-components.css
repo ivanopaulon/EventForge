@@ -54,7 +54,7 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
 .ef-timepicker .mud-input-slot,
 .ef-autocomplete .mud-input-slot {
     min-height: unset !important;
-    height: 100%;
+    height: 90%;
 }
 
 /* Select input internal styling */
