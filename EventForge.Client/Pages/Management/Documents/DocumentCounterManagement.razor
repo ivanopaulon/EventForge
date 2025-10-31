@@ -83,15 +83,17 @@
               Hover="true"
               Striped="true"
               Loading="@_isLoading"
-              LoadingProgressColor="Color.Primary">
+              LoadingProgressColor="Color.Primary"
+              SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
+              AllowUnsorted="false">
         <HeaderContent>
-            <MudTh>@TranslationService.GetTranslation("documentCounter.documentType", "Tipo Documento")</MudTh>
-            <MudTh>@TranslationService.GetTranslation("documentCounter.series", "Serie")</MudTh>
-            <MudTh>@TranslationService.GetTranslation("documentCounter.year", "Anno")</MudTh>
-            <MudTh>@TranslationService.GetTranslation("documentCounter.currentValue", "Valore Corrente")</MudTh>
-            <MudTh>@TranslationService.GetTranslation("documentCounter.prefix", "Prefisso")</MudTh>
-            <MudTh>@TranslationService.GetTranslation("documentCounter.formatPattern", "Pattern")</MudTh>
-            <MudTh>@TranslationService.GetTranslation("documentCounter.resetOnYearChange", "Reset Anno")</MudTh>
+            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.DocumentTypeName ?? string.Empty))">@TranslationService.GetTranslation("documentCounter.documentType", "Tipo Documento")</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.Series))">@TranslationService.GetTranslation("documentCounter.series", "Serie")</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.Year ?? 0))">@TranslationService.GetTranslation("documentCounter.year", "Anno")</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.CurrentValue))">@TranslationService.GetTranslation("documentCounter.currentValue", "Valore Corrente")</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.Prefix ?? string.Empty))">@TranslationService.GetTranslation("documentCounter.prefix", "Prefisso")</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.FormatPattern ?? string.Empty))">@TranslationService.GetTranslation("documentCounter.formatPattern", "Pattern")</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.ResetOnYearChange))">@TranslationService.GetTranslation("documentCounter.resetOnYearChange", "Reset Anno")</MudTableSortLabel></MudTh>
             <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
         </HeaderContent>
         <RowTemplate>

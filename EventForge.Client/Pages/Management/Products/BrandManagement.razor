@@ -90,9 +90,9 @@
                                   Height="60vh">
                             <HeaderContent>
                                 <MudTh><MudTableSortLabel SortBy="new Func<BrandDto, object>(x => x.Name)">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
-                                <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
-                                <MudTh>@TranslationService.GetTranslation("field.country", "Paese")</MudTh>
-                                <MudTh>@TranslationService.GetTranslation("field.website", "Sito Web")</MudTh>
+                                <MudTh><MudTableSortLabel SortBy="new Func<BrandDto, object>(x => x.Description ?? string.Empty)">@TranslationService.GetTranslation("field.description", "Descrizione")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="new Func<BrandDto, object>(x => x.Country ?? string.Empty)">@TranslationService.GetTranslation("field.country", "Paese")</MudTableSortLabel></MudTh>
+                                <MudTh><MudTableSortLabel SortBy="new Func<BrandDto, object>(x => x.Website ?? string.Empty)">@TranslationService.GetTranslation("field.website", "Sito Web")</MudTableSortLabel></MudTh>
                                 <MudTh><MudTableSortLabel SortBy="new Func<BrandDto, object>(x => x.CreatedAt)">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel></MudTh>
                                 <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
                             </HeaderContent>
