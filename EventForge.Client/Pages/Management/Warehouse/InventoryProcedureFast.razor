@@ -611,18 +611,18 @@
         NavigationManager.NavigateTo("/product-management/products");
     }
 
-    private async Task<IEnumerable<ProductDto>> SearchProductsForAssignment(string value, CancellationToken token)
+    private Task<IEnumerable<ProductDto>> SearchProductsForAssignment(string value, CancellationToken token)
     {
         if (string.IsNullOrWhiteSpace(value))
-            return _allProducts.Take(10);
+            return Task.FromResult(_allProducts.Take(10));
 
-        return _allProducts
+        return Task.FromResult(_allProducts
             .Where(p => p.Name.Contains(value, StringComparison.OrdinalIgnoreCase) ||
                        p.Code.Contains(value, StringComparison.OrdinalIgnoreCase) ||
                        (!string.IsNullOrEmpty(p.ShortDescription) && p.ShortDescription.Contains(value, StringComparison.OrdinalIgnoreCase)) ||
                        (!string.IsNullOrEmpty(p.Description) && p.Description.Contains(value, StringComparison.OrdinalIgnoreCase)))
             .Take(20)
-            .ToList();
+            .ToList() as IEnumerable<ProductDto>);
     }
 
     private async Task AssignBarcodeToProductAsync((Guid productId, string codeType, string code, string? altDesc) args)
