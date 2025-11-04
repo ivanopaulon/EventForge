@@ -113,8 +113,14 @@ public class BusinessPartyService : IBusinessPartyService
     {
         try
         {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for business party operations.");
+            }
+
             var businessParties = await _context.BusinessParties
-                .Where(bp => bp.PartyType == (Data.Entities.Business.BusinessPartyType)partyType && !bp.IsDeleted)
+                .Where(bp => bp.PartyType == (Data.Entities.Business.BusinessPartyType)partyType && bp.TenantId == currentTenantId.Value && !bp.IsDeleted)
                 .OrderBy(bp => bp.Name)
                 .ToListAsync(cancellationToken);
 
@@ -122,13 +128,13 @@ public class BusinessPartyService : IBusinessPartyService
             foreach (var businessParty in businessParties)
             {
                 var addressCount = await _context.Addresses
-                    .CountAsync(a => a.OwnerType == "BusinessParty" && a.OwnerId == businessParty.Id && !a.IsDeleted, cancellationToken);
+                    .CountAsync(a => a.OwnerType == "BusinessParty" && a.OwnerId == businessParty.Id && !a.IsDeleted && a.TenantId == currentTenantId.Value, cancellationToken);
                 var contactCount = await _context.Contacts
-                    .CountAsync(c => c.OwnerType == "BusinessParty" && c.OwnerId == businessParty.Id && !c.IsDeleted, cancellationToken);
+                    .CountAsync(c => c.OwnerType == "BusinessParty" && c.OwnerId == businessParty.Id && !c.IsDeleted && c.TenantId == currentTenantId.Value, cancellationToken);
                 var referenceCount = await _context.References
-                    .CountAsync(r => r.OwnerType == "BusinessParty" && r.OwnerId == businessParty.Id && !r.IsDeleted, cancellationToken);
+                    .CountAsync(r => r.OwnerType == "BusinessParty" && r.OwnerId == businessParty.Id && !r.IsDeleted && r.TenantId == currentTenantId.Value, cancellationToken);
                 var hasAccountingData = await _context.BusinessPartyAccountings
-                    .AnyAsync(bpa => bpa.BusinessPartyId == businessParty.Id && !bpa.IsDeleted, cancellationToken);
+                    .AnyAsync(bpa => bpa.BusinessPartyId == businessParty.Id && !bpa.IsDeleted && bpa.TenantId == currentTenantId.Value, cancellationToken);
 
                 businessPartyDtos.Add(MapToBusinessPartyDto(businessParty, addressCount, contactCount, referenceCount, hasAccountingData));
             }
