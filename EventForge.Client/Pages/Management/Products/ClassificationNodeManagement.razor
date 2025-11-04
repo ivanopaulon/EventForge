@@ -16,7 +16,7 @@
     .match-badge { font-size:0.8rem; margin-left:8px; vertical-align:middle; }
 </style>
 
-<MudContainer MaxWidth="MaxWidth.False" Class="mt-4 px-0" Style="width:100%; min-height:100vh; display:flex; flex-direction:column;">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <PageLoadingOverlay IsVisible="_isLoading || _isLoadingNodes"
                          Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
