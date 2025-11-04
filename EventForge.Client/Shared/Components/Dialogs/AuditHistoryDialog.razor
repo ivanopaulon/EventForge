@@ -10,35 +10,32 @@
 @inject ITranslationService TranslationService
 @inject ISnackbar Snackbar
 
-@if (IsOpen)
-{
-    <MudDialog Class="audit-history-dialog-enhanced" 
-               DefaultFocus="DefaultFocus.None" 
-               FullScreen="true">
-        <TitleContent>
-            <MudAppBar Elevation="1" Dense="true">
-                <MudIcon Icon="@Icons.Material.Outlined.History" Class="mr-3" />
-                <MudText Typo="Typo.h6">
-                    @TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche")
+<MudDialog Class="audit-history-dialog-enhanced" 
+           DefaultFocus="DefaultFocus.None">
+    <TitleContent>
+        <MudAppBar Elevation="1" Dense="true">
+            <MudIcon Icon="@Icons.Material.Outlined.History" Class="mr-3" />
+            <MudText Typo="Typo.h6">
+                @TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche")
+            </MudText>
+            @if (!string.IsNullOrEmpty(EntityName))
+            {
+                <MudText Typo="Typo.body2" Class="ml-2 mud-text-secondary">
+                    - @EntityType: @EntityName
                 </MudText>
-                @if (!string.IsNullOrEmpty(EntityName))
-                {
-                    <MudText Typo="Typo.body2" Class="ml-2 mud-text-secondary">
-                        - @EntityType: @EntityName
-                    </MudText>
-                }
-                <MudSpacer />
-                <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
-                               Color="Color.Inherit"
-                               OnClick="@LoadAuditHistory"
-                               aria-label="@TranslationService.GetTranslation("common.refresh", "Aggiorna")" />
-                <MudIconButton Icon="@Icons.Material.Outlined.Close"
-                               Color="Color.Inherit"
-                               OnClick="@CloseDialog"
-                               aria-label="@TranslationService.GetTranslation("button.close", "Chiudi")" />
-            </MudAppBar>
-        </TitleContent>
-        <DialogContent>
+            }
+            <MudSpacer />
+            <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
+                           Color="Color.Inherit"
+                           OnClick="@LoadAuditHistory"
+                           aria-label="@TranslationService.GetTranslation("common.refresh", "Aggiorna")" />
+            <MudIconButton Icon="@Icons.Material.Outlined.Close"
+                           Color="Color.Inherit"
+                           OnClick="@CloseDialog"
+                           aria-label="@TranslationService.GetTranslation("button.close", "Chiudi")" />
+        </MudAppBar>
+    </TitleContent>
+    <DialogContent>
             <div class="audit-dialog-content">
                 <PageLoadingOverlay IsVisible="@_isLoading"
                                     Message="@TranslationService.GetTranslation("audit.loadingHistory", "Caricamento cronologia...")" />
@@ -254,9 +251,11 @@
         </div>
     </DialogContent>
 </MudDialog>
-}
 
 @code {
+    [CascadingParameter] 
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+    
     private bool _isLoading = false;
     private bool _filtersExpanded = false;
     private List<AuditLogDto> _auditLogs = new();
@@ -292,18 +291,6 @@
         _filteredAuditLogs.Skip((_currentPage - 1) * _pageSize).Take(_pageSize);
 
     /// <summary>
-    /// Controls the visibility of the dialog.
-    /// </summary>
-    [Parameter]
-    public bool IsOpen { get; set; }
-    
-    /// <summary>
-    /// Event callback for when IsOpen changes.
-    /// </summary>
-    [Parameter]
-    public EventCallback<bool> IsOpenChanged { get; set; }
-    
-    /// <summary>
     /// Type of entity being audited (e.g., "Event", "Tenant", "Product").
     /// </summary>
     [Parameter]
@@ -326,7 +313,8 @@
     /// </summary>
     protected override async Task OnParametersSetAsync()
     {
-        if (IsOpen && EntityId.HasValue)
+        // Only load audit history if we have a valid entity ID and the dialog is properly initialized
+        if (EntityId.HasValue && MudDialog != null)
         {
             await LoadAuditHistory();
         }
@@ -439,10 +427,9 @@
     /// <summary>
     /// Close the dialog.
     /// </summary>
-    private async Task CloseDialog()
+    private void CloseDialog()
     {
-        IsOpen = false;
-        await IsOpenChanged.InvokeAsync(false);
+        MudDialog.Close();
     }
 
     /// <summary>

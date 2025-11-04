@@ -431,13 +431,15 @@ else
                 EntityName="@_auditEntityName"
                 EntityDisplayName="@_auditEntityDisplayName" />
 
-<!-- User Audit History Dialog -->
-<AuditHistoryDialog @bind-IsOpen="_userAuditDialogOpen"
-                    EntityType="User"
-                    EntityId="@_selectedUserIdGuid"
-                    EntityName="@_selectedUserDisplayName" />
-
 @code {
+    // Dialog options for fullscreen audit dialog
+    private readonly DialogOptions _auditDialogOptions = new() 
+    { 
+        FullScreen = true, 
+        CloseButton = true,
+        MaxWidth = MaxWidth.False
+    };
+    
     // UI State Management
     private bool _isLoading = true;
     private bool _isAuthorized = false;
@@ -455,13 +457,9 @@ else
     
     // Audit log drawers state
     private bool _auditLogDrawerOpen = false;
-    private bool _userAuditDialogOpen = false;
     private string? _auditEntityId;
     private string? _auditEntityName;
     private string? _auditEntityDisplayName;
-    private string? _selectedUserId;
-    private Guid? _selectedUserIdGuid;
-    private string? _selectedUserDisplayName;
     
     // Filter and search state
     private string _searchTerm = string.Empty;
@@ -966,12 +964,17 @@ else
     {
         try
         {
-            _selectedUserId = user.Id.ToString();
-            _selectedUserIdGuid = user.Id;
-            _selectedUserDisplayName = user.FullName;
-            _userAuditDialogOpen = true;
-            StateHasChanged(); // Force UI update to trigger dialog display
-            await Task.CompletedTask;
+            var parameters = new DialogParameters<AuditHistoryDialog>
+            {
+                { x => x.EntityType, "User" },
+                { x => x.EntityId, user.Id },
+                { x => x.EntityName, user.FullName }
+            };
+
+            await DialogService.ShowAsync<AuditHistoryDialog>(
+                TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
+                parameters,
+                _auditDialogOptions);
         }
         catch (Exception ex)
         {

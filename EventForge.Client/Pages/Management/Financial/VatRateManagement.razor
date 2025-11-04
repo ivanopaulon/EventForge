@@ -183,20 +183,18 @@
     }
 </MudContainer>
 
-<!-- Audit History Dialog -->
-<AuditHistoryDialog @bind-IsOpen="_auditDialogOpen"
-                    EntityType="VatRate"
-                    EntityId="@_selectedVatRateForAudit?.Id"
-                    EntityName="@_selectedVatRateForAudit?.Name" />
-
 @code {
+    // Dialog options for fullscreen audit dialog
+    private readonly DialogOptions _auditDialogOptions = new() 
+    { 
+        FullScreen = true, 
+        CloseButton = true,
+        MaxWidth = MaxWidth.False
+    };
+    
     // UI State Management
     private bool _isLoading = true;
     private bool _isLoadingVatRates = false;
-    private bool _auditDialogOpen = false;
-    
-    // Audit management
-    private VatRateDto? _selectedVatRateForAudit;
     
     // Filter and search state
     private string _searchTerm = string.Empty;
@@ -369,14 +367,21 @@
     }
 
     /// <summary>
-    /// Opens the audit log drawer for a VAT rate.
+    /// Opens the audit log dialog for a VAT rate using IDialogService.
     /// </summary>
     private async Task ViewVatRateAuditLog(VatRateDto vatRate)
     {
-        _selectedVatRateForAudit = vatRate;
-        _auditDialogOpen = true;
-        StateHasChanged(); // Force UI update to trigger dialog display
-        await Task.CompletedTask;
+        var parameters = new DialogParameters<AuditHistoryDialog>
+        {
+            { x => x.EntityType, "VatRate" },
+            { x => x.EntityId, vatRate.Id },
+            { x => x.EntityName, vatRate.Name }
+        };
+
+        await DialogService.ShowAsync<AuditHistoryDialog>(
+            TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
+            parameters,
+            _auditDialogOptions);
     }
 
     /// <summary>
