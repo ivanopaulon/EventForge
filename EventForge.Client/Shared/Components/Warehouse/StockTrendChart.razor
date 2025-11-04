@@ -1,0 +1,144 @@
+@using EventForge.DTOs.Warehouse
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+
+<MudPaper Elevation="1" Class="pa-4">
+    <MudText Typo="Typo.h6" Class="mb-3">
+        <MudIcon Icon="@Icons.Material.Outlined.ShowChart" Class="mr-2" />
+        @TranslationService.GetTranslation("product.stockTrend", "Andamento Giacenza")
+    </MudText>
+
+    @if (IsLoading)
+    {
+        <div class="d-flex justify-center pa-4">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        </div>
+    }
+    else if (StockTrend != null && StockTrend.DataPoints.Any())
+    {
+        <!-- Statistics Cards -->
+        <MudGrid Spacing="2" Class="mb-4">
+            <MudItem xs="6" sm="3">
+                <MudPaper Elevation="0" Class="pa-3" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px;">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("stock.current", "Attuale")
+                    </MudText>
+                    <MudText Typo="Typo.h6" Color="Color.Primary">
+                        @StockTrend.CurrentStock.ToString("N2")
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudPaper Elevation="0" Class="pa-3" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px;">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("stock.average", "Media")
+                    </MudText>
+                    <MudText Typo="Typo.h6">
+                        @StockTrend.AverageStock.ToString("N2")
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudPaper Elevation="0" Class="pa-3" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px;">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("stock.minimum", "Minimo")
+                    </MudText>
+                    <MudText Typo="Typo.h6" Color="Color.Warning">
+                        @StockTrend.MinStock.ToString("N2")
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudPaper Elevation="0" Class="pa-3" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px;">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("stock.maximum", "Massimo")
+                    </MudText>
+                    <MudText Typo="Typo.h6" Color="Color.Success">
+                        @StockTrend.MaxStock.ToString("N2")
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Chart -->
+        <MudChart ChartType="ChartType.Line"
+                  ChartSeries="@_series"
+                  XAxisLabels="@_xAxisLabels"
+                  Width="100%"
+                  Height="350px"
+                  ChartOptions="@_chartOptions">
+        </MudChart>
+
+        <MudText Typo="Typo.caption" Class="mt-2 mud-text-secondary">
+            @TranslationService.GetTranslation("stock.trendYear", "Anno") @StockTrend.Year
+        </MudText>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info">
+            @TranslationService.GetTranslation("product.noStockTrendData", "Nessun dato di giacenza disponibile per questo periodo")
+        </MudAlert>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired]
+    public StockTrendDto? StockTrend { get; set; }
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    private List<ChartSeries> _series = new();
+    private string[] _xAxisLabels = Array.Empty<string>();
+    private ChartOptions _chartOptions = new();
+
+    protected override void OnParametersSet()
+    {
+        if (StockTrend?.DataPoints != null && StockTrend.DataPoints.Any())
+        {
+            PrepareChartData();
+        }
+    }
+
+    private void PrepareChartData()
+    {
+        if (StockTrend == null || !StockTrend.DataPoints.Any())
+            return;
+
+        // Group data points by month for better visualization
+        var monthlyData = StockTrend.DataPoints
+            .GroupBy(dp => new DateTime(dp.Date.Year, dp.Date.Month, 1))
+            .Select(g => new
+            {
+                Date = g.Key,
+                Quantity = g.Average(x => x.Quantity)
+            })
+            .OrderBy(x => x.Date)
+            .ToList();
+
+        // Prepare X-axis labels (months)
+        _xAxisLabels = monthlyData
+            .Select(d => d.Date.ToString("MMM yyyy"))
+            .ToArray();
+
+        // Prepare series data
+        _series = new List<ChartSeries>
+        {
+            new ChartSeries
+            {
+                Name = TranslationService.GetTranslation("stock.quantity", "Quantità"),
+                Data = monthlyData.Select(d => (double)d.Quantity).ToArray()
+            }
+        };
+
+        // Configure chart options
+        _chartOptions = new ChartOptions
+        {
+            YAxisTicks = 10,
+            YAxisLines = true,
+            XAxisLines = false,
+            LineStrokeWidth = 3,
+            InterpolationOption = InterpolationOption.Straight
+        };
+    }
+}
