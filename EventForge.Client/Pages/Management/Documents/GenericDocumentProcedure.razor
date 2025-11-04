@@ -226,6 +226,13 @@
         else
         {
             _model.Date = DateTime.UtcNow;
+            
+            // Set DDT_VEND (Sales Delivery Note) as default document type
+            var defaultDocType = _documentTypes.FirstOrDefault(dt => dt.Code == "DDT_VEND");
+            if (defaultDocType != null)
+            {
+                _model.DocumentTypeId = defaultDocType.Id;
+            }
         }
     }
 
