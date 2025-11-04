@@ -126,44 +126,78 @@
     @if (_currentDocument != null)
     {
         <MudPaper Elevation="2" Class="pa-4">
-            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
-                <MudText Typo="Typo.h6">
-                    @TranslationService.GetTranslation("documents.rows", "Righe Documento")
-                </MudText>
-                <MudButton StartIcon="@Icons.Material.Outlined.Add"
-                           Color="Color.Primary"
-                           Variant="Variant.Filled"
-                           Size="Size.Small"
-                           OnClick="@AddRowAsync">
-                    @TranslationService.GetTranslation("documents.addRow", "Aggiungi Riga")
-                </MudButton>
-            </MudStack>
+            <MudText Typo="Typo.h6" Class="mb-3">
+                <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
+                @TranslationService.GetTranslation("documents.rows", "Righe Documento")
+            </MudText>
+
+            <ManagementTableToolbar ShowSelectionBadge="true"
+                                    SelectedCount="@_selectedRows.Count"
+                                    ShowRefresh="false"
+                                    ShowCreate="true"
+                                    ShowDelete="true"
+                                    CreateLabel="documents.addRow"
+                                    CreateTooltip="documents.addRowTooltip"
+                                    IsDisabled="_isLoading"
+                                    OnCreate="@AddRowAsync"
+                                    OnDelete="@DeleteSelectedRowsAsync">
+                <AdditionalActions>
+                    @if (_selectedRows.Count >= 2 && CanMergeSelectedRows())
+                    {
+                        <MudButton Variant="Variant.Text"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Outlined.MergeType"
+                                   OnClick="@MergeSelectedRowsAsync"
+                                   Disabled="@_isLoading"
+                                   Size="Size.Small">
+                            @TranslationService.GetTranslation("documents.mergeRows", "Unisci Righe")
+                        </MudButton>
+                    }
+                </AdditionalActions>
+            </ManagementTableToolbar>
 
             @if (_currentDocument.Rows != null && _currentDocument.Rows.Any())
             {
-                <MudTable Items="@_currentDocument.Rows" Dense="true" Hover="true" Striped="true">
+                <MudTable T="DocumentRowDto"
+                          Items="@_currentDocument.Rows"
+                          MultiSelection="true"
+                          @bind-SelectedItems="_selectedRows"
+                          Dense="true"
+                          Hover="true"
+                          Striped="true"
+                          FixedHeader="true"
+                          Height="calc(100vh - 400px)">
                     <HeaderContent>
                         <MudTh>@TranslationService.GetTranslation("documents.productCode", "Codice")</MudTh>
                         <MudTh>@TranslationService.GetTranslation("documents.description", "Descrizione")</MudTh>
                         <MudTh>@TranslationService.GetTranslation("documents.quantity", "Quantità")</MudTh>
+                        <MudTh>@TranslationService.GetTranslation("documents.unitOfMeasure", "UM")</MudTh>
                         <MudTh>@TranslationService.GetTranslation("documents.unitPrice", "Prezzo")</MudTh>
                         <MudTh>@TranslationService.GetTranslation("documents.total", "Totale")</MudTh>
-                        <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                        <MudTh Style="text-align: right;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="@TranslationService.GetTranslation("documents.productCode", "Codice")">@context.ProductCode</MudTd>
                         <MudTd DataLabel="@TranslationService.GetTranslation("documents.description", "Descrizione")">@context.Description</MudTd>
                         <MudTd DataLabel="@TranslationService.GetTranslation("documents.quantity", "Quantità")">@context.Quantity</MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.unitOfMeasure", "UM")">@(context.UnitOfMeasure ?? "-")</MudTd>
                         <MudTd DataLabel="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo")">@context.UnitPrice.ToString("C2")</MudTd>
                         <MudTd DataLabel="@TranslationService.GetTranslation("documents.total", "Totale")">@((context.Quantity * context.UnitPrice).ToString("C2"))</MudTd>
-                        <MudTd>
-                            <MudIconButton Icon="@Icons.Material.Outlined.Delete"
-                                           Size="Size.Small"
-                                           Color="Color.Error"
-                                           OnClick="@(() => DeleteRowAsync(context.Id))"
-                                           Title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
+                        <MudTd Style="text-align: right;">
+                            <ActionButtonGroup EntityName="@TranslationService.GetTranslation("entity.documentRow", "Riga")"
+                                               ItemDisplayName="@context.Description"
+                                               ShowView="false"
+                                               ShowEdit="true"
+                                               ShowAuditLog="false"
+                                               ShowToggleStatus="false"
+                                               ShowDelete="true"
+                                               OnEdit="@(() => EditRow(context.Id))"
+                                               OnDelete="@(() => DeleteRowAsync(context.Id))" />
                         </MudTd>
                     </RowTemplate>
+                    <NoRecordsContent>
+                        <MudText>@TranslationService.GetTranslation("documents.noRows", "Nessuna riga presente")</MudText>
+                    </NoRecordsContent>
                 </MudTable>
 
                 <MudDivider Class="my-4" />
@@ -214,6 +248,9 @@
     private DateTime? _documentDate = DateTime.Now;
     private List<DocumentTypeDto> _documentTypes = new();
     private BusinessPartyDto? _selectedBusinessParty = null;
+    
+    // Selection management for rows
+    private HashSet<DocumentRowDto> _selectedRows = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -479,6 +516,188 @@
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    private async Task EditRow(Guid rowId)
+    {
+        var parameters = new DialogParameters
+        {
+            { "DocumentHeaderId", _currentDocument!.Id },
+            { "RowId", rowId }
+        };
+
+        var options = new DialogOptions 
+        { 
+            MaxWidth = MaxWidth.Medium, 
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<AddDocumentRowDialog>(
+            TranslationService.GetTranslation("documents.editRow", "Modifica Riga"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+        // Always reload the document when the dialog closes
+        await LoadDocumentAsync(_currentDocument.Id);
+    }
+
+    private async Task DeleteSelectedRowsAsync()
+    {
+        if (_selectedRows.Count == 0)
+            return;
+
+        bool? confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("documents.confirmDeleteRows", "Conferma Eliminazione"),
+            TranslationService.GetTranslationFormatted("documents.confirmDeleteRowsMessage", "Sei sicuro di voler eliminare {0} righe?", _selectedRows.Count),
+            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+            noText: TranslationService.GetTranslation("common.no", "No"));
+
+        if (confirmed == true)
+        {
+            _isLoading = true;
+            try
+            {
+                int successCount = 0;
+                foreach (var row in _selectedRows.ToList())
+                {
+                    bool success = await DocumentHeaderService.DeleteDocumentRowAsync(row.Id);
+                    if (success)
+                        successCount++;
+                }
+
+                if (successCount > 0)
+                {
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("documents.deleteRowsSuccess", "{0} righe eliminate con successo", successCount), Severity.Success);
+                    _selectedRows.Clear();
+                    await LoadDocumentAsync(_currentDocument!.Id);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowsError", "Errore durante l'eliminazione delle righe"), Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting document rows");
+                Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowsError", "Errore durante l'eliminazione delle righe"), Severity.Error);
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
+    }
+
+    private bool CanMergeSelectedRows()
+    {
+        if (_selectedRows.Count < 2)
+            return false;
+
+        // Check if all selected rows have the same ProductId and it's not null
+        var firstProductId = _selectedRows.First().ProductId;
+        if (!firstProductId.HasValue)
+            return false;
+
+        // All rows must have the same ProductId
+        if (!_selectedRows.All(r => r.ProductId == firstProductId))
+            return false;
+
+        // All rows must have the same UnitOfMeasure
+        var firstUoM = _selectedRows.First().UnitOfMeasure;
+        if (!_selectedRows.All(r => r.UnitOfMeasure == firstUoM))
+            return false;
+
+        return true;
+    }
+
+    private async Task MergeSelectedRowsAsync()
+    {
+        if (!CanMergeSelectedRows())
+        {
+            Snackbar.Add(TranslationService.GetTranslation("documents.cannotMergeRows", "Impossibile unire le righe selezionate. Assicurati che abbiano lo stesso prodotto e unità di misura."), Severity.Warning);
+            return;
+        }
+
+        var rowsToMerge = _selectedRows.OrderBy(r => r.CreatedAt).ToList();
+        var mainRow = rowsToMerge.First();
+
+        // Create confirmation message showing what will be merged
+        var confirmMessage = $"{TranslationService.GetTranslation("documents.mergeRowsConfirmMessage", "Verranno unite {0} righe del prodotto {1}:", rowsToMerge.Count, mainRow.Description)}\n\n";
+        confirmMessage += string.Join("\n", rowsToMerge.Select(r => $"- {r.Quantity} x {r.UnitPrice:C2} = {(r.Quantity * r.UnitPrice):C2}"));
+        confirmMessage += $"\n\n{TranslationService.GetTranslation("documents.mergeRowsResult", "Risultato: Quantità totale = {0}", rowsToMerge.Sum(r => r.Quantity))}";
+
+        bool? confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("documents.confirmMergeRows", "Conferma Unione Righe"),
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+            noText: TranslationService.GetTranslation("common.no", "No"));
+
+        if (confirmed == true)
+        {
+            _isLoading = true;
+            try
+            {
+                // Calculate merged values
+                int totalQuantity = rowsToMerge.Sum(r => r.Quantity);
+                decimal maxPrice = rowsToMerge.Max(r => r.UnitPrice);
+                var mergedNotes = string.Join(" | ", rowsToMerge.Where(r => !string.IsNullOrWhiteSpace(r.Notes)).Select(r => r.Notes));
+
+                // Update the main row
+                var updateDto = new UpdateDocumentRowDto
+                {
+                    RowType = mainRow.RowType,
+                    ParentRowId = mainRow.ParentRowId,
+                    ProductCode = mainRow.ProductCode,
+                    Description = mainRow.Description,
+                    UnitOfMeasure = mainRow.UnitOfMeasure,
+                    UnitOfMeasureId = mainRow.UnitOfMeasureId,
+                    UnitPrice = maxPrice,
+                    Quantity = totalQuantity,
+                    LineDiscount = mainRow.LineDiscount,
+                    VatRate = mainRow.VatRate,
+                    VatDescription = mainRow.VatDescription,
+                    IsGift = mainRow.IsGift,
+                    IsManual = mainRow.IsManual,
+                    SourceWarehouseId = mainRow.SourceWarehouseId,
+                    DestinationWarehouseId = mainRow.DestinationWarehouseId,
+                    Notes = string.IsNullOrWhiteSpace(mergedNotes) ? null : mergedNotes,
+                    SortOrder = mainRow.SortOrder,
+                    StationId = mainRow.StationId
+                };
+
+                var updated = await DocumentHeaderService.UpdateDocumentRowAsync(mainRow.Id, updateDto);
+                if (updated != null)
+                {
+                    // Delete the other rows
+                    int deletedCount = 0;
+                    foreach (var row in rowsToMerge.Skip(1))
+                    {
+                        bool success = await DocumentHeaderService.DeleteDocumentRowAsync(row.Id);
+                        if (success)
+                            deletedCount++;
+                    }
+
+                    Snackbar.Add(TranslationService.GetTranslation("documents.mergeRowsSuccess", "Righe unite con successo"), Severity.Success);
+                    _selectedRows.Clear();
+                    await LoadDocumentAsync(_currentDocument!.Id);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documents.mergeRowsError", "Errore durante l'unione delle righe"), Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error merging document rows");
+                Snackbar.Add(TranslationService.GetTranslation("documents.mergeRowsError", "Errore durante l'unione delle righe"), Severity.Error);
+            }
+            finally
+            {
+                _isLoading = false;
+            }
         }
     }
 }
