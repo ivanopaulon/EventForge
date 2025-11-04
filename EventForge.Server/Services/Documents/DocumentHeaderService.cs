@@ -1,5 +1,6 @@
 using EventForge.DTOs.Documents;
 using EventForge.Server.Mappers;
+using EventForge.Server.Services.Warehouse;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Documents;
@@ -10,6 +11,7 @@ public class DocumentHeaderService : IDocumentHeaderService
     private readonly IAuditLogService _auditLogService;
     private readonly ITenantContext _tenantContext;
     private readonly IDocumentCounterService _documentCounterService;
+    private readonly IStockMovementService _stockMovementService;
     private readonly ILogger<DocumentHeaderService> _logger;
 
     public DocumentHeaderService(
@@ -17,12 +19,14 @@ public class DocumentHeaderService : IDocumentHeaderService
         IAuditLogService auditLogService,
         ITenantContext tenantContext,
         IDocumentCounterService documentCounterService,
+        IStockMovementService stockMovementService,
         ILogger<DocumentHeaderService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _documentCounterService = documentCounterService ?? throw new ArgumentNullException(nameof(documentCounterService));
+        _stockMovementService = stockMovementService ?? throw new ArgumentNullException(nameof(stockMovementService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -346,6 +350,8 @@ public class DocumentHeaderService : IDocumentHeaderService
             }
 
             var documentHeader = await _context.DocumentHeaders
+                .Include(dh => dh.DocumentType)
+                .Include(dh => dh.Rows)
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
             if (documentHeader == null)
@@ -363,6 +369,18 @@ public class DocumentHeaderService : IDocumentHeaderService
             _ = await _context.SaveChangesAsync(cancellationToken);
 
             _ = await _auditLogService.TrackEntityChangesAsync(documentHeader, "Approve", currentUser, originalHeader, cancellationToken);
+
+            // Reload document with dependencies for stock movement processing
+            var documentForStockMovement = await _context.DocumentHeaders
+                .Include(dh => dh.DocumentType)
+                .Include(dh => dh.Rows)
+                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+
+            if (documentForStockMovement != null)
+            {
+                // Process stock movements after approval
+                await ProcessStockMovementsForDocumentAsync(documentForStockMovement, currentUser, cancellationToken);
+            }
 
             _logger.LogInformation("Document header {DocumentHeaderId} approved by {User}.", id, currentUser);
 
@@ -646,6 +664,157 @@ public class DocumentHeaderService : IDocumentHeaderService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error adding document row to document {DocumentHeaderId}.", createDto.DocumentHeaderId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Processes stock movements for a document based on its type and rows.
+    /// </summary>
+    private async Task ProcessStockMovementsForDocumentAsync(
+        Data.Entities.Documents.DocumentHeader documentHeader,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (documentHeader.DocumentType == null)
+            {
+                _logger.LogWarning("Document type not loaded for document {DocumentHeaderId}. Cannot process stock movements.", documentHeader.Id);
+                return;
+            }
+
+            if (documentHeader.Rows == null || !documentHeader.Rows.Any())
+            {
+                _logger.LogInformation("Document {DocumentHeaderId} has no rows. No stock movements to process.", documentHeader.Id);
+                return;
+            }
+
+            // Check if movements already exist for this document
+            var existingMovements = await _context.StockMovements
+                .Where(sm => sm.DocumentHeaderId == documentHeader.Id && !sm.IsDeleted)
+                .AnyAsync(cancellationToken);
+
+            if (existingMovements)
+            {
+                _logger.LogInformation("Stock movements already exist for document {DocumentHeaderId}. Skipping.", documentHeader.Id);
+                return;
+            }
+
+            _logger.LogInformation("Processing stock movements for document {DocumentHeaderId} with type {DocumentTypeName}.",
+                documentHeader.Id, documentHeader.DocumentType.Name);
+
+            foreach (var row in documentHeader.Rows.Where(r => !r.IsDeleted && r.ProductId.HasValue))
+            {
+                // Determine the warehouse location to use
+                Guid? warehouseLocationId = null;
+                
+                // For stock increase documents (purchases, returns)
+                if (documentHeader.DocumentType.IsStockIncrease)
+                {
+                    // Use destination warehouse from row, or document, or document type default
+                    warehouseLocationId = row.DestinationWarehouseId 
+                                       ?? documentHeader.DestinationWarehouseId 
+                                       ?? documentHeader.DocumentType.DefaultWarehouseId;
+                    
+                    if (!warehouseLocationId.HasValue)
+                    {
+                        _logger.LogWarning("No destination warehouse found for row {RowId} in document {DocumentHeaderId}. Skipping stock movement.",
+                            row.Id, documentHeader.Id);
+                        continue;
+                    }
+
+                    // Get the first storage location in the warehouse
+                    var storageLocation = await _context.StorageLocations
+                        .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    if (storageLocation == null)
+                    {
+                        _logger.LogWarning("No storage location found in warehouse {WarehouseId} for row {RowId}. Skipping stock movement.",
+                            warehouseLocationId, row.Id);
+                        continue;
+                    }
+
+                    // Create inbound movement
+                    await _stockMovementService.ProcessInboundMovementAsync(
+                        productId: row.ProductId.Value,
+                        toLocationId: storageLocation.Id,
+                        quantity: row.Quantity,
+                        unitCost: row.UnitPrice,
+                        lotId: null,
+                        serialId: null,
+                        documentHeaderId: documentHeader.Id,
+                        notes: $"Auto-generated from document {documentHeader.Number}",
+                        currentUser: currentUser,
+                        cancellationToken: cancellationToken);
+
+                    _logger.LogInformation("Created inbound stock movement for product {ProductId}, quantity {Quantity} in document {DocumentHeaderId}.",
+                        row.ProductId.Value, row.Quantity, documentHeader.Id);
+                }
+                // For stock decrease documents (sales, deliveries)
+                else
+                {
+                    // Use source warehouse from row, or document, or document type default
+                    warehouseLocationId = row.SourceWarehouseId 
+                                       ?? documentHeader.SourceWarehouseId 
+                                       ?? documentHeader.DocumentType.DefaultWarehouseId;
+                    
+                    if (!warehouseLocationId.HasValue)
+                    {
+                        _logger.LogWarning("No source warehouse found for row {RowId} in document {DocumentHeaderId}. Skipping stock movement.",
+                            row.Id, documentHeader.Id);
+                        continue;
+                    }
+
+                    // Get the storage location with available stock
+                    var storageLocation = await _context.StorageLocations
+                        .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    if (storageLocation == null)
+                    {
+                        _logger.LogWarning("No storage location found in warehouse {WarehouseId} for row {RowId}. Skipping stock movement.",
+                            warehouseLocationId, row.Id);
+                        continue;
+                    }
+
+                    // Check if sufficient stock is available
+                    var availableStock = await _context.Stocks
+                        .Where(s => s.ProductId == row.ProductId.Value 
+                                 && s.StorageLocationId == storageLocation.Id 
+                                 && !s.IsDeleted)
+                        .SumAsync(s => s.Quantity - s.ReservedQuantity, cancellationToken);
+
+                    if (availableStock < row.Quantity)
+                    {
+                        _logger.LogWarning("Insufficient stock for product {ProductId} at location {LocationId}. Available: {Available}, Required: {Required}.",
+                            row.ProductId.Value, storageLocation.Id, availableStock, row.Quantity);
+                        // Continue processing but log the warning
+                    }
+
+                    // Create outbound movement
+                    await _stockMovementService.ProcessOutboundMovementAsync(
+                        productId: row.ProductId.Value,
+                        fromLocationId: storageLocation.Id,
+                        quantity: row.Quantity,
+                        lotId: null,
+                        serialId: null,
+                        documentHeaderId: documentHeader.Id,
+                        notes: $"Auto-generated from document {documentHeader.Number}",
+                        currentUser: currentUser,
+                        cancellationToken: cancellationToken);
+
+                    _logger.LogInformation("Created outbound stock movement for product {ProductId}, quantity {Quantity} in document {DocumentHeaderId}.",
+                        row.ProductId.Value, row.Quantity, documentHeader.Id);
+                }
+            }
+
+            _logger.LogInformation("Completed processing stock movements for document {DocumentHeaderId}.", documentHeader.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing stock movements for document {DocumentHeaderId}.", documentHeader.Id);
             throw;
         }
     }
