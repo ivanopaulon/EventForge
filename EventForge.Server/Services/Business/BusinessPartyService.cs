@@ -120,7 +120,8 @@ public class BusinessPartyService : IBusinessPartyService
             }
 
             var businessParties = await _context.BusinessParties
-                .Where(bp => bp.PartyType == (Data.Entities.Business.BusinessPartyType)partyType && bp.TenantId == currentTenantId.Value && !bp.IsDeleted)
+                .Where(bp => bp.PartyType == (Data.Entities.Business.BusinessPartyType)partyType)
+                .WhereActiveTenant(currentTenantId.Value)
                 .OrderBy(bp => bp.Name)
                 .ToListAsync(cancellationToken);
 
