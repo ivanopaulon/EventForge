@@ -54,7 +54,7 @@ public static class MappingExtensions
             Notes = entity.Notes,
             Status = (EventForge.DTOs.Common.DocumentStatus)entity.Status,
             PaymentStatus = (EventForge.DTOs.Common.PaymentStatus)entity.PaymentStatus,
-            ApprovalStatus = (EventForge.DTOs.Common.ApprovalStatus)entity.ApprovalStatus,
+            ApprovalStatus = MapApprovalStatus(entity.ApprovalStatus),
             TotalNetAmount = entity.TotalNetAmount,
             VatAmount = entity.VatAmount,
             TotalGrossAmount = entity.TotalGrossAmount,
@@ -192,6 +192,24 @@ public static class MappingExtensions
             Notes = dto.Notes,
             SortOrder = dto.SortOrder,
             StationId = dto.StationId
+        };
+    }
+
+    /// <summary>
+    /// Maps entity ApprovalStatus to DTO ApprovalStatus.
+    /// Entity has: None(0), Pending(1), Approved(2), Rejected(3)
+    /// DTO has: Pending(0), Approved(1), Rejected(2)
+    /// </summary>
+    private static EventForge.DTOs.Common.ApprovalStatus MapApprovalStatus(
+        EventForge.Server.Data.Entities.Documents.ApprovalStatus entityStatus)
+    {
+        return entityStatus switch
+        {
+            EventForge.Server.Data.Entities.Documents.ApprovalStatus.None => EventForge.DTOs.Common.ApprovalStatus.Pending,
+            EventForge.Server.Data.Entities.Documents.ApprovalStatus.Pending => EventForge.DTOs.Common.ApprovalStatus.Pending,
+            EventForge.Server.Data.Entities.Documents.ApprovalStatus.Approved => EventForge.DTOs.Common.ApprovalStatus.Approved,
+            EventForge.Server.Data.Entities.Documents.ApprovalStatus.Rejected => EventForge.DTOs.Common.ApprovalStatus.Rejected,
+            _ => EventForge.DTOs.Common.ApprovalStatus.Pending
         };
     }
 }
