@@ -599,6 +599,35 @@ public class DocumentHeaderService : IDocumentHeaderService
                 throw new InvalidOperationException($"Document header with ID {createDto.DocumentHeaderId} not found.");
             }
 
+            // Check if we should merge with an existing row
+            if (createDto.MergeDuplicateProducts && createDto.ProductId.HasValue)
+            {
+                var existingRow = await _context.DocumentRows
+                    .FirstOrDefaultAsync(r => 
+                        r.DocumentHeaderId == createDto.DocumentHeaderId && 
+                        r.ProductId == createDto.ProductId &&
+                        !r.IsDeleted, 
+                        cancellationToken);
+
+                if (existingRow != null)
+                {
+                    // Merge: add quantity to existing row
+                    existingRow.Quantity += createDto.Quantity;
+                    existingRow.ModifiedBy = currentUser;
+                    existingRow.ModifiedAt = DateTime.UtcNow;
+
+                    _ = await _context.SaveChangesAsync(cancellationToken);
+
+                    _ = await _auditLogService.TrackEntityChangesAsync(existingRow, "Update", currentUser, null, cancellationToken);
+
+                    _logger.LogInformation("Document row {RowId} quantity updated (merged) in document {DocumentHeaderId} by {User}.",
+                        existingRow.Id, createDto.DocumentHeaderId, currentUser);
+
+                    return existingRow.ToDto();
+                }
+            }
+
+            // Create new row (default behavior)
             var row = createDto.ToEntity();
             row.TenantId = documentHeader.TenantId; // Set TenantId from document header
             row.CreatedBy = currentUser;

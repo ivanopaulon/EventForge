@@ -2333,7 +2333,10 @@
       "approved": "Approvato",
       "rejected": "Rifiutato",
       "cancelled": "Annullato"
-    }
+    },
+    "mergeDuplicates": "Somma quantità se articolo già presente",
+    "mergeDuplicatesHelp": "Quando attivo, se aggiungi lo stesso prodotto più volte, la quantità verrà sommata alla riga esistente invece di creare una nuova riga",
+    "addAndContinue": "Aggiungi e Continua"
   },
   "documentType": {
     "management": "Gestione Tipi Documento",

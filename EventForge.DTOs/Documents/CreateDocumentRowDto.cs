@@ -119,5 +119,11 @@ namespace EventForge.DTOs.Documents
         /// Related station (optional, for logistics/traceability).
         /// </summary>
         public Guid? StationId { get; set; }
+
+        /// <summary>
+        /// When true, if a row with the same ProductId already exists in the document, 
+        /// the quantity will be added to the existing row instead of creating a new one.
+        /// </summary>
+        public bool MergeDuplicateProducts { get; set; } = false;
     }
 }

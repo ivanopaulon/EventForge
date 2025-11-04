@@ -2030,7 +2030,10 @@
       "approved": "Approved",
       "rejected": "Rejected",
       "cancelled": "Cancelled"
-    }
+    },
+    "mergeDuplicates": "Sum quantity if item already present",
+    "mergeDuplicatesHelp": "When enabled, if you add the same product multiple times, the quantity will be summed to the existing row instead of creating a new one",
+    "addAndContinue": "Add and Continue"
   },
   "documentType": {
     "management": "Document Type Management",
