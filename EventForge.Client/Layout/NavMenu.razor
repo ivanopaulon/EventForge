@@ -157,6 +157,11 @@
                                     Match="NavLinkMatch.All">
                             @TranslationService.GetTranslation("nav.documentTypes", "Tipi Documento")
                         </MudNavLink>
+                        <MudNavLink Href="/documents/types/create" 
+                                    Icon="@Icons.Material.Outlined.Add" 
+                                    Match="NavLinkMatch.All">
+                            @TranslationService.GetTranslation("nav.createDocumentType", "Nuovo Tipo Documento")
+                        </MudNavLink>
                         <MudNavLink Href="/documents/counters" 
                                     Icon="@Icons.Material.Outlined.Pin" 
                                     Match="NavLinkMatch.All">
