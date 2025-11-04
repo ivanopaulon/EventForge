@@ -266,6 +266,7 @@
     private bool _isLoadingDocuments = false;
     private bool _isLoadingStock = false;
     private bool _isLoadingTrend = false;
+    private bool _stockTrendLoaded = false;
     private PagedResult<ProductDocumentMovementDto>? _documentMovements;
     private IEnumerable<StockDto> _stockLevels = Enumerable.Empty<StockDto>();
     private StockTrendDto? _stockTrend;
@@ -289,12 +290,20 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        // Load documents, stock, and trend
-        await Task.WhenAll(
-            LoadDocumentsAsync(), 
-            LoadStockLevelsAsync(),
-            LoadStockTrendAsync()
-        );
+        // Load documents and stock - trend is loaded only once
+        var tasks = new List<Task>
+        {
+            LoadDocumentsAsync(),
+            LoadStockLevelsAsync()
+        };
+
+        // Load stock trend only once on first load
+        if (!_stockTrendLoaded)
+        {
+            tasks.Add(LoadStockTrendAsync());
+        }
+
+        await Task.WhenAll(tasks);
     }
 
     private async Task LoadStockLevelsAsync()
@@ -348,6 +357,7 @@
         try
         {
             _stockTrend = await ProductService.GetProductStockTrendAsync(Product.Id);
+            _stockTrendLoaded = true;
         }
         catch (Exception ex)
         {

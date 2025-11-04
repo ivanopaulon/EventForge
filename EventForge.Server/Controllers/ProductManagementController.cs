@@ -2178,7 +2178,7 @@ public class ProductManagementController : BaseApiController
                 Items = movements,
                 Page = page,
                 PageSize = pageSize,
-                TotalCount = movements.Count
+                TotalCount = documentsResult.TotalCount
             });
         }
         catch (Exception ex)
@@ -2243,12 +2243,12 @@ public class ProductManagementController : BaseApiController
                 
                 // Update running total based on movement type
                 if (movement.MovementType.Contains("Inbound", StringComparison.OrdinalIgnoreCase) || 
-                    movement.MovementType.Contains("Adjustment", StringComparison.OrdinalIgnoreCase) && movement.Quantity > 0)
+                    (movement.MovementType.Contains("Adjustment", StringComparison.OrdinalIgnoreCase) && movement.Quantity > 0))
                 {
                     runningTotal += movement.Quantity;
                 }
                 else if (movement.MovementType.Contains("Outbound", StringComparison.OrdinalIgnoreCase) ||
-                         movement.MovementType.Contains("Adjustment", StringComparison.OrdinalIgnoreCase) && movement.Quantity < 0)
+                         (movement.MovementType.Contains("Adjustment", StringComparison.OrdinalIgnoreCase) && movement.Quantity < 0))
                 {
                     runningTotal -= Math.Abs(movement.Quantity);
                 }
