@@ -485,7 +485,7 @@
         _ => status.ToString()
     };
 
-    private Task ViewNodeAuditLog(ClassificationNodeDto node) { _selectedNodeForAudit = node; _auditDialogOpen = true; return Task.CompletedTask; }
+    private Task ViewNodeAuditLog(ClassificationNodeDto node) { _selectedNodeForAudit = node; _auditDialogOpen = true; StateHasChanged(); return Task.CompletedTask; }
 
     private async Task ToggleNodeStatus(ClassificationNodeDto node)
     {
