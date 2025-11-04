@@ -276,12 +276,12 @@
 
     private void CreateDocumentType()
     {
-        NavigationManager.NavigateTo("/documents/types/new");
+        NavigationManager.NavigateTo("/documents/types/create");
     }
 
     private void EditDocumentType(Guid id)
     {
-        NavigationManager.NavigateTo($"/documents/types/{id}");
+        NavigationManager.NavigateTo($"/documents/types/edit/{id}");
     }
 
     private async Task DeleteDocumentType(DocumentTypeDto documentType)
