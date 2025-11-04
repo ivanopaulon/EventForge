@@ -79,6 +79,17 @@ public class DocumentRow : AuditableEntity
     public string? UnitOfMeasure { get; set; }
 
     /// <summary>
+    /// Unit of measure identifier.
+    /// </summary>
+    [Display(Name = "Unit of Measure ID", Description = "Reference to the unit of measure.")]
+    public Guid? UnitOfMeasureId { get; set; }
+
+    /// <summary>
+    /// Navigation property for the unit of measure.
+    /// </summary>
+    public UM? UnitOfMeasureEntity { get; set; }
+
+    /// <summary>
     /// Unit price.
     /// </summary>
     [Range(0, double.MaxValue, ErrorMessage = "Unit price must be non-negative.")]

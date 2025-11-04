@@ -669,6 +669,100 @@ public class DocumentHeaderService : IDocumentHeaderService
     }
 
     /// <summary>
+    /// Updates an existing document row.
+    /// </summary>
+    public async Task<DocumentRowDto?> UpdateDocumentRowAsync(
+        Guid rowId,
+        UpdateDocumentRowDto updateDto,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var row = await _context.DocumentRows
+                .FirstOrDefaultAsync(r => r.Id == rowId && !r.IsDeleted, cancellationToken);
+
+            if (row == null)
+            {
+                _logger.LogWarning("Document row {RowId} not found for update.", rowId);
+                return null;
+            }
+
+            // Update row properties
+            row.RowType = (Data.Entities.Documents.DocumentRowType)updateDto.RowType;
+            row.ParentRowId = updateDto.ParentRowId;
+            row.ProductCode = updateDto.ProductCode;
+            row.Description = updateDto.Description;
+            row.UnitOfMeasure = updateDto.UnitOfMeasure;
+            row.UnitOfMeasureId = updateDto.UnitOfMeasureId;
+            row.UnitPrice = updateDto.UnitPrice;
+            row.Quantity = updateDto.Quantity;
+            row.LineDiscount = updateDto.LineDiscount;
+            row.VatRate = updateDto.VatRate;
+            row.VatDescription = updateDto.VatDescription;
+            row.IsGift = updateDto.IsGift;
+            row.IsManual = updateDto.IsManual;
+            row.SourceWarehouseId = updateDto.SourceWarehouseId;
+            row.DestinationWarehouseId = updateDto.DestinationWarehouseId;
+            row.Notes = updateDto.Notes;
+            row.SortOrder = updateDto.SortOrder;
+            row.StationId = updateDto.StationId;
+            row.ModifiedBy = currentUser;
+            row.ModifiedAt = DateTime.UtcNow;
+
+            _ = await _context.SaveChangesAsync(cancellationToken);
+
+            _ = await _auditLogService.TrackEntityChangesAsync(row, "Update", currentUser, null, cancellationToken);
+
+            _logger.LogInformation("Document row {RowId} updated by {User}.", rowId, currentUser);
+
+            return row.ToDto();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating document row {RowId}.", rowId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Deletes a document row.
+    /// </summary>
+    public async Task<bool> DeleteDocumentRowAsync(
+        Guid rowId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var row = await _context.DocumentRows
+                .FirstOrDefaultAsync(r => r.Id == rowId && !r.IsDeleted, cancellationToken);
+
+            if (row == null)
+            {
+                _logger.LogWarning("Document row {RowId} not found for deletion.", rowId);
+                return false;
+            }
+
+            // Soft delete
+            row.IsDeleted = true;
+            row.ModifiedAt = DateTime.UtcNow;
+
+            _ = await _context.SaveChangesAsync(cancellationToken);
+
+            _ = await _auditLogService.TrackEntityChangesAsync(row, "Delete", "System", null, cancellationToken);
+
+            _logger.LogInformation("Document row {RowId} deleted.", rowId);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting document row {RowId}.", rowId);
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Processes stock movements for a document based on its type and rows.
     /// </summary>
     private async Task ProcessStockMovementsForDocumentAsync(

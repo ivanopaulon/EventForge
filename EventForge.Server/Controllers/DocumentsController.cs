@@ -466,6 +466,102 @@ public class DocumentsController : BaseApiController
         }
     }
 
+    /// <summary>
+    /// Updates an existing document row.
+    /// </summary>
+    /// <param name="rowId">Document row ID</param>
+    /// <param name="updateRowDto">Document row update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated document row</returns>
+    /// <response code="200">Returns the updated document row</response>
+    /// <response code="400">If the update data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    /// <response code="404">If the document row is not found</response>
+    [HttpPut("rows/{rowId:guid}")]
+    [ProducesResponseType(typeof(DocumentRowDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<DocumentRowDto>> UpdateDocumentRow(
+        Guid rowId,
+        [FromBody] UpdateDocumentRowDto updateRowDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var documentRow = await _documentHeaderService.UpdateDocumentRowAsync(rowId, updateRowDto, currentUser, cancellationToken);
+            
+            if (documentRow == null)
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "Document row not found",
+                    Detail = $"Document row with ID {rowId} was not found."
+                });
+            }
+
+            return Ok(documentRow);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while updating document row {RowId}.", rowId);
+            return CreateInternalServerErrorProblem($"An error occurred while updating document row {rowId}.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a document row.
+    /// </summary>
+    /// <param name="rowId">Document row ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content</returns>
+    /// <response code="204">If the document row was successfully deleted</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    /// <response code="404">If the document row is not found</response>
+    [HttpDelete("rows/{rowId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteDocumentRow(
+        Guid rowId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var success = await _documentHeaderService.DeleteDocumentRowAsync(rowId, cancellationToken);
+            
+            if (!success)
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "Document row not found",
+                    Detail = $"Document row with ID {rowId} was not found."
+                });
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while deleting document row {RowId}.", rowId);
+            return CreateInternalServerErrorProblem($"An error occurred while deleting document row {rowId}.", ex);
+        }
+    }
+
     #endregion
 
     // Attachment endpoints
