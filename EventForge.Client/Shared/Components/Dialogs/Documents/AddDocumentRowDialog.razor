@@ -123,6 +123,16 @@
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Outlined.Comment" />
 
+            <!-- Merge Duplicates Option -->
+            <MudCheckBox T="bool"
+                         @bind-Checked="_model.MergeDuplicateProducts"
+                         Label="@TranslationService.GetTranslation("documents.mergeDuplicates", "Somma quantità se articolo già presente")"
+                         Color="Color.Primary">
+                <MudTooltip Text="@TranslationService.GetTranslation("documents.mergeDuplicatesHelp", "Quando attivo, se aggiungi lo stesso prodotto più volte, la quantità verrà sommata alla riga esistente invece di creare una nuova riga")">
+                    <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Color="Color.Info" Class="ml-1" />
+                </MudTooltip>
+            </MudCheckBox>
+
             <!-- Quick Tips -->
             <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Text">
                 <MudText Typo="Typo.caption">
@@ -296,10 +306,14 @@
 
     private void ResetForm()
     {
+        // Preserve the merge duplicates preference across form resets
+        var preserveMergeDuplicates = _model.MergeDuplicateProducts;
+        
         _model = new CreateDocumentRowDto 
         { 
             DocumentHeaderId = DocumentHeaderId,
-            Quantity = 1 
+            Quantity = 1,
+            MergeDuplicateProducts = preserveMergeDuplicates
         };
         _selectedProduct = null;
         _barcodeInput = string.Empty;
