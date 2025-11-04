@@ -313,7 +313,8 @@
     /// </summary>
     protected override async Task OnParametersSetAsync()
     {
-        if (EntityId.HasValue)
+        // Only load audit history if we have a valid entity ID and the dialog is properly initialized
+        if (EntityId.HasValue && MudDialog != null)
         {
             await LoadAuditHistory();
         }
