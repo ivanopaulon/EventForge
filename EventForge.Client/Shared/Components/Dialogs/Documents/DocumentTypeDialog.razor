@@ -157,22 +157,38 @@
         
         if (_isEditMode && DocumentType != null)
         {
-            _model.Name = DocumentType.Name;
-            _model.Code = DocumentType.Code;
-            _model.Notes = DocumentType.Notes;
-            _model.IsFiscal = DocumentType.IsFiscal;
-            _model.IsStockIncrease = DocumentType.IsStockIncrease;
-            _model.RequiredPartyType = DocumentType.RequiredPartyType;
-            _model.DefaultWarehouseId = DocumentType.DefaultWarehouseId;
-            
-            _updateModel.Name = DocumentType.Name;
-            _updateModel.Code = DocumentType.Code;
-            _updateModel.Notes = DocumentType.Notes;
-            _updateModel.IsFiscal = DocumentType.IsFiscal;
-            _updateModel.IsStockIncrease = DocumentType.IsStockIncrease;
-            _updateModel.RequiredPartyType = DocumentType.RequiredPartyType;
-            _updateModel.DefaultWarehouseId = DocumentType.DefaultWarehouseId;
+            MapDocumentTypeToModels(DocumentType);
         }
+    }
+
+    private void MapDocumentTypeToModels(DocumentTypeDto documentType)
+    {
+        _model.Name = documentType.Name;
+        _model.Code = documentType.Code;
+        _model.Notes = documentType.Notes;
+        _model.IsFiscal = documentType.IsFiscal;
+        _model.IsStockIncrease = documentType.IsStockIncrease;
+        _model.RequiredPartyType = documentType.RequiredPartyType;
+        _model.DefaultWarehouseId = documentType.DefaultWarehouseId;
+        
+        _updateModel.Name = documentType.Name;
+        _updateModel.Code = documentType.Code;
+        _updateModel.Notes = documentType.Notes;
+        _updateModel.IsFiscal = documentType.IsFiscal;
+        _updateModel.IsStockIncrease = documentType.IsStockIncrease;
+        _updateModel.RequiredPartyType = documentType.RequiredPartyType;
+        _updateModel.DefaultWarehouseId = documentType.DefaultWarehouseId;
+    }
+
+    private void MapModelToUpdateModel()
+    {
+        _updateModel.Name = _model.Name;
+        _updateModel.Code = _model.Code;
+        _updateModel.Notes = _model.Notes;
+        _updateModel.IsFiscal = _model.IsFiscal;
+        _updateModel.IsStockIncrease = _model.IsStockIncrease;
+        _updateModel.RequiredPartyType = _model.RequiredPartyType;
+        _updateModel.DefaultWarehouseId = _model.DefaultWarehouseId;
     }
 
     private async Task LoadWarehousesAsync()
@@ -200,13 +216,7 @@
             if (_isEditMode && DocumentType != null)
             {
                 // Update existing document type
-                _updateModel.Name = _model.Name;
-                _updateModel.Code = _model.Code;
-                _updateModel.Notes = _model.Notes;
-                _updateModel.IsFiscal = _model.IsFiscal;
-                _updateModel.IsStockIncrease = _model.IsStockIncrease;
-                _updateModel.RequiredPartyType = _model.RequiredPartyType;
-                _updateModel.DefaultWarehouseId = _model.DefaultWarehouseId;
+                MapModelToUpdateModel();
                 
                 var result = await DocumentTypeService.UpdateDocumentTypeAsync(DocumentType.Id, _updateModel);
                 Snackbar.Add(TranslationService.GetTranslation("documentType.updateSuccess", "Tipo documento aggiornato con successo"), Severity.Success);
