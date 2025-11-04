@@ -152,4 +152,28 @@ public interface IDocumentHeaderService
         CreateDocumentRowDto createDto,
         string currentUser,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates an existing document row.
+    /// </summary>
+    /// <param name="rowId">Document row ID</param>
+    /// <param name="updateDto">Document row update data</param>
+    /// <param name="currentUser">Current user for auditing</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated document row DTO or null if not found</returns>
+    Task<DocumentRowDto?> UpdateDocumentRowAsync(
+        Guid rowId,
+        UpdateDocumentRowDto updateDto,
+        string currentUser,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a document row (soft delete).
+    /// </summary>
+    /// <param name="rowId">Document row ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if deleted, false if not found</returns>
+    Task<bool> DeleteDocumentRowAsync(
+        Guid rowId,
+        CancellationToken cancellationToken = default);
 }

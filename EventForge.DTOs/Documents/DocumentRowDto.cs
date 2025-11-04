@@ -54,6 +54,11 @@ namespace EventForge.DTOs.Documents
         public string? UnitOfMeasure { get; set; }
 
         /// <summary>
+        /// Unit of measure identifier.
+        /// </summary>
+        public Guid? UnitOfMeasureId { get; set; }
+
+        /// <summary>
         /// Unit price.
         /// </summary>
         public decimal UnitPrice { get; set; }

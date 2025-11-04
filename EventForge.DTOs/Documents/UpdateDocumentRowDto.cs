@@ -39,6 +39,11 @@ namespace EventForge.DTOs.Documents
         public string? UnitOfMeasure { get; set; }
 
         /// <summary>
+        /// Unit of measure identifier.
+        /// </summary>
+        public Guid? UnitOfMeasureId { get; set; }
+
+        /// <summary>
         /// Unit price.
         /// </summary>
         [Range(0, double.MaxValue, ErrorMessage = "Unit price must be non-negative.")]

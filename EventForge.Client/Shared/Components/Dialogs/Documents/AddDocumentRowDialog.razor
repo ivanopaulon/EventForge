@@ -1,5 +1,6 @@
 @using EventForge.DTOs.Documents
 @using EventForge.DTOs.Products
+@using EventForge.DTOs.UnitOfMeasures
 @using MudBlazor
 @inject IDocumentHeaderService DocumentHeaderService
 @inject IProductService ProductService
@@ -11,8 +12,8 @@
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Outlined.Add" Class="mr-2" />
-            @TranslationService.GetTranslation("documents.addRow", "Aggiungi Riga")
+            <MudIcon Icon="@(_isEditMode ? Icons.Material.Outlined.Edit : Icons.Material.Outlined.Add)" Class="mr-2" />
+            @TranslationService.GetTranslation(_isEditMode ? "documents.editRow" : "documents.addRow", _isEditMode ? "Modifica Riga" : "Aggiungi Riga")
         </MudText>
     </TitleContent>
     <DialogContent>
@@ -106,12 +107,32 @@
                                      AdornmentIcon="@Icons.Material.Outlined.Euro" />
                 </MudItem>
                 <MudItem xs="12" md="4">
-                    <MudTextField T="string"
-                                  Variant="Variant.Outlined"
-                                  Label="@TranslationService.GetTranslation("documents.unitOfMeasure", "UM")"
-                                  @bind-Value="_model.UnitOfMeasure"
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Outlined.Scale" />
+                    <MudSelect T="Guid?"
+                               Variant="Variant.Outlined"
+                               Label="@TranslationService.GetTranslation("documents.unitOfMeasure", "UM")"
+                               @bind-Value="_selectedUnitOfMeasureId"
+                               Disabled="@(_availableUnits.Count == 0 && _allUnitsOfMeasure.Count == 0)"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Outlined.Scale">
+                        @if (_availableUnits.Any())
+                        {
+                            @foreach (var unit in _availableUnits)
+                            {
+                                var uom = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == unit.UnitOfMeasureId);
+                                if (uom != null)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@uom.Id">@uom.Name (@uom.Symbol)</MudSelectItem>
+                                }
+                            }
+                        }
+                        else
+                        {
+                            @foreach (var uom in _allUnitsOfMeasure.Where(u => u.IsActive))
+                            {
+                                <MudSelectItem T="Guid?" Value="@uom.Id">@uom.Name (@uom.Symbol)</MudSelectItem>
+                            }
+                        }
+                    </MudSelect>
                 </MudItem>
             </MudGrid>
 
@@ -150,8 +171,8 @@
                    OnClick="SaveAndContinue" 
                    Disabled="@(!IsValid())"
                    Variant="Variant.Filled"
-                   StartIcon="@Icons.Material.Filled.Add">
-            @TranslationService.GetTranslation("documents.addAndContinue", "Aggiungi e Continua")
+                   StartIcon="@(_isEditMode ? Icons.Material.Filled.Save : Icons.Material.Filled.Add)">
+            @TranslationService.GetTranslation(_isEditMode ? "common.save" : "documents.addAndContinue", _isEditMode ? "Salva" : "Aggiungi e Continua")
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -159,6 +180,7 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid DocumentHeaderId { get; set; }
+    [Parameter] public Guid? RowId { get; set; }
 
     private MudTextField<string>? _barcodeField;
     private MudNumericField<int>? _quantityField;
@@ -166,6 +188,30 @@
     private ProductDto? _selectedProduct = null;
     private string _barcodeInput = string.Empty;
     private bool _isProcessing = false;
+    private bool _isEditMode => RowId.HasValue;
+    private List<ProductUnitDto> _availableUnits = new();
+    private List<UMDto> _allUnitsOfMeasure = new();
+    private Guid? _selectedUnitOfMeasureId = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load all units of measure
+        try
+        {
+            var units = await ProductService.GetUnitsOfMeasureAsync();
+            _allUnitsOfMeasure = units?.ToList() ?? new List<UMDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading units of measure");
+        }
+
+        // If in edit mode, load the existing row
+        if (_isEditMode && RowId.HasValue)
+        {
+            await LoadRowForEdit(RowId.Value);
+        }
+    }
 
     protected override void OnParametersSet()
     {
@@ -174,7 +220,7 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && _barcodeField != null)
+        if (firstRender && !_isEditMode && _barcodeField != null)
         {
             await _barcodeField.FocusAsync();
         }
@@ -251,13 +297,109 @@
         }
     }
 
-    private void PopulateFromProduct(ProductDto product)
+    private async void PopulateFromProduct(ProductDto product)
     {
         _model.ProductId = product.Id;
         _model.ProductCode = product.Code;
         _model.Description = product.Name;
         _model.UnitPrice = product.DefaultPrice ?? 0;
-        _model.UnitOfMeasure = "Pcs"; // Default unit
+
+        // Load units of measure for this product
+        try
+        {
+            var units = await ProductService.GetProductUnitsAsync(product.Id);
+            _availableUnits = units?.ToList() ?? new List<ProductUnitDto>();
+
+            if (_availableUnits.Any())
+            {
+                // Find the default unit or use the first one
+                var defaultUnit = _availableUnits.FirstOrDefault(u => u.UnitType == "Base");
+                if (defaultUnit != null)
+                {
+                    _selectedUnitOfMeasureId = defaultUnit.UnitOfMeasureId;
+                }
+                else
+                {
+                    _selectedUnitOfMeasureId = _availableUnits.First().UnitOfMeasureId;
+                }
+
+                // Set the unit of measure name
+                var selectedUom = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == _selectedUnitOfMeasureId);
+                if (selectedUom != null)
+                {
+                    _model.UnitOfMeasure = selectedUom.Symbol;
+                    _model.UnitOfMeasureId = selectedUom.Id;
+                }
+            }
+            else
+            {
+                // If no units configured for product, use product's default unit
+                if (product.UnitOfMeasureId.HasValue)
+                {
+                    _selectedUnitOfMeasureId = product.UnitOfMeasureId;
+                    var selectedUom = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == product.UnitOfMeasureId);
+                    if (selectedUom != null)
+                    {
+                        _model.UnitOfMeasure = selectedUom.Symbol;
+                        _model.UnitOfMeasureId = selectedUom.Id;
+                    }
+                }
+                else
+                {
+                    // No units configured - show info alert
+                    Snackbar.Add(TranslationService.GetTranslation("documents.noUnitsConfigured", "Nessuna unità di misura configurata per questo prodotto"), Severity.Info);
+                }
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading product units for product {ProductId}", product.Id);
+            Snackbar.Add(TranslationService.GetTranslation("documents.errorLoadingUnits", "Errore nel caricamento delle unità di misura"), Severity.Error);
+        }
+    }
+
+    private async Task LoadRowForEdit(Guid rowId)
+    {
+        try
+        {
+            // Load the document to get the row data
+            var document = await DocumentHeaderService.GetDocumentHeaderByIdAsync(DocumentHeaderId, includeRows: true);
+            var row = document?.Rows?.FirstOrDefault(r => r.Id == rowId);
+
+            if (row != null)
+            {
+                _model.ProductCode = row.ProductCode;
+                _model.Description = row.Description;
+                _model.Quantity = row.Quantity;
+                _model.UnitPrice = row.UnitPrice;
+                _model.UnitOfMeasure = row.UnitOfMeasure;
+                _model.UnitOfMeasureId = row.UnitOfMeasureId;
+                _model.Notes = row.Notes;
+                _selectedUnitOfMeasureId = row.UnitOfMeasureId;
+
+                // Load the product if available
+                if (row.ProductId.HasValue)
+                {
+                    var product = await ProductService.GetProductByIdAsync(row.ProductId.Value);
+                    if (product != null)
+                    {
+                        _selectedProduct = product;
+                        // Load product units
+                        var units = await ProductService.GetProductUnitsAsync(product.Id);
+                        _availableUnits = units?.ToList() ?? new List<ProductUnitDto>();
+                    }
+                }
+
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading row {RowId} for edit", rowId);
+            Snackbar.Add(TranslationService.GetTranslation("documents.errorLoadingRow", "Errore nel caricamento della riga"), Severity.Error);
+        }
     }
 
     private bool IsValid()
@@ -273,30 +415,83 @@
         _isProcessing = true;
         try
         {
-            var result = await DocumentHeaderService.AddDocumentRowAsync(_model);
-            if (result != null)
+            // Update unit of measure based on selection
+            if (_selectedUnitOfMeasureId.HasValue)
             {
-                Snackbar.Add(TranslationService.GetTranslation("documents.rowAddedSuccess", "Riga aggiunta con successo"), Severity.Success);
-                
-                // Reset the form for next entry instead of closing
-                ResetForm();
-                
-                // Focus back to barcode field for next scan
-                if (_barcodeField != null)
+                var selectedUom = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == _selectedUnitOfMeasureId);
+                if (selectedUom != null)
                 {
-                    await Task.Delay(100);
-                    await _barcodeField.FocusAsync();
+                    _model.UnitOfMeasure = selectedUom.Symbol;
+                    _model.UnitOfMeasureId = selectedUom.Id;
+                }
+            }
+
+            if (_isEditMode && RowId.HasValue)
+            {
+                // Update existing row
+                var updateDto = new UpdateDocumentRowDto
+                {
+                    ProductCode = _model.ProductCode,
+                    Description = _model.Description,
+                    UnitOfMeasure = _model.UnitOfMeasure,
+                    UnitOfMeasureId = _model.UnitOfMeasureId,
+                    UnitPrice = _model.UnitPrice,
+                    Quantity = _model.Quantity,
+                    Notes = _model.Notes,
+                    RowType = _model.RowType,
+                    LineDiscount = _model.LineDiscount,
+                    VatRate = _model.VatRate,
+                    VatDescription = _model.VatDescription,
+                    IsGift = _model.IsGift,
+                    IsManual = _model.IsManual,
+                    SourceWarehouseId = _model.SourceWarehouseId,
+                    DestinationWarehouseId = _model.DestinationWarehouseId,
+                    SortOrder = _model.SortOrder,
+                    StationId = _model.StationId,
+                    ParentRowId = _model.ParentRowId
+                };
+
+                var result = await DocumentHeaderService.UpdateDocumentRowAsync(RowId.Value, updateDto);
+                if (result != null)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documents.rowUpdatedSuccess", "Riga aggiornata con successo"), Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(result));
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documents.rowUpdatedError", "Errore durante l'aggiornamento della riga"), Severity.Error);
                 }
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("documents.rowAddedError", "Errore durante l'aggiunta della riga"), Severity.Error);
+                // Create new row
+                var result = await DocumentHeaderService.AddDocumentRowAsync(_model);
+                if (result != null)
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documents.rowAddedSuccess", "Riga aggiunta con successo"), Severity.Success);
+                    
+                    // Reset the form for next entry instead of closing
+                    ResetForm();
+                    
+                    // Focus back to barcode field for next scan
+                    if (_barcodeField != null)
+                    {
+                        await Task.Delay(100);
+                        await _barcodeField.FocusAsync();
+                    }
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("documents.rowAddedError", "Errore durante l'aggiunta della riga"), Severity.Error);
+                }
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error adding document row");
-            Snackbar.Add(TranslationService.GetTranslation("documents.rowAddedError", "Errore durante l'aggiunta della riga"), Severity.Error);
+            Logger.LogError(ex, "Error saving document row");
+            var errorKey = _isEditMode ? "documents.rowUpdatedError" : "documents.rowAddedError";
+            var errorMessage = _isEditMode ? "Errore durante l'aggiornamento della riga" : "Errore durante l'aggiunta della riga";
+            Snackbar.Add(TranslationService.GetTranslation(errorKey, errorMessage), Severity.Error);
         }
         finally
         {
