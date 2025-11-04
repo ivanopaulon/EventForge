@@ -1,0 +1,67 @@
+using System;
+using System.Collections.Generic;
+
+namespace EventForge.DTOs.Warehouse
+{
+    /// <summary>
+    /// DTO representing stock trend data for a product over a period.
+    /// </summary>
+    public class StockTrendDto
+    {
+        /// <summary>
+        /// Product identifier.
+        /// </summary>
+        public Guid ProductId { get; set; }
+
+        /// <summary>
+        /// Year for which the trend data is provided.
+        /// </summary>
+        public int Year { get; set; }
+
+        /// <summary>
+        /// List of data points representing stock levels over time.
+        /// </summary>
+        public List<StockTrendDataPoint> DataPoints { get; set; } = new List<StockTrendDataPoint>();
+
+        /// <summary>
+        /// Current stock quantity.
+        /// </summary>
+        public decimal CurrentStock { get; set; }
+
+        /// <summary>
+        /// Minimum stock quantity during the period.
+        /// </summary>
+        public decimal MinStock { get; set; }
+
+        /// <summary>
+        /// Maximum stock quantity during the period.
+        /// </summary>
+        public decimal MaxStock { get; set; }
+
+        /// <summary>
+        /// Average stock quantity during the period.
+        /// </summary>
+        public decimal AverageStock { get; set; }
+    }
+
+    /// <summary>
+    /// Data point representing stock quantity at a specific date.
+    /// </summary>
+    public class StockTrendDataPoint
+    {
+        /// <summary>
+        /// Date of the data point.
+        /// </summary>
+        public DateTime Date { get; set; }
+
+        /// <summary>
+        /// Stock quantity at this date.
+        /// </summary>
+        public decimal Quantity { get; set; }
+
+        /// <summary>
+        /// Type of movement that occurred (e.g., "Inbound", "Outbound", "Adjustment").
+        /// </summary>
+        public string? MovementType { get; set; }
+    }
+}

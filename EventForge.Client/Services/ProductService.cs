@@ -2,6 +2,7 @@ using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.Station;
 using EventForge.DTOs.UnitOfMeasures;
+using EventForge.DTOs.Warehouse;
 using Microsoft.AspNetCore.Components.Forms;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -535,6 +536,57 @@ public class ProductService : IProductService
         {
             _logger.LogError(ex, "Error deleting product bundle item {Id}", id);
             return false;
+        }
+    }
+
+    public async Task<PagedResult<ProductDocumentMovementDto>?> GetProductDocumentMovementsAsync(
+        Guid productId,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        string? businessPartyName = null,
+        int page = 1,
+        int pageSize = 10)
+    {
+        try
+        {
+            var queryParams = new List<string>
+            {
+                $"page={page}",
+                $"pageSize={pageSize}"
+            };
+
+            if (fromDate.HasValue)
+                queryParams.Add($"fromDate={fromDate.Value:yyyy-MM-dd}");
+            if (toDate.HasValue)
+                queryParams.Add($"toDate={toDate.Value:yyyy-MM-dd}");
+            if (!string.IsNullOrEmpty(businessPartyName))
+                queryParams.Add($"businessPartyName={Uri.EscapeDataString(businessPartyName)}");
+
+            var queryString = string.Join("&", queryParams);
+            return await _httpClientService.GetAsync<PagedResult<ProductDocumentMovementDto>>(
+                $"{BaseUrl}/{productId}/document-movements?{queryString}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving document movements for product {ProductId}", productId);
+            return null;
+        }
+    }
+
+    public async Task<StockTrendDto?> GetProductStockTrendAsync(Guid productId, int? year = null)
+    {
+        try
+        {
+            var url = $"{BaseUrl}/{productId}/stock-trend";
+            if (year.HasValue)
+                url += $"?year={year.Value}";
+
+            return await _httpClientService.GetAsync<StockTrendDto>(url);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving stock trend for product {ProductId}", productId);
+            return null;
         }
     }
 }

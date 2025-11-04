@@ -3,6 +3,7 @@
 @using EventForge.DTOs.Common
 @using EventForge.DTOs.Warehouse
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components.Warehouse
 @inject ITranslationService TranslationService
 @inject IDocumentHeaderService DocumentHeaderService
 @inject IStockService StockService
@@ -128,6 +129,9 @@
         </MudGrid>
     </MudPaper>
 
+    <!-- Stock Trend Chart -->
+    <StockTrendChart StockTrend="@_stockTrend" IsLoading="@_isLoadingTrend" />
+
     <!-- Document History Section -->
     <MudPaper Elevation="1" Class="pa-4">
         <MudText Typo="Typo.h6" Class="mb-3">
@@ -176,40 +180,61 @@
                 <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
             </div>
         }
-        else if (_documents?.Items?.Any() == true)
+        else if (_documentMovements?.Items?.Any() == true)
         {
-            <MudTable Items="@_documents.Items" Hover="true" Striped="true" Dense="true" Class="mb-4">
+            <MudTable Items="@_documentMovements.Items" Hover="true" Striped="true" Dense="true" Class="mb-4">
                 <HeaderContent>
                     <MudTh>@TranslationService.GetTranslation("field.number", "Numero")</MudTh>
                     <MudTh>@TranslationService.GetTranslation("field.date", "Data")</MudTh>
                     <MudTh>@TranslationService.GetTranslation("field.type", "Tipo")</MudTh>
                     <MudTh Class="mud-hidden-sm-down">@TranslationService.GetTranslation("field.businessParty", "Cliente/Fornitore")</MudTh>
+                    <MudTh Class="text-right">@TranslationService.GetTranslation("field.quantity", "Quantità")</MudTh>
+                    <MudTh Class="mud-hidden-md-down">@TranslationService.GetTranslation("field.unitOfMeasure", "UM")</MudTh>
+                    <MudTh Class="text-center">@TranslationService.GetTranslation("field.movementType", "Movimento")</MudTh>
+                    <MudTh Class="mud-hidden-sm-down">@TranslationService.GetTranslation("field.warehouse", "Magazzino")</MudTh>
                     <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
-                    <MudTh Class="text-right mud-hidden-sm-down">@TranslationService.GetTranslation("field.total", "Totale")</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.number", "Numero")">@context.Number</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.date", "Data")">@context.Date.ToString("dd/MM/yyyy")</MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.number", "Numero")">@context.DocumentNumber</MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.date", "Data")">@context.DocumentDate.ToString("dd/MM/yyyy")</MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("field.type", "Tipo")">@context.DocumentTypeName</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.businessParty", "Cliente/Fornitore")" Class="mud-hidden-sm-down">@(context.BusinessPartyName ?? context.CustomerName ?? "-")</MudTd>
-                    <MudTd>
-                        <MudChip T="string" Size="Size.Small" Color="GetStatusColor(context.Status)">
-                            @GetStatusText(context.Status)
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.businessParty", "Cliente/Fornitore")" Class="mud-hidden-sm-down">@(context.BusinessPartyName ?? "-")</MudTd>
+                    <MudTd Class="text-right" DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")">
+                        <strong>@context.Quantity.ToString("N2")</strong>
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.unitOfMeasure", "UM")" Class="mud-hidden-md-down">@(context.UnitOfMeasure ?? "-")</MudTd>
+                    <MudTd Class="text-center" DataLabel="@TranslationService.GetTranslation("field.movementType", "Movimento")">
+                        @if (context.IsStockIncrease)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.ArrowUpward">
+                                @TranslationService.GetTranslation("movement.stockIncrease", "Carico")
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Error" Icon="@Icons.Material.Filled.ArrowDownward">
+                                @TranslationService.GetTranslation("movement.stockDecrease", "Scarico")
+                            </MudChip>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.warehouse", "Magazzino")" Class="mud-hidden-sm-down">@(context.WarehouseName ?? "-")</MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                        <MudChip T="string" Size="Size.Small" Color="GetStatusColorFromString(context.Status)">
+                            @GetStatusTextFromString(context.Status)
                         </MudChip>
                     </MudTd>
-                    <MudTd Class="text-right mud-hidden-sm-down">@context.TotalGrossAmount.ToString("C2")</MudTd>
                 </RowTemplate>
             </MudTable>
 
             <div class="d-flex justify-space-between align-center">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">
                     @TranslationService.GetTranslation("pagination.showing", "Mostrando") 
-                    @((_documents.Page -1) * _documents.PageSize +1) - 
-                    @Math.Min(_documents.Page * _documents.PageSize, _documents.TotalCount) 
+                    @((_documentMovements.Page -1) * _documentMovements.PageSize +1) - 
+                    @Math.Min(_documentMovements.Page * _documentMovements.PageSize, _documentMovements.TotalCount) 
                     @TranslationService.GetTranslation("pagination.of", "di") 
-                    @_documents.TotalCount
+                    @_documentMovements.TotalCount
                 </MudText>
-                <MudPagination Count="@((int)((_documents.TotalCount + _documents.PageSize -1) / _documents.PageSize))"
+                <MudPagination Count="@((int)((_documentMovements.TotalCount + _documentMovements.PageSize -1) / _documentMovements.PageSize))"
                                Selected="@_currentPage"
                                SelectedChanged="OnPageChangedAsync"
                                ShowFirstButton="true"
@@ -240,8 +265,11 @@
 
     private bool _isLoadingDocuments = false;
     private bool _isLoadingStock = false;
-    private PagedResult<DocumentHeaderDto>? _documents;
+    private bool _isLoadingTrend = false;
+    private bool _stockTrendLoaded = false;
+    private PagedResult<ProductDocumentMovementDto>? _documentMovements;
     private IEnumerable<StockDto> _stockLevels = Enumerable.Empty<StockDto>();
+    private StockTrendDto? _stockTrend;
     private int _currentPage =1;
     private const int PageSize =10;
 
@@ -262,8 +290,20 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        // Load documents and stock
-        await Task.WhenAll(LoadDocumentsAsync(), LoadStockLevelsAsync());
+        // Load documents and stock - trend is loaded only once
+        var tasks = new List<Task>
+        {
+            LoadDocumentsAsync(),
+            LoadStockLevelsAsync()
+        };
+
+        // Load stock trend only once on first load
+        if (!_stockTrendLoaded)
+        {
+            tasks.Add(LoadStockTrendAsync());
+        }
+
+        await Task.WhenAll(tasks);
     }
 
     private async Task LoadStockLevelsAsync()
@@ -290,24 +330,19 @@
         _isLoadingDocuments = true;
         try
         {
-            var queryParameters = new DocumentHeaderQueryParameters
-            {
-                Page = _currentPage,
-                PageSize = PageSize,
-                ProductId = Product.Id,
-                FromDate = _fromDate,
-                ToDate = _toDate,
-                CustomerName = _customerNameFilter,
-                SortBy = "Date",
-                SortDirection = "desc"
-            };
-
-            _documents = await DocumentHeaderService.GetPagedDocumentHeadersAsync(queryParameters);
+            _documentMovements = await ProductService.GetProductDocumentMovementsAsync(
+                Product.Id,
+                _fromDate,
+                _toDate,
+                _customerNameFilter,
+                _currentPage,
+                PageSize
+            );
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading documents for product {ProductId}", Product.Id);
-            _documents = null;
+            Logger.LogError(ex, "Error loading document movements for product {ProductId}", Product.Id);
+            _documentMovements = null;
         }
         finally
         {
@@ -316,10 +351,54 @@
         }
     }
 
+    private async Task LoadStockTrendAsync()
+    {
+        _isLoadingTrend = true;
+        try
+        {
+            _stockTrend = await ProductService.GetProductStockTrendAsync(Product.Id);
+            _stockTrendLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading stock trend for product {ProductId}", Product.Id);
+            _stockTrend = null;
+        }
+        finally
+        {
+            _isLoadingTrend = false;
+            StateHasChanged();
+        }
+    }
+
     private async Task OnPageChangedAsync(int page)
     {
         _currentPage = page;
         await LoadDocumentsAsync();
+    }
+
+    private Color GetStatusColorFromString(string status)
+    {
+        return status.ToLower() switch
+        {
+            "draft" => Color.Default,
+            "approved" => Color.Success,
+            "rejected" => Color.Error,
+            "cancelled" => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private string GetStatusTextFromString(string status)
+    {
+        return status.ToLower() switch
+        {
+            "draft" => TranslationService.GetTranslation("status.draft", "Bozza"),
+            "approved" => TranslationService.GetTranslation("status.approved", "Approvato"),
+            "rejected" => TranslationService.GetTranslation("status.rejected", "Rifiutato"),
+            "cancelled" => TranslationService.GetTranslation("status.cancelled", "Annullato"),
+            _ => status
+        };
     }
 
     private Color GetStatusColor(DocumentStatus status)

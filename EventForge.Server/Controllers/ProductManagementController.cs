@@ -2,12 +2,15 @@ using EventForge.DTOs.PriceLists;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.Promotions;
 using EventForge.DTOs.UnitOfMeasures;
+using EventForge.DTOs.Warehouse;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Interfaces;
 using EventForge.Server.Services.PriceLists;
 using EventForge.Server.Services.Products;
 using EventForge.Server.Services.Promotions;
 using EventForge.Server.Services.UnitOfMeasures;
+using EventForge.Server.Services.Documents;
+using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,6 +35,8 @@ public class ProductManagementController : BaseApiController
     private readonly IPriceListService _priceListService;
     private readonly IPromotionService _promotionService;
     private readonly IBarcodeService _barcodeService;
+    private readonly IDocumentHeaderService _documentHeaderService;
+    private readonly IStockMovementService _stockMovementService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<ProductManagementController> _logger;
 
@@ -43,6 +48,8 @@ public class ProductManagementController : BaseApiController
         IPriceListService priceListService,
         IPromotionService promotionService,
         IBarcodeService barcodeService,
+        IDocumentHeaderService documentHeaderService,
+        IStockMovementService stockMovementService,
         ITenantContext tenantContext,
         ILogger<ProductManagementController> logger)
     {
@@ -53,6 +60,8 @@ public class ProductManagementController : BaseApiController
         _priceListService = priceListService ?? throw new ArgumentNullException(nameof(priceListService));
         _promotionService = promotionService ?? throw new ArgumentNullException(nameof(promotionService));
         _barcodeService = barcodeService ?? throw new ArgumentNullException(nameof(barcodeService));
+        _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
+        _stockMovementService = stockMovementService ?? throw new ArgumentNullException(nameof(stockMovementService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -2070,6 +2079,248 @@ public class ProductManagementController : BaseApiController
             return CreateInternalServerErrorProblem("An error occurred while updating the associations.", ex);
         }
     }
+
+    #region Product Document Movements and Stock Trend
+
+    /// <summary>
+    /// Gets paginated document movements for a specific product.
+    /// </summary>
+    /// <param name="id">Product ID</param>
+    /// <param name="fromDate">Optional filter: start date</param>
+    /// <param name="toDate">Optional filter: end date</param>
+    /// <param name="businessPartyName">Optional filter: customer/supplier name</param>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of product document movements</returns>
+    /// <response code="200">Returns the paginated list of movements</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    /// <response code="404">If the product is not found</response>
+    [HttpGet("products/{id:guid}/document-movements")]
+    [ProducesResponseType(typeof(PagedResult<ProductDocumentMovementDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResult<ProductDocumentMovementDto>>> GetProductDocumentMovements(
+        Guid id,
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null,
+        [FromQuery] string? businessPartyName = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Check if product exists
+            var product = await _productService.GetProductByIdAsync(id, cancellationToken);
+            if (product == null)
+                return CreateNotFoundProblem($"Product with ID {id} not found.");
+
+            // Get document movements using DocumentHeaderService
+            var queryParameters = new EventForge.DTOs.Documents.DocumentHeaderQueryParameters
+            {
+                Page = page,
+                PageSize = pageSize,
+                ProductId = id,
+                FromDate = fromDate,
+                ToDate = toDate,
+                CustomerName = businessPartyName,
+                SortBy = "Date",
+                SortDirection = "desc",
+                IncludeRows = true
+            };
+
+            var documentsResult = await _documentHeaderService.GetPagedDocumentHeadersAsync(queryParameters, cancellationToken);
+
+            // Transform documents to ProductDocumentMovementDto
+            var movements = new List<ProductDocumentMovementDto>();
+            foreach (var doc in documentsResult.Items)
+            {
+                if (doc.Rows == null) continue;
+
+                // Find rows that contain this product
+                var productRows = doc.Rows.Where(r => r.ProductId == id);
+                foreach (var row in productRows)
+                {
+                    // Determine if this is a stock increase based on document type
+                    // This is a simplified logic - you may need to adjust based on your DocumentType configuration
+                    bool isStockIncrease = DetermineStockIncrease(doc.DocumentTypeName);
+
+                    movements.Add(new ProductDocumentMovementDto
+                    {
+                        DocumentHeaderId = doc.Id,
+                        DocumentNumber = doc.Number,
+                        DocumentDate = doc.Date,
+                        DocumentTypeName = doc.DocumentTypeName ?? "Unknown",
+                        BusinessPartyName = doc.BusinessPartyName ?? doc.CustomerName,
+                        Status = doc.Status.ToString(),
+                        Quantity = row.Quantity,
+                        UnitOfMeasure = row.UnitOfMeasure,
+                        UnitPrice = row.UnitPrice,
+                        LineTotal = row.LineTotal,
+                        IsStockIncrease = isStockIncrease,
+                        WarehouseId = isStockIncrease ? doc.DestinationWarehouseId : doc.SourceWarehouseId,
+                        WarehouseName = isStockIncrease ? doc.DestinationWarehouseName : doc.SourceWarehouseName
+                    });
+                }
+            }
+
+            return Ok(new PagedResult<ProductDocumentMovementDto>
+            {
+                Items = movements,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = documentsResult.TotalCount
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving document movements for product {ProductId}.", id);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving document movements.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets stock trend data for a specific product.
+    /// </summary>
+    /// <param name="id">Product ID</param>
+    /// <param name="year">Year for trend data (defaults to current year)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Stock trend data including data points and statistics</returns>
+    /// <response code="200">Returns the stock trend data</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    /// <response code="404">If the product is not found</response>
+    [HttpGet("products/{id:guid}/stock-trend")]
+    [ProducesResponseType(typeof(StockTrendDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<StockTrendDto>> GetProductStockTrend(
+        Guid id,
+        [FromQuery] int? year = null,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Check if product exists
+            var product = await _productService.GetProductByIdAsync(id, cancellationToken);
+            if (product == null)
+                return CreateNotFoundProblem($"Product with ID {id} not found.");
+
+            var targetYear = year ?? DateTime.UtcNow.Year;
+            var startDate = new DateTime(targetYear, 1, 1);
+            var endDate = new DateTime(targetYear, 12, 31, 23, 59, 59);
+
+            // Get stock movements for the year
+            var movementsResult = await _stockMovementService.GetMovementsAsync(
+                page: 1,
+                pageSize: 10000, // Get all movements for the year
+                productId: id,
+                fromDate: startDate,
+                toDate: endDate,
+                cancellationToken: cancellationToken);
+
+            // Build data points - aggregate by day
+            var dataPointsDict = new Dictionary<DateTime, (decimal Quantity, string? MovementType)>();
+            decimal runningTotal = 0;
+
+            // Order movements by date
+            var orderedMovements = movementsResult.Items.OrderBy(m => m.MovementDate).ToList();
+
+            foreach (var movement in orderedMovements)
+            {
+                var dateKey = movement.MovementDate.Date;
+                
+                // Update running total based on movement type
+                if (movement.MovementType.Contains("Inbound", StringComparison.OrdinalIgnoreCase) || 
+                    (movement.MovementType.Contains("Adjustment", StringComparison.OrdinalIgnoreCase) && movement.Quantity > 0))
+                {
+                    runningTotal += movement.Quantity;
+                }
+                else if (movement.MovementType.Contains("Outbound", StringComparison.OrdinalIgnoreCase) ||
+                         (movement.MovementType.Contains("Adjustment", StringComparison.OrdinalIgnoreCase) && movement.Quantity < 0))
+                {
+                    runningTotal -= Math.Abs(movement.Quantity);
+                }
+
+                dataPointsDict[dateKey] = (runningTotal, movement.MovementType);
+            }
+
+            var dataPoints = dataPointsDict
+                .Select(kvp => new StockTrendDataPoint
+                {
+                    Date = kvp.Key,
+                    Quantity = kvp.Value.Quantity,
+                    MovementType = kvp.Value.MovementType
+                })
+                .OrderBy(dp => dp.Date)
+                .ToList();
+
+            // Calculate statistics
+            var quantities = dataPoints.Select(dp => dp.Quantity).ToList();
+            var currentStock = quantities.Any() ? quantities.Last() : 0;
+            var minStock = quantities.Any() ? quantities.Min() : 0;
+            var maxStock = quantities.Any() ? quantities.Max() : 0;
+            var avgStock = quantities.Any() ? quantities.Average() : 0;
+
+            var trendDto = new StockTrendDto
+            {
+                ProductId = id,
+                Year = targetYear,
+                DataPoints = dataPoints,
+                CurrentStock = currentStock,
+                MinStock = minStock,
+                MaxStock = maxStock,
+                AverageStock = avgStock
+            };
+
+            return Ok(trendDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving stock trend for product {ProductId}.", id);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving stock trend.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Helper method to determine if a document type increases stock.
+    /// This is a simplified implementation - adjust based on your DocumentType configuration.
+    /// </summary>
+    private bool DetermineStockIncrease(string? documentTypeName)
+    {
+        if (string.IsNullOrEmpty(documentTypeName))
+            return false;
+
+        // Common patterns for stock increase (purchases, receipts, returns from customers)
+        var increaseKeywords = new[] { "purchase", "receipt", "return", "acquisto", "carico", "reso" };
+        
+        // Common patterns for stock decrease (sales, shipments, returns to suppliers)
+        var decreaseKeywords = new[] { "sale", "invoice", "shipment", "delivery", "vendita", "fattura", "scarico", "consegna" };
+
+        var lowerName = documentTypeName.ToLower();
+        
+        if (increaseKeywords.Any(k => lowerName.Contains(k)))
+            return true;
+        
+        if (decreaseKeywords.Any(k => lowerName.Contains(k)))
+            return false;
+
+        // Default to false if uncertain
+        return false;
+    }
+
+    #endregion
 
     #endregion
 }

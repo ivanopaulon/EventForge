@@ -2,6 +2,7 @@ using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.Station;
 using EventForge.DTOs.UnitOfMeasures;
+using EventForge.DTOs.Warehouse;
 using Microsoft.AspNetCore.Components.Forms;
 
 namespace EventForge.Client.Services;
@@ -58,4 +59,14 @@ public interface IProductService
     Task<ProductBundleItemDto?> CreateProductBundleItemAsync(CreateProductBundleItemDto createDto);
     Task<ProductBundleItemDto?> UpdateProductBundleItemAsync(Guid id, UpdateProductBundleItemDto updateDto);
     Task<bool> DeleteProductBundleItemAsync(Guid id);
+
+    // Product Document Movements and Stock Trend
+    Task<PagedResult<ProductDocumentMovementDto>?> GetProductDocumentMovementsAsync(
+        Guid productId, 
+        DateTime? fromDate = null, 
+        DateTime? toDate = null, 
+        string? businessPartyName = null, 
+        int page = 1, 
+        int pageSize = 10);
+    Task<StockTrendDto?> GetProductStockTrendAsync(Guid productId, int? year = null);
 }
