@@ -375,6 +375,7 @@
     {
         _selectedCustomerForAudit = customer;
         _auditDialogOpen = true;
+        StateHasChanged(); // Force UI update to trigger dialog display
         await Task.CompletedTask;
     }
 

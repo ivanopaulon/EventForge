@@ -970,6 +970,7 @@ else
             _selectedUserIdGuid = user.Id;
             _selectedUserDisplayName = user.FullName;
             _userAuditDialogOpen = true;
+            StateHasChanged(); // Force UI update to trigger dialog display
             await Task.CompletedTask;
         }
         catch (Exception ex)
