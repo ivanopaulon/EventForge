@@ -931,6 +931,7 @@ public class EntitySeeder : IEntitySeeder
                     IsStockIncrease = false, // Inventory adjustments can go either way
                     DefaultWarehouseId = defaultWarehouse?.Id,
                     IsFiscal = false,
+                    RequiredPartyType = Data.Entities.Business.BusinessPartyType.ClienteFornitore, // Internal document - can be used regardless of party
                     TenantId = tenantId,
                     CreatedBy = "system",
                     CreatedAt = DateTime.UtcNow
@@ -944,6 +945,7 @@ public class EntitySeeder : IEntitySeeder
                     IsStockIncrease = false, // Delivery decreases stock
                     DefaultWarehouseId = defaultWarehouse?.Id,
                     IsFiscal = true,
+                    RequiredPartyType = Data.Entities.Business.BusinessPartyType.Cliente, // Sales to customers
                     TenantId = tenantId,
                     CreatedBy = "system",
                     CreatedAt = DateTime.UtcNow
@@ -957,6 +959,7 @@ public class EntitySeeder : IEntitySeeder
                     IsStockIncrease = true, // Purchase increases stock
                     DefaultWarehouseId = defaultWarehouse?.Id,
                     IsFiscal = true,
+                    RequiredPartyType = Data.Entities.Business.BusinessPartyType.Fornitore, // Purchases from suppliers
                     TenantId = tenantId,
                     CreatedBy = "system",
                     CreatedAt = DateTime.UtcNow
@@ -970,6 +973,7 @@ public class EntitySeeder : IEntitySeeder
                     IsStockIncrease = false, // Transfer is neutral (reduces source, increases destination)
                     DefaultWarehouseId = defaultWarehouse?.Id,
                     IsFiscal = true,
+                    RequiredPartyType = Data.Entities.Business.BusinessPartyType.ClienteFornitore, // Internal transfer - can be used regardless of party
                     TenantId = tenantId,
                     CreatedBy = "system",
                     CreatedAt = DateTime.UtcNow
@@ -983,6 +987,7 @@ public class EntitySeeder : IEntitySeeder
                     IsStockIncrease = false,
                     DefaultWarehouseId = defaultWarehouse?.Id,
                     IsFiscal = true,
+                    RequiredPartyType = Data.Entities.Business.BusinessPartyType.Cliente, // Sales invoices to customers
                     TenantId = tenantId,
                     CreatedBy = "system",
                     CreatedAt = DateTime.UtcNow
@@ -996,6 +1001,7 @@ public class EntitySeeder : IEntitySeeder
                     IsStockIncrease = true,
                     DefaultWarehouseId = defaultWarehouse?.Id,
                     IsFiscal = true,
+                    RequiredPartyType = Data.Entities.Business.BusinessPartyType.Fornitore, // Purchase invoices from suppliers
                     TenantId = tenantId,
                     CreatedBy = "system",
                     CreatedAt = DateTime.UtcNow
@@ -1009,6 +1015,7 @@ public class EntitySeeder : IEntitySeeder
                     IsStockIncrease = false,
                     DefaultWarehouseId = defaultWarehouse?.Id,
                     IsFiscal = true,
+                    RequiredPartyType = Data.Entities.Business.BusinessPartyType.Cliente, // Sales receipts to customers
                     TenantId = tenantId,
                     CreatedBy = "system",
                     CreatedAt = DateTime.UtcNow
@@ -1022,6 +1029,7 @@ public class EntitySeeder : IEntitySeeder
                     IsStockIncrease = false,
                     DefaultWarehouseId = defaultWarehouse?.Id,
                     IsFiscal = false,
+                    RequiredPartyType = Data.Entities.Business.BusinessPartyType.Cliente, // Sales orders from customers
                     TenantId = tenantId,
                     CreatedBy = "system",
                     CreatedAt = DateTime.UtcNow
@@ -1035,6 +1043,7 @@ public class EntitySeeder : IEntitySeeder
                     IsStockIncrease = false,
                     DefaultWarehouseId = defaultWarehouse?.Id,
                     IsFiscal = false,
+                    RequiredPartyType = Data.Entities.Business.BusinessPartyType.Fornitore, // Purchase orders to suppliers
                     TenantId = tenantId,
                     CreatedBy = "system",
                     CreatedAt = DateTime.UtcNow
@@ -1048,6 +1057,7 @@ public class EntitySeeder : IEntitySeeder
                     IsStockIncrease = false,
                     DefaultWarehouseId = defaultWarehouse?.Id,
                     IsFiscal = false,
+                    RequiredPartyType = Data.Entities.Business.BusinessPartyType.Cliente, // Quotes to customers
                     TenantId = tenantId,
                     CreatedBy = "system",
                     CreatedAt = DateTime.UtcNow
@@ -1061,6 +1071,7 @@ public class EntitySeeder : IEntitySeeder
                     IsStockIncrease = true,
                     DefaultWarehouseId = defaultWarehouse?.Id,
                     IsFiscal = true,
+                    RequiredPartyType = Data.Entities.Business.BusinessPartyType.Cliente, // Returns from customers
                     TenantId = tenantId,
                     CreatedBy = "system",
                     CreatedAt = DateTime.UtcNow
@@ -1074,6 +1085,7 @@ public class EntitySeeder : IEntitySeeder
                     IsStockIncrease = true,
                     DefaultWarehouseId = defaultWarehouse?.Id,
                     IsFiscal = true,
+                    RequiredPartyType = Data.Entities.Business.BusinessPartyType.ClienteFornitore, // Credit notes can be for both customers and suppliers
                     TenantId = tenantId,
                     CreatedBy = "system",
                     CreatedAt = DateTime.UtcNow
