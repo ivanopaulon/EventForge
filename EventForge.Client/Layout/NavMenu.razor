@@ -206,61 +206,8 @@
                         @TranslationService.GetTranslation("nav.classificationNodeManagement", "Gestione Classificazione")
                     </MudNavLink>
                 </MudNavGroup>
-
-                <!-- System Management Group -->
-                <MudNavGroup title="@TranslationService.GetTranslation("nav.systemManagement", "Gestione Sistema")" 
-                             Icon="@Icons.Material.Outlined.Settings" 
-                             Expanded="false">
-                    <MudNavLink Href="/printing/printers" 
-                                Icon="@Icons.Material.Outlined.Print" 
-                                Match="NavLinkMatch.All">
-                        @TranslationService.GetTranslation("nav.printerManagement", "Gestione Stampanti")
-                    </MudNavLink>
-                </MudNavGroup>
             </MudNavGroup>
         }
-        
-        <!-- Communication section -->
-        <MudNavGroup title="@TranslationService.GetTranslation("nav.communication", "Comunicazione")" 
-                     Icon="@Icons.Material.Outlined.Forum" 
-                     Expanded="false">
-            <MudNavLink Href="/notifications" 
-                        Icon="@Icons.Material.Outlined.Notifications" 
-                        Match="NavLinkMatch.All">
-                <div class="d-flex align-center justify-space-between w-100">
-                    <span>@TranslationService.GetTranslation("nav.notifications", "Notifiche")</span>
-                    <NotificationBadge Count="@_unreadNotificationCount" 
-                                       ShowIcon="false"
-                                       BadgeColor="Color.Error"
-                                       BadgeSize="Size.Small" />
-                </div>
-            </MudNavLink>
-            <MudNavLink Href="/activity-feed" 
-                        Icon="@Icons.Material.Outlined.Timeline" 
-                        Match="NavLinkMatch.All">
-                <div class="d-flex align-center justify-space-between w-100">
-                    <span>@TranslationService.GetTranslation("nav.activityFeed", "Feed Attività")</span>
-                    @if (_totalActivityCount > 0)
-                    {
-                        <MudBadge Content="@_totalActivityCount.ToString()" 
-                                  Color="Color.Info"
-                                  Size="Size.Small"
-                                  Max="99" />
-                    }
-                </div>
-            </MudNavLink>
-            <MudNavLink Href="/chat" 
-                        Icon="@Icons.Material.Outlined.Chat" 
-                        Match="NavLinkMatch.All">
-                <div class="d-flex align-center justify-space-between w-100">
-                    <span>@TranslationService.GetTranslation("nav.chat", "Chat")</span>
-                    <NotificationBadge Count="@_unreadMessageCount" 
-                                       ShowIcon="false"
-                                       BadgeColor="Color.Primary"
-                                       BadgeSize="Size.Small" />
-                </div>
-            </MudNavLink>
-        </MudNavGroup>
         
         <!-- Common user links -->
         <MudNavLink Href="/profile" Icon="@Icons.Material.Outlined.Person" Match="NavLinkMatch.All">
