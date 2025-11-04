@@ -1,0 +1,246 @@
+@using EventForge.DTOs.Documents
+@using EventForge.DTOs.Common
+@using EventForge.DTOs.Warehouse
+@using MudBlazor
+@inject IDocumentTypeService DocumentTypeService
+@inject IWarehouseService WarehouseService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<DocumentTypeDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string"
+                                  Class="ef-input"
+                                  @bind-Value="_model.Name"
+                                  Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                                  Required="true"
+                                  RequiredError="@TranslationService.GetTranslation("documentType.error.nameRequired", "Il nome è obbligatorio")"
+                                  MaxLength="50"
+                                  HelperText="@TranslationService.GetTranslation("documentType.helperText.name", "Inserisci il nome del tipo documento")" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string"
+                                  Class="ef-input"
+                                  @bind-Value="_model.Code"
+                                  Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
+                                  Required="true"
+                                  RequiredError="@TranslationService.GetTranslation("documentType.error.codeRequired", "Il codice è obbligatorio")"
+                                  MaxLength="10"
+                                  Disabled="@_isEditMode"
+                                  HelperText="@TranslationService.GetTranslation("documentType.helperText.code", "Codice univoco per il tipo documento (es: DDT, FT, NC)")" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField T="string"
+                                  Class="ef-input"
+                                  @bind-Value="_model.Notes"
+                                  Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                  Lines="3"
+                                  MaxLength="200"
+                                  HelperText="@TranslationService.GetTranslation("documentType.helperText.notes", "Note o descrizione aggiuntiva")" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="BusinessPartyType" 
+                               Class="ef-select"
+                               @bind-Value="_model.RequiredPartyType"
+                               Label="@TranslationService.GetTranslation("field.requiredPartyType", "Tipo Controparte Richiesto")"
+                               Variant="Variant.Outlined">
+                        <MudSelectItem T="BusinessPartyType" Value="BusinessPartyType.Customer">
+                            @TranslationService.GetTranslation("businessPartyType.customer", "Cliente")
+                        </MudSelectItem>
+                        <MudSelectItem T="BusinessPartyType" Value="BusinessPartyType.Supplier">
+                            @TranslationService.GetTranslation("businessPartyType.supplier", "Fornitore")
+                        </MudSelectItem>
+                        <MudSelectItem T="BusinessPartyType" Value="BusinessPartyType.Both">
+                            @TranslationService.GetTranslation("businessPartyType.both", "Entrambi")
+                        </MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="Guid?" 
+                               Class="ef-select"
+                               @bind-Value="_model.DefaultWarehouseId"
+                               Label="@TranslationService.GetTranslation("field.defaultWarehouse", "Magazzino Predefinito")"
+                               Variant="Variant.Outlined"
+                               Clearable="true">
+                        @if (_warehouses != null)
+                        {
+                            @foreach (var warehouse in _warehouses)
+                            {
+                                <MudSelectItem T="Guid?" Value="@warehouse.Id">@warehouse.Name</MudSelectItem>
+                            }
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSwitch T="bool"
+                               @bind-Value="_model.IsFiscal"
+                               Label="@TranslationService.GetTranslation("field.isFiscal", "Documento Fiscale")"
+                               Color="Color.Primary"
+                               ThumbIcon="@(_model.IsFiscal ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)" />
+                    <MudText Typo="Typo.caption" Class="mud-input-helper-text">
+                        @TranslationService.GetTranslation("documentType.helperText.isFiscal", "Indica se il documento ha valore fiscale")
+                    </MudText>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSwitch T="bool"
+                               @bind-Value="_model.IsStockIncrease"
+                               Label="@TranslationService.GetTranslation("field.isStockIncrease", "Aumento Stock")"
+                               Color="Color.Success"
+                               ThumbIcon="@(_model.IsStockIncrease ? Icons.Material.Filled.TrendingUp : Icons.Material.Filled.TrendingDown)" />
+                    <MudText Typo="Typo.caption" Class="mud-input-helper-text">
+                        @TranslationService.GetTranslation("documentType.helperText.isStockIncrease", "Indica se il documento aumenta lo stock di magazzino")
+                    </MudText>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="SaveAsync"
+                   Disabled="@(!_isValid || _isSaving)">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">@TranslationService.GetTranslation("common.saving", "Salvataggio...")</MudText>
+            }
+            else
+            {
+                <MudText>@TranslationService.GetTranslation("common.save", "Salva")</MudText>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter] public DocumentTypeDto? DocumentType { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+
+    private MudForm? _form;
+    private bool _isValid = false;
+    private bool _isSaving = false;
+    private bool _isEditMode => DocumentType != null;
+    private IEnumerable<StorageFacilityDto>? _warehouses;
+    
+    private CreateDocumentTypeDto _model = new()
+    {
+        Name = string.Empty,
+        Code = string.Empty,
+        RequiredPartyType = BusinessPartyType.Both
+    };
+    
+    private UpdateDocumentTypeDto _updateModel = new()
+    {
+        Name = string.Empty,
+        Code = string.Empty,
+        RequiredPartyType = BusinessPartyType.Both
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadWarehousesAsync();
+        
+        if (_isEditMode && DocumentType != null)
+        {
+            _model.Name = DocumentType.Name;
+            _model.Code = DocumentType.Code;
+            _model.Notes = DocumentType.Notes;
+            _model.IsFiscal = DocumentType.IsFiscal;
+            _model.IsStockIncrease = DocumentType.IsStockIncrease;
+            _model.RequiredPartyType = DocumentType.RequiredPartyType;
+            _model.DefaultWarehouseId = DocumentType.DefaultWarehouseId;
+            
+            _updateModel.Name = DocumentType.Name;
+            _updateModel.Code = DocumentType.Code;
+            _updateModel.Notes = DocumentType.Notes;
+            _updateModel.IsFiscal = DocumentType.IsFiscal;
+            _updateModel.IsStockIncrease = DocumentType.IsStockIncrease;
+            _updateModel.RequiredPartyType = DocumentType.RequiredPartyType;
+            _updateModel.DefaultWarehouseId = DocumentType.DefaultWarehouseId;
+        }
+    }
+
+    private async Task LoadWarehousesAsync()
+    {
+        try
+        {
+            var result = await WarehouseService.GetStorageFacilitiesAsync(page: 1, pageSize: 100);
+            _warehouses = result.Items ?? new List<StorageFacilityDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading warehouses for dialog");
+            Snackbar.Add(TranslationService.GetTranslation("warehouse.loadError", "Errore nel caricamento dei magazzini"), Severity.Warning);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_form == null || !_isValid)
+            return;
+
+        _isSaving = true;
+        try
+        {
+            if (_isEditMode && DocumentType != null)
+            {
+                // Update existing document type
+                _updateModel.Name = _model.Name;
+                _updateModel.Code = _model.Code;
+                _updateModel.Notes = _model.Notes;
+                _updateModel.IsFiscal = _model.IsFiscal;
+                _updateModel.IsStockIncrease = _model.IsStockIncrease;
+                _updateModel.RequiredPartyType = _model.RequiredPartyType;
+                _updateModel.DefaultWarehouseId = _model.DefaultWarehouseId;
+                
+                var result = await DocumentTypeService.UpdateDocumentTypeAsync(DocumentType.Id, _updateModel);
+                Snackbar.Add(TranslationService.GetTranslation("documentType.updateSuccess", "Tipo documento aggiornato con successo"), Severity.Success);
+                
+                if (OnSaved.HasDelegate)
+                    await OnSaved.InvokeAsync();
+                    
+                MudDialog.Close(DialogResult.Ok(result));
+            }
+            else
+            {
+                // Create new document type
+                var result = await DocumentTypeService.CreateDocumentTypeAsync(_model);
+                Snackbar.Add(TranslationService.GetTranslation("documentType.createSuccess", "Tipo documento creato con successo"), Severity.Success);
+                
+                if (OnSaved.HasDelegate)
+                    await OnSaved.InvokeAsync();
+                    
+                MudDialog.Close(DialogResult.Ok(result));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving document type in dialog");
+            Snackbar.Add(TranslationService.GetTranslation("documentType.saveError", "Errore nel salvataggio del tipo documento"), Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}
