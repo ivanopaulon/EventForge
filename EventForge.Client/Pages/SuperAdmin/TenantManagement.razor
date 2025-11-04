@@ -199,25 +199,24 @@
 
 </SuperAdminPageLayout>
 
-<!-- Audit History Dialog -->
-<AuditHistoryDialog @bind-IsOpen="_auditDialogOpen"
-                    EntityType="Tenant"
-                    EntityId="@_selectedTenantForAudit?.Id"
-                    EntityName="@_selectedTenantForAudit?.DisplayName" />
-
 @code {
+    // Dialog options for fullscreen audit dialog
+    private readonly DialogOptions _auditDialogOptions = new() 
+    { 
+        FullScreen = true, 
+        CloseButton = true,
+        MaxWidth = MaxWidth.False
+    };
+    
     // UI State Management
     private bool _isLoading = true;
     private bool _isAuthorized = false;
     private bool _isLoadingTenants = false;
-    private bool _auditDialogOpen = false;
     
     // MudCollapse state management (all closed by default as per issue #98)
     private bool _statisticsExpanded = false;      // Closed by default
     private bool _filtersExpanded = false;         // Closed by default
     
-    // Audit management
-    private TenantResponseDto? _selectedTenantForAudit;
     private UserDto? _currentUser;
     
     // Filter and search state
@@ -371,10 +370,17 @@
 
     private async Task ViewTenantAuditLog(TenantResponseDto tenant)
     {
-        _selectedTenantForAudit = tenant;
-        _auditDialogOpen = true;
-        StateHasChanged(); // Force UI update to trigger dialog display
-        await Task.CompletedTask;
+        var parameters = new DialogParameters<AuditHistoryDialog>
+        {
+            { x => x.EntityType, "Tenant" },
+            { x => x.EntityId, tenant.Id },
+            { x => x.EntityName, tenant.DisplayName }
+        };
+
+        await DialogService.ShowAsync<AuditHistoryDialog>(
+            TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
+            parameters,
+            _auditDialogOptions);
     }
 
     /// <summary>

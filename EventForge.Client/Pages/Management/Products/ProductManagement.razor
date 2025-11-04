@@ -155,13 +155,17 @@
         </MudPaper>
     </MudPaper>
 
-    <AuditHistoryDialog @bind-IsOpen="_auditDialogOpen"
-                        EntityType="Product"
-                        EntityId="@_selectedProductForAudit?.Id"
-                        EntityName="@_selectedProductForAudit?.Name" />
 </MudContainer>
 
 @code {
+    // Dialog options for fullscreen audit dialog
+    private readonly DialogOptions _auditDialogOptions = new() 
+    { 
+        FullScreen = true, 
+        CloseButton = true,
+        MaxWidth = MaxWidth.False
+    };
+    
     private bool _isLoading = true;
     private bool _isLoadingProducts = false;
     private bool _isLoadingStocks = false;
@@ -175,10 +179,6 @@
 
     // Stores available quantity (sum across locations) per product
     private readonly Dictionary<Guid, decimal> _productAvailableQuantities = new();
-
-    // Audit dialog state
-    private bool _auditDialogOpen = false;
-    private ProductDto? _selectedProductForAudit;
 
     protected override async Task OnInitializedAsync()
     {
@@ -302,10 +302,17 @@
 
     private async Task ViewProductAuditLog(ProductDto product)
     {
-        _selectedProductForAudit = product;
-        _auditDialogOpen = true;
-        StateHasChanged(); // Force UI update to trigger dialog display
-        await Task.CompletedTask;
+        var parameters = new DialogParameters<AuditHistoryDialog>
+        {
+            { x => x.EntityType, "Product" },
+            { x => x.EntityId, product.Id },
+            { x => x.EntityName, product.Name }
+        };
+
+        await DialogService.ShowAsync<AuditHistoryDialog>(
+            TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
+            parameters,
+            _auditDialogOptions);
     }
 
     private async Task DeleteProduct(ProductDto product)

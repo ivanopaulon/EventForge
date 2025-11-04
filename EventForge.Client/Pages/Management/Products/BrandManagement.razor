@@ -163,21 +163,21 @@
     }
 </MudContainer>
 
-<!-- Audit History Dialog -->
-<AuditHistoryDialog @bind-IsOpen="_auditDialogOpen"
-                    EntityType="Brand"
-                    EntityId="@_selectedBrandForAudit?.Id"
-                    EntityName="@_selectedBrandForAudit?.Name" />
-
 @code {
+    // Dialog options for fullscreen audit dialog
+    private readonly DialogOptions _auditDialogOptions = new() 
+    { 
+        FullScreen = true, 
+        CloseButton = true,
+        MaxWidth = MaxWidth.False
+    };
+    
     private IEnumerable<BrandDto> _brands = new List<BrandDto>();
     private IEnumerable<BrandDto> _filteredBrands = new List<BrandDto>();
     private HashSet<BrandDto> _selectedBrands = new();
     private bool _isLoading = true;
     private bool _isLoadingBrands = false;
-    private bool _auditDialogOpen = false;
     private string _searchTerm = string.Empty;
-    private BrandDto? _selectedBrandForAudit;
 
     protected override async Task OnInitializedAsync()
     {
@@ -278,14 +278,21 @@
     }
     
     /// <summary>
-    /// Opens the audit log drawer for a brand.
+    /// Opens the audit log dialog for a brand using IDialogService.
     /// </summary>
     private async Task ViewBrandAuditLog(BrandDto brand)
     {
-        _selectedBrandForAudit = brand;
-        _auditDialogOpen = true;
-        StateHasChanged(); // Force UI update to trigger dialog display
-        await Task.CompletedTask;
+        var parameters = new DialogParameters<AuditHistoryDialog>
+        {
+            { x => x.EntityType, "Brand" },
+            { x => x.EntityId, brand.Id },
+            { x => x.EntityName, brand.Name }
+        };
+
+        await DialogService.ShowAsync<AuditHistoryDialog>(
+            TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
+            parameters,
+            _auditDialogOptions);
     }
 
     /// <summary>
