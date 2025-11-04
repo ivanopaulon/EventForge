@@ -370,8 +370,17 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             _ = await _auditLogService.TrackEntityChangesAsync(documentHeader, "Approve", currentUser, originalHeader, cancellationToken);
 
-            // Process stock movements after approval
-            await ProcessStockMovementsForDocumentAsync(documentHeader, currentUser, cancellationToken);
+            // Reload document with dependencies for stock movement processing
+            var documentForStockMovement = await _context.DocumentHeaders
+                .Include(dh => dh.DocumentType)
+                .Include(dh => dh.Rows)
+                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+
+            if (documentForStockMovement != null)
+            {
+                // Process stock movements after approval
+                await ProcessStockMovementsForDocumentAsync(documentForStockMovement, currentUser, cancellationToken);
+            }
 
             _logger.LogInformation("Document header {DocumentHeaderId} approved by {User}.", id, currentUser);
 
