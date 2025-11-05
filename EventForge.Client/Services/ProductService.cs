@@ -589,6 +589,23 @@ public class ProductService : IProductService
             return null;
         }
     }
+
+    public async Task<PriceTrendDto?> GetProductPriceTrendAsync(Guid productId, int? year = null)
+    {
+        try
+        {
+            var url = $"{BaseUrl}/{productId}/price-trend";
+            if (year.HasValue)
+                url += $"?year={year.Value}";
+
+            return await _httpClientService.GetAsync<PriceTrendDto>(url);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving price trend for product {ProductId}", productId);
+            return null;
+        }
+    }
 }
 
 public class ImageUploadResultDto

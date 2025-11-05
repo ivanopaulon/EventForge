@@ -69,4 +69,7 @@ public interface IProductService
         int page = 1,
         int pageSize = 10);
     Task<StockTrendDto?> GetProductStockTrendAsync(Guid productId, int? year = null);
+    
+    // Product Price Trend
+    Task<PriceTrendDto?> GetProductPriceTrendAsync(Guid productId, int? year = null);
 }

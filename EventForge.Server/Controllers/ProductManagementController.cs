@@ -2310,6 +2310,136 @@ public class ProductManagementController : BaseApiController
     }
 
     /// <summary>
+    /// Gets price trend data for a specific product.
+    /// </summary>
+    /// <param name="id">Product ID</param>
+    /// <param name="year">Year for trend data (defaults to current year)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Price trend data including purchase and sale prices with statistics</returns>
+    /// <response code="200">Returns the price trend data</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    /// <response code="404">If the product is not found</response>
+    [HttpGet("products/{id:guid}/price-trend")]
+    [ProducesResponseType(typeof(PriceTrendDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PriceTrendDto>> GetProductPriceTrend(
+        Guid id,
+        [FromQuery] int? year = null,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Check if product exists
+            var product = await _productService.GetProductByIdAsync(id, cancellationToken);
+            if (product == null)
+                return CreateNotFoundProblem($"Product with ID {id} not found.");
+
+            var targetYear = year ?? DateTime.UtcNow.Year;
+            var startDate = new DateTime(targetYear, 1, 1);
+            var endDate = new DateTime(targetYear, 12, 31, 23, 59, 59);
+
+            // Get document movements for the year to extract price data
+            var queryParameters = new EventForge.DTOs.Documents.DocumentHeaderQueryParameters
+            {
+                Page = 1,
+                PageSize = 10000, // Get all movements for the year
+                ProductId = id,
+                FromDate = startDate,
+                ToDate = endDate,
+                SortBy = "Date",
+                SortDirection = "asc",
+                IncludeRows = true
+            };
+
+            var documentsResult = await _documentHeaderService.GetPagedDocumentHeadersAsync(queryParameters, cancellationToken);
+
+            var purchasePricesList = new List<PriceTrendDataPoint>();
+            var salePricesList = new List<PriceTrendDataPoint>();
+
+            // Process document movements to extract price data
+            foreach (var doc in documentsResult.Items)
+            {
+                if (doc.Rows == null) continue;
+
+                // Find rows that contain this product
+                var productRows = doc.Rows.Where(r => r.ProductId == id && r.UnitPrice > 0);
+                
+                foreach (var row in productRows)
+                {
+                    bool isStockIncrease = DetermineStockIncrease(doc.DocumentTypeName);
+
+                    var pricePoint = new PriceTrendDataPoint
+                    {
+                        Date = doc.Date.Date,
+                        Price = row.UnitPrice,
+                        Quantity = row.Quantity,
+                        DocumentType = doc.DocumentTypeName,
+                        BusinessPartyName = doc.BusinessPartyName ?? doc.CustomerName
+                    };
+
+                    if (isStockIncrease)
+                    {
+                        purchasePricesList.Add(pricePoint);
+                    }
+                    else
+                    {
+                        salePricesList.Add(pricePoint);
+                    }
+                }
+            }
+
+            // Calculate statistics for purchase prices
+            var purchasePrices = purchasePricesList.Select(p => p.Price).Where(p => p > 0).ToList();
+            var minPurchasePrice = purchasePrices.Any() ? purchasePrices.Min() : 0;
+            var maxPurchasePrice = purchasePrices.Any() ? purchasePrices.Max() : 0;
+            var avgPurchasePrice = purchasePrices.Any() ? purchasePrices.Average() : 0;
+            
+            // Calculate weighted average purchase price (by quantity)
+            var totalPurchaseValue = purchasePricesList.Sum(p => p.Price * p.Quantity);
+            var totalPurchaseQuantity = purchasePricesList.Sum(p => p.Quantity);
+            var currentAvgPurchasePrice = totalPurchaseQuantity > 0 ? totalPurchaseValue / totalPurchaseQuantity : 0;
+
+            // Calculate statistics for sale prices
+            var salePrices = salePricesList.Select(p => p.Price).Where(p => p > 0).ToList();
+            var minSalePrice = salePrices.Any() ? salePrices.Min() : 0;
+            var maxSalePrice = salePrices.Any() ? salePrices.Max() : 0;
+            var avgSalePrice = salePrices.Any() ? salePrices.Average() : 0;
+            
+            // Calculate weighted average sale price (by quantity)
+            var totalSaleValue = salePricesList.Sum(p => p.Price * p.Quantity);
+            var totalSaleQuantity = salePricesList.Sum(p => p.Quantity);
+            var currentAvgSalePrice = totalSaleQuantity > 0 ? totalSaleValue / totalSaleQuantity : 0;
+
+            var trendDto = new PriceTrendDto
+            {
+                ProductId = id,
+                Year = targetYear,
+                PurchasePrices = purchasePricesList.OrderBy(p => p.Date).ToList(),
+                SalePrices = salePricesList.OrderBy(p => p.Date).ToList(),
+                CurrentAveragePurchasePrice = currentAvgPurchasePrice,
+                CurrentAverageSalePrice = currentAvgSalePrice,
+                MinPurchasePrice = minPurchasePrice,
+                MaxPurchasePrice = maxPurchasePrice,
+                MinSalePrice = minSalePrice,
+                MaxSalePrice = maxSalePrice,
+                AveragePurchasePrice = avgPurchasePrice,
+                AverageSalePrice = avgSalePrice
+            };
+
+            return Ok(trendDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving price trend for product {ProductId}.", id);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving price trend.", ex);
+        }
+    }
+
+    /// <summary>
     /// Helper method to determine if a document type increases stock.
     /// This is a simplified implementation - adjust based on your DocumentType configuration.
     /// </summary>

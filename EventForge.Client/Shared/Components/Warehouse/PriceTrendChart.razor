@@ -1,0 +1,181 @@
+@using EventForge.DTOs.Warehouse
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+
+<MudPaper Elevation="1" Class="pa-4" Style="width: 100%;">
+    <MudText Typo="Typo.h6" Class="mb-3">
+        <MudIcon Icon="@Icons.Material.Outlined.TrendingUp" Class="mr-2" />
+        @TranslationService.GetTranslation("product.priceTrend", "Andamento Prezzi")
+    </MudText>
+
+    @if (IsLoading)
+    {
+        <div class="d-flex justify-center pa-4">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        </div>
+    }
+    else if (PriceTrend != null && (PriceTrend.PurchasePrices.Any() || PriceTrend.SalePrices.Any()))
+    {
+        <!-- Statistics Cards -->
+        <MudGrid Spacing="2" Class="mb-4">
+            <MudItem xs="12" sm="6">
+                <MudPaper Elevation="0" Class="pa-3" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px;">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("price.averagePurchase", "Prezzo Acquisto Medio")
+                    </MudText>
+                    <MudText Typo="Typo.h6" Color="Color.Info">
+                        €@PriceTrend.CurrentAveragePurchasePrice.ToString("N2")
+                    </MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("price.range", "Range"): €@PriceTrend.MinPurchasePrice.ToString("N2") - €@PriceTrend.MaxPurchasePrice.ToString("N2")
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudPaper Elevation="0" Class="pa-3" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px;">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("price.averageSale", "Prezzo Vendita Medio")
+                    </MudText>
+                    <MudText Typo="Typo.h6" Color="Color.Success">
+                        €@PriceTrend.CurrentAverageSalePrice.ToString("N2")
+                    </MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("price.range", "Range"): €@PriceTrend.MinSalePrice.ToString("N2") - €@PriceTrend.MaxSalePrice.ToString("N2")
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Margin Analysis Card -->
+        @if (PriceTrend.CurrentAveragePurchasePrice > 0 && PriceTrend.CurrentAverageSalePrice > 0)
+        {
+            var margin = PriceTrend.CurrentAverageSalePrice - PriceTrend.CurrentAveragePurchasePrice;
+            var marginPercent = (margin / PriceTrend.CurrentAverageSalePrice) * 100;
+            
+            <MudPaper Elevation="0" Class="pa-3 mb-4" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px;">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @TranslationService.GetTranslation("price.averageMargin", "Margine Medio")
+                </MudText>
+                <MudText Typo="Typo.h6" Color="@(margin > 0 ? Color.Success : Color.Error)">
+                    €@margin.ToString("N2") (@marginPercent.ToString("N1")%)
+                </MudText>
+            </MudPaper>
+        }
+
+        <!-- Chart -->
+        <MudChart ChartType="ChartType.Line"
+                  ChartSeries="@_series"
+                  XAxisLabels="@_xAxisLabels"
+                  Width="100%"
+                  Height="350px"
+                  ChartOptions="@_chartOptions">
+        </MudChart>
+
+        <MudText Typo="Typo.caption" Class="mt-2 mud-text-secondary">
+            @TranslationService.GetTranslation("price.trendYear", "Anno") @PriceTrend.Year
+        </MudText>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info">
+            @TranslationService.GetTranslation("product.noPriceTrendData", "Nessun dato di prezzi disponibile per questo periodo")
+        </MudAlert>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired]
+    public PriceTrendDto? PriceTrend { get; set; }
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    private List<ChartSeries> _series = new();
+    private string[] _xAxisLabels = Array.Empty<string>();
+    private ChartOptions _chartOptions = new();
+
+    protected override void OnParametersSet()
+    {
+        if (PriceTrend != null && (PriceTrend.PurchasePrices.Any() || PriceTrend.SalePrices.Any()))
+        {
+            PrepareChartData();
+        }
+    }
+
+    private void PrepareChartData()
+    {
+        if (PriceTrend == null)
+            return;
+
+        // Get all unique dates from both purchase and sale prices
+        var allDates = PriceTrend.PurchasePrices
+            .Select(p => p.Date.Date)
+            .Concat(PriceTrend.SalePrices.Select(p => p.Date.Date))
+            .Distinct()
+            .OrderBy(d => d)
+            .ToList();
+
+        if (!allDates.Any())
+            return;
+
+        // Prepare X-axis labels (dates)
+        _xAxisLabels = allDates
+            .Select(d => d.ToString("dd/MM"))
+            .ToArray();
+
+        // Group prices by date and calculate average for each day
+        var dailyPurchasePrices = PriceTrend.PurchasePrices
+            .GroupBy(p => p.Date.Date)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Average(p => p.Price)
+            );
+
+        var dailySalePrices = PriceTrend.SalePrices
+            .GroupBy(p => p.Date.Date)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Average(p => p.Price)
+            );
+
+        // Prepare data series - fill in zeros for dates without data
+        var purchasePriceData = allDates
+            .Select(date => dailyPurchasePrices.TryGetValue(date, out var price) ? (double)price : 0)
+            .ToArray();
+
+        var salePriceData = allDates
+            .Select(date => dailySalePrices.TryGetValue(date, out var price) ? (double)price : 0)
+            .ToArray();
+
+        // Create series with two lines: Purchase Prices and Sale Prices
+        _series = new List<ChartSeries>();
+
+        if (PriceTrend.PurchasePrices.Any())
+        {
+            _series.Add(new ChartSeries
+            {
+                Name = TranslationService.GetTranslation("price.purchase", "Prezzi Acquisto"),
+                Data = purchasePriceData
+            });
+        }
+
+        if (PriceTrend.SalePrices.Any())
+        {
+            _series.Add(new ChartSeries
+            {
+                Name = TranslationService.GetTranslation("price.sale", "Prezzi Vendita"),
+                Data = salePriceData
+            });
+        }
+
+        // Configure chart options
+        _chartOptions = new ChartOptions
+        {
+            YAxisTicks = 10,
+            YAxisLines = true,
+            XAxisLines = false,
+            LineStrokeWidth = 3,
+            InterpolationOption = InterpolationOption.Straight
+        };
+    }
+}

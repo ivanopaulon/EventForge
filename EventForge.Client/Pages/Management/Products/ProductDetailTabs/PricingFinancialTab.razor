@@ -1,8 +1,11 @@
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.VatRates
+@using EventForge.DTOs.Warehouse
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components.Warehouse
 @inject ITranslationService TranslationService
 @inject IFinancialService FinancialService
+@inject IProductService ProductService
 @inject ILogger<PricingFinancialTab> Logger
 
 <MudStack Spacing="3">
@@ -54,6 +57,12 @@
             </MudItem>
         </MudGrid>
     </MudPaper>
+
+    <!-- Price Trend Chart -->
+    @if (Product.Id != Guid.Empty)
+    {
+        <PriceTrendChart PriceTrend="@_priceTrend" IsLoading="@_isLoadingPriceTrend" />
+    }
 </MudStack>
 
 @code {
@@ -67,6 +76,9 @@
     public EventCallback OnProductUpdated { get; set; }
 
     private IEnumerable<VatRateDto>? _vatRates;
+    private PriceTrendDto? _priceTrend;
+    private bool _isLoadingPriceTrend = false;
+    private bool _priceTrendLoaded = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -111,7 +123,34 @@
         {
             Logger.LogWarning(ex, "Unable to load specific VAT rate {VatRateId}", Product?.VatRateId);
         }
+
+        // Load price trend only once when product is set and not a new product
+        if (Product?.Id != Guid.Empty && !_priceTrendLoaded)
+        {
+            await LoadPriceTrendAsync();
+        }
+
         StateHasChanged();
+    }
+
+    private async Task LoadPriceTrendAsync()
+    {
+        _isLoadingPriceTrend = true;
+        try
+        {
+            _priceTrend = await ProductService.GetProductPriceTrendAsync(Product.Id);
+            _priceTrendLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading price trend for product {ProductId}", Product.Id);
+            _priceTrend = null;
+        }
+        finally
+        {
+            _isLoadingPriceTrend = false;
+            StateHasChanged();
+        }
     }
 
     // Nota: chiamato come @bind-Checked:after, deve essere parameterless
