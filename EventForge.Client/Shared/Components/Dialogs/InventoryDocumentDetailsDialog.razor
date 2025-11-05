@@ -32,7 +32,29 @@
                             </MudItem>
                             <MudItem xs="12" md="6">
                                 <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("document.date", "Data")</MudText>
-                                <MudText Typo="Typo.h6">@Document.InventoryDate.ToLocalTime().ToString("dd/MM/yyyy")</MudText>
+                                @if (Document.Status == "Draft" && _isEditingDate)
+                                {
+                                    <MudDatePicker @bind-Date="_editDate" 
+                                                  Label=""
+                                                  Variant="Variant.Outlined"
+                                                  Margin="Margin.Dense"
+                                                  ReadOnly="false" />
+                                }
+                                else if (Document.Status == "Draft")
+                                {
+                                    <MudStack Row="true" AlignItems="AlignItems.Center">
+                                        <MudText Typo="Typo.h6">@Document.InventoryDate.ToLocalTime().ToString("dd/MM/yyyy")</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
+                                                      Size="Size.Small" 
+                                                      Color="Color.Primary"
+                                                      OnClick="@StartEditDate"
+                                                      title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
+                                    </MudStack>
+                                }
+                                else
+                                {
+                                    <MudText Typo="Typo.h6">@Document.InventoryDate.ToLocalTime().ToString("dd/MM/yyyy")</MudText>
+                                }
                             </MudItem>
                             <MudItem xs="12" md="6">
                                 <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("document.status", "Stato")</MudText>
@@ -53,13 +75,47 @@
                                 <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")</MudText>
                                 <MudText Typo="Typo.body1">@(Document.WarehouseName ?? "-")</MudText>
                             </MudItem>
-                            @if (!string.IsNullOrWhiteSpace(Document.Notes))
-                            {
-                                <MudItem xs="12">
-                                    <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("common.notes", "Note")</MudText>
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("common.notes", "Note")</MudText>
+                                @if (Document.Status == "Draft" && _isEditingNotes)
+                                {
+                                    <MudTextField @bind-Value="_editNotes" 
+                                                 Label=""
+                                                 Variant="Variant.Outlined"
+                                                 Lines="3"
+                                                 Margin="Margin.Dense" />
+                                }
+                                else if (Document.Status == "Draft" && !string.IsNullOrWhiteSpace(Document.Notes))
+                                {
+                                    <MudStack Row="true" AlignItems="AlignItems.Center">
+                                        <MudText Typo="Typo.body1">@Document.Notes</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
+                                                      Size="Size.Small" 
+                                                      Color="Color.Primary"
+                                                      OnClick="@StartEditNotes"
+                                                      title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
+                                    </MudStack>
+                                }
+                                else if (Document.Status == "Draft")
+                                {
+                                    <MudStack Row="true" AlignItems="AlignItems.Center">
+                                        <MudText Typo="Typo.body1">-</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
+                                                      Size="Size.Small" 
+                                                      Color="Color.Primary"
+                                                      OnClick="@StartEditNotes"
+                                                      title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
+                                    </MudStack>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(Document.Notes))
+                                {
                                     <MudText Typo="Typo.body1">@Document.Notes</MudText>
-                                </MudItem>
-                            }
+                                }
+                                else
+                                {
+                                    <MudText Typo="Typo.body1">-</MudText>
+                                }
+                            </MudItem>
                         </MudGrid>
                     </MudPaper>
                 </MudItem>
@@ -170,21 +226,41 @@
     <DialogActions>
         @if (Document != null && Document.Status == "Draft")
         {
-            <MudButton StartIcon="@Icons.Material.Outlined.CheckCircle" 
-                       Color="Color.Success" 
-                       Variant="Variant.Filled"
-                       OnClick="@FinalizeDocument"
-                       Disabled="_isProcessing">
-                @if (_isProcessing)
-                {
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
-                    <span class="ml-2">@TranslationService.GetTranslation("common.processing", "Elaborazione...")</span>
-                }
-                else
-                {
-                    @TranslationService.GetTranslation("warehouse.finalizeDocument", "Finalizza Documento")
-                }
-            </MudButton>
+            @if (_isEditingDate || _isEditingNotes)
+            {
+                <MudButton StartIcon="@Icons.Material.Outlined.Save" 
+                           Color="Color.Primary" 
+                           Variant="Variant.Filled"
+                           OnClick="@SaveChanges"
+                           Disabled="_isProcessing">
+                    @TranslationService.GetTranslation("common.save", "Salva")
+                </MudButton>
+                <MudButton StartIcon="@Icons.Material.Outlined.Cancel" 
+                           Color="Color.Default" 
+                           Variant="Variant.Outlined"
+                           OnClick="@CancelEdit"
+                           Disabled="_isProcessing">
+                    @TranslationService.GetTranslation("common.cancel", "Annulla")
+                </MudButton>
+            }
+            else
+            {
+                <MudButton StartIcon="@Icons.Material.Outlined.CheckCircle" 
+                           Color="Color.Success" 
+                           Variant="Variant.Filled"
+                           OnClick="@FinalizeDocument"
+                           Disabled="_isProcessing">
+                    @if (_isProcessing)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                        <span class="ml-2">@TranslationService.GetTranslation("common.processing", "Elaborazione...")</span>
+                    }
+                    else
+                    {
+                        @TranslationService.GetTranslation("warehouse.finalizeDocument", "Finalizza Documento")
+                    }
+                </MudButton>
+            }
         }
         <MudButton OnClick="Close" Color="Color.Default">
             @TranslationService.GetTranslation("common.close", "Chiudi")
@@ -203,8 +279,100 @@
     public EventCallback<InventoryDocumentDto> OnFinalize { get; set; }
 
     private bool _isProcessing = false;
+    private bool _isEditingDate = false;
+    private bool _isEditingNotes = false;
+    private DateTime? _editDate;
+    private string? _editNotes;
+
+    protected override void OnParametersSet()
+    {
+        if (Document != null)
+        {
+            _editDate = Document.InventoryDate.ToLocalTime().Date;
+            _editNotes = Document.Notes;
+        }
+    }
 
     private void Close() => MudDialog?.Close();
+
+    private void StartEditDate()
+    {
+        _isEditingDate = true;
+        _editDate = Document?.InventoryDate.ToLocalTime().Date;
+    }
+
+    private void StartEditNotes()
+    {
+        _isEditingNotes = true;
+        _editNotes = Document?.Notes;
+    }
+
+    private async Task SaveChanges()
+    {
+        if (Document == null || Document.Status != "Draft")
+            return;
+
+        try
+        {
+            _isProcessing = true;
+            StateHasChanged();
+
+            var updateDto = new UpdateInventoryDocumentDto
+            {
+                InventoryDate = _editDate?.ToUniversalTime() ?? Document.InventoryDate,
+                WarehouseId = Document.WarehouseId,
+                Notes = _editNotes
+            };
+
+            var result = await InventoryService.UpdateInventoryDocumentAsync(Document.Id, updateDto);
+
+            if (result != null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.documentUpdated", "Documento aggiornato con successo!"),
+                    Severity.Success);
+
+                // Update the document
+                Document = result;
+                _isEditingDate = false;
+                _isEditingNotes = false;
+
+                // Notify parent component
+                if (OnFinalize.HasDelegate)
+                {
+                    await OnFinalize.InvokeAsync(result);
+                }
+
+                StateHasChanged();
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.updateDocumentError", "Errore nell'aggiornamento del documento"),
+                    Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating inventory document {DocumentId}", Document.Id);
+            Snackbar.Add(
+                TranslationService.GetTranslation("warehouse.updateDocumentError", "Errore nell'aggiornamento del documento"),
+                Severity.Error);
+        }
+        finally
+        {
+            _isProcessing = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CancelEdit()
+    {
+        _isEditingDate = false;
+        _isEditingNotes = false;
+        _editDate = Document?.InventoryDate.ToLocalTime().Date;
+        _editNotes = Document?.Notes;
+    }
 
     private async Task FinalizeDocument()
     {
@@ -259,7 +427,7 @@
             {
                 Logger.LogError(ex, "Error finalizing inventory document {DocumentId}", Document.Id);
                 Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.finalizeDocumentError", "Errore nella finalizzazione del documento: {0}", ex.Message), 
+                    TranslationService.GetTranslation("warehouse.finalizeDocumentError", "Errore nella finalizzazione del documento"), 
                     Severity.Error);
             }
             finally

@@ -57,6 +57,19 @@ public class InventoryService : IInventoryService
         }
     }
 
+    public async Task<InventoryDocumentDto?> UpdateInventoryDocumentAsync(Guid documentId, UpdateInventoryDocumentDto updateDto)
+    {
+        try
+        {
+            return await _httpClientService.PutAsync<UpdateInventoryDocumentDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}", updateDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating inventory document");
+            return null;
+        }
+    }
+
     public async Task<InventoryDocumentDto?> AddInventoryDocumentRowAsync(Guid documentId, AddInventoryDocumentRowDto rowDto)
     {
         try

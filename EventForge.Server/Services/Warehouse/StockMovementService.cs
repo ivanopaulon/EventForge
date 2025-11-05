@@ -399,6 +399,7 @@ public class StockMovementService : IStockMovementService
         Guid? lotId = null,
         string? notes = null,
         string? currentUser = null,
+        DateTime? movementDate = null,
         CancellationToken cancellationToken = default)
     {
         var createDto = new CreateStockMovementDto
@@ -410,7 +411,8 @@ public class StockMovementService : IStockMovementService
             Quantity = Math.Abs(adjustmentQuantity),
             LotId = lotId,
             Notes = $"{reason} - {notes}",
-            Reason = "Adjustment"
+            Reason = "Adjustment",
+            MovementDate = movementDate ?? DateTime.UtcNow
         };
 
         return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);

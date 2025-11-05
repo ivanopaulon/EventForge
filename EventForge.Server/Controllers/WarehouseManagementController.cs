@@ -1742,6 +1742,105 @@ public class WarehouseManagementController : BaseApiController
     }
 
     /// <summary>
+    /// Updates an inventory document's metadata (date, warehouse, notes).
+    /// Can only update Draft documents.
+    /// </summary>
+    /// <param name="documentId">Inventory document ID</param>
+    /// <param name="updateDto">Updated document data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated inventory document</returns>
+    /// <response code="200">Returns the updated inventory document</response>
+    /// <response code="400">If the input data is invalid or document is not in Draft status</response>
+    /// <response code="404">If the document is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPut("inventory/document/{documentId:guid}")]
+    [ProducesResponseType(typeof(InventoryDocumentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UpdateInventoryDocument(Guid documentId, [FromBody] UpdateInventoryDocumentDto updateDto, CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Get the document header entity from context
+            var documentHeader = await _context.DocumentHeaders
+                .Include(dh => dh.Rows)
+                .FirstOrDefaultAsync(dh => dh.Id == documentId && !dh.IsDeleted, cancellationToken);
+                
+            if (documentHeader == null)
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Title = "Document not found",
+                    Detail = $"Inventory document with ID {documentId} was not found.",
+                    Status = StatusCodes.Status404NotFound
+                });
+            }
+
+            // Only allow updating Draft documents (status is Open in entity)
+            if (documentHeader.Status != EntityDocumentStatus.Open)
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Document cannot be updated",
+                    Detail = "Only Draft inventory documents can be updated. This document has already been finalized.",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            // Update the allowed fields
+            documentHeader.Date = updateDto.InventoryDate;
+            documentHeader.SourceWarehouseId = updateDto.WarehouseId;
+            documentHeader.Notes = updateDto.Notes;
+            documentHeader.ModifiedBy = GetCurrentUser();
+            documentHeader.ModifiedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Updated inventory document {DocumentId} - Date: {Date}, Warehouse: {WarehouseId}",
+                documentId, updateDto.InventoryDate, updateDto.WarehouseId);
+
+            // Get the updated document with full details
+            var updatedDocument = await _documentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+
+            // Enrich rows with product and location data
+            var enrichedRows = updatedDocument!.Rows != null && updatedDocument.Rows.Any()
+                ? await EnrichInventoryDocumentRowsAsync(updatedDocument.Rows, cancellationToken)
+                : new List<InventoryDocumentRowDto>();
+
+            var result = new InventoryDocumentDto
+            {
+                Id = updatedDocument.Id,
+                Number = updatedDocument.Number,
+                Series = updatedDocument.Series,
+                InventoryDate = updatedDocument.Date,
+                WarehouseId = updatedDocument.SourceWarehouseId,
+                WarehouseName = updatedDocument.SourceWarehouseName,
+                Status = updatedDocument.Status.ToString(),
+                Notes = updatedDocument.Notes,
+                CreatedAt = updatedDocument.CreatedAt,
+                CreatedBy = updatedDocument.CreatedBy,
+                Rows = enrichedRows
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while updating inventory document {DocumentId}.", documentId);
+            return CreateInternalServerErrorProblem("An error occurred while updating inventory document.", ex);
+        }
+    }
+
+    /// <summary>
     /// Updates an existing row in an inventory document.
     /// </summary>
     /// <param name="documentId">Inventory document ID</param>
@@ -2020,6 +2119,7 @@ public class WarehouseManagementController : BaseApiController
                         if (adjustmentQuantity != 0)
                         {
                             // 1) Create stock adjustment movement (keeps audit trail)
+                            // Use the document's InventoryDate for the movement date
                             _ = await _stockMovementService.ProcessAdjustmentMovementAsync(
                                 productId: productId,
                                 locationId: locationId,
@@ -2028,6 +2128,7 @@ public class WarehouseManagementController : BaseApiController
                                 lotId: lotId,
                                 notes: $"Inventory adjustment from document {documentHeader.Number}. Previous: {currentQuantity}, New: {newQuantity}",
                                 currentUser: GetCurrentUser(),
+                                movementDate: documentHeader.Date,
                                 cancellationToken: cancellationToken);
 
                             _logger.LogInformation(
