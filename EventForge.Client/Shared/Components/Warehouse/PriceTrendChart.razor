@@ -138,13 +138,13 @@
                 g => g.Average(p => p.Price)
             );
 
-        // Prepare data series - fill in zeros for dates without data
+        // Prepare data series - use NaN for missing data to avoid misleading zeros
         var purchasePriceData = allDates
-            .Select(date => dailyPurchasePrices.TryGetValue(date, out var price) ? (double)price : 0)
+            .Select(date => dailyPurchasePrices.TryGetValue(date, out var price) ? (double)price : double.NaN)
             .ToArray();
 
         var salePriceData = allDates
-            .Select(date => dailySalePrices.TryGetValue(date, out var price) ? (double)price : 0)
+            .Select(date => dailySalePrices.TryGetValue(date, out var price) ? (double)price : double.NaN)
             .ToArray();
 
         // Create series with two lines: Purchase Prices and Sale Prices
