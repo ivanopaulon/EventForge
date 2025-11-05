@@ -369,13 +369,10 @@
         _isLoadingLocations = true;
         try
         {
-            var result = await StorageLocationService.GetStorageLocationsAsync(1, 1000);
+            var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(FacilityId.Value, 1, 1000);
             if (result?.Items != null)
             {
-                // Filter locations for this facility
-                _storageLocations = result.Items
-                    .Where(l => l.WarehouseId == FacilityId.Value)
-                    .ToList();
+                _storageLocations = result.Items.ToList();
             }
         }
         catch (Exception ex)
