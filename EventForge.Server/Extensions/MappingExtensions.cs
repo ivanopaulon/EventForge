@@ -161,7 +161,10 @@ public static class MappingExtensions
             ModifiedBy = entity.ModifiedBy,
             LineTotal = entity.LineTotal,
             VatTotal = entity.VatTotal,
-            DiscountTotal = entity.DiscountTotal
+            DiscountTotal = entity.DiscountTotal,
+            BaseQuantity = entity.BaseQuantity,
+            BaseUnitPrice = entity.BaseUnitPrice,
+            BaseUnitOfMeasureId = entity.BaseUnitOfMeasureId
         };
     }
 
@@ -193,7 +196,10 @@ public static class MappingExtensions
             DestinationWarehouseId = dto.DestinationWarehouseId,
             Notes = dto.Notes,
             SortOrder = dto.SortOrder,
-            StationId = dto.StationId
+            StationId = dto.StationId,
+            BaseQuantity = dto.BaseQuantity,
+            BaseUnitPrice = dto.BaseUnitPrice,
+            BaseUnitOfMeasureId = dto.BaseUnitOfMeasureId
         };
     }
 

@@ -97,11 +97,29 @@ public class DocumentRow : AuditableEntity
     public decimal UnitPrice { get; set; } = 0m;
 
     /// <summary>
+    /// Base quantity normalized to the product's base unit.
+    /// </summary>
+    [Display(Name = "Base Quantity", Description = "Quantity normalized to the product's base unit.")]
+    public decimal? BaseQuantity { get; set; }
+
+    /// <summary>
+    /// Base unit price normalized to the product's base unit.
+    /// </summary>
+    [Display(Name = "Base Unit Price", Description = "Unit price normalized to the product's base unit.")]
+    public decimal? BaseUnitPrice { get; set; }
+
+    /// <summary>
+    /// Base unit of measure identifier (the product's base unit).
+    /// </summary>
+    [Display(Name = "Base Unit of Measure ID", Description = "Reference to the base unit of measure.")]
+    public Guid? BaseUnitOfMeasureId { get; set; }
+
+    /// <summary>
     /// Quantity.
     /// </summary>
-    [Range(1, 10000, ErrorMessage = "Quantity must be at least 1.")]
+    [Range(0.0001, 10000, ErrorMessage = "Quantity must be between 0.0001 and 10000.")]
     [Display(Name = "Quantity", Description = "Quantity of the product or service.")]
-    public int Quantity { get; set; } = 1;
+    public decimal Quantity { get; set; } = 1m;
 
     /// <summary>
     /// Line discount in percentage.

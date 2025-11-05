@@ -86,11 +86,11 @@
 
             <MudGrid Spacing="2">
                 <MudItem xs="12" md="4">
-                    <MudNumericField T="int"
+                    <MudNumericField T="decimal"
                                      Variant="Variant.Outlined"
                                      Label="@TranslationService.GetTranslation("documents.quantity", "Quantità")"
                                      @bind-Value="_model.Quantity"
-                                     Min="1"
+                                     Min="0.0001m"
                                      Required="true"
                                      @ref="_quantityField"
                                      Adornment="Adornment.Start"
@@ -174,8 +174,8 @@
     [Parameter] public Guid? RowId { get; set; }
 
     private MudTextField<string>? _barcodeField;
-    private MudNumericField<int>? _quantityField;
-    private CreateDocumentRowDto _model = new() { Quantity = 1 };
+    private MudNumericField<decimal>? _quantityField;
+    private CreateDocumentRowDto _model = new() { Quantity = 1m };
     private ProductDto? _selectedProduct = null;
     private string _barcodeInput = string.Empty;
     private bool _isProcessing = false;

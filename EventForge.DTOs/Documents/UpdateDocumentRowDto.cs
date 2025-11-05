@@ -52,8 +52,8 @@ namespace EventForge.DTOs.Documents
         /// <summary>
         /// Quantity.
         /// </summary>
-        [Range(1, 10000, ErrorMessage = "Quantity must be at least 1.")]
-        public int Quantity { get; set; }
+        [Range(ValidationConstants.MinimumQuantity, ValidationConstants.MaximumQuantity, ErrorMessage = "Quantity must be between 0.0001 and 10000.")]
+        public decimal Quantity { get; set; }
 
         /// <summary>
         /// Line discount in percentage.
@@ -108,5 +108,20 @@ namespace EventForge.DTOs.Documents
         /// Related station (optional, for logistics/traceability).
         /// </summary>
         public Guid? StationId { get; set; }
+
+        /// <summary>
+        /// Base quantity normalized to the product's base unit (optional).
+        /// </summary>
+        public decimal? BaseQuantity { get; set; }
+
+        /// <summary>
+        /// Base unit price normalized to the product's base unit (optional).
+        /// </summary>
+        public decimal? BaseUnitPrice { get; set; }
+
+        /// <summary>
+        /// Base unit of measure identifier (optional).
+        /// </summary>
+        public Guid? BaseUnitOfMeasureId { get; set; }
     }
 }

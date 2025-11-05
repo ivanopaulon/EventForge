@@ -629,7 +629,7 @@
             try
             {
                 // Calculate merged values
-                int totalQuantity = rowsToMerge.Sum(r => r.Quantity);
+                decimal totalQuantity = rowsToMerge.Sum(r => r.Quantity);
                 decimal maxPrice = rowsToMerge.Max(r => r.UnitPrice);
                 var mergedNotes = string.Join(" | ", rowsToMerge.Where(r => !string.IsNullOrWhiteSpace(r.Notes)).Select(r => r.Notes));
 

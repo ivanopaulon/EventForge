@@ -5,6 +5,7 @@ using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Tenants;
 using EventForge.Server.Services.Warehouse;
+using EventForge.Server.Services.UnitOfMeasures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -23,6 +24,7 @@ public class DocumentRowMergeTests : IDisposable
     private readonly Mock<ILogger<DocumentHeaderService>> _mockLogger;
     private readonly Mock<IDocumentCounterService> _mockCounterService;
     private readonly Mock<IStockMovementService> _mockStockMovementService;
+    private readonly Mock<IUnitConversionService> _mockUnitConversionService;
     private readonly DocumentHeaderService _documentHeaderService;
     private readonly Guid _tenantId = Guid.NewGuid();
     private readonly Guid _documentHeaderId = Guid.NewGuid();
@@ -42,6 +44,7 @@ public class DocumentRowMergeTests : IDisposable
         _mockLogger = new Mock<ILogger<DocumentHeaderService>>();
         _mockCounterService = new Mock<IDocumentCounterService>();
         _mockStockMovementService = new Mock<IStockMovementService>();
+        _mockUnitConversionService = new Mock<IUnitConversionService>();
 
         // Setup tenant context
         _ = _mockTenantContext.Setup(x => x.CurrentTenantId).Returns(_tenantId);
@@ -53,6 +56,7 @@ public class DocumentRowMergeTests : IDisposable
             _mockTenantContext.Object,
             _mockCounterService.Object,
             _mockStockMovementService.Object,
+            _mockUnitConversionService.Object,
             _mockLogger.Object);
 
         // Seed test data
