@@ -52,7 +52,7 @@ namespace EventForge.DTOs.Documents
         /// <summary>
         /// Quantity.
         /// </summary>
-        [Range(0.0001, 10000, ErrorMessage = "Quantity must be at least 0.0001.")]
+        [Range(ValidationConstants.MinimumQuantity, ValidationConstants.MaximumQuantity, ErrorMessage = "Quantity must be between 0.0001 and 10000.")]
         public decimal Quantity { get; set; }
 
         /// <summary>

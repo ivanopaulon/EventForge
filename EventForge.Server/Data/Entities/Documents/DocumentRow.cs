@@ -117,7 +117,7 @@ public class DocumentRow : AuditableEntity
     /// <summary>
     /// Quantity.
     /// </summary>
-    [Range(0.0001, 10000, ErrorMessage = "Quantity must be at least 0.0001.")]
+    [Range(0.0001, 10000, ErrorMessage = "Quantity must be between 0.0001 and 10000.")]
     [Display(Name = "Quantity", Description = "Quantity of the product or service.")]
     public decimal Quantity { get; set; } = 1m;
 
