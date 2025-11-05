@@ -239,6 +239,7 @@ public class StockMovementService : IStockMovementService
             Quantity = createDto.Quantity,
             UnitCost = createDto.UnitCost,
             MovementDate = createDto.MovementDate,
+            DocumentHeaderId = createDto.DocumentHeaderId,
             Reason = !string.IsNullOrEmpty(createDto.Reason) && Enum.TryParse<StockMovementReason>(createDto.Reason, out var reasonEnum)
                 ? reasonEnum
                 : StockMovementReason.Other,

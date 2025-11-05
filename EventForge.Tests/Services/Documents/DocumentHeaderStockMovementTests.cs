@@ -1,3 +1,4 @@
+using EventForge.DTOs.Documents;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Data.Entities.Documents;
@@ -459,6 +460,162 @@ public class DocumentHeaderStockMovementTests : IDisposable
 
         Assert.Equal(1, movementsAfterFirstApproval);
         Assert.Equal(1, movementsAfterSecondApproval); // Should not duplicate
+    }
+
+    [Fact]
+    public async Task ApproveDocument_UsesDocumentDateForMovement()
+    {
+        // Arrange
+        var documentDate = new DateTime(2024, 6, 15, 10, 30, 0, DateTimeKind.Utc);
+        
+        var documentType = new DocumentType
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Purchase Order",
+            Code = "PO",
+            IsStockIncrease = true,
+            DefaultWarehouseId = _warehouseId,
+            RequiredPartyType = EntityBusinessPartyType.Fornitore,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentTypes.Add(documentType);
+
+        var documentHeader = new DocumentHeader
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentTypeId = documentType.Id,
+            BusinessPartyId = _businessPartyId,
+            Number = "PO-003",
+            Date = documentDate,
+            ApprovalStatus = EntityApprovalStatus.None,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentHeaders.Add(documentHeader);
+
+        var documentRow = new DocumentRow
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = documentHeader.Id,
+            ProductId = _productId,
+            Description = "Test Product",
+            Quantity = 10,
+            UnitPrice = 50,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentRows.Add(documentRow);
+
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _documentHeaderService.ApproveDocumentAsync(documentHeader.Id, "test");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(DtoApprovalStatus.Approved, result.ApprovalStatus);
+
+        // Check that stock movement was created with the document date
+        var movements = await _context.StockMovements
+            .Where(sm => sm.DocumentHeaderId == documentHeader.Id)
+            .ToListAsync();
+
+        Assert.Single(movements);
+        var movement = movements.First();
+        Assert.Equal(documentDate, movement.MovementDate);
+    }
+
+    [Fact]
+    public async Task UpdateDocumentHeader_ChangingDate_SyncsMovementDates()
+    {
+        // Arrange
+        var originalDate = new DateTime(2024, 6, 15, 10, 30, 0, DateTimeKind.Utc);
+        var newDate = new DateTime(2024, 6, 20, 14, 45, 0, DateTimeKind.Utc);
+        
+        var documentType = new DocumentType
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Purchase Order",
+            Code = "PO",
+            IsStockIncrease = true,
+            DefaultWarehouseId = _warehouseId,
+            RequiredPartyType = EntityBusinessPartyType.Fornitore,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentTypes.Add(documentType);
+
+        var documentHeader = new DocumentHeader
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentTypeId = documentType.Id,
+            BusinessPartyId = _businessPartyId,
+            Number = "PO-004",
+            Date = originalDate,
+            ApprovalStatus = EntityApprovalStatus.None,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentHeaders.Add(documentHeader);
+
+        var documentRow = new DocumentRow
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = documentHeader.Id,
+            ProductId = _productId,
+            Description = "Test Product",
+            Quantity = 10,
+            UnitPrice = 50,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentRows.Add(documentRow);
+
+        await _context.SaveChangesAsync();
+
+        // Approve document to create stock movements
+        await _documentHeaderService.ApproveDocumentAsync(documentHeader.Id, "test");
+
+        // Verify movement was created with original date
+        var movementsBeforeUpdate = await _context.StockMovements
+            .Where(sm => sm.DocumentHeaderId == documentHeader.Id)
+            .ToListAsync();
+        Assert.Single(movementsBeforeUpdate);
+        Assert.Equal(originalDate, movementsBeforeUpdate.First().MovementDate);
+
+        // Act - Update document date
+        var updateDto = new UpdateDocumentHeaderDto
+        {
+            DocumentTypeId = documentType.Id,
+            Number = "PO-004",
+            Date = newDate,
+            BusinessPartyId = _businessPartyId
+        };
+        
+        var updatedDocument = await _documentHeaderService.UpdateDocumentHeaderAsync(documentHeader.Id, updateDto, "testUpdater");
+
+        // Assert
+        Assert.NotNull(updatedDocument);
+        Assert.Equal(newDate, updatedDocument.Date);
+
+        // Check that stock movement date was synced
+        var movementsAfterUpdate = await _context.StockMovements
+            .Where(sm => sm.DocumentHeaderId == documentHeader.Id)
+            .ToListAsync();
+
+        Assert.Single(movementsAfterUpdate);
+        var updatedMovement = movementsAfterUpdate.First();
+        Assert.Equal(newDate, updatedMovement.MovementDate);
+        Assert.NotNull(updatedMovement.ModifiedAt);
+        // Note: In tests, ModifiedBy is set by DbContext.SaveChangesAsync which uses "system" as default
+        Assert.Equal("system", updatedMovement.ModifiedBy);
     }
 
     public void Dispose()

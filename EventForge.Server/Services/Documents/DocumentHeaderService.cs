@@ -1044,8 +1044,7 @@ public class DocumentHeaderService : IDocumentHeaderService
             foreach (var movement in movements)
             {
                 movement.MovementDate = newDate;
-                movement.ModifiedAt = DateTime.UtcNow;
-                movement.ModifiedBy = currentUser;
+                // Note: ModifiedAt and ModifiedBy are set automatically by DbContext.SaveChangesAsync override
                 movementsUpdated++;
             }
 
