@@ -372,6 +372,12 @@
                 _model.UnitOfMeasureId = selectedUom.Id;
             }
         }
+        else
+        {
+            // Clear unit of measure fields when null
+            _model.UnitOfMeasure = null;
+            _model.UnitOfMeasureId = null;
+        }
     }
 
     private async Task LoadRowForEdit(Guid rowId)
