@@ -66,7 +66,7 @@ namespace EventForge.DTOs.Documents
         /// <summary>
         /// Quantity.
         /// </summary>
-        public int Quantity { get; set; }
+        public decimal Quantity { get; set; }
 
         /// <summary>
         /// Line discount in percentage.
@@ -167,5 +167,20 @@ namespace EventForge.DTOs.Documents
         /// Total discount applied to the row (calculated).
         /// </summary>
         public decimal DiscountTotal { get; set; }
+
+        /// <summary>
+        /// Base quantity normalized to the product's base unit.
+        /// </summary>
+        public decimal? BaseQuantity { get; set; }
+
+        /// <summary>
+        /// Base unit price normalized to the product's base unit.
+        /// </summary>
+        public decimal? BaseUnitPrice { get; set; }
+
+        /// <summary>
+        /// Base unit of measure identifier.
+        /// </summary>
+        public Guid? BaseUnitOfMeasureId { get; set; }
     }
 }

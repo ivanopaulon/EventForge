@@ -68,8 +68,8 @@ namespace EventForge.DTOs.Documents
         /// <summary>
         /// Quantity.
         /// </summary>
-        [Range(1, 10000, ErrorMessage = "Quantity must be at least 1.")]
-        public int Quantity { get; set; } = 1;
+        [Range(0.0001, 10000, ErrorMessage = "Quantity must be at least 0.0001.")]
+        public decimal Quantity { get; set; } = 1m;
 
         /// <summary>
         /// Line discount in percentage.
@@ -130,5 +130,20 @@ namespace EventForge.DTOs.Documents
         /// the quantity will be added to the existing row instead of creating a new one.
         /// </summary>
         public bool MergeDuplicateProducts { get; set; } = false;
+
+        /// <summary>
+        /// Base quantity normalized to the product's base unit (optional, computed server-side if not provided).
+        /// </summary>
+        public decimal? BaseQuantity { get; set; }
+
+        /// <summary>
+        /// Base unit price normalized to the product's base unit (optional, computed server-side if not provided).
+        /// </summary>
+        public decimal? BaseUnitPrice { get; set; }
+
+        /// <summary>
+        /// Base unit of measure identifier (optional, computed server-side if not provided).
+        /// </summary>
+        public Guid? BaseUnitOfMeasureId { get; set; }
     }
 }
