@@ -2,7 +2,7 @@
 @using EventForge.Client.Services
 @inject ITranslationService TranslationService
 
-<MudPaper Elevation="1" Class="pa-4">
+<MudPaper Elevation="1" Class="pa-4" Style="width: 100%;">
     <MudText Typo="Typo.h6" Class="mb-3">
         <MudIcon Icon="@Icons.Material.Outlined.ShowChart" Class="mr-2" />
         @TranslationService.GetTranslation("product.stockTrend", "Andamento Giacenza")
@@ -14,7 +14,7 @@
             <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
         </div>
     }
-    else if (StockTrend != null && (StockTrend.StockIncreases.Any() || StockTrend.StockDecreases.Any()))
+    else if (StockTrend != null && StockTrend.DataPoints.Any())
     {
         <!-- Statistics Cards -->
         <MudGrid Spacing="2" Class="mb-4">
@@ -102,52 +102,59 @@
 
     private void PrepareChartData()
     {
-        if (StockTrend == null || (!StockTrend.StockIncreases.Any() && !StockTrend.StockDecreases.Any()))
+        if (StockTrend == null || !StockTrend.DataPoints.Any())
             return;
 
-        // Group by month and sum quantities for better visualization
-        var monthlyIncreases = StockTrend.StockIncreases
-            .GroupBy(dp => new DateTime(dp.Date.Year, dp.Date.Month, 1))
+        // Get daily stock increases grouped by date
+        var dailyIncreases = StockTrend.StockIncreases
+            .GroupBy(dp => dp.Date.Date)
             .Select(g => new
             {
                 Date = g.Key,
                 Quantity = g.Sum(x => x.Quantity)
             })
-            .OrderBy(x => x.Date)
-            .ToList();
+            .ToDictionary(x => x.Date, x => x.Quantity);
 
-        var monthlyDecreases = StockTrend.StockDecreases
-            .GroupBy(dp => new DateTime(dp.Date.Year, dp.Date.Month, 1))
+        // Get daily stock decreases grouped by date
+        var dailyDecreases = StockTrend.StockDecreases
+            .GroupBy(dp => dp.Date.Date)
             .Select(g => new
             {
                 Date = g.Key,
                 Quantity = g.Sum(x => x.Quantity)
             })
-            .OrderBy(x => x.Date)
+            .ToDictionary(x => x.Date, x => x.Quantity);
+
+        // Get all unique dates from DataPoints (which contains the running stock level)
+        var sortedDates = StockTrend.DataPoints
+            .OrderBy(dp => dp.Date)
+            .Select(dp => dp.Date.Date)
+            .Distinct()
             .ToList();
 
-        // Get all unique months
-        var allMonths = new HashSet<DateTime>();
-        allMonths.UnionWith(monthlyIncreases.Select(x => x.Date));
-        allMonths.UnionWith(monthlyDecreases.Select(x => x.Date));
-        var sortedMonths = allMonths.OrderBy(x => x).ToList();
-
-        // Prepare X-axis labels (months)
-        _xAxisLabels = sortedMonths
-            .Select(d => d.ToString("MMM yyyy"))
+        // Prepare X-axis labels (dates)
+        _xAxisLabels = sortedDates
+            .Select(d => d.ToString("dd/MM"))
             .ToArray();
 
-        // Create dictionaries for quick lookup
-        var increasesDict = monthlyIncreases.ToDictionary(x => x.Date, x => x.Quantity);
-        var decreasesDict = monthlyDecreases.ToDictionary(x => x.Date, x => x.Quantity);
+        // Prepare series data
+        var increasesData = sortedDates.Select(date => dailyIncreases.TryGetValue(date, out var qty) ? (double)qty : 0).ToArray();
+        var decreasesData = sortedDates.Select(date => dailyDecreases.TryGetValue(date, out var qty) ? (double)qty : 0).ToArray();
+        
+        // Get stock level data from DataPoints - handle duplicate dates by taking the last value
+        var stockLevelDict = StockTrend.DataPoints
+            .GroupBy(dp => dp.Date.Date)
+            .ToDictionary(g => g.Key, g => g.OrderBy(dp => dp.Date).Last().Quantity);
+        var stockLevelData = sortedDates.Select(date => stockLevelDict.TryGetValue(date, out var qty) ? (double)qty : 0).ToArray();
 
-        // Prepare series data - use 0 for months without movements
-        var increasesData = sortedMonths.Select(month => increasesDict.ContainsKey(month) ? (double)increasesDict[month] : 0).ToArray();
-        var decreasesData = sortedMonths.Select(month => decreasesDict.ContainsKey(month) ? (double)decreasesDict[month] : 0).ToArray();
-
-        // Prepare series with two separate lines
+        // Prepare series with three separate lines: Carichi, Scarichi, and Giacenza
         _series = new List<ChartSeries>
         {
+            new ChartSeries
+            {
+                Name = TranslationService.GetTranslation("stock.stockLevel", "Giacenza"),
+                Data = stockLevelData
+            },
             new ChartSeries
             {
                 Name = TranslationService.GetTranslation("stock.increases", "Carichi"),
