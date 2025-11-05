@@ -24,6 +24,16 @@ namespace EventForge.DTOs.Warehouse
         public List<StockTrendDataPoint> DataPoints { get; set; } = new List<StockTrendDataPoint>();
 
         /// <summary>
+        /// List of stock increase movements (carichi).
+        /// </summary>
+        public List<StockMovementPoint> StockIncreases { get; set; } = new List<StockMovementPoint>();
+
+        /// <summary>
+        /// List of stock decrease movements (scarichi).
+        /// </summary>
+        public List<StockMovementPoint> StockDecreases { get; set; } = new List<StockMovementPoint>();
+
+        /// <summary>
         /// Current stock quantity.
         /// </summary>
         public decimal CurrentStock { get; set; }
@@ -61,6 +71,27 @@ namespace EventForge.DTOs.Warehouse
 
         /// <summary>
         /// Type of movement that occurred (e.g., "Inbound", "Outbound", "Adjustment").
+        /// </summary>
+        public string? MovementType { get; set; }
+    }
+
+    /// <summary>
+    /// Data point representing a stock movement (increase or decrease) at a specific date.
+    /// </summary>
+    public class StockMovementPoint
+    {
+        /// <summary>
+        /// Date of the movement.
+        /// </summary>
+        public DateTime Date { get; set; }
+
+        /// <summary>
+        /// Quantity moved (always positive).
+        /// </summary>
+        public decimal Quantity { get; set; }
+
+        /// <summary>
+        /// Type of movement (e.g., "Inbound", "Outbound").
         /// </summary>
         public string? MovementType { get; set; }
     }

@@ -14,7 +14,7 @@
             <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
         </div>
     }
-    else if (StockTrend != null && StockTrend.DataPoints.Any())
+    else if (StockTrend != null && (StockTrend.StockIncreases.Any() || StockTrend.StockDecreases.Any()))
     {
         <!-- Statistics Cards -->
         <MudGrid Spacing="2" Class="mb-4">
@@ -102,32 +102,66 @@
 
     private void PrepareChartData()
     {
-        if (StockTrend == null || !StockTrend.DataPoints.Any())
+        if (StockTrend == null || (!StockTrend.StockIncreases.Any() && !StockTrend.StockDecreases.Any()))
             return;
 
-        // Group data points by month for better visualization
-        var monthlyData = StockTrend.DataPoints
+        // Collect all unique dates from both increases and decreases
+        var allDates = new HashSet<DateTime>();
+        allDates.UnionWith(StockTrend.StockIncreases.Select(x => x.Date));
+        allDates.UnionWith(StockTrend.StockDecreases.Select(x => x.Date));
+        
+        // Group by month for better visualization
+        var monthlyIncreases = StockTrend.StockIncreases
             .GroupBy(dp => new DateTime(dp.Date.Year, dp.Date.Month, 1))
             .Select(g => new
             {
                 Date = g.Key,
-                Quantity = g.Average(x => x.Quantity)
+                Quantity = g.Sum(x => x.Quantity)
             })
             .OrderBy(x => x.Date)
             .ToList();
 
+        var monthlyDecreases = StockTrend.StockDecreases
+            .GroupBy(dp => new DateTime(dp.Date.Year, dp.Date.Month, 1))
+            .Select(g => new
+            {
+                Date = g.Key,
+                Quantity = g.Sum(x => x.Quantity)
+            })
+            .OrderBy(x => x.Date)
+            .ToList();
+
+        // Get all unique months
+        var allMonths = new HashSet<DateTime>();
+        allMonths.UnionWith(monthlyIncreases.Select(x => x.Date));
+        allMonths.UnionWith(monthlyDecreases.Select(x => x.Date));
+        var sortedMonths = allMonths.OrderBy(x => x).ToList();
+
         // Prepare X-axis labels (months)
-        _xAxisLabels = monthlyData
-            .Select(d => d.Date.ToString("MMM yyyy"))
+        _xAxisLabels = sortedMonths
+            .Select(d => d.ToString("MMM yyyy"))
             .ToArray();
 
-        // Prepare series data
+        // Create dictionaries for quick lookup
+        var increasesDict = monthlyIncreases.ToDictionary(x => x.Date, x => x.Quantity);
+        var decreasesDict = monthlyDecreases.ToDictionary(x => x.Date, x => x.Quantity);
+
+        // Prepare series data - use 0 for months without movements
+        var increasesData = sortedMonths.Select(month => increasesDict.ContainsKey(month) ? (double)increasesDict[month] : 0).ToArray();
+        var decreasesData = sortedMonths.Select(month => decreasesDict.ContainsKey(month) ? (double)decreasesDict[month] : 0).ToArray();
+
+        // Prepare series with two separate lines
         _series = new List<ChartSeries>
         {
             new ChartSeries
             {
-                Name = TranslationService.GetTranslation("stock.quantity", "Quantità"),
-                Data = monthlyData.Select(d => (double)d.Quantity).ToArray()
+                Name = TranslationService.GetTranslation("stock.increases", "Carichi"),
+                Data = increasesData
+            },
+            new ChartSeries
+            {
+                Name = TranslationService.GetTranslation("stock.decreases", "Scarichi"),
+                Data = decreasesData
             }
         };
 
