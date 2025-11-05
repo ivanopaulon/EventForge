@@ -138,12 +138,14 @@
             .ToArray();
 
         // Prepare series data
-        var increasesData = sortedDates.Select(date => dailyIncreases.ContainsKey(date) ? (double)dailyIncreases[date] : 0).ToArray();
-        var decreasesData = sortedDates.Select(date => dailyDecreases.ContainsKey(date) ? (double)dailyDecreases[date] : 0).ToArray();
+        var increasesData = sortedDates.Select(date => dailyIncreases.TryGetValue(date, out var qty) ? (double)qty : 0).ToArray();
+        var decreasesData = sortedDates.Select(date => dailyDecreases.TryGetValue(date, out var qty) ? (double)qty : 0).ToArray();
         
-        // Get stock level data from DataPoints
-        var stockLevelDict = StockTrend.DataPoints.ToDictionary(dp => dp.Date.Date, dp => dp.Quantity);
-        var stockLevelData = sortedDates.Select(date => stockLevelDict.ContainsKey(date) ? (double)stockLevelDict[date] : 0).ToArray();
+        // Get stock level data from DataPoints - handle duplicate dates by taking the last value
+        var stockLevelDict = StockTrend.DataPoints
+            .GroupBy(dp => dp.Date.Date)
+            .ToDictionary(g => g.Key, g => g.OrderBy(dp => dp.Date).Last().Quantity);
+        var stockLevelData = sortedDates.Select(date => stockLevelDict.TryGetValue(date, out var qty) ? (double)qty : 0).ToArray();
 
         // Prepare series with three separate lines: Carichi, Scarichi, and Giacenza
         _series = new List<ChartSeries>
