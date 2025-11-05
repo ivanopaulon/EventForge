@@ -4,6 +4,7 @@
 @using EventForge.DTOs.Warehouse
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject IWarehouseService WarehouseService
 @inject IStorageLocationService StorageLocationService
@@ -231,6 +232,17 @@
                 {
                     <MudTabPanel Text="@TranslationService.GetTranslation("warehouse.locations", "Ubicazioni")" Icon="@Icons.Material.Filled.Place" BadgeData="@_storageLocations?.Count()" BadgeDot="@(_storageLocations?.Any() ?? false)">
                         <MudStack Spacing="3">
+                            <!-- Add Location Button -->
+                            <div class="d-flex justify-end mb-2">
+                                <MudButton StartIcon="@Icons.Material.Outlined.Add"
+                                           Color="Color.Primary"
+                                           Variant="Variant.Filled"
+                                           OnClick="@OpenCreateLocationDialog"
+                                           Size="Size.Small">
+                                    @TranslationService.GetTranslation("warehouse.addLocation", "Aggiungi Ubicazione")
+                                </MudButton>
+                            </div>
+
                             @if (_isLoadingLocations)
                             {
                                 <div class="d-flex justify-center pa-4">
@@ -251,6 +263,7 @@
                                         <MudTh>@TranslationService.GetTranslation("warehouse.locationType", "Tipo")</MudTh>
                                         <MudTh Class="text-right">@TranslationService.GetTranslation("warehouse.capacity", "Capacità")</MudTh>
                                         <MudTh>@TranslationService.GetTranslation("common.status", "Stato")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                                     </HeaderContent>
                                     <RowTemplate>
                                         <MudTd DataLabel="Codice">
@@ -271,6 +284,18 @@
                                             <MudChip T="string" Size="Size.Small" Color="@(context.IsActive ? Color.Success : Color.Default)">
                                                 @(context.IsActive ? TranslationService.GetTranslation("common.active", "Attivo") : TranslationService.GetTranslation("common.inactive", "Inattivo"))
                                             </MudChip>
+                                        </MudTd>
+                                        <MudTd DataLabel="Azioni">
+                                            <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                                                           Size="Size.Small"
+                                                           Color="Color.Primary"
+                                                           OnClick="@(() => OpenEditLocationDialog(context))"
+                                                           Title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
+                                            <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                                                           Size="Size.Small"
+                                                           Color="Color.Error"
+                                                           OnClick="@(() => DeleteLocationAsync(context))"
+                                                           Title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
                                         </MudTd>
                                     </RowTemplate>
                                     <PagerContent>
@@ -492,4 +517,87 @@
             NavigationManager.NavigateTo(target);
         }
     }
+
+    #region Storage Location Management
+
+    private async Task OpenCreateLocationDialog()
+    {
+        if (!FacilityId.HasValue) return;
+
+        var parameters = new DialogParameters
+        {
+            { "WarehouseId", FacilityId.Value }
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true };
+
+        var dialog = await DialogService.ShowAsync<StorageLocationDialog>(
+            TranslationService.GetTranslation("warehouse.createLocation", "Crea Ubicazione"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadStorageLocationsAsync();
+            Snackbar.Add(TranslationService.GetTranslation("messages.createSuccessful", "Creato con successo"), Severity.Success);
+        }
+    }
+
+    private async Task OpenEditLocationDialog(StorageLocationDto location)
+    {
+        var parameters = new DialogParameters
+        {
+            { "WarehouseId", FacilityId!.Value },
+            { "Location", location }
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true };
+
+        var dialog = await DialogService.ShowAsync<StorageLocationDialog>(
+            TranslationService.GetTranslation("warehouse.editLocation", "Modifica Ubicazione"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadStorageLocationsAsync();
+            Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornato con successo"), Severity.Success);
+        }
+    }
+
+    private async Task DeleteLocationAsync(StorageLocationDto location)
+    {
+        var title = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var message = TranslationService.GetTranslation("warehouse.deleteLocationConfirm", $"Sei sicuro di voler eliminare l'ubicazione '{location.Code}'?");
+        var yesText = TranslationService.GetTranslation("common.yes", "Sì");
+        var noText = TranslationService.GetTranslation("common.no", "No");
+
+        var result = await DialogService.ShowMessageBox(title, message, yesText: yesText, noText: noText);
+
+        if (result == true)
+        {
+            try
+            {
+                var deleted = await StorageLocationService.DeleteStorageLocationAsync(location.Id);
+                if (deleted)
+                {
+                    await LoadStorageLocationsAsync();
+                    Snackbar.Add(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminato con successo"), Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("messages.deleteFailed", "Eliminazione fallita"), Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting storage location {LocationId}", location.Id);
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.deleteLocationError", "Errore nell'eliminazione dell'ubicazione"), Severity.Error);
+            }
+        }
+    }
+
+    #endregion
 }

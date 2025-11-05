@@ -1,0 +1,249 @@
+@using MudBlazor
+@using EventForge.DTOs.Warehouse
+@inject IStorageLocationService StorageLocationService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<StorageLocationDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.Code"
+                                  Label="@($"{TranslationService.GetTranslation("warehouse.locationCode", "Codice")} *")"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="@TranslationService.GetTranslation("validation.codeRequired", "Il codice è obbligatorio")"
+                                  MaxLength="30"
+                                  Immediate="true"
+                                  ReadOnly="@(!IsCreateMode)" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.Description"
+                                  Label="@TranslationService.GetTranslation("warehouse.locationDescription", "Descrizione")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="100" />
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <MudTextField @bind-Value="_model.Zone"
+                                  Label="@TranslationService.GetTranslation("warehouse.zone", "Zona")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="20" />
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <MudTextField @bind-Value="_model.Floor"
+                                  Label="@TranslationService.GetTranslation("warehouse.floor", "Piano")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="10" />
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <MudTextField @bind-Value="_model.Row"
+                                  Label="@TranslationService.GetTranslation("warehouse.row", "Fila")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="10" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.Column"
+                                  Label="@TranslationService.GetTranslation("warehouse.column", "Colonna")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="10" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.Level"
+                                  Label="@TranslationService.GetTranslation("warehouse.level", "Livello")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="10" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.Capacity"
+                                     Label="@TranslationService.GetTranslation("warehouse.capacity", "Capacità")"
+                                     Variant="Variant.Outlined"
+                                     Min="0" />
+                </MudItem>
+
+                @if (!IsCreateMode)
+                {
+                    <MudItem xs="12" md="6">
+                        <MudSwitch @bind-Value="_model.IsActive"
+                                   Label="@TranslationService.GetTranslation("common.active", "Attivo")"
+                                   Color="Color.Primary" />
+                    </MudItem>
+                }
+
+                <MudItem xs="12">
+                    <MudSwitch @bind-Value="_model.IsRefrigerated"
+                               Label="@TranslationService.GetTranslation("warehouse.refrigerated", "Refrigerato")"
+                               Color="Color.Info" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Notes"
+                                  Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  MaxLength="200" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
+        <MudButton Color="Color.Primary" Disabled="@(!_isValid || _isSaving)" OnClick="Submit">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">@TranslationService.GetTranslation("common.saving", "Salvataggio...")</MudText>
+            }
+            else
+            {
+                <MudText>@TranslationService.GetTranslation("button.save", "Salva")</MudText>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public Guid WarehouseId { get; set; }
+    [Parameter] public StorageLocationDto? Location { get; set; }
+
+    private MudForm? _form;
+    private bool _isValid;
+    private bool _isSaving;
+    private StorageLocationModel _model = new();
+
+    private bool IsCreateMode => Location == null;
+
+    protected override void OnInitialized()
+    {
+        if (Location != null)
+        {
+            // Edit mode
+            _model = new StorageLocationModel
+            {
+                Code = Location.Code,
+                Description = Location.Description,
+                Zone = Location.Zone,
+                Floor = Location.Floor,
+                Row = Location.Row,
+                Column = Location.Column,
+                Level = Location.Level,
+                Capacity = Location.Capacity,
+                IsRefrigerated = Location.IsRefrigerated,
+                IsActive = Location.IsActive,
+                Notes = Location.Notes
+            };
+        }
+        else
+        {
+            // Create mode
+            _model = new StorageLocationModel
+            {
+                IsActive = true
+            };
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Submit()
+    {
+        if (_form == null || !_form.IsValid)
+            return;
+
+        _isSaving = true;
+        try
+        {
+            if (IsCreateMode)
+            {
+                var createDto = new CreateStorageLocationDto
+                {
+                    Code = _model.Code,
+                    Description = _model.Description,
+                    WarehouseId = WarehouseId,
+                    Zone = _model.Zone,
+                    Floor = _model.Floor,
+                    Row = _model.Row,
+                    Column = _model.Column,
+                    Level = _model.Level,
+                    Capacity = _model.Capacity,
+                    IsRefrigerated = _model.IsRefrigerated,
+                    Notes = _model.Notes
+                };
+
+                var result = await StorageLocationService.CreateStorageLocationAsync(createDto);
+                if (result != null)
+                {
+                    MudDialog.Close(DialogResult.Ok(result));
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("messages.createFailed", "Creazione fallita"), Severity.Error);
+                }
+            }
+            else
+            {
+                var updateDto = new UpdateStorageLocationDto
+                {
+                    Code = _model.Code,
+                    Description = _model.Description,
+                    Zone = _model.Zone,
+                    Floor = _model.Floor,
+                    Row = _model.Row,
+                    Column = _model.Column,
+                    Level = _model.Level,
+                    Capacity = _model.Capacity,
+                    IsRefrigerated = _model.IsRefrigerated,
+                    IsActive = _model.IsActive,
+                    Notes = _model.Notes
+                };
+
+                var result = await StorageLocationService.UpdateStorageLocationAsync(Location!.Id, updateDto);
+                if (result != null)
+                {
+                    MudDialog.Close(DialogResult.Ok(result));
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("messages.updateFailed", "Aggiornamento fallito"), Severity.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving storage location");
+            Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore nel salvataggio"), Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private class StorageLocationModel
+    {
+        public string Code { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? Zone { get; set; }
+        public string? Floor { get; set; }
+        public string? Row { get; set; }
+        public string? Column { get; set; }
+        public string? Level { get; set; }
+        public int? Capacity { get; set; }
+        public bool IsRefrigerated { get; set; }
+        public bool IsActive { get; set; }
+        public string? Notes { get; set; }
+    }
+}
