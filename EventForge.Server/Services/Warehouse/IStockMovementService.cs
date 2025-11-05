@@ -116,6 +116,7 @@ public interface IStockMovementService
         Guid? lotId = null,
         string? notes = null,
         string? currentUser = null,
+        DateTime? movementDate = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
