@@ -177,11 +177,10 @@ public class BusinessPartyService : IBusinessPartyService
             }
 
             // Search by name or tax code (case-insensitive)
-            var searchTermLower = searchTerm.ToLower();
             var businessParties = await query
                 .Where(bp => 
-                    EF.Functions.Like(bp.Name.ToLower(), $"%{searchTermLower}%") ||
-                    (bp.TaxCode != null && EF.Functions.Like(bp.TaxCode.ToLower(), $"%{searchTermLower}%"))
+                    EF.Functions.Like(bp.Name, $"%{searchTerm}%") ||
+                    (bp.TaxCode != null && EF.Functions.Like(bp.TaxCode, $"%{searchTerm}%"))
                 )
                 .OrderBy(bp => bp.Name)
                 .Take(pageSize)
