@@ -62,11 +62,11 @@ public interface IProductService
 
     // Product Document Movements and Stock Trend
     Task<PagedResult<ProductDocumentMovementDto>?> GetProductDocumentMovementsAsync(
-        Guid productId, 
-        DateTime? fromDate = null, 
-        DateTime? toDate = null, 
-        string? businessPartyName = null, 
-        int page = 1, 
+        Guid productId,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        string? businessPartyName = null,
+        int page = 1,
         int pageSize = 10);
     Task<StockTrendDto?> GetProductStockTrendAsync(Guid productId, int? year = null);
 }

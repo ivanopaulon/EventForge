@@ -4,12 +4,12 @@ using EventForge.DTOs.Promotions;
 using EventForge.DTOs.UnitOfMeasures;
 using EventForge.DTOs.Warehouse;
 using EventForge.Server.Filters;
+using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Interfaces;
 using EventForge.Server.Services.PriceLists;
 using EventForge.Server.Services.Products;
 using EventForge.Server.Services.Promotions;
 using EventForge.Server.Services.UnitOfMeasures;
-using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -2242,9 +2242,9 @@ public class ProductManagementController : BaseApiController
             foreach (var movement in orderedMovements)
             {
                 var dateKey = movement.MovementDate.Date;
-                
+
                 // Update running total based on movement type
-                if (movement.MovementType.Contains("Inbound", StringComparison.OrdinalIgnoreCase) || 
+                if (movement.MovementType.Contains("Inbound", StringComparison.OrdinalIgnoreCase) ||
                     (movement.MovementType.Contains("Adjustment", StringComparison.OrdinalIgnoreCase) && movement.Quantity > 0))
                 {
                     runningTotal += movement.Quantity;
@@ -2320,15 +2320,15 @@ public class ProductManagementController : BaseApiController
 
         // Common patterns for stock increase (purchases, receipts, returns from customers)
         var increaseKeywords = new[] { "purchase", "receipt", "return", "acquisto", "carico", "reso" };
-        
+
         // Common patterns for stock decrease (sales, shipments, returns to suppliers)
         var decreaseKeywords = new[] { "sale", "invoice", "shipment", "delivery", "vendita", "fattura", "scarico", "consegna" };
 
         var lowerName = documentTypeName.ToLower();
-        
+
         if (increaseKeywords.Any(k => lowerName.Contains(k)))
             return true;
-        
+
         if (decreaseKeywords.Any(k => lowerName.Contains(k)))
             return false;
 

@@ -499,7 +499,7 @@ public class DocumentsController : BaseApiController
         {
             var currentUser = GetCurrentUser();
             var documentRow = await _documentHeaderService.UpdateDocumentRowAsync(rowId, updateRowDto, currentUser, cancellationToken);
-            
+
             if (documentRow == null)
             {
                 return NotFound(new ProblemDetails
@@ -542,7 +542,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var success = await _documentHeaderService.DeleteDocumentRowAsync(rowId, cancellationToken);
-            
+
             if (!success)
             {
                 return NotFound(new ProblemDetails

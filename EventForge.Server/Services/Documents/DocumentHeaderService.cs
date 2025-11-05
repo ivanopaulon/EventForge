@@ -621,10 +621,10 @@ public class DocumentHeaderService : IDocumentHeaderService
             if (createDto.MergeDuplicateProducts && createDto.ProductId.HasValue)
             {
                 var existingRow = await _context.DocumentRows
-                    .FirstOrDefaultAsync(r => 
-                        r.DocumentHeaderId == createDto.DocumentHeaderId && 
+                    .FirstOrDefaultAsync(r =>
+                        r.DocumentHeaderId == createDto.DocumentHeaderId &&
                         r.ProductId == createDto.ProductId &&
-                        !r.IsDeleted, 
+                        !r.IsDeleted,
                         cancellationToken);
 
                 if (existingRow != null)
@@ -802,15 +802,15 @@ public class DocumentHeaderService : IDocumentHeaderService
             {
                 // Determine the warehouse location to use
                 Guid? warehouseLocationId = null;
-                
+
                 // For stock increase documents (purchases, returns)
                 if (documentHeader.DocumentType.IsStockIncrease)
                 {
                     // Use destination warehouse from row, or document, or document type default
-                    warehouseLocationId = row.DestinationWarehouseId 
-                                       ?? documentHeader.DestinationWarehouseId 
+                    warehouseLocationId = row.DestinationWarehouseId
+                                       ?? documentHeader.DestinationWarehouseId
                                        ?? documentHeader.DocumentType.DefaultWarehouseId;
-                    
+
                     if (!warehouseLocationId.HasValue)
                     {
                         _logger.LogWarning("No destination warehouse found for row {RowId} in document {DocumentHeaderId}. Skipping stock movement.",
@@ -850,10 +850,10 @@ public class DocumentHeaderService : IDocumentHeaderService
                 else
                 {
                     // Use source warehouse from row, or document, or document type default
-                    warehouseLocationId = row.SourceWarehouseId 
-                                       ?? documentHeader.SourceWarehouseId 
+                    warehouseLocationId = row.SourceWarehouseId
+                                       ?? documentHeader.SourceWarehouseId
                                        ?? documentHeader.DocumentType.DefaultWarehouseId;
-                    
+
                     if (!warehouseLocationId.HasValue)
                     {
                         _logger.LogWarning("No source warehouse found for row {RowId} in document {DocumentHeaderId}. Skipping stock movement.",
@@ -875,8 +875,8 @@ public class DocumentHeaderService : IDocumentHeaderService
 
                     // Check if sufficient stock is available
                     var availableStock = await _context.Stocks
-                        .Where(s => s.ProductId == row.ProductId.Value 
-                                 && s.StorageLocationId == storageLocation.Id 
+                        .Where(s => s.ProductId == row.ProductId.Value
+                                 && s.StorageLocationId == storageLocation.Id
                                  && !s.IsDeleted)
                         .SumAsync(s => s.Quantity - s.ReservedQuantity, cancellationToken);
 

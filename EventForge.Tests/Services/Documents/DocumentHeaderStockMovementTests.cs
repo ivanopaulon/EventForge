@@ -1,5 +1,3 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Documents;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Data.Entities.Documents;
@@ -12,9 +10,9 @@ using EventForge.Server.Services.Warehouse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using DtoApprovalStatus = EventForge.DTOs.Common.ApprovalStatus;
 using EntityApprovalStatus = EventForge.Server.Data.Entities.Documents.ApprovalStatus;
 using EntityBusinessPartyType = EventForge.Server.Data.Entities.Business.BusinessPartyType;
-using DtoApprovalStatus = EventForge.DTOs.Common.ApprovalStatus;
 
 namespace EventForge.Tests.Services.Documents;
 
