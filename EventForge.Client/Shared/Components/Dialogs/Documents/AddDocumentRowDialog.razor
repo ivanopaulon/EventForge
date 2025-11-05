@@ -110,24 +110,15 @@
                     <MudSelect T="Guid?"
                                Variant="Variant.Outlined"
                                Label="@TranslationService.GetTranslation("documents.unitOfMeasure", "UM")"
-                               @bind-Value="_selectedUnitOfMeasureId"
-                               Disabled="@(_availableUnits.Count == 0 && _allUnitsOfMeasure.Count == 0)"
+                               Value="_selectedUnitOfMeasureId"
+                               ValueChanged="@OnUnitOfMeasureChanged"
+                               Disabled="@(_availableUnits.Count == 0)"
                                Adornment="Adornment.Start"
                                AdornmentIcon="@Icons.Material.Outlined.Scale">
-                        @if (_availableUnits.Any())
+                        @foreach (var unit in _availableUnits)
                         {
-                            @foreach (var unit in _availableUnits)
-                            {
-                                var uom = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == unit.UnitOfMeasureId);
-                                if (uom != null)
-                                {
-                                    <MudSelectItem T="Guid?" Value="@uom.Id">@uom.Name (@uom.Symbol)</MudSelectItem>
-                                }
-                            }
-                        }
-                        else
-                        {
-                            @foreach (var uom in _allUnitsOfMeasure.Where(u => u.IsActive))
+                            var uom = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == unit.UnitOfMeasureId);
+                            if (uom != null)
                             {
                                 <MudSelectItem T="Guid?" Value="@uom.Id">@uom.Name (@uom.Symbol)</MudSelectItem>
                             }
@@ -266,12 +257,12 @@
         }
     }
 
-    private void OnProductSelected(ProductDto? product)
+    private async Task OnProductSelected(ProductDto? product)
     {
         _selectedProduct = product;
         if (product != null)
         {
-            PopulateFromProduct(product);
+            await PopulateFromProduct(product);
             StateHasChanged();
         }
     }
@@ -297,7 +288,7 @@
         }
     }
 
-    private async void PopulateFromProduct(ProductDto product)
+    private async Task PopulateFromProduct(ProductDto product)
     {
         _model.ProductId = product.Id;
         _model.ProductCode = product.Code;
@@ -324,30 +315,34 @@
                 }
 
                 // Set the unit of measure name
-                var selectedUom = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == _selectedUnitOfMeasureId);
-                if (selectedUom != null)
-                {
-                    _model.UnitOfMeasure = selectedUom.Symbol;
-                    _model.UnitOfMeasureId = selectedUom.Id;
-                }
+                UpdateModelUnitOfMeasure(_selectedUnitOfMeasureId);
             }
             else
             {
-                // If no units configured for product, use product's default unit
+                // If no units configured for product, use product's default unit if available
                 if (product.UnitOfMeasureId.HasValue)
                 {
-                    _selectedUnitOfMeasureId = product.UnitOfMeasureId;
-                    var selectedUom = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == product.UnitOfMeasureId);
-                    if (selectedUom != null)
+                    // Create a temporary ProductUnit entry so the dropdown works
+                    _availableUnits.Add(new ProductUnitDto
                     {
-                        _model.UnitOfMeasure = selectedUom.Symbol;
-                        _model.UnitOfMeasureId = selectedUom.Id;
-                    }
+                        Id = Guid.NewGuid(),
+                        ProductId = product.Id,
+                        UnitOfMeasureId = product.UnitOfMeasureId.Value,
+                        ConversionFactor = 1,
+                        UnitType = "Base",
+                        Status = EventForge.DTOs.Common.ProductUnitStatus.Active
+                    });
+
+                    _selectedUnitOfMeasureId = product.UnitOfMeasureId;
+                    UpdateModelUnitOfMeasure(_selectedUnitOfMeasureId);
                 }
                 else
                 {
-                    // No units configured - show info alert
-                    Snackbar.Add(TranslationService.GetTranslation("documents.noUnitsConfigured", "Nessuna unità di misura configurata per questo prodotto"), Severity.Info);
+                    // No units configured - show warning
+                    Snackbar.Add(TranslationService.GetTranslation("documents.noUnitsConfigured", "Nessuna unità di misura configurata per questo prodotto"), Severity.Warning);
+                    _selectedUnitOfMeasureId = null;
+                    _model.UnitOfMeasure = null;
+                    _model.UnitOfMeasureId = null;
                 }
             }
 
@@ -357,6 +352,31 @@
         {
             Logger.LogError(ex, "Error loading product units for product {ProductId}", product.Id);
             Snackbar.Add(TranslationService.GetTranslation("documents.errorLoadingUnits", "Errore nel caricamento delle unità di misura"), Severity.Error);
+        }
+    }
+
+    private void OnUnitOfMeasureChanged(Guid? unitOfMeasureId)
+    {
+        _selectedUnitOfMeasureId = unitOfMeasureId;
+        UpdateModelUnitOfMeasure(unitOfMeasureId);
+    }
+
+    private void UpdateModelUnitOfMeasure(Guid? unitOfMeasureId)
+    {
+        if (unitOfMeasureId.HasValue)
+        {
+            var selectedUom = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == unitOfMeasureId);
+            if (selectedUom != null)
+            {
+                _model.UnitOfMeasure = selectedUom.Symbol;
+                _model.UnitOfMeasureId = selectedUom.Id;
+            }
+        }
+        else
+        {
+            // Clear unit of measure fields when null
+            _model.UnitOfMeasure = null;
+            _model.UnitOfMeasureId = null;
         }
     }
 
@@ -415,15 +435,10 @@
         _isProcessing = true;
         try
         {
-            // Update unit of measure based on selection
-            if (_selectedUnitOfMeasureId.HasValue)
+            // Ensure unit of measure is set before saving
+            if (_selectedUnitOfMeasureId.HasValue && _model.UnitOfMeasureId != _selectedUnitOfMeasureId)
             {
-                var selectedUom = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == _selectedUnitOfMeasureId);
-                if (selectedUom != null)
-                {
-                    _model.UnitOfMeasure = selectedUom.Symbol;
-                    _model.UnitOfMeasureId = selectedUom.Id;
-                }
+                UpdateModelUnitOfMeasure(_selectedUnitOfMeasureId);
             }
 
             if (_isEditMode && RowId.HasValue)
