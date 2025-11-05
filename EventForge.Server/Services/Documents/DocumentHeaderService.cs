@@ -1,6 +1,7 @@
 using EventForge.DTOs.Documents;
 using EventForge.Server.Mappers;
 using EventForge.Server.Services.Warehouse;
+using EventForge.Server.Services.UnitOfMeasures;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Documents;
@@ -12,6 +13,7 @@ public class DocumentHeaderService : IDocumentHeaderService
     private readonly ITenantContext _tenantContext;
     private readonly IDocumentCounterService _documentCounterService;
     private readonly IStockMovementService _stockMovementService;
+    private readonly IUnitConversionService _unitConversionService;
     private readonly ILogger<DocumentHeaderService> _logger;
 
     public DocumentHeaderService(
@@ -20,6 +22,7 @@ public class DocumentHeaderService : IDocumentHeaderService
         ITenantContext tenantContext,
         IDocumentCounterService documentCounterService,
         IStockMovementService stockMovementService,
+        IUnitConversionService unitConversionService,
         ILogger<DocumentHeaderService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
@@ -27,6 +30,7 @@ public class DocumentHeaderService : IDocumentHeaderService
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _documentCounterService = documentCounterService ?? throw new ArgumentNullException(nameof(documentCounterService));
         _stockMovementService = stockMovementService ?? throw new ArgumentNullException(nameof(stockMovementService));
+        _unitConversionService = unitConversionService ?? throw new ArgumentNullException(nameof(unitConversionService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -617,6 +621,55 @@ public class DocumentHeaderService : IDocumentHeaderService
                 throw new InvalidOperationException($"Document header with ID {createDto.DocumentHeaderId} not found.");
             }
 
+            // Compute base quantity and base unit price if UnitOfMeasureId is provided
+            decimal? baseQuantity = createDto.BaseQuantity;
+            decimal? baseUnitPrice = createDto.BaseUnitPrice;
+            Guid? baseUnitOfMeasureId = createDto.BaseUnitOfMeasureId;
+
+            if (createDto.UnitOfMeasureId.HasValue && createDto.ProductId.HasValue)
+            {
+                // Load the ProductUnit to get the conversion factor and base unit
+                var productUnit = await _context.ProductUnits
+                    .FirstOrDefaultAsync(pu => 
+                        pu.ProductId == createDto.ProductId.Value && 
+                        pu.UnitOfMeasureId == createDto.UnitOfMeasureId.Value &&
+                        !pu.IsDeleted,
+                        cancellationToken);
+
+                if (productUnit != null)
+                {
+                    // Find the base unit for this product (ConversionFactor = 1.0 and UnitType = "Base")
+                    var baseUnit = await _context.ProductUnits
+                        .FirstOrDefaultAsync(pu => 
+                            pu.ProductId == createDto.ProductId.Value && 
+                            pu.ConversionFactor == 1m &&
+                            pu.UnitType == "Base" &&
+                            !pu.IsDeleted,
+                            cancellationToken);
+
+                    if (baseUnit != null)
+                    {
+                        baseUnitOfMeasureId = baseUnit.UnitOfMeasureId;
+                        
+                        // Compute base quantity using conversion factor
+                        baseQuantity = _unitConversionService.ConvertToBaseUnit(
+                            createDto.Quantity, 
+                            productUnit.ConversionFactor,
+                            decimalPlaces: 4);
+
+                        // Compute base unit price (inverse conversion for price)
+                        if (createDto.UnitPrice > 0)
+                        {
+                            baseUnitPrice = _unitConversionService.ConvertPrice(
+                                createDto.UnitPrice,
+                                fromConversionFactor: productUnit.ConversionFactor,
+                                toConversionFactor: 1m,
+                                decimalPlaces: 4);
+                        }
+                    }
+                }
+            }
+
             // Check if we should merge with an existing row
             if (createDto.MergeDuplicateProducts && createDto.ProductId.HasValue)
             {
@@ -629,8 +682,44 @@ public class DocumentHeaderService : IDocumentHeaderService
 
                 if (existingRow != null)
                 {
-                    // Merge: add quantity to existing row
-                    existingRow.Quantity += createDto.Quantity;
+                    // Merge: sum base quantities and recalculate display quantity if units differ
+                    if (baseQuantity.HasValue && existingRow.BaseQuantity.HasValue)
+                    {
+                        existingRow.BaseQuantity += baseQuantity.Value;
+
+                        // Recalculate the display quantity if the existing row has a unit
+                        if (existingRow.UnitOfMeasureId.HasValue && createDto.ProductId.HasValue)
+                        {
+                            var existingProductUnit = await _context.ProductUnits
+                                .FirstOrDefaultAsync(pu => 
+                                    pu.ProductId == createDto.ProductId.Value && 
+                                    pu.UnitOfMeasureId == existingRow.UnitOfMeasureId.Value &&
+                                    !pu.IsDeleted,
+                                    cancellationToken);
+
+                            if (existingProductUnit != null)
+                            {
+                                existingRow.Quantity = _unitConversionService.ConvertFromBaseUnit(
+                                    existingRow.BaseQuantity.Value,
+                                    existingProductUnit.ConversionFactor,
+                                    decimalPlaces: 4);
+                            }
+                            else
+                            {
+                                existingRow.Quantity += createDto.Quantity;
+                            }
+                        }
+                        else
+                        {
+                            existingRow.Quantity += createDto.Quantity;
+                        }
+                    }
+                    else
+                    {
+                        // Fallback: just add quantities if base quantities not available
+                        existingRow.Quantity += createDto.Quantity;
+                    }
+
                     existingRow.ModifiedBy = currentUser;
                     existingRow.ModifiedAt = DateTime.UtcNow;
 
@@ -648,6 +737,9 @@ public class DocumentHeaderService : IDocumentHeaderService
             // Create new row (default behavior)
             var row = createDto.ToEntity();
             row.TenantId = documentHeader.TenantId; // Set TenantId from document header
+            row.BaseQuantity = baseQuantity;
+            row.BaseUnitPrice = baseUnitPrice;
+            row.BaseUnitOfMeasureId = baseUnitOfMeasureId;
             row.CreatedBy = currentUser;
             row.CreatedAt = DateTime.UtcNow;
 
@@ -707,6 +799,9 @@ public class DocumentHeaderService : IDocumentHeaderService
             row.Notes = updateDto.Notes;
             row.SortOrder = updateDto.SortOrder;
             row.StationId = updateDto.StationId;
+            row.BaseQuantity = updateDto.BaseQuantity;
+            row.BaseUnitPrice = updateDto.BaseUnitPrice;
+            row.BaseUnitOfMeasureId = updateDto.BaseUnitOfMeasureId;
             row.ModifiedBy = currentUser;
             row.ModifiedAt = DateTime.UtcNow;
 

@@ -1680,7 +1680,7 @@ public class WarehouseManagementController : BaseApiController
                 LocationId = rowDto.LocationId,
                 Description = product.Name, // Clean product name only
                 UnitOfMeasure = unitOfMeasure,
-                Quantity = (int)rowDto.Quantity,
+                Quantity = rowDto.Quantity,
                 UnitPrice = 0, // Purchase price - skipped for now per requirements
                 VatRate = vatRate,
                 VatDescription = vatDescription,
@@ -1808,7 +1808,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // Update the row quantity and notes
-            rowEntity.Quantity = (int)rowDto.Quantity;
+            rowEntity.Quantity = rowDto.Quantity;
             rowEntity.Notes = rowDto.Notes;
             rowEntity.ModifiedAt = DateTime.UtcNow;
             rowEntity.ModifiedBy = GetCurrentUser();
