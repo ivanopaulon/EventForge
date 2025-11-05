@@ -105,12 +105,7 @@
         if (StockTrend == null || (!StockTrend.StockIncreases.Any() && !StockTrend.StockDecreases.Any()))
             return;
 
-        // Collect all unique dates from both increases and decreases
-        var allDates = new HashSet<DateTime>();
-        allDates.UnionWith(StockTrend.StockIncreases.Select(x => x.Date));
-        allDates.UnionWith(StockTrend.StockDecreases.Select(x => x.Date));
-        
-        // Group by month for better visualization
+        // Group by month and sum quantities for better visualization
         var monthlyIncreases = StockTrend.StockIncreases
             .GroupBy(dp => new DateTime(dp.Date.Year, dp.Date.Month, 1))
             .Select(g => new
