@@ -170,15 +170,15 @@ public class BusinessPartyService : IBusinessPartyService
             // Filter by party type if specified
             if (partyType.HasValue)
             {
-                query = query.Where(bp => 
-                    bp.PartyType == (Data.Entities.Business.BusinessPartyType)partyType.Value || 
+                query = query.Where(bp =>
+                    bp.PartyType == (Data.Entities.Business.BusinessPartyType)partyType.Value ||
                     bp.PartyType == Data.Entities.Business.BusinessPartyType.ClienteFornitore
                 );
             }
 
             // Search by name or tax code (case-insensitive)
             var businessParties = await query
-                .Where(bp => 
+                .Where(bp =>
                     EF.Functions.Like(bp.Name, $"%{searchTerm}%") ||
                     (bp.TaxCode != null && EF.Functions.Like(bp.TaxCode, $"%{searchTerm}%"))
                 )
