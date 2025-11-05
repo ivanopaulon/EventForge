@@ -69,14 +69,11 @@
                                      Min="0" />
                 </MudItem>
 
-                @if (!IsCreateMode)
-                {
-                    <MudItem xs="12" md="6">
-                        <MudSwitch @bind-Value="_model.IsActive"
-                                   Label="@TranslationService.GetTranslation("common.active", "Attivo")"
-                                   Color="Color.Primary" />
-                    </MudItem>
-                }
+                <MudItem xs="12" md="6">
+                    <MudSwitch @bind-Value="_model.IsActive"
+                               Label="@TranslationService.GetTranslation("common.active", "Attivo")"
+                               Color="Color.Primary" />
+                </MudItem>
 
                 <MudItem xs="12">
                     <MudSwitch @bind-Value="_model.IsRefrigerated"
@@ -184,14 +181,7 @@
                 };
 
                 var result = await StorageLocationService.CreateStorageLocationAsync(createDto);
-                if (result != null)
-                {
-                    MudDialog.Close(DialogResult.Ok(result));
-                }
-                else
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("messages.createFailed", "Creazione fallita"), Severity.Error);
-                }
+                HandleResult(result, "messages.createFailed", "Creazione fallita");
             }
             else
             {
@@ -211,14 +201,7 @@
                 };
 
                 var result = await StorageLocationService.UpdateStorageLocationAsync(Location!.Id, updateDto);
-                if (result != null)
-                {
-                    MudDialog.Close(DialogResult.Ok(result));
-                }
-                else
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("messages.updateFailed", "Aggiornamento fallito"), Severity.Error);
-                }
+                HandleResult(result, "messages.updateFailed", "Aggiornamento fallito");
             }
         }
         catch (Exception ex)
@@ -229,6 +212,18 @@
         finally
         {
             _isSaving = false;
+        }
+    }
+
+    private void HandleResult(StorageLocationDto? result, string errorKey, string errorFallback)
+    {
+        if (result != null)
+        {
+            MudDialog.Close(DialogResult.Ok(result));
+        }
+        else
+        {
+            Snackbar.Add(TranslationService.GetTranslation(errorKey, errorFallback), Severity.Error);
         }
     }
 

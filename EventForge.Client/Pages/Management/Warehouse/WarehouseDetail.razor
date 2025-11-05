@@ -546,9 +546,11 @@
 
     private async Task OpenEditLocationDialog(StorageLocationDto location)
     {
+        if (!FacilityId.HasValue) return;
+
         var parameters = new DialogParameters
         {
-            { "WarehouseId", FacilityId!.Value },
+            { "WarehouseId", FacilityId.Value },
             { "Location", location }
         };
 
