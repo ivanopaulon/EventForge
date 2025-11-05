@@ -2232,6 +2232,8 @@ public class ProductManagementController : BaseApiController
 
             // Build data points - aggregate by day
             var dataPointsDict = new Dictionary<DateTime, (decimal Quantity, string? MovementType)>();
+            var stockIncreasesList = new List<StockMovementPoint>();
+            var stockDecreasesList = new List<StockMovementPoint>();
             decimal runningTotal = 0;
 
             // Order movements by date
@@ -2246,11 +2248,23 @@ public class ProductManagementController : BaseApiController
                     (movement.MovementType.Contains("Adjustment", StringComparison.OrdinalIgnoreCase) && movement.Quantity > 0))
                 {
                     runningTotal += movement.Quantity;
+                    stockIncreasesList.Add(new StockMovementPoint
+                    {
+                        Date = dateKey,
+                        Quantity = movement.Quantity,
+                        MovementType = movement.MovementType
+                    });
                 }
                 else if (movement.MovementType.Contains("Outbound", StringComparison.OrdinalIgnoreCase) ||
                          (movement.MovementType.Contains("Adjustment", StringComparison.OrdinalIgnoreCase) && movement.Quantity < 0))
                 {
                     runningTotal -= Math.Abs(movement.Quantity);
+                    stockDecreasesList.Add(new StockMovementPoint
+                    {
+                        Date = dateKey,
+                        Quantity = Math.Abs(movement.Quantity),
+                        MovementType = movement.MovementType
+                    });
                 }
 
                 dataPointsDict[dateKey] = (runningTotal, movement.MovementType);
@@ -2278,6 +2292,8 @@ public class ProductManagementController : BaseApiController
                 ProductId = id,
                 Year = targetYear,
                 DataPoints = dataPoints,
+                StockIncreases = stockIncreasesList,
+                StockDecreases = stockDecreasesList,
                 CurrentStock = currentStock,
                 MinStock = minStock,
                 MaxStock = maxStock,

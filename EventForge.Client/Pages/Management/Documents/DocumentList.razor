@@ -154,14 +154,6 @@
                                    OnClick="@(() => DeleteDocument(context.Id))"
                                    Title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
                 }
-                @if (context.Status == DocumentStatus.Draft)
-                {
-                    <MudIconButton Icon="@Icons.Material.Outlined.Check"
-                                   Size="Size.Small"
-                                   Color="Color.Success"
-                                   OnClick="@(() => ApproveDocument(context.Id))"
-                                   Title="@TranslationService.GetTranslation("documents.approve", "Approva")" />
-                }
                 @if (context.Status == DocumentStatus.Approved)
                 {
                     <MudIconButton Icon="@Icons.Material.Outlined.Lock"
@@ -311,33 +303,6 @@
             {
                 _isLoading = false;
             }
-        }
-    }
-
-    private async Task ApproveDocument(Guid documentId)
-    {
-        _isLoading = true;
-        try
-        {
-            var result = await DocumentHeaderService.ApproveDocumentAsync(documentId);
-            if (result != null)
-            {
-                Snackbar.Add(TranslationService.GetTranslation("documents.approveSuccess", "Documento approvato con successo"), Severity.Success);
-                await LoadDocumentsAsync();
-            }
-            else
-            {
-                Snackbar.Add(TranslationService.GetTranslation("documents.approveError", "Errore durante l'approvazione del documento"), Severity.Error);
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error approving document");
-            Snackbar.Add(TranslationService.GetTranslation("documents.approveError", "Errore durante l'approvazione del documento"), Severity.Error);
-        }
-        finally
-        {
-            _isLoading = false;
         }
     }
 
