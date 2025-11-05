@@ -223,7 +223,9 @@ public partial class EventForgeDbContext : DbContext
         _ = modelBuilder.Entity<DocumentHeader>().Property(x => x.VatAmount).HasPrecision(18, 6);
 
         _ = modelBuilder.Entity<DocumentRow>().Property(x => x.UnitPrice).HasPrecision(18, 6);
-        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.Quantity).HasPrecision(18, 6);
+        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.Quantity).HasPrecision(18, 4);
+        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.BaseQuantity).HasPrecision(18, 4);
+        _ = modelBuilder.Entity<DocumentRow>().Property(x => x.BaseUnitPrice).HasPrecision(18, 4);
         _ = modelBuilder.Entity<DocumentRow>().Property(x => x.LineDiscount).HasPrecision(5, 2);
         _ = modelBuilder.Entity<DocumentRow>().Property(x => x.VatRate).HasPrecision(5, 2);
 
