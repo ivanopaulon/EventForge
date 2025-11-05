@@ -17,6 +17,7 @@ namespace EventForge.DTOs.Products
         /// <summary>
         /// The product code that was matched during lookup.
         /// Includes ProductUnitId if the barcode is associated with a specific unit of measure.
+        /// Can be null if the product was not found or if there was an error during lookup.
         /// </summary>
         public ProductCodeDto? Code { get; set; }
     }
