@@ -394,7 +394,7 @@
         _isLoadingLocations = true;
         try
         {
-            var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(FacilityId.Value, 1, 1000);
+            var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(FacilityId.Value, 1, 100);
             if (result?.Items != null)
             {
                 _storageLocations = result.Items.ToList();
