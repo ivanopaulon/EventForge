@@ -239,6 +239,7 @@ public class StockMovementService : IStockMovementService
             Quantity = createDto.Quantity,
             UnitCost = createDto.UnitCost,
             MovementDate = createDto.MovementDate,
+            DocumentHeaderId = createDto.DocumentHeaderId,
             Reason = !string.IsNullOrEmpty(createDto.Reason) && Enum.TryParse<StockMovementReason>(createDto.Reason, out var reasonEnum)
                 ? reasonEnum
                 : StockMovementReason.Other,
@@ -318,6 +319,7 @@ public class StockMovementService : IStockMovementService
         Guid? documentHeaderId = null,
         string? notes = null,
         string? currentUser = null,
+        DateTime? movementDate = null,
         CancellationToken cancellationToken = default)
     {
         var createDto = new CreateStockMovementDto
@@ -331,7 +333,8 @@ public class StockMovementService : IStockMovementService
             SerialId = serialId,
             DocumentHeaderId = documentHeaderId,
             Notes = notes,
-            Reason = "Purchase"
+            Reason = "Purchase",
+            MovementDate = movementDate ?? DateTime.UtcNow
         };
 
         return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
@@ -346,6 +349,7 @@ public class StockMovementService : IStockMovementService
         Guid? documentHeaderId = null,
         string? notes = null,
         string? currentUser = null,
+        DateTime? movementDate = null,
         CancellationToken cancellationToken = default)
     {
         var createDto = new CreateStockMovementDto
@@ -358,7 +362,8 @@ public class StockMovementService : IStockMovementService
             SerialId = serialId,
             DocumentHeaderId = documentHeaderId,
             Notes = notes,
-            Reason = "Sale"
+            Reason = "Sale",
+            MovementDate = movementDate ?? DateTime.UtcNow
         };
 
         return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
