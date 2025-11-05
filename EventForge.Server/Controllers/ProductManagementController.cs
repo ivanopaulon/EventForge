@@ -141,19 +141,19 @@ public class ProductManagementController : BaseApiController
     }
 
     /// <summary>
-    /// Gets a product by barcode/code value.
+    /// Gets a product by barcode/code value with code context.
     /// </summary>
     /// <param name="code">Barcode or code value to search for</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Product information if found</returns>
-    /// <response code="200">Returns the product</response>
+    /// <returns>Product information with code context if found</returns>
+    /// <response code="200">Returns the product with code context</response>
     /// <response code="404">If no product with the given code is found</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("products/by-code/{code}")]
-    [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProductWithCodeDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<ProductDto>> GetProductByCode(
+    public async Task<ActionResult<ProductWithCodeDto>> GetProductByCode(
         string code,
         CancellationToken cancellationToken = default)
     {
@@ -162,11 +162,11 @@ public class ProductManagementController : BaseApiController
 
         try
         {
-            var product = await _productService.GetProductByCodeAsync(code, cancellationToken);
-            if (product == null)
+            var productWithCode = await _productService.GetProductWithCodeByCodeAsync(code, cancellationToken);
+            if (productWithCode == null)
                 return CreateNotFoundProblem($"Product with code '{code}' not found.");
 
-            return Ok(product);
+            return Ok(productWithCode);
         }
         catch (Exception ex)
         {

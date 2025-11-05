@@ -13,6 +13,7 @@ namespace EventForge.Client.Services;
 public interface IProductService
 {
     Task<ProductDto?> GetProductByCodeAsync(string code);
+    Task<ProductWithCodeDto?> GetProductWithCodeByCodeAsync(string code);
     Task<ProductDto?> GetProductByIdAsync(Guid id);
 
     // NEW: dettagli prodotto (include codes/units/bundle-items)
