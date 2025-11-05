@@ -149,6 +149,68 @@ public class BusinessPartyService : IBusinessPartyService
         }
     }
 
+    public async Task<IEnumerable<BusinessPartyDto>> SearchBusinessPartiesAsync(string searchTerm, DTOs.Common.BusinessPartyType? partyType = null, int pageSize = 50, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for business party operations.");
+            }
+
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return new List<BusinessPartyDto>();
+            }
+
+            var query = _context.BusinessParties
+                .WhereActiveTenant(currentTenantId.Value);
+
+            // Filter by party type if specified
+            if (partyType.HasValue)
+            {
+                query = query.Where(bp => 
+                    bp.PartyType == (Data.Entities.Business.BusinessPartyType)partyType.Value || 
+                    bp.PartyType == Data.Entities.Business.BusinessPartyType.ClienteFornitore
+                );
+            }
+
+            // Search by name or tax code (case-insensitive)
+            var searchTermLower = searchTerm.ToLower();
+            var businessParties = await query
+                .Where(bp => 
+                    EF.Functions.Like(bp.Name.ToLower(), $"%{searchTermLower}%") ||
+                    (bp.TaxCode != null && EF.Functions.Like(bp.TaxCode.ToLower(), $"%{searchTermLower}%"))
+                )
+                .OrderBy(bp => bp.Name)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            var businessPartyDtos = new List<BusinessPartyDto>();
+            foreach (var businessParty in businessParties)
+            {
+                var addressCount = await _context.Addresses
+                    .CountAsync(a => a.OwnerType == "BusinessParty" && a.OwnerId == businessParty.Id && !a.IsDeleted && a.TenantId == currentTenantId.Value, cancellationToken);
+                var contactCount = await _context.Contacts
+                    .CountAsync(c => c.OwnerType == "BusinessParty" && c.OwnerId == businessParty.Id && !c.IsDeleted && c.TenantId == currentTenantId.Value, cancellationToken);
+                var referenceCount = await _context.References
+                    .CountAsync(r => r.OwnerType == "BusinessParty" && r.OwnerId == businessParty.Id && !r.IsDeleted && r.TenantId == currentTenantId.Value, cancellationToken);
+                var hasAccountingData = await _context.BusinessPartyAccountings
+                    .AnyAsync(bpa => bpa.BusinessPartyId == businessParty.Id && !bpa.IsDeleted && bpa.TenantId == currentTenantId.Value, cancellationToken);
+
+                businessPartyDtos.Add(MapToBusinessPartyDto(businessParty, addressCount, contactCount, referenceCount, hasAccountingData));
+            }
+
+            return businessPartyDtos;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching business parties with term {SearchTerm}", searchTerm);
+            throw;
+        }
+    }
+
     public async Task<BusinessPartyDto> CreateBusinessPartyAsync(CreateBusinessPartyDto createBusinessPartyDto, string currentUser, CancellationToken cancellationToken = default)
     {
         try
