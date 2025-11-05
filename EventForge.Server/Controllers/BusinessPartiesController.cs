@@ -127,6 +127,39 @@ public class BusinessPartiesController : BaseApiController
     }
 
     /// <summary>
+    /// Searches business parties by name or tax code.
+    /// </summary>
+    /// <param name="searchTerm">Search term to match against name or tax code</param>
+    /// <param name="partyType">Optional filter by business party type</param>
+    /// <param name="pageSize">Maximum number of results to return (default 50)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of matching business parties</returns>
+    /// <response code="200">Returns the list of matching business parties</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("search")]
+    [ProducesResponseType(typeof(IEnumerable<BusinessPartyDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<BusinessPartyDto>>> SearchBusinessParties(
+        [FromQuery] string searchTerm,
+        [FromQuery] DTOs.Common.BusinessPartyType? partyType = null,
+        [FromQuery] int pageSize = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var businessParties = await _businessPartyService.SearchBusinessPartiesAsync(searchTerm, partyType, pageSize, cancellationToken);
+            return Ok(businessParties);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while searching business parties.", ex);
+        }
+    }
+
+    /// <summary>
     /// Creates a new business party.
     /// </summary>
     /// <param name="createBusinessPartyDto">Business party creation data</param>

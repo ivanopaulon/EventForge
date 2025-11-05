@@ -9,6 +9,7 @@ namespace EventForge.Client.Services
         Task<PagedResult<BusinessPartyDto>> GetBusinessPartiesAsync(int page = 1, int pageSize = 20);
         Task<BusinessPartyDto?> GetBusinessPartyAsync(Guid id);
         Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(BusinessPartyType partyType);
+        Task<IEnumerable<BusinessPartyDto>> SearchBusinessPartiesAsync(string searchTerm, BusinessPartyType? partyType = null, int pageSize = 50);
         Task<BusinessPartyDto> CreateBusinessPartyAsync(CreateBusinessPartyDto createDto);
         Task<BusinessPartyDto> UpdateBusinessPartyAsync(Guid id, UpdateBusinessPartyDto updateDto);
         Task DeleteBusinessPartyAsync(Guid id);
@@ -46,6 +47,17 @@ namespace EventForge.Client.Services
         public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(BusinessPartyType partyType)
         {
             return await _httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>($"api/v1/businessparties/by-type/{partyType}")
+                ?? new List<BusinessPartyDto>();
+        }
+
+        public async Task<IEnumerable<BusinessPartyDto>> SearchBusinessPartiesAsync(string searchTerm, BusinessPartyType? partyType = null, int pageSize = 50)
+        {
+            var query = $"api/v1/businessparties/search?searchTerm={Uri.EscapeDataString(searchTerm)}&pageSize={pageSize}";
+            if (partyType.HasValue)
+            {
+                query += $"&partyType={partyType.Value}";
+            }
+            return await _httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>(query)
                 ?? new List<BusinessPartyDto>();
         }
 

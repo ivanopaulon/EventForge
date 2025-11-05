@@ -35,6 +35,16 @@ public interface IBusinessPartyService
     Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(DTOs.Common.BusinessPartyType partyType, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Searches business parties by name or tax code.
+    /// </summary>
+    /// <param name="searchTerm">Search term to match against name or tax code</param>
+    /// <param name="partyType">Optional filter by business party type</param>
+    /// <param name="pageSize">Maximum number of results to return (default 50)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of matching business parties</returns>
+    Task<IEnumerable<BusinessPartyDto>> SearchBusinessPartiesAsync(string searchTerm, DTOs.Common.BusinessPartyType? partyType = null, int pageSize = 50, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Creates a new business party.
     /// </summary>
     /// <param name="createBusinessPartyDto">Business party creation data</param>
