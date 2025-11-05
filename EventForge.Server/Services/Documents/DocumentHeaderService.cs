@@ -222,6 +222,9 @@ public class DocumentHeaderService : IDocumentHeaderService
                 return null;
             }
 
+            // Detect if Date changed to sync stock movements
+            var dateChanged = originalHeader.Date != updateDto.Date;
+
             documentHeader.UpdateFromDto(updateDto);
             documentHeader.ModifiedBy = currentUser;
             documentHeader.ModifiedAt = DateTime.UtcNow;
@@ -229,6 +232,12 @@ public class DocumentHeaderService : IDocumentHeaderService
             _ = await _context.SaveChangesAsync(cancellationToken);
 
             _ = await _auditLogService.TrackEntityChangesAsync(documentHeader, "Update", currentUser, originalHeader, cancellationToken);
+
+            // Sync stock movement dates if document date changed
+            if (dateChanged)
+            {
+                await SyncStockMovementDatesForDocumentAsync(id, updateDto.Date, currentUser, cancellationToken);
+            }
 
             _logger.LogInformation("Document header {DocumentHeaderId} updated by {User}.", id, currentUser);
 
@@ -936,6 +945,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                         documentHeaderId: documentHeader.Id,
                         notes: $"Auto-generated from document {documentHeader.Number}",
                         currentUser: currentUser,
+                        movementDate: documentHeader.Date,
                         cancellationToken: cancellationToken);
 
                     _logger.LogInformation("Created inbound stock movement for product {ProductId}, quantity {Quantity} in document {DocumentHeaderId}.",
@@ -992,6 +1002,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                         documentHeaderId: documentHeader.Id,
                         notes: $"Auto-generated from document {documentHeader.Number}",
                         currentUser: currentUser,
+                        movementDate: documentHeader.Date,
                         cancellationToken: cancellationToken);
 
                     _logger.LogInformation("Created outbound stock movement for product {ProductId}, quantity {Quantity} in document {DocumentHeaderId}.",
@@ -1004,6 +1015,58 @@ public class DocumentHeaderService : IDocumentHeaderService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing stock movements for document {DocumentHeaderId}.", documentHeader.Id);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Synchronizes stock movement dates for a document when the document date changes.
+    /// </summary>
+    private async Task SyncStockMovementDatesForDocumentAsync(
+        Guid documentHeaderId,
+        DateTime newDate,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var movements = await _context.StockMovements
+                .Where(sm => sm.DocumentHeaderId == documentHeaderId && !sm.IsDeleted)
+                .ToListAsync(cancellationToken);
+
+            if (!movements.Any())
+            {
+                _logger.LogInformation("No stock movements found for document {DocumentHeaderId} to sync dates.", documentHeaderId);
+                return;
+            }
+
+            var movementsUpdated = 0;
+            foreach (var movement in movements)
+            {
+                movement.MovementDate = newDate;
+                movement.ModifiedAt = DateTime.UtcNow;
+                movement.ModifiedBy = currentUser;
+                movementsUpdated++;
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // Log the sync operation
+            await _auditLogService.LogEntityChangeAsync(
+                "StockMovement",
+                documentHeaderId,
+                "MovementDate",
+                "BulkUpdate",
+                null,
+                $"Synchronized {movementsUpdated} stock movement(s) to document date {newDate:yyyy-MM-dd HH:mm:ss}",
+                currentUser);
+
+            _logger.LogInformation("Synchronized {Count} stock movement dates for document {DocumentHeaderId} to {NewDate}.",
+                movementsUpdated, documentHeaderId, newDate);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error synchronizing stock movement dates for document {DocumentHeaderId}.", documentHeaderId);
             throw;
         }
     }

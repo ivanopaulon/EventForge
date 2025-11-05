@@ -75,6 +75,7 @@ public interface IStockMovementService
         Guid? documentHeaderId = null,
         string? notes = null,
         string? currentUser = null,
+        DateTime? movementDate = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -89,6 +90,7 @@ public interface IStockMovementService
         Guid? documentHeaderId = null,
         string? notes = null,
         string? currentUser = null,
+        DateTime? movementDate = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>

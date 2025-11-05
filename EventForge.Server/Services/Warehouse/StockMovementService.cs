@@ -318,6 +318,7 @@ public class StockMovementService : IStockMovementService
         Guid? documentHeaderId = null,
         string? notes = null,
         string? currentUser = null,
+        DateTime? movementDate = null,
         CancellationToken cancellationToken = default)
     {
         var createDto = new CreateStockMovementDto
@@ -331,7 +332,8 @@ public class StockMovementService : IStockMovementService
             SerialId = serialId,
             DocumentHeaderId = documentHeaderId,
             Notes = notes,
-            Reason = "Purchase"
+            Reason = "Purchase",
+            MovementDate = movementDate ?? DateTime.UtcNow
         };
 
         return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
@@ -346,6 +348,7 @@ public class StockMovementService : IStockMovementService
         Guid? documentHeaderId = null,
         string? notes = null,
         string? currentUser = null,
+        DateTime? movementDate = null,
         CancellationToken cancellationToken = default)
     {
         var createDto = new CreateStockMovementDto
@@ -358,7 +361,8 @@ public class StockMovementService : IStockMovementService
             SerialId = serialId,
             DocumentHeaderId = documentHeaderId,
             Notes = notes,
-            Reason = "Sale"
+            Reason = "Sale",
+            MovementDate = movementDate ?? DateTime.UtcNow
         };
 
         return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
