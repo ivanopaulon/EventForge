@@ -356,7 +356,7 @@
         {
             Logger.LogError(ex, "Error updating inventory document {DocumentId}", Document.Id);
             Snackbar.Add(
-                TranslationService.GetTranslation("warehouse.updateDocumentError", "Errore nell'aggiornamento del documento: {0}", ex.Message),
+                TranslationService.GetTranslation("warehouse.updateDocumentError", "Errore nell'aggiornamento del documento"),
                 Severity.Error);
         }
         finally
@@ -427,7 +427,7 @@
             {
                 Logger.LogError(ex, "Error finalizing inventory document {DocumentId}", Document.Id);
                 Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.finalizeDocumentError", "Errore nella finalizzazione del documento: {0}", ex.Message), 
+                    TranslationService.GetTranslation("warehouse.finalizeDocumentError", "Errore nella finalizzazione del documento"), 
                     Severity.Error);
             }
             finally
