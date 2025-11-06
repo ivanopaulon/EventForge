@@ -67,6 +67,31 @@
     private bool _isDocsLoading;
     private IEnumerable<ProductDocumentMovementDto>? _docs;
     private long _documentCount;
+    private bool _documentCountLoaded;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Load document count on first load to show if documents are available
+        if (!_documentCountLoaded && ProductId.HasValue)
+        {
+            await LoadDocumentCountAsync();
+        }
+    }
+
+    private async Task LoadDocumentCountAsync()
+    {
+        try
+        {
+            var result = await ProductService.GetProductDocumentMovementsAsync(ProductId!.Value, page: 1, pageSize: 1);
+            _documentCount = result?.TotalCount ?? 0;
+            _documentCountLoaded = true;
+        }
+        catch
+        {
+            _documentCount = 0;
+            _documentCountLoaded = true;
+        }
+    }
 
     private string GetDocumentsPanelText()
     {
@@ -77,6 +102,10 @@
     private async Task OnDocumentsExpanded(bool expanded)
     {
         if (!expanded || ProductId == null) return;
+        
+        // If documents are already loaded, don't reload
+        if (_docs != null && _docs.Any()) return;
+        
         _isDocsLoading = true;
         StateHasChanged();
         try
