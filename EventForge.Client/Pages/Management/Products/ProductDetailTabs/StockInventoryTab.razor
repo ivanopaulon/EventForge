@@ -202,6 +202,8 @@
         try
         {
             _stockLevels = await StockService.GetStockByProductIdAsync(Product.Id);
+            var totalFromTable = _stockLevels?.Sum(x => x.AvailableQuantity) ?? 0;
+            Logger.LogDebug("StockInventoryTab: totalFromTable={TotalFromTable} for ProductId={ProductId}", totalFromTable, Product.Id);
         }
         catch (Exception ex)
         {
@@ -222,6 +224,9 @@
         {
             _stockTrend = await ProductService.GetProductStockTrendAsync(Product.Id);
             _stockTrendLoaded = true;
+            var lastPoint = _stockTrend?.DataPoints?.MaxBy(dp => dp.Date);
+            Logger.LogDebug("StockInventoryTab: stockTrend.CurrentStock={CurrentStock}, lastPointDate={Date}, lastPointQty={Qty} for ProductId={ProductId}",
+                _stockTrend?.CurrentStock, lastPoint?.Date, lastPoint?.Quantity, Product.Id);
         }
         catch (Exception ex)
         {
