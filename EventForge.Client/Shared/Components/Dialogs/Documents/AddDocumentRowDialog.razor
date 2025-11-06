@@ -152,7 +152,7 @@
                             <MudText Typo="Typo.body2" Style="font-weight: 600;">@CalculateSubtotal().ToString("N2") €</MudText>
                         </MudItem>
                         <MudItem xs="6">
-                            <MudText Typo="Typo.body2">@TranslationService.GetTranslation("documents.vat", "IVA") (@_model.VatRate%):</MudText>
+                            <MudText Typo="Typo.body2">@TranslationService.GetTranslation("documents.vat", "IVA") (@(_model.VatRate.ToString("0.##"))%):</MudText>
                         </MudItem>
                         <MudItem xs="6" Style="text-align: right;">
                             <MudText Typo="Typo.body2" Style="font-weight: 600;">@CalculateVatAmount().ToString("N2") €</MudText>
@@ -498,7 +498,9 @@
 
     private decimal CalculateLineTotal()
     {
-        return CalculateSubtotal() + CalculateVatAmount();
+        var subtotal = CalculateSubtotal();
+        var vatAmount = subtotal * (_model.VatRate / 100m);
+        return subtotal + vatAmount;
     }
 
     private void UpdateModelUnitOfMeasure(Guid? unitOfMeasureId)
