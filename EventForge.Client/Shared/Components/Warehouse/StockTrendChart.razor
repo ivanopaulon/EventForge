@@ -105,9 +105,10 @@
         if (StockTrend == null || !StockTrend.DataPoints.Any())
             return;
 
+        // Normalize all dates to UTC for consistent handling
         // Get daily stock increases grouped by date
         var dailyIncreases = StockTrend.StockIncreases
-            .GroupBy(dp => dp.Date.Date)
+            .GroupBy(dp => DateTime.SpecifyKind(dp.Date, DateTimeKind.Utc).Date)
             .Select(g => new
             {
                 Date = g.Key,
@@ -117,7 +118,7 @@
 
         // Get daily stock decreases grouped by date
         var dailyDecreases = StockTrend.StockDecreases
-            .GroupBy(dp => dp.Date.Date)
+            .GroupBy(dp => DateTime.SpecifyKind(dp.Date, DateTimeKind.Utc).Date)
             .Select(g => new
             {
                 Date = g.Key,
@@ -125,27 +126,30 @@
             })
             .ToDictionary(x => x.Date, x => x.Quantity);
 
-        // Get all unique dates from DataPoints (which contains the running stock level)
-        var sortedDates = StockTrend.DataPoints
-            .OrderBy(dp => dp.Date)
-            .Select(dp => dp.Date.Date)
+        // Get all unique dates from DataPoints, StockIncreases, and StockDecreases
+        // This ensures future-dated movements are included in the chart
+        var allDates = StockTrend.DataPoints
+            .Select(dp => DateTime.SpecifyKind(dp.Date, DateTimeKind.Utc).Date)
+            .Concat(StockTrend.StockIncreases.Select(dp => DateTime.SpecifyKind(dp.Date, DateTimeKind.Utc).Date))
+            .Concat(StockTrend.StockDecreases.Select(dp => DateTime.SpecifyKind(dp.Date, DateTimeKind.Utc).Date))
             .Distinct()
+            .OrderBy(d => d)
             .ToList();
 
         // Prepare X-axis labels (dates)
-        _xAxisLabels = sortedDates
+        _xAxisLabels = allDates
             .Select(d => d.ToString("dd/MM"))
             .ToArray();
 
-        // Prepare series data
-        var increasesData = sortedDates.Select(date => dailyIncreases.TryGetValue(date, out var qty) ? (double)qty : 0).ToArray();
-        var decreasesData = sortedDates.Select(date => dailyDecreases.TryGetValue(date, out var qty) ? (double)qty : 0).ToArray();
+        // Prepare series data with 0 fallback for missing values
+        var increasesData = allDates.Select(date => dailyIncreases.TryGetValue(date, out var qty) ? (double)qty : 0).ToArray();
+        var decreasesData = allDates.Select(date => dailyDecreases.TryGetValue(date, out var qty) ? (double)qty : 0).ToArray();
         
         // Get stock level data from DataPoints - handle duplicate dates by taking the last value
         var stockLevelDict = StockTrend.DataPoints
-            .GroupBy(dp => dp.Date.Date)
+            .GroupBy(dp => DateTime.SpecifyKind(dp.Date, DateTimeKind.Utc).Date)
             .ToDictionary(g => g.Key, g => g.OrderBy(dp => dp.Date).Last().Quantity);
-        var stockLevelData = sortedDates.Select(date => stockLevelDict.TryGetValue(date, out var qty) ? (double)qty : 0).ToArray();
+        var stockLevelData = allDates.Select(date => stockLevelDict.TryGetValue(date, out var qty) ? (double)qty : 0).ToArray();
 
         // Prepare series with three separate lines: Carichi, Scarichi, and Giacenza
         _series = new List<ChartSeries>

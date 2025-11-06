@@ -107,10 +107,11 @@
         if (PriceTrend == null)
             return;
 
+        // Normalize all dates to UTC for consistent handling
         // Get all unique dates from both purchase and sale prices
         var allDates = PriceTrend.PurchasePrices
-            .Select(p => p.Date.Date)
-            .Concat(PriceTrend.SalePrices.Select(p => p.Date.Date))
+            .Select(p => DateTime.SpecifyKind(p.Date, DateTimeKind.Utc).Date)
+            .Concat(PriceTrend.SalePrices.Select(p => DateTime.SpecifyKind(p.Date, DateTimeKind.Utc).Date))
             .Distinct()
             .OrderBy(d => d)
             .ToList();
@@ -125,14 +126,14 @@
 
         // Group prices by date and calculate average for each day
         var dailyPurchasePrices = PriceTrend.PurchasePrices
-            .GroupBy(p => p.Date.Date)
+            .GroupBy(p => DateTime.SpecifyKind(p.Date, DateTimeKind.Utc).Date)
             .ToDictionary(
                 g => g.Key,
                 g => g.Average(p => p.Price)
             );
 
         var dailySalePrices = PriceTrend.SalePrices
-            .GroupBy(p => p.Date.Date)
+            .GroupBy(p => DateTime.SpecifyKind(p.Date, DateTimeKind.Utc).Date)
             .ToDictionary(
                 g => g.Key,
                 g => g.Average(p => p.Price)

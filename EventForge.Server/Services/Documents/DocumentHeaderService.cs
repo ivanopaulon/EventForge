@@ -223,7 +223,10 @@ public class DocumentHeaderService : IDocumentHeaderService
             }
 
             // Detect if Date changed to sync stock movements
-            var dateChanged = originalHeader.Date != updateDto.Date;
+            // Normalize both dates to UTC for proper comparison
+            var originalDateUtc = DateTime.SpecifyKind(originalHeader.Date, DateTimeKind.Utc);
+            var newDateUtc = DateTime.SpecifyKind(updateDto.Date, DateTimeKind.Utc);
+            var dateChanged = originalDateUtc != newDateUtc;
 
             documentHeader.UpdateFromDto(updateDto);
             documentHeader.ModifiedBy = currentUser;
@@ -236,7 +239,7 @@ public class DocumentHeaderService : IDocumentHeaderService
             // Sync stock movement dates if document date changed
             if (dateChanged)
             {
-                await SyncStockMovementDatesForDocumentAsync(id, updateDto.Date, currentUser, cancellationToken);
+                await SyncStockMovementDatesForDocumentAsync(id, newDateUtc, currentUser, cancellationToken);
             }
 
             _logger.LogInformation("Document header {DocumentHeaderId} updated by {User}.", id, currentUser);
@@ -899,6 +902,9 @@ public class DocumentHeaderService : IDocumentHeaderService
                 return;
             }
 
+            // Ensure document date is in UTC for stock movements
+            var documentDateUtc = DateTime.SpecifyKind(documentHeader.Date, DateTimeKind.Utc);
+
             _logger.LogInformation("Processing stock movements for document {DocumentHeaderId} with type {DocumentTypeName}.",
                 documentHeader.Id, documentHeader.DocumentType.Name);
 
@@ -945,7 +951,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                         documentHeaderId: documentHeader.Id,
                         notes: $"Auto-generated from document {documentHeader.Number}",
                         currentUser: currentUser,
-                        movementDate: documentHeader.Date,
+                        movementDate: documentDateUtc,
                         cancellationToken: cancellationToken);
 
                     _logger.LogInformation("Created inbound stock movement for product {ProductId}, quantity {Quantity} in document {DocumentHeaderId}.",
@@ -1002,7 +1008,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                         documentHeaderId: documentHeader.Id,
                         notes: $"Auto-generated from document {documentHeader.Number}",
                         currentUser: currentUser,
-                        movementDate: documentHeader.Date,
+                        movementDate: documentDateUtc,
                         cancellationToken: cancellationToken);
 
                     _logger.LogInformation("Created outbound stock movement for product {ProductId}, quantity {Quantity} in document {DocumentHeaderId}.",
@@ -1030,6 +1036,9 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
+            // Ensure the date is in UTC
+            var newDateUtc = DateTime.SpecifyKind(newDate, DateTimeKind.Utc);
+            
             var movements = await _context.StockMovements
                 .Where(sm => sm.DocumentHeaderId == documentHeaderId && !sm.IsDeleted)
                 .ToListAsync(cancellationToken);
@@ -1043,7 +1052,7 @@ public class DocumentHeaderService : IDocumentHeaderService
             var movementsUpdated = 0;
             foreach (var movement in movements)
             {
-                movement.MovementDate = newDate;
+                movement.MovementDate = newDateUtc;
                 // Note: ModifiedAt and ModifiedBy are set automatically by DbContext.SaveChangesAsync override
                 movementsUpdated++;
             }
@@ -1057,11 +1066,11 @@ public class DocumentHeaderService : IDocumentHeaderService
                 "MovementDate",
                 "BulkUpdate",
                 null,
-                $"Synchronized {movementsUpdated} stock movement(s) to document date {newDate:yyyy-MM-dd HH:mm:ss}",
+                $"Synchronized {movementsUpdated} stock movement(s) to document date {newDateUtc:yyyy-MM-dd HH:mm:ss} UTC",
                 currentUser);
 
             _logger.LogInformation("Synchronized {Count} stock movement dates for document {DocumentHeaderId} to {NewDate}.",
-                movementsUpdated, documentHeaderId, newDate);
+                movementsUpdated, documentHeaderId, newDateUtc);
         }
         catch (Exception ex)
         {
