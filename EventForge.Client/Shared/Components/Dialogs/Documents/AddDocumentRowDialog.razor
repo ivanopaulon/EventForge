@@ -203,7 +203,7 @@
                                 <MudText Typo="Typo.body2" Color="Color.Success">@TranslationService.GetTranslation("documents.discount", "Sconto"):</MudText>
                             </MudItem>
                             <MudItem xs="6" Style="text-align: right;">
-                                <MudText Typo="Typo.body2" Color="Color.Success" Style="font-weight: 600;">- @CalculateDiscountAmount().ToString("N2") €</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Success" Style="font-weight: 600;">- @GetDiscountAmount().ToString("N2") €</MudText>
                             </MudItem>
                         }
                         <MudItem xs="6">
@@ -561,11 +561,6 @@
     {
         var baseAmount = _model.Quantity * _model.UnitPrice;
         return baseAmount - GetDiscountAmount();
-    }
-
-    private decimal CalculateDiscountAmount()
-    {
-        return GetDiscountAmount();
     }
 
     private decimal CalculateVatAmount()

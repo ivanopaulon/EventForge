@@ -214,6 +214,20 @@ public class DocumentRow : AuditableEntity
     public Station? Station { get; set; }
 
     /// <summary>
+    /// Calculates the actual discount amount, clamped to subtotal to prevent negative totals.
+    /// </summary>
+    private decimal GetEffectiveDiscount()
+    {
+        var subtotal = UnitPrice * Quantity;
+        var discount = DiscountType == EventForge.DTOs.Common.DiscountType.Percentage
+            ? subtotal * (LineDiscount / 100)
+            : LineDiscountValue;
+        
+        // Ensure discount doesn't exceed subtotal (prevent negative line totals)
+        return Math.Min(discount, subtotal);
+    }
+
+    /// <summary>
     /// Total for the row after discount (not mapped).
     /// </summary>
     [NotMapped]
@@ -223,14 +237,7 @@ public class DocumentRow : AuditableEntity
         get
         {
             var subtotal = UnitPrice * Quantity;
-            var discount = DiscountType == EventForge.DTOs.Common.DiscountType.Percentage
-                ? subtotal * (LineDiscount / 100)
-                : LineDiscountValue;
-            
-            // Ensure discount doesn't exceed subtotal (prevent negative line totals)
-            discount = Math.Min(discount, subtotal);
-            
-            return Math.Round(subtotal - discount, 2);
+            return Math.Round(subtotal - GetEffectiveDiscount(), 2);
         }
     }
 
@@ -246,21 +253,7 @@ public class DocumentRow : AuditableEntity
     /// </summary>
     [NotMapped]
     [Display(Name = "Discount Total", Description = "Total discount applied to the row.")]
-    public decimal DiscountTotal
-    {
-        get
-        {
-            var subtotal = UnitPrice * Quantity;
-            var discount = DiscountType == EventForge.DTOs.Common.DiscountType.Percentage
-                ? subtotal * (LineDiscount / 100)
-                : LineDiscountValue;
-            
-            // Ensure discount doesn't exceed subtotal
-            discount = Math.Min(discount, subtotal);
-            
-            return Math.Round(discount, 2);
-        }
-    }
+    public decimal DiscountTotal => Math.Round(GetEffectiveDiscount(), 2);
 
     /// <summary>
     /// Gets or sets the collection of summary links that include this document row.
