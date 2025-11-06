@@ -63,6 +63,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public Guid? ProductId { get; set; }
 
+    private const int DocumentsPageSize = 20;
     private bool _isDocsLoading;
     private IEnumerable<ProductDocumentMovementDto>? _docs;
     private long _documentCount;
@@ -80,7 +81,7 @@
         StateHasChanged();
         try
         {
-            var result = await ProductService.GetProductDocumentMovementsAsync(ProductId.Value, page: 1, pageSize: 20);
+            var result = await ProductService.GetProductDocumentMovementsAsync(ProductId.Value, page: 1, pageSize: DocumentsPageSize);
             _docs = result?.Items ?? Array.Empty<ProductDocumentMovementDto>();
             _documentCount = result?.TotalCount ?? 0;
         }

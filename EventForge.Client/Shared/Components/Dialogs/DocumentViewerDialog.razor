@@ -2,6 +2,7 @@
 @using EventForge.Client.Services
 @inject IDocumentHeaderService DocumentHeaderService
 @inject ITranslationService TranslationService
+@inject ILogger<DocumentViewerDialog> Logger
 
 <MudDialog>
     <DialogContent>
@@ -79,8 +80,9 @@
                 _title = _document.Number;
             }
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Error loading document header {DocumentHeaderId}", DocumentHeaderId);
             _document = null;
         }
         finally
