@@ -2,12 +2,10 @@
 @using EventForge.Client.Services
 @inject ITranslationService TranslationService
 
-<MudPaper Elevation="1" Class="pa-4" Style="width: 100%;">
-    <MudText Typo="Typo.h6" Class="mb-3">
-        <MudIcon Icon="@Icons.Material.Outlined.ShowChart" Class="mr-2" />
-        @TranslationService.GetTranslation("product.stockTrend", "Andamento Giacenza")
-    </MudText>
-
+<CommonTrendWrapper Icon="@Icons.Material.Outlined.ShowChart" 
+                   Title="@TranslationService.GetTranslation("product.stockTrend","Andamento Giacenza")" 
+                   Subtitle="@GetSubtitle()" 
+                   ProductId="@ProductId">
     @if (IsLoading)
     {
         <div class="d-flex justify-center pa-4">
@@ -68,10 +66,6 @@
                   Height="350px"
                   ChartOptions="@_chartOptions">
         </MudChart>
-
-        <MudText Typo="Typo.caption" Class="mt-2 mud-text-secondary">
-            @TranslationService.GetTranslation("stock.trendYear", "Anno") @StockTrend.Year
-        </MudText>
     }
     else
     {
@@ -79,7 +73,7 @@
             @TranslationService.GetTranslation("product.noStockTrendData", "Nessun dato di giacenza disponibile per questo periodo")
         </MudAlert>
     }
-</MudPaper>
+</CommonTrendWrapper>
 
 @code {
     [Parameter, EditorRequired]
@@ -88,9 +82,21 @@
     [Parameter]
     public bool IsLoading { get; set; }
 
+    [Parameter]
+    public Guid? ProductId { get; set; }
+
     private List<ChartSeries> _series = new();
     private string[] _xAxisLabels = Array.Empty<string>();
     private ChartOptions _chartOptions = new();
+
+    private string GetSubtitle()
+    {
+        if (StockTrend != null)
+        {
+            return $"{TranslationService.GetTranslation("stock.trendYear", "Anno")} {StockTrend.Year}";
+        }
+        return string.Empty;
+    }
 
     protected override void OnParametersSet()
     {

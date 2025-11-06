@@ -1,0 +1,95 @@
+@using EventForge.DTOs.Documents
+@using EventForge.Client.Services
+@inject IDocumentHeaderService DocumentHeaderService
+@inject ITranslationService TranslationService
+@inject ILogger<DocumentViewerDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.h6">@_title</MudText>
+
+            <MudPaper Class="pa-3">
+                @if (_isLoading)
+                {
+                    <div class="d-flex justify-center pa-4">
+                        <MudProgressCircular Indeterminate="true" />
+                    </div>
+                }
+                else if (_document == null)
+                {
+                    <MudAlert Severity="Severity.Warning">
+                        @TranslationService.GetTranslation("documents.notFound", "Documento non trovato")
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudText Typo="Typo.subtitle2" Class="mb-3">
+                        #@_document.Number - @_document.Date.ToString("dd/MM/yyyy")
+                    </MudText>
+
+                    @if (_document.Rows?.Any() == true)
+                    {
+                        <MudTable Items="_document.Rows" Dense="true" Hover="true" Striped="true">
+                            <HeaderContent>
+                                <MudTh>@TranslationService.GetTranslation("field.product", "Prodotto")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.unitOfMeasure", "UM")</MudTh>
+                                <MudTh Style="text-align:right;">@TranslationService.GetTranslation("field.quantity", "Quantità")</MudTh>
+                                <MudTh Style="text-align:right;">@TranslationService.GetTranslation("field.unitPrice", "Prezzo")</MudTh>
+                            </HeaderContent>
+                            <RowTemplate Context="r">
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.product", "Prodotto")">@r.Description</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.unitOfMeasure", "UM")">@r.UnitOfMeasure</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")" Style="text-align:right;">@r.Quantity.ToString("N2")</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.unitPrice", "Prezzo")" Style="text-align:right;">€@r.UnitPrice.ToString("N2")</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info">
+                            @TranslationService.GetTranslation("documents.noRows", "Nessuna riga presente nel documento")
+                        </MudAlert>
+                    }
+                }
+            </MudPaper>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">@TranslationService.GetTranslation("common.close","Chiudi")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Guid DocumentHeaderId { get; set; }
+
+    private DocumentHeaderDto? _document;
+    private string _title = "";
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _title = TranslationService.GetTranslation("documents.view", "Visualizza documento");
+        
+        try
+        {
+            _document = await DocumentHeaderService.GetDocumentHeaderByIdAsync(DocumentHeaderId, includeRows: true);
+            if (_document != null)
+            {
+                _title = _document.Number;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading document header {DocumentHeaderId}", DocumentHeaderId);
+            _document = null;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void Close() => MudDialog.Close();
+}
