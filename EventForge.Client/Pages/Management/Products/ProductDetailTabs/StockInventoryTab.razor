@@ -130,124 +130,15 @@
     </MudPaper>
 
     <!-- Stock Trend Chart -->
-    <StockTrendChart StockTrend="@_stockTrend" IsLoading="@_isLoadingTrend" />
+    <StockTrendChart StockTrend="@_stockTrend" IsLoading="@_isLoadingTrend" ProductId="@Product.Id" />
 
-    <!-- Document History Section -->
-    <MudPaper Elevation="1" Class="pa-4">
-        <MudText Typo="Typo.h6" Class="mb-3">
-            <MudIcon Icon="@Icons.Material.Outlined.Description" Class="mr-2" />
-            @TranslationService.GetTranslation("product.documentHistory", "Storico Documenti")
-        </MudText>
+    <!-- Price Trend Chart -->
+    <PriceTrendChart PriceTrend="@_priceTrend" IsLoading="@_isLoadingPriceTrend" ProductId="@Product.Id" />
 
-        <!-- Filters -->
-        <MudPaper Elevation="0" Class="pa-3 mb-3" Style="background-color: var(--mud-palette-background-grey);">
-            <MudGrid Spacing="2">
-                <MudItem xs="12" sm="6" md="3">
-                    <MudDatePicker @bind-Date="_fromDate"
-                                   Label="@TranslationService.GetTranslation("filter.fromDate", "Da Data")"
-                                   Variant="Variant.Outlined"
-                                   Clearable="true"
-                                   DateFormat="dd/MM/yyyy" />
-                </MudItem>
-                <MudItem xs="12" sm="6" md="3">
-                    <MudDatePicker @bind-Date="_toDate"
-                                   Label="@TranslationService.GetTranslation("filter.toDate", "A Data")"
-                                   Variant="Variant.Outlined"
-                                   Clearable="true"
-                                   DateFormat="dd/MM/yyyy" />
-                </MudItem>
-                <MudItem xs="12" sm="6" md="4">
-                    <MudTextField @bind-Value="_customerNameFilter"
-                                  Label="@TranslationService.GetTranslation("filter.customerSupplier", "Cliente/Fornitore")"
-                                  Variant="Variant.Outlined"
-                                  Clearable="true" />
-                </MudItem>
-                <MudItem xs="12" sm="6" md="2" Class="d-flex align-end">
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               StartIcon="@Icons.Material.Outlined.FilterAlt"
-                               OnClick="LoadDocumentsAsync"
-                               FullWidth="true">
-                        @TranslationService.GetTranslation("common.filter", "Filtra")
-                    </MudButton>
-                </MudItem>
-            </MudGrid>
-        </MudPaper>
-
-        @if (_isLoadingDocuments)
-        {
-            <div class="d-flex justify-center pa-4">
-                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-            </div>
-        }
-        else if (_documentMovements?.Items?.Any() == true)
-        {
-            <MudTable Items="@_documentMovements.Items" Hover="true" Striped="true" Dense="true" Class="mb-4">
-                <HeaderContent>
-                    <MudTh>@TranslationService.GetTranslation("field.number", "Numero")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("field.date", "Data")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("field.type", "Tipo")</MudTh>
-                    <MudTh Class="mud-hidden-sm-down">@TranslationService.GetTranslation("field.businessParty", "Cliente/Fornitore")</MudTh>
-                    <MudTh Class="text-right">@TranslationService.GetTranslation("field.quantity", "Quantità")</MudTh>
-                    <MudTh Class="mud-hidden-md-down">@TranslationService.GetTranslation("field.unitOfMeasure", "UM")</MudTh>
-                    <MudTh Class="text-center">@TranslationService.GetTranslation("field.movementType", "Movimento")</MudTh>
-                    <MudTh Class="mud-hidden-sm-down">@TranslationService.GetTranslation("field.warehouse", "Magazzino")</MudTh>
-                    <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.number", "Numero")">@context.DocumentNumber</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.date", "Data")">@context.DocumentDate.ToString("dd/MM/yyyy")</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.type", "Tipo")">@context.DocumentTypeName</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.businessParty", "Cliente/Fornitore")" Class="mud-hidden-sm-down">@(context.BusinessPartyName ?? "-")</MudTd>
-                    <MudTd Class="text-right" DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")">
-                        <strong>@context.Quantity.ToString("N2")</strong>
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.unitOfMeasure", "UM")" Class="mud-hidden-md-down">@(context.UnitOfMeasure ?? "-")</MudTd>
-                    <MudTd Class="text-center" DataLabel="@TranslationService.GetTranslation("field.movementType", "Movimento")">
-                        @if (context.IsStockIncrease)
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.ArrowUpward">
-                                @TranslationService.GetTranslation("movement.stockIncrease", "Carico")
-                            </MudChip>
-                        }
-                        else
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Error" Icon="@Icons.Material.Filled.ArrowDownward">
-                                @TranslationService.GetTranslation("movement.stockDecrease", "Scarico")
-                            </MudChip>
-                        }
-                    </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.warehouse", "Magazzino")" Class="mud-hidden-sm-down">@(context.WarehouseName ?? "-")</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
-                        <MudChip T="string" Size="Size.Small" Color="GetStatusColorFromString(context.Status)">
-                            @GetStatusTextFromString(context.Status)
-                        </MudChip>
-                    </MudTd>
-                </RowTemplate>
-            </MudTable>
-
-            <div class="d-flex justify-space-between align-center">
-                <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                    @TranslationService.GetTranslation("pagination.showing", "Mostrando") 
-                    @((_documentMovements.Page -1) * _documentMovements.PageSize +1) - 
-                    @Math.Min(_documentMovements.Page * _documentMovements.PageSize, _documentMovements.TotalCount) 
-                    @TranslationService.GetTranslation("pagination.of", "di") 
-                    @_documentMovements.TotalCount
-                </MudText>
-                <MudPagination Count="@((int)((_documentMovements.TotalCount + _documentMovements.PageSize -1) / _documentMovements.PageSize))"
-                               Selected="@_currentPage"
-                               SelectedChanged="OnPageChangedAsync"
-                               ShowFirstButton="true"
-                               ShowLastButton="true" />
-            </div>
-        }
-        else
-        {
-            <MudAlert Severity="Severity.Info" Class="mb-4">
-                @TranslationService.GetTranslation("product.noDocumentsFound", "Nessun documento trovato per questo prodotto")
-            </MudAlert>
-        }
-    </MudPaper>
+    <!-- Info message about document integration -->
+    <MudAlert Severity="Severity.Info" Class="mb-4">
+        @TranslationService.GetTranslation("product.documentsMovedToCharts", "La lista dei documenti che hanno movimentato il prodotto è ora disponibile nei pannelli 'Andamento Giacenza' e 'Andamento Prezzi'.")
+    </MudAlert>
 </MudStack>
 
 @code {
@@ -263,15 +154,14 @@
     [Parameter]
     public EventCallback OnProductUpdatedPersisted { get; set; }
 
-    private bool _isLoadingDocuments = false;
     private bool _isLoadingStock = false;
     private bool _isLoadingTrend = false;
+    private bool _isLoadingPriceTrend = false;
     private bool _stockTrendLoaded = false;
-    private PagedResult<ProductDocumentMovementDto>? _documentMovements;
+    private bool _priceTrendLoaded = false;
     private IEnumerable<StockDto> _stockLevels = Enumerable.Empty<StockDto>();
     private StockTrendDto? _stockTrend;
-    private int _currentPage =1;
-    private const int PageSize =10;
+    private PriceTrendDto? _priceTrend;
 
     // Group definition for warehouse grouping
     private TableGroupDefinition<StockDto> _groupDefinition = new()
@@ -283,17 +173,11 @@
         Selector = (e) => e.WarehouseName
     };
 
-    // Filters
-    private DateTime? _fromDate;
-    private DateTime? _toDate;
-    private string? _customerNameFilter;
-
     protected override async Task OnParametersSetAsync()
     {
-        // Load documents and stock - trend is loaded only once
+        // Load stock levels and trends - trends are loaded only once
         var tasks = new List<Task>
         {
-            LoadDocumentsAsync(),
             LoadStockLevelsAsync()
         };
 
@@ -301,6 +185,12 @@
         if (!_stockTrendLoaded)
         {
             tasks.Add(LoadStockTrendAsync());
+        }
+
+        // Load price trend only once on first load
+        if (!_priceTrendLoaded)
+        {
+            tasks.Add(LoadPriceTrendAsync());
         }
 
         await Task.WhenAll(tasks);
@@ -325,32 +215,6 @@
         }
     }
 
-    private async Task LoadDocumentsAsync()
-    {
-        _isLoadingDocuments = true;
-        try
-        {
-            _documentMovements = await ProductService.GetProductDocumentMovementsAsync(
-                Product.Id,
-                _fromDate,
-                _toDate,
-                _customerNameFilter,
-                _currentPage,
-                PageSize
-            );
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading document movements for product {ProductId}", Product.Id);
-            _documentMovements = null;
-        }
-        finally
-        {
-            _isLoadingDocuments = false;
-            StateHasChanged();
-        }
-    }
-
     private async Task LoadStockTrendAsync()
     {
         _isLoadingTrend = true;
@@ -371,58 +235,24 @@
         }
     }
 
-    private async Task OnPageChangedAsync(int page)
+    private async Task LoadPriceTrendAsync()
     {
-        _currentPage = page;
-        await LoadDocumentsAsync();
-    }
-
-    private Color GetStatusColorFromString(string status)
-    {
-        return status.ToLower() switch
+        _isLoadingPriceTrend = true;
+        try
         {
-            "draft" => Color.Default,
-            "approved" => Color.Success,
-            "rejected" => Color.Error,
-            "cancelled" => Color.Error,
-            _ => Color.Default
-        };
-    }
-
-    private string GetStatusTextFromString(string status)
-    {
-        return status.ToLower() switch
+            _priceTrend = await ProductService.GetProductPriceTrendAsync(Product.Id);
+            _priceTrendLoaded = true;
+        }
+        catch (Exception ex)
         {
-            "draft" => TranslationService.GetTranslation("status.draft", "Bozza"),
-            "approved" => TranslationService.GetTranslation("status.approved", "Approvato"),
-            "rejected" => TranslationService.GetTranslation("status.rejected", "Rifiutato"),
-            "cancelled" => TranslationService.GetTranslation("status.cancelled", "Annullato"),
-            _ => status
-        };
-    }
-
-    private Color GetStatusColor(DocumentStatus status)
-    {
-        return status switch
+            Logger.LogError(ex, "Error loading price trend for product {ProductId}", Product.Id);
+            _priceTrend = null;
+        }
+        finally
         {
-            DocumentStatus.Draft => Color.Default,
-            DocumentStatus.Approved => Color.Success,
-            DocumentStatus.Rejected => Color.Error,
-            DocumentStatus.Cancelled => Color.Error,
-            _ => Color.Default
-        };
-    }
-
-    private string GetStatusText(DocumentStatus status)
-    {
-        return status switch
-        {
-            DocumentStatus.Draft => TranslationService.GetTranslation("status.draft", "Bozza"),
-            DocumentStatus.Approved => TranslationService.GetTranslation("status.approved", "Approvato"),
-            DocumentStatus.Rejected => TranslationService.GetTranslation("status.rejected", "Rifiutato"),
-            DocumentStatus.Cancelled => TranslationService.GetTranslation("status.cancelled", "Annullato"),
-            _ => status.ToString()
-        };
+            _isLoadingPriceTrend = false;
+            StateHasChanged();
+        }
     }
 
     private async Task NotifyUpdated()

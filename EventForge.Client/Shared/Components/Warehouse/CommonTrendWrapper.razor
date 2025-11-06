@@ -1,0 +1,105 @@
+@using EventForge.DTOs.Warehouse
+@using EventForge.Client.Services
+@inject IDialogService DialogService
+@inject IProductService ProductService
+@inject ITranslationService TranslationService
+
+<MudPaper Elevation="1" Class="pa-4 mb-4" Style="width:100%;">
+    <MudStack Spacing="2">
+        <MudStack Row="true" AlignItems="AlignItems.Center" JustifyContent="Justify.SpaceBetween">
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icon" Class="mr-2" />
+                @Title
+            </MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">@Subtitle</MudText>
+        </MudStack>
+
+        <div class="chart-container">
+            @ChildContent
+        </div>
+
+        <MudExpansionPanels Elevation="0" MultiExpansion="false">
+            <MudExpansionPanel Text="@GetDocumentsPanelText()" OnExpandedChanged="OnDocumentsExpanded">
+                @if (_isDocsLoading)
+                {
+                    <div class="d-flex justify-center pa-4"><MudProgressCircular Indeterminate="true" /></div>
+                }
+                else if (_docs?.Any() != true)
+                {
+                    <MudText Typo="Typo.caption">@TranslationService.GetTranslation("product.noDocuments", "Nessun documento trovato")</MudText>
+                }
+                else
+                {
+                    <MudTable Items="_docs" Dense="true" Hover="true">
+                        <HeaderContent>
+                            <MudTh>@TranslationService.GetTranslation("field.date", "Data")</MudTh>
+                            <MudTh>@TranslationService.GetTranslation("field.number", "Numero")</MudTh>
+                            <MudTh>@TranslationService.GetTranslation("field.type", "Tipo")</MudTh>
+                            <MudTh Style="text-align:right;">@TranslationService.GetTranslation("field.quantity", "Quantità")</MudTh>
+                            <MudTh></MudTh>
+                        </HeaderContent>
+                        <RowTemplate Context="d">
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.date", "Data")">@d.DocumentDate.ToString("dd/MM/yyyy")</MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.number", "Numero")">@d.DocumentNumber</MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.type", "Tipo")">@d.DocumentTypeName</MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")" Style="text-align:right;">@d.Quantity.ToString("N2")</MudTd>
+                            <MudTd>
+                                <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="@(()=>OpenDocument(d.DocumentHeaderId))">
+                                    @TranslationService.GetTranslation("common.view","Visualizza")
+                                </MudButton>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter] public string Icon { get; set; } = Icons.Material.Outlined.ShowChart;
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string Subtitle { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public Guid? ProductId { get; set; }
+
+    private bool _isDocsLoading;
+    private IEnumerable<ProductDocumentMovementDto>? _docs;
+    private long _documentCount;
+
+    private string GetDocumentsPanelText()
+    {
+        var baseText = TranslationService.GetTranslation("product.relatedDocuments", "Documenti correlati");
+        return $"{baseText} ({_documentCount})";
+    }
+
+    private async Task OnDocumentsExpanded(bool expanded)
+    {
+        if (!expanded || ProductId == null) return;
+        _isDocsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var result = await ProductService.GetProductDocumentMovementsAsync(ProductId.Value, page: 1, pageSize: 20);
+            _docs = result?.Items ?? Array.Empty<ProductDocumentMovementDto>();
+            _documentCount = result?.TotalCount ?? 0;
+        }
+        catch
+        {
+            _docs = Array.Empty<ProductDocumentMovementDto>();
+            _documentCount = 0;
+        }
+        finally
+        {
+            _isDocsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenDocument(Guid documentHeaderId)
+    {
+        var parameters = new DialogParameters { ["DocumentHeaderId"] = documentHeaderId };
+        var options = new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Large, CloseButton = true };
+        await DialogService.ShowAsync<DocumentViewerDialog>(TranslationService.GetTranslation("documents.view","Visualizza documento"), parameters, options);
+    }
+}
