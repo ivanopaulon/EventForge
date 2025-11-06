@@ -145,8 +145,10 @@
                 g => g.Average(p => p.Price)
             );
 
-        // Prepare data series - use 0 for missing data points to ensure lines are drawn
-        // MudBlazor MudChart may have issues rendering lines with NaN values
+        // Prepare data series
+        // Note: We use 0 for dates where a price type doesn't have data (e.g., no sales on a purchase date)
+        // This represents "no transactions of this type" rather than "price was zero"
+        // The chart shows all dates where at least one price type (purchase or sale) has data
         var purchasePriceData = allDates
             .Select(date => dailyPurchasePrices.TryGetValue(date, out var price) ? (double)price : 0.0)
             .ToArray();

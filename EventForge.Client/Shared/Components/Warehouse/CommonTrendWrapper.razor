@@ -3,6 +3,7 @@
 @inject IDialogService DialogService
 @inject IProductService ProductService
 @inject ITranslationService TranslationService
+@inject ILogger<CommonTrendWrapper> Logger
 
 <MudPaper Elevation="1" Class="pa-4 mb-4" Style="width:100%;">
     <MudStack Spacing="2">
@@ -86,8 +87,9 @@
             _documentCount = result?.TotalCount ?? 0;
             _documentCountLoaded = true;
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Error loading document count for product {ProductId}", ProductId);
             _documentCount = 0;
             _documentCountLoaded = true;
         }
@@ -114,8 +116,9 @@
             _docs = result?.Items ?? Array.Empty<ProductDocumentMovementDto>();
             _documentCount = result?.TotalCount ?? 0;
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Error loading documents for product {ProductId}", ProductId);
             _docs = Array.Empty<ProductDocumentMovementDto>();
             _documentCount = 0;
         }
