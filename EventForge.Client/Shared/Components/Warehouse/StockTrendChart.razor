@@ -15,48 +15,40 @@
     else if (StockTrend != null && StockTrend.DataPoints.Any())
     {
         <!-- Statistics Cards -->
-        <MudGrid Spacing="2" Class="mb-4">
-            <MudItem xs="6" sm="3">
-                <MudPaper Elevation="0" Class="pa-3" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px;">
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                        @TranslationService.GetTranslation("stock.current", "Attuale")
-                    </MudText>
-                    <MudText Typo="Typo.h6" Color="Color.Primary">
-                        @StockTrend.CurrentStock.ToString("N2")
-                    </MudText>
-                </MudPaper>
-            </MudItem>
-            <MudItem xs="6" sm="3">
-                <MudPaper Elevation="0" Class="pa-3" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px;">
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                        @TranslationService.GetTranslation("stock.average", "Media")
-                    </MudText>
-                    <MudText Typo="Typo.h6">
-                        @StockTrend.AverageStock.ToString("N2")
-                    </MudText>
-                </MudPaper>
-            </MudItem>
-            <MudItem xs="6" sm="3">
-                <MudPaper Elevation="0" Class="pa-3" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px;">
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                        @TranslationService.GetTranslation("stock.minimum", "Minimo")
-                    </MudText>
-                    <MudText Typo="Typo.h6" Color="Color.Warning">
-                        @StockTrend.MinStock.ToString("N2")
-                    </MudText>
-                </MudPaper>
-            </MudItem>
-            <MudItem xs="6" sm="3">
-                <MudPaper Elevation="0" Class="pa-3" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px;">
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                        @TranslationService.GetTranslation("stock.maximum", "Massimo")
-                    </MudText>
-                    <MudText Typo="Typo.h6" Color="Color.Success">
-                        @StockTrend.MaxStock.ToString("N2")
-                    </MudText>
-                </MudPaper>
-            </MudItem>
-        </MudGrid>
+        <MudStack Row="true" Spacing="2" Class="mb-4">
+            <MudPaper Elevation="0" Class="pa-3 flex-grow-1" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px; min-width: 150px;">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @TranslationService.GetTranslation("stock.current", "Attuale")
+                </MudText>
+                <MudText Typo="Typo.h6" Color="Color.Primary">
+                    @StockTrend.CurrentStock.ToString("N2")
+                </MudText>
+            </MudPaper>
+            <MudPaper Elevation="0" Class="pa-3 flex-grow-1" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px; min-width: 150px;">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @TranslationService.GetTranslation("stock.average", "Media")
+                </MudText>
+                <MudText Typo="Typo.h6">
+                    @StockTrend.AverageStock.ToString("N2")
+                </MudText>
+            </MudPaper>
+            <MudPaper Elevation="0" Class="pa-3 flex-grow-1" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px; min-width: 150px;">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @TranslationService.GetTranslation("stock.minimum", "Minimo")
+                </MudText>
+                <MudText Typo="Typo.h6" Color="Color.Warning">
+                    @StockTrend.MinStock.ToString("N2")
+                </MudText>
+            </MudPaper>
+            <MudPaper Elevation="0" Class="pa-3 flex-grow-1" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px; min-width: 150px;">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @TranslationService.GetTranslation("stock.maximum", "Massimo")
+                </MudText>
+                <MudText Typo="Typo.h6" Color="Color.Success">
+                    @StockTrend.MaxStock.ToString("N2")
+                </MudText>
+            </MudPaper>
+        </MudStack>
 
         <!-- Chart -->
         <MudChart ChartType="ChartType.Line"

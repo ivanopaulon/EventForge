@@ -15,35 +15,68 @@
             <MudText Typo="Typo.caption" Class="mud-text-secondary">@Subtitle</MudText>
         </MudStack>
 
-        <div class="chart-container">
+        <div style="width:100%;">
             @ChildContent
         </div>
 
-        <MudExpansionPanels Elevation="0" MultiExpansion="false">
-            <MudExpansionPanel Text="@GetDocumentsPanelText()" OnExpandedChanged="OnDocumentsExpanded">
+        <!-- Documents Table -->
+        @if (ProductId.HasValue)
+        {
+            <MudPaper Elevation="0" Class="mt-4 pa-3" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px;">
+                <MudText Typo="Typo.subtitle1" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Outlined.Description" Class="mr-2" Size="Size.Small" />
+                    @GetDocumentsPanelText()
+                </MudText>
+                
                 @if (_isDocsLoading)
                 {
-                    <div class="d-flex justify-center pa-4"><MudProgressCircular Indeterminate="true" /></div>
+                    <div class="d-flex justify-center pa-4">
+                        <MudProgressCircular Indeterminate="true" />
+                    </div>
                 }
                 else if (_docs?.Any() != true)
                 {
-                    <MudText Typo="Typo.caption">@TranslationService.GetTranslation("product.noDocuments", "Nessun documento trovato")</MudText>
+                    <MudAlert Severity="Severity.Info" Class="mb-0">
+                        @TranslationService.GetTranslation("product.noDocuments", "Nessun documento trovato")
+                    </MudAlert>
                 }
                 else
                 {
-                    <MudTable Items="_docs" Dense="true" Hover="true">
+                    <MudTable Items="_docs" Dense="true" Hover="true" Elevation="0">
                         <HeaderContent>
                             <MudTh>@TranslationService.GetTranslation("field.date", "Data")</MudTh>
                             <MudTh>@TranslationService.GetTranslation("field.number", "Numero")</MudTh>
                             <MudTh>@TranslationService.GetTranslation("field.type", "Tipo")</MudTh>
                             <MudTh Style="text-align:right;">@TranslationService.GetTranslation("field.quantity", "Quantità")</MudTh>
+                            <MudTh Style="text-align:right;">@TranslationService.GetTranslation("field.unitPrice", "Prezzo Unitario")</MudTh>
+                            <MudTh Style="text-align:right;">@TranslationService.GetTranslation("field.lineTotal", "Totale Riga")</MudTh>
+                            <MudTh>@TranslationService.GetTranslation("field.businessParty", "Controparte")</MudTh>
                             <MudTh></MudTh>
                         </HeaderContent>
                         <RowTemplate Context="d">
-                            <MudTd DataLabel="@TranslationService.GetTranslation("field.date", "Data")">@d.DocumentDate.ToString("dd/MM/yyyy")</MudTd>
-                            <MudTd DataLabel="@TranslationService.GetTranslation("field.number", "Numero")">@d.DocumentNumber</MudTd>
-                            <MudTd DataLabel="@TranslationService.GetTranslation("field.type", "Tipo")">@d.DocumentTypeName</MudTd>
-                            <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")" Style="text-align:right;">@d.Quantity.ToString("N2")</MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.date", "Data")">
+                                @d.DocumentDate.ToString("dd/MM/yyyy")
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.number", "Numero")">
+                                @d.DocumentNumber
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.type", "Tipo")">
+                                @d.DocumentTypeName
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")" Style="text-align:right;">
+                                <MudChip T="string" Size="Size.Small" Color="@(d.IsStockIncrease ? Color.Success : Color.Error)">
+                                    @(d.IsStockIncrease ? "+" : "-")@d.Quantity.ToString("N2")
+                                </MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.unitPrice", "Prezzo Unitario")" Style="text-align:right;">
+                                €@d.UnitPrice.ToString("N2")
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.lineTotal", "Totale Riga")" Style="text-align:right;">
+                                <strong>€@d.LineTotal.ToString("N2")</strong>
+                            </MudTd>
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.businessParty", "Controparte")">
+                                @(d.BusinessPartyName ?? "-")
+                            </MudTd>
                             <MudTd>
                                 <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="@(()=>OpenDocument(d.DocumentHeaderId))">
                                     @TranslationService.GetTranslation("common.view","Visualizza")
@@ -52,8 +85,8 @@
                         </RowTemplate>
                     </MudTable>
                 }
-            </MudExpansionPanel>
-        </MudExpansionPanels>
+            </MudPaper>
+        }
     </MudStack>
 </MudPaper>
 
@@ -64,55 +97,29 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public Guid? ProductId { get; set; }
 
-    private const int DocumentsPageSize = 20;
+    private const int DocumentsPageSize = 50;
     private bool _isDocsLoading;
     private IEnumerable<ProductDocumentMovementDto>? _docs;
     private long _documentCount;
-    private bool _documentCountLoaded;
+    private Guid? _lastLoadedProductId;
 
     protected override async Task OnParametersSetAsync()
     {
-        // Load document count on first load to show if documents are available
-        if (!_documentCountLoaded && ProductId.HasValue)
+        // Load documents when ProductId is set or changes
+        if (ProductId.HasValue && ProductId != _lastLoadedProductId)
         {
-            await LoadDocumentCountAsync();
+            _lastLoadedProductId = ProductId;
+            await LoadDocumentsAsync();
         }
     }
 
-    private async Task LoadDocumentCountAsync()
+    private async Task LoadDocumentsAsync()
     {
-        try
-        {
-            var result = await ProductService.GetProductDocumentMovementsAsync(ProductId!.Value, page: 1, pageSize: 1);
-            _documentCount = result?.TotalCount ?? 0;
-            _documentCountLoaded = true;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading document count for product {ProductId}", ProductId);
-            _documentCount = 0;
-            _documentCountLoaded = true;
-        }
-    }
-
-    private string GetDocumentsPanelText()
-    {
-        var baseText = TranslationService.GetTranslation("product.relatedDocuments", "Documenti correlati");
-        return $"{baseText} ({_documentCount})";
-    }
-
-    private async Task OnDocumentsExpanded(bool expanded)
-    {
-        if (!expanded || ProductId == null) return;
-        
-        // If documents are already loaded, don't reload
-        if (_docs != null && _docs.Any()) return;
-        
         _isDocsLoading = true;
         StateHasChanged();
         try
         {
-            var result = await ProductService.GetProductDocumentMovementsAsync(ProductId.Value, page: 1, pageSize: DocumentsPageSize);
+            var result = await ProductService.GetProductDocumentMovementsAsync(ProductId!.Value, page: 1, pageSize: DocumentsPageSize);
             _docs = result?.Items ?? Array.Empty<ProductDocumentMovementDto>();
             _documentCount = result?.TotalCount ?? 0;
         }
@@ -127,6 +134,12 @@
             _isDocsLoading = false;
             StateHasChanged();
         }
+    }
+
+    private string GetDocumentsPanelText()
+    {
+        var baseText = TranslationService.GetTranslation("product.relatedDocuments", "Documenti correlati");
+        return $"{baseText} ({_documentCount})";
     }
 
     private async Task OpenDocument(Guid documentHeaderId)
