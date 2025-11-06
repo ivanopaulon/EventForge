@@ -618,6 +618,337 @@ public class DocumentHeaderStockMovementTests : IDisposable
         Assert.Equal("system", updatedMovement.ModifiedBy);
     }
 
+    [Fact]
+    public async Task AddDocumentRowAsync_ToApprovedDocument_CreatesImmediateMovement()
+    {
+        // Arrange
+        var documentType = new DocumentType
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Purchase Order",
+            Code = "PO",
+            IsStockIncrease = true,
+            DefaultWarehouseId = _warehouseId,
+            RequiredPartyType = EntityBusinessPartyType.Fornitore,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentTypes.Add(documentType);
+
+        var documentHeader = new DocumentHeader
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentTypeId = documentType.Id,
+            Number = "DOC-002",
+            Date = DateTime.UtcNow,
+            BusinessPartyId = _businessPartyId,
+            DestinationWarehouseId = _warehouseId,
+            ApprovalStatus = EntityApprovalStatus.Approved,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentHeaders.Add(documentHeader);
+        await _context.SaveChangesAsync();
+
+        var createRowDto = new CreateDocumentRowDto
+        {
+            DocumentHeaderId = documentHeader.Id,
+            ProductId = _productId,
+            Quantity = 10,
+            UnitPrice = 50,
+            Description = "Test Product"
+        };
+
+        // Act
+        var result = await _documentHeaderService.AddDocumentRowAsync(createRowDto, "test");
+
+        // Assert
+        Assert.NotNull(result);
+        
+        // Check that a stock movement was created immediately
+        var movements = await _context.StockMovements
+            .Where(sm => sm.DocumentHeaderId == documentHeader.Id && !sm.IsDeleted)
+            .ToListAsync();
+
+        Assert.Single(movements);
+        var movement = movements.First();
+        Assert.Equal(_productId, movement.ProductId);
+        Assert.Equal(10, movement.Quantity);
+        Assert.Equal(StockMovementType.Inbound, movement.MovementType);
+        Assert.Equal(result.Id, movement.DocumentRowId);
+    }
+
+    [Fact]
+    public async Task UpdateDocumentRowAsync_OnApprovedDocument_CreatesCompensatingMovement()
+    {
+        // Arrange
+        var documentType = new DocumentType
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Purchase Order",
+            Code = "PO",
+            IsStockIncrease = true,
+            DefaultWarehouseId = _warehouseId,
+            RequiredPartyType = EntityBusinessPartyType.Fornitore,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentTypes.Add(documentType);
+
+        var documentHeader = new DocumentHeader
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentTypeId = documentType.Id,
+            Number = "DOC-003",
+            Date = DateTime.UtcNow,
+            BusinessPartyId = _businessPartyId,
+            DestinationWarehouseId = _warehouseId,
+            ApprovalStatus = EntityApprovalStatus.Approved,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentHeaders.Add(documentHeader);
+
+        var documentRow = new DocumentRow
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = documentHeader.Id,
+            ProductId = _productId,
+            Quantity = 10,
+            UnitPrice = 50,
+            Description = "Test Product",
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentRows.Add(documentRow);
+        await _context.SaveChangesAsync();
+
+        // Create initial movement
+        await _stockMovementService.ProcessInboundMovementAsync(
+            _productId,
+            _storageLocationId,
+            10,
+            50,
+            documentHeaderId: documentHeader.Id,
+            documentRowId: documentRow.Id,
+            currentUser: "test");
+
+        var updateDto = new UpdateDocumentRowDto
+        {
+            RowType = EventForge.DTOs.Common.DocumentRowType.Product,
+            Quantity = 15, // Changed from 10 to 15
+            UnitPrice = 50,
+            Description = "Test Product"
+        };
+
+        // Act
+        var result = await _documentHeaderService.UpdateDocumentRowAsync(documentRow.Id, updateDto, "test");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(15, result.Quantity);
+
+        // Check that compensating movement was created
+        var movements = await _context.StockMovements
+            .Where(sm => sm.DocumentHeaderId == documentHeader.Id && !sm.IsDeleted)
+            .OrderBy(sm => sm.CreatedAt)
+            .ToListAsync();
+
+        Assert.Equal(2, movements.Count);
+        
+        // First movement: original
+        Assert.Equal(10, movements[0].Quantity);
+        
+        // Second movement: compensating (+5)
+        Assert.Equal(5, movements[1].Quantity);
+        Assert.Equal(StockMovementType.Inbound, movements[1].MovementType);
+        Assert.Contains("Compensating movement", movements[1].Notes ?? "");
+    }
+
+    [Fact]
+    public async Task UpdateDocumentRowAsync_DecreasingQuantity_CreatesReverseCompensatingMovement()
+    {
+        // Arrange
+        var documentType = new DocumentType
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Purchase Order",
+            Code = "PO",
+            IsStockIncrease = true,
+            DefaultWarehouseId = _warehouseId,
+            RequiredPartyType = EntityBusinessPartyType.Fornitore,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentTypes.Add(documentType);
+
+        var documentHeader = new DocumentHeader
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentTypeId = documentType.Id,
+            Number = "DOC-004",
+            Date = DateTime.UtcNow,
+            BusinessPartyId = _businessPartyId,
+            DestinationWarehouseId = _warehouseId,
+            ApprovalStatus = EntityApprovalStatus.Approved,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentHeaders.Add(documentHeader);
+
+        var documentRow = new DocumentRow
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = documentHeader.Id,
+            ProductId = _productId,
+            Quantity = 10,
+            UnitPrice = 50,
+            Description = "Test Product",
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentRows.Add(documentRow);
+        await _context.SaveChangesAsync();
+
+        // Create initial movement
+        await _stockMovementService.ProcessInboundMovementAsync(
+            _productId,
+            _storageLocationId,
+            10,
+            50,
+            documentHeaderId: documentHeader.Id,
+            documentRowId: documentRow.Id,
+            currentUser: "test");
+
+        var updateDto = new UpdateDocumentRowDto
+        {
+            RowType = EventForge.DTOs.Common.DocumentRowType.Product,
+            Quantity = 7, // Changed from 10 to 7
+            UnitPrice = 50,
+            Description = "Test Product"
+        };
+
+        // Act
+        var result = await _documentHeaderService.UpdateDocumentRowAsync(documentRow.Id, updateDto, "test");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(7, result.Quantity);
+
+        // Check that compensating movement was created
+        var movements = await _context.StockMovements
+            .Where(sm => sm.DocumentHeaderId == documentHeader.Id && !sm.IsDeleted)
+            .OrderBy(sm => sm.CreatedAt)
+            .ToListAsync();
+
+        Assert.Equal(2, movements.Count);
+        
+        // First movement: original inbound
+        Assert.Equal(10, movements[0].Quantity);
+        Assert.Equal(StockMovementType.Inbound, movements[0].MovementType);
+        
+        // Second movement: compensating outbound (-3)
+        Assert.Equal(3, movements[1].Quantity);
+        Assert.Equal(StockMovementType.Outbound, movements[1].MovementType);
+        Assert.Contains("Compensating movement", movements[1].Notes ?? "");
+    }
+
+    [Fact]
+    public async Task DeleteDocumentRowAsync_OnApprovedDocument_CreatesCompensatingMovement()
+    {
+        // Arrange
+        var documentType = new DocumentType
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Purchase Order",
+            Code = "PO",
+            IsStockIncrease = true,
+            DefaultWarehouseId = _warehouseId,
+            RequiredPartyType = EntityBusinessPartyType.Fornitore,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentTypes.Add(documentType);
+
+        var documentHeader = new DocumentHeader
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentTypeId = documentType.Id,
+            Number = "DOC-005",
+            Date = DateTime.UtcNow,
+            BusinessPartyId = _businessPartyId,
+            DestinationWarehouseId = _warehouseId,
+            ApprovalStatus = EntityApprovalStatus.Approved,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentHeaders.Add(documentHeader);
+
+        var documentRow = new DocumentRow
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = documentHeader.Id,
+            ProductId = _productId,
+            Quantity = 10,
+            UnitPrice = 50,
+            Description = "Test Product",
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentRows.Add(documentRow);
+        await _context.SaveChangesAsync();
+
+        // Create initial movement
+        await _stockMovementService.ProcessInboundMovementAsync(
+            _productId,
+            _storageLocationId,
+            10,
+            50,
+            documentHeaderId: documentHeader.Id,
+            documentRowId: documentRow.Id,
+            currentUser: "test");
+
+        // Act
+        var result = await _documentHeaderService.DeleteDocumentRowAsync(documentRow.Id);
+
+        // Assert
+        Assert.True(result);
+
+        // Check that row is soft-deleted (need to ignore query filters to see deleted entities)
+        var deletedRow = await _context.DocumentRows
+            .IgnoreQueryFilters()
+            .FirstAsync(r => r.Id == documentRow.Id);
+        Assert.True(deletedRow.IsDeleted);
+
+        // Check that compensating movement was created
+        var movements = await _context.StockMovements
+            .Where(sm => sm.DocumentHeaderId == documentHeader.Id && !sm.IsDeleted)
+            .OrderBy(sm => sm.CreatedAt)
+            .ToListAsync();
+
+        Assert.Equal(2, movements.Count);
+        
+        // First movement: original inbound
+        Assert.Equal(10, movements[0].Quantity);
+        Assert.Equal(StockMovementType.Inbound, movements[0].MovementType);
+        
+        // Second movement: compensating outbound (reverse of inbound)
+        Assert.Equal(10, movements[1].Quantity);
+        Assert.Equal(StockMovementType.Outbound, movements[1].MovementType);
+        Assert.Contains("Compensating movement", movements[1].Notes ?? "");
+    }
+
     public void Dispose()
     {
         _context.Database.EnsureDeleted();
