@@ -61,7 +61,7 @@
     <!-- Price Trend Chart -->
     @if (Product.Id != Guid.Empty)
     {
-        <PriceTrendChart PriceTrend="@_priceTrend" IsLoading="@_isLoadingPriceTrend" />
+        <PriceTrendChart PriceTrend="@_priceTrend" IsLoading="@_isLoadingPriceTrend" ProductId="@Product.Id" />
     }
 </MudStack>
 
