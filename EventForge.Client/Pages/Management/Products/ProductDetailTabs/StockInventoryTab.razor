@@ -224,7 +224,7 @@
         {
             _stockTrend = await ProductService.GetProductStockTrendAsync(Product.Id);
             _stockTrendLoaded = true;
-            var lastPoint = _stockTrend?.DataPoints?.OrderBy(dp => dp.Date).LastOrDefault();
+            var lastPoint = _stockTrend?.DataPoints?.OrderByDescending(dp => dp.Date).FirstOrDefault();
             Logger.LogDebug("StockInventoryTab: stockTrend.CurrentStock={CurrentStock}, lastPointDate={Date}, lastPointQty={Qty} for ProductId={ProductId}",
                 _stockTrend?.CurrentStock, lastPoint?.Date, lastPoint?.Quantity, Product.Id);
         }
