@@ -129,6 +129,19 @@ public class DocumentRow : AuditableEntity
     public decimal LineDiscount { get; set; } = 0m;
 
     /// <summary>
+    /// Line discount value (absolute amount).
+    /// </summary>
+    [Range(0, double.MaxValue, ErrorMessage = "Line discount value must be non-negative.")]
+    [Display(Name = "Line Discount Value", Description = "Discount applied to the row as an absolute amount.")]
+    public decimal LineDiscountValue { get; set; } = 0m;
+
+    /// <summary>
+    /// Discount type (percentage or value).
+    /// </summary>
+    [Display(Name = "Discount Type", Description = "Type of discount applied (percentage or value).")]
+    public DiscountType DiscountType { get; set; } = DiscountType.Percentage;
+
+    /// <summary>
     /// VAT rate applied to the line (percentage).
     /// </summary>
     [Range(0, 100, ErrorMessage = "VAT rate must be between 0 and 100.")]
@@ -205,7 +218,17 @@ public class DocumentRow : AuditableEntity
     /// </summary>
     [NotMapped]
     [Display(Name = "Line Total", Description = "Total for the row after discount.")]
-    public decimal LineTotal => Math.Round(UnitPrice * Quantity * (1 - (LineDiscount / 100)), 2);
+    public decimal LineTotal
+    {
+        get
+        {
+            var subtotal = UnitPrice * Quantity;
+            var discount = DiscountType == DiscountType.Percentage
+                ? subtotal * (LineDiscount / 100)
+                : LineDiscountValue;
+            return Math.Round(subtotal - discount, 2);
+        }
+    }
 
     /// <summary>
     /// VAT total for the row (not mapped).
@@ -219,7 +242,16 @@ public class DocumentRow : AuditableEntity
     /// </summary>
     [NotMapped]
     [Display(Name = "Discount Total", Description = "Total discount applied to the row.")]
-    public decimal DiscountTotal => Math.Round(UnitPrice * Quantity * (LineDiscount / 100), 2);
+    public decimal DiscountTotal
+    {
+        get
+        {
+            var subtotal = UnitPrice * Quantity;
+            return DiscountType == DiscountType.Percentage
+                ? Math.Round(subtotal * (LineDiscount / 100), 2)
+                : Math.Round(LineDiscountValue, 2);
+        }
+    }
 
     /// <summary>
     /// Gets or sets the collection of summary links that include this document row.
@@ -250,4 +282,20 @@ public enum DocumentRowType
     Service,
     Bundle,
     Other
+}
+
+/// <summary>
+/// Discount type enumeration.
+/// </summary>
+public enum DiscountType
+{
+    /// <summary>
+    /// Discount as percentage.
+    /// </summary>
+    Percentage,
+    
+    /// <summary>
+    /// Discount as absolute value.
+    /// </summary>
+    Value
 }

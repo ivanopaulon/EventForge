@@ -2,6 +2,7 @@
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.UnitOfMeasures
 @using EventForge.DTOs.VatRates
+@using EventForge.DTOs.Common
 @using MudBlazor
 @inject IDocumentHeaderService DocumentHeaderService
 @inject IProductService ProductService
@@ -55,21 +56,26 @@
                 </ItemTemplate>
             </MudAutocomplete>
 
-            <!-- Product Details (only shows description and code, no duplication) -->
-            <MudTextField T="string"
-                          Variant="Variant.Outlined"
-                          Label="@TranslationService.GetTranslation("documents.description", "Descrizione")"
-                          @bind-Value="_model.Description"
-                          Required="true"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Outlined.Description" />
-
-            <MudTextField T="string"
-                          Variant="Variant.Outlined"
-                          Label="@TranslationService.GetTranslation("documents.productCode", "Codice")"
-                          @bind-Value="_model.ProductCode"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Outlined.Tag" />
+            <!-- Product Code and Description on same line -->
+            <MudGrid Spacing="2">
+                <MudItem xs="12" md="4">
+                    <MudTextField T="string"
+                                  Variant="Variant.Outlined"
+                                  Label="@TranslationService.GetTranslation("documents.productCode", "Codice")"
+                                  @bind-Value="_model.ProductCode"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Tag" />
+                </MudItem>
+                <MudItem xs="12" md="8">
+                    <MudTextField T="string"
+                                  Variant="Variant.Outlined"
+                                  Label="@TranslationService.GetTranslation("documents.description", "Descrizione")"
+                                  @bind-Value="_model.Description"
+                                  Required="true"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Description" />
+                </MudItem>
+            </MudGrid>
 
             <MudGrid Spacing="2">
                 <MudItem xs="12" md="3">
@@ -128,6 +134,46 @@
                 </MudItem>
             </MudGrid>
 
+            <!-- Discount Section -->
+            <MudGrid Spacing="2">
+                <MudItem xs="12" md="3">
+                    <MudSelect T="DiscountType"
+                               Variant="Variant.Outlined"
+                               Label="@TranslationService.GetTranslation("documents.discountType", "Tipo Sconto")"
+                               @bind-Value="_model.DiscountType"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Outlined.LocalOffer">
+                        <MudSelectItem T="DiscountType" Value="@DiscountType.Percentage">@TranslationService.GetTranslation("documents.percentage", "Percentuale")</MudSelectItem>
+                        <MudSelectItem T="DiscountType" Value="@DiscountType.Value">@TranslationService.GetTranslation("documents.value", "Valore")</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="3">
+                    @if (_model.DiscountType == DiscountType.Percentage)
+                    {
+                        <MudNumericField T="decimal"
+                                         Variant="Variant.Outlined"
+                                         Label="@TranslationService.GetTranslation("documents.discountPercentage", "Sconto %")"
+                                         @bind-Value="_model.LineDiscount"
+                                         Min="0"
+                                         Max="100"
+                                         Format="N2"
+                                         Adornment="Adornment.End"
+                                         AdornmentIcon="@Icons.Material.Outlined.Percent" />
+                    }
+                    else
+                    {
+                        <MudNumericField T="decimal"
+                                         Variant="Variant.Outlined"
+                                         Label="@TranslationService.GetTranslation("documents.discountValue", "Sconto €")"
+                                         @bind-Value="_model.LineDiscountValue"
+                                         Min="0"
+                                         Format="N2"
+                                         Adornment="Adornment.Start"
+                                         AdornmentIcon="@Icons.Material.Outlined.Euro" />
+                    }
+                </MudItem>
+            </MudGrid>
+
             <MudTextField T="string"
                           Variant="Variant.Outlined"
                           Label="@TranslationService.GetTranslation("documents.notes", "Note")"
@@ -145,6 +191,21 @@
                     </MudText>
                     <MudDivider />
                     <MudGrid Spacing="1">
+                        <MudItem xs="6">
+                            <MudText Typo="Typo.body2">@TranslationService.GetTranslation("documents.baseAmount", "Imponibile base"):</MudText>
+                        </MudItem>
+                        <MudItem xs="6" Style="text-align: right;">
+                            <MudText Typo="Typo.body2" Style="font-weight: 600;">@((_model.Quantity * _model.UnitPrice).ToString("N2")) €</MudText>
+                        </MudItem>
+                        @if (_model.LineDiscount > 0 || _model.LineDiscountValue > 0)
+                        {
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2" Color="Color.Success">@TranslationService.GetTranslation("documents.discount", "Sconto"):</MudText>
+                            </MudItem>
+                            <MudItem xs="6" Style="text-align: right;">
+                                <MudText Typo="Typo.body2" Color="Color.Success" Style="font-weight: 600;">- @CalculateDiscountAmount().ToString("N2") €</MudText>
+                            </MudItem>
+                        }
                         <MudItem xs="6">
                             <MudText Typo="Typo.body2">@TranslationService.GetTranslation("documents.subtotal", "Subtotale"):</MudText>
                         </MudItem>
@@ -487,7 +548,22 @@
 
     private decimal CalculateSubtotal()
     {
-        return _model.Quantity * _model.UnitPrice;
+        var baseAmount = _model.Quantity * _model.UnitPrice;
+        
+        // Apply discount
+        var discount = _model.DiscountType == DiscountType.Percentage
+            ? baseAmount * (_model.LineDiscount / 100m)
+            : _model.LineDiscountValue;
+        
+        return baseAmount - discount;
+    }
+
+    private decimal CalculateDiscountAmount()
+    {
+        var baseAmount = _model.Quantity * _model.UnitPrice;
+        return _model.DiscountType == DiscountType.Percentage
+            ? baseAmount * (_model.LineDiscount / 100m)
+            : _model.LineDiscountValue;
     }
 
     private decimal CalculateVatAmount()
@@ -611,6 +687,8 @@
                     Notes = _model.Notes,
                     RowType = _model.RowType,
                     LineDiscount = _model.LineDiscount,
+                    LineDiscountValue = _model.LineDiscountValue,
+                    DiscountType = _model.DiscountType,
                     VatRate = _model.VatRate,
                     VatDescription = _model.VatDescription,
                     IsGift = _model.IsGift,

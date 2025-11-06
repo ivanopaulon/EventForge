@@ -74,6 +74,16 @@ namespace EventForge.DTOs.Documents
         public decimal LineDiscount { get; set; }
 
         /// <summary>
+        /// Line discount value (absolute amount).
+        /// </summary>
+        public decimal LineDiscountValue { get; set; }
+
+        /// <summary>
+        /// Discount type (percentage or value).
+        /// </summary>
+        public DiscountType DiscountType { get; set; }
+
+        /// <summary>
         /// VAT rate applied to the line (percentage).
         /// </summary>
         public decimal VatRate { get; set; }

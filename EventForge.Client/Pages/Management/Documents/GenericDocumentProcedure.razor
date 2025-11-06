@@ -173,6 +173,7 @@
                         <MudTh>@TranslationService.GetTranslation("documents.quantity", "Quantità")</MudTh>
                         <MudTh>@TranslationService.GetTranslation("documents.unitOfMeasure", "UM")</MudTh>
                         <MudTh>@TranslationService.GetTranslation("documents.unitPrice", "Prezzo")</MudTh>
+                        <MudTh>@TranslationService.GetTranslation("documents.discount", "Sconto")</MudTh>
                         <MudTh>@TranslationService.GetTranslation("documents.total", "Totale")</MudTh>
                         <MudTh Style="text-align: right;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                     </HeaderContent>
@@ -182,7 +183,21 @@
                         <MudTd DataLabel="@TranslationService.GetTranslation("documents.quantity", "Quantità")">@context.Quantity</MudTd>
                         <MudTd DataLabel="@TranslationService.GetTranslation("documents.unitOfMeasure", "UM")">@(context.UnitOfMeasure ?? "-")</MudTd>
                         <MudTd DataLabel="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo")">@context.UnitPrice.ToString("C2")</MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.total", "Totale")">@((context.Quantity * context.UnitPrice).ToString("C2"))</MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.discount", "Sconto")">
+                            @if (context.DiscountType == EventForge.DTOs.Common.DiscountType.Percentage && context.LineDiscount > 0)
+                            {
+                                <span>@context.LineDiscount.ToString("N2")%</span>
+                            }
+                            else if (context.DiscountType == EventForge.DTOs.Common.DiscountType.Value && context.LineDiscountValue > 0)
+                            {
+                                <span>@context.LineDiscountValue.ToString("C2")</span>
+                            }
+                            else
+                            {
+                                <span>-</span>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.total", "Totale")">@context.LineTotal.ToString("C2")</MudTd>
                         <MudTd Style="text-align: right;">
                             <ActionButtonGroup EntityName="@TranslationService.GetTranslation("entity.documentRow", "Riga")"
                                                ItemDisplayName="@context.Description"

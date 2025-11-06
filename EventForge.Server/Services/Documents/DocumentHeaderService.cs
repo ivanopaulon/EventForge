@@ -891,6 +891,8 @@ public class DocumentHeaderService : IDocumentHeaderService
             row.UnitPrice = updateDto.UnitPrice;
             row.Quantity = updateDto.Quantity;
             row.LineDiscount = updateDto.LineDiscount;
+            row.LineDiscountValue = updateDto.LineDiscountValue;
+            row.DiscountType = (Data.Entities.Documents.DiscountType)updateDto.DiscountType;
             row.VatRate = updateDto.VatRate;
             row.VatDescription = updateDto.VatDescription;
             row.IsGift = updateDto.IsGift;
