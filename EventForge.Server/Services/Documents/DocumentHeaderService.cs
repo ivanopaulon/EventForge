@@ -1313,15 +1313,40 @@ public class DocumentHeaderService : IDocumentHeaderService
             var newDateUtc = DateTime.SpecifyKind(newDate, DateTimeKind.Utc);
             var modifiedAt = DateTime.UtcNow;
 
-            // Use batch SQL update for efficiency
-            var affected = await _context.Database.ExecuteSqlInterpolatedAsync(
-                $@"UPDATE StockMovements
-                   SET MovementDate = {newDateUtc}, 
-                       ModifiedAt = {modifiedAt}, 
-                       ModifiedBy = {currentUser}
-                   WHERE DocumentHeaderId = {documentHeaderId} 
-                     AND IsDeleted = 0",
-                cancellationToken);
+            // Try batch SQL update for efficiency (works with SQL Server)
+            // Fall back to in-memory update for test databases
+            int affected;
+            try
+            {
+                affected = await _context.Database.ExecuteSqlInterpolatedAsync(
+                    $@"UPDATE StockMovements
+                       SET MovementDate = {newDateUtc}, 
+                           ModifiedAt = {modifiedAt}, 
+                           ModifiedBy = {currentUser}
+                       WHERE DocumentHeaderId = {documentHeaderId} 
+                         AND IsDeleted = 0",
+                    cancellationToken);
+            }
+            catch (InvalidOperationException)
+            {
+                // Fallback for in-memory databases used in tests
+                var movements = await _context.StockMovements
+                    .Where(sm => sm.DocumentHeaderId == documentHeaderId && !sm.IsDeleted)
+                    .ToListAsync(cancellationToken);
+
+                affected = movements.Count;
+                foreach (var movement in movements)
+                {
+                    movement.MovementDate = newDateUtc;
+                    movement.ModifiedAt = modifiedAt;
+                    movement.ModifiedBy = currentUser;
+                }
+
+                if (affected > 0)
+                {
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+            }
 
             if (affected > 0)
             {
@@ -1335,7 +1360,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                     $"Synchronized {affected} stock movement(s) to document date {newDateUtc:yyyy-MM-dd HH:mm:ss} UTC",
                     currentUser);
 
-                _logger.LogInformation("Synchronized {Count} stock movement dates for document {DocumentHeaderId} to {NewDate} using batch update.",
+                _logger.LogInformation("Synchronized {Count} stock movement dates for document {DocumentHeaderId} to {NewDate}.",
                     affected, documentHeaderId, newDateUtc);
             }
             else
