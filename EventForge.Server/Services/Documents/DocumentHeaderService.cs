@@ -763,6 +763,89 @@ public class DocumentHeaderService : IDocumentHeaderService
             _logger.LogInformation("Document row {RowId} added to document {DocumentHeaderId} by {User}.",
                 row.Id, createDto.DocumentHeaderId, currentUser);
 
+            // If document is already approved, create stock movement immediately
+            if (documentHeader.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved && row.ProductId.HasValue)
+            {
+                // Load document type to determine stock increase/decrease
+                if (documentHeader.DocumentType == null)
+                {
+                    documentHeader = await _context.DocumentHeaders
+                        .Include(dh => dh.DocumentType)
+                        .FirstOrDefaultAsync(dh => dh.Id == documentHeader.Id && !dh.IsDeleted, cancellationToken) ?? documentHeader;
+                }
+
+                if (documentHeader.DocumentType != null)
+                {
+                    var documentDateUtc = DateTime.SpecifyKind(documentHeader.Date, DateTimeKind.Utc);
+
+                    // Determine the warehouse location to use (same logic as ProcessStockMovementsForDocumentAsync)
+                    Guid? warehouseLocationId = null;
+                    if (documentHeader.DocumentType.IsStockIncrease)
+                    {
+                        warehouseLocationId = row.DestinationWarehouseId
+                                           ?? documentHeader.DestinationWarehouseId
+                                           ?? documentHeader.DocumentType.DefaultWarehouseId;
+                    }
+                    else
+                    {
+                        warehouseLocationId = row.SourceWarehouseId
+                                           ?? documentHeader.SourceWarehouseId
+                                           ?? documentHeader.DocumentType.DefaultWarehouseId;
+                    }
+
+                    if (warehouseLocationId.HasValue)
+                    {
+                        var storageLocation = await _context.StorageLocations
+                            .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
+                            .FirstOrDefaultAsync(cancellationToken);
+
+                        if (storageLocation != null)
+                        {
+                            if (documentHeader.DocumentType.IsStockIncrease)
+                            {
+                                await _stockMovementService.ProcessInboundMovementAsync(
+                                    productId: row.ProductId.Value,
+                                    toLocationId: storageLocation.Id,
+                                    quantity: row.Quantity,
+                                    unitCost: row.UnitPrice,
+                                    documentHeaderId: documentHeader.Id,
+                                    documentRowId: row.Id,
+                                    notes: $"Auto-generated from document {documentHeader.Number}",
+                                    currentUser: currentUser,
+                                    movementDate: documentDateUtc,
+                                    cancellationToken: cancellationToken);
+                                
+                                _logger.LogInformation("Created immediate inbound stock movement for approved document row {RowId}.", row.Id);
+                            }
+                            else
+                            {
+                                await _stockMovementService.ProcessOutboundMovementAsync(
+                                    productId: row.ProductId.Value,
+                                    fromLocationId: storageLocation.Id,
+                                    quantity: row.Quantity,
+                                    documentHeaderId: documentHeader.Id,
+                                    documentRowId: row.Id,
+                                    notes: $"Auto-generated from document {documentHeader.Number}",
+                                    currentUser: currentUser,
+                                    movementDate: documentDateUtc,
+                                    cancellationToken: cancellationToken);
+                                
+                                _logger.LogInformation("Created immediate outbound stock movement for approved document row {RowId}.", row.Id);
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogWarning("No storage location found in warehouse {WarehouseId} for approved document row {RowId}. Stock movement not created.",
+                                warehouseLocationId, row.Id);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("No warehouse found for approved document row {RowId}. Stock movement not created.", row.Id);
+                    }
+                }
+            }
+
             return row.ToDto();
         }
         catch (Exception ex)
@@ -784,6 +867,8 @@ public class DocumentHeaderService : IDocumentHeaderService
         try
         {
             var row = await _context.DocumentRows
+                .Include(r => r.DocumentHeader)
+                    .ThenInclude(dh => dh!.DocumentType)
                 .FirstOrDefaultAsync(r => r.Id == rowId && !r.IsDeleted, cancellationToken);
 
             if (row == null)
@@ -791,6 +876,10 @@ public class DocumentHeaderService : IDocumentHeaderService
                 _logger.LogWarning("Document row {RowId} not found for update.", rowId);
                 return null;
             }
+
+            // Store old quantity for compensating movement calculation
+            var oldQuantity = row.Quantity;
+            var oldProductId = row.ProductId;
 
             // Update row properties
             row.RowType = (Data.Entities.Documents.DocumentRowType)updateDto.RowType;
@@ -823,6 +912,114 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             _logger.LogInformation("Document row {RowId} updated by {User}.", rowId, currentUser);
 
+            // If document is approved and quantity changed, create compensating movement
+            if (row.DocumentHeader != null && 
+                row.DocumentHeader.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved && 
+                row.ProductId.HasValue &&
+                row.ProductId == oldProductId)
+            {
+                var delta = row.Quantity - oldQuantity;
+                if (delta != 0)
+                {
+                    var documentDateUtc = DateTime.SpecifyKind(row.DocumentHeader.Date, DateTimeKind.Utc);
+                    
+                    // Determine warehouse location
+                    Guid? warehouseLocationId = null;
+                    if (row.DocumentHeader.DocumentType != null)
+                    {
+                        if (row.DocumentHeader.DocumentType.IsStockIncrease)
+                        {
+                            warehouseLocationId = row.DestinationWarehouseId
+                                               ?? row.DocumentHeader.DestinationWarehouseId
+                                               ?? row.DocumentHeader.DocumentType.DefaultWarehouseId;
+                        }
+                        else
+                        {
+                            warehouseLocationId = row.SourceWarehouseId
+                                               ?? row.DocumentHeader.SourceWarehouseId
+                                               ?? row.DocumentHeader.DocumentType.DefaultWarehouseId;
+                        }
+
+                        if (warehouseLocationId.HasValue)
+                        {
+                            var storageLocation = await _context.StorageLocations
+                                .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
+                                .FirstOrDefaultAsync(cancellationToken);
+
+                            if (storageLocation != null)
+                            {
+                                if (delta > 0)
+                                {
+                                    // Positive delta: add more stock
+                                    if (row.DocumentHeader.DocumentType.IsStockIncrease)
+                                    {
+                                        await _stockMovementService.ProcessInboundMovementAsync(
+                                            productId: row.ProductId.Value,
+                                            toLocationId: storageLocation.Id,
+                                            quantity: delta,
+                                            unitCost: row.UnitPrice,
+                                            documentHeaderId: row.DocumentHeader.Id,
+                                            documentRowId: row.Id,
+                                            notes: $"Compensating movement: quantity increased from {oldQuantity} to {row.Quantity}",
+                                            currentUser: currentUser,
+                                            movementDate: documentDateUtc,
+                                            cancellationToken: cancellationToken);
+                                    }
+                                    else
+                                    {
+                                        await _stockMovementService.ProcessOutboundMovementAsync(
+                                            productId: row.ProductId.Value,
+                                            fromLocationId: storageLocation.Id,
+                                            quantity: delta,
+                                            documentHeaderId: row.DocumentHeader.Id,
+                                            documentRowId: row.Id,
+                                            notes: $"Compensating movement: quantity increased from {oldQuantity} to {row.Quantity}",
+                                            currentUser: currentUser,
+                                            movementDate: documentDateUtc,
+                                            cancellationToken: cancellationToken);
+                                    }
+                                }
+                                else
+                                {
+                                    // Negative delta: remove stock
+                                    var absDelta = Math.Abs(delta);
+                                    if (row.DocumentHeader.DocumentType.IsStockIncrease)
+                                    {
+                                        await _stockMovementService.ProcessOutboundMovementAsync(
+                                            productId: row.ProductId.Value,
+                                            fromLocationId: storageLocation.Id,
+                                            quantity: absDelta,
+                                            documentHeaderId: row.DocumentHeader.Id,
+                                            documentRowId: row.Id,
+                                            notes: $"Compensating movement: quantity decreased from {oldQuantity} to {row.Quantity}",
+                                            currentUser: currentUser,
+                                            movementDate: documentDateUtc,
+                                            cancellationToken: cancellationToken);
+                                    }
+                                    else
+                                    {
+                                        await _stockMovementService.ProcessInboundMovementAsync(
+                                            productId: row.ProductId.Value,
+                                            toLocationId: storageLocation.Id,
+                                            quantity: absDelta,
+                                            unitCost: row.UnitPrice,
+                                            documentHeaderId: row.DocumentHeader.Id,
+                                            documentRowId: row.Id,
+                                            notes: $"Compensating movement: quantity decreased from {oldQuantity} to {row.Quantity}",
+                                            currentUser: currentUser,
+                                            movementDate: documentDateUtc,
+                                            cancellationToken: cancellationToken);
+                                    }
+                                }
+
+                                _logger.LogInformation("Created compensating stock movement for updated row {RowId} in approved document. Delta: {Delta}",
+                                    rowId, delta);
+                            }
+                        }
+                    }
+                }
+            }
+
             return row.ToDto();
         }
         catch (Exception ex)
@@ -842,6 +1039,8 @@ public class DocumentHeaderService : IDocumentHeaderService
         try
         {
             var row = await _context.DocumentRows
+                .Include(r => r.DocumentHeader)
+                    .ThenInclude(dh => dh!.DocumentType)
                 .FirstOrDefaultAsync(r => r.Id == rowId && !r.IsDeleted, cancellationToken);
 
             if (row == null)
@@ -850,13 +1049,85 @@ public class DocumentHeaderService : IDocumentHeaderService
                 return false;
             }
 
+            var currentUser = "System"; // Default, should be passed in ideally
+
+            // If document is approved, create compensating movement before deleting row
+            if (row.DocumentHeader != null && 
+                row.DocumentHeader.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved &&
+                row.ProductId.HasValue)
+            {
+                // Find existing movement for this row
+                var existingMovement = await _context.StockMovements
+                    .FirstOrDefaultAsync(sm => sm.DocumentRowId == rowId && !sm.IsDeleted, cancellationToken);
+
+                if (existingMovement != null && row.DocumentHeader.DocumentType != null)
+                {
+                    var documentDateUtc = DateTime.SpecifyKind(row.DocumentHeader.Date, DateTimeKind.Utc);
+                    
+                    // Determine warehouse location
+                    Guid? warehouseLocationId = null;
+                    if (row.DocumentHeader.DocumentType.IsStockIncrease)
+                    {
+                        warehouseLocationId = row.DestinationWarehouseId
+                                           ?? row.DocumentHeader.DestinationWarehouseId
+                                           ?? row.DocumentHeader.DocumentType.DefaultWarehouseId;
+                    }
+                    else
+                    {
+                        warehouseLocationId = row.SourceWarehouseId
+                                           ?? row.DocumentHeader.SourceWarehouseId
+                                           ?? row.DocumentHeader.DocumentType.DefaultWarehouseId;
+                    }
+
+                    if (warehouseLocationId.HasValue)
+                    {
+                        var storageLocation = await _context.StorageLocations
+                            .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
+                            .FirstOrDefaultAsync(cancellationToken);
+
+                        if (storageLocation != null)
+                        {
+                            // Create reverse movement to compensate for the deletion
+                            if (existingMovement.MovementType == StockMovementType.Inbound)
+                            {
+                                await _stockMovementService.ProcessOutboundMovementAsync(
+                                    productId: existingMovement.ProductId,
+                                    fromLocationId: existingMovement.ToLocationId ?? storageLocation.Id,
+                                    quantity: existingMovement.Quantity,
+                                    documentHeaderId: row.DocumentHeader.Id,
+                                    documentRowId: rowId,
+                                    notes: $"Compensating movement: document row deleted",
+                                    currentUser: currentUser,
+                                    movementDate: documentDateUtc,
+                                    cancellationToken: cancellationToken);
+                            }
+                            else
+                            {
+                                await _stockMovementService.ProcessInboundMovementAsync(
+                                    productId: existingMovement.ProductId,
+                                    toLocationId: existingMovement.FromLocationId ?? storageLocation.Id,
+                                    quantity: existingMovement.Quantity,
+                                    documentHeaderId: row.DocumentHeader.Id,
+                                    documentRowId: rowId,
+                                    notes: $"Compensating movement: document row deleted",
+                                    currentUser: currentUser,
+                                    movementDate: documentDateUtc,
+                                    cancellationToken: cancellationToken);
+                            }
+
+                            _logger.LogInformation("Created compensating stock movement for deleted row {RowId} in approved document.", rowId);
+                        }
+                    }
+                }
+            }
+
             // Soft delete
             row.IsDeleted = true;
             row.ModifiedAt = DateTime.UtcNow;
 
             _ = await _context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(row, "Delete", "System", null, cancellationToken);
+            _ = await _auditLogService.TrackEntityChangesAsync(row, "Delete", currentUser, null, cancellationToken);
 
             _logger.LogInformation("Document row {RowId} deleted.", rowId);
 
@@ -949,6 +1220,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                         lotId: null,
                         serialId: null,
                         documentHeaderId: documentHeader.Id,
+                        documentRowId: row.Id,
                         notes: $"Auto-generated from document {documentHeader.Number}",
                         currentUser: currentUser,
                         movementDate: documentDateUtc,
@@ -1006,6 +1278,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                         lotId: null,
                         serialId: null,
                         documentHeaderId: documentHeader.Id,
+                        documentRowId: row.Id,
                         notes: $"Auto-generated from document {documentHeader.Number}",
                         currentUser: currentUser,
                         movementDate: documentDateUtc,
@@ -1038,39 +1311,37 @@ public class DocumentHeaderService : IDocumentHeaderService
         {
             // Ensure the date is in UTC
             var newDateUtc = DateTime.SpecifyKind(newDate, DateTimeKind.Utc);
-            
-            var movements = await _context.StockMovements
-                .Where(sm => sm.DocumentHeaderId == documentHeaderId && !sm.IsDeleted)
-                .ToListAsync(cancellationToken);
+            var modifiedAt = DateTime.UtcNow;
 
-            if (!movements.Any())
+            // Use batch SQL update for efficiency
+            var affected = await _context.Database.ExecuteSqlInterpolatedAsync(
+                $@"UPDATE StockMovements
+                   SET MovementDate = {newDateUtc}, 
+                       ModifiedAt = {modifiedAt}, 
+                       ModifiedBy = {currentUser}
+                   WHERE DocumentHeaderId = {documentHeaderId} 
+                     AND IsDeleted = 0",
+                cancellationToken);
+
+            if (affected > 0)
+            {
+                // Log the sync operation
+                await _auditLogService.LogEntityChangeAsync(
+                    "StockMovement",
+                    documentHeaderId,
+                    "MovementDate",
+                    "BulkUpdate",
+                    null,
+                    $"Synchronized {affected} stock movement(s) to document date {newDateUtc:yyyy-MM-dd HH:mm:ss} UTC",
+                    currentUser);
+
+                _logger.LogInformation("Synchronized {Count} stock movement dates for document {DocumentHeaderId} to {NewDate} using batch update.",
+                    affected, documentHeaderId, newDateUtc);
+            }
+            else
             {
                 _logger.LogInformation("No stock movements found for document {DocumentHeaderId} to sync dates.", documentHeaderId);
-                return;
             }
-
-            var movementsUpdated = 0;
-            foreach (var movement in movements)
-            {
-                movement.MovementDate = newDateUtc;
-                // Note: ModifiedAt and ModifiedBy are set automatically by DbContext.SaveChangesAsync override
-                movementsUpdated++;
-            }
-
-            await _context.SaveChangesAsync(cancellationToken);
-
-            // Log the sync operation
-            await _auditLogService.LogEntityChangeAsync(
-                "StockMovement",
-                documentHeaderId,
-                "MovementDate",
-                "BulkUpdate",
-                null,
-                $"Synchronized {movementsUpdated} stock movement(s) to document date {newDateUtc:yyyy-MM-dd HH:mm:ss} UTC",
-                currentUser);
-
-            _logger.LogInformation("Synchronized {Count} stock movement dates for document {DocumentHeaderId} to {NewDate}.",
-                movementsUpdated, documentHeaderId, newDateUtc);
         }
         catch (Exception ex)
         {

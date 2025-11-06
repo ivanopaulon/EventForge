@@ -240,6 +240,7 @@ public class StockMovementService : IStockMovementService
             UnitCost = createDto.UnitCost,
             MovementDate = createDto.MovementDate,
             DocumentHeaderId = createDto.DocumentHeaderId,
+            DocumentRowId = createDto.DocumentRowId,
             Reason = !string.IsNullOrEmpty(createDto.Reason) && Enum.TryParse<StockMovementReason>(createDto.Reason, out var reasonEnum)
                 ? reasonEnum
                 : StockMovementReason.Other,
@@ -286,6 +287,7 @@ public class StockMovementService : IStockMovementService
                 Quantity = createDto.Quantity,
                 UnitCost = createDto.UnitCost,
                 MovementDate = createDto.MovementDate,
+                DocumentRowId = createDto.DocumentRowId,
                 Reason = !string.IsNullOrEmpty(createDto.Reason) && Enum.TryParse<StockMovementReason>(createDto.Reason, out var reasonEnum)
                     ? reasonEnum
                     : StockMovementReason.Other,
@@ -317,6 +319,7 @@ public class StockMovementService : IStockMovementService
         Guid? lotId = null,
         Guid? serialId = null,
         Guid? documentHeaderId = null,
+        Guid? documentRowId = null,
         string? notes = null,
         string? currentUser = null,
         DateTime? movementDate = null,
@@ -332,6 +335,7 @@ public class StockMovementService : IStockMovementService
             LotId = lotId,
             SerialId = serialId,
             DocumentHeaderId = documentHeaderId,
+            DocumentRowId = documentRowId,
             Notes = notes,
             Reason = "Purchase",
             MovementDate = movementDate ?? DateTime.UtcNow
@@ -347,6 +351,7 @@ public class StockMovementService : IStockMovementService
         Guid? lotId = null,
         Guid? serialId = null,
         Guid? documentHeaderId = null,
+        Guid? documentRowId = null,
         string? notes = null,
         string? currentUser = null,
         DateTime? movementDate = null,
@@ -361,6 +366,7 @@ public class StockMovementService : IStockMovementService
             LotId = lotId,
             SerialId = serialId,
             DocumentHeaderId = documentHeaderId,
+            DocumentRowId = documentRowId,
             Notes = notes,
             Reason = "Sale",
             MovementDate = movementDate ?? DateTime.UtcNow
