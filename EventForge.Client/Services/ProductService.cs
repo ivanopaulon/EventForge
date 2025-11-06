@@ -32,11 +32,27 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.GetAsync<ProductDto>($"{BaseUrl}/by-code/{Uri.EscapeDataString(code)}");
+            // Legacy endpoint for backward compatibility - returns only product
+            // New code should use GetProductWithCodeByCodeAsync
+            var result = await GetProductWithCodeByCodeAsync(code);
+            return result?.Product;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving product by code {Code}", code);
+            return null;
+        }
+    }
+
+    public async Task<ProductWithCodeDto?> GetProductWithCodeByCodeAsync(string code)
+    {
+        try
+        {
+            return await _httpClientService.GetAsync<ProductWithCodeDto>($"{BaseUrl}/by-code/{Uri.EscapeDataString(code)}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product with code by code {Code}", code);
             return null;
         }
     }

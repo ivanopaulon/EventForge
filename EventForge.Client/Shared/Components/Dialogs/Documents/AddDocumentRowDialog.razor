@@ -183,6 +183,7 @@
     private List<ProductUnitDto> _availableUnits = new();
     private List<UMDto> _allUnitsOfMeasure = new();
     private Guid? _selectedUnitOfMeasureId = null;
+    private Guid? _barcodeProductUnitId = null; // Track unit from barcode lookup
 
     protected override async Task OnInitializedAsync()
     {
@@ -232,11 +233,15 @@
 
         try
         {
-            var product = await ProductService.GetProductByCodeAsync(barcode);
-            if (product != null)
+            // Use new API that returns ProductWithCodeDto
+            var productWithCode = await ProductService.GetProductWithCodeByCodeAsync(barcode);
+            if (productWithCode?.Product != null)
             {
-                OnProductSelected(product);
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato: {0}", product.Name), Severity.Success);
+                // Store the ProductUnitId from the barcode if available
+                _barcodeProductUnitId = productWithCode.Code?.ProductUnitId;
+                
+                OnProductSelected(productWithCode.Product);
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato: {0}", productWithCode.Product.Name), Severity.Success);
                 
                 // Focus on quantity field after product is found
                 if (_quantityField != null)
@@ -303,19 +308,31 @@
 
             if (_availableUnits.Any())
             {
-                // Find the default unit or use the first one
-                var defaultUnit = _availableUnits.FirstOrDefault(u => u.UnitType == "Base");
-                if (defaultUnit != null)
+                // If barcode lookup provided a ProductUnitId, try to use it
+                if (_barcodeProductUnitId.HasValue)
                 {
-                    _selectedUnitOfMeasureId = defaultUnit.UnitOfMeasureId;
+                    // Find the unit with the ProductUnitId from the barcode
+                    var barcodeUnit = _availableUnits.FirstOrDefault(u => u.Id == _barcodeProductUnitId.Value);
+                    if (barcodeUnit != null)
+                    {
+                        _selectedUnitOfMeasureId = barcodeUnit.UnitOfMeasureId;
+                        UpdateModelUnitOfMeasure(_selectedUnitOfMeasureId);
+                        
+                        // Clear the barcode unit after using it
+                        _barcodeProductUnitId = null;
+                    }
+                    else
+                    {
+                        // Barcode specified a unit, but it's not in the available units
+                        // Fall back to default selection
+                        SelectDefaultUnit();
+                    }
                 }
                 else
                 {
-                    _selectedUnitOfMeasureId = _availableUnits.First().UnitOfMeasureId;
+                    // No barcode unit - use default selection
+                    SelectDefaultUnit();
                 }
-
-                // Set the unit of measure name
-                UpdateModelUnitOfMeasure(_selectedUnitOfMeasureId);
             }
             else
             {
@@ -353,6 +370,23 @@
             Logger.LogError(ex, "Error loading product units for product {ProductId}", product.Id);
             Snackbar.Add(TranslationService.GetTranslation("documents.errorLoadingUnits", "Errore nel caricamento delle unità di misura"), Severity.Error);
         }
+    }
+
+    private void SelectDefaultUnit()
+    {
+        // Find the default unit or use the first one
+        var defaultUnit = _availableUnits.FirstOrDefault(u => u.UnitType == "Base");
+        if (defaultUnit != null)
+        {
+            _selectedUnitOfMeasureId = defaultUnit.UnitOfMeasureId;
+        }
+        else
+        {
+            _selectedUnitOfMeasureId = _availableUnits.First().UnitOfMeasureId;
+        }
+
+        // Set the unit of measure name
+        UpdateModelUnitOfMeasure(_selectedUnitOfMeasureId);
     }
 
     private void OnUnitOfMeasureChanged(Guid? unitOfMeasureId)
