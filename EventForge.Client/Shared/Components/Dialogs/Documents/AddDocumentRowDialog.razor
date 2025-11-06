@@ -546,24 +546,26 @@
         StateHasChanged();
     }
 
-    private decimal CalculateSubtotal()
+    private decimal GetDiscountAmount()
     {
         var baseAmount = _model.Quantity * _model.UnitPrice;
-        
-        // Apply discount
         var discount = _model.DiscountType == DiscountType.Percentage
             ? baseAmount * (_model.LineDiscount / 100m)
             : _model.LineDiscountValue;
         
-        return baseAmount - discount;
+        // Ensure discount doesn't exceed base amount
+        return Math.Min(discount, baseAmount);
+    }
+
+    private decimal CalculateSubtotal()
+    {
+        var baseAmount = _model.Quantity * _model.UnitPrice;
+        return baseAmount - GetDiscountAmount();
     }
 
     private decimal CalculateDiscountAmount()
     {
-        var baseAmount = _model.Quantity * _model.UnitPrice;
-        return _model.DiscountType == DiscountType.Percentage
-            ? baseAmount * (_model.LineDiscount / 100m)
-            : _model.LineDiscountValue;
+        return GetDiscountAmount();
     }
 
     private decimal CalculateVatAmount()

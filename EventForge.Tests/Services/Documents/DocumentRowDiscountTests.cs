@@ -1,3 +1,4 @@
+using EventForge.DTOs.Common;
 using EventForge.Server.Data.Entities.Documents;
 using Xunit;
 
@@ -112,5 +113,26 @@ public class DocumentRowDiscountTests
 
         // Assert
         Assert.Equal(0m, discountTotal);
+    }
+
+    [Fact]
+    public void LineTotal_WhenValueDiscountExceedsSubtotal_ClampedToZero()
+    {
+        // Arrange
+        var row = new DocumentRow
+        {
+            UnitPrice = 100m,
+            Quantity = 2m,
+            LineDiscountValue = 300m, // Exceeds 200
+            DiscountType = DiscountType.Value
+        };
+
+        // Act
+        var lineTotal = row.LineTotal;
+        var discountTotal = row.DiscountTotal;
+
+        // Assert
+        Assert.Equal(0m, lineTotal); // Should be clamped to 0
+        Assert.Equal(200m, discountTotal); // Discount should be clamped to subtotal
     }
 }

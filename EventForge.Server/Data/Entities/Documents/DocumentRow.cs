@@ -139,7 +139,7 @@ public class DocumentRow : AuditableEntity
     /// Discount type (percentage or value).
     /// </summary>
     [Display(Name = "Discount Type", Description = "Type of discount applied (percentage or value).")]
-    public DiscountType DiscountType { get; set; } = DiscountType.Percentage;
+    public EventForge.DTOs.Common.DiscountType DiscountType { get; set; } = EventForge.DTOs.Common.DiscountType.Percentage;
 
     /// <summary>
     /// VAT rate applied to the line (percentage).
@@ -223,9 +223,13 @@ public class DocumentRow : AuditableEntity
         get
         {
             var subtotal = UnitPrice * Quantity;
-            var discount = DiscountType == DiscountType.Percentage
+            var discount = DiscountType == EventForge.DTOs.Common.DiscountType.Percentage
                 ? subtotal * (LineDiscount / 100)
                 : LineDiscountValue;
+            
+            // Ensure discount doesn't exceed subtotal (prevent negative line totals)
+            discount = Math.Min(discount, subtotal);
+            
             return Math.Round(subtotal - discount, 2);
         }
     }
@@ -247,9 +251,14 @@ public class DocumentRow : AuditableEntity
         get
         {
             var subtotal = UnitPrice * Quantity;
-            return DiscountType == DiscountType.Percentage
-                ? Math.Round(subtotal * (LineDiscount / 100), 2)
-                : Math.Round(LineDiscountValue, 2);
+            var discount = DiscountType == EventForge.DTOs.Common.DiscountType.Percentage
+                ? subtotal * (LineDiscount / 100)
+                : LineDiscountValue;
+            
+            // Ensure discount doesn't exceed subtotal
+            discount = Math.Min(discount, subtotal);
+            
+            return Math.Round(discount, 2);
         }
     }
 
@@ -282,20 +291,4 @@ public enum DocumentRowType
     Service,
     Bundle,
     Other
-}
-
-/// <summary>
-/// Discount type enumeration.
-/// </summary>
-public enum DiscountType
-{
-    /// <summary>
-    /// Discount as percentage.
-    /// </summary>
-    Percentage,
-    
-    /// <summary>
-    /// Discount as absolute value.
-    /// </summary>
-    Value
 }

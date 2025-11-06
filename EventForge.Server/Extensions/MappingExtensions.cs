@@ -191,7 +191,7 @@ public static class MappingExtensions
             Quantity = dto.Quantity,
             LineDiscount = dto.LineDiscount,
             LineDiscountValue = dto.LineDiscountValue,
-            DiscountType = (EventForge.Server.Data.Entities.Documents.DiscountType)dto.DiscountType,
+            DiscountType = (EventForge.DTOs.Common.DiscountType)dto.DiscountType,
             VatRate = dto.VatRate,
             VatDescription = dto.VatDescription,
             IsGift = dto.IsGift,
