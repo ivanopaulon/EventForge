@@ -1,9 +1,11 @@
 @using EventForge.DTOs.Documents
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.UnitOfMeasures
+@using EventForge.DTOs.VatRates
 @using MudBlazor
 @inject IDocumentHeaderService DocumentHeaderService
 @inject IProductService ProductService
+@inject IFinancialService FinancialService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
 @inject ILogger<AddDocumentRowDialog> Logger
@@ -53,26 +55,12 @@
                 </ItemTemplate>
             </MudAutocomplete>
 
-            <!-- Product Details -->
-            @if (_selectedProduct != null)
-            {
-                <MudAlert Severity="Severity.Success" Dense="true" Variant="Variant.Text">
-                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Medium" />
-                        <div>
-                            <MudText Typo="Typo.body2" Style="font-weight: 600;">@_selectedProduct.Name</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">@TranslationService.GetTranslation("documents.productCode", "Codice"): @_selectedProduct.Code</MudText>
-                        </div>
-                    </MudStack>
-                </MudAlert>
-            }
-
+            <!-- Product Details (only shows description and code, no duplication) -->
             <MudTextField T="string"
                           Variant="Variant.Outlined"
                           Label="@TranslationService.GetTranslation("documents.description", "Descrizione")"
                           @bind-Value="_model.Description"
                           Required="true"
-                          Disabled="@(_selectedProduct != null)"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Outlined.Description" />
 
@@ -80,12 +68,11 @@
                           Variant="Variant.Outlined"
                           Label="@TranslationService.GetTranslation("documents.productCode", "Codice")"
                           @bind-Value="_model.ProductCode"
-                          Disabled="@(_selectedProduct != null)"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Outlined.Tag" />
 
             <MudGrid Spacing="2">
-                <MudItem xs="12" md="4">
+                <MudItem xs="12" md="3">
                     <MudNumericField T="decimal"
                                      Variant="Variant.Outlined"
                                      Label="@TranslationService.GetTranslation("documents.quantity", "Quantità")"
@@ -96,7 +83,7 @@
                                      Adornment="Adornment.Start"
                                      AdornmentIcon="@Icons.Material.Outlined.Numbers" />
                 </MudItem>
-                <MudItem xs="12" md="4">
+                <MudItem xs="12" md="3">
                     <MudNumericField T="decimal"
                                      Variant="Variant.Outlined"
                                      Label="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo Unitario")"
@@ -106,7 +93,7 @@
                                      Adornment="Adornment.Start"
                                      AdornmentIcon="@Icons.Material.Outlined.Euro" />
                 </MudItem>
-                <MudItem xs="12" md="4">
+                <MudItem xs="12" md="3">
                     <MudSelect T="Guid?"
                                Variant="Variant.Outlined"
                                Label="@TranslationService.GetTranslation("documents.unitOfMeasure", "UM")"
@@ -125,6 +112,20 @@
                         }
                     </MudSelect>
                 </MudItem>
+                <MudItem xs="12" md="3">
+                    <MudSelect T="Guid?"
+                               Variant="Variant.Outlined"
+                               Label="@TranslationService.GetTranslation("documents.vatRate", "Aliquota IVA")"
+                               Value="_selectedVatRateId"
+                               ValueChanged="@OnVatRateChanged"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Outlined.Percent">
+                        @foreach (var vatRate in _allVatRates)
+                        {
+                            <MudSelectItem T="Guid?" Value="@vatRate.Id">@vatRate.Name (@vatRate.Percentage%)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
             </MudGrid>
 
             <MudTextField T="string"
@@ -135,14 +136,58 @@
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Outlined.Comment" />
 
+            <!-- Line Total Display -->
+            <MudPaper Elevation="2" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.subtitle2" Color="Color.Primary">
+                        <MudIcon Icon="@Icons.Material.Outlined.Calculate" Class="mr-2" Size="Size.Small" />
+                        @TranslationService.GetTranslation("documents.lineTotal", "Totale Riga")
+                    </MudText>
+                    <MudDivider />
+                    <MudGrid Spacing="1">
+                        <MudItem xs="6">
+                            <MudText Typo="Typo.body2">@TranslationService.GetTranslation("documents.subtotal", "Subtotale"):</MudText>
+                        </MudItem>
+                        <MudItem xs="6" Style="text-align: right;">
+                            <MudText Typo="Typo.body2" Style="font-weight: 600;">@CalculateSubtotal().ToString("N2") €</MudText>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudText Typo="Typo.body2">@TranslationService.GetTranslation("documents.vat", "IVA") (@(_model.VatRate.ToString("0.##"))%):</MudText>
+                        </MudItem>
+                        <MudItem xs="6" Style="text-align: right;">
+                            <MudText Typo="Typo.body2" Style="font-weight: 600;">@CalculateVatAmount().ToString("N2") €</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudDivider />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudText Typo="Typo.h6" Color="Color.Primary">@TranslationService.GetTranslation("documents.total", "Totale"):</MudText>
+                        </MudItem>
+                        <MudItem xs="6" Style="text-align: right;">
+                            <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 600;">@CalculateLineTotal().ToString("N2") €</MudText>
+                        </MudItem>
+                    </MudGrid>
+                </MudStack>
+            </MudPaper>
+
             <!-- Merge Duplicates Option -->
             <MudCheckBox T="bool"
                          @bind-Checked="_model.MergeDuplicateProducts"
-                         Label="@TranslationService.GetTranslation("documents.mergeDuplicates", "Sum quantity if item already present")"
-                         Color="Color.Primary">
-                <MudTooltip Text="@TranslationService.GetTranslation("documents.mergeDuplicatesHelp", "When enabled, if you add the same product multiple times, the quantity will be summed to the existing row instead of creating a new one")">
-                    <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Color="Color.Info" Class="ml-1" />
-                </MudTooltip>
+                         Label="@TranslationService.GetTranslation("documents.mergeDuplicates", "Somma quantità se l'articolo è già presente")"
+                         Color="Color.Primary"
+                         Disabled="@(_selectedProduct == null)">
+                @if (_selectedProduct == null)
+                {
+                    <MudTooltip Text="@TranslationService.GetTranslation("documents.mergeDuplicatesRequiresProduct", "Seleziona un prodotto dall'autocomplete per abilitare la fusione")">
+                        <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Color="Color.Warning" Class="ml-1" />
+                    </MudTooltip>
+                }
+                else
+                {
+                    <MudTooltip Text="@TranslationService.GetTranslation("documents.mergeDuplicatesHelp", "Quando abilitato, se aggiungi lo stesso prodotto più volte, la quantità verrà sommata alla riga esistente invece di crearne una nuova")">
+                        <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Color="Color.Info" Class="ml-1" />
+                    </MudTooltip>
+                }
             </MudCheckBox>
 
             <!-- Quick Tips -->
@@ -182,7 +227,9 @@
     private bool _isEditMode => RowId.HasValue;
     private List<ProductUnitDto> _availableUnits = new();
     private List<UMDto> _allUnitsOfMeasure = new();
+    private List<VatRateDto> _allVatRates = new();
     private Guid? _selectedUnitOfMeasureId = null;
+    private Guid? _selectedVatRateId = null;
     private Guid? _barcodeProductUnitId = null; // Track unit from barcode lookup
 
     protected override async Task OnInitializedAsync()
@@ -196,6 +243,17 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading units of measure");
+        }
+
+        // Load all VAT rates
+        try
+        {
+            var vatRates = await FinancialService.GetVatRatesAsync();
+            _allVatRates = vatRates?.Where(v => v.IsActive).ToList() ?? new List<VatRateDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading VAT rates");
         }
 
         // If in edit mode, load the existing row
@@ -300,6 +358,18 @@
         _model.Description = product.Name;
         _model.UnitPrice = product.DefaultPrice ?? 0;
 
+        // Load VAT rate from product if available
+        if (product.VatRateId.HasValue)
+        {
+            _selectedVatRateId = product.VatRateId;
+            var vatRate = _allVatRates.FirstOrDefault(v => v.Id == product.VatRateId.Value);
+            if (vatRate != null)
+            {
+                _model.VatRate = vatRate.Percentage;
+                _model.VatDescription = vatRate.Name;
+            }
+        }
+
         // Load units of measure for this product
         try
         {
@@ -395,6 +465,44 @@
         UpdateModelUnitOfMeasure(unitOfMeasureId);
     }
 
+    private void OnVatRateChanged(Guid? vatRateId)
+    {
+        _selectedVatRateId = vatRateId;
+        if (vatRateId.HasValue)
+        {
+            var vatRate = _allVatRates.FirstOrDefault(v => v.Id == vatRateId.Value);
+            if (vatRate != null)
+            {
+                _model.VatRate = vatRate.Percentage;
+                _model.VatDescription = vatRate.Name;
+            }
+        }
+        else
+        {
+            _model.VatRate = 0;
+            _model.VatDescription = null;
+        }
+        StateHasChanged();
+    }
+
+    private decimal CalculateSubtotal()
+    {
+        return _model.Quantity * _model.UnitPrice;
+    }
+
+    private decimal CalculateVatAmount()
+    {
+        var subtotal = CalculateSubtotal();
+        return subtotal * (_model.VatRate / 100m);
+    }
+
+    private decimal CalculateLineTotal()
+    {
+        var subtotal = CalculateSubtotal();
+        var vatAmount = subtotal * (_model.VatRate / 100m);
+        return subtotal + vatAmount;
+    }
+
     private void UpdateModelUnitOfMeasure(Guid? unitOfMeasureId)
     {
         if (unitOfMeasureId.HasValue)
@@ -431,7 +539,21 @@
                 _model.UnitOfMeasure = row.UnitOfMeasure;
                 _model.UnitOfMeasureId = row.UnitOfMeasureId;
                 _model.Notes = row.Notes;
+                _model.VatRate = row.VatRate;
+                _model.VatDescription = row.VatDescription;
                 _selectedUnitOfMeasureId = row.UnitOfMeasureId;
+
+                // Try to find the VAT rate based on percentage and description
+                if (_model.VatRate > 0 || !string.IsNullOrEmpty(_model.VatDescription))
+                {
+                    var vatRate = _allVatRates.FirstOrDefault(v => 
+                        v.Percentage == _model.VatRate && 
+                        (string.IsNullOrEmpty(_model.VatDescription) || v.Name == _model.VatDescription));
+                    if (vatRate != null)
+                    {
+                        _selectedVatRateId = vatRate.Id;
+                    }
+                }
 
                 // Load the product if available
                 if (row.ProductId.HasValue)
