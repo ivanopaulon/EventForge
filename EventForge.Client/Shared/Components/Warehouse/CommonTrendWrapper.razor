@@ -101,12 +101,14 @@
     private bool _isDocsLoading;
     private IEnumerable<ProductDocumentMovementDto>? _docs;
     private long _documentCount;
+    private Guid? _lastLoadedProductId;
 
     protected override async Task OnParametersSetAsync()
     {
-        // Load documents when ProductId is set
-        if (ProductId.HasValue && _docs == null)
+        // Load documents when ProductId is set or changes
+        if (ProductId.HasValue && ProductId != _lastLoadedProductId)
         {
+            _lastLoadedProductId = ProductId;
             await LoadDocumentsAsync();
         }
     }
