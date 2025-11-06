@@ -1,13 +1,13 @@
 using EventForge.DTOs.Documents;
 using EventForge.Server.Data;
+using EventForge.Server.Data.Entities.Common;
 using EventForge.Server.Data.Entities.Documents;
 using EventForge.Server.Data.Entities.Products;
-using EventForge.Server.Data.Entities.Common;
 using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Tenants;
-using EventForge.Server.Services.Warehouse;
 using EventForge.Server.Services.UnitOfMeasures;
+using EventForge.Server.Services.Warehouse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -171,7 +171,7 @@ public class DocumentRowUnitConversionTests : IDisposable
         Assert.Equal(2m, result.Quantity); // Display quantity in packs
         Assert.Equal(12m, result.BaseQuantity); // Base quantity = 2 * 6 = 12 pieces
         Assert.Equal(_baseUnitId, result.BaseUnitOfMeasureId);
-        
+
         // Base unit price should be 10 (60 / 6 conversion factor)
         Assert.Equal(10m, result.BaseUnitPrice);
     }
@@ -262,7 +262,7 @@ public class DocumentRowUnitConversionTests : IDisposable
         // Assert
         Assert.NotNull(result);
         Assert.Equal(18m, result.BaseQuantity); // Total: 12 + 6 = 18 base units
-        
+
         // Display quantity should be recalculated based on the first row's unit (packs)
         // 18 base units / 6 (pack factor) = 3 packs
         Assert.Equal(3m, result.Quantity);

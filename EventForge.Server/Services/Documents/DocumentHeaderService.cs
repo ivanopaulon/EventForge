@@ -1,7 +1,7 @@
 using EventForge.DTOs.Documents;
 using EventForge.Server.Mappers;
-using EventForge.Server.Services.Warehouse;
 using EventForge.Server.Services.UnitOfMeasures;
+using EventForge.Server.Services.Warehouse;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Documents;
@@ -639,8 +639,8 @@ public class DocumentHeaderService : IDocumentHeaderService
             {
                 // Load the ProductUnit to get the conversion factor and base unit
                 var productUnit = await _context.ProductUnits
-                    .FirstOrDefaultAsync(pu => 
-                        pu.ProductId == createDto.ProductId.Value && 
+                    .FirstOrDefaultAsync(pu =>
+                        pu.ProductId == createDto.ProductId.Value &&
                         pu.UnitOfMeasureId == createDto.UnitOfMeasureId.Value &&
                         !pu.IsDeleted,
                         cancellationToken);
@@ -649,8 +649,8 @@ public class DocumentHeaderService : IDocumentHeaderService
                 {
                     // Find the base unit for this product (ConversionFactor = 1.0 and UnitType = "Base")
                     var baseUnit = await _context.ProductUnits
-                        .FirstOrDefaultAsync(pu => 
-                            pu.ProductId == createDto.ProductId.Value && 
+                        .FirstOrDefaultAsync(pu =>
+                            pu.ProductId == createDto.ProductId.Value &&
                             pu.ConversionFactor == 1m &&
                             pu.UnitType == "Base" &&
                             !pu.IsDeleted,
@@ -659,10 +659,10 @@ public class DocumentHeaderService : IDocumentHeaderService
                     if (baseUnit != null)
                     {
                         baseUnitOfMeasureId = baseUnit.UnitOfMeasureId;
-                        
+
                         // Compute base quantity using conversion factor
                         baseQuantity = _unitConversionService.ConvertToBaseUnit(
-                            createDto.Quantity, 
+                            createDto.Quantity,
                             productUnit.ConversionFactor,
                             decimalPlaces: 4);
 
@@ -700,8 +700,8 @@ public class DocumentHeaderService : IDocumentHeaderService
                         if (existingRow.UnitOfMeasureId.HasValue && createDto.ProductId.HasValue)
                         {
                             var existingProductUnit = await _context.ProductUnits
-                                .FirstOrDefaultAsync(pu => 
-                                    pu.ProductId == createDto.ProductId.Value && 
+                                .FirstOrDefaultAsync(pu =>
+                                    pu.ProductId == createDto.ProductId.Value &&
                                     pu.UnitOfMeasureId == existingRow.UnitOfMeasureId.Value &&
                                     !pu.IsDeleted,
                                     cancellationToken);

@@ -2367,7 +2367,7 @@ public class ProductManagementController : BaseApiController
 
                 // Find rows that contain this product
                 var productRows = doc.Rows.Where(r => r.ProductId == id && r.UnitPrice > 0);
-                
+
                 foreach (var row in productRows)
                 {
                     bool isStockIncrease = DetermineStockIncrease(doc.DocumentTypeName);
@@ -2397,7 +2397,7 @@ public class ProductManagementController : BaseApiController
             var minPurchasePrice = purchasePrices.Any() ? purchasePrices.Min() : 0;
             var maxPurchasePrice = purchasePrices.Any() ? purchasePrices.Max() : 0;
             var avgPurchasePrice = purchasePrices.Any() ? purchasePrices.Average() : 0;
-            
+
             // Calculate weighted average purchase price (by quantity)
             var totalPurchaseValue = purchasePricesList.Sum(p => p.Price * p.Quantity);
             var totalPurchaseQuantity = purchasePricesList.Sum(p => p.Quantity);
@@ -2408,7 +2408,7 @@ public class ProductManagementController : BaseApiController
             var minSalePrice = salePrices.Any() ? salePrices.Min() : 0;
             var maxSalePrice = salePrices.Any() ? salePrices.Max() : 0;
             var avgSalePrice = salePrices.Any() ? salePrices.Average() : 0;
-            
+
             // Calculate weighted average sale price (by quantity)
             var totalSaleValue = salePricesList.Sum(p => p.Price * p.Quantity);
             var totalSaleQuantity = salePricesList.Sum(p => p.Quantity);

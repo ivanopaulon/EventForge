@@ -1,4 +1,3 @@
-using EventForge.DTOs.Products;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Services.Audit;
@@ -157,11 +156,11 @@ public class ProductServiceBarcodeTests : IDisposable
         Assert.NotNull(result);
         Assert.NotNull(result.Product);
         Assert.NotNull(result.Code);
-        
+
         // Verify product information
         Assert.Equal(_productId, result.Product.Id);
         Assert.Equal("Test Product", result.Product.Name);
-        
+
         // Verify code context with ProductUnitId
         Assert.Equal(code, result.Code.Code);
         Assert.Equal("EAN", result.Code.CodeType);
@@ -181,11 +180,11 @@ public class ProductServiceBarcodeTests : IDisposable
         Assert.NotNull(result);
         Assert.NotNull(result.Product);
         Assert.NotNull(result.Code);
-        
+
         // Verify product information
         Assert.Equal(_productId, result.Product.Id);
         Assert.Equal("Test Product", result.Product.Name);
-        
+
         // Verify code context without ProductUnitId
         Assert.Equal(code, result.Code.Code);
         Assert.Equal("SKU", result.Code.CodeType);

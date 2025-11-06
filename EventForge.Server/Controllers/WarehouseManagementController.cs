@@ -1774,7 +1774,7 @@ public class WarehouseManagementController : BaseApiController
             var documentHeader = await _context.DocumentHeaders
                 .Include(dh => dh.Rows)
                 .FirstOrDefaultAsync(dh => dh.Id == documentId && !dh.IsDeleted, cancellationToken);
-                
+
             if (documentHeader == null)
             {
                 return NotFound(new ProblemDetails

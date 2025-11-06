@@ -7,8 +7,8 @@ using EventForge.Server.Data.Entities.Warehouse;
 using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Tenants;
-using EventForge.Server.Services.Warehouse;
 using EventForge.Server.Services.UnitOfMeasures;
+using EventForge.Server.Services.Warehouse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -467,7 +467,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
     {
         // Arrange
         var documentDate = new DateTime(2024, 6, 15, 10, 30, 0, DateTimeKind.Utc);
-        
+
         var documentType = new DocumentType
         {
             Id = Guid.NewGuid(),
@@ -535,7 +535,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
         // Arrange
         var originalDate = new DateTime(2024, 6, 15, 10, 30, 0, DateTimeKind.Utc);
         var newDate = new DateTime(2024, 6, 20, 14, 45, 0, DateTimeKind.Utc);
-        
+
         var documentType = new DocumentType
         {
             Id = Guid.NewGuid(),
@@ -598,7 +598,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             Date = newDate,
             BusinessPartyId = _businessPartyId
         };
-        
+
         var updatedDocument = await _documentHeaderService.UpdateDocumentHeaderAsync(documentHeader.Id, updateDto, "testUpdater");
 
         // Assert
