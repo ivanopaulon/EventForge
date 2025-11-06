@@ -173,11 +173,21 @@
             <!-- Merge Duplicates Option -->
             <MudCheckBox T="bool"
                          @bind-Checked="_model.MergeDuplicateProducts"
-                         Label="@TranslationService.GetTranslation("documents.mergeDuplicates", "Sum quantity if item already present")"
-                         Color="Color.Primary">
-                <MudTooltip Text="@TranslationService.GetTranslation("documents.mergeDuplicatesHelp", "When enabled, if you add the same product multiple times, the quantity will be summed to the existing row instead of creating a new one")">
-                    <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Color="Color.Info" Class="ml-1" />
-                </MudTooltip>
+                         Label="@TranslationService.GetTranslation("documents.mergeDuplicates", "Somma quantità se l'articolo è già presente")"
+                         Color="Color.Primary"
+                         Disabled="@(_selectedProduct == null)">
+                @if (_selectedProduct == null)
+                {
+                    <MudTooltip Text="@TranslationService.GetTranslation("documents.mergeDuplicatesRequiresProduct", "Seleziona un prodotto dall'autocomplete per abilitare la fusione")">
+                        <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Color="Color.Warning" Class="ml-1" />
+                    </MudTooltip>
+                }
+                else
+                {
+                    <MudTooltip Text="@TranslationService.GetTranslation("documents.mergeDuplicatesHelp", "Quando abilitato, se aggiungi lo stesso prodotto più volte, la quantità verrà sommata alla riga esistente invece di crearne una nuova")">
+                        <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Color="Color.Info" Class="ml-1" />
+                    </MudTooltip>
+                }
             </MudCheckBox>
 
             <!-- Quick Tips -->
