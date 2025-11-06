@@ -132,12 +132,9 @@
     <!-- Stock Trend Chart -->
     <StockTrendChart StockTrend="@_stockTrend" IsLoading="@_isLoadingTrend" ProductId="@Product.Id" />
 
-    <!-- Price Trend Chart -->
-    <PriceTrendChart PriceTrend="@_priceTrend" IsLoading="@_isLoadingPriceTrend" ProductId="@Product.Id" />
-
     <!-- Info message about document integration -->
     <MudAlert Severity="Severity.Info" Class="mb-4">
-        @TranslationService.GetTranslation("product.documentsMovedToCharts", "La lista dei documenti che hanno movimentato il prodotto è ora disponibile nei pannelli 'Andamento Giacenza' e 'Andamento Prezzi'.")
+        @TranslationService.GetTranslation("product.documentsMovedToCharts", "La lista dei documenti che hanno movimentato il prodotto è ora disponibile nel pannello 'Andamento Giacenza'.")
     </MudAlert>
 </MudStack>
 
@@ -156,12 +153,9 @@
 
     private bool _isLoadingStock = false;
     private bool _isLoadingTrend = false;
-    private bool _isLoadingPriceTrend = false;
     private bool _stockTrendLoaded = false;
-    private bool _priceTrendLoaded = false;
     private IEnumerable<StockDto> _stockLevels = Enumerable.Empty<StockDto>();
     private StockTrendDto? _stockTrend;
-    private PriceTrendDto? _priceTrend;
 
     // Group definition for warehouse grouping
     private TableGroupDefinition<StockDto> _groupDefinition = new()
@@ -185,12 +179,6 @@
         if (!_stockTrendLoaded)
         {
             tasks.Add(LoadStockTrendAsync());
-        }
-
-        // Load price trend only once on first load
-        if (!_priceTrendLoaded)
-        {
-            tasks.Add(LoadPriceTrendAsync());
         }
 
         await Task.WhenAll(tasks);
@@ -236,26 +224,6 @@
         finally
         {
             _isLoadingTrend = false;
-            StateHasChanged();
-        }
-    }
-
-    private async Task LoadPriceTrendAsync()
-    {
-        _isLoadingPriceTrend = true;
-        try
-        {
-            _priceTrend = await ProductService.GetProductPriceTrendAsync(Product.Id);
-            _priceTrendLoaded = true;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading price trend for product {ProductId}", Product.Id);
-            _priceTrend = null;
-        }
-        finally
-        {
-            _isLoadingPriceTrend = false;
             StateHasChanged();
         }
     }

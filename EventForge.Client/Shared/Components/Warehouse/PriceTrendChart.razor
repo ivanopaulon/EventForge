@@ -145,13 +145,16 @@
                 g => g.Average(p => p.Price)
             );
 
-        // Prepare data series - use NaN for missing data to avoid misleading zeros
+        // Prepare data series
+        // Note: We use 0 for dates where a price type doesn't have data (e.g., no sales on a purchase date)
+        // This represents "no transactions of this type" rather than "price was zero"
+        // The chart shows all dates where at least one price type (purchase or sale) has data
         var purchasePriceData = allDates
-            .Select(date => dailyPurchasePrices.TryGetValue(date, out var price) ? (double)price : double.NaN)
+            .Select(date => dailyPurchasePrices.TryGetValue(date, out var price) ? (double)price : 0.0)
             .ToArray();
 
         var salePriceData = allDates
-            .Select(date => dailySalePrices.TryGetValue(date, out var price) ? (double)price : double.NaN)
+            .Select(date => dailySalePrices.TryGetValue(date, out var price) ? (double)price : 0.0)
             .ToArray();
 
         // Create series with two lines: Purchase Prices and Sale Prices
