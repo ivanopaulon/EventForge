@@ -110,7 +110,7 @@
                                     @if (context.Contacts.Any())
                                     {
                                         <div style="padding: 8px;">
-                                            <MudText Typo="Typo.subtitle2" Class="mb-2"><strong>Contatti:</strong></MudText>
+                                            <MudText Typo="Typo.subtitle2" Class="mb-2"><strong>@TranslationService.GetTranslation("field.contacts", "Contatti"):</strong></MudText>
                                             @foreach (var contact in context.Contacts)
                                             {
                                                 <div class="mb-1">
@@ -119,7 +119,7 @@
                                                         @contact.Value
                                                         @if (contact.IsPrimary)
                                                         {
-                                                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Style="height: 18px; font-size: 0.7rem;">Primario</MudChip>
+                                                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Style="height: 18px; font-size: 0.7rem;">@TranslationService.GetTranslation("common.primary", "Primario")</MudChip>
                                                         }
                                                     </MudText>
                                                 </div>
@@ -128,7 +128,7 @@
                                     }
                                     else
                                     {
-                                        <MudText Typo="Typo.body2">Nessun contatto disponibile</MudText>
+                                        <MudText Typo="Typo.body2">@TranslationService.GetTranslation("supplier.noContactsAvailable", "Nessun contatto disponibile")</MudText>
                                     }
                                 </TooltipContent>
                             </MudTooltip>
