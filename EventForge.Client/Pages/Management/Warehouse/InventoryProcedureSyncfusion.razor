@@ -6,6 +6,10 @@
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Warehouse
 @using EventForge.Client.Shared.Components.Warehouse.SyncfusionComponents
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.ProgressBar
+@using Syncfusion.Blazor.Inputs
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @inject IProductService ProductService
 @inject IInventoryService InventoryService
@@ -359,9 +363,11 @@
             DateTime? sessionStartTime = null;
             string restorationSource = "localStorage";
 
+            // Step 1: Try to restore from localStorage
             var sessionState = await InventorySessionService.LoadSessionAsync();
             if (sessionState != null)
             {
+                // Try to load the inventory document from the server
                 document = await InventoryService.GetInventoryDocumentAsync(sessionState.DocumentId);
                 
                 if (document != null && document.Status == "Open")
@@ -371,12 +377,14 @@
                 }
                 else
                 {
+                    // Document not found or already finalized, clear the invalid session
                     await InventorySessionService.ClearSessionAsync();
                     document = null;
-                    Logger.LogInformation("Inventory session in localStorage is invalid");
+                    Logger.LogInformation("Inventory session in localStorage is invalid (document not found or finalized)");
                 }
             }
 
+            // Step 2: If localStorage restoration failed, try to get the most recent open document from server
             if (document == null)
             {
                 document = await InventoryService.GetMostRecentOpenInventoryDocumentAsync();
@@ -386,6 +394,7 @@
                     sessionStartTime = document.CreatedAt;
                     restorationSource = "server";
                     
+                    // Save this session to localStorage for future use
                     await InventorySessionService.SaveSessionAsync(new InventorySessionState
                     {
                         DocumentId = document.Id,
@@ -398,6 +407,7 @@
                 }
             }
 
+            // Step 3: If we have a valid document to restore, apply it
             if (document != null)
             {
                 _currentDocument = document;
@@ -406,21 +416,29 @@
                 
                 string sourceMessage = restorationSource == "localStorage" 
                     ? TranslationService.GetTranslation("warehouse.sessionRestoredFromCache", "Sessione ripristinata dalla cache")
-                    : TranslationService.GetTranslation("warehouse.sessionRestoredFromServer", "Sessione ripristinata dal server");
+                    : TranslationService.GetTranslation("warehouse.sessionRestoredFromServer", "Sessione ripristinata dal server (documento più recente aperto)");
                 
                 AddOperationLog(
                     TranslationService.GetTranslation("warehouse.sessionRestored", "Sessione di inventario ripristinata"),
-                    $"{sourceMessage} - Documento #{_currentDocument.Number}",
+                    $"{sourceMessage} - Documento #{_currentDocument.Number} - {_currentDocument.TotalItems} articoli - {_currentDocument.Rows?.Count ?? 0} righe",
                     "Success"
                 );
                 
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.sessionRestored", "Sessione di inventario ripristinata"), MudBlazor.Severity.Info);
+                Snackbar.Add(
+                    TranslationService.GetTranslation("warehouse.sessionRestored", "Sessione di inventario ripristinata"), 
+                    MudBlazor.Severity.Info
+                );
+                
+                Logger.LogInformation("Inventory session restored from {Source}: Document {DocumentId} with {RowCount} rows", restorationSource, _currentDocument.Id, _currentDocument.Rows?.Count ?? 0);
+                
+                // Force UI update to ensure rows are displayed
                 StateHasChanged();
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error restoring inventory session");
+            // Clear invalid session only if it exists in localStorage
             try
             {
                 if (await InventorySessionService.HasActiveSessionAsync())
