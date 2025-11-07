@@ -1,0 +1,336 @@
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.Common
+@inject IBusinessPartyService BusinessPartyService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<BusinessPartyProductsTab> Logger
+
+<MudStack Spacing="3">
+    <!-- Filters Toolbar -->
+    <MudPaper Elevation="1" Class="pa-4">
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6" md="3">
+                <MudDateRangePicker @bind-DateRange="_dateRange"
+                                   Label="@TranslationService.GetTranslation("product.dateRange", "Intervallo Date")"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   OnClearButtonClick="@(() => { _dateRange = null; LoadProductsAsync(); })"
+                                   Density="Density.Compact">
+                    <PickerActions>
+                        <MudButton Class="mr-auto align-self-start" OnClick="@(() => { _dateRange = null; })">@TranslationService.GetTranslation("common.clear", "Pulisci")</MudButton>
+                        <MudButton OnClick="@(() => LoadProductsAsync())">@TranslationService.GetTranslation("common.apply", "Applica")</MudButton>
+                    </PickerActions>
+                </MudDateRangePicker>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="2">
+                <MudSelect @bind-Value="_selectedType"
+                          Label="@TranslationService.GetTranslation("product.type", "Tipo")"
+                          Variant="Variant.Outlined"
+                          Clearable="true"
+                          Density="Density.Compact">
+                    <MudSelectItem Value="@((string?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
+                    <MudSelectItem Value="@("purchase")">@TranslationService.GetTranslation("product.purchases", "Acquisti")</MudSelectItem>
+                    <MudSelectItem Value="@("sale")">@TranslationService.GetTranslation("product.sales", "Vendite")</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="2">
+                <MudNumericField @bind-Value="_topN"
+                                Label="@TranslationService.GetTranslation("product.topN", "Top N")"
+                                Variant="Variant.Outlined"
+                                Min="1"
+                                Max="100"
+                                Clearable="true"
+                                Density="Density.Compact" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="2">
+                <MudSelect @bind-Value="_sortBy"
+                          Label="@TranslationService.GetTranslation("product.sortBy", "Ordina per")"
+                          Variant="Variant.Outlined"
+                          Density="Density.Compact">
+                    <MudSelectItem Value="@("valuepurchased")">@TranslationService.GetTranslation("product.valuePurchased", "Valore Acquisti")</MudSelectItem>
+                    <MudSelectItem Value="@("valuesold")">@TranslationService.GetTranslation("product.valueSold", "Valore Vendite")</MudSelectItem>
+                    <MudSelectItem Value="@("quantitypurchased")">@TranslationService.GetTranslation("product.quantityPurchased", "Quantità Acquisti")</MudSelectItem>
+                    <MudSelectItem Value="@("quantitysold")">@TranslationService.GetTranslation("product.quantitySold", "Quantità Vendite")</MudSelectItem>
+                    <MudSelectItem Value="@("productname")">@TranslationService.GetTranslation("product.name", "Nome Prodotto")</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="2">
+                <MudButton Variant="Variant.Filled"
+                          Color="Color.Primary"
+                          StartIcon="@Icons.Material.Filled.Search"
+                          OnClick="@LoadProductsAsync"
+                          FullWidth="true">
+                    @TranslationService.GetTranslation("common.search", "Cerca")
+                </MudButton>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="1">
+                <MudButton Variant="Variant.Outlined"
+                          Color="Color.Secondary"
+                          StartIcon="@Icons.Material.Filled.Refresh"
+                          OnClick="@ResetFiltersAsync"
+                          FullWidth="true">
+                    @TranslationService.GetTranslation("common.reset", "Reset")
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <!-- Main Content: Table + Charts -->
+    <MudGrid>
+        <!-- Products Table -->
+        <MudItem xs="12" md="7">
+            <MudTable @ref="_table"
+                      ServerData="@(new Func<TableState, CancellationToken, Task<TableData<BusinessPartyProductAnalysisDto>>>(LoadServerData))"
+                      Hover="true"
+                      Dense="true"
+                      Loading="@_isLoading"
+                      LoadingProgressColor="Color.Primary"
+                      FixedHeader="true"
+                      Height="calc(100vh - 450px)"
+                      T="BusinessPartyProductAnalysisDto"
+                      SelectedItemChanged="@OnProductSelected">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6">@TranslationService.GetTranslation("businessParty.products", "Prodotti")</MudText>
+                    <MudSpacer />
+                    <MudText Typo="Typo.body2" Class="mr-4">@TranslationService.GetTranslation("common.total", "Totale"): @_totalCount</MudText>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>@TranslationService.GetTranslation("product.code", "Codice")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("product.name", "Nome")</MudTh>
+                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("product.qtyPurchased", "Qty Acquisti")</MudTh>
+                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("product.valuePurchased", "Val. Acquisti")</MudTh>
+                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("product.qtySold", "Qty Vendite")</MudTh>
+                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("product.valueSold", "Val. Vendite")</MudTh>
+                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("product.avgPurchasePrice", "Prezzo Med. Acq.")</MudTh>
+                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("product.avgSalePrice", "Prezzo Med. Vend.")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("product.code", "Codice")">@context.ProductCode</MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("product.name", "Nome")">@context.ProductName</MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("product.qtyPurchased", "Qty Acquisti")" Style="text-align: right;">
+                        @context.QuantityPurchased.ToString("N2")
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("product.valuePurchased", "Val. Acquisti")" Style="text-align: right;">
+                        @context.ValuePurchased.ToString("C2")
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("product.qtySold", "Qty Vendite")" Style="text-align: right;">
+                        @context.QuantitySold.ToString("N2")
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("product.valueSold", "Val. Vendite")" Style="text-align: right;">
+                        @context.ValueSold.ToString("C2")
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("product.avgPurchasePrice", "Prezzo Med. Acq.")" Style="text-align: right;">
+                        @context.AvgPurchasePrice.ToString("C2")
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("product.avgSalePrice", "Prezzo Med. Vend.")" Style="text-align: right;">
+                        @context.AvgSalePrice.ToString("C2")
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>@TranslationService.GetTranslation("product.noRecords", "Nessun prodotto trovato")</MudText>
+                </NoRecordsContent>
+                <LoadingContent>
+                    <MudText>@TranslationService.GetTranslation("common.loading", "Caricamento...")</MudText>
+                </LoadingContent>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[] { 10, 20, 50, 100 }" />
+                </PagerContent>
+            </MudTable>
+        </MudItem>
+
+        <!-- Charts Panel -->
+        <MudItem xs="12" md="5">
+            <MudPaper Elevation="2" Class="pa-4" Style="height: calc(100vh - 450px); overflow-y: auto;">
+                <MudStack Spacing="4">
+                    <!-- Top Products by Value Chart -->
+                    @if (_chartData != null && _chartData.Any())
+                    {
+                        <div>
+                            <MudText Typo="Typo.h6" Class="mb-2">@TranslationService.GetTranslation("product.topByValue", "Top Prodotti per Valore")</MudText>
+                            <MudChart ChartType="ChartType.Bar"
+                                     ChartSeries="@_chartSeries"
+                                     XAxisLabels="@_chartLabels.ToArray()"
+                                     Width="100%"
+                                     Height="350px" />
+                        </div>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info">@TranslationService.GetTranslation("product.noChartData", "Seleziona prodotti per visualizzare i grafici")</MudAlert>
+                    }
+
+                    <!-- Selected Product Info -->
+                    @if (_selectedProduct != null)
+                    {
+                        <MudDivider />
+                        <div>
+                            <MudText Typo="Typo.h6" Class="mb-2">@TranslationService.GetTranslation("product.selectedProduct", "Prodotto Selezionato")</MudText>
+                            <MudCard>
+                                <MudCardContent>
+                                    <MudText Typo="Typo.body1"><strong>@_selectedProduct.ProductName</strong></MudText>
+                                    <MudText Typo="Typo.body2" Class="mt-2">@TranslationService.GetTranslation("product.code", "Codice"): @_selectedProduct.ProductCode</MudText>
+                                    <MudDivider Class="my-2" />
+                                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("product.lastPurchase", "Ultimo Acquisto"): @(_selectedProduct.LastPurchaseDate?.ToShortDateString() ?? "-")</MudText>
+                                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("product.lastSale", "Ultima Vendita"): @(_selectedProduct.LastSaleDate?.ToShortDateString() ?? "-")</MudText>
+                                </MudCardContent>
+                                <MudCardActions>
+                                    <MudButton Variant="Variant.Text"
+                                              Color="Color.Primary"
+                                              StartIcon="@Icons.Material.Filled.Description"
+                                              OnClick="@(() => ShowProductDocumentsAsync(_selectedProduct.ProductId))">
+                                        @TranslationService.GetTranslation("product.viewDocuments", "Visualizza Documenti")
+                                    </MudButton>
+                                </MudCardActions>
+                            </MudCard>
+                        </div>
+                    }
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudStack>
+
+@code {
+    [Parameter] public Guid BusinessPartyId { get; set; }
+
+    private MudTable<BusinessPartyProductAnalysisDto>? _table;
+    private bool _isLoading = false;
+    private int _totalCount = 0;
+    private DateRange? _dateRange;
+    private string? _selectedType;
+    private int? _topN = 20;
+    private string _sortBy = "valuepurchased";
+    private BusinessPartyProductAnalysisDto? _selectedProduct;
+
+    private List<BusinessPartyProductAnalysisDto> _chartData = new();
+    private List<ChartSeries> _chartSeries = new();
+    private List<string> _chartLabels = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_table != null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task<TableData<BusinessPartyProductAnalysisDto>> LoadServerData(TableState state, CancellationToken cancellationToken)
+    {
+        _isLoading = true;
+        try
+        {
+            var page = (int)state.Page + 1;
+            var pageSize = (int)state.PageSize;
+
+            var result = await BusinessPartyService.GetBusinessPartyProductAnalysisAsync(
+                BusinessPartyId,
+                _dateRange?.Start,
+                _dateRange?.End,
+                _selectedType,
+                _topN,
+                page,
+                pageSize,
+                _sortBy,
+                true);
+
+            if (result != null)
+            {
+                _totalCount = (int)result.TotalCount;
+                _chartData = result.Items.ToList();
+                UpdateChartData();
+
+                return new TableData<BusinessPartyProductAnalysisDto>
+                {
+                    Items = result.Items,
+                    TotalItems = (int)result.TotalCount
+                };
+            }
+
+            return new TableData<BusinessPartyProductAnalysisDto> { Items = new List<BusinessPartyProductAnalysisDto>(), TotalItems = 0 };
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading products for business party {BusinessPartyId}", BusinessPartyId);
+            Snackbar.Add(TranslationService.GetTranslation("product.loadError", "Errore nel caricamento dei prodotti"), Severity.Error);
+            return new TableData<BusinessPartyProductAnalysisDto> { Items = new List<BusinessPartyProductAnalysisDto>(), TotalItems = 0 };
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void UpdateChartData()
+    {
+        _chartLabels = _chartData.Take(10).Select(p => p.ProductCode ?? p.ProductName ?? "N/A").ToList();
+        
+        _chartSeries = new List<ChartSeries>
+        {
+            new ChartSeries
+            {
+                Name = TranslationService.GetTranslation("product.purchases", "Acquisti"),
+                Data = _chartData.Take(10).Select(p => (double)p.ValuePurchased).ToArray()
+            },
+            new ChartSeries
+            {
+                Name = TranslationService.GetTranslation("product.sales", "Vendite"),
+                Data = _chartData.Take(10).Select(p => (double)p.ValueSold).ToArray()
+            }
+        };
+    }
+
+    private async Task LoadProductsAsync()
+    {
+        if (_table != null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task ResetFiltersAsync()
+    {
+        _dateRange = null;
+        _selectedType = null;
+        _topN = 20;
+        _sortBy = "valuepurchased";
+        await LoadProductsAsync();
+    }
+
+    private void OnProductSelected(BusinessPartyProductAnalysisDto? product)
+    {
+        _selectedProduct = product;
+        StateHasChanged();
+    }
+
+    private async Task ShowProductDocumentsAsync(Guid productId)
+    {
+        try
+        {
+            // Open dialog showing documents for this product and business party
+            var parameters = new DialogParameters
+            {
+                { "BusinessPartyId", BusinessPartyId },
+                { "ProductId", productId },
+                { "ProductName", _selectedProduct?.ProductName }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Large,
+                FullWidth = true,
+                CloseButton = true
+            };
+
+            await DialogService.ShowAsync<ProductDocumentsDialog>(
+                TranslationService.GetTranslation("product.documents", "Documenti Prodotto"),
+                parameters,
+                options);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error showing product documents for product {ProductId}", productId);
+            Snackbar.Add(TranslationService.GetTranslation("product.documentsError", "Errore nella visualizzazione dei documenti"), Severity.Error);
+        }
+    }
+}

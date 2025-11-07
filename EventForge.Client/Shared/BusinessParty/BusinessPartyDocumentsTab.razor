@@ -1,0 +1,274 @@
+@using EventForge.DTOs.Documents
+@using EventForge.DTOs.Common
+@inject IBusinessPartyService BusinessPartyService
+@inject IDocumentHeaderService DocumentHeaderService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<BusinessPartyDocumentsTab> Logger
+
+<MudStack Spacing="3">
+    <!-- Filters Toolbar -->
+    <MudPaper Elevation="1" Class="pa-4">
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6" md="3">
+                <MudDateRangePicker @bind-DateRange="_dateRange"
+                                   Label="@TranslationService.GetTranslation("document.dateRange", "Intervallo Date")"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   OnClearButtonClick="@(() => { _dateRange = null; LoadDocumentsAsync(); })"
+                                   Density="Density.Compact">
+                    <PickerActions>
+                        <MudButton Class="mr-auto align-self-start" OnClick="@(() => { _dateRange = null; })">@TranslationService.GetTranslation("common.clear", "Pulisci")</MudButton>
+                        <MudButton OnClick="@(() => LoadDocumentsAsync())">@TranslationService.GetTranslation("common.apply", "Applica")</MudButton>
+                    </PickerActions>
+                </MudDateRangePicker>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudTextField @bind-Value="_searchNumber"
+                             Label="@TranslationService.GetTranslation("document.searchNumber", "Cerca Numero")"
+                             Variant="Variant.Outlined"
+                             Clearable="true"
+                             Density="Density.Compact"
+                             OnClearButtonClick="@(() => { _searchNumber = null; LoadDocumentsAsync(); })"
+                             Adornment="Adornment.End"
+                             AdornmentIcon="@Icons.Material.Filled.Search" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="2">
+                <MudSelect @bind-Value="_selectedApprovalStatus"
+                          Label="@TranslationService.GetTranslation("document.approvalStatus", "Stato Approvazione")"
+                          Variant="Variant.Outlined"
+                          Clearable="true"
+                          Density="Density.Compact">
+                    <MudSelectItem Value="@((ApprovalStatus?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
+                    <MudSelectItem Value="@ApprovalStatus.Pending">@TranslationService.GetTranslation("approval.pending", "In Attesa")</MudSelectItem>
+                    <MudSelectItem Value="@ApprovalStatus.Approved">@TranslationService.GetTranslation("approval.approved", "Approvato")</MudSelectItem>
+                    <MudSelectItem Value="@ApprovalStatus.Rejected">@TranslationService.GetTranslation("approval.rejected", "Rifiutato")</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="2">
+                <MudButton Variant="Variant.Filled"
+                          Color="Color.Primary"
+                          StartIcon="@Icons.Material.Filled.Search"
+                          OnClick="@LoadDocumentsAsync"
+                          FullWidth="true">
+                    @TranslationService.GetTranslation("common.search", "Cerca")
+                </MudButton>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="2">
+                <MudButton Variant="Variant.Outlined"
+                          Color="Color.Secondary"
+                          StartIcon="@Icons.Material.Filled.Refresh"
+                          OnClick="@ResetFiltersAsync"
+                          FullWidth="true">
+                    @TranslationService.GetTranslation("common.reset", "Reimposta")
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <!-- Documents Table -->
+    <MudTable @ref="_table"
+              ServerData="@(new Func<TableState, CancellationToken, Task<TableData<DocumentHeaderDto>>>(LoadServerData))"
+              Hover="true"
+              Dense="true"
+              Loading="@_isLoading"
+              LoadingProgressColor="Color.Primary"
+              FixedHeader="true"
+              Height="calc(100vh - 400px)"
+              T="DocumentHeaderDto">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">@TranslationService.GetTranslation("businessParty.documents", "Documenti")</MudText>
+            <MudSpacer />
+            <MudText Typo="Typo.body2" Class="mr-4">@TranslationService.GetTranslation("common.total", "Totale"): @_totalCount</MudText>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>@TranslationService.GetTranslation("document.date", "Data")</MudTh>
+            <MudTh>@TranslationService.GetTranslation("document.type", "Tipo")</MudTh>
+            <MudTh>@TranslationService.GetTranslation("document.number", "Numero")</MudTh>
+            <MudTh Style="text-align: right;">@TranslationService.GetTranslation("document.totalNet", "Totale Netto")</MudTh>
+            <MudTh Style="text-align: right;">@TranslationService.GetTranslation("document.totalGross", "Totale Lordo")</MudTh>
+            <MudTh>@TranslationService.GetTranslation("document.approvalStatus", "Stato")</MudTh>
+            <MudTh Style="text-align: center;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="@TranslationService.GetTranslation("document.date", "Data")">@context.Date.ToShortDateString()</MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("document.type", "Tipo")">@context.DocumentTypeName</MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("document.number", "Numero")">
+                @if (!string.IsNullOrWhiteSpace(context.Series))
+                {
+                    <text>@context.Series/@context.Number</text>
+                }
+                else
+                {
+                    <text>@context.Number</text>
+                }
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("document.totalNet", "Totale Netto")" Style="text-align: right;">
+                @context.TotalNetAmount.ToString("C2")
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("document.totalGross", "Totale Lordo")" Style="text-align: right;">
+                @context.TotalGrossAmount.ToString("C2")
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("document.approvalStatus", "Stato")">
+                <MudChip T="string" Size="Size.Small" Color="@GetApprovalStatusColor(context.ApprovalStatus)">
+                    @GetApprovalStatusText(context.ApprovalStatus)
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Style="text-align: center;">
+                <MudTooltip Text="@TranslationService.GetTranslation("document.view", "Visualizza")">
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                  Color="Color.Primary"
+                                  Size="Size.Small"
+                                  OnClick="@(() => ViewDocumentAsync(context.Id))" />
+                </MudTooltip>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>@TranslationService.GetTranslation("document.noRecords", "Nessun documento trovato")</MudText>
+        </NoRecordsContent>
+        <LoadingContent>
+            <MudText>@TranslationService.GetTranslation("common.loading", "Caricamento...")</MudText>
+        </LoadingContent>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[] { 10, 20, 50, 100 }" />
+        </PagerContent>
+    </MudTable>
+</MudStack>
+
+@code {
+    [Parameter] public Guid BusinessPartyId { get; set; }
+
+    private MudTable<DocumentHeaderDto>? _table;
+    private bool _isLoading = false;
+    private int _totalCount = 0;
+    private DateRange? _dateRange;
+    private string? _searchNumber;
+    private ApprovalStatus? _selectedApprovalStatus;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_table != null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task<TableData<DocumentHeaderDto>> LoadServerData(TableState state, CancellationToken cancellationToken)
+    {
+        _isLoading = true;
+        try
+        {
+            var page = (int)state.Page + 1; // MudTable is 0-based, API is 1-based
+            var pageSize = (int)state.PageSize;
+
+            var result = await BusinessPartyService.GetBusinessPartyDocumentsAsync(
+                BusinessPartyId,
+                _dateRange?.Start,
+                _dateRange?.End,
+                null, // documentTypeId - could be added as filter
+                _searchNumber,
+                _selectedApprovalStatus,
+                page,
+                pageSize);
+
+            if (result != null)
+            {
+                _totalCount = (int)result.TotalCount;
+                return new TableData<DocumentHeaderDto>
+                {
+                    Items = result.Items,
+                    TotalItems = (int)result.TotalCount
+                };
+            }
+
+            return new TableData<DocumentHeaderDto> { Items = new List<DocumentHeaderDto>(), TotalItems = 0 };
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading documents for business party {BusinessPartyId}", BusinessPartyId);
+            Snackbar.Add(TranslationService.GetTranslation("document.loadError", "Errore nel caricamento dei documenti"), Severity.Error);
+            return new TableData<DocumentHeaderDto> { Items = new List<DocumentHeaderDto>(), TotalItems = 0 };
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadDocumentsAsync()
+    {
+        if (_table != null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task ResetFiltersAsync()
+    {
+        _dateRange = null;
+        _searchNumber = null;
+        _selectedApprovalStatus = null;
+        await LoadDocumentsAsync();
+    }
+
+    private async Task ViewDocumentAsync(Guid documentId)
+    {
+        try
+        {
+            // Load full document with rows
+            var document = await DocumentHeaderService.GetDocumentHeaderByIdAsync(documentId);
+            if (document == null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("document.notFound", "Documento non trovato"), Severity.Warning);
+                return;
+            }
+
+            // Open viewer dialog (assuming a DocumentViewerDialog exists)
+            var parameters = new DialogParameters
+            {
+                { "Document", document },
+                { "ReadOnly", true }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Large,
+                FullWidth = true,
+                CloseButton = true
+            };
+
+            await DialogService.ShowAsync<DocumentViewerDialog>(
+                TranslationService.GetTranslation("document.view", "Visualizza Documento"),
+                parameters,
+                options);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error viewing document {DocumentId}", documentId);
+            Snackbar.Add(TranslationService.GetTranslation("document.viewError", "Errore nella visualizzazione del documento"), Severity.Error);
+        }
+    }
+
+    private Color GetApprovalStatusColor(ApprovalStatus status)
+    {
+        return status switch
+        {
+            ApprovalStatus.Approved => Color.Success,
+            ApprovalStatus.Rejected => Color.Error,
+            ApprovalStatus.Pending => Color.Warning,
+            _ => Color.Default
+        };
+    }
+
+    private string GetApprovalStatusText(ApprovalStatus status)
+    {
+        return status switch
+        {
+            ApprovalStatus.Approved => TranslationService.GetTranslation("approval.approved", "Approvato"),
+            ApprovalStatus.Rejected => TranslationService.GetTranslation("approval.rejected", "Rifiutato"),
+            ApprovalStatus.Pending => TranslationService.GetTranslation("approval.pending", "In Attesa"),
+            _ => status.ToString()
+        };
+    }
+}
