@@ -2497,6 +2497,85 @@ public class ProductManagementController : BaseApiController
 
     #endregion
 
+    #region Product Recent Transactions
+
+    /// <summary>
+    /// Gets recent product transactions for price suggestions.
+    /// </summary>
+    /// <param name="productId">Product ID</param>
+    /// <param name="type">Transaction type: "purchase" or "sale" (default: "purchase")</param>
+    /// <param name="partyId">Optional business party ID to filter results</param>
+    /// <param name="top">Number of recent transactions to return (default: 3, max: 10)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of recent product transactions</returns>
+    /// <response code="200">Returns the list of recent transactions</response>
+    /// <response code="400">If the parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    /// <response code="404">If the product is not found</response>
+    [HttpGet("products/{productId}/recent-transactions")]
+    [ProducesResponseType(typeof(IEnumerable<RecentProductTransactionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IEnumerable<RecentProductTransactionDto>>> GetRecentProductTransactions(
+        Guid productId,
+        [FromQuery] string type = "purchase",
+        [FromQuery] Guid? partyId = null,
+        [FromQuery] int top = 3,
+        CancellationToken cancellationToken = default)
+    {
+        // Validate type parameter
+        if (!type.Equals("purchase", StringComparison.OrdinalIgnoreCase) &&
+            !type.Equals("sale", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new ValidationProblemDetails
+            {
+                Detail = "Type parameter must be either 'purchase' or 'sale'."
+            });
+        }
+
+        // Validate top parameter
+        if (top < 1 || top > 10)
+        {
+            return BadRequest(new ValidationProblemDetails
+            {
+                Detail = "Top parameter must be between 1 and 10."
+            });
+        }
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Check if product exists
+            var productExists = await _productService.ProductExistsAsync(productId, cancellationToken);
+            if (!productExists)
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Detail = $"Product with ID {productId} not found."
+                });
+            }
+
+            var transactions = await _productService.GetRecentProductTransactionsAsync(
+                productId,
+                type,
+                partyId,
+                top,
+                cancellationToken);
+
+            return Ok(transactions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving recent transactions for product {ProductId}.", productId);
+            return CreateInternalServerErrorProblem("An error occurred while retrieving recent transactions.", ex);
+        }
+    }
+
+    #endregion
+
     #endregion
 }
 
