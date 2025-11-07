@@ -922,6 +922,9 @@
                 );
 
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata"), MudBlazor.Severity.Success);
+                
+                // Update session state to persist progress
+                await UpdateSessionStateAsync();
             }
 
             // Use state manager to clear edit state
@@ -976,6 +979,9 @@
                 );
 
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.rowDeleted", "Riga eliminata"), MudBlazor.Severity.Info);
+                
+                // Update session state to persist progress
+                await UpdateSessionStateAsync();
             }
             
             // Use state manager to clear confirmation state
