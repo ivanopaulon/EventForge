@@ -22,6 +22,7 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject IInventorySessionService InventorySessionService
+@inject ISfInventoryStateManager StateManager
 
 <PageTitle>@TranslationService.GetTranslation("warehouse.inventoryProcedureSyncfusion", "Procedura Inventario (Syncfusion)")</PageTitle>
 
@@ -186,26 +187,18 @@
     private SfFastScanner? _scannerComponent;
     private SfFastProductEntryInline? _productEntryComponent;
     
-    // State fields
-    private bool _isLoading = false;
-    private string _scannedBarcode = string.Empty;
-    private ProductDto? _currentProduct;
+    // State management using SfInventoryStateManager
+    private InventoryInputState _inputState = new();
+    private InventoryUIState _uiState = new();
+    
+    // Legacy fields for backward compatibility (will be removed in future sprints)
     private List<StorageLocationDto> _locations = new();
     private List<StorageFacilityDto> _storageFacilities = new();
-    private Guid? _selectedLocationId;
-    private StorageLocationDto? _selectedLocation;
     private Guid? _selectedStorageFacilityId;
-    private decimal? _quantity = 1;
-    private string _notes = string.Empty;
     private InventoryDocumentDto? _currentDocument = null;
     private DateTime _sessionStartTime = DateTime.UtcNow;
     private bool _showOnlyAdjustments = false;
-    
-    // Fast confirm toggle
     private bool _fastConfirmEnabled = true;
-    
-    // Undo last row tracking
-    private InventoryDocumentRowDto? _lastAddedRow = null;
     
     // Location search constants
     private const int MaxLocationSearchResults = 20;
@@ -213,35 +206,131 @@
     // Operation log for audit trail
     private List<OperationLogEntry> _operationLog = new();
     
-    // Inline product assignment panel state
-    private bool _showAssignPanel = false;
-    private string _assignPanelBarcode = string.Empty;
-    private ProductDto? _assignSelectedProduct;
-    private string _assignCodeType = "Barcode";
-    private string _assignCode = string.Empty;
-    private string? _assignAlternativeDescription;
+    // Compatibility properties that delegate to state objects
+    private string _scannedBarcode
+    {
+        get => _inputState.ScannedBarcode;
+        set => _inputState.ScannedBarcode = value;
+    }
     
-    // Inline row edit state
-    private Guid? _editingRowId;
-    private decimal? _editQuantity;
-    private string? _editNotes;
+    private ProductDto? _currentProduct
+    {
+        get => _inputState.CurrentProduct;
+        set => _inputState.CurrentProduct = value;
+    }
     
-    // Inline delete confirmation state
-    private Guid? _confirmDeleteRowId;
+    private Guid? _selectedLocationId
+    {
+        get => _inputState.SelectedLocationId;
+        set => _inputState.SelectedLocationId = value;
+    }
     
-    // Inline finalize/cancel confirmation state
-    private bool _showFinalizeConfirmation = false;
-    private bool _showCancelConfirmation = false;
+    private StorageLocationDto? _selectedLocation
+    {
+        get => _inputState.SelectedLocation;
+        set => _inputState.SelectedLocation = value;
+    }
+    
+    private decimal? _quantity
+    {
+        get => _inputState.Quantity;
+        set => _inputState.Quantity = value ?? 1;
+    }
+    
+    private string _notes
+    {
+        get => _inputState.Notes;
+        set => _inputState.Notes = value;
+    }
+    
+    private InventoryDocumentRowDto? _lastAddedRow
+    {
+        get => _inputState.LastAddedRow;
+        set => _inputState.LastAddedRow = value;
+    }
+    
+    private bool _showAssignPanel
+    {
+        get => _uiState.ShowAssignPanel;
+        set => _uiState.ShowAssignPanel = value;
+    }
+    
+    private string _assignPanelBarcode
+    {
+        get => _uiState.AssignPanelBarcode;
+        set => _uiState.AssignPanelBarcode = value;
+    }
+    
+    private ProductDto? _assignSelectedProduct
+    {
+        get => _uiState.AssignSelectedProduct;
+        set => _uiState.AssignSelectedProduct = value;
+    }
+    
+    private string _assignCodeType
+    {
+        get => _uiState.AssignCodeType;
+        set => _uiState.AssignCodeType = value;
+    }
+    
+    private string _assignCode
+    {
+        get => _uiState.AssignCode;
+        set => _uiState.AssignCode = value;
+    }
+    
+    private string? _assignAlternativeDescription
+    {
+        get => _uiState.AssignAlternativeDescription;
+        set => _uiState.AssignAlternativeDescription = value;
+    }
+    
+    private Guid? _editingRowId
+    {
+        get => _uiState.EditingRowId;
+        set => _uiState.EditingRowId = value;
+    }
+    
+    private decimal? _editQuantity
+    {
+        get => _uiState.EditQuantity;
+        set => _uiState.EditQuantity = value;
+    }
+    
+    private string? _editNotes
+    {
+        get => _uiState.EditNotes;
+        set => _uiState.EditNotes = value;
+    }
+    
+    private Guid? _confirmDeleteRowId
+    {
+        get => _uiState.ConfirmDeleteRowId;
+        set => _uiState.ConfirmDeleteRowId = value;
+    }
+    
+    private bool _showFinalizeConfirmation
+    {
+        get => _uiState.ShowFinalizeConfirmation;
+        set => _uiState.ShowFinalizeConfirmation = value;
+    }
+    
+    private bool _showCancelConfirmation
+    {
+        get => _uiState.ShowCancelConfirmation;
+        set => _uiState.ShowCancelConfirmation = value;
+    }
+    
+    private bool _isLoading
+    {
+        get => _uiState.IsLoading;
+        set => _uiState.IsLoading = value;
+    }
 
     private void AddOperationLog(string message, string details = "", string type = "Info")
     {
-        _operationLog.Add(new OperationLogEntry
-        {
-            Timestamp = DateTime.UtcNow,
-            Message = message,
-            Details = details,
-            Type = type
-        });
+        var logEntry = StateManager.CreateLogEntry(type, message, details);
+        _operationLog.Add(logEntry);
 
         Logger.LogInformation("Inventory Operation: {Message} - {Details}", message, details);
     }
@@ -560,7 +649,7 @@
             if (foundProduct != null)
             {
                 _currentProduct = foundProduct;
-                _showAssignPanel = false;
+                _uiState.ClearAssignPanel();
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato: {0}", _currentProduct.Name), MudBlazor.Severity.Success);
                 AddOperationLog(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato"),
                     $"{_currentProduct.Name} ({_currentProduct.Code})", "Success");
@@ -589,14 +678,9 @@
             }
             else
             {
-                // Product not found - show assignment panel
+                // Product not found - show assignment panel using state manager
                 _currentProduct = null;
-                _showAssignPanel = true;
-                _assignPanelBarcode = barcode;
-                _assignCode = barcode;
-                _assignSelectedProduct = null;
-                _assignCodeType = "Barcode";
-                _assignAlternativeDescription = null;
+                _uiState.OpenAssignPanel(barcode);
                 
                 AddOperationLog(TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato"), 
                     $"Codice: {barcode}", "Warning");
@@ -646,7 +730,7 @@
                 AddOperationLog(TranslationService.GetTranslation("products.barcodeAssigned", "Codice assegnato"), $"{productName} - Codice: {args.code}", "Success");
 
                 _currentProduct = _assignSelectedProduct;
-                _showAssignPanel = false;
+                _uiState.ClearAssignPanel();
 
                 if (_locations?.Count == 1)
                 {
@@ -689,9 +773,8 @@
 
     private async Task SkipBarcodeAssignment()
     {
-        _showAssignPanel = false;
-        _assignPanelBarcode = string.Empty;
-        _assignSelectedProduct = null;
+        // Use state manager UI state method
+        _uiState.ClearAssignPanel();
         ClearProductForm();
         
         if (_scannerComponent != null)
@@ -715,7 +798,13 @@
 
     private async Task ConfirmAndNext()
     {
-        if (_currentProduct == null || !_selectedLocationId.HasValue || !_quantity.HasValue || _quantity < 0) return;
+        // Use state manager validation
+        if (!StateManager.ValidateInputState(_inputState))
+        {
+            Logger.LogWarning("Cannot confirm: input state validation failed");
+            return;
+        }
+        
         await AddInventoryRow();
     }
 
@@ -818,15 +907,8 @@
 
     private void ClearProductForm()
     {
-        // Use the service to get cleared state
-        var clearedState = InventoryFastService.ClearProductFormState();
-        
-        _scannedBarcode = clearedState.ScannedBarcode;
-        _currentProduct = clearedState.CurrentProduct;
-        _selectedLocationId = clearedState.SelectedLocationId;
-        _selectedLocation = clearedState.SelectedLocation;
-        _quantity = clearedState.Quantity;
-        _notes = clearedState.Notes;
+        // Use the state manager to clear input state (except LastAddedRow for undo)
+        _inputState.Clear();
         
         if (_scannerComponent != null)
         {
@@ -876,9 +958,8 @@
         var row = _currentDocument?.Rows?.FirstOrDefault(r => r.Id == rowId);
         if (row == null) return;
 
-        _editingRowId = rowId;
-        _editQuantity = row.Quantity;
-        _editNotes = row.Notes ?? string.Empty;
+        // Use state manager UI state method
+        _uiState.BeginEdit(rowId, row.Quantity, row.Notes ?? string.Empty);
         StateHasChanged();
     }
 
@@ -913,7 +994,8 @@
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata"), MudBlazor.Severity.Success);
             }
 
-            _editingRowId = null;
+            // Use state manager to clear edit state
+            _uiState.ClearEditState();
         }
         catch (Exception ex)
         {
@@ -929,7 +1011,8 @@
 
     private void CancelEditRow()
     {
-        _editingRowId = null;
+        // Use state manager UI state method
+        _uiState.ClearEditState();
         StateHasChanged();
     }
 
@@ -965,7 +1048,8 @@
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.rowDeleted", "Riga eliminata"), MudBlazor.Severity.Info);
             }
             
-            _confirmDeleteRowId = null;
+            // Use state manager to clear confirmation state
+            _uiState.ConfirmDeleteRowId = null;
         }
         catch (Exception ex)
         {
@@ -981,7 +1065,8 @@
 
     private void CancelDeleteRow()
     {
-        _confirmDeleteRowId = null;
+        // Use state manager UI state method to clear confirmations
+        _uiState.ConfirmDeleteRowId = null;
         StateHasChanged();
     }
 
