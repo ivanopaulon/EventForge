@@ -162,6 +162,22 @@ namespace EventForge.DTOs.Common
     }
 
     /// <summary>
+    /// Discount type enumeration.
+    /// </summary>
+    public enum DiscountType
+    {
+        /// <summary>
+        /// Discount as percentage.
+        /// </summary>
+        Percentage,
+        
+        /// <summary>
+        /// Discount as absolute value.
+        /// </summary>
+        Value
+    }
+
+    /// <summary>
     /// Payment status enumeration.
     /// </summary>
     public enum PaymentStatus

@@ -78,6 +78,17 @@ namespace EventForge.DTOs.Documents
         public decimal LineDiscount { get; set; } = 0m;
 
         /// <summary>
+        /// Line discount value (absolute amount).
+        /// </summary>
+        [Range(0, double.MaxValue, ErrorMessage = "Line discount value must be non-negative.")]
+        public decimal LineDiscountValue { get; set; } = 0m;
+
+        /// <summary>
+        /// Discount type (percentage or value).
+        /// </summary>
+        public DiscountType DiscountType { get; set; } = DiscountType.Percentage;
+
+        /// <summary>
         /// VAT rate applied to the line (percentage).
         /// </summary>
         [Range(0, 100, ErrorMessage = "VAT rate must be between 0 and 100.")]

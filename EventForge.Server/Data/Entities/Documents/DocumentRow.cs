@@ -129,6 +129,19 @@ public class DocumentRow : AuditableEntity
     public decimal LineDiscount { get; set; } = 0m;
 
     /// <summary>
+    /// Line discount value (absolute amount).
+    /// </summary>
+    [Range(0, double.MaxValue, ErrorMessage = "Line discount value must be non-negative.")]
+    [Display(Name = "Line Discount Value", Description = "Discount applied to the row as an absolute amount.")]
+    public decimal LineDiscountValue { get; set; } = 0m;
+
+    /// <summary>
+    /// Discount type (percentage or value).
+    /// </summary>
+    [Display(Name = "Discount Type", Description = "Type of discount applied (percentage or value).")]
+    public EventForge.DTOs.Common.DiscountType DiscountType { get; set; } = EventForge.DTOs.Common.DiscountType.Percentage;
+
+    /// <summary>
     /// VAT rate applied to the line (percentage).
     /// </summary>
     [Range(0, 100, ErrorMessage = "VAT rate must be between 0 and 100.")]
@@ -201,11 +214,32 @@ public class DocumentRow : AuditableEntity
     public Station? Station { get; set; }
 
     /// <summary>
+    /// Calculates the actual discount amount, clamped to subtotal to prevent negative totals.
+    /// </summary>
+    private decimal GetEffectiveDiscount()
+    {
+        var subtotal = UnitPrice * Quantity;
+        var discount = DiscountType == EventForge.DTOs.Common.DiscountType.Percentage
+            ? subtotal * (LineDiscount / 100)
+            : LineDiscountValue;
+        
+        // Ensure discount doesn't exceed subtotal (prevent negative line totals)
+        return Math.Min(discount, subtotal);
+    }
+
+    /// <summary>
     /// Total for the row after discount (not mapped).
     /// </summary>
     [NotMapped]
     [Display(Name = "Line Total", Description = "Total for the row after discount.")]
-    public decimal LineTotal => Math.Round(UnitPrice * Quantity * (1 - (LineDiscount / 100)), 2);
+    public decimal LineTotal
+    {
+        get
+        {
+            var subtotal = UnitPrice * Quantity;
+            return Math.Round(subtotal - GetEffectiveDiscount(), 2);
+        }
+    }
 
     /// <summary>
     /// VAT total for the row (not mapped).
@@ -219,7 +253,7 @@ public class DocumentRow : AuditableEntity
     /// </summary>
     [NotMapped]
     [Display(Name = "Discount Total", Description = "Total discount applied to the row.")]
-    public decimal DiscountTotal => Math.Round(UnitPrice * Quantity * (LineDiscount / 100), 2);
+    public decimal DiscountTotal => Math.Round(GetEffectiveDiscount(), 2);
 
     /// <summary>
     /// Gets or sets the collection of summary links that include this document row.
