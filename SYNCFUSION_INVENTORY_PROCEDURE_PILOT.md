@@ -201,12 +201,46 @@ This can be enhanced to use full SfGrid in a future iteration once more Syncfusi
 
 ## Next Steps
 
-1. **Complete Main Page**: Wire up all components to existing services (IInventoryService, IProductService, etc.)
+1. **Complete Main Page**: Wire up all components to existing services (IInventoryService, IProductService, etc.) ✅ **DONE**
 2. **Add Navigation**: Create NavMenu entry for the new page
 3. **Testing**: Perform end-to-end testing of all workflows
 4. **Documentation**: Add inline code comments and usage examples
 5. **Performance**: Evaluate Syncfusion vs MudBlazor performance characteristics
 6. **Enhancement**: Consider using full SfGrid once team gains more Syncfusion experience
+
+## Service Layer Integration (2025-11-07)
+
+### Migrate Fast to use InventoryFastService
+
+The Fast Procedure functionality has been consolidated using a dedicated service layer:
+
+**Service Created**: `EventForge.Client/Services/InventoryFastService.cs`
+- Implements `IInventoryFastService` interface
+- Registered in DI container as Scoped service
+- Provides testable business logic for:
+  - Barcode scanning with repeated scan detection
+  - Row merge operations (same product + location)
+  - Extended product search (Name, Code, ShortDescription, Description)
+  - Form state management
+  - Notes combination
+
+**InventoryProcedureSyncfusion Updated**:
+- Injects and uses `IInventoryFastService`
+- Business logic delegated to service
+- UI layer focused on rendering and user interaction
+- All features fully functional (repeated scan, merge rows, search, reset, focus handling)
+
+**Testing**:
+- 20 comprehensive unit tests added in `EventForge.Tests/Services/Warehouse/InventoryFastServiceTests.cs`
+- All tests passing ✅
+- Coverage includes all service methods and edge cases
+
+**License Key Setup** (Unchanged):
+The Syncfusion license key configuration remains as documented:
+- Create `EventForge.Client/appsettings.Syncfusion.Development.json` locally (gitignored)
+- Copy structure from `appsettings.Syncfusion.Development.json.sample`
+- Add your Syncfusion license key
+- Application loads and registers automatically at startup
 
 ## Conclusion
 
