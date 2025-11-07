@@ -27,7 +27,7 @@
                            Placeholder="@TranslationService.GetTranslation("products.searchProduct", "Cerca Prodotto")"
                            FloatLabelType="FloatLabelType.Auto"
                            Filtering="@OnProductFiltering"
-                           ValueChange="@OnProductSelected">
+                           ValueChange="@OnProductValueChanged">
                 <AutoCompleteFieldSettings Value="Name" />
                 <AutoCompleteTemplates TItem="ProductDto">
                     <ItemTemplate Context="product">
@@ -41,7 +41,7 @@
             <small class="text-muted">@TranslationService.GetTranslation("products.searchByCodeOrDescription", "Cerca per codice o descrizione")</small>
         </div>
 
-        <!-- Assignment Form (shown when product is selected) -->
+        <!-- Assignment form and details below -->
         @if (SelectedProduct != null)
         {
             <div class="sf-card p-3 mb-3">
@@ -62,24 +62,17 @@
                 <div class="row g-2">
                     <div class="col-md-6">
                         <SfDropDownList TValue="string" TItem="CodeTypeOption"
-                                       Value="@CodeType"
-                                       DataSource="@_codeTypes"
-                                       Placeholder="@TranslationService.GetTranslation("products.codeType", "Tipo Codice")"
-                                       FloatLabelType="FloatLabelType.Auto"
-                                       ValueChange="@OnCodeTypeChanged">
-                            <DropDownListFieldSettings Value="Value" Text="Text" />
+                                        DataSource="@_codeTypes"
+                                        Placeholder="@TranslationService.GetTranslation("products.codeType", "Tipo Codice")"
+                                        Value="@CodeType"
+                                        Change="@OnCodeTypeChanged">
+                            <DropDownListFieldSettings Text="Label" Value="Value" />
                         </SfDropDownList>
                     </div>
                     <div class="col-md-6">
-                        <SfTextBox @bind-Value="@Code"
-                                  Placeholder="@TranslationService.GetTranslation("field.code", "Codice")"
-                                  FloatLabelType="FloatLabelType.Auto" />
-                    </div>
-                    <div class="col-12">
-                        <SfTextBox @bind-Value="@AlternativeDescription"
-                                  Placeholder="@TranslationService.GetTranslation("products.alternativeDescription", "Descrizione Alternativa (opzionale)")"
-                                  FloatLabelType="FloatLabelType.Auto"
-                                  Multiline="true" />
+                        <SfTextBox Placeholder="@TranslationService.GetTranslation("products.code", "Codice")"
+                                   Value="@Code"
+                                   ValueChange="@OnCodeValueChanged" />
                     </div>
                 </div>
             </div>
@@ -110,7 +103,7 @@
 @code {
     private List<ProductDto> _products = new();
     private string SearchValue { get; set; } = string.Empty;
-    
+
     private List<CodeTypeOption> _codeTypes = new()
     {
         new("EAN", "EAN"),
@@ -120,7 +113,7 @@
         new("Barcode", "Codice a Barre"),
         new("Other", "Altro")
     };
-    
+
     [Parameter] public string ScannedBarcode { get; set; } = string.Empty;
     [Parameter] public ProductDto? SelectedProduct { get; set; }
     [Parameter] public EventCallback<ProductDto?> SelectedProductChanged { get; set; }
@@ -131,7 +124,7 @@
     [Parameter] public string? AlternativeDescription { get; set; }
     [Parameter] public EventCallback<string?> AlternativeDescriptionChanged { get; set; }
     [Parameter] public bool IsLoading { get; set; }
-    
+
     [Parameter] public Func<string, CancellationToken, Task<IEnumerable<ProductDto>>>? OnSearchProducts { get; set; }
     [Parameter] public EventCallback<(Guid productId, string codeType, string code, string? altDesc)> OnAssign { get; set; }
     [Parameter] public EventCallback OnSkip { get; set; }
@@ -144,31 +137,64 @@
         {
             Code = ScannedBarcode;
         }
+
+        // If a product is already selected externally, reflect its name in the input
+        if (SelectedProduct != null)
+        {
+            SearchValue = SelectedProduct.Name ?? string.Empty;
+        }
     }
 
     private async Task OnProductFiltering(SfDropDowns.FilteringEventArgs args)
     {
-        if (OnSearchProducts == null || string.IsNullOrWhiteSpace(args.Text))
+        var text = args?.Text ?? string.Empty;
+
+        if (OnSearchProducts == null)
         {
             _products.Clear();
+            StateHasChanged();
             return;
         }
 
-        var results = await OnSearchProducts(args.Text, CancellationToken.None);
-        _products = results.ToList();
+        try
+        {
+            var results = await OnSearchProducts(text, CancellationToken.None);
+            _products = results?.ToList() ?? new List<ProductDto>();
+        }
+        catch
+        {
+            _products.Clear();
+        }
+
+        StateHasChanged();
     }
 
-    private async Task OnProductSelected(SfDropDowns.ChangeEventArgs<string, ProductDto> args)
+    private async Task OnProductValueChanged(string value)
     {
-        if (args.ItemData != null)
+        SearchValue = value ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(SearchValue))
         {
-            SelectedProduct = args.ItemData;
-            await SelectedProductChanged.InvokeAsync(args.ItemData);
-            
-            // Pre-fill code with scanned barcode
+            SelectedProduct = null;
+            await SelectedProductChanged.InvokeAsync(null);
+            return;
+        }
+
+        // Try to match by Name or Code among current suggestions
+        var found = _products.FirstOrDefault(p =>
+            string.Equals(p.Name, SearchValue, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(p.Code, SearchValue, StringComparison.OrdinalIgnoreCase));
+
+        if (found != null)
+        {
+            SelectedProduct = found;
+            await SelectedProductChanged.InvokeAsync(found);
+
+            // Pre-fill code with scanned barcode if code empty
             if (string.IsNullOrEmpty(Code))
             {
                 Code = ScannedBarcode;
+                await CodeChanged.InvokeAsync(Code);
             }
         }
     }
@@ -179,18 +205,25 @@
         await CodeTypeChanged.InvokeAsync(args.Value);
     }
 
+    private async Task OnCodeValueChanged(Syncfusion.Blazor.Inputs.ChangedEventArgs args)
+    {
+        Code = args.Value ?? string.Empty;
+        await CodeChanged.InvokeAsync(Code);
+    }
+
     private bool IsFormValid()
     {
-        return SelectedProduct != null && !string.IsNullOrWhiteSpace(CodeType) && !string.IsNullOrWhiteSpace(Code);
+        return SelectedProduct != null && !string.IsNullOrEmpty(Code);
     }
 
     private async Task HandleAssign()
     {
-        if (SelectedProduct != null && IsFormValid())
-        {
-            await OnAssign.InvokeAsync((SelectedProduct.Id, CodeType, Code, AlternativeDescription));
-        }
+        if (!IsFormValid()) return;
+
+        if (SelectedProduct == null) return;
+
+        await OnAssign.InvokeAsync((SelectedProduct.Id, CodeType, Code, AlternativeDescription));
     }
 
-    private record CodeTypeOption(string Value, string Text);
+    private record CodeTypeOption(string Value, string Label);
 }
