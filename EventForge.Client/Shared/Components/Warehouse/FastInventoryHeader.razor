@@ -1,0 +1,187 @@
+@using EventForge.DTOs.Warehouse
+@inject ITranslationService TranslationService
+
+<!-- Session Status Banner with Enhanced Statistics -->
+@if (CurrentDocument != null)
+{
+    <MudAlert Severity="Severity.Info" Class="mb-4" Variant="Variant.Filled">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <div>
+                <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                    @TranslationService.GetTranslation("warehouse.inventorySessionActive", "Sessione di Inventario Attiva")
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    @TranslationService.GetTranslation("warehouse.documentNumber", "Documento") #@CurrentDocument.Number - 
+                    @CurrentDocument.TotalItems @TranslationService.GetTranslation("warehouse.itemsCounted", "articoli contati")
+                </MudText>
+                <MudText Typo="Typo.caption" Color="Color.Default">
+                    @TranslationService.GetTranslation("warehouse.sessionStarted", "Iniziata il") @SessionStartTime.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                </MudText>
+            </div>
+            <MudStack Row="true" Spacing="2">
+                <MudTooltip Text="@TranslationService.GetTranslation("warehouse.exportTooltip", "Esporta documento in Excel")">
+                    <MudButton StartIcon="@Icons.Material.Outlined.Download" 
+                               Color="Color.Info" 
+                               Variant="Variant.Outlined"
+                               OnClick="@(() => OnExport.InvokeAsync())"
+                               Disabled="@(CurrentDocument.TotalItems == 0)">
+                        @TranslationService.GetTranslation("common.export", "Esporta")
+                    </MudButton>
+                </MudTooltip>
+                <MudTooltip Text="@TranslationService.GetTranslation("warehouse.finalizeTooltip", "Applica tutti gli aggiustamenti e chiudi la sessione")">
+                    <MudButton StartIcon="@Icons.Material.Outlined.PlaylistAddCheck" 
+                               Color="Color.Success" 
+                               Variant="Variant.Filled"
+                               OnClick="@(() => OnRequestFinalize.InvokeAsync())"
+                               Disabled="@(CurrentDocument.TotalItems == 0)">
+                        @TranslationService.GetTranslation("warehouse.finalizeInventory", "Finalizza")
+                    </MudButton>
+                </MudTooltip>
+                <MudTooltip Text="@TranslationService.GetTranslation("warehouse.cancelTooltip", "Annulla sessione senza salvare")">
+                    <MudButton StartIcon="@Icons.Material.Outlined.Cancel" 
+                               Color="Color.Default" 
+                               Variant="Variant.Outlined"
+                               OnClick="@(() => OnRequestCancel.InvokeAsync())">
+                        @TranslationService.GetTranslation("common.cancel", "Annulla")
+                    </MudButton>
+                </MudTooltip>
+            </MudStack>
+        </MudStack>
+    </MudAlert>
+
+    <!-- Real-time Statistics Panel -->
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" md="3">
+            <MudPaper Elevation="2" Class="pa-3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @TranslationService.GetTranslation("warehouse.totalItems", "Totale Articoli")
+                    </MudText>
+                    <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 600;">
+                        @CurrentDocument.TotalItems
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudPaper Elevation="2" Class="pa-3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @TranslationService.GetTranslation("warehouse.positiveAdjustments", "Eccedenze")
+                    </MudText>
+                    <MudText Typo="Typo.h5" Color="Color.Success" Style="font-weight: 600;">
+                        +@PositiveAdjustmentsCount
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudPaper Elevation="2" Class="pa-3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @TranslationService.GetTranslation("warehouse.negativeAdjustments", "Mancanze")
+                    </MudText>
+                    <MudText Typo="Typo.h5" Color="Color.Warning" Style="font-weight: 600;">
+                        @NegativeAdjustmentsCount
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudPaper Elevation="2" Class="pa-3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @TranslationService.GetTranslation("warehouse.sessionDuration", "Durata Sessione")
+                    </MudText>
+                    <MudText Typo="Typo.h5" Color="Color.Info" Style="font-weight: 600;">
+                        @SessionDuration
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+<!-- Finalize Confirmation Banner -->
+@if (ShowFinalizeConfirmation)
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-4" Variant="Variant.Filled">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <div>
+                <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                    @TranslationService.GetTranslation("warehouse.confirmFinalize", "Conferma Finalizzazione")
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    @TranslationService.GetTranslation("warehouse.finalizeMessage", 
+                        "Confermi di voler finalizzare l'inventario? Verranno applicati tutti gli aggiustamenti di stock per {0} articoli.", 
+                        CurrentDocument?.TotalItems ?? 0)
+                </MudText>
+            </div>
+            <MudStack Row="true" Spacing="2">
+                <MudButton StartIcon="@Icons.Material.Outlined.Close"
+                          Color="Color.Default"
+                          Variant="Variant.Outlined"
+                          OnClick="@(() => OnCancelFinalize.InvokeAsync())">
+                    @TranslationService.GetTranslation("common.cancel", "Annulla")
+                </MudButton>
+                <MudButton StartIcon="@Icons.Material.Outlined.Check"
+                          Color="Color.Success"
+                          Variant="Variant.Filled"
+                          OnClick="@(() => OnConfirmFinalize.InvokeAsync())">
+                    @TranslationService.GetTranslation("common.confirm", "Conferma")
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudAlert>
+}
+
+<!-- Cancel Session Confirmation Banner -->
+@if (ShowCancelConfirmation)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <div>
+                <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                    @TranslationService.GetTranslation("warehouse.confirmCancel", "Conferma Annullamento")
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    @TranslationService.GetTranslation("warehouse.cancelMessage", 
+                        "Confermi di voler annullare la sessione di inventario? Tutti i dati inseriti ({0} articoli) andranno persi.", 
+                        CurrentDocument?.TotalItems ?? 0)
+                </MudText>
+            </div>
+            <MudStack Row="true" Spacing="2">
+                <MudButton StartIcon="@Icons.Material.Outlined.Close"
+                          Color="Color.Default"
+                          Variant="Variant.Outlined"
+                          OnClick="@(() => OnCancelCancel.InvokeAsync())">
+                    @TranslationService.GetTranslation("common.no", "No")
+                </MudButton>
+                <MudButton StartIcon="@Icons.Material.Outlined.Check"
+                          Color="Color.Error"
+                          Variant="Variant.Filled"
+                          OnClick="@(() => OnConfirmCancel.InvokeAsync())">
+                    @TranslationService.GetTranslation("common.yes", "Sì")
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudAlert>
+}
+
+@code {
+    [Parameter] public InventoryDocumentDto? CurrentDocument { get; set; }
+    [Parameter] public DateTime SessionStartTime { get; set; } = DateTime.UtcNow;
+    [Parameter] public int PositiveAdjustmentsCount { get; set; }
+    [Parameter] public int NegativeAdjustmentsCount { get; set; }
+    [Parameter] public string SessionDuration { get; set; } = "00:00";
+    [Parameter] public bool ShowFinalizeConfirmation { get; set; }
+    [Parameter] public bool ShowCancelConfirmation { get; set; }
+    
+    [Parameter] public EventCallback OnExport { get; set; }
+    [Parameter] public EventCallback OnRequestFinalize { get; set; }
+    [Parameter] public EventCallback OnConfirmFinalize { get; set; }
+    [Parameter] public EventCallback OnCancelFinalize { get; set; }
+    [Parameter] public EventCallback OnRequestCancel { get; set; }
+    [Parameter] public EventCallback OnConfirmCancel { get; set; }
+    [Parameter] public EventCallback OnCancelCancel { get; set; }
+}

@@ -1,0 +1,175 @@
+@using EventForge.DTOs.Warehouse
+@inject ITranslationService TranslationService
+
+@if (Rows?.Any() == true)
+{
+    <MudPaper Elevation="2" Class="pa-4 mb-4">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+            <div>
+                <MudText Typo="Typo.h6">
+                    <MudIcon Icon="@Icons.Material.Outlined.ListAlt" Class="mr-2" />
+                    @TranslationService.GetTranslation("warehouse.inventoryItems", "Articoli nel Documento di Inventario")
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Class="ml-2">@TotalItems</MudChip>
+                </MudText>
+            </div>
+            <MudStack Row="true" Spacing="2">
+                <MudTooltip Text="@TranslationService.GetTranslation("warehouse.filterAdjustments", "Mostra solo articoli con differenze")">
+                    <MudSwitch T="bool" @bind-Checked="ShowOnlyAdjustmentsValue" 
+                              Color="Color.Primary" 
+                              Label="@TranslationService.GetTranslation("warehouse.onlyAdjustments", "Solo Differenze")" />
+                </MudTooltip>
+            </MudStack>
+        </MudStack>
+
+        <MudTable Items="@GetFilteredRows()" Hover="true" Dense="true" Striped="true" FixedHeader="true" Height="400px">
+            <HeaderContent>
+                <MudTh>@TranslationService.GetTranslation("warehouse.productCode", "Codice")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("warehouse.description", "Descrizione")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("warehouse.location", "Ubicazione")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("warehouse.quantity", "Quantità")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                @if (context.Id == EditingRowId)
+                {
+                    <!-- Inline Edit Mode -->
+                    <MudTd DataLabel="ProductCode">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ProductCode</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Description">
+                        <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.ProductName</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Location">
+                        <MudText Typo="Typo.body2">@context.LocationName</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Quantity">
+                        <MudNumericField @bind-Value="EditQuantityValue"
+                                       Label=""
+                                       Variant="Variant.Outlined"
+                                       Min="0"
+                                       Dense="true"
+                                       Margin="Margin.Dense" />
+                    </MudTd>
+                    <MudTd DataLabel="Actions">
+                        <MudStack Row="true" Spacing="1">
+                            <MudTooltip Text="@TranslationService.GetTranslation("common.save", "Salva")">
+                                <MudIconButton Icon="@Icons.Material.Outlined.Check"
+                                               Size="Size.Small"
+                                               Color="Color.Success"
+                                               OnClick="@(() => OnSaveEdit.InvokeAsync(context.Id))" />
+                            </MudTooltip>
+                            <MudTooltip Text="@TranslationService.GetTranslation("common.cancel", "Annulla")">
+                                <MudIconButton Icon="@Icons.Material.Outlined.Close"
+                                               Size="Size.Small"
+                                               Color="Color.Default"
+                                               OnClick="@(() => OnCancelEdit.InvokeAsync())" />
+                            </MudTooltip>
+                        </MudStack>
+                    </MudTd>
+                }
+                else if (context.Id == ConfirmDeleteRowId)
+                {
+                    <!-- Inline Delete Confirmation -->
+                    <MudTd DataLabel="Confirmation" ColSpan="5">
+                        <MudAlert Severity="Severity.Warning" Dense="true" NoIcon="false">
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                <MudText Typo="Typo.body2">
+                                    @TranslationService.GetTranslation("warehouse.confirmDeleteRow", "Confermi l'eliminazione di '{0}'?", context.ProductName)
+                                </MudText>
+                                <MudStack Row="true" Spacing="1">
+                                    <MudButton StartIcon="@Icons.Material.Outlined.Check"
+                                              Size="Size.Small"
+                                              Color="Color.Error"
+                                              Variant="Variant.Filled"
+                                              OnClick="@(() => OnConfirmDelete.InvokeAsync(context.Id))">
+                                        @TranslationService.GetTranslation("common.confirm", "Conferma")
+                                    </MudButton>
+                                    <MudButton StartIcon="@Icons.Material.Outlined.Close"
+                                              Size="Size.Small"
+                                              Color="Color.Default"
+                                              Variant="Variant.Outlined"
+                                              OnClick="@(() => OnCancelDelete.InvokeAsync())">
+                                        @TranslationService.GetTranslation("common.cancel", "Annulla")
+                                    </MudButton>
+                                </MudStack>
+                            </MudStack>
+                        </MudAlert>
+                    </MudTd>
+                }
+                else
+                {
+                    <!-- Normal Display Mode -->
+                    <MudTd DataLabel="ProductCode">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ProductCode</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Description">
+                        <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.ProductName</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Location">
+                        <MudText Typo="Typo.body2">@context.LocationName</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Quantity">
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.Quantity</MudChip>
+                        @if (context.AdjustmentQuantity.HasValue && context.AdjustmentQuantity != 0)
+                        {
+                            var adjColor = context.AdjustmentQuantity > 0 ? Color.Success : Color.Warning;
+                            var adjIcon = context.AdjustmentQuantity > 0 ? Icons.Material.Filled.TrendingUp : Icons.Material.Filled.TrendingDown;
+                            
+                            <MudChip T="string" Size="Size.Small" Color="@adjColor" Icon="@adjIcon" Class="ml-1">
+                                @(context.AdjustmentQuantity > 0 ? "+" : "")@context.AdjustmentQuantity
+                            </MudChip>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Actions">
+                        <MudStack Row="true" Spacing="1">
+                            <MudTooltip Text="@TranslationService.GetTranslation("common.edit", "Modifica")">
+                                <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
+                                               Size="Size.Small" 
+                                               Color="Color.Primary"
+                                               OnClick="@(() => OnBeginEdit.InvokeAsync(context.Id))" />
+                            </MudTooltip>
+                            <MudTooltip Text="@TranslationService.GetTranslation("common.delete", "Elimina")">
+                                <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
+                                               Size="Size.Small" 
+                                               Color="Color.Error"
+                                               OnClick="@(() => OnRequestDelete.InvokeAsync(context.Id))" />
+                            </MudTooltip>
+                        </MudStack>
+                    </MudTd>
+                }
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public List<InventoryDocumentRowDto>? Rows { get; set; }
+    [Parameter] public int TotalItems { get; set; }
+    [Parameter] public bool ShowOnlyAdjustmentsValue { get; set; }
+    [Parameter] public EventCallback<bool> ShowOnlyAdjustmentsValueChanged { get; set; }
+    [Parameter] public Guid? EditingRowId { get; set; }
+    [Parameter] public decimal EditQuantityValue { get; set; }
+    [Parameter] public EventCallback<decimal> EditQuantityValueChanged { get; set; }
+    [Parameter] public Guid? ConfirmDeleteRowId { get; set; }
+    
+    [Parameter] public EventCallback<Guid> OnBeginEdit { get; set; }
+    [Parameter] public EventCallback<Guid> OnSaveEdit { get; set; }
+    [Parameter] public EventCallback OnCancelEdit { get; set; }
+    [Parameter] public EventCallback<Guid> OnRequestDelete { get; set; }
+    [Parameter] public EventCallback<Guid> OnConfirmDelete { get; set; }
+    [Parameter] public EventCallback OnCancelDelete { get; set; }
+    
+    private IEnumerable<InventoryDocumentRowDto> GetFilteredRows()
+    {
+        if (Rows == null) return Enumerable.Empty<InventoryDocumentRowDto>();
+        
+        var rows = Rows.AsEnumerable();
+        
+        if (ShowOnlyAdjustmentsValue)
+        {
+            rows = rows.Where(r => r.AdjustmentQuantity.HasValue && r.AdjustmentQuantity != 0);
+        }
+        
+        return rows;
+    }
+}
