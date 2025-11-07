@@ -1,0 +1,161 @@
+@using EventForge.DTOs.Documents
+@using EventForge.DTOs.Common
+@inject IDocumentHeaderService DocumentHeaderService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ITranslationService TranslationService
+@inject ILogger<ProductDocumentsDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="2">
+            @if (!string.IsNullOrWhiteSpace(ProductName))
+            {
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    @TranslationService.GetTranslation("product.documentsFor", "Documenti per"): <strong>@ProductName</strong>
+                </MudAlert>
+            }
+
+            <MudTable Items="@_documents"
+                      Hover="true"
+                      Dense="true"
+                      Loading="@_isLoading"
+                      LoadingProgressColor="Color.Primary"
+                      FixedHeader="true"
+                      Height="400px">
+                <HeaderContent>
+                    <MudTh>@TranslationService.GetTranslation("document.date", "Data")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("document.type", "Tipo")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("document.number", "Numero")</MudTh>
+                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("document.quantity", "Quantità")</MudTh>
+                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("document.unitPrice", "Prezzo Unit.")</MudTh>
+                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("document.total", "Totale")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("document.date", "Data")">@context.Date.ToShortDateString()</MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("document.type", "Tipo")">@context.DocumentTypeName</MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("document.number", "Numero")">
+                        @if (!string.IsNullOrWhiteSpace(context.Series))
+                        {
+                            <text>@context.Series/@context.Number</text>
+                        }
+                        else
+                        {
+                            <text>@context.Number</text>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("document.quantity", "Quantità")" Style="text-align: right;">
+                        @context.Quantity.ToString("N2")
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("document.unitPrice", "Prezzo Unit.")" Style="text-align: right;">
+                        @context.UnitPrice.ToString("C2")
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("document.total", "Totale")" Style="text-align: right;">
+                        @context.LineTotal.ToString("C2")
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>@TranslationService.GetTranslation("document.noRecords", "Nessun documento trovato")</MudText>
+                </NoRecordsContent>
+                <LoadingContent>
+                    <MudText>@TranslationService.GetTranslation("common.loading", "Caricamento...")</MudText>
+                </LoadingContent>
+            </MudTable>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Color="Color.Default">@TranslationService.GetTranslation("common.close", "Chiudi")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+    [Parameter] public Guid BusinessPartyId { get; set; }
+    [Parameter] public Guid ProductId { get; set; }
+    [Parameter] public string? ProductName { get; set; }
+
+    private bool _isLoading = false;
+    private List<ProductDocumentRow> _documents = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDocumentsAsync();
+    }
+
+    private async Task LoadDocumentsAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            // NOTE: This is a simplified drill-down implementation that loads documents in memory.
+            // For production with large datasets, consider adding a dedicated server endpoint:
+            // GET /api/v1/business-parties/{businessPartyId}/products/{productId}/document-rows
+            // That endpoint would directly query document rows filtered by both businessPartyId and productId
+            // in a single SQL query, avoiding the N+1 problem and memory overhead.
+            
+            var queryParams = new DocumentHeaderQueryParameters
+            {
+                BusinessPartyId = BusinessPartyId,
+                Page = 1,
+                PageSize = 100 // Limit to reasonable size for this simplified drill-down
+            };
+            
+            var allDocuments = await DocumentHeaderService.GetPagedDocumentHeadersAsync(queryParams);
+            
+            if (allDocuments?.Items != null)
+            {
+                _documents = new List<ProductDocumentRow>();
+                
+                foreach (var doc in allDocuments.Items)
+                {
+                    // Load document with rows
+                    var fullDoc = await DocumentHeaderService.GetDocumentHeaderByIdAsync(doc.Id, includeRows: true);
+                    if (fullDoc?.Rows != null)
+                    {
+                        var productRows = fullDoc.Rows.Where(r => r.ProductId == ProductId);
+                        foreach (var row in productRows)
+                        {
+                            _documents.Add(new ProductDocumentRow
+                            {
+                                Date = fullDoc.Date,
+                                DocumentTypeName = fullDoc.DocumentTypeName,
+                                Series = fullDoc.Series,
+                                Number = fullDoc.Number,
+                                Quantity = row.Quantity,
+                                UnitPrice = row.UnitPrice,
+                                LineTotal = row.LineTotal
+                            });
+                        }
+                    }
+                }
+                
+                _documents = _documents.OrderByDescending(d => d.Date).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading product documents for product {ProductId} and business party {BusinessPartyId}", ProductId, BusinessPartyId);
+            Snackbar.Add(TranslationService.GetTranslation("product.documentsLoadError", "Errore nel caricamento dei documenti"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Close();
+    }
+
+    private class ProductDocumentRow
+    {
+        public DateTime Date { get; set; }
+        public string? DocumentTypeName { get; set; }
+        public string? Series { get; set; }
+        public string Number { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal LineTotal { get; set; }
+    }
+}

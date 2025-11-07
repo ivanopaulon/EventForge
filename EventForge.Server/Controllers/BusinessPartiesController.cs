@@ -502,4 +502,128 @@ public class BusinessPartiesController : BaseApiController
     }
 
     #endregion
+
+    #region BusinessParty Documents Endpoints
+
+    /// <summary>
+    /// Gets documents for a specific business party with optional filters and pagination.
+    /// </summary>
+    /// <param name="businessPartyId">Business party ID</param>
+    /// <param name="fromDate">Optional start date filter</param>
+    /// <param name="toDate">Optional end date filter</param>
+    /// <param name="documentTypeId">Optional document type filter</param>
+    /// <param name="searchNumber">Optional number/series search</param>
+    /// <param name="approvalStatus">Optional approval status filter</param>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of document headers</returns>
+    /// <response code="200">Returns the paginated list of documents</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    /// <response code="404">If the business party is not found</response>
+    [HttpGet("{businessPartyId:guid}/documents")]
+    [ProducesResponseType(typeof(PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>>> GetBusinessPartyDocuments(
+        Guid businessPartyId,
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null,
+        [FromQuery] Guid? documentTypeId = null,
+        [FromQuery] string? searchNumber = null,
+        [FromQuery] DTOs.Common.ApprovalStatus? approvalStatus = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Check if business party exists
+            var exists = await _businessPartyService.BusinessPartyExistsAsync(businessPartyId, cancellationToken);
+            if (!exists)
+            {
+                return CreateNotFoundProblem($"Business party with ID {businessPartyId} not found.");
+            }
+
+            var result = await _businessPartyService.GetBusinessPartyDocumentsAsync(
+                businessPartyId, fromDate, toDate, documentTypeId, searchNumber, approvalStatus, page, pageSize, cancellationToken);
+            
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving business party documents.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets product analysis data for a specific business party.
+    /// </summary>
+    /// <param name="businessPartyId">Business party ID</param>
+    /// <param name="fromDate">Optional start date filter</param>
+    /// <param name="toDate">Optional end date filter</param>
+    /// <param name="type">Filter by transaction type: 'purchase', 'sale', or null for both</param>
+    /// <param name="topN">Limit results to top N by value</param>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="sortBy">Sort field (default: ValuePurchased)</param>
+    /// <param name="sortDescending">Sort direction (default: true)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of product analysis data</returns>
+    /// <response code="200">Returns the product analysis data</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    /// <response code="404">If the business party is not found</response>
+    [HttpGet("{businessPartyId:guid}/product-analysis")]
+    [ProducesResponseType(typeof(PagedResult<BusinessPartyProductAnalysisDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResult<BusinessPartyProductAnalysisDto>>> GetBusinessPartyProductAnalysis(
+        Guid businessPartyId,
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null,
+        [FromQuery] string? type = null,
+        [FromQuery] int? topN = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDescending = true,
+        CancellationToken cancellationToken = default)
+    {
+        var paginationError = ValidatePaginationParameters(page, pageSize);
+        if (paginationError != null) return paginationError;
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            // Check if business party exists
+            var exists = await _businessPartyService.BusinessPartyExistsAsync(businessPartyId, cancellationToken);
+            if (!exists)
+            {
+                return CreateNotFoundProblem($"Business party with ID {businessPartyId} not found.");
+            }
+
+            var result = await _businessPartyService.GetBusinessPartyProductAnalysisAsync(
+                businessPartyId, fromDate, toDate, type, topN, page, pageSize, sortBy, sortDescending, cancellationToken);
+            
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving business party product analysis.", ex);
+        }
+    }
+
+    #endregion
 }

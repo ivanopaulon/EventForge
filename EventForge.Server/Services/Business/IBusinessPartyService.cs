@@ -134,4 +134,54 @@ public interface IBusinessPartyService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if exists, false otherwise</returns>
     Task<bool> BusinessPartyExistsAsync(Guid businessPartyId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets documents for a business party with optional filters and pagination.
+    /// </summary>
+    /// <param name="businessPartyId">Business party ID</param>
+    /// <param name="fromDate">Optional start date filter</param>
+    /// <param name="toDate">Optional end date filter</param>
+    /// <param name="documentTypeId">Optional document type filter</param>
+    /// <param name="searchNumber">Optional number/series search</param>
+    /// <param name="approvalStatus">Optional approval status filter</param>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of document headers</returns>
+    Task<PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>> GetBusinessPartyDocumentsAsync(
+        Guid businessPartyId,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        Guid? documentTypeId = null,
+        string? searchNumber = null,
+        DTOs.Common.ApprovalStatus? approvalStatus = null,
+        int page = 1,
+        int pageSize = 20,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets product analysis aggregated data for a business party.
+    /// </summary>
+    /// <param name="businessPartyId">Business party ID</param>
+    /// <param name="fromDate">Optional start date filter</param>
+    /// <param name="toDate">Optional end date filter</param>
+    /// <param name="type">Filter by transaction type: 'purchase', 'sale', or null for both</param>
+    /// <param name="topN">Limit results to top N by value</param>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="sortBy">Sort field (default: ValuePurchased)</param>
+    /// <param name="sortDescending">Sort direction</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of product analysis data</returns>
+    Task<PagedResult<BusinessPartyProductAnalysisDto>> GetBusinessPartyProductAnalysisAsync(
+        Guid businessPartyId,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        string? type = null,
+        int? topN = null,
+        int page = 1,
+        int pageSize = 20,
+        string? sortBy = null,
+        bool sortDescending = true,
+        CancellationToken cancellationToken = default);
 }

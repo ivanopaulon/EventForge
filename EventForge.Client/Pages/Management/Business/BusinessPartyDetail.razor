@@ -7,6 +7,7 @@
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Pages.Management.Business.BusinessPartyDetailTabs
+@using EventForge.Client.Shared.BusinessParty
 @attribute [Authorize]
 @inject IBusinessPartyService BusinessPartyService
 @inject NavigationManager NavigationManager
@@ -103,6 +104,16 @@
                             <AccountingTab Party="@_party" IsEditMode="@_isEditMode" OnPartyUpdated="@HandlePartyLocallyChanged" />
                         </MudTabPanel>
                     }
+
+                    <!-- Documents Tab -->
+                    <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.documents", "Documenti")" Icon="@Icons.Material.Filled.Description">
+                        <BusinessPartyDocumentsTab BusinessPartyId="@_party.Id" />
+                    </MudTabPanel>
+
+                    <!-- Products Analysis Tab -->
+                    <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.products", "Prodotti")" Icon="@Icons.Material.Filled.Inventory">
+                        <BusinessPartyProductsTab BusinessPartyId="@_party.Id" />
+                    </MudTabPanel>
                 }
             </MudTabs>
         </MudPaper>
