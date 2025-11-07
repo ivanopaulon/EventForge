@@ -622,6 +622,27 @@ public class ProductService : IProductService
             return null;
         }
     }
+
+    public async Task<IEnumerable<RecentProductTransactionDto>?> GetRecentProductTransactionsAsync(
+        Guid productId, 
+        string type = "purchase", 
+        Guid? partyId = null, 
+        int top = 3)
+    {
+        try
+        {
+            var url = $"{BaseUrl}/{productId}/recent-transactions?type={type}&top={top}";
+            if (partyId.HasValue)
+                url += $"&partyId={partyId.Value}";
+
+            return await _httpClientService.GetAsync<IEnumerable<RecentProductTransactionDto>>(url);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving recent transactions for product {ProductId}", productId);
+            return null;
+        }
+    }
 }
 
 public class ImageUploadResultDto

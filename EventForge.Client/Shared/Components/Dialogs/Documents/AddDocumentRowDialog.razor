@@ -134,6 +134,76 @@
                 </MudItem>
             </MudGrid>
 
+            <!-- Recent Transactions / Price Suggestions -->
+            @if (_recentTransactions.Any() && _selectedProduct != null)
+            {
+                <MudPaper Class="pa-3 mt-2" Elevation="0" Style="background-color: var(--mud-palette-background-grey); border-left: 4px solid var(--mud-palette-info);">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.subtitle2" Color="Color.Info">
+                            <MudIcon Icon="@Icons.Material.Outlined.History" Class="mr-2" Size="Size.Small" />
+                            @{
+                                var isPurchase = !string.IsNullOrEmpty(_documentHeader?.DocumentTypeName) && 
+                                    PurchaseKeywords.Any(k => _documentHeader.DocumentTypeName.ToLower().Contains(k));
+                            }
+                            @if (isPurchase)
+                            {
+                                @TranslationService.GetTranslation("documents.recentPurchases", "Ultimi Acquisti per questo Prodotto")
+                            }
+                            else
+                            {
+                                @TranslationService.GetTranslation("documents.recentSales", "Ultime Vendite per questo Prodotto")
+                            }
+                        </MudText>
+                        <MudDivider />
+                        @foreach (var transaction in _recentTransactions)
+                        {
+                            <MudPaper Class="pa-2" Elevation="1">
+                                <MudGrid Spacing="1">
+                                    <MudItem xs="12" sm="6">
+                                        <MudText Typo="Typo.body2" Style="font-weight: 500;">@transaction.PartyName</MudText>
+                                        <MudText Typo="Typo.caption">
+                                            @transaction.DocumentNumber - @transaction.DocumentDate.ToString("dd/MM/yyyy")
+                                        </MudText>
+                                    </MudItem>
+                                    <MudItem xs="6" sm="2" Class="d-flex align-center justify-end">
+                                        <MudText Typo="Typo.body2">@transaction.Quantity.ToString("N2")</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6" sm="2" Class="d-flex align-center justify-end">
+                                        <MudText Typo="Typo.body2" Color="Color.Success" Style="font-weight: 600;">
+                                            @transaction.EffectiveUnitPrice.ToString("C2")
+                                        </MudText>
+                                    </MudItem>
+                                    <MudItem xs="12" sm="2" Class="d-flex align-center justify-end">
+                                        <MudButton Size="Size.Small" 
+                                                   Variant="Variant.Outlined" 
+                                                   Color="Color.Primary"
+                                                   OnClick="@(() => ApplySuggestion(transaction))"
+                                                   StartIcon="@Icons.Material.Outlined.CheckCircle">
+                                            @TranslationService.GetTranslation("documents.applyPrice", "Applica")
+                                        </MudButton>
+                                    </MudItem>
+                                </MudGrid>
+                                @if (!string.IsNullOrEmpty(transaction.UnitOfMeasure))
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Default">
+                                        @TranslationService.GetTranslation("documents.netPriceAfterDiscount", "Prezzo netto (dopo sconto)") - @transaction.UnitOfMeasure
+                                    </MudText>
+                                }
+                            </MudPaper>
+                        }
+                    </MudStack>
+                </MudPaper>
+            }
+            else if (_loadingTransactions)
+            {
+                <MudPaper Class="pa-3 mt-2" Elevation="0">
+                    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                    <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-2">
+                        @TranslationService.GetTranslation("documents.loadingTransactions", "Caricamento suggerimenti prezzo...")
+                    </MudText>
+                </MudPaper>
+            }
+
             <!-- Discount Section -->
             <MudGrid Spacing="2">
                 <MudItem xs="12" md="3">
@@ -292,9 +362,28 @@
     private Guid? _selectedUnitOfMeasureId = null;
     private Guid? _selectedVatRateId = null;
     private Guid? _barcodeProductUnitId = null; // Track unit from barcode lookup
+    
+    // Document type detection keywords
+    private static readonly string[] PurchaseKeywords = { "purchase", "receipt", "return", "acquisto", "carico", "reso" };
+    private static readonly string[] SaleKeywords = { "sale", "invoice", "shipment", "delivery", "vendita", "fattura", "scarico", "consegna" };
+    
+    // Recent transactions for price suggestions
+    private DocumentHeaderDto? _documentHeader = null;
+    private List<RecentProductTransactionDto> _recentTransactions = new();
+    private bool _loadingTransactions = false;
 
     protected override async Task OnInitializedAsync()
     {
+        // Load document header to get context (business party, document type)
+        try
+        {
+            _documentHeader = await DocumentHeaderService.GetDocumentHeaderByIdAsync(DocumentHeaderId, includeRows: false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading document header");
+        }
+
         // Load all units of measure
         try
         {
@@ -387,6 +476,10 @@
         if (product != null)
         {
             await PopulateFromProduct(product);
+            
+            // Load recent transactions for price suggestions
+            await LoadRecentTransactions(product.Id);
+            
             StateHasChanged();
         }
     }
@@ -764,5 +857,95 @@
     private void Cancel()
     {
         MudDialog.Cancel();
+    }
+
+    private async Task LoadRecentTransactions(Guid productId)
+    {
+        if (_documentHeader == null)
+        {
+            return;
+        }
+
+        _loadingTransactions = true;
+        _recentTransactions.Clear();
+        
+        try
+        {
+            // Determine transaction type based on document type name keywords
+            // Determine transaction type based on document type name keywords
+            string transactionType = "purchase"; // default
+            
+            if (!string.IsNullOrEmpty(_documentHeader.DocumentTypeName))
+            {
+                var lowerName = _documentHeader.DocumentTypeName.ToLower();
+                
+                if (SaleKeywords.Any(k => lowerName.Contains(k)))
+                {
+                    transactionType = "sale";
+                }
+                else if (PurchaseKeywords.Any(k => lowerName.Contains(k)))
+                {
+                    transactionType = "purchase";
+                }
+            }
+            
+            // Optionally filter by business party if available
+            Guid? partyId = _documentHeader.BusinessPartyId != Guid.Empty ? _documentHeader.BusinessPartyId : null;
+            
+            var transactions = await ProductService.GetRecentProductTransactionsAsync(
+                productId,
+                transactionType,
+                partyId,
+                top: 3
+            );
+            
+            if (transactions != null)
+            {
+                _recentTransactions = transactions.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading recent transactions for product {ProductId}", productId);
+        }
+        finally
+        {
+            _loadingTransactions = false;
+        }
+    }
+
+    private void ApplySuggestion(RecentProductTransactionDto suggestion)
+    {
+        try
+        {
+            // Apply the effective unit price
+            _model.UnitPrice = suggestion.EffectiveUnitPrice;
+            
+            // If base unit price is available, apply it
+            if (suggestion.BaseUnitPrice.HasValue)
+            {
+                _model.BaseUnitPrice = suggestion.BaseUnitPrice.Value;
+            }
+            
+            // Clear discount fields since the suggested price is already net
+            _model.LineDiscount = 0;
+            _model.LineDiscountValue = 0;
+            _model.DiscountType = EventForge.DTOs.Common.DiscountType.Percentage;
+            
+            Snackbar.Add(
+                TranslationService.GetTranslation("documents.priceApplied", "Prezzo applicato: {0:C2}", suggestion.EffectiveUnitPrice),
+                Severity.Success
+            );
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error applying price suggestion");
+            Snackbar.Add(
+                TranslationService.GetTranslation("documents.priceApplyError", "Errore nell'applicazione del prezzo"),
+                Severity.Error
+            );
+        }
     }
 }

@@ -323,4 +323,15 @@ public interface IProductService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Number of associations created</returns>
     Task<int> BulkUpdateProductSupplierAssociationsAsync(Guid supplierId, IEnumerable<Guid> productIds, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets recent product transactions (purchases or sales) for price suggestions.
+    /// </summary>
+    /// <param name="productId">Product ID</param>
+    /// <param name="type">Transaction type: "purchase" or "sale"</param>
+    /// <param name="partyId">Optional business party ID to filter by</param>
+    /// <param name="top">Number of recent transactions to return (default: 3)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of recent product transactions</returns>
+    Task<IEnumerable<RecentProductTransactionDto>> GetRecentProductTransactionsAsync(Guid productId, string type = "purchase", Guid? partyId = null, int top = 3, CancellationToken cancellationToken = default);
 }
