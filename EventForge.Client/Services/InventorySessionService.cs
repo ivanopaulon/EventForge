@@ -4,13 +4,80 @@ namespace EventForge.Client.Services;
 
 /// <summary>
 /// Represents persisted inventory session state.
+/// This state is saved to localStorage for recovery after page refresh.
 /// </summary>
 public class InventorySessionState
 {
+    /// <summary>
+    /// Version of the state schema for migration support
+    /// </summary>
+    public int Version { get; set; } = 1;
+
+    /// <summary>
+    /// ID of the current inventory document
+    /// </summary>
     public Guid DocumentId { get; set; }
+
+    /// <summary>
+    /// Document number for display
+    /// </summary>
     public string DocumentNumber { get; set; } = string.Empty;
+
+    /// <summary>
+    /// ID of the selected storage facility (warehouse)
+    /// </summary>
     public Guid? WarehouseId { get; set; }
+
+    /// <summary>
+    /// Name of the selected storage facility
+    /// </summary>
+    public string? WarehouseName { get; set; }
+
+    /// <summary>
+    /// Timestamp when the session was started
+    /// </summary>
     public DateTime SessionStartTime { get; set; }
+
+    /// <summary>
+    /// Timestamp of the last activity in this session
+    /// </summary>
+    public DateTime LastActivityTime { get; set; }
+
+    /// <summary>
+    /// Fast confirm mode enabled/disabled
+    /// </summary>
+    public bool FastConfirmEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Filter to show only adjustments in the grid
+    /// </summary>
+    public bool ShowOnlyAdjustments { get; set; } = false;
+
+    /// <summary>
+    /// Updates the last activity timestamp
+    /// </summary>
+    public void UpdateActivity()
+    {
+        LastActivityTime = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Validates if the session state is still valid
+    /// </summary>
+    public bool IsValid()
+    {
+        return DocumentId != Guid.Empty && 
+               WarehouseId.HasValue && 
+               !string.IsNullOrWhiteSpace(DocumentNumber);
+    }
+
+    /// <summary>
+    /// Checks if the session has been inactive for too long
+    /// </summary>
+    public bool IsExpired(TimeSpan maxInactivity)
+    {
+        return (DateTime.UtcNow - LastActivityTime) > maxInactivity;
+    }
 }
 
 /// <summary>
