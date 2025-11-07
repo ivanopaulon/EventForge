@@ -741,4 +741,285 @@ public class BusinessPartyService : IBusinessPartyService
     }
 
     #endregion
+
+    #region Business Party Documents
+
+    public async Task<PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>> GetBusinessPartyDocumentsAsync(
+        Guid businessPartyId,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        Guid? documentTypeId = null,
+        string? searchNumber = null,
+        DTOs.Common.ApprovalStatus? approvalStatus = null,
+        int page = 1,
+        int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for business party operations.");
+            }
+
+            var query = _context.DocumentHeaders
+                .Include(dh => dh.DocumentType)
+                .Include(dh => dh.BusinessParty)
+                .Where(dh => !dh.IsDeleted && dh.TenantId == currentTenantId.Value && dh.BusinessPartyId == businessPartyId);
+
+            // Apply filters
+            if (fromDate.HasValue)
+            {
+                query = query.Where(dh => dh.Date >= fromDate.Value);
+            }
+
+            if (toDate.HasValue)
+            {
+                query = query.Where(dh => dh.Date <= toDate.Value);
+            }
+
+            if (documentTypeId.HasValue)
+            {
+                query = query.Where(dh => dh.DocumentTypeId == documentTypeId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchNumber))
+            {
+                query = query.Where(dh => (dh.Number != null && dh.Number.Contains(searchNumber)) ||
+                                         (dh.Series != null && dh.Series.Contains(searchNumber)));
+            }
+
+            if (approvalStatus.HasValue)
+            {
+                query = query.Where(dh => (int)dh.ApprovalStatus == (int)approvalStatus.Value);
+            }
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var documents = await query
+                .OrderByDescending(dh => dh.Date)
+                .ThenByDescending(dh => dh.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(dh => new EventForge.DTOs.Documents.DocumentHeaderDto
+                {
+                    Id = dh.Id,
+                    DocumentTypeId = dh.DocumentTypeId,
+                    DocumentTypeName = dh.DocumentType != null ? dh.DocumentType.Name : null,
+                    Series = dh.Series,
+                    Number = dh.Number,
+                    Date = dh.Date,
+                    BusinessPartyId = dh.BusinessPartyId,
+                    BusinessPartyName = dh.BusinessParty != null ? dh.BusinessParty.Name : null,
+                    TotalNetAmount = dh.TotalNetAmount,
+                    TotalGrossAmount = dh.TotalGrossAmount,
+                    VatAmount = dh.VatAmount,
+                    ApprovalStatus = (DTOs.Common.ApprovalStatus)dh.ApprovalStatus,
+                    Status = (DTOs.Common.DocumentStatus)dh.Status,
+                    CreatedAt = dh.CreatedAt,
+                    CreatedBy = dh.CreatedBy,
+                    ModifiedAt = dh.ModifiedAt,
+                    ModifiedBy = dh.ModifiedBy
+                })
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>
+            {
+                Items = documents,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving documents for business party {BusinessPartyId}", businessPartyId);
+            throw;
+        }
+    }
+
+    #endregion
+
+    #region Business Party Product Analysis
+
+    public async Task<PagedResult<BusinessPartyProductAnalysisDto>> GetBusinessPartyProductAnalysisAsync(
+        Guid businessPartyId,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        string? type = null,
+        int? topN = null,
+        int page = 1,
+        int pageSize = 20,
+        string? sortBy = null,
+        bool sortDescending = true,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for business party operations.");
+            }
+
+            // Build base query with all document rows for this business party
+            var rowsQuery = _context.DocumentRows
+                .Include(r => r.DocumentHeader)
+                    .ThenInclude(h => h!.DocumentType)
+                .Include(r => r.Product)
+                .Where(r => !r.IsDeleted && 
+                           r.TenantId == currentTenantId.Value &&
+                           r.DocumentHeader!.BusinessPartyId == businessPartyId &&
+                           !r.DocumentHeader.IsDeleted &&
+                           r.ProductId != null);
+
+            // Apply date filters
+            if (fromDate.HasValue)
+            {
+                rowsQuery = rowsQuery.Where(r => r.DocumentHeader!.Date >= fromDate.Value);
+            }
+
+            if (toDate.HasValue)
+            {
+                rowsQuery = rowsQuery.Where(r => r.DocumentHeader!.Date <= toDate.Value);
+            }
+
+            // Apply type filter (purchase/sale)
+            if (!string.IsNullOrWhiteSpace(type))
+            {
+                if (type.Equals("purchase", StringComparison.OrdinalIgnoreCase))
+                {
+                    rowsQuery = rowsQuery.Where(r => r.DocumentHeader!.DocumentType!.IsStockIncrease);
+                }
+                else if (type.Equals("sale", StringComparison.OrdinalIgnoreCase))
+                {
+                    rowsQuery = rowsQuery.Where(r => !r.DocumentHeader!.DocumentType!.IsStockIncrease);
+                }
+            }
+
+            // Group by product and aggregate
+            var grouped = await rowsQuery
+                .GroupBy(r => new { r.ProductId, r.Product!.Code, r.Product.Name })
+                .Select(g => new
+                {
+                    ProductId = g.Key.ProductId!.Value,
+                    ProductCode = g.Key.Code,
+                    ProductName = g.Key.Name,
+                    // Purchase aggregations
+                    QuantityPurchased = g.Where(r => r.DocumentHeader!.DocumentType!.IsStockIncrease)
+                        .Sum(r => (decimal?)(r.BaseQuantity ?? r.Quantity)) ?? 0m,
+                    ValuePurchased = g.Where(r => r.DocumentHeader!.DocumentType!.IsStockIncrease)
+                        .Sum(r => (decimal?)CalculateEffectiveLineTotal(r)) ?? 0m,
+                    LastPurchaseDate = g.Where(r => r.DocumentHeader!.DocumentType!.IsStockIncrease)
+                        .Max(r => (DateTime?)r.DocumentHeader!.Date),
+                    // Sale aggregations
+                    QuantitySold = g.Where(r => !r.DocumentHeader!.DocumentType!.IsStockIncrease)
+                        .Sum(r => (decimal?)(r.BaseQuantity ?? r.Quantity)) ?? 0m,
+                    ValueSold = g.Where(r => !r.DocumentHeader!.DocumentType!.IsStockIncrease)
+                        .Sum(r => (decimal?)CalculateEffectiveLineTotal(r)) ?? 0m,
+                    LastSaleDate = g.Where(r => !r.DocumentHeader!.DocumentType!.IsStockIncrease)
+                        .Max(r => (DateTime?)r.DocumentHeader!.Date)
+                })
+                .ToListAsync(cancellationToken);
+
+            // Calculate averages and create DTOs
+            var analysisResults = grouped.Select(g => new BusinessPartyProductAnalysisDto
+            {
+                ProductId = g.ProductId,
+                ProductCode = g.ProductCode,
+                ProductName = g.ProductName,
+                QuantityPurchased = g.QuantityPurchased,
+                ValuePurchased = g.ValuePurchased,
+                QuantitySold = g.QuantitySold,
+                ValueSold = g.ValueSold,
+                LastPurchaseDate = g.LastPurchaseDate,
+                LastSaleDate = g.LastSaleDate,
+                AvgPurchasePrice = g.QuantityPurchased > 0 ? g.ValuePurchased / g.QuantityPurchased : 0m,
+                AvgSalePrice = g.QuantitySold > 0 ? g.ValueSold / g.QuantitySold : 0m
+            }).ToList();
+
+            // Apply sorting
+            var sortByField = sortBy?.ToLowerInvariant() ?? "valuepurchased";
+            analysisResults = sortByField switch
+            {
+                "valuesold" => sortDescending 
+                    ? analysisResults.OrderByDescending(a => a.ValueSold).ToList()
+                    : analysisResults.OrderBy(a => a.ValueSold).ToList(),
+                "quantitypurchased" => sortDescending
+                    ? analysisResults.OrderByDescending(a => a.QuantityPurchased).ToList()
+                    : analysisResults.OrderBy(a => a.QuantityPurchased).ToList(),
+                "quantitysold" => sortDescending
+                    ? analysisResults.OrderByDescending(a => a.QuantitySold).ToList()
+                    : analysisResults.OrderBy(a => a.QuantitySold).ToList(),
+                "productname" => sortDescending
+                    ? analysisResults.OrderByDescending(a => a.ProductName).ToList()
+                    : analysisResults.OrderBy(a => a.ProductName).ToList(),
+                _ => sortDescending
+                    ? analysisResults.OrderByDescending(a => a.ValuePurchased).ToList()
+                    : analysisResults.OrderBy(a => a.ValuePurchased).ToList()
+            };
+
+            // Apply topN filter if specified
+            if (topN.HasValue && topN.Value > 0)
+            {
+                analysisResults = analysisResults.Take(topN.Value).ToList();
+            }
+
+            var totalCount = analysisResults.Count;
+
+            // Apply pagination
+            var pagedResults = analysisResults
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return new PagedResult<BusinessPartyProductAnalysisDto>
+            {
+                Items = pagedResults,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product analysis for business party {BusinessPartyId}", businessPartyId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Calculates the effective line total (quantity * effective unit price after discounts).
+    /// Implements the same logic as PriceTrend for consistency.
+    /// </summary>
+    private static decimal CalculateEffectiveLineTotal(DocumentRow row)
+    {
+        // Use normalized values (base unit if available)
+        var unitPriceNormalized = row.BaseUnitPrice ?? row.UnitPrice;
+        var weightQuantity = row.BaseQuantity ?? row.Quantity;
+
+        // Calculate per-unit discount
+        decimal unitDiscount;
+        if (row.DiscountType == EventForge.DTOs.Common.DiscountType.Percentage)
+        {
+            unitDiscount = unitPriceNormalized * (row.LineDiscount / 100m);
+        }
+        else
+        {
+            // Absolute discount: divide by quantity
+            unitDiscount = row.Quantity > 0 ? row.LineDiscountValue / row.Quantity : 0m;
+        }
+
+        // Clamp discount to not exceed unit price
+        unitDiscount = Math.Min(unitDiscount, unitPriceNormalized);
+
+        // Calculate effective unit price
+        var effectiveUnitPrice = unitPriceNormalized - unitDiscount;
+
+        // Return total
+        return effectiveUnitPrice * weightQuantity;
+    }
+
+    #endregion
 }

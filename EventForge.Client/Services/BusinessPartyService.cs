@@ -16,6 +16,29 @@ namespace EventForge.Client.Services
 
         // BusinessPartyAccounting Management
         Task<BusinessPartyAccountingDto?> GetBusinessPartyAccountingByBusinessPartyIdAsync(Guid businessPartyId);
+
+        // BusinessParty Documents
+        Task<PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>?> GetBusinessPartyDocumentsAsync(
+            Guid businessPartyId,
+            DateTime? fromDate = null,
+            DateTime? toDate = null,
+            Guid? documentTypeId = null,
+            string? searchNumber = null,
+            EventForge.DTOs.Common.ApprovalStatus? approvalStatus = null,
+            int page = 1,
+            int pageSize = 20);
+
+        // BusinessParty Product Analysis
+        Task<PagedResult<BusinessPartyProductAnalysisDto>?> GetBusinessPartyProductAnalysisAsync(
+            Guid businessPartyId,
+            DateTime? fromDate = null,
+            DateTime? toDate = null,
+            string? type = null,
+            int? topN = null,
+            int page = 1,
+            int pageSize = 20,
+            string? sortBy = null,
+            bool sortDescending = true);
     }
 
     public class BusinessPartyService : IBusinessPartyService
@@ -89,6 +112,95 @@ namespace EventForge.Client.Services
         public async Task<BusinessPartyAccountingDto?> GetBusinessPartyAccountingByBusinessPartyIdAsync(Guid businessPartyId)
         {
             return await _httpClientService.GetAsync<BusinessPartyAccountingDto>($"api/v1/businessparties/{businessPartyId}/accounting");
+        }
+
+        #endregion
+
+        #region BusinessParty Documents
+
+        public async Task<PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>?> GetBusinessPartyDocumentsAsync(
+            Guid businessPartyId,
+            DateTime? fromDate = null,
+            DateTime? toDate = null,
+            Guid? documentTypeId = null,
+            string? searchNumber = null,
+            EventForge.DTOs.Common.ApprovalStatus? approvalStatus = null,
+            int page = 1,
+            int pageSize = 20)
+        {
+            var query = $"api/v1/businessparties/{businessPartyId}/documents?page={page}&pageSize={pageSize}";
+            
+            if (fromDate.HasValue)
+            {
+                query += $"&fromDate={fromDate.Value:yyyy-MM-dd}";
+            }
+            
+            if (toDate.HasValue)
+            {
+                query += $"&toDate={toDate.Value:yyyy-MM-dd}";
+            }
+            
+            if (documentTypeId.HasValue)
+            {
+                query += $"&documentTypeId={documentTypeId.Value}";
+            }
+            
+            if (!string.IsNullOrWhiteSpace(searchNumber))
+            {
+                query += $"&searchNumber={Uri.EscapeDataString(searchNumber)}";
+            }
+            
+            if (approvalStatus.HasValue)
+            {
+                query += $"&approvalStatus={approvalStatus.Value}";
+            }
+
+            return await _httpClientService.GetAsync<PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>>(query);
+        }
+
+        #endregion
+
+        #region BusinessParty Product Analysis
+
+        public async Task<PagedResult<BusinessPartyProductAnalysisDto>?> GetBusinessPartyProductAnalysisAsync(
+            Guid businessPartyId,
+            DateTime? fromDate = null,
+            DateTime? toDate = null,
+            string? type = null,
+            int? topN = null,
+            int page = 1,
+            int pageSize = 20,
+            string? sortBy = null,
+            bool sortDescending = true)
+        {
+            var query = $"api/v1/businessparties/{businessPartyId}/product-analysis?page={page}&pageSize={pageSize}&sortDescending={sortDescending}";
+            
+            if (fromDate.HasValue)
+            {
+                query += $"&fromDate={fromDate.Value:yyyy-MM-dd}";
+            }
+            
+            if (toDate.HasValue)
+            {
+                query += $"&toDate={toDate.Value:yyyy-MM-dd}";
+            }
+            
+            if (!string.IsNullOrWhiteSpace(type))
+            {
+                query += $"&type={Uri.EscapeDataString(type)}";
+            }
+            
+            if (topN.HasValue)
+            {
+                query += $"&topN={topN.Value}";
+            }
+            
+            if (!string.IsNullOrWhiteSpace(sortBy))
+            {
+                query += $"&sortBy={Uri.EscapeDataString(sortBy)}";
+            }
+
+            return await _httpClientService.GetAsync<PagedResult<BusinessPartyProductAnalysisDto>>(query);
         }
 
         #endregion
