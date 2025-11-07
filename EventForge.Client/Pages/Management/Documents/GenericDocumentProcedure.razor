@@ -182,7 +182,16 @@
                         <MudTd DataLabel="@TranslationService.GetTranslation("documents.description", "Descrizione")">@context.Description</MudTd>
                         <MudTd DataLabel="@TranslationService.GetTranslation("documents.quantity", "Quantità")">@context.Quantity</MudTd>
                         <MudTd DataLabel="@TranslationService.GetTranslation("documents.unitOfMeasure", "UM")">@(context.UnitOfMeasure ?? "-")</MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo")">@context.UnitPrice.ToString("C2")</MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo")">
+                            @{
+                                decimal effectiveUnitPrice = context.Quantity > 0 
+                                    ? Math.Round(context.LineTotal / context.Quantity, 2) 
+                                    : context.UnitPrice;
+                            }
+                            <MudTooltip Text="@TranslationService.GetTranslation("documents.netUnitPriceTooltip", "Prezzo netto per unità (dopo sconto)")">
+                                <span>@effectiveUnitPrice.ToString("C2")</span>
+                            </MudTooltip>
+                        </MudTd>
                         <MudTd DataLabel="@TranslationService.GetTranslation("documents.discount", "Sconto")">
                             @if (context.DiscountType == EventForge.DTOs.Common.DiscountType.Percentage && context.LineDiscount > 0)
                             {
