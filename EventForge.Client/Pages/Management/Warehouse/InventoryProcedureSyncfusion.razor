@@ -235,8 +235,17 @@
     }
 
     /// <summary>
-    /// Updates the session state in localStorage after each operation to keep it in sync
+    /// Updates the session state in localStorage after each operation to keep it in sync.
+    /// This method is called automatically after operations that modify the document (add/edit/delete rows)
+    /// to ensure user progress is persisted. Failures are logged but do not interrupt the workflow.
     /// </summary>
+    /// <remarks>
+    /// Should be called after:
+    /// - Adding inventory rows
+    /// - Editing inventory rows
+    /// - Deleting inventory rows
+    /// - Changing FastConfirmEnabled or ShowOnlyAdjustments settings
+    /// </remarks>
     private async Task UpdateSessionStateAsync()
     {
         if (_currentDocument == null) return;
@@ -259,7 +268,7 @@
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Error updating session state");
-            // Don't throw - this is not critical
+            // Don't throw - this is not critical for the workflow
         }
     }
 
