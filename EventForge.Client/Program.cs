@@ -94,6 +94,7 @@ builder.Services.AddScoped<IPrintingService, PrintingService>();
 // Add warehouse management services
 builder.Services.AddScoped<ILotService, LotService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
+builder.Services.AddScoped<IInventoryFastService, InventoryFastService>();
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 builder.Services.AddScoped<IStorageLocationService, StorageLocationService>();
 builder.Services.AddScoped<IStockService, StockService>();
