@@ -420,7 +420,7 @@
                 
                 AddOperationLog(
                     TranslationService.GetTranslation("warehouse.sessionRestored", "Sessione di inventario ripristinata"),
-                    $"{sourceMessage} - Documento #{_currentDocument.Number} - {_currentDocument.TotalItems} articoli - {document.Rows?.Count ?? 0} righe",
+                    $"{sourceMessage} - Documento #{_currentDocument.Number} - {_currentDocument.TotalItems} articoli - {_currentDocument.Rows?.Count ?? 0} righe",
                     "Success"
                 );
                 
@@ -429,7 +429,7 @@
                     MudBlazor.Severity.Info
                 );
                 
-                Logger.LogInformation("Inventory session restored from {Source}: Document {DocumentId} with {RowCount} rows", restorationSource, document.Id, document.Rows?.Count ?? 0);
+                Logger.LogInformation("Inventory session restored from {Source}: Document {DocumentId} with {RowCount} rows", restorationSource, _currentDocument.Id, _currentDocument.Rows?.Count ?? 0);
                 
                 // Force UI update to ensure rows are displayed
                 StateHasChanged();
