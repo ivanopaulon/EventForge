@@ -1,0 +1,116 @@
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.Common
+@using EventForge.Client.Services
+@inject IEntityManagementService EntityManagementService
+@inject ITranslationService TranslationService
+@inject ISnackbar Snackbar
+@inject ILogger<ContactsTab> Logger
+
+<MudPaper Elevation="1" Class="pa-4">
+    <div class="d-flex justify-space-between align-center mb-4">
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.ContactPhone" Class="mr-2" />
+            @TranslationService.GetTranslation("businessParty.contacts", "Contatti")
+        </MudText>
+    </div>
+
+    @if (_isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Class="my-4" />
+    }
+    else if (!_contacts.Any())
+    {
+        <MudAlert Severity="Severity.Info">
+            @TranslationService.GetTranslation("businessParty.noContacts", "Nessun contatto configurato")
+        </MudAlert>
+    }
+    else
+    {
+        <MudTable Items="_contacts" Dense="true" Hover="true" Striped="true">
+            <HeaderContent>
+                <MudTh>@TranslationService.GetTranslation("field.contactType", "Tipo")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("field.value", "Valore")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("field.purpose", "Scopo")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("field.isPrimary", "Primario")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("field.notes", "Note")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Tipo">@GetContactTypeText(context.ContactType)</MudTd>
+                <MudTd DataLabel="Valore">@context.Value</MudTd>
+                <MudTd DataLabel="Scopo">@GetContactPurposeText(context.Purpose)</MudTd>
+                <MudTd DataLabel="Primario">
+                    @if (context.IsPrimary)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Check" Color="Color.Success" Size="Size.Small" />
+                    }
+                </MudTd>
+                <MudTd DataLabel="Note">@context.Notes</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public BusinessPartyDto Party { get; set; } = new();
+    [Parameter] public bool IsEditMode { get; set; } = true;
+    [Parameter] public EventCallback OnPartyUpdated { get; set; }
+
+    private List<ContactDto> _contacts = new();
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadContactsAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadContactsAsync();
+    }
+
+    private async Task LoadContactsAsync()
+    {
+        if (Party?.Id == Guid.Empty) 
+        {
+            _contacts = new List<ContactDto>();
+            _isLoading = false;
+            return;
+        }
+
+        _isLoading = true;
+        try
+        {
+            var contacts = await EntityManagementService.GetContactsByOwnerAsync(Party.Id);
+            _contacts = contacts?.ToList() ?? new List<ContactDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading contacts for business party {PartyId}", Party.Id);
+            Snackbar.Add(TranslationService.GetTranslation("businessParty.contactsLoadError", "Errore nel caricamento dei contatti"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private string GetContactTypeText(ContactType type) => type switch
+    {
+        ContactType.Email => TranslationService.GetTranslation("contactType.email", "Email"),
+        ContactType.Phone => TranslationService.GetTranslation("contactType.phone", "Telefono"),
+        ContactType.Fax => TranslationService.GetTranslation("contactType.fax", "Fax"),
+        ContactType.PEC => TranslationService.GetTranslation("contactType.pec", "PEC"),
+        ContactType.Other => TranslationService.GetTranslation("contactType.other", "Altro"),
+        _ => type.ToString()
+    };
+
+    private string GetContactPurposeText(ContactPurpose purpose) => purpose switch
+    {
+        ContactPurpose.Primary => TranslationService.GetTranslation("contactPurpose.primary", "Primario"),
+        ContactPurpose.Emergency => TranslationService.GetTranslation("contactPurpose.emergency", "Emergenza"),
+        ContactPurpose.Billing => TranslationService.GetTranslation("contactPurpose.billing", "Fatturazione"),
+        ContactPurpose.Legal => TranslationService.GetTranslation("contactPurpose.legal", "Legale"),
+        ContactPurpose.Other => TranslationService.GetTranslation("contactPurpose.other", "Altro"),
+        _ => purpose.ToString()
+    };
+}

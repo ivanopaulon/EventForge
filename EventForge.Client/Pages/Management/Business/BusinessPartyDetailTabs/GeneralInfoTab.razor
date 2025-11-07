@@ -1,0 +1,162 @@
+@using EventForge.DTOs.Business
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+
+<MudStack Spacing="3">
+    <MudPaper Elevation="1" Class="pa-4">
+        <MudText Typo="Typo.h6" Class="mb-3">
+            <MudIcon Icon="@Icons.Material.Outlined.Info" Class="mr-2" />
+            @TranslationService.GetTranslation("businessParty.basicInfo", "Informazioni di Base")
+        </MudText>
+        <MudGrid Spacing="3">
+            <!-- Party Type -->
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="Party.PartyType"
+                           Label="@($"{TranslationService.GetTranslation("field.partyType", "Tipo")} *")"
+                           Variant="Variant.Outlined"
+                           ReadOnly="@(!IsEditMode)"
+                           @bind-Value:after="NotifyUpdated"
+                           Required="true">
+                    <MudSelectItem Value="@BusinessPartyType.Cliente">@TranslationService.GetTranslation("partyType.cliente", "Cliente")</MudSelectItem>
+                    <MudSelectItem Value="@BusinessPartyType.Supplier">@TranslationService.GetTranslation("partyType.supplier", "Fornitore")</MudSelectItem>
+                    <MudSelectItem Value="@BusinessPartyType.Both">@TranslationService.GetTranslation("partyType.both", "Cliente/Fornitore")</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            
+            <!-- Name -->
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="Party.Name"
+                              Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="@(!IsEditMode)"
+                              Required="true"
+                              MaxLength="200"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Business"
+                              @bind-Value:after="NotifyUpdated" />
+            </MudItem>
+            
+            <!-- Tax Code -->
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="Party.TaxCode"
+                              Label="@TranslationService.GetTranslation("field.taxCode", "Codice Fiscale")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="@(!IsEditMode)"
+                              MaxLength="20"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Badge"
+                              @bind-Value:after="NotifyUpdated" />
+            </MudItem>
+            
+            <!-- VAT Number -->
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="Party.VatNumber"
+                              Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="@(!IsEditMode)"
+                              MaxLength="20"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Numbers"
+                              @bind-Value:after="NotifyUpdated" />
+            </MudItem>
+            
+            <!-- SDI Code -->
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="Party.SdiCode"
+                              Label="@TranslationService.GetTranslation("field.sdiCode", "Codice SDI")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="@(!IsEditMode)"
+                              MaxLength="10"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.QrCode"
+                              @bind-Value:after="NotifyUpdated" />
+            </MudItem>
+            
+            <!-- PEC -->
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="Party.Pec"
+                              Label="@TranslationService.GetTranslation("field.pec", "PEC")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="@(!IsEditMode)"
+                              MaxLength="100"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Email"
+                              @bind-Value:after="NotifyUpdated" />
+            </MudItem>
+
+            <!-- Is Active -->
+            <MudItem xs="12" md="6">
+                <MudSwitch T="bool"
+                           Checked="@Party.IsActive"
+                           Label="@TranslationService.GetTranslation("field.isActive", "Attivo")"
+                           Color="Color.Primary"
+                           Disabled="true" />
+            </MudItem>
+            
+            <!-- Notes -->
+            <MudItem xs="12">
+                <MudTextField @bind-Value="Party.Notes"
+                              Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                              Variant="Variant.Outlined"
+                              Lines="4"
+                              ReadOnly="@(!IsEditMode)"
+                              MaxLength="500"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Notes"
+                              @bind-Value:after="NotifyUpdated" />
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @if (!IsNewParty)
+    {
+        <!-- Audit Information -->
+        <MudPaper Elevation="1" Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-3">
+                <MudIcon Icon="@Icons.Material.Outlined.History" Class="mr-2" />
+                @TranslationService.GetTranslation("common.auditInfo", "Informazioni di Sistema")
+            </MudText>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@Party.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                  Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@Party.CreatedBy"
+                                  Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true" />
+                </MudItem>
+                @if (Party.ModifiedAt.HasValue)
+                {
+                    <MudItem xs="12" md="6">
+                        <MudTextField Value="@Party.ModifiedAt.Value.ToString("dd/MM/yyyy HH:mm")"
+                                      Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="true" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField Value="@Party.ModifiedBy"
+                                      Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="true" />
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudPaper>
+    }
+</MudStack>
+
+@code {
+    [Parameter] public BusinessPartyDto Party { get; set; } = new();
+    [Parameter] public bool IsEditMode { get; set; } = true;
+    [Parameter] public bool IsNewParty { get; set; } = false;
+    [Parameter] public EventCallback OnPartyUpdated { get; set; }
+
+    private void NotifyUpdated()
+    {
+        OnPartyUpdated.InvokeAsync();
+    }
+}

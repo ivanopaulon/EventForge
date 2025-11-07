@@ -1,0 +1,89 @@
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.Common
+@using EventForge.Client.Services
+@inject IEntityManagementService EntityManagementService
+@inject ITranslationService TranslationService
+@inject ISnackbar Snackbar
+@inject ILogger<ReferencesTab> Logger
+
+<MudPaper Elevation="1" Class="pa-4">
+    <div class="d-flex justify-space-between align-center mb-4">
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.People" Class="mr-2" />
+            @TranslationService.GetTranslation("businessParty.references", "Persone di Riferimento")
+        </MudText>
+    </div>
+
+    @if (_isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Class="my-4" />
+    }
+    else if (!_references.Any())
+    {
+        <MudAlert Severity="Severity.Info">
+            @TranslationService.GetTranslation("businessParty.noReferences", "Nessuna persona di riferimento configurata")
+        </MudAlert>
+    }
+    else
+    {
+        <MudTable Items="_references" Dense="true" Hover="true" Striped="true">
+            <HeaderContent>
+                <MudTh>@TranslationService.GetTranslation("field.firstName", "Nome")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("field.lastName", "Cognome")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("field.department", "Dipartimento/Ruolo")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("field.notes", "Note")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Nome">@context.FirstName</MudTd>
+                <MudTd DataLabel="Cognome">@context.LastName</MudTd>
+                <MudTd DataLabel="Dipartimento">@context.Department</MudTd>
+                <MudTd DataLabel="Note">@context.Notes</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public BusinessPartyDto Party { get; set; } = new();
+    [Parameter] public bool IsEditMode { get; set; } = true;
+    [Parameter] public EventCallback OnPartyUpdated { get; set; }
+
+    private List<ReferenceDto> _references = new();
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReferencesAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadReferencesAsync();
+    }
+
+    private async Task LoadReferencesAsync()
+    {
+        if (Party?.Id == Guid.Empty) 
+        {
+            _references = new List<ReferenceDto>();
+            _isLoading = false;
+            return;
+        }
+
+        _isLoading = true;
+        try
+        {
+            var references = await EntityManagementService.GetReferencesByOwnerAsync(Party.Id);
+            _references = references?.ToList() ?? new List<ReferenceDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading references for business party {PartyId}", Party.Id);
+            Snackbar.Add(TranslationService.GetTranslation("businessParty.referencesLoadError", "Errore nel caricamento delle persone di riferimento"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}
