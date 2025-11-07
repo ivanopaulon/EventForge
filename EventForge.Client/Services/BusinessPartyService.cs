@@ -13,6 +13,9 @@ namespace EventForge.Client.Services
         Task<BusinessPartyDto> CreateBusinessPartyAsync(CreateBusinessPartyDto createDto);
         Task<BusinessPartyDto> UpdateBusinessPartyAsync(Guid id, UpdateBusinessPartyDto updateDto);
         Task DeleteBusinessPartyAsync(Guid id);
+
+        // BusinessPartyAccounting Management
+        Task<BusinessPartyAccountingDto?> GetBusinessPartyAccountingByBusinessPartyIdAsync(Guid businessPartyId);
     }
 
     public class BusinessPartyService : IBusinessPartyService
@@ -77,6 +80,15 @@ namespace EventForge.Client.Services
         public async Task DeleteBusinessPartyAsync(Guid id)
         {
             await _httpClientService.DeleteAsync($"api/v1/businessparties/{id}");
+        }
+
+        #endregion
+
+        #region BusinessPartyAccounting Management
+
+        public async Task<BusinessPartyAccountingDto?> GetBusinessPartyAccountingByBusinessPartyIdAsync(Guid businessPartyId)
+        {
+            return await _httpClientService.GetAsync<BusinessPartyAccountingDto>($"api/v1/businessparties/{businessPartyId}/accounting");
         }
 
         #endregion

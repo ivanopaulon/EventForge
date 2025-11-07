@@ -1,0 +1,101 @@
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.Common
+@using EventForge.Client.Services
+@inject IEntityManagementService EntityManagementService
+@inject ITranslationService TranslationService
+@inject ISnackbar Snackbar
+@inject ILogger<AddressesTab> Logger
+
+<MudPaper Elevation="1" Class="pa-4">
+    <div class="d-flex justify-space-between align-center mb-4">
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.LocationOn" Class="mr-2" />
+            @TranslationService.GetTranslation("businessParty.addresses", "Indirizzi")
+        </MudText>
+    </div>
+
+    @if (_isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Class="my-4" />
+    }
+    else if (!_addresses.Any())
+    {
+        <MudAlert Severity="Severity.Info">
+            @TranslationService.GetTranslation("businessParty.noAddresses", "Nessun indirizzo configurato")
+        </MudAlert>
+    }
+    else
+    {
+        <MudTable Items="_addresses" Dense="true" Hover="true" Striped="true">
+            <HeaderContent>
+                <MudTh>@TranslationService.GetTranslation("field.addressType", "Tipo")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("field.street", "Indirizzo")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("field.city", "Città")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("field.zipCode", "CAP")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("field.province", "Provincia")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("field.country", "Paese")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Tipo">@GetAddressTypeText(context.AddressType)</MudTd>
+                <MudTd DataLabel="Indirizzo">@context.Street</MudTd>
+                <MudTd DataLabel="Città">@context.City</MudTd>
+                <MudTd DataLabel="CAP">@context.ZipCode</MudTd>
+                <MudTd DataLabel="Provincia">@context.Province</MudTd>
+                <MudTd DataLabel="Paese">@context.Country</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public BusinessPartyDto Party { get; set; } = new();
+    [Parameter] public bool IsEditMode { get; set; } = true;
+    [Parameter] public EventCallback OnPartyUpdated { get; set; }
+
+    private List<AddressDto> _addresses = new();
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAddressesAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAddressesAsync();
+    }
+
+    private async Task LoadAddressesAsync()
+    {
+        if (Party?.Id == Guid.Empty) 
+        {
+            _addresses = new List<AddressDto>();
+            _isLoading = false;
+            return;
+        }
+
+        _isLoading = true;
+        try
+        {
+            var addresses = await EntityManagementService.GetAddressesByOwnerAsync(Party.Id);
+            _addresses = addresses?.ToList() ?? new List<AddressDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading addresses for business party {PartyId}", Party.Id);
+            Snackbar.Add(TranslationService.GetTranslation("businessParty.addressesLoadError", "Errore nel caricamento degli indirizzi"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private string GetAddressTypeText(AddressType type) => type switch
+    {
+        AddressType.Legal => TranslationService.GetTranslation("addressType.legal", "Legale"),
+        AddressType.Operational => TranslationService.GetTranslation("addressType.operational", "Operativo"),
+        AddressType.Destination => TranslationService.GetTranslation("addressType.destination", "Destinazione"),
+        _ => type.ToString()
+    };
+}

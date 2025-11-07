@@ -6,6 +6,7 @@
 @using EventForge.DTOs.Business
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Pages.Management.Business.BusinessPartyDetailTabs
 @attribute [Authorize]
 @inject IBusinessPartyService BusinessPartyService
 @inject NavigationManager NavigationManager
@@ -47,6 +48,13 @@
                             }
                         </MudText>
                         
+                        @if (!_isCreateMode && _party != null)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="@(_party.IsActive ? Color.Success : Color.Default)">
+                                @(_party.IsActive ? TranslationService.GetTranslation("status.active", "Attivo") : TranslationService.GetTranslation("status.inactive", "Inattivo"))
+                            </MudChip>
+                        }
+
                         @if (HasUnsavedChanges())
                         {
                             <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">
@@ -68,80 +76,35 @@
             </div>
         </MudPaper>
 
-        <!-- Form Section -->
-        <MudPaper Elevation="2" Class="pa-4">
-            <MudForm @ref="_form">
-                <MudGrid>
-                    <!-- Party Type -->
-                    <MudItem xs="12" md="6">
-                        <MudSelect @bind-Value="_party!.PartyType"
-                                   @bind-Value:after="MarkChanged"
-                                   Label="@($"{TranslationService.GetTranslation("field.partyType", "Tipo")} *")"
-                                   Variant="Variant.Outlined"
-                                   Required="true">
-                            <MudSelectItem Value="@BusinessPartyType.Cliente">@TranslationService.GetTranslation("partyType.cliente", "Cliente")</MudSelectItem>
-                            <MudSelectItem Value="@BusinessPartyType.Supplier">@TranslationService.GetTranslation("partyType.supplier", "Fornitore")</MudSelectItem>
-                            <MudSelectItem Value="@BusinessPartyType.Both">@TranslationService.GetTranslation("partyType.both", "Cliente/Fornitore")</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
-                    
-                    <!-- Name -->
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="_party!.Name"
-                                      @bind-Value:after="MarkChanged"
-                                      Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
-                                      Variant="Variant.Outlined"
-                                      Required="true"
-                                      MaxLength="200" />
-                    </MudItem>
-                    
-                    <!-- Tax Code -->
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="_party!.TaxCode"
-                                      @bind-Value:after="MarkChanged"
-                                      Label="@TranslationService.GetTranslation("field.taxCode", "Codice Fiscale")"
-                                      Variant="Variant.Outlined"
-                                      MaxLength="20" />
-                    </MudItem>
-                    
-                    <!-- VAT Number -->
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="_party!.VatNumber"
-                                      @bind-Value:after="MarkChanged"
-                                      Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
-                                      Variant="Variant.Outlined"
-                                      MaxLength="20" />
-                    </MudItem>
-                    
-                    <!-- SDI Code -->
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="_party!.SdiCode"
-                                      @bind-Value:after="MarkChanged"
-                                      Label="@TranslationService.GetTranslation("field.sdiCode", "Codice SDI")"
-                                      Variant="Variant.Outlined"
-                                      MaxLength="10" />
-                    </MudItem>
-                    
-                    <!-- PEC -->
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="_party!.Pec"
-                                      @bind-Value:after="MarkChanged"
-                                      Label="@TranslationService.GetTranslation("field.pec", "PEC")"
-                                      Variant="Variant.Outlined"
-                                      MaxLength="100" />
-                    </MudItem>
-                    
-                    <!-- Notes -->
-                    <MudItem xs="12">
-                        <MudTextField @bind-Value="_party!.Notes"
-                                      @bind-Value:after="MarkChanged"
-                                      Label="@TranslationService.GetTranslation("field.notes", "Note")"
-                                      Variant="Variant.Outlined"
-                                      Lines="4"
-                                      MaxLength="1000" />
-                    </MudItem>
-                </MudGrid>
-            </MudForm>
+        <!-- Tabs Section -->
+        <MudPaper Elevation="2" Class="pa-2">
+            <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" @bind-ActivePanelIndex="_activeTab" Color="Color.Primary">
+                <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.generalInfo", "Informazioni Generali")" Icon="@Icons.Material.Filled.Info">
+                    <GeneralInfoTab Party="@_party" IsEditMode="@_isEditMode" IsNewParty="@_isCreateMode" OnPartyUpdated="@HandlePartyLocallyChanged" />
+                </MudTabPanel>
+
+                @if (!_isCreateMode && _party != null)
+                {
+                    <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.addresses", "Indirizzi")" Icon="@Icons.Material.Filled.LocationOn" BadgeData="@_party.AddressCount" BadgeDot="@(_party.AddressCount > 0)">
+                        <AddressesTab Party="@_party" IsEditMode="@_isEditMode" OnPartyUpdated="@HandlePartyLocallyChanged" />
+                    </MudTabPanel>
+
+                    <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.contacts", "Contatti")" Icon="@Icons.Material.Filled.ContactPhone" BadgeData="@_party.ContactCount" BadgeDot="@(_party.ContactCount > 0)">
+                        <ContactsTab Party="@_party" IsEditMode="@_isEditMode" OnPartyUpdated="@HandlePartyLocallyChanged" />
+                    </MudTabPanel>
+
+                    <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.references", "Riferimenti")" Icon="@Icons.Material.Filled.People" BadgeData="@_party.ReferenceCount" BadgeDot="@(_party.ReferenceCount > 0)">
+                        <ReferencesTab Party="@_party" IsEditMode="@_isEditMode" OnPartyUpdated="@HandlePartyLocallyChanged" />
+                    </MudTabPanel>
+
+                    @if (_party.HasAccountingData)
+                    {
+                        <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.accounting", "Dati Contabili")" Icon="@Icons.Material.Filled.AccountBalance">
+                            <AccountingTab Party="@_party" IsEditMode="@_isEditMode" OnPartyUpdated="@HandlePartyLocallyChanged" />
+                        </MudTabPanel>
+                    }
+                }
+            </MudTabs>
         </MudPaper>
     }
 </MudContainer>
@@ -152,8 +115,10 @@
     private BusinessPartyDto? _party;
     private bool _isLoading = true;
     private bool _isCreateMode => PartyId == null || PartyId == Guid.Empty;
+    private bool _isEditMode = true;
     private bool _isSaving = false;
     private MudForm? _form;
+    private int _activeTab = 0;
 
     private string _originalPartySnapshot = string.Empty;
     private bool _hasLocalChanges = false;
@@ -188,7 +153,8 @@
                 _party = new BusinessPartyDto
                 {
                     PartyType = _isSupplierMode ? BusinessPartyType.Supplier : BusinessPartyType.Cliente,
-                    Name = string.Empty
+                    Name = string.Empty,
+                    IsActive = true
                 };
                 _originalPartySnapshot = SerializeParty(_party);
             }
@@ -216,10 +182,8 @@
 
     private async Task SavePartyAsync()
     {
-        if (_party == null || _form == null) return;
-        await _form.Validate();
-        if (!_form.IsValid) return;
-
+        if (_party == null) return;
+        
         _isSaving = true;
         try
         {
@@ -267,7 +231,7 @@
         }
     }
 
-    private void MarkChanged()
+    private void HandlePartyLocallyChanged()
     {
         _hasLocalChanges = true;
         StateHasChanged();

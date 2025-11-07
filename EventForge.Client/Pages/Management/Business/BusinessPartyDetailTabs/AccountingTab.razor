@@ -1,0 +1,128 @@
+@using EventForge.DTOs.Business
+@using EventForge.Client.Services
+@inject IBusinessPartyService BusinessPartyService
+@inject ITranslationService TranslationService
+@inject ISnackbar Snackbar
+@inject ILogger<AccountingTab> Logger
+
+<MudPaper Elevation="1" Class="pa-4">
+    <div class="d-flex justify-space-between align-center mb-4">
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.AccountBalance" Class="mr-2" />
+            @TranslationService.GetTranslation("businessParty.accounting", "Dati Contabili")
+        </MudText>
+    </div>
+
+    @if (_isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Class="my-4" />
+    }
+    else if (_accountingData == null)
+    {
+        <MudAlert Severity="Severity.Info">
+            @TranslationService.GetTranslation("businessParty.noAccountingData", "Nessun dato contabile configurato")
+        </MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="3">
+            <!-- IBAN -->
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@_accountingData.Iban"
+                              Label="@TranslationService.GetTranslation("field.iban", "IBAN")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.AccountBalance" />
+            </MudItem>
+
+            <!-- Bank Name -->
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@_accountingData.BankName"
+                              Label="@TranslationService.GetTranslation("field.bank", "Banca")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Business" />
+            </MudItem>
+
+            <!-- Payment Term -->
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@_accountingData.PaymentTermName"
+                              Label="@TranslationService.GetTranslation("field.paymentTerm", "Termini di Pagamento")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.CalendarMonth" />
+            </MudItem>
+
+            <!-- Credit Limit -->
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(_accountingData.CreditLimit?.ToString("C") ?? "-")"
+                              Label="@TranslationService.GetTranslation("field.creditLimit", "Limite di Credito")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Euro" />
+            </MudItem>
+
+            <!-- Notes -->
+            @if (!string.IsNullOrWhiteSpace(_accountingData.Notes))
+            {
+                <MudItem xs="12">
+                    <MudTextField Value="@_accountingData.Notes"
+                                  Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  ReadOnly="true"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Notes" />
+                </MudItem>
+            }
+        </MudGrid>
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public BusinessPartyDto Party { get; set; } = new();
+    [Parameter] public bool IsEditMode { get; set; } = true;
+    [Parameter] public EventCallback OnPartyUpdated { get; set; }
+
+    private BusinessPartyAccountingDto? _accountingData;
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAccountingDataAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAccountingDataAsync();
+    }
+
+    private async Task LoadAccountingDataAsync()
+    {
+        if (Party?.Id == Guid.Empty) 
+        {
+            _accountingData = null;
+            _isLoading = false;
+            return;
+        }
+
+        _isLoading = true;
+        try
+        {
+            _accountingData = await BusinessPartyService.GetBusinessPartyAccountingByBusinessPartyIdAsync(Party.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading accounting data for business party {PartyId}", Party.Id);
+            Snackbar.Add(TranslationService.GetTranslation("businessParty.accountingLoadError", "Errore nel caricamento dei dati contabili"), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}
