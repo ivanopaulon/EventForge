@@ -42,16 +42,6 @@
                               AdornmentIcon="@Icons.Material.Outlined.Search"
                               Clearable="true"
                               Style="flex:2;" />
-                <MudSelect T="string" @bind-Value="_partyTypeFilter" @bind-Value:after="OnPartyTypeFilterChanged" 
-                           Label="@TranslationService.GetTranslation("field.partyType", "Tipo")" 
-                           Placeholder="@TranslationService.GetTranslation("supplier.selectType", "Seleziona tipo...")"
-                           Variant="Variant.Outlined"
-                           Clearable="true"
-                           Style="flex:1;">
-                    <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
-                    <MudSelectItem Value="@("supplier")">@TranslationService.GetTranslation("partyType.supplier", "Fornitore")</MudSelectItem>
-                    <MudSelectItem Value="@("both")">@TranslationService.GetTranslation("partyType.both", "Cliente/Fornitore")</MudSelectItem>
-                </MudSelect>
             </div>
         </MudPaper>
 
@@ -93,30 +83,55 @@
                           Breakpoint="Breakpoint.Sm">
                     <HeaderContent>
                         <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
-                        <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.PartyType))">@TranslationService.GetTranslation("field.partyType", "Tipo")</MudTableSortLabel></MudTh>
                         <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.VatNumber ?? ""))">@TranslationService.GetTranslation("field.vatNumber", "P.IVA")</MudTableSortLabel></MudTh>
                         <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.TaxCode ?? ""))">@TranslationService.GetTranslation("field.taxCode", "C.F.")</MudTableSortLabel></MudTh>
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.City ?? ""))">@TranslationService.GetTranslation("field.city", "Località")</MudTableSortLabel></MudTh>
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.Province ?? ""))">@TranslationService.GetTranslation("field.province", "Provincia")</MudTableSortLabel></MudTh>
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.Country ?? ""))">@TranslationService.GetTranslation("field.country", "Nazione")</MudTableSortLabel></MudTh>
                         <MudTh>@TranslationService.GetTranslation("field.contacts", "Contatti")</MudTh>
-                        <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<BusinessPartyDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel></MudTh>
                         <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                     </HeaderContent>
 
                     <RowTemplate>
                         <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
-                            <div class="d-flex align-center">
-                                <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
-                                    <MudIcon Icon="@Icons.Material.Outlined.Business" />
-                                </MudAvatar>
-                                <div>
-                                    <MudText Typo="Typo.body2">@context.Name</MudText>
-                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @context.Id.ToString().Substring(0,8)...</MudText>
-                                </div>
-                            </div>
-                        </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.partyType", "Tipo")">
-                            <MudChip T="string" Size="Size.Small" Color="@GetPartyTypeColor(context.PartyType)">
-                                @GetPartyTypeText(context.PartyType)
-                            </MudChip>
+                            <MudTooltip>
+                                <ChildContent>
+                                    <div class="d-flex align-center">
+                                        <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                                            <MudIcon Icon="@Icons.Material.Outlined.Business" />
+                                        </MudAvatar>
+                                        <div>
+                                            <MudText Typo="Typo.body2">@context.Name</MudText>
+                                            <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @context.Id.ToString().Substring(0,8)...</MudText>
+                                        </div>
+                                    </div>
+                                </ChildContent>
+                                <TooltipContent>
+                                    @if (context.Contacts.Any())
+                                    {
+                                        <div style="padding: 8px;">
+                                            <MudText Typo="Typo.subtitle2" Class="mb-2"><strong>@TranslationService.GetTranslation("field.contacts", "Contatti"):</strong></MudText>
+                                            @foreach (var contact in context.Contacts)
+                                            {
+                                                <div class="mb-1">
+                                                    <MudText Typo="Typo.body2">
+                                                        <MudIcon Icon="@GetContactIcon(contact.ContactType)" Size="Size.Small" Class="mr-1" />
+                                                        @contact.Value
+                                                        @if (contact.IsPrimary)
+                                                        {
+                                                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Style="height: 18px; font-size: 0.7rem;">@TranslationService.GetTranslation("common.primary", "Primario")</MudChip>
+                                                        }
+                                                    </MudText>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body2">@TranslationService.GetTranslation("supplier.noContactsAvailable", "Nessun contatto disponibile")</MudText>
+                                    }
+                                </TooltipContent>
+                            </MudTooltip>
                         </MudTd>
                         <MudTd DataLabel="@TranslationService.GetTranslation("field.vatNumber", "P.IVA")">
                             <MudText Typo="Typo.body2">@(context.VatNumber ?? "-")</MudText>
@@ -124,15 +139,21 @@
                         <MudTd DataLabel="@TranslationService.GetTranslation("field.taxCode", "C.F.")">
                             <MudText Typo="Typo.body2">@(context.TaxCode ?? "-")</MudText>
                         </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.city", "Località")">
+                            <MudText Typo="Typo.body2">@(context.City ?? "-")</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.province", "Provincia")">
+                            <MudText Typo="Typo.body2">@(context.Province ?? "-")</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.country", "Nazione")">
+                            <MudText Typo="Typo.body2">@(context.Country ?? "-")</MudText>
+                        </MudTd>
                         <MudTd DataLabel="@TranslationService.GetTranslation("field.contacts", "Contatti")">
                             <div class="d-flex gap-2">
                                 <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.LocationOn">@context.AddressCount</MudChip>
                                 <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Phone">@context.ContactCount</MudChip>
                                 <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Person">@context.ReferenceCount</MudChip>
                             </div>
-                        </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
-                            <MudText Typo="Typo.body2">@context.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
                         </MudTd>
                         <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
                             <MudTooltip Text="@TranslationService.GetTranslation("supplier.manageProducts", "Gestisci Prodotti")">
@@ -199,7 +220,6 @@
     
     // Filter and search state
     private string _searchTerm = string.Empty;
-    private string _partyTypeFilter = "all";
     
     // Data collections
     private List<BusinessPartyDto> _suppliers = new();
@@ -210,14 +230,10 @@
     private IEnumerable<BusinessPartyDto> _filteredSuppliers => 
         _suppliers.Where(s => 
             // Search filter: check name, VAT number, or tax code
-            (string.IsNullOrEmpty(_searchTerm) || 
-             s.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-             (s.VatNumber != null && s.VatNumber.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
-             (s.TaxCode != null && s.TaxCode.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))) &&
-            // Party type filter
-            (_partyTypeFilter == "all" || 
-             (_partyTypeFilter == "supplier" && s.PartyType == BusinessPartyType.Supplier) ||
-             (_partyTypeFilter == "both" && s.PartyType == BusinessPartyType.Both)));
+            string.IsNullOrEmpty(_searchTerm) || 
+            s.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+            (s.VatNumber != null && s.VatNumber.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+            (s.TaxCode != null && s.TaxCode.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)));
 
     /// <summary>
     /// Component initialization.
@@ -285,7 +301,6 @@
     private async Task ClearFilters()
     {
         _searchTerm = string.Empty;
-        _partyTypeFilter = "all";
         await Task.CompletedTask;
         StateHasChanged();
     }
@@ -293,12 +308,6 @@
     private async Task OnSearchChanged()
     {
         await Task.Delay(300); // Debounce
-        StateHasChanged();
-    }
-
-    private async Task OnPartyTypeFilterChanged()
-    {
-        await Task.CompletedTask;
         StateHasChanged();
     }
 
@@ -343,25 +352,15 @@
         }
     }
 
-    private Color GetPartyTypeColor(BusinessPartyType partyType)
+    private string GetContactIcon(ContactType contactType)
     {
-        return partyType switch
+        return contactType switch
         {
-            BusinessPartyType.Cliente => Color.Info,
-            BusinessPartyType.Supplier => Color.Primary,
-            BusinessPartyType.Both => Color.Success,
-            _ => Color.Default
-        };
-    }
-
-    private string GetPartyTypeText(BusinessPartyType partyType)
-    {
-        return partyType switch
-        {
-            BusinessPartyType.Cliente => TranslationService.GetTranslation("partyType.cliente", "Cliente"),
-            BusinessPartyType.Supplier => TranslationService.GetTranslation("partyType.supplier", "Fornitore"),
-            BusinessPartyType.Both => TranslationService.GetTranslation("partyType.both", "Cliente/Fornitore"),
-            _ => partyType.ToString()
+            ContactType.Email => Icons.Material.Outlined.Email,
+            ContactType.Phone => Icons.Material.Outlined.Phone,
+            ContactType.Fax => Icons.Material.Outlined.Print,
+            ContactType.PEC => Icons.Material.Outlined.Email,
+            _ => Icons.Material.Outlined.ContactPage
         };
     }
 

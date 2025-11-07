@@ -1,5 +1,6 @@
 using EventForge.DTOs.Common;
 using System;
+using System.Collections.Generic;
 namespace EventForge.DTOs.Business
 {
 
@@ -62,6 +63,26 @@ namespace EventForge.DTOs.Business
         /// Number of reference persons associated with the business party.
         /// </summary>
         public int ReferenceCount { get; set; }
+
+        /// <summary>
+        /// Primary city/locality from the first address.
+        /// </summary>
+        public string? City { get; set; }
+
+        /// <summary>
+        /// Primary province from the first address.
+        /// </summary>
+        public string? Province { get; set; }
+
+        /// <summary>
+        /// Primary country from the first address.
+        /// </summary>
+        public string? Country { get; set; }
+
+        /// <summary>
+        /// List of contacts associated with the business party (for tooltip display).
+        /// </summary>
+        public List<ContactDto> Contacts { get; set; } = new List<ContactDto>();
 
         /// <summary>
         /// Indicates if accounting data exists for this business party.
