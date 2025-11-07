@@ -17,7 +17,6 @@
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
-    <PackageReference Include="Syncfusion.Blazor" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EventForge.DTOs\EventForge.DTOs.csproj" />
