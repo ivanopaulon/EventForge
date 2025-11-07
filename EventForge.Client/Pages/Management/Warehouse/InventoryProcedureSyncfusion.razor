@@ -234,6 +234,35 @@
         return $"{(int)duration.TotalMinutes:D2}:{duration.Seconds:D2}";
     }
 
+    /// <summary>
+    /// Updates the session state in localStorage after each operation to keep it in sync
+    /// </summary>
+    private async Task UpdateSessionStateAsync()
+    {
+        if (_currentDocument == null) return;
+
+        try
+        {
+            var sessionState = new InventorySessionState
+            {
+                DocumentId = _currentDocument.Id,
+                DocumentNumber = _currentDocument.Number,
+                WarehouseId = _selectedStorageFacilityId,
+                SessionStartTime = _sessionStartTime,
+                LastActivityTime = DateTime.UtcNow,
+                FastConfirmEnabled = _fastConfirmEnabled,
+                ShowOnlyAdjustments = _showOnlyAdjustments
+            };
+
+            await InventorySessionService.SaveSessionAsync(sessionState);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error updating session state");
+            // Don't throw - this is not critical
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await Task.WhenAll(LoadStorageFacilities(), LoadLocations(), LoadProducts());
@@ -380,6 +409,13 @@
                 _selectedStorageFacilityId = warehouseId;
                 _sessionStartTime = sessionStartTime ?? DateTime.UtcNow;
                 
+                // Restore session preferences if available
+                if (sessionState != null && restorationSource == "localStorage")
+                {
+                    _fastConfirmEnabled = sessionState.FastConfirmEnabled;
+                    _showOnlyAdjustments = sessionState.ShowOnlyAdjustments;
+                }
+                
                 string sourceMessage = restorationSource == "localStorage" 
                     ? TranslationService.GetTranslation("warehouse.sessionRestoredFromCache", "Sessione ripristinata dalla cache")
                     : TranslationService.GetTranslation("warehouse.sessionRestoredFromServer", "Sessione ripristinata dal server (documento più recente aperto)");
@@ -444,7 +480,10 @@
                     DocumentId = _currentDocument.Id,
                     DocumentNumber = _currentDocument.Number,
                     WarehouseId = _selectedStorageFacilityId.Value,
-                    SessionStartTime = _sessionStartTime
+                    SessionStartTime = _sessionStartTime,
+                    LastActivityTime = DateTime.UtcNow,
+                    FastConfirmEnabled = _fastConfirmEnabled,
+                    ShowOnlyAdjustments = _showOnlyAdjustments
                 });
 
                 AddOperationLog(
@@ -762,6 +801,9 @@
                     .Where(r => r.ProductId == _inputState.CurrentProduct.Id && r.LocationId == _inputState.SelectedLocationId.Value)
                     .OrderByDescending(r => r.CreatedAt)
                     .FirstOrDefault();
+                
+                // Update session state to persist progress
+                await UpdateSessionStateAsync();
                 
                 ClearProductForm();
                 StateHasChanged();
