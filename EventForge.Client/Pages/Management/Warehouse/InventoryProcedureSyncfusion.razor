@@ -286,7 +286,7 @@
         _isLoading = true;
         try
         {
-            var result = await ProductService.GetProductsAsync(1, 1000);
+            var result = await ProductService.GetProductsAsync(1, 100);
             if (result != null)
             {
                 _allProducts = result.Items.ToList();
@@ -333,7 +333,7 @@
         _isLoading = true;
         try
         {
-            var result = await StorageLocationService.GetStorageLocationsAsync(1, 1000);
+            var result = await StorageLocationService.GetStorageLocationsAsync(1, 100);
             if (result?.Items != null)
             {
                 _locations = result.Items.ToList();

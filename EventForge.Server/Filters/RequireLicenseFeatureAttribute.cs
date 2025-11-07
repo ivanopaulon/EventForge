@@ -164,9 +164,73 @@ public class RequireLicenseFeatureAttribute : Attribute, IAsyncAuthorizationFilt
                     return;
                 }
 
-                // Increment API call counter
-                tenantLicense.ApiCallsThisMonth++;
-                _ = await dbContext.SaveChangesAsync();
+                // Increment API call counter using a server-side update to avoid concurrency exceptions
+                // Use ExecuteUpdateAsync to perform the increment with a single SQL statement
+                try
+                {
+                    var rowsAffected = await dbContext.TenantLicenses
+                        .Where(tl => tl.Id == tenantLicense.Id)
+                        .ExecuteUpdateAsync(s => s.SetProperty(tl => tl.ApiCallsThisMonth, tl => tl.ApiCallsThisMonth + 1));
+
+                    // If no rows were affected, try a safe fallback: re-load the tenant license and re-evaluate
+                    if (rowsAffected == 0)
+                    {
+                        // Re-query the latest state
+                        var fresh = await dbContext.TenantLicenses
+                            .Include(tl => tl.License)
+                            .FirstOrDefaultAsync(tl => tl.Id == tenantLicense.Id);
+
+                        if (fresh == null)
+                        {
+                            // If the record disappeared, deny access
+                            var problemDetails = new ProblemDetails
+                            {
+                                Type = "https://tools.ietf.org/html/rfc7231#section-6.5.3",
+                                Title = "Forbidden",
+                                Status = StatusCodes.Status403Forbidden,
+                                Detail = "Informazioni sulla licenza non disponibili. Contatta l'amministratore.",
+                                Instance = context.HttpContext.Request.Path
+                            };
+                            context.Result = new ObjectResult(problemDetails)
+                            {
+                                StatusCode = 403
+                            };
+                            return;
+                        }
+
+                        if (fresh.ApiCallsThisMonth >= fresh.License.MaxApiCallsPerMonth)
+                        {
+                            var problemDetails = new ProblemDetails
+                            {
+                                Type = "https://tools.ietf.org/html/rfc6585#section-4",
+                                Title = "Too Many Requests",
+                                Status = StatusCodes.Status429TooManyRequests,
+                                Detail = $"Limite mensile di chiamate API superato ({fresh.License.MaxApiCallsPerMonth}). Attendi il prossimo mese o aggiorna la licenza.",
+                                Instance = context.HttpContext.Request.Path
+                            };
+                            problemDetails.Extensions["currentUsage"] = fresh.ApiCallsThisMonth;
+                            problemDetails.Extensions["limit"] = fresh.License.MaxApiCallsPerMonth;
+                            problemDetails.Extensions["resetDate"] = fresh.ApiCallsResetAt.AddMonths(1).ToString("yyyy-MM-dd");
+
+                            context.Result = new ObjectResult(problemDetails)
+                            {
+                                StatusCode = 429 // Too Many Requests
+                            };
+                            return;
+                        }
+
+                        // Try to increment again via ExecuteUpdateAsync; if it still fails we'll log and allow the request
+                        await dbContext.TenantLicenses
+                            .Where(tl => tl.Id == tenantLicense.Id)
+                            .ExecuteUpdateAsync(s => s.SetProperty(tl => tl.ApiCallsThisMonth, tl => tl.ApiCallsThisMonth + 1));
+                    }
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<RequireLicenseFeatureAttribute>>();
+                    logger.LogWarning(ex, "Concurrency warning while incrementing API call counter for tenant '{TenantId}'", tenantId);
+                    // Best-effort: do not block the request; it will be logged for investigation
+                }
             }
 
             // Check if user has required permissions for the feature
