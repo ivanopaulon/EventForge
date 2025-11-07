@@ -140,8 +140,8 @@
     {
         var parameters = new DialogParameters
         {
-            { nameof(ContactDialog.OwnerId), Party.Id },
-            { nameof(ContactDialog.OwnerType), "BusinessParty" }
+            ["OwnerId"] = Party.Id,
+            ["OwnerType"] = "BusinessParty"
         };
 
         var options = new DialogOptions 
@@ -169,7 +169,7 @@
     {
         var parameters = new DialogParameters
         {
-            { nameof(ContactDialog.Contact), contact }
+            ["Contact"] = contact
         };
 
         var options = new DialogOptions 

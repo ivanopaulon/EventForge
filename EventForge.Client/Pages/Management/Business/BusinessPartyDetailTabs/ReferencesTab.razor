@@ -113,8 +113,8 @@
     {
         var parameters = new DialogParameters
         {
-            { nameof(ReferenceDialog.OwnerId), Party.Id },
-            { nameof(ReferenceDialog.OwnerType), "BusinessParty" }
+            ["OwnerId"] = Party.Id,
+            ["OwnerType"] = "BusinessParty"
         };
 
         var options = new DialogOptions 
@@ -142,7 +142,7 @@
     {
         var parameters = new DialogParameters
         {
-            { nameof(ReferenceDialog.Reference), reference }
+            ["Reference"] = reference
         };
 
         var options = new DialogOptions 
