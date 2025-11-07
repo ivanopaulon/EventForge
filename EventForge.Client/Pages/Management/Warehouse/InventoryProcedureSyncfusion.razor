@@ -9,6 +9,7 @@
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @inject IProductService ProductService
 @inject IInventoryService InventoryService
+@inject IInventoryFastService InventoryFastService
 @inject IStorageLocationService StorageLocationService
 @inject IWarehouseService WarehouseService
 @inject MudBlazor.ISnackbar Snackbar
@@ -505,34 +506,43 @@
         {
             AddOperationLog(TranslationService.GetTranslation("warehouse.searchingProduct", "Ricerca prodotto"), $"Codice: {barcode}", "Info");
 
+            // First, check if this is a repeated scan using the service
+            var scanResult = InventoryFastService.HandleBarcodeScanned(
+                barcode, 
+                _currentProduct, 
+                _selectedLocationId, 
+                _quantity, 
+                _fastConfirmEnabled);
+
+            if (scanResult.Action == BarcodeScanAction.IncrementAndConfirm)
+            {
+                // Repeated scan with fast confirm enabled
+                _quantity = scanResult.NewQuantity;
+                AddOperationLog(TranslationService.GetTranslation("warehouse.repeatedScanIncrement", "Scansione ripetuta, quantità incrementata"),
+                    $"{_currentProduct!.Name} - Nuova quantità: {_quantity}", "Info");
+                await ConfirmAndNext();
+                return;
+            }
+            else if (scanResult.Action == BarcodeScanAction.IncrementAndFocusQuantity)
+            {
+                // Repeated scan without fast confirm
+                _quantity = scanResult.NewQuantity;
+                AddOperationLog(TranslationService.GetTranslation("warehouse.repeatedScanIncrement", "Scansione ripetuta, quantità incrementata"),
+                    $"{_currentProduct!.Name} - Nuova quantità: {_quantity}", "Info");
+                StateHasChanged();
+                if (_productEntryComponent != null)
+                {
+                    await Task.Delay(100);
+                    await _productEntryComponent.FocusQuantityAsync();
+                }
+                return;
+            }
+
+            // Not a repeated scan - lookup the product
             var foundProduct = await ProductService.GetProductByCodeAsync(barcode);
             
             if (foundProduct != null)
             {
-                // Check if scanning the same product again with location already selected
-                if (_currentProduct != null && _currentProduct.Id == foundProduct.Id && _selectedLocationId.HasValue)
-                {
-                    _quantity += 1;
-                    AddOperationLog(TranslationService.GetTranslation("warehouse.repeatedScanIncrement", "Scansione ripetuta, quantità incrementata"),
-                        $"{foundProduct.Name} - Nuova quantità: {_quantity}", "Info");
-                    
-                    if (_fastConfirmEnabled)
-                    {
-                        await ConfirmAndNext();
-                        return;
-                    }
-                    else
-                    {
-                        StateHasChanged();
-                        if (_productEntryComponent != null)
-                        {
-                            await Task.Delay(100);
-                            await _productEntryComponent.FocusQuantityAsync();
-                        }
-                        return;
-                    }
-                }
-                
                 _currentProduct = foundProduct;
                 _showAssignPanel = false;
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato: {0}", _currentProduct.Name), MudBlazor.Severity.Success);
@@ -592,18 +602,9 @@
 
     private Task<IEnumerable<ProductDto>> SearchProducts(string searchTerm, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(searchTerm))
-            return Task.FromResult(_allProducts.Take(10));
-
-        var results = _allProducts
-            .Where(p => p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                       p.Code.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                       (!string.IsNullOrEmpty(p.ShortDescription) && p.ShortDescription.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
-                       (!string.IsNullOrEmpty(p.Description) && p.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)))
-            .Take(20)
-            .ToList();
-        
-        return Task.FromResult<IEnumerable<ProductDto>>(results);
+        // Use the service for consistent search logic
+        var results = InventoryFastService.SearchProducts(searchTerm, _allProducts, maxResults: 20);
+        return Task.FromResult(results);
     }
 
     private async Task AssignBarcodeToProduct((Guid productId, string codeType, string code, string? altDesc) args)
@@ -712,44 +713,35 @@
             var location = _locations.FirstOrDefault(l => l.Id == _selectedLocationId.Value);
             var locationName = location?.Code ?? "N/A";
 
-            // Check if there's already a row with the same product and location
-            var existingRow = _currentDocument.Rows?
-                .FirstOrDefault(r => r.ProductId == _currentProduct.Id && r.LocationId == _selectedLocationId.Value);
+            // Use the service to determine if we should merge or create
+            var operation = InventoryFastService.DetermineRowOperation(
+                _currentDocument.Rows?.ToList(),
+                _currentProduct.Id,
+                _selectedLocationId.Value,
+                _quantity.Value,
+                _notes);
 
             InventoryDocumentDto? updatedDocument = null;
 
-            if (existingRow != null)
+            if (operation.OperationType == RowOperationType.Update)
             {
                 // Update existing row by summing quantities
-                var newQuantity = existingRow.Quantity + _quantity.Value;
-                
-                // Determine notes for the updated row
-                string? combinedNotes;
-                if (string.IsNullOrEmpty(_notes))
-                {
-                    combinedNotes = existingRow.Notes;
-                }
-                else if (string.IsNullOrEmpty(existingRow.Notes))
-                {
-                    combinedNotes = _notes;
-                }
-                else
-                {
-                    combinedNotes = $"{existingRow.Notes}; {_notes}";
-                }
-                
                 var updateDto = new UpdateInventoryDocumentRowDto 
                 { 
-                    Quantity = newQuantity, 
-                    Notes = combinedNotes
+                    Quantity = operation.NewQuantity, 
+                    Notes = operation.CombinedNotes
                 };
                 
-                updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(_currentDocument.Id, existingRow.Id, updateDto);
+                updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(
+                    _currentDocument.Id, 
+                    operation.ExistingRowId!.Value, 
+                    updateDto);
                 
                 if (updatedDocument != null)
                 {
+                    var existingRow = _currentDocument.Rows?.FirstOrDefault(r => r.Id == operation.ExistingRowId.Value);
                     AddOperationLog(TranslationService.GetTranslation("warehouse.itemUpdated", "Quantità aggiornata"),
-                        $"{_currentProduct.Name} - Ubicazione: {locationName} - Quantità precedente: {existingRow.Quantity} - Aggiunta: {_quantity.Value} - Nuova quantità: {newQuantity}" + 
+                        $"{_currentProduct.Name} - Ubicazione: {locationName} - Quantità precedente: {existingRow?.Quantity ?? 0} - Aggiunta: {_quantity.Value} - Nuova quantità: {operation.NewQuantity}" + 
                         (!string.IsNullOrEmpty(_notes) ? $" - Note: {_notes}" : ""), "Success");
 
                     Snackbar.Add(TranslationService.GetTranslation("warehouse.quantityUpdated", "Quantità aggiornata nel documento"), MudBlazor.Severity.Success);
@@ -810,12 +802,15 @@
 
     private void ClearProductForm()
     {
-        _scannedBarcode = string.Empty;
-        _currentProduct = null;
-        _selectedLocationId = null;
-        _selectedLocation = null;
-        _quantity = 1;
-        _notes = string.Empty;
+        // Use the service to get cleared state
+        var clearedState = InventoryFastService.ClearProductFormState();
+        
+        _scannedBarcode = clearedState.ScannedBarcode;
+        _currentProduct = clearedState.CurrentProduct;
+        _selectedLocationId = clearedState.SelectedLocationId;
+        _selectedLocation = clearedState.SelectedLocation;
+        _quantity = clearedState.Quantity;
+        _notes = clearedState.Notes;
         
         if (_scannerComponent != null)
         {

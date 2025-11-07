@@ -39,10 +39,12 @@ Administrative pages for system-level management:
 Warehouse and inventory management:
 - `WarehouseManagement.razor` / `WarehouseDetail.razor` - Warehouse facilities
 - `LotManagement.razor` - Lot tracking
-- `InventoryProcedure.razor` - Standard inventory process
-- `InventoryProcedureFast.razor` - Optimized fast inventory (MudBlazor)
-- `InventoryProcedureSyncfusion.razor` - Syncfusion-based inventory
+- `InventoryProcedure.razor` - Standard inventory process (classic)
+- `InventoryProcedureFast.razor` - Optimized fast inventory (MudBlazor, to be archived)
+- `InventoryProcedureSyncfusion.razor` - **Fast Procedure (Syncfusion-based, consolidated)**
 - `InventoryList.razor` - Inventory document listing
+
+**Note**: The Fast Procedure is now consolidated on Syncfusion components with business logic extracted to `InventoryFastService`. MudBlazor Fast components will be archived.
 
 #### Management/Products (18 pages)
 Product catalog and classification:
@@ -170,6 +172,7 @@ Two implementations: MudBlazor-based and Syncfusion-based
 **Warehouse Management**:
 - `ILotService.cs` / `LotService.cs`
 - `IInventoryService.cs` / `InventoryService.cs`
+- `IInventoryFastService.cs` / `InventoryFastService.cs` - **Fast Procedure business logic**
 - `IWarehouseService.cs` / `WarehouseService.cs`
 - `IStorageLocationService.cs` / `StorageLocationService.cs`
 - `IStockService.cs` / `StockService.cs`
