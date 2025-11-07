@@ -51,7 +51,7 @@
         </div>
     </div>
 
-    @if (_isLoading)
+    @if (_uiState.IsLoading)
     {
         <div class="sf-card p-3 mb-4">
             <SfProgressBar Type="ProgressType.Linear" Value="40" IsIndeterminate="true" />
@@ -65,15 +65,15 @@
         PositiveAdjustmentsCount="@GetPositiveAdjustmentsCount()"
         NegativeAdjustmentsCount="@GetNegativeAdjustmentsCount()"
         SessionDuration="@GetSessionDuration()"
-        ShowFinalizeConfirmation="@_showFinalizeConfirmation"
-        ShowCancelConfirmation="@_showCancelConfirmation"
+        ShowFinalizeConfirmation="@_uiState.ShowFinalizeConfirmation"
+        ShowCancelConfirmation="@_uiState.ShowCancelConfirmation"
         OnExport="@ExportInventoryDocument"
         OnRequestFinalize="@FinalizeInventory"
         OnConfirmFinalize="@ConfirmFinalizeAsync"
-        OnCancelFinalize="@(() => _showFinalizeConfirmation = false)"
+        OnCancelFinalize="@(() => _uiState.ShowFinalizeConfirmation = false)"
         OnRequestCancel="@CancelInventorySession"
         OnConfirmCancel="@ConfirmCancelAsync"
-        OnCancelCancel="@(() => _showCancelConfirmation = false)" />
+        OnCancelCancel="@(() => _uiState.ShowCancelConfirmation = false)" />
 
     <!-- Storage Facility Selection -->
     <div class="sf-card p-4 mb-4">
@@ -111,27 +111,27 @@
     {
         <!-- Scanner Component -->
         <SfFastScanner @ref="_scannerComponent"
-                      BarcodeValue="@_scannedBarcode"
-                      BarcodeValueChanged="@((value) => _scannedBarcode = value)"
+                      BarcodeValue="@_inputState.ScannedBarcode"
+                      BarcodeValueChanged="@((value) => _inputState.ScannedBarcode = value)"
                       FastConfirmEnabledValue="@_fastConfirmEnabled"
                       FastConfirmEnabledValueChanged="@((value) => _fastConfirmEnabled = value)"
                       OnBarcodeScanned="@HandleBarcodeScanned"
                       OnSearch="@HandleBarcodeScanned" />
 
         <!-- Product Not Found Panel (conditional) -->
-        @if (_showAssignPanel)
+        @if (_uiState.ShowAssignPanel)
         {
             <SfFastNotFoundPanel 
-                ScannedBarcode="@_assignPanelBarcode"
-                SelectedProduct="@_assignSelectedProduct"
-                SelectedProductChanged="@((product) => _assignSelectedProduct = product)"
-                CodeType="@_assignCodeType"
-                CodeTypeChanged="@((value) => _assignCodeType = value)"
-                Code="@_assignCode"
-                CodeChanged="@((value) => _assignCode = value)"
-                AlternativeDescription="@_assignAlternativeDescription"
-                AlternativeDescriptionChanged="@((value) => _assignAlternativeDescription = value)"
-                IsLoading="@_isLoading"
+                ScannedBarcode="@_uiState.AssignPanelBarcode"
+                SelectedProduct="@_uiState.AssignSelectedProduct"
+                SelectedProductChanged="@((product) => _uiState.AssignSelectedProduct = product)"
+                CodeType="@_uiState.AssignCodeType"
+                CodeTypeChanged="@((value) => _uiState.AssignCodeType = value)"
+                Code="@_uiState.AssignCode"
+                CodeChanged="@((value) => _uiState.AssignCode = value)"
+                AlternativeDescription="@_uiState.AssignAlternativeDescription"
+                AlternativeDescriptionChanged="@((value) => _uiState.AssignAlternativeDescription = value)"
+                IsLoading="@_uiState.IsLoading"
                 OnSearchProducts="@SearchProducts"
                 OnAssign="@AssignBarcodeToProduct"
                 OnSkip="@SkipBarcodeAssignment"
@@ -139,20 +139,20 @@
         }
 
         <!-- Product Entry Inline (conditional) -->
-        @if (_currentProduct != null && !_showAssignPanel)
+        @if (_inputState.CurrentProduct != null && !_uiState.ShowAssignPanel)
         {
             <SfFastProductEntryInline @ref="_productEntryComponent"
-                                     CurrentProduct="@_currentProduct"
-                                     SelectedLocation="@_selectedLocation"
-                                     SelectedLocationChanged="@((location) => _selectedLocation = location)"
-                                     SelectedLocationId="@_selectedLocationId"
-                                     SelectedLocationIdChanged="@((id) => _selectedLocationId = id)"
-                                     QuantityValue="@_quantity"
-                                     QuantityValueChanged="@((value) => _quantity = value)"
-                                     NotesValue="@_notes"
-                                     NotesValueChanged="@((value) => _notes = value)"
-                                     ShowUndo="@(_lastAddedRow != null)"
-                                     LastAddedRow="@_lastAddedRow"
+                                     CurrentProduct="@_inputState.CurrentProduct"
+                                     SelectedLocation="@_inputState.SelectedLocation"
+                                     SelectedLocationChanged="@((location) => _inputState.SelectedLocation = location)"
+                                     SelectedLocationId="@_inputState.SelectedLocationId"
+                                     SelectedLocationIdChanged="@((id) => _inputState.SelectedLocationId = id)"
+                                     QuantityValue="@_inputState.Quantity"
+                                     QuantityValueChanged="@((value) => _inputState.Quantity = value ?? 1)"
+                                     NotesValue="@_inputState.Notes"
+                                     NotesValueChanged="@((value) => _inputState.Notes = value)"
+                                     ShowUndo="@(_inputState.LastAddedRow != null)"
+                                     LastAddedRow="@_inputState.LastAddedRow"
                                      OnSearchLocations="@SearchLocations"
                                      OnConfirm="@ConfirmAndNext"
                                      OnUndo="@UndoLastRow" />
@@ -164,12 +164,12 @@
             TotalItems="@_currentDocument.TotalItems"
             ShowOnlyAdjustmentsValue="@_showOnlyAdjustments"
             ShowOnlyAdjustmentsValueChanged="@((value) => _showOnlyAdjustments = value)"
-            EditingRowId="@_editingRowId"
-            EditQuantityValue="@_editQuantity"
-            EditQuantityValueChanged="@((value) => _editQuantity = value)"
-            EditNotesValue="@_editNotes"
-            EditNotesValueChanged="@((value) => _editNotes = value)"
-            ConfirmDeleteRowId="@_confirmDeleteRowId"
+            EditingRowId="@_uiState.EditingRowId"
+            EditQuantityValue="@_uiState.EditQuantity"
+            EditQuantityValueChanged="@((value) => _uiState.EditQuantity = value)"
+            EditNotesValue="@_uiState.EditNotes"
+            EditNotesValueChanged="@((value) => _uiState.EditNotes = value)"
+            ConfirmDeleteRowId="@_uiState.ConfirmDeleteRowId"
             OnBeginEdit="@BeginEditRow"
             OnSaveEdit="@SaveEditRow"
             OnCancelEdit="@CancelEditRow"
@@ -191,7 +191,7 @@
     private InventoryInputState _inputState = new();
     private InventoryUIState _uiState = new();
     
-    // Legacy fields for backward compatibility (will be removed in future sprints)
+    // Document and session fields (not part of ephemeral state)
     private List<StorageLocationDto> _locations = new();
     private List<StorageFacilityDto> _storageFacilities = new();
     private Guid? _selectedStorageFacilityId;
@@ -205,127 +205,6 @@
     
     // Operation log for audit trail
     private List<OperationLogEntry> _operationLog = new();
-    
-    // Compatibility properties that delegate to state objects
-    private string _scannedBarcode
-    {
-        get => _inputState.ScannedBarcode;
-        set => _inputState.ScannedBarcode = value;
-    }
-    
-    private ProductDto? _currentProduct
-    {
-        get => _inputState.CurrentProduct;
-        set => _inputState.CurrentProduct = value;
-    }
-    
-    private Guid? _selectedLocationId
-    {
-        get => _inputState.SelectedLocationId;
-        set => _inputState.SelectedLocationId = value;
-    }
-    
-    private StorageLocationDto? _selectedLocation
-    {
-        get => _inputState.SelectedLocation;
-        set => _inputState.SelectedLocation = value;
-    }
-    
-    private decimal? _quantity
-    {
-        get => _inputState.Quantity;
-        set => _inputState.Quantity = value ?? 1;
-    }
-    
-    private string _notes
-    {
-        get => _inputState.Notes;
-        set => _inputState.Notes = value;
-    }
-    
-    private InventoryDocumentRowDto? _lastAddedRow
-    {
-        get => _inputState.LastAddedRow;
-        set => _inputState.LastAddedRow = value;
-    }
-    
-    private bool _showAssignPanel
-    {
-        get => _uiState.ShowAssignPanel;
-        set => _uiState.ShowAssignPanel = value;
-    }
-    
-    private string _assignPanelBarcode
-    {
-        get => _uiState.AssignPanelBarcode;
-        set => _uiState.AssignPanelBarcode = value;
-    }
-    
-    private ProductDto? _assignSelectedProduct
-    {
-        get => _uiState.AssignSelectedProduct;
-        set => _uiState.AssignSelectedProduct = value;
-    }
-    
-    private string _assignCodeType
-    {
-        get => _uiState.AssignCodeType;
-        set => _uiState.AssignCodeType = value;
-    }
-    
-    private string _assignCode
-    {
-        get => _uiState.AssignCode;
-        set => _uiState.AssignCode = value;
-    }
-    
-    private string? _assignAlternativeDescription
-    {
-        get => _uiState.AssignAlternativeDescription;
-        set => _uiState.AssignAlternativeDescription = value;
-    }
-    
-    private Guid? _editingRowId
-    {
-        get => _uiState.EditingRowId;
-        set => _uiState.EditingRowId = value;
-    }
-    
-    private decimal? _editQuantity
-    {
-        get => _uiState.EditQuantity;
-        set => _uiState.EditQuantity = value;
-    }
-    
-    private string? _editNotes
-    {
-        get => _uiState.EditNotes;
-        set => _uiState.EditNotes = value;
-    }
-    
-    private Guid? _confirmDeleteRowId
-    {
-        get => _uiState.ConfirmDeleteRowId;
-        set => _uiState.ConfirmDeleteRowId = value;
-    }
-    
-    private bool _showFinalizeConfirmation
-    {
-        get => _uiState.ShowFinalizeConfirmation;
-        set => _uiState.ShowFinalizeConfirmation = value;
-    }
-    
-    private bool _showCancelConfirmation
-    {
-        get => _uiState.ShowCancelConfirmation;
-        set => _uiState.ShowCancelConfirmation = value;
-    }
-    
-    private bool _isLoading
-    {
-        get => _uiState.IsLoading;
-        set => _uiState.IsLoading = value;
-    }
 
     private void AddOperationLog(string message, string details = "", string type = "Info")
     {
@@ -374,7 +253,7 @@
 
     private async Task LoadProducts()
     {
-        _isLoading = true;
+        _uiState.IsLoading = true;
         try
         {
             var result = await ProductService.GetProductsAsync(1, 100);
@@ -389,13 +268,13 @@
         }
         finally
         {
-            _isLoading = false;
+            _uiState.IsLoading = false;
         }
     }
 
     private async Task LoadStorageFacilities()
     {
-        _isLoading = true;
+        _uiState.IsLoading = true;
         try
         {
             var result = await WarehouseService.GetStorageFacilitiesAsync(1, 100);
@@ -415,13 +294,13 @@
         }
         finally
         {
-            _isLoading = false;
+            _uiState.IsLoading = false;
         }
     }
 
     private async Task LoadLocations()
     {
-        _isLoading = true;
+        _uiState.IsLoading = true;
         try
         {
             var result = await StorageLocationService.GetStorageLocationsAsync(1, 100);
@@ -437,7 +316,7 @@
         }
         finally
         {
-            _isLoading = false;
+            _uiState.IsLoading = false;
         }
     }
 
@@ -544,7 +423,7 @@
     {
         if (!_selectedStorageFacilityId.HasValue) return;
 
-        _isLoading = true;
+        _uiState.IsLoading = true;
         try
         {
             _sessionStartTime = DateTime.UtcNow;
@@ -595,7 +474,7 @@
         }
         finally
         {
-            _isLoading = false;
+            _uiState.IsLoading = false;
         }
     }
 
@@ -604,8 +483,8 @@
         if (string.IsNullOrWhiteSpace(barcode)) return;
         if (_currentDocument == null) return;
 
-        _scannedBarcode = barcode;
-        _isLoading = true;
+        _inputState.ScannedBarcode = barcode;
+        _uiState.IsLoading = true;
         
         try
         {
@@ -614,26 +493,26 @@
             // First, check if this is a repeated scan using the service
             var scanResult = InventoryFastService.HandleBarcodeScanned(
                 barcode, 
-                _currentProduct, 
-                _selectedLocationId, 
-                _quantity, 
+                _inputState.CurrentProduct, 
+                _inputState.SelectedLocationId, 
+                _inputState.Quantity, 
                 _fastConfirmEnabled);
 
             if (scanResult.Action == BarcodeScanAction.IncrementAndConfirm)
             {
                 // Repeated scan with fast confirm enabled
-                _quantity = scanResult.NewQuantity;
+                _inputState.Quantity = scanResult.NewQuantity;
                 AddOperationLog(TranslationService.GetTranslation("warehouse.repeatedScanIncrement", "Scansione ripetuta, quantità incrementata"),
-                    $"{_currentProduct!.Name} - Nuova quantità: {_quantity}", "Info");
+                    $"{_inputState.CurrentProduct!.Name} - Nuova quantità: {_inputState.Quantity}", "Info");
                 await ConfirmAndNext();
                 return;
             }
             else if (scanResult.Action == BarcodeScanAction.IncrementAndFocusQuantity)
             {
                 // Repeated scan without fast confirm
-                _quantity = scanResult.NewQuantity;
+                _inputState.Quantity = scanResult.NewQuantity;
                 AddOperationLog(TranslationService.GetTranslation("warehouse.repeatedScanIncrement", "Scansione ripetuta, quantità incrementata"),
-                    $"{_currentProduct!.Name} - Nuova quantità: {_quantity}", "Info");
+                    $"{_inputState.CurrentProduct!.Name} - Nuova quantità: {_inputState.Quantity}", "Info");
                 StateHasChanged();
                 if (_productEntryComponent != null)
                 {
@@ -648,16 +527,16 @@
             
             if (foundProduct != null)
             {
-                _currentProduct = foundProduct;
+                _inputState.CurrentProduct = foundProduct;
                 _uiState.ClearAssignPanel();
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato: {0}", _currentProduct.Name), MudBlazor.Severity.Success);
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato: {0}", _inputState.CurrentProduct.Name), MudBlazor.Severity.Success);
                 AddOperationLog(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato"),
-                    $"{_currentProduct.Name} ({_currentProduct.Code})", "Success");
+                    $"{_inputState.CurrentProduct.Name} ({_inputState.CurrentProduct.Code})", "Success");
 
                 if (_locations?.Count == 1)
                 {
-                    _selectedLocationId = _locations[0].Id;
-                    _selectedLocation = _locations[0];
+                    _inputState.SelectedLocationId = _locations[0].Id;
+                    _inputState.SelectedLocation = _locations[0];
                     StateHasChanged();
                     if (_productEntryComponent != null)
                     {
@@ -679,7 +558,7 @@
             else
             {
                 // Product not found - show assignment panel using state manager
-                _currentProduct = null;
+                _inputState.CurrentProduct = null;
                 _uiState.OpenAssignPanel(barcode);
                 
                 AddOperationLog(TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato"), 
@@ -696,7 +575,7 @@
         }
         finally
         {
-            _isLoading = false;
+            _uiState.IsLoading = false;
         }
     }
 
@@ -709,7 +588,7 @@
 
     private async Task AssignBarcodeToProduct((Guid productId, string codeType, string code, string? altDesc) args)
     {
-        _isLoading = true;
+        _uiState.IsLoading = true;
         try
         {
             var createCodeDto = new CreateProductCodeDto
@@ -725,17 +604,17 @@
 
             if (result != null)
             {
-                var productName = _assignSelectedProduct?.Name ?? "Product";
+                var productName = _uiState.AssignSelectedProduct?.Name ?? "Product";
                 Snackbar.Add(TranslationService.GetTranslation("products.barcodeAssignedSuccess", "Codice a barre assegnato con successo a {0}", productName), MudBlazor.Severity.Success);
                 AddOperationLog(TranslationService.GetTranslation("products.barcodeAssigned", "Codice assegnato"), $"{productName} - Codice: {args.code}", "Success");
 
-                _currentProduct = _assignSelectedProduct;
+                _inputState.CurrentProduct = _uiState.AssignSelectedProduct;
                 _uiState.ClearAssignPanel();
 
                 if (_locations?.Count == 1)
                 {
-                    _selectedLocationId = _locations[0].Id;
-                    _selectedLocation = _locations[0];
+                    _inputState.SelectedLocationId = _locations[0].Id;
+                    _inputState.SelectedLocation = _locations[0];
                     StateHasChanged();
                     if (_productEntryComponent != null)
                     {
@@ -767,7 +646,7 @@
         }
         finally
         {
-            _isLoading = false;
+            _uiState.IsLoading = false;
         }
     }
 
@@ -810,21 +689,21 @@
 
     private async Task AddInventoryRow()
     {
-        if (_currentDocument == null || _currentProduct == null || !_selectedLocationId.HasValue || !_quantity.HasValue || _quantity < 0) return;
+        if (_currentDocument == null || _inputState.CurrentProduct == null || !_inputState.SelectedLocationId.HasValue || _inputState.Quantity <= 0) return;
 
-        _isLoading = true;
+        _uiState.IsLoading = true;
         try
         {
-            var location = _locations.FirstOrDefault(l => l.Id == _selectedLocationId.Value);
+            var location = _locations.FirstOrDefault(l => l.Id == _inputState.SelectedLocationId.Value);
             var locationName = location?.Code ?? "N/A";
 
             // Use the service to determine if we should merge or create
             var operation = InventoryFastService.DetermineRowOperation(
                 _currentDocument.Rows?.ToList(),
-                _currentProduct.Id,
-                _selectedLocationId.Value,
-                _quantity.Value,
-                _notes);
+                _inputState.CurrentProduct.Id,
+                _inputState.SelectedLocationId.Value,
+                _inputState.Quantity,
+                _inputState.Notes);
 
             InventoryDocumentDto? updatedDocument = null;
 
@@ -846,8 +725,8 @@
                 {
                     var existingRow = _currentDocument.Rows?.FirstOrDefault(r => r.Id == operation.ExistingRowId.Value);
                     AddOperationLog(TranslationService.GetTranslation("warehouse.itemUpdated", "Quantità aggiornata"),
-                        $"{_currentProduct.Name} - Ubicazione: {locationName} - Quantità precedente: {existingRow?.Quantity ?? 0} - Aggiunta: {_quantity.Value} - Nuova quantità: {operation.NewQuantity}" + 
-                        (!string.IsNullOrEmpty(_notes) ? $" - Note: {_notes}" : ""), "Success");
+                        $"{_inputState.CurrentProduct.Name} - Ubicazione: {locationName} - Quantità precedente: {existingRow?.Quantity ?? 0} - Aggiunta: {_inputState.Quantity} - Nuova quantità: {operation.NewQuantity}" + 
+                        (!string.IsNullOrEmpty(_inputState.Notes) ? $" - Note: {_inputState.Notes}" : ""), "Success");
 
                     Snackbar.Add(TranslationService.GetTranslation("warehouse.quantityUpdated", "Quantità aggiornata nel documento"), MudBlazor.Severity.Success);
                 }
@@ -857,10 +736,10 @@
                 // Add new row
                 var rowDto = new AddInventoryDocumentRowDto
                 {
-                    ProductId = _currentProduct.Id,
-                    LocationId = _selectedLocationId.Value,
-                    Quantity = _quantity.Value,
-                    Notes = _notes
+                    ProductId = _inputState.CurrentProduct.Id,
+                    LocationId = _inputState.SelectedLocationId.Value,
+                    Quantity = _inputState.Quantity,
+                    Notes = _inputState.Notes
                 };
 
                 updatedDocument = await InventoryService.AddInventoryDocumentRowAsync(_currentDocument.Id, rowDto);
@@ -868,8 +747,8 @@
                 if (updatedDocument != null)
                 {
                     AddOperationLog(TranslationService.GetTranslation("warehouse.itemAdded", "Articolo aggiunto"),
-                        $"{_currentProduct.Name} - Ubicazione: {locationName} - Quantità: {_quantity.Value}" + 
-                        (!string.IsNullOrEmpty(_notes) ? $" - Note: {_notes}" : ""), "Success");
+                        $"{_inputState.CurrentProduct.Name} - Ubicazione: {locationName} - Quantità: {_inputState.Quantity}" + 
+                        (!string.IsNullOrEmpty(_inputState.Notes) ? $" - Note: {_inputState.Notes}" : ""), "Success");
 
                     Snackbar.Add(TranslationService.GetTranslation("warehouse.itemAdded", "Articolo aggiunto al documento"), MudBlazor.Severity.Success);
                 }
@@ -879,8 +758,8 @@
             {
                 _currentDocument = updatedDocument;
                 
-                _lastAddedRow = _currentDocument.Rows?
-                    .Where(r => r.ProductId == _currentProduct.Id && r.LocationId == _selectedLocationId.Value)
+                _inputState.LastAddedRow = _currentDocument.Rows?
+                    .Where(r => r.ProductId == _inputState.CurrentProduct.Id && r.LocationId == _inputState.SelectedLocationId.Value)
                     .OrderByDescending(r => r.CreatedAt)
                     .FirstOrDefault();
                 
@@ -890,7 +769,7 @@
             else
             {
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.addItemError", "Errore nell'aggiunta dell'articolo"), MudBlazor.Severity.Error);
-                AddOperationLog(TranslationService.GetTranslation("warehouse.addItemError", "Errore nell'aggiunta dell'articolo"), $"Prodotto: {_currentProduct.Name}", "Error");
+                AddOperationLog(TranslationService.GetTranslation("warehouse.addItemError", "Errore nell'aggiunta dell'articolo"), $"Prodotto: {_inputState.CurrentProduct.Name}", "Error");
             }
         }
         catch (Exception ex)
@@ -901,7 +780,7 @@
         }
         finally
         {
-            _isLoading = false;
+            _uiState.IsLoading = false;
         }
     }
 
@@ -919,12 +798,12 @@
 
     private async Task UndoLastRow()
     {
-        if (_lastAddedRow == null || _currentDocument == null) return;
+        if (_inputState.LastAddedRow == null || _currentDocument == null) return;
 
-        _isLoading = true;
+        _uiState.IsLoading = true;
         try
         {
-            var updatedDocument = await InventoryService.DeleteInventoryDocumentRowAsync(_currentDocument.Id, _lastAddedRow.Id);
+            var updatedDocument = await InventoryService.DeleteInventoryDocumentRowAsync(_currentDocument.Id, _inputState.LastAddedRow.Id);
             
             if (updatedDocument != null)
             {
@@ -932,12 +811,12 @@
                 
                 AddOperationLog(
                     TranslationService.GetTranslation("warehouse.rowUndone", "Ultima riga annullata"),
-                    $"{_lastAddedRow.ProductCode} - Q.tà: {_lastAddedRow.Quantity}",
+                    $"{_inputState.LastAddedRow.ProductCode} - Q.tà: {_inputState.LastAddedRow.Quantity}",
                     "Info"
                 );
 
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.rowUndone", "Ultima riga annullata"), MudBlazor.Severity.Info);
-                _lastAddedRow = null;
+                _inputState.LastAddedRow = null;
             }
         }
         catch (Exception ex)
@@ -948,7 +827,7 @@
         }
         finally
         {
-            _isLoading = false;
+            _uiState.IsLoading = false;
         }
     }
 
@@ -965,18 +844,18 @@
 
     private async Task SaveEditRow(Guid rowId)
     {
-        if (_currentDocument == null || _editingRowId == null || !_editQuantity.HasValue) return;
+        if (_currentDocument == null || _uiState.EditingRowId == null || !_uiState.EditQuantity.HasValue) return;
 
         var row = _currentDocument.Rows?.FirstOrDefault(r => r.Id == rowId);
         if (row == null) return;
 
-        _isLoading = true;
+        _uiState.IsLoading = true;
         try
         {
             var updateDto = new UpdateInventoryDocumentRowDto 
             { 
-                Quantity = _editQuantity.Value, 
-                Notes = _editNotes 
+                Quantity = _uiState.EditQuantity.Value, 
+                Notes = _uiState.EditNotes 
             };
             
             var updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(_currentDocument.Id, row.Id, updateDto);
@@ -987,7 +866,7 @@
 
                 AddOperationLog(
                     TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata"),
-                    $"{row.ProductCode} - Q.tà: {_editQuantity.Value}",
+                    $"{row.ProductCode} - Q.tà: {_uiState.EditQuantity.Value}",
                     "Success"
                 );
 
@@ -1005,7 +884,7 @@
         }
         finally
         {
-            _isLoading = false;
+            _uiState.IsLoading = false;
         }
     }
 
@@ -1018,7 +897,7 @@
 
     private void RequestDeleteRow(Guid rowId)
     {
-        _confirmDeleteRowId = rowId;
+        _uiState.ConfirmDeleteRowId = rowId;
         StateHasChanged();
     }
 
@@ -1029,7 +908,7 @@
         var row = _currentDocument.Rows?.FirstOrDefault(r => r.Id == rowId);
         if (row == null) return;
 
-        _isLoading = true;
+        _uiState.IsLoading = true;
         try
         {
             var updatedDocument = await InventoryService.DeleteInventoryDocumentRowAsync(_currentDocument.Id, row.Id);
@@ -1037,7 +916,7 @@
             if (updatedDocument != null)
             {
                 _currentDocument = updatedDocument;
-                if (_lastAddedRow?.Id == row.Id) _lastAddedRow = null;
+                if (_inputState.LastAddedRow?.Id == row.Id) _inputState.LastAddedRow = null;
 
                 AddOperationLog(
                     TranslationService.GetTranslation("warehouse.rowDeleted", "Riga eliminata"),
@@ -1059,7 +938,7 @@
         }
         finally
         {
-            _isLoading = false;
+            _uiState.IsLoading = false;
         }
     }
 
@@ -1074,7 +953,7 @@
     private void FinalizeInventory()
     {
         if (_currentDocument == null) return;
-        _showFinalizeConfirmation = true;
+        _uiState.ShowFinalizeConfirmation = true;
         StateHasChanged();
     }
 
@@ -1082,8 +961,8 @@
     {
         if (_currentDocument == null) return;
 
-        _showFinalizeConfirmation = false;
-        _isLoading = true;
+        _uiState.ShowFinalizeConfirmation = false;
+        _uiState.IsLoading = true;
         try
         {
             AddOperationLog(TranslationService.GetTranslation("warehouse.finalizingInventory", "Finalizzazione inventario in corso"),
@@ -1115,14 +994,14 @@
         }
         finally
         {
-            _isLoading = false;
+            _uiState.IsLoading = false;
         }
     }
 
     private void CancelInventorySession()
     {
         if (_currentDocument == null) return;
-        _showCancelConfirmation = true;
+        _uiState.ShowCancelConfirmation = true;
         StateHasChanged();
     }
 
@@ -1130,7 +1009,7 @@
     {
         if (_currentDocument == null) return;
 
-        _showCancelConfirmation = false;
+        _uiState.ShowCancelConfirmation = false;
         try
         {
             AddOperationLog(
