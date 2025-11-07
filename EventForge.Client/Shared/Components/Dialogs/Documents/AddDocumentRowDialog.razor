@@ -143,7 +143,7 @@
                             <MudIcon Icon="@Icons.Material.Outlined.History" Class="mr-2" Size="Size.Small" />
                             @{
                                 var isPurchase = !string.IsNullOrEmpty(_documentHeader?.DocumentTypeName) && 
-                                    (new[] { "purchase", "receipt", "return", "acquisto", "carico", "reso" }).Any(k => _documentHeader.DocumentTypeName.ToLower().Contains(k));
+                                    PurchaseKeywords.Any(k => _documentHeader.DocumentTypeName.ToLower().Contains(k));
                             }
                             @if (isPurchase)
                             {
@@ -362,6 +362,10 @@
     private Guid? _selectedUnitOfMeasureId = null;
     private Guid? _selectedVatRateId = null;
     private Guid? _barcodeProductUnitId = null; // Track unit from barcode lookup
+    
+    // Document type detection keywords
+    private static readonly string[] PurchaseKeywords = { "purchase", "receipt", "return", "acquisto", "carico", "reso" };
+    private static readonly string[] SaleKeywords = { "sale", "invoice", "shipment", "delivery", "vendita", "fattura", "scarico", "consegna" };
     
     // Recent transactions for price suggestions
     private DocumentHeaderDto? _documentHeader = null;
@@ -868,21 +872,18 @@
         try
         {
             // Determine transaction type based on document type name keywords
-            // Purchase keywords: purchase, receipt, return, acquisto, carico, reso
-            // Sale keywords: sale, invoice, shipment, delivery, vendita, fattura, scarico, consegna
+            // Determine transaction type based on document type name keywords
             string transactionType = "purchase"; // default
             
             if (!string.IsNullOrEmpty(_documentHeader.DocumentTypeName))
             {
                 var lowerName = _documentHeader.DocumentTypeName.ToLower();
-                var purchaseKeywords = new[] { "purchase", "receipt", "return", "acquisto", "carico", "reso" };
-                var saleKeywords = new[] { "sale", "invoice", "shipment", "delivery", "vendita", "fattura", "scarico", "consegna" };
                 
-                if (saleKeywords.Any(k => lowerName.Contains(k)))
+                if (SaleKeywords.Any(k => lowerName.Contains(k)))
                 {
                     transactionType = "sale";
                 }
-                else if (purchaseKeywords.Any(k => lowerName.Contains(k)))
+                else if (PurchaseKeywords.Any(k => lowerName.Contains(k)))
                 {
                     transactionType = "purchase";
                 }

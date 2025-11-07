@@ -13,6 +13,9 @@ public class ProductService : IProductService
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<ProductService> _logger;
 
+    // Default currency for product transactions
+    private const string DefaultCurrency = "EUR";
+
     public ProductService(
         EventForgeDbContext context,
         IAuditLogService auditLogService,
@@ -1940,7 +1943,7 @@ public class ProductService : IProductService
                     EffectiveUnitPrice = Math.Round(effectiveUnitPrice, 2),
                     UnitPriceRaw = row.UnitPrice,
                     BaseUnitPrice = row.BaseUnitPrice,
-                    Currency = "EUR", // Default currency, extend if multi-currency support exists
+                    Currency = DefaultCurrency,
                     UnitOfMeasure = row.UnitOfMeasure,
                     DiscountType = row.DiscountType.ToString(),
                     Discount = row.DiscountType == EventForge.DTOs.Common.DiscountType.Percentage 

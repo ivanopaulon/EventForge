@@ -43,7 +43,7 @@ public class ProductRecentTransactionsTests : IDisposable
         _mockLogger = new Mock<ILogger<ProductService>>();
 
         // Setup tenant context
-        _ = _mockTenantContext.Setup(x => x.CurrentTenantId).Returns(_tenantId);
+        _mockTenantContext.Setup(x => x.CurrentTenantId).Returns(_tenantId);
 
         // Create ProductService
         _productService = new ProductService(
