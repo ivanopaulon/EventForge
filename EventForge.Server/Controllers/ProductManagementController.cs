@@ -2366,17 +2366,46 @@ public class ProductManagementController : BaseApiController
                 if (doc.Rows == null) continue;
 
                 // Find rows that contain this product
-                var productRows = doc.Rows.Where(r => r.ProductId == id && r.UnitPrice > 0);
+                var productRows = doc.Rows.Where(r => r.ProductId == id);
 
                 foreach (var row in productRows)
                 {
+                    // Normalize unit price to base unit if available
+                    decimal unitPriceNormalized = row.BaseUnitPrice ?? row.UnitPrice;
+                    
+                    // Weight quantity: prefer BaseQuantity if available
+                    decimal weightQuantity = row.BaseQuantity ?? row.Quantity;
+                    
+                    // Calculate discount per unit
+                    decimal unitDiscount = 0m;
+                    if (row.Quantity > 0)
+                    {
+                        if (row.DiscountType == EventForge.DTOs.Common.DiscountType.Percentage)
+                        {
+                            unitDiscount = unitPriceNormalized * (row.LineDiscount / 100m);
+                        }
+                        else // DiscountType.Value
+                        {
+                            unitDiscount = row.LineDiscountValue / row.Quantity;
+                        }
+                        // Clamp to prevent negative unit price
+                        unitDiscount = Math.Min(unitDiscount, unitPriceNormalized);
+                    }
+                    
+                    // Effective unit price after discount (net price)
+                    // For purchase documents, this is considered VAT-exempt
+                    decimal effectiveUnitPrice = unitPriceNormalized - unitDiscount;
+                    
+                    // Skip if effective price is zero or negative
+                    if (effectiveUnitPrice <= 0) continue;
+
                     bool isStockIncrease = DetermineStockIncrease(doc.DocumentTypeName);
 
                     var pricePoint = new PriceTrendDataPoint
                     {
                         Date = doc.Date.Date,
-                        Price = row.UnitPrice,
-                        Quantity = row.Quantity,
+                        Price = Math.Round(effectiveUnitPrice, 4),
+                        Quantity = weightQuantity,
                         DocumentType = doc.DocumentTypeName,
                         BusinessPartyName = doc.BusinessPartyName ?? doc.CustomerName
                     };
