@@ -213,7 +213,7 @@
 
     private bool IsFormValid()
     {
-        return SelectedProduct != null && !string.IsNullOrEmpty(Code);
+        return SelectedProduct != null && !string.IsNullOrEmpty(Code) && !string.IsNullOrEmpty(CodeType);
     }
 
     private async Task HandleAssign()
