@@ -1,9 +1,11 @@
 @using EventForge.DTOs.Business
 @using EventForge.DTOs.Common
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components.Dialogs
 @inject IEntityManagementService EntityManagementService
 @inject ITranslationService TranslationService
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 @inject ILogger<AddressesTab> Logger
 
 <MudPaper Elevation="1" Class="pa-4">
@@ -12,6 +14,13 @@
             <MudIcon Icon="@Icons.Material.Outlined.LocationOn" Class="mr-2" />
             @TranslationService.GetTranslation("businessParty.addresses", "Indirizzi")
         </MudText>
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Primary" 
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@OpenAddDialog"
+                   Size="Size.Small">
+            @TranslationService.GetTranslation("button.add", "Aggiungi")
+        </MudButton>
     </div>
 
     @if (_isLoading)
@@ -34,6 +43,7 @@
                 <MudTh>@TranslationService.GetTranslation("field.zipCode", "CAP")</MudTh>
                 <MudTh>@TranslationService.GetTranslation("field.province", "Provincia")</MudTh>
                 <MudTh>@TranslationService.GetTranslation("field.country", "Paese")</MudTh>
+                <MudTh Style="width: 120px;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Tipo">@GetAddressTypeText(context.AddressType)</MudTd>
@@ -42,6 +52,18 @@
                 <MudTd DataLabel="CAP">@context.ZipCode</MudTd>
                 <MudTd DataLabel="Provincia">@context.Province</MudTd>
                 <MudTd DataLabel="Paese">@context.Country</MudTd>
+                <MudTd DataLabel="Azioni">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                   Size="Size.Small" 
+                                   Color="Color.Primary"
+                                   OnClick="@(() => OpenEditDialog(context))"
+                                   Title="@TranslationService.GetTranslation("button.edit", "Modifica")" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                   Size="Size.Small" 
+                                   Color="Color.Error"
+                                   OnClick="@(() => DeleteAddressAsync(context))"
+                                   Title="@TranslationService.GetTranslation("button.delete", "Elimina")" />
+                </MudTd>
             </RowTemplate>
         </MudTable>
     }
@@ -98,4 +120,86 @@
         AddressType.Destination => TranslationService.GetTranslation("addressType.destination", "Destinazione"),
         _ => type.ToString()
     };
+
+    private async Task OpenAddDialog()
+    {
+        var parameters = new DialogParameters
+        {
+            { nameof(AddressDialog.OwnerId), Party.Id },
+            { nameof(AddressDialog.OwnerType), "BusinessParty" }
+        };
+
+        var options = new DialogOptions 
+        { 
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<AddressDialog>(
+            TranslationService.GetTranslation("businessParty.addAddress", "Aggiungi Indirizzo"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadAddressesAsync();
+            await OnPartyUpdated.InvokeAsync();
+        }
+    }
+
+    private async Task OpenEditDialog(AddressDto address)
+    {
+        var parameters = new DialogParameters
+        {
+            { nameof(AddressDialog.Address), address }
+        };
+
+        var options = new DialogOptions 
+        { 
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<AddressDialog>(
+            TranslationService.GetTranslation("businessParty.editAddress", "Modifica Indirizzo"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadAddressesAsync();
+            await OnPartyUpdated.InvokeAsync();
+        }
+    }
+
+    private async Task DeleteAddressAsync(AddressDto address)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("common.confirm", "Conferma"),
+            TranslationService.GetTranslation("businessParty.deleteAddressConfirm", "Sei sicuro di voler eliminare questo indirizzo?"),
+            yesText: TranslationService.GetTranslation("button.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("button.cancel", "Annulla"));
+
+        if (confirmed == true)
+        {
+            try
+            {
+                await EntityManagementService.DeleteAddressAsync(address.Id);
+                Snackbar.Add(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminazione completata con successo"), Severity.Success);
+                await LoadAddressesAsync();
+                await OnPartyUpdated.InvokeAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting address {AddressId}", address.Id);
+                Snackbar.Add(TranslationService.GetTranslation("messages.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
+            }
+        }
+    }
 }
