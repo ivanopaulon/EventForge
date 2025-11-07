@@ -73,4 +73,7 @@ public interface IProductService
 
     // Product Price Trend
     Task<PriceTrendDto?> GetProductPriceTrendAsync(Guid productId, int? year = null);
+
+    // Product Recent Transactions
+    Task<IEnumerable<RecentProductTransactionDto>?> GetRecentProductTransactionsAsync(Guid productId, string type = "purchase", Guid? partyId = null, int top = 3);
 }
