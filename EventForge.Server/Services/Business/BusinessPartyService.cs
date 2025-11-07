@@ -898,8 +898,11 @@ public class BusinessPartyService : IBusinessPartyService
                 }
             }
 
-            // Group by product and aggregate
-            var grouped = await rowsQuery
+            // Materialize filtered rows first (to avoid EF translation issues with complex calculations)
+            var rows = await rowsQuery.ToListAsync(cancellationToken);
+
+            // Group and aggregate in memory
+            var grouped = rows
                 .GroupBy(r => new { r.ProductId, r.Product!.Code, r.Product.Name })
                 .Select(g => new
                 {
@@ -908,20 +911,20 @@ public class BusinessPartyService : IBusinessPartyService
                     ProductName = g.Key.Name,
                     // Purchase aggregations
                     QuantityPurchased = g.Where(r => r.DocumentHeader!.DocumentType!.IsStockIncrease)
-                        .Sum(r => (decimal?)(r.BaseQuantity ?? r.Quantity)) ?? 0m,
+                        .Sum(r => r.BaseQuantity ?? r.Quantity),
                     ValuePurchased = g.Where(r => r.DocumentHeader!.DocumentType!.IsStockIncrease)
-                        .Sum(r => (decimal?)CalculateEffectiveLineTotal(r)) ?? 0m,
+                        .Sum(r => CalculateEffectiveLineTotal(r)),
                     LastPurchaseDate = g.Where(r => r.DocumentHeader!.DocumentType!.IsStockIncrease)
                         .Max(r => (DateTime?)r.DocumentHeader!.Date),
                     // Sale aggregations
                     QuantitySold = g.Where(r => !r.DocumentHeader!.DocumentType!.IsStockIncrease)
-                        .Sum(r => (decimal?)(r.BaseQuantity ?? r.Quantity)) ?? 0m,
+                        .Sum(r => r.BaseQuantity ?? r.Quantity),
                     ValueSold = g.Where(r => !r.DocumentHeader!.DocumentType!.IsStockIncrease)
-                        .Sum(r => (decimal?)CalculateEffectiveLineTotal(r)) ?? 0m,
+                        .Sum(r => CalculateEffectiveLineTotal(r)),
                     LastSaleDate = g.Where(r => !r.DocumentHeader!.DocumentType!.IsStockIncrease)
                         .Max(r => (DateTime?)r.DocumentHeader!.Date)
                 })
-                .ToListAsync(cancellationToken);
+                .ToList();
 
             // Calculate averages and create DTOs
             var analysisResults = grouped.Select(g => new BusinessPartyProductAnalysisDto

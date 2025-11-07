@@ -216,19 +216,10 @@
     {
         try
         {
-            // Load full document with rows
-            var document = await DocumentHeaderService.GetDocumentHeaderByIdAsync(documentId);
-            if (document == null)
-            {
-                Snackbar.Add(TranslationService.GetTranslation("document.notFound", "Documento non trovato"), Severity.Warning);
-                return;
-            }
-
-            // Open viewer dialog (assuming a DocumentViewerDialog exists)
+            // Open viewer dialog with DocumentHeaderId parameter
             var parameters = new DialogParameters
             {
-                { "Document", document },
-                { "ReadOnly", true }
+                { "DocumentHeaderId", documentId }
             };
 
             var options = new DialogOptions

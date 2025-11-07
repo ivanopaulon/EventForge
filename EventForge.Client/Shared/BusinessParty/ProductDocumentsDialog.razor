@@ -87,13 +87,17 @@
         _isLoading = true;
         try
         {
-            // Load all documents for this business party and filter by product
-            // Using DocumentHeaderQueryParameters for proper filtering
+            // NOTE: This is a simplified drill-down implementation that loads documents in memory.
+            // For production with large datasets, consider adding a dedicated server endpoint:
+            // GET /api/v1/business-parties/{businessPartyId}/products/{productId}/document-rows
+            // That endpoint would directly query document rows filtered by both businessPartyId and productId
+            // in a single SQL query, avoiding the N+1 problem and memory overhead.
+            
             var queryParams = new DocumentHeaderQueryParameters
             {
                 BusinessPartyId = BusinessPartyId,
                 Page = 1,
-                PageSize = 1000 // Get a large set for this simplified drill-down
+                PageSize = 100 // Limit to reasonable size for this simplified drill-down
             };
             
             var allDocuments = await DocumentHeaderService.GetPagedDocumentHeadersAsync(queryParams);
