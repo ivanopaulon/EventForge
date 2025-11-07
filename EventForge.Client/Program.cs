@@ -95,6 +95,7 @@ builder.Services.AddScoped<IPrintingService, PrintingService>();
 builder.Services.AddScoped<ILotService, LotService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IInventoryFastService, InventoryFastService>();
+builder.Services.AddScoped<ISfInventoryStateManager, SfInventoryStateManager>();
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 builder.Services.AddScoped<IStorageLocationService, StorageLocationService>();
 builder.Services.AddScoped<IStockService, StockService>();
