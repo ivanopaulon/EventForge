@@ -1,9 +1,11 @@
 @using EventForge.DTOs.Business
 @using EventForge.DTOs.Common
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components.Dialogs
 @inject IEntityManagementService EntityManagementService
 @inject ITranslationService TranslationService
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 @inject ILogger<ReferencesTab> Logger
 
 <MudPaper Elevation="1" Class="pa-4">
@@ -12,6 +14,13 @@
             <MudIcon Icon="@Icons.Material.Outlined.People" Class="mr-2" />
             @TranslationService.GetTranslation("businessParty.references", "Persone di Riferimento")
         </MudText>
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Primary" 
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@OpenAddDialog"
+                   Size="Size.Small">
+            @TranslationService.GetTranslation("button.add", "Aggiungi")
+        </MudButton>
     </div>
 
     @if (_isLoading)
@@ -32,12 +41,25 @@
                 <MudTh>@TranslationService.GetTranslation("field.lastName", "Cognome")</MudTh>
                 <MudTh>@TranslationService.GetTranslation("field.department", "Dipartimento/Ruolo")</MudTh>
                 <MudTh>@TranslationService.GetTranslation("field.notes", "Note")</MudTh>
+                <MudTh Style="width: 120px;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Nome">@context.FirstName</MudTd>
                 <MudTd DataLabel="Cognome">@context.LastName</MudTd>
                 <MudTd DataLabel="Dipartimento">@context.Department</MudTd>
                 <MudTd DataLabel="Note">@context.Notes</MudTd>
+                <MudTd DataLabel="Azioni">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                   Size="Size.Small" 
+                                   Color="Color.Primary"
+                                   OnClick="@(() => OpenEditDialog(context))"
+                                   Title="@TranslationService.GetTranslation("button.edit", "Modifica")" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                   Size="Size.Small" 
+                                   Color="Color.Error"
+                                   OnClick="@(() => DeleteReferenceAsync(context))"
+                                   Title="@TranslationService.GetTranslation("button.delete", "Elimina")" />
+                </MudTd>
             </RowTemplate>
         </MudTable>
     }
@@ -84,6 +106,88 @@
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    private async Task OpenAddDialog()
+    {
+        var parameters = new DialogParameters
+        {
+            ["OwnerId"] = Party.Id,
+            ["OwnerType"] = "BusinessParty"
+        };
+
+        var options = new DialogOptions 
+        { 
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ReferenceDialog>(
+            TranslationService.GetTranslation("businessParty.addReference", "Aggiungi Persona di Riferimento"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadReferencesAsync();
+            await OnPartyUpdated.InvokeAsync();
+        }
+    }
+
+    private async Task OpenEditDialog(ReferenceDto reference)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Reference"] = reference
+        };
+
+        var options = new DialogOptions 
+        { 
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ReferenceDialog>(
+            TranslationService.GetTranslation("businessParty.editReference", "Modifica Persona di Riferimento"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadReferencesAsync();
+            await OnPartyUpdated.InvokeAsync();
+        }
+    }
+
+    private async Task DeleteReferenceAsync(ReferenceDto reference)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("common.confirm", "Conferma"),
+            TranslationService.GetTranslation("businessParty.deleteReferenceConfirm", "Sei sicuro di voler eliminare questa persona di riferimento?"),
+            yesText: TranslationService.GetTranslation("button.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("button.cancel", "Annulla"));
+
+        if (confirmed == true)
+        {
+            try
+            {
+                await EntityManagementService.DeleteReferenceAsync(reference.Id);
+                Snackbar.Add(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminazione completata con successo"), Severity.Success);
+                await LoadReferencesAsync();
+                await OnPartyUpdated.InvokeAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting reference {ReferenceId}", reference.Id);
+                Snackbar.Add(TranslationService.GetTranslation("messages.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
+            }
         }
     }
 }

@@ -1,9 +1,11 @@
 @using EventForge.DTOs.Business
 @using EventForge.DTOs.Common
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components.Dialogs
 @inject IEntityManagementService EntityManagementService
 @inject ITranslationService TranslationService
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 @inject ILogger<ContactsTab> Logger
 
 <MudPaper Elevation="1" Class="pa-4">
@@ -12,6 +14,13 @@
             <MudIcon Icon="@Icons.Material.Outlined.ContactPhone" Class="mr-2" />
             @TranslationService.GetTranslation("businessParty.contacts", "Contatti")
         </MudText>
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Primary" 
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@OpenAddDialog"
+                   Size="Size.Small">
+            @TranslationService.GetTranslation("button.add", "Aggiungi")
+        </MudButton>
     </div>
 
     @if (_isLoading)
@@ -33,6 +42,7 @@
                 <MudTh>@TranslationService.GetTranslation("field.purpose", "Scopo")</MudTh>
                 <MudTh>@TranslationService.GetTranslation("field.isPrimary", "Primario")</MudTh>
                 <MudTh>@TranslationService.GetTranslation("field.notes", "Note")</MudTh>
+                <MudTh Style="width: 120px;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Tipo">@GetContactTypeText(context.ContactType)</MudTd>
@@ -45,6 +55,18 @@
                     }
                 </MudTd>
                 <MudTd DataLabel="Note">@context.Notes</MudTd>
+                <MudTd DataLabel="Azioni">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                   Size="Size.Small" 
+                                   Color="Color.Primary"
+                                   OnClick="@(() => OpenEditDialog(context))"
+                                   Title="@TranslationService.GetTranslation("button.edit", "Modifica")" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                   Size="Size.Small" 
+                                   Color="Color.Error"
+                                   OnClick="@(() => DeleteContactAsync(context))"
+                                   Title="@TranslationService.GetTranslation("button.delete", "Elimina")" />
+                </MudTd>
             </RowTemplate>
         </MudTable>
     }
@@ -113,4 +135,86 @@
         ContactPurpose.Other => TranslationService.GetTranslation("contactPurpose.other", "Altro"),
         _ => purpose.ToString()
     };
+
+    private async Task OpenAddDialog()
+    {
+        var parameters = new DialogParameters
+        {
+            ["OwnerId"] = Party.Id,
+            ["OwnerType"] = "BusinessParty"
+        };
+
+        var options = new DialogOptions 
+        { 
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ContactDialog>(
+            TranslationService.GetTranslation("businessParty.addContact", "Aggiungi Contatto"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadContactsAsync();
+            await OnPartyUpdated.InvokeAsync();
+        }
+    }
+
+    private async Task OpenEditDialog(ContactDto contact)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Contact"] = contact
+        };
+
+        var options = new DialogOptions 
+        { 
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ContactDialog>(
+            TranslationService.GetTranslation("businessParty.editContact", "Modifica Contatto"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadContactsAsync();
+            await OnPartyUpdated.InvokeAsync();
+        }
+    }
+
+    private async Task DeleteContactAsync(ContactDto contact)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            TranslationService.GetTranslation("common.confirm", "Conferma"),
+            TranslationService.GetTranslation("businessParty.deleteContactConfirm", "Sei sicuro di voler eliminare questo contatto?"),
+            yesText: TranslationService.GetTranslation("button.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("button.cancel", "Annulla"));
+
+        if (confirmed == true)
+        {
+            try
+            {
+                await EntityManagementService.DeleteContactAsync(contact.Id);
+                Snackbar.Add(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminazione completata con successo"), Severity.Success);
+                await LoadContactsAsync();
+                await OnPartyUpdated.InvokeAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting contact {ContactId}", contact.Id);
+                Snackbar.Add(TranslationService.GetTranslation("messages.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
+            }
+        }
+    }
 }
