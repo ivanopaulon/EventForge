@@ -67,18 +67,15 @@
             </MudItem>
 
             <!-- Notes -->
-            @if (!string.IsNullOrWhiteSpace(_accountingData.Notes))
-            {
-                <MudItem xs="12">
-                    <MudTextField Value="@_accountingData.Notes"
-                                  Label="@TranslationService.GetTranslation("field.notes", "Note")"
-                                  Variant="Variant.Outlined"
-                                  Lines="3"
-                                  ReadOnly="true"
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Filled.Notes" />
-                </MudItem>
-            }
+            <MudItem xs="12">
+                <MudTextField Value="@(_accountingData.Notes ?? string.Empty)"
+                              Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                              ReadOnly="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Notes" />
+            </MudItem>
         </MudGrid>
     }
 </MudPaper>
