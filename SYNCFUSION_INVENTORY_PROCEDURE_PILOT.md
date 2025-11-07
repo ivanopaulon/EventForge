@@ -70,14 +70,13 @@ Syncfusion Material theme CSS has been added to `wwwroot/index.html`:
 
 **Note**: Syncfusion CSS is loaded before MudBlazor to minimize styling conflicts.
 
-### 5. Custom Styling
+**Important Update (2025-11-07)**: Custom style overrides have been removed to allow Syncfusion components to use their native Material theme styling. The application no longer applies global overrides from the carbon-neon theme or feature-specific CSS files to Syncfusion components. This ensures that Syncfusion components maintain their intended visual appearance.
 
-Additional custom styles are provided in `wwwroot/css/inventory-syncfusion.css` for:
-- Alert panels (info, warning, danger)
-- Stat cards
-- Log panels
-- Bootstrap grid integration
-- Badge styles
+### 5. Custom Styling (Archived)
+
+**Note**: The custom styles previously provided in `wwwroot/css/inventory-syncfusion.css` have been archived to `wwwroot/css/archive/inventory-syncfusion.css` and are no longer loaded by the application. Global style overrides for Syncfusion components have also been removed from the carbon-neon theme file.
+
+**Rationale**: To prevent visual conflicts and ensure Syncfusion components use their official styling, all custom overrides have been disabled. If future styling customization is needed, a scoped approach should be used (e.g., wrapper classes with prefixed selectors) rather than global rules.
 
 ## Component Breakdown
 
@@ -251,6 +250,12 @@ This pilot demonstrates that:
 - Inline UX is achievable with Syncfusion
 - Some pragmatic decisions (like hybrid approaches) are acceptable for pilots
 
+**Styling Update (2025-11-07)**: All custom style overrides for Syncfusion components have been removed from the application. The components now use only the official Syncfusion Material theme CSS. This change:
+- Eliminates visual conflicts between custom themes and Syncfusion's native styling
+- Ensures components maintain their intended appearance
+- Prevents global CSS rules with `!important` from overriding framework defaults
+- Archived `inventory-syncfusion.css` for future reference if scoped styling is needed
+
 The foundation is in place for evaluating Syncfusion as an alternative to MudBlazor, with the remaining work being primarily wiring and testing rather than architectural decisions.
 
 ## Support & Resources
@@ -260,5 +265,5 @@ The foundation is in place for evaluating Syncfusion as an alternative to MudBla
 - [MudBlazor Documentation](https://mudblazor.com/) (for comparison)
 
 ---
-**Last Updated**: 2025-10-28  
-**Version**: 1.0 (Pilot/POC)
+**Last Updated**: 2025-11-07  
+**Version**: 1.1 (Pilot/POC - Style Overrides Removed)
