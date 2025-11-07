@@ -56,7 +56,20 @@ public class BusinessPartyService : IBusinessPartyService
                 var hasAccountingData = await _context.BusinessPartyAccountings
                     .AnyAsync(bpa => bpa.BusinessPartyId == businessParty.Id && !bpa.IsDeleted && bpa.TenantId == currentTenantId.Value, cancellationToken);
 
-                businessPartyDtos.Add(MapToBusinessPartyDto(businessParty, addressCount, contactCount, referenceCount, hasAccountingData));
+                // Get primary address for location info
+                var primaryAddress = await _context.Addresses
+                    .Where(a => a.OwnerType == "BusinessParty" && a.OwnerId == businessParty.Id && !a.IsDeleted && a.TenantId == currentTenantId.Value)
+                    .OrderBy(a => a.CreatedAt)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                // Get contacts for tooltip
+                var contacts = await _context.Contacts
+                    .Where(c => c.OwnerType == "BusinessParty" && c.OwnerId == businessParty.Id && !c.IsDeleted && c.TenantId == currentTenantId.Value)
+                    .OrderByDescending(c => c.IsPrimary)
+                    .ThenBy(c => c.ContactType)
+                    .ToListAsync(cancellationToken);
+
+                businessPartyDtos.Add(MapToBusinessPartyDto(businessParty, addressCount, contactCount, referenceCount, hasAccountingData, primaryAddress, contacts));
             }
 
             return new PagedResult<BusinessPartyDto>
@@ -100,7 +113,20 @@ public class BusinessPartyService : IBusinessPartyService
             var hasAccountingData = await _context.BusinessPartyAccountings
                 .AnyAsync(bpa => bpa.BusinessPartyId == id && !bpa.IsDeleted && bpa.TenantId == currentTenantId.Value, cancellationToken);
 
-            return MapToBusinessPartyDto(businessParty, addressCount, contactCount, referenceCount, hasAccountingData);
+            // Get primary address for location info
+            var primaryAddress = await _context.Addresses
+                .Where(a => a.OwnerType == "BusinessParty" && a.OwnerId == id && !a.IsDeleted && a.TenantId == currentTenantId.Value)
+                .OrderBy(a => a.CreatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            // Get contacts for tooltip
+            var contacts = await _context.Contacts
+                .Where(c => c.OwnerType == "BusinessParty" && c.OwnerId == id && !c.IsDeleted && c.TenantId == currentTenantId.Value)
+                .OrderByDescending(c => c.IsPrimary)
+                .ThenBy(c => c.ContactType)
+                .ToListAsync(cancellationToken);
+
+            return MapToBusinessPartyDto(businessParty, addressCount, contactCount, referenceCount, hasAccountingData, primaryAddress, contacts);
         }
         catch (Exception ex)
         {
@@ -137,7 +163,20 @@ public class BusinessPartyService : IBusinessPartyService
                 var hasAccountingData = await _context.BusinessPartyAccountings
                     .AnyAsync(bpa => bpa.BusinessPartyId == businessParty.Id && !bpa.IsDeleted && bpa.TenantId == currentTenantId.Value, cancellationToken);
 
-                businessPartyDtos.Add(MapToBusinessPartyDto(businessParty, addressCount, contactCount, referenceCount, hasAccountingData));
+                // Get primary address for location info
+                var primaryAddress = await _context.Addresses
+                    .Where(a => a.OwnerType == "BusinessParty" && a.OwnerId == businessParty.Id && !a.IsDeleted && a.TenantId == currentTenantId.Value)
+                    .OrderBy(a => a.CreatedAt)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                // Get contacts for tooltip
+                var contacts = await _context.Contacts
+                    .Where(c => c.OwnerType == "BusinessParty" && c.OwnerId == businessParty.Id && !c.IsDeleted && c.TenantId == currentTenantId.Value)
+                    .OrderByDescending(c => c.IsPrimary)
+                    .ThenBy(c => c.ContactType)
+                    .ToListAsync(cancellationToken);
+
+                businessPartyDtos.Add(MapToBusinessPartyDto(businessParty, addressCount, contactCount, referenceCount, hasAccountingData, primaryAddress, contacts));
             }
 
             return businessPartyDtos;
@@ -198,7 +237,20 @@ public class BusinessPartyService : IBusinessPartyService
                 var hasAccountingData = await _context.BusinessPartyAccountings
                     .AnyAsync(bpa => bpa.BusinessPartyId == businessParty.Id && !bpa.IsDeleted && bpa.TenantId == currentTenantId.Value, cancellationToken);
 
-                businessPartyDtos.Add(MapToBusinessPartyDto(businessParty, addressCount, contactCount, referenceCount, hasAccountingData));
+                // Get primary address for location info
+                var primaryAddress = await _context.Addresses
+                    .Where(a => a.OwnerType == "BusinessParty" && a.OwnerId == businessParty.Id && !a.IsDeleted && a.TenantId == currentTenantId.Value)
+                    .OrderBy(a => a.CreatedAt)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                // Get contacts for tooltip
+                var contacts = await _context.Contacts
+                    .Where(c => c.OwnerType == "BusinessParty" && c.OwnerId == businessParty.Id && !c.IsDeleted && c.TenantId == currentTenantId.Value)
+                    .OrderByDescending(c => c.IsPrimary)
+                    .ThenBy(c => c.ContactType)
+                    .ToListAsync(cancellationToken);
+
+                businessPartyDtos.Add(MapToBusinessPartyDto(businessParty, addressCount, contactCount, referenceCount, hasAccountingData, primaryAddress, contacts));
             }
 
             return businessPartyDtos;
@@ -242,7 +294,7 @@ public class BusinessPartyService : IBusinessPartyService
             _logger.LogInformation("Business party {BusinessPartyName} created with ID {BusinessPartyId} by {User}",
                 businessParty.Name, businessParty.Id, currentUser);
 
-            return MapToBusinessPartyDto(businessParty, 0, 0, 0, false);
+            return MapToBusinessPartyDto(businessParty, 0, 0, 0, false, null, new List<Data.Entities.Common.Contact>());
         }
         catch (Exception ex)
         {
@@ -301,7 +353,20 @@ public class BusinessPartyService : IBusinessPartyService
             var hasAccountingData = await _context.BusinessPartyAccountings
                 .AnyAsync(bpa => bpa.BusinessPartyId == id && !bpa.IsDeleted, cancellationToken);
 
-            return MapToBusinessPartyDto(businessParty, addressCount, contactCount, referenceCount, hasAccountingData);
+            // Get primary address for location info
+            var primaryAddress = await _context.Addresses
+                .Where(a => a.OwnerType == "BusinessParty" && a.OwnerId == id && !a.IsDeleted)
+                .OrderBy(a => a.CreatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            // Get contacts for tooltip
+            var contacts = await _context.Contacts
+                .Where(c => c.OwnerType == "BusinessParty" && c.OwnerId == id && !c.IsDeleted)
+                .OrderByDescending(c => c.IsPrimary)
+                .ThenBy(c => c.ContactType)
+                .ToListAsync(cancellationToken);
+
+            return MapToBusinessPartyDto(businessParty, addressCount, contactCount, referenceCount, hasAccountingData, primaryAddress, contacts);
         }
         catch (Exception ex)
         {
@@ -611,7 +676,7 @@ public class BusinessPartyService : IBusinessPartyService
             .AnyAsync(bp => bp.Id == businessPartyId && !bp.IsDeleted, cancellationToken);
     }
 
-    private static BusinessPartyDto MapToBusinessPartyDto(BusinessParty businessParty, int addressCount, int contactCount, int referenceCount, bool hasAccountingData)
+    private static BusinessPartyDto MapToBusinessPartyDto(BusinessParty businessParty, int addressCount, int contactCount, int referenceCount, bool hasAccountingData, Data.Entities.Common.Address? primaryAddress, List<Data.Entities.Common.Contact> contacts)
     {
         return new BusinessPartyDto
         {
@@ -627,6 +692,25 @@ public class BusinessPartyService : IBusinessPartyService
             ContactCount = contactCount,
             ReferenceCount = referenceCount,
             HasAccountingData = hasAccountingData,
+            City = primaryAddress?.City,
+            Province = primaryAddress?.Province,
+            Country = primaryAddress?.Country,
+            Contacts = contacts.Select(c => new EventForge.DTOs.Common.ContactDto
+            {
+                Id = c.Id,
+                OwnerId = c.OwnerId,
+                OwnerType = c.OwnerType,
+                ContactType = (EventForge.DTOs.Common.ContactType)c.ContactType,
+                Value = c.Value,
+                Purpose = (EventForge.DTOs.Common.ContactPurpose)c.Purpose,
+                Relationship = c.Relationship,
+                IsPrimary = c.IsPrimary,
+                Notes = c.Notes,
+                CreatedAt = c.CreatedAt,
+                CreatedBy = c.CreatedBy,
+                ModifiedAt = c.ModifiedAt,
+                ModifiedBy = c.ModifiedBy
+            }).ToList(),
             IsActive = businessParty.IsActive,
             CreatedAt = businessParty.CreatedAt,
             CreatedBy = businessParty.CreatedBy,
