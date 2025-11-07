@@ -15,7 +15,6 @@
                                    Label="@TranslationService.GetTranslation("product.dateRange", "Intervallo Date")"
                                    Variant="Variant.Outlined"
                                    Clearable="true"
-                                   OnClearButtonClick="@(() => { _dateRange = null; LoadProductsAsync(); })"
                                    Density="Density.Compact">
                     <PickerActions>
                         <MudButton Class="mr-auto align-self-start" OnClick="@(() => { _dateRange = null; })">@TranslationService.GetTranslation("common.clear", "Pulisci")</MudButton>

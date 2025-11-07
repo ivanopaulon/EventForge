@@ -45,8 +45,7 @@
                 <MudSelect T="Guid?" Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")"
                            Class="ef-select"
                            @bind-Value="_selectedDocumentTypeId"
-                           Clearable="true"
-                           OnClearButtonClick="@(() => { _selectedDocumentTypeId = null; LoadDocumentsAsync(); })">
+                           Clearable="true">
                     @if (_documentTypes != null)
                     {
                         @foreach (var type in _documentTypes)
@@ -60,8 +59,7 @@
                 <MudSelect T="DocumentStatus?" Label="@TranslationService.GetTranslation("documents.status", "Stato")"
                            Class="ef-select"
                            @bind-Value="_selectedStatus"
-                           Clearable="true"
-                           OnClearButtonClick="@(() => { _selectedStatus = null; LoadDocumentsAsync(); })">
+                           Clearable="true">
                     <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Draft">@TranslationService.GetTranslation("documents.status.draft", "Bozza")</MudSelectItem>
                     <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Approved">@TranslationService.GetTranslation("documents.status.approved", "Approvato")</MudSelectItem>
                     <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Rejected">@TranslationService.GetTranslation("documents.status.rejected", "Rifiutato")</MudSelectItem>

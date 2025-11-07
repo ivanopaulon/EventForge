@@ -16,7 +16,6 @@
                                    Label="@TranslationService.GetTranslation("document.dateRange", "Intervallo Date")"
                                    Variant="Variant.Outlined"
                                    Clearable="true"
-                                   OnClearButtonClick="@(() => { _dateRange = null; LoadDocumentsAsync(); })"
                                    Density="Density.Compact">
                     <PickerActions>
                         <MudButton Class="mr-auto align-self-start" OnClick="@(() => { _dateRange = null; })">@TranslationService.GetTranslation("common.clear", "Pulisci")</MudButton>
@@ -30,20 +29,19 @@
                              Variant="Variant.Outlined"
                              Clearable="true"
                              Density="Density.Compact"
-                             OnClearButtonClick="@(() => { _searchNumber = null; LoadDocumentsAsync(); })"
                              Adornment="Adornment.End"
                              AdornmentIcon="@Icons.Material.Filled.Search" />
             </MudItem>
             <MudItem xs="12" sm="6" md="2">
-                <MudSelect @bind-Value="_selectedApprovalStatus"
+                <MudSelect T="ApprovalStatus?" @bind-Value="_selectedApprovalStatus"
                           Label="@TranslationService.GetTranslation("document.approvalStatus", "Stato Approvazione")"
                           Variant="Variant.Outlined"
                           Clearable="true"
                           Density="Density.Compact">
-                    <MudSelectItem Value="@((ApprovalStatus?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
-                    <MudSelectItem Value="@ApprovalStatus.Pending">@TranslationService.GetTranslation("approval.pending", "In Attesa")</MudSelectItem>
-                    <MudSelectItem Value="@ApprovalStatus.Approved">@TranslationService.GetTranslation("approval.approved", "Approvato")</MudSelectItem>
-                    <MudSelectItem Value="@ApprovalStatus.Rejected">@TranslationService.GetTranslation("approval.rejected", "Rifiutato")</MudSelectItem>
+                    <MudSelectItem T="ApprovalStatus?" Value="@((ApprovalStatus?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
+                    <MudSelectItem T="ApprovalStatus?" Value="@ApprovalStatus.Pending">@TranslationService.GetTranslation("approval.pending", "In Attesa")</MudSelectItem>
+                    <MudSelectItem T="ApprovalStatus?" Value="@ApprovalStatus.Approved">@TranslationService.GetTranslation("approval.approved", "Approvato")</MudSelectItem>
+                    <MudSelectItem T="ApprovalStatus?" Value="@ApprovalStatus.Rejected">@TranslationService.GetTranslation("approval.rejected", "Rifiutato")</MudSelectItem>
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="6" md="2">
