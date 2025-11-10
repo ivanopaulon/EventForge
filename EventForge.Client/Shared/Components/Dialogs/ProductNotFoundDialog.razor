@@ -9,7 +9,7 @@
     <TitleContent>
         <MudText Typo="Typo.h6">
             <MudIcon Icon="@Icons.Material.Outlined.SearchOff" Class="mr-2" />
-            @TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato")
+            @TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato") - @Barcode
         </MudText>
     </TitleContent>
     <DialogContent>
@@ -18,24 +18,23 @@
             <MudProgressLinear Indeterminate="true" Class="mb-4" />
         }
 
-        <MudAlert Severity="Severity.Warning" Class="mb-4">
-            @TranslationService.GetTranslation("warehouse.productNotFoundWithCode", "Prodotto non trovato con il codice: {0}", Barcode)
-        </MudAlert>
-
-        <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-info-lighten);">
-            <MudText Typo="Typo.body2" Class="mb-2">
-                @TranslationService.GetTranslation("warehouse.barcodeToAssign", "Codice da Assegnare")
-            </MudText>
-            <MudChip T="string" Icon="@Icons.Material.Outlined.QrCode" Color="Color.Primary">@Barcode</MudChip>
-        </MudPaper>
-
         <MudText Typo="Typo.body1" Class="mb-3">
             @TranslationService.GetTranslation("warehouse.searchOrCreatePrompt", "Cerca un prodotto esistente per assegnare questo codice, oppure crea un nuovo prodotto.")
         </MudText>
 
+        <!-- Keyboard Shortcuts Helper -->
+        <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
+            <MudText Typo="Typo.caption">
+                <MudIcon Icon="@Icons.Material.Outlined.Keyboard" Size="Size.Small" Class="mr-1" />
+                <strong>@TranslationService.GetTranslation("common.shortcuts", "Scorciatoie"):</strong> 
+                Tab/Invio = campo successivo | Invio = Assegna | Esc = Annulla
+            </MudText>
+        </MudAlert>
+
         <!-- Product Search -->
         <MudAutocomplete T="ProductDto"
                          @bind-Value="_selectedProduct"
+                         @ref="_autocomplete"
                          Label="@TranslationService.GetTranslation("products.searchProduct", "Cerca Prodotto")"
                          Variant="Variant.Outlined"
                          SearchFunc="@SearchProducts"
@@ -46,7 +45,10 @@
                          CoerceValue="false"
                          Adornment="Adornment.Start"
                          AdornmentIcon="@Icons.Material.Outlined.Search"
+                         AdornmentColor="Color.Primary"
                          HelperText="@TranslationService.GetTranslation("products.searchByCodeOrDescription", "Cerca per codice o descrizione")"
+                         Clearable="true"
+                         OnClearButtonClick="@ClearSearch"
                          Class="mb-4">
             <ItemTemplate Context="product">
                 <MudText Typo="Typo.body2">@product.Name</MudText>
@@ -86,12 +88,17 @@
             <!-- Code Type Selection for Assignment -->
             <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
                 <MudGrid Spacing="3">
-                    <MudItem xs="12">
+                    <!-- Code Type and Code on the same row -->
+                    <MudItem xs="12" md="5">
                         <MudSelect @bind-Value="_createCodeDto.CodeType"
+                                   @ref="_codeTypeSelect"
                                    Label="@TranslationService.GetTranslation("products.codeType", "Tipo Codice")"
                                    Variant="Variant.Outlined"
                                    Required="true"
-                                   RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")">
+                                   RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                                   Adornment="Adornment.Start"
+                                   AdornmentIcon="@Icons.Material.Outlined.Category"
+                                   @onkeydown="@OnCodeTypeKeyDown">
                             <MudSelectItem Value="@("EAN")">EAN</MudSelectItem>
                             <MudSelectItem Value="@("UPC")">UPC</MudSelectItem>
                             <MudSelectItem Value="@("SKU")">SKU</MudSelectItem>
@@ -101,25 +108,32 @@
                         </MudSelect>
                     </MudItem>
 
-                    <MudItem xs="12">
+                    <MudItem xs="12" md="7">
                         <MudTextField @bind-Value="_createCodeDto.Code"
                                       Label="@TranslationService.GetTranslation("field.code", "Codice")"
                                       Variant="Variant.Outlined"
                                       Required="true"
                                       RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
                                       MaxLength="100"
-                                      Counter="100"
-                                      HelperText="@TranslationService.GetTranslation("products.codeHelper", "Codice SKU o simile")" />
+                                      ReadOnly="true"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Outlined.QrCode"
+                                      HelperText="@TranslationService.GetTranslation("products.codeFromScanner", "Codice letto da scanner")" />
                     </MudItem>
 
+                    <!-- Alternative Description on a separate row -->
                     <MudItem xs="12">
                         <MudTextField @bind-Value="_createCodeDto.AlternativeDescription"
+                                      @ref="_altDescriptionField"
                                       Label="@TranslationService.GetTranslation("products.alternativeDescription", "Descrizione Alternativa")"
                                       Variant="Variant.Outlined"
                                       Lines="2"
                                       MaxLength="200"
                                       Counter="200"
-                                      HelperText="@TranslationService.GetTranslation("products.descriptionHelper", "Descrizione opzionale per questo codice")" />
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Outlined.Description"
+                                      HelperText="@TranslationService.GetTranslation("products.descriptionHelper", "Descrizione opzionale per questo codice")"
+                                      @onkeydown="@OnAltDescriptionKeyDown" />
                     </MudItem>
                 </MudGrid>
             </MudForm>
@@ -189,6 +203,9 @@
     private bool _isLoading = false;
     private bool _isFormValid = false;
     private MudForm? _form;
+    private MudAutocomplete<ProductDto>? _autocomplete;
+    private MudSelect<string>? _codeTypeSelect;
+    private MudTextField<string>? _altDescriptionField;
     private ProductDto? _selectedProduct;
     private CreateProductCodeDto _createCodeDto = new();
     private List<ProductDto> _allProducts = new();
@@ -213,6 +230,18 @@
         if (PreSelectedProduct != null)
         {
             _selectedProduct = PreSelectedProduct;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Focus on autocomplete first for product search
+            if (_autocomplete != null)
+            {
+                await _autocomplete.FocusAsync();
+            }
         }
     }
 
@@ -304,5 +333,37 @@
     private void Cancel()
     {
         MudDialog.Cancel();
+    }
+
+    private async Task ClearSearch()
+    {
+        _selectedProduct = null;
+        if (_autocomplete != null)
+        {
+            await _autocomplete.FocusAsync();
+        }
+        StateHasChanged();
+    }
+
+    private async Task OnCodeTypeKeyDown(KeyboardEventArgs e)
+    {
+        // Tab or Enter to move to alternative description
+        if ((e.Key == "Tab" || e.Key == "Enter") && !string.IsNullOrWhiteSpace(_createCodeDto.CodeType))
+        {
+            if (_altDescriptionField != null)
+            {
+                await Task.Delay(100);
+                await _altDescriptionField.FocusAsync();
+            }
+        }
+    }
+
+    private async Task OnAltDescriptionKeyDown(KeyboardEventArgs e)
+    {
+        // Enter to submit if form is valid
+        if (e.Key == "Enter" && _isFormValid && !e.ShiftKey)
+        {
+            await AssignBarcodeToProduct();
+        }
     }
 }

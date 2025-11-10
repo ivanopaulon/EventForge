@@ -1069,12 +1069,11 @@
         var options = new DialogOptions
         {
             CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.ExtraExtraLarge,
-            FullWidth = true,
-            FullScreen = true
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
         };
 
-        // Show a fullscreen dialog to ask what the user wants to do
+        // Show dialog to ask what the user wants to do
         var dialog = await DialogService.ShowAsync<ProductNotFoundDialog>(
             TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato"),
             parameters,
@@ -1120,10 +1119,11 @@
 
     private async Task CreateNewProduct()
     {
-        // Show the quick create product dialog
+        // Show the quick create product dialog with auto-code-assignment enabled
         var parameters = new DialogParameters
         {
-            { "PrefilledCode", _scannedBarcode }
+            { "PrefilledCode", _scannedBarcode },
+            { "AutoAssignCode", true }
         };
 
         var options = new DialogOptions
@@ -1143,72 +1143,31 @@
 
         if (!result.Canceled && result.Data is ProductDto createdProduct)
         {
-            // Product created successfully, re-open ProductNotFoundDialog with the product pre-selected
-            await ShowProductNotFoundDialogWithProduct(createdProduct);
+            // Product created successfully with code auto-assigned
+            // Set the current product and show the inventory entry dialog directly
+            _currentProduct = createdProduct;
+            
+            Snackbar.Add(
+                TranslationService.GetTranslation("products.productCreatedAndCodeAssigned", "Prodotto creato e codice assegnato: {0}", createdProduct.Name),
+                Severity.Success
+            );
+            
+            AddOperationLog(
+                TranslationService.GetTranslation("products.productCreated", "Prodotto creato"),
+                $"{createdProduct.Name} - Codice: {_scannedBarcode} assegnato automaticamente",
+                "Success"
+            );
+            
+            // Show quantity entry dialog directly
+            await ShowInventoryEntryDialog();
+        }
+        else
+        {
+            // User canceled, clear and refocus
+            ClearProductForm();
         }
     }
-    
-    private async Task HandleProductCreated(ProductDto createdProduct)
-    {
-        // Product created successfully, re-open ProductNotFoundDialog with the product pre-selected
-        await ShowProductNotFoundDialogWithProduct(createdProduct);
-    }
-    
-    private async Task ShowProductNotFoundDialogWithProduct(ProductDto preSelectedProduct)
-    {
-        var parameters = new DialogParameters
-        {
-            { "Barcode", _scannedBarcode },
-            { "IsInventoryContext", true },
-            { "PreSelectedProduct", preSelectedProduct }
-        };
 
-        var options = new DialogOptions
-        {
-            CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.ExtraExtraLarge,
-            FullWidth = true,
-            FullScreen = true
-        };
-
-        var dialog = await DialogService.ShowAsync<ProductNotFoundDialog>(
-            TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato"),
-            parameters,
-            options
-        );
-
-        var result = await dialog.Result;
-
-        if (!result.Canceled && result.Data != null)
-        {
-            // Handle string actions (skip only, since create was already done)
-            if (result.Data is string action)
-            {
-                if (action == "skip")
-                {
-                    // Skip this product and continue with inventory
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato: {0}", _scannedBarcode), 
-                        Severity.Info
-                    );
-                    AddOperationLog(
-                        TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato"),
-                        $"Codice: {_scannedBarcode}",
-                        "Info"
-                    );
-                    
-                    // Clear the form and refocus on barcode input
-                    ClearProductForm();
-                }
-            }
-            // Handle assignment result from integrated search
-            else
-            {
-                // Product was assigned directly from the dialog, search again to load it
-                await SearchBarcode();
-            }
-        }
-    }
 
     private async Task EditInventoryRow(InventoryDocumentRowDto row)
     {
