@@ -82,7 +82,7 @@
                                Adornment="Adornment.Start"
                                AdornmentIcon="@Icons.Material.Outlined.Percent"
                                HelperText="@TranslationService.GetTranslation("products.vatRateHelper", "Aliquota IVA applicabile")">
-                        @if (_vatRates != null)
+                        @if (_vatRates != null && _vatRates.Any())
                         {
                             @foreach (var vat in _vatRates)
                             {
@@ -100,7 +100,7 @@
                                Adornment="Adornment.Start"
                                AdornmentIcon="@Icons.Material.Outlined.Straighten"
                                HelperText="@TranslationService.GetTranslation("products.baseUoMHelper", "Unità di misura principale del prodotto")">
-                        @if (_unitsOfMeasure != null)
+                        @if (_unitsOfMeasure != null && _unitsOfMeasure.Any())
                         {
                             @foreach (var um in _unitsOfMeasure)
                             {
@@ -175,7 +175,7 @@
                                            Variant="Variant.Outlined"
                                            Dense="true">
                                     <MudSelectItem Value="@((Guid?)null)">@TranslationService.GetTranslation("common.none", "Nessuna")</MudSelectItem>
-                                    @if (_unitsOfMeasure != null)
+                                    @if (_unitsOfMeasure != null && _unitsOfMeasure.Any())
                                     {
                                         @foreach (var um in _unitsOfMeasure)
                                         {
