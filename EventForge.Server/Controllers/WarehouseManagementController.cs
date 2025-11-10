@@ -1671,24 +1671,84 @@ public class WarehouseManagementController : BaseApiController
                 }
             }
 
-            // Create document row with clean description and proper field population
-            var createRowDto = new CreateDocumentRowDto
+            // Check if a row with the same ProductId + LocationId (+ LotId if present) already exists
+            // This implements the row merging feature (accorpamento delle righe per articolo/ubicazione)
+            var existingRow = documentHeader.Rows?
+                .FirstOrDefault(r => 
+                    r.ProductId == rowDto.ProductId && 
+                    r.LocationId == rowDto.LocationId);
+            
+            DocumentRowDto documentRow;
+            
+            if (existingRow != null)
             {
-                DocumentHeaderId = documentId,
-                ProductCode = product.Code,
-                ProductId = rowDto.ProductId,
-                LocationId = rowDto.LocationId,
-                Description = product.Name, // Clean product name only
-                UnitOfMeasure = unitOfMeasure,
-                Quantity = rowDto.Quantity,
-                UnitPrice = 0, // Purchase price - skipped for now per requirements
-                VatRate = vatRate,
-                VatDescription = vatDescription,
-                SourceWarehouseId = location.WarehouseId, // Track the warehouse/location
-                Notes = rowDto.Notes
-            };
+                // Row exists - merge by adding quantities together
+                var newQuantity = existingRow.Quantity + rowDto.Quantity;
+                
+                _logger.LogInformation(
+                    "Merging inventory row for product {ProductId} at location {LocationId}: existing quantity {ExistingQty} + new quantity {NewQty} = {TotalQty}",
+                    rowDto.ProductId, rowDto.LocationId, existingRow.Quantity, rowDto.Quantity, newQuantity);
+                
+                // Update the existing row directly in the database
+                var rowEntity = await _context.DocumentRows
+                    .FirstOrDefaultAsync(r => r.Id == existingRow.Id && !r.IsDeleted, cancellationToken);
+                
+                if (rowEntity != null)
+                {
+                    rowEntity.Quantity = newQuantity;
+                    // Append notes if new notes are provided
+                    if (!string.IsNullOrWhiteSpace(rowDto.Notes))
+                    {
+                        rowEntity.Notes = string.IsNullOrWhiteSpace(rowEntity.Notes) 
+                            ? rowDto.Notes 
+                            : $"{rowEntity.Notes}; {rowDto.Notes}";
+                    }
+                    rowEntity.ModifiedAt = DateTime.UtcNow;
+                    rowEntity.ModifiedBy = GetCurrentUser();
+                    
+                    await _context.SaveChangesAsync(cancellationToken);
+                    
+                    // Map back to DocumentRowDto
+                    documentRow = new DocumentRowDto
+                    {
+                        Id = rowEntity.Id,
+                        ProductId = rowEntity.ProductId,
+                        ProductCode = rowEntity.ProductCode,
+                        LocationId = rowEntity.LocationId,
+                        Description = rowEntity.Description,
+                        Quantity = rowEntity.Quantity,
+                        Notes = rowEntity.Notes,
+                        CreatedAt = rowEntity.CreatedAt,
+                        CreatedBy = rowEntity.CreatedBy
+                    };
+                }
+                else
+                {
+                    // Fallback if entity not found - shouldn't happen
+                    throw new InvalidOperationException($"Row entity {existingRow.Id} not found in database");
+                }
+            }
+            else
+            {
+                // No existing row - create a new one
+                var createRowDto = new CreateDocumentRowDto
+                {
+                    DocumentHeaderId = documentId,
+                    ProductCode = product.Code,
+                    ProductId = rowDto.ProductId,
+                    LocationId = rowDto.LocationId,
+                    Description = product.Name, // Clean product name only
+                    UnitOfMeasure = unitOfMeasure,
+                    Quantity = rowDto.Quantity,
+                    UnitPrice = 0, // Purchase price - skipped for now per requirements
+                    VatRate = vatRate,
+                    VatDescription = vatDescription,
+                    SourceWarehouseId = location.WarehouseId, // Track the warehouse/location
+                    Notes = rowDto.Notes
+                };
 
-            var documentRow = await _documentHeaderService.AddDocumentRowAsync(createRowDto, GetCurrentUser(), cancellationToken);
+                documentRow = await _documentHeaderService.AddDocumentRowAsync(createRowDto, GetCurrentUser(), cancellationToken);
+            }
 
             // Build response with the new row
             var newRow = new InventoryDocumentRowDto
