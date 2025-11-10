@@ -76,7 +76,8 @@
                         }
                     </MudSelect>
 
-                    <MudNumericField @bind-Value="_quantity"
+                    <MudNumericField T="decimal"
+                                    @bind-Value="_quantity"
                                     Label="@TranslationService.GetTranslation("warehouse.quantity", "Quantità")"
                                     Variant="Variant.Outlined"
                                     Min="0"
@@ -129,8 +130,14 @@
     private MudNumericField<decimal>? _quantityField;
     private bool _isFormValid;
     private Guid? _selectedLocationId;
-    private decimal _quantity = 1; // Default to 1 instead of 0 for faster input
+    private decimal _quantity;
     private string _notes = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        // Initialize quantity to 1 as default for faster input
+        _quantity = 1;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

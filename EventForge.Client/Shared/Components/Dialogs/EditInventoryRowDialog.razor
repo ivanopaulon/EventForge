@@ -21,7 +21,8 @@
             <!-- Edit Form -->
             <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
                 <MudStack Spacing="3">
-                    <MudNumericField @bind-Value="_quantity"
+                    <MudNumericField T="decimal"
+                                    @bind-Value="_quantity"
                                     Label="@TranslationService.GetTranslation("warehouse.quantity", "Quantità")"
                                     Variant="Variant.Outlined"
                                     Min="0"
