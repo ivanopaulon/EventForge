@@ -20,6 +20,16 @@
             <MudProgressLinear Indeterminate="true" Class="mb-4" />
         }
 
+        @if (AutoAssignCode && !string.IsNullOrWhiteSpace(PrefilledCode))
+        {
+            <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
+                <MudText Typo="Typo.body2">
+                    <MudIcon Icon="@Icons.Material.Outlined.QrCode" Size="Size.Small" Class="mr-1" />
+                    Il codice <strong>@PrefilledCode</strong> sarà assegnato automaticamente al prodotto
+                </MudText>
+            </MudAlert>
+        }
+        
         <MudAlert Severity="Severity.Info" Class="mb-4">
             @TranslationService.GetTranslation("warehouse.quickCreateHint", "Compila i campi essenziali per creare velocemente un nuovo prodotto durante l'inventario.")
         </MudAlert>
