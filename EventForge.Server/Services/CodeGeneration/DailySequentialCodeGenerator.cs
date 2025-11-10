@@ -50,11 +50,12 @@ public class DailySequentialCodeGenerator : IDailyCodeGenerator
                 await connection.OpenAsync(cancellationToken);
             }
 
-            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            // Use a plain ADO.NET transaction on the open connection so we can execute
+            // the multi-statement SQL atomically without EF Core trying to compose over it.
+            using var dbTransaction = connection.BeginTransaction();
 
             try
             {
-                // Use raw SQL with UPDLOCK and ROWLOCK for atomic increment
                 var sql = @"
                     DECLARE @NextNumber BIGINT;
                     
@@ -79,20 +80,42 @@ public class DailySequentialCodeGenerator : IDailyCodeGenerator
                     SELECT @NextNumber AS NextNumber;
                 ";
 
-                var dateParam = new SqlParameter("@date", SqlDbType.Date) { Value = date };
+                using var cmd = connection.CreateCommand();
+                cmd.Transaction = dbTransaction;
+                cmd.CommandText = sql;
+                cmd.CommandType = CommandType.Text;
 
-                var result = await _context.Database
-                    .SqlQueryRaw<long>(sql, dateParam)
-                    .FirstAsync(cancellationToken);
+                var param = cmd.CreateParameter();
+                param.ParameterName = "@date";
+                param.DbType = DbType.Date;
+                param.Value = date;
+                cmd.Parameters.Add(param);
 
-                await transaction.CommitAsync(cancellationToken);
+                var scalar = await cmd.ExecuteScalarAsync(cancellationToken);
+
+                if (scalar == null || scalar == DBNull.Value)
+                {
+                    throw new InvalidOperationException("Sequence query did not return a value.");
+                }
+
+                var result = Convert.ToInt64(scalar);
+
+                // Commit the ADO.NET transaction
+                dbTransaction.Commit();
 
                 return result;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating sequence number for date {Date}", date);
-                await transaction.RollbackAsync(cancellationToken);
+                try
+                {
+                    dbTransaction.Rollback();
+                }
+                catch
+                {
+                    // Best-effort rollback; swallow to preserve original exception
+                }
                 throw;
             }
         }
