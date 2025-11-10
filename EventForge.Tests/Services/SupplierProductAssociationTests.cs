@@ -206,6 +206,7 @@ public class SupplierProductAssociationTests
         var loggerMock = new Mock<ILogger<ProductService>>();
         var auditLogServiceMock = new Mock<EventForge.Server.Services.Audit.IAuditLogService>();
         var tenantContextMock = new Mock<EventForge.Server.Services.Tenants.ITenantContext>();
+        var codeGeneratorMock = new Mock<EventForge.Server.Services.CodeGeneration.IDailyCodeGenerator>();
 
         // Setup tenant context to return a valid tenant ID
         tenantContextMock.Setup(x => x.CurrentTenantId).Returns((Guid?)Guid.NewGuid());
@@ -214,7 +215,8 @@ public class SupplierProductAssociationTests
             context,
             auditLogServiceMock.Object,
             tenantContextMock.Object,
-            loggerMock.Object
+            loggerMock.Object,
+            codeGeneratorMock.Object
         );
     }
 }

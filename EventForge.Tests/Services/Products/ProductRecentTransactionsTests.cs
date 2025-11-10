@@ -3,6 +3,7 @@ using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Data.Entities.Documents;
 using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Services.Audit;
+using EventForge.Server.Services.CodeGeneration;
 using EventForge.Server.Services.Products;
 using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,7 @@ public class ProductRecentTransactionsTests : IDisposable
     private readonly Mock<IAuditLogService> _mockAuditLogService;
     private readonly Mock<ITenantContext> _mockTenantContext;
     private readonly Mock<ILogger<ProductService>> _mockLogger;
+    private readonly Mock<IDailyCodeGenerator> _mockCodeGenerator;
     private readonly ProductService _productService;
     private readonly Guid _tenantId = Guid.NewGuid();
     private readonly Guid _productId = Guid.NewGuid();
@@ -41,6 +43,7 @@ public class ProductRecentTransactionsTests : IDisposable
         _mockAuditLogService = new Mock<IAuditLogService>();
         _mockTenantContext = new Mock<ITenantContext>();
         _mockLogger = new Mock<ILogger<ProductService>>();
+        _mockCodeGenerator = new Mock<IDailyCodeGenerator>();
 
         // Setup tenant context
         _mockTenantContext.Setup(x => x.CurrentTenantId).Returns(_tenantId);
@@ -50,7 +53,8 @@ public class ProductRecentTransactionsTests : IDisposable
             _context,
             _mockAuditLogService.Object,
             _mockTenantContext.Object,
-            _mockLogger.Object);
+            _mockLogger.Object,
+            _mockCodeGenerator.Object);
 
         // Seed test data
         SeedTestData();
