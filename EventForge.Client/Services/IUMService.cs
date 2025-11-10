@@ -17,6 +17,12 @@ public interface IUMService
     Task<PagedResult<UMDto>> GetUMsAsync(int page = 1, int pageSize = 100);
 
     /// <summary>
+    /// Gets all active units of measure as a simple list.
+    /// </summary>
+    /// <returns>List of active units of measure</returns>
+    Task<IEnumerable<UMDto>> GetUnitsOfMeasureAsync();
+
+    /// <summary>
     /// Gets a unit of measure by ID.
     /// </summary>
     /// <param name="id">Unit of measure ID</param>

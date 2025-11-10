@@ -32,6 +32,21 @@ public class UMService : IUMService
         }
     }
 
+    public async Task<IEnumerable<UMDto>> GetUnitsOfMeasureAsync()
+    {
+        try
+        {
+            // Get all active units (use large page size)
+            var result = await GetUMsAsync(1, 1000);
+            return result?.Items?.Where(um => um.IsActive) ?? Enumerable.Empty<UMDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving all units of measure");
+            return Enumerable.Empty<UMDto>();
+        }
+    }
+
     public async Task<UMDto?> GetUMByIdAsync(Guid id)
     {
         try
