@@ -2,6 +2,7 @@ using EventForge.Server.Services.Auth.Seeders;
 using EventForge.Server.Services.Banks;
 using EventForge.Server.Services.Business;
 using EventForge.Server.Services.Chat;
+using EventForge.Server.Services.CodeGeneration;
 using EventForge.Server.Services.Common;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Events;
@@ -196,6 +197,9 @@ public static class ServiceCollectionExtensions
         // Register VAT rate services
         _ = services.AddScoped<IVatRateService, VatRateService>();
         _ = services.AddScoped<IVatNatureService, VatNatureService>();
+
+        // Register code generation services
+        _ = services.AddScoped<IDailyCodeGenerator, DailySequentialCodeGenerator>();
 
         // Register product services
         _ = services.AddScoped<IProductService, ProductService>();

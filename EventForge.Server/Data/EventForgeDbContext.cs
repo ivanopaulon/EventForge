@@ -154,6 +154,9 @@ public partial class EventForgeDbContext : DbContext
     public DbSet<EntityChangeLog> EntityChangeLogs { get; set; }
     public DbSet<LogEntry> LogEntries { get; set; }
 
+    // Code Generation Entities
+    public DbSet<DailySequence> DailySequences { get; set; }
+
     #endregion
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -167,6 +170,7 @@ public partial class EventForgeDbContext : DbContext
         ConfigureProductAndPriceListRelationships(modelBuilder);
         ConfigureStoreAndTeamRelationships(modelBuilder);
         ConfigureSalesAndOtherRelationships(modelBuilder);
+        ConfigureDailySequence(modelBuilder);
     }
 
     private static void ConfigureTenantEntity(ModelBuilder modelBuilder)
@@ -703,6 +707,23 @@ public partial class EventForgeDbContext : DbContext
         _ = modelBuilder.Entity<MessageReadReceipt>()
             .HasIndex(mrr => new { mrr.MessageId, mrr.UserId })
             .IsUnique();
+    }
+
+    private static void ConfigureDailySequence(ModelBuilder modelBuilder)
+    {
+        // Configure DailySequence
+        _ = modelBuilder.Entity<DailySequence>()
+            .HasKey(ds => ds.Date);
+
+        _ = modelBuilder.Entity<DailySequence>()
+            .Property(ds => ds.Date)
+            .HasColumnType("date");
+
+        // Add unique constraint on Products.Code
+        _ = modelBuilder.Entity<Product>()
+            .HasIndex(p => p.Code)
+            .IsUnique()
+            .HasDatabaseName("UQ_Products_Code");
     }
 
     /// <summary>
