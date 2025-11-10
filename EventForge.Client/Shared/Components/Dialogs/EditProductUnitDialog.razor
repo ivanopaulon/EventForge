@@ -33,9 +33,12 @@
                                Variant="Variant.Outlined"
                                Required="true"
                                RequiredError="@TranslationService.GetTranslation("validation.unitOfMeasureRequired", "L'unità di misura è obbligatoria")">
-                        @foreach (var um in UnitOfMeasures)
+                        @if (UnitOfMeasures != null && UnitOfMeasures.Any())
                         {
-                            <MudSelectItem Value="@um.Id">@um.Name (@um.Symbol)</MudSelectItem>
+                            @foreach (var um in UnitOfMeasures)
+                            {
+                                <MudSelectItem Value="@um.Id">@um.Name (@um.Symbol)</MudSelectItem>
+                            }
                         }
                     </MudSelect>
                 </MudItem>
