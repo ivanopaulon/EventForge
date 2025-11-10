@@ -67,7 +67,7 @@
                            ReadOnly="@(!IsEditMode)"
                            Clearable="true"
                            @bind-Value:after="NotifyUpdated">
-                    @if (_unitsOfMeasure != null)
+                    @if (_unitsOfMeasure != null && _unitsOfMeasure.Any())
                     {
                         @foreach (var um in _unitsOfMeasure)
                         {
@@ -198,6 +198,23 @@
                 }
             }
 
+            // Unit of Measure
+            if (Product?.UnitOfMeasureId.HasValue == true && _unitsOfMeasure != null && !_unitsOfMeasure.Any(u => u.Id == Product.UnitOfMeasureId.Value))
+            {
+                try
+                {
+                    var um = await UMService.GetUMByIdAsync(Product.UnitOfMeasureId.Value);
+                    if (um != null)
+                    {
+                        _unitsOfMeasure = _unitsOfMeasure.Append(um).ToList();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "EnsureSelectedBrandAndModelPresent: failed to load unit of measure {UnitOfMeasureId}", Product.UnitOfMeasureId);
+                }
+            }
+
             StateHasChanged();
         }
         catch { }
@@ -284,6 +301,23 @@
             {
                 var umsResult = await UMService.GetUMsAsync(1, 100);
                 _unitsOfMeasure = umsResult?.Items ?? Enumerable.Empty<UMDto>();
+
+                // Ensure selected unit of measure is present in the list so MudSelect can display the selected label
+                if (Product?.UnitOfMeasureId.HasValue == true && !_unitsOfMeasure.Any(u => u.Id == Product.UnitOfMeasureId.Value))
+                {
+                    try
+                    {
+                        var um = await UMService.GetUMByIdAsync(Product.UnitOfMeasureId.Value);
+                        if (um != null)
+                        {
+                            _unitsOfMeasure = _unitsOfMeasure.Append(um).ToList();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning(ex, "Failed to load specific unit of measure {UnitOfMeasureId}", Product.UnitOfMeasureId);
+                    }
+                }
             }
             catch (Exception ex)
             {
