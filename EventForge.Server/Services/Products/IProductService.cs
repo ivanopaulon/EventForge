@@ -44,6 +44,16 @@ public interface IProductService
     Task<ProductDto> CreateProductAsync(CreateProductDto createProductDto, string currentUser, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Creates a new product with multiple codes and units of measure in a single transaction.
+    /// Used for quick product creation during inventory procedures.
+    /// </summary>
+    /// <param name="createDto">Product creation data with codes and units</param>
+    /// <param name="currentUser">Current user name</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created product DTO with full details</returns>
+    Task<ProductDetailDto> CreateProductWithCodesAndUnitsAsync(CreateProductWithCodesAndUnitsDto createDto, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Updates an existing product.
     /// </summary>
     /// <param name="id">Product ID</param>

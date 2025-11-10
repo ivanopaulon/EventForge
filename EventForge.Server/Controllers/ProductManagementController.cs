@@ -217,6 +217,48 @@ public class ProductManagementController : BaseApiController
     }
 
     /// <summary>
+    /// Creates a new product with multiple codes and units of measure in a single transaction.
+    /// Used for quick product creation during inventory procedures.
+    /// </summary>
+    /// <param name="createDto">Product creation data with codes and units</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created product with full details</returns>
+    /// <response code="201">Product created successfully with codes and units</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("products/create-with-codes-units")]
+    [ProducesResponseType(typeof(ProductDetailDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ProductDetailDto>> CreateProductWithCodesAndUnits(
+        [FromBody] CreateProductWithCodesAndUnitsDto createDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var product = await _productService.CreateProductWithCodesAndUnitsAsync(createDto, currentUser, cancellationToken);
+            return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while creating the product with codes and units.");
+            return CreateInternalServerErrorProblem("An error occurred while creating the product with codes and units.", ex);
+        }
+    }
+
+    /// <summary>
     /// Updates an existing product.
     /// </summary>
     /// <param name="id">Product ID</param>

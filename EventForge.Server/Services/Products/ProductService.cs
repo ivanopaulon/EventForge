@@ -249,6 +249,165 @@ public class ProductService : IProductService
         }
     }
 
+    public async Task<ProductDetailDto> CreateProductWithCodesAndUnitsAsync(CreateProductWithCodesAndUnitsDto createDto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(createDto);
+            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+            var currentTenantId = _tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Current tenant ID is not available.");
+            }
+
+            // Generate code if not provided
+            if (string.IsNullOrWhiteSpace(createDto.Code))
+            {
+                createDto.Code = await _codeGenerator.GenerateDailyCodeAsync(cancellationToken);
+                _logger.LogInformation("Auto-generated product code: {Code}", createDto.Code);
+            }
+
+            // Use transaction to ensure atomicity
+            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            
+            try
+            {
+                // Create the product
+                var product = new Product
+                {
+                    TenantId = currentTenantId.Value,
+                    Name = createDto.Name,
+                    ShortDescription = createDto.ShortDescription,
+                    Description = createDto.Description,
+                    Code = createDto.Code,
+                    Status = (EventForge.Server.Data.Entities.Products.ProductStatus)createDto.Status,
+                    IsVatIncluded = createDto.IsVatIncluded,
+                    DefaultPrice = createDto.DefaultPrice,
+                    VatRateId = createDto.VatRateId,
+                    UnitOfMeasureId = createDto.UnitOfMeasureId,
+                    CategoryNodeId = createDto.CategoryNodeId,
+                    FamilyNodeId = createDto.FamilyNodeId,
+                    GroupNodeId = createDto.GroupNodeId,
+                    StationId = createDto.StationId,
+                    BrandId = createDto.BrandId,
+                    ModelId = createDto.ModelId,
+                    CreatedBy = currentUser,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _ = _context.Products.Add(product);
+                _ = await _context.SaveChangesAsync(cancellationToken);
+
+                // Audit log for the created product
+                _ = await _auditLogService.TrackEntityChangesAsync(product, "Create", currentUser, null, cancellationToken);
+
+                _logger.LogInformation("Product created with ID {ProductId} and Code {Code} by user {User}.", product.Id, product.Code, currentUser);
+
+                // Track created units and codes for the response
+                var createdUnits = new List<ProductUnit>();
+                var createdCodes = new List<ProductCode>();
+
+                // Process codes and units
+                foreach (var codeWithUnit in createDto.CodesWithUnits)
+                {
+                    ProductUnit? productUnit = null;
+
+                    // Create or find ProductUnit if UnitOfMeasureId is specified
+                    if (codeWithUnit.UnitOfMeasureId.HasValue)
+                    {
+                        // Check if a ProductUnit already exists for this product and UoM
+                        productUnit = await _context.ProductUnits
+                            .Where(pu => pu.ProductId == product.Id && 
+                                   pu.UnitOfMeasureId == codeWithUnit.UnitOfMeasureId.Value && 
+                                   !pu.IsDeleted)
+                            .FirstOrDefaultAsync(cancellationToken);
+
+                        // Create new ProductUnit if it doesn't exist
+                        if (productUnit == null)
+                        {
+                            productUnit = new ProductUnit
+                            {
+                                TenantId = currentTenantId.Value,
+                                ProductId = product.Id,
+                                UnitOfMeasureId = codeWithUnit.UnitOfMeasureId.Value,
+                                ConversionFactor = codeWithUnit.ConversionFactor,
+                                UnitType = codeWithUnit.UnitType,
+                                Description = codeWithUnit.UnitDescription,
+                                Status = EventForge.Server.Data.Entities.Products.ProductUnitStatus.Active,
+                                CreatedBy = currentUser,
+                                CreatedAt = DateTime.UtcNow
+                            };
+
+                            _ = _context.ProductUnits.Add(productUnit);
+                            _ = await _context.SaveChangesAsync(cancellationToken);
+
+                            // Audit log for the created product unit
+                            _ = await _auditLogService.TrackEntityChangesAsync(productUnit, "Create", currentUser, null, cancellationToken);
+
+                            createdUnits.Add(productUnit);
+                            _logger.LogInformation("Product unit created with ID {ProductUnitId} for product {ProductId} with conversion factor {ConversionFactor}.",
+                                productUnit.Id, product.Id, productUnit.ConversionFactor);
+                        }
+                    }
+
+                    // Create ProductCode
+                    var productCode = new ProductCode
+                    {
+                        TenantId = currentTenantId.Value,
+                        ProductId = product.Id,
+                        ProductUnitId = productUnit?.Id,
+                        CodeType = codeWithUnit.CodeType,
+                        Code = codeWithUnit.Code,
+                        AlternativeDescription = codeWithUnit.AlternativeDescription,
+                        Status = EventForge.Server.Data.Entities.Products.ProductCodeStatus.Active,
+                        CreatedBy = currentUser,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    _ = _context.ProductCodes.Add(productCode);
+                    _ = await _context.SaveChangesAsync(cancellationToken);
+
+                    // Audit log for the created product code
+                    _ = await _auditLogService.TrackEntityChangesAsync(productCode, "Create", currentUser, null, cancellationToken);
+
+                    createdCodes.Add(productCode);
+                    _logger.LogInformation("Product code created with ID {ProductCodeId} for product {ProductId} with code {Code}.",
+                        productCode.Id, product.Id, productCode.Code);
+                }
+
+                // Commit transaction
+                await transaction.CommitAsync(cancellationToken);
+
+                // Reload product with all related entities for the response
+                var createdProduct = await _context.Products
+                    .Where(p => p.Id == product.Id && !p.IsDeleted)
+                    .Include(p => p.Codes.Where(c => !c.IsDeleted))
+                    .Include(p => p.Units.Where(u => !u.IsDeleted))
+                    .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
+                    .Include(p => p.Brand)
+                    .Include(p => p.Model)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                _logger.LogInformation("Product created successfully with {CodeCount} codes and {UnitCount} units.", 
+                    createdCodes.Count, createdUnits.Count);
+
+                return MapToProductDetailDto(createdProduct!);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating product with codes and units for user {User}.", currentUser);
+            throw;
+        }
+    }
+
     public async Task<ProductDto?> UpdateProductAsync(Guid id, UpdateProductDto updateProductDto, string currentUser, CancellationToken cancellationToken = default)
     {
         try
