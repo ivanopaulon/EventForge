@@ -111,6 +111,21 @@ public class ProductService : IProductService
         }
     }
 
+    public async Task<ProductDetailDto?> CreateProductWithCodesAndUnitsAsync(CreateProductWithCodesAndUnitsDto createDto)
+    {
+        try
+        {
+            return await _httpClientService.PostAsync<CreateProductWithCodesAndUnitsDto, ProductDetailDto>(
+                $"{BaseUrl}/create-with-codes-units", 
+                createDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating product with codes and units");
+            return null;
+        }
+    }
+
     public async Task<ProductDto?> UpdateProductAsync(Guid id, UpdateProductDto updateDto)
     {
         try

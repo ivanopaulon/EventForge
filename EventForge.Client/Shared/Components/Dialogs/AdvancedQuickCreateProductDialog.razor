@@ -1,0 +1,449 @@
+@using EventForge.DTOs.Common
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.VatRates
+@using EventForge.DTOs.UnitOfMeasures
+@inject ITranslationService TranslationService
+@inject IProductService ProductService
+@inject IFinancialService FinancialService
+@inject IUMService UMService
+@inject ISnackbar Snackbar
+@inject ILogger<AdvancedQuickCreateProductDialog> Logger
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.Add" Class="mr-2" />
+            @TranslationService.GetTranslation("warehouse.advancedQuickCreateProduct", "Creazione Rapida Prodotto con UoM")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Class="mb-4" />
+        }
+
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            @TranslationService.GetTranslation("warehouse.advancedQuickCreateHint", "Crea un prodotto con codici a barre e unità di misura alternative in un'unica operazione.")
+        </MudAlert>
+
+        <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
+            <MudGrid Spacing="3">
+                <!-- Code Field (Readonly if prefilled) -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Code"
+                                  Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="@TranslationService.GetTranslation("validation.codeRequired", "Il codice è obbligatorio")"
+                                  MaxLength="100"
+                                  Counter="100"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.QrCode"
+                                  HelperText="@TranslationService.GetTranslation("products.codeHelper", "Codice identificativo del prodotto")"
+                                  Disabled="@(!string.IsNullOrWhiteSpace(PrefilledCode))" />
+                </MudItem>
+
+                <!-- Description Field -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Description"
+                                  Label="@($"{TranslationService.GetTranslation("field.description", "Descrizione")} *")"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="@TranslationService.GetTranslation("validation.descriptionRequired", "La descrizione è obbligatoria")"
+                                  Lines="3"
+                                  MaxLength="500"
+                                  Counter="500"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Description"
+                                  HelperText="@TranslationService.GetTranslation("products.descriptionHelper", "Descrizione del prodotto")" />
+                </MudItem>
+
+                <!-- Sale Price Field -->
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.DefaultPrice"
+                                     Label="@($"{TranslationService.GetTranslation("field.salePrice", "Prezzo di Vendita")} *")"
+                                     Variant="Variant.Outlined"
+                                     Required="true"
+                                     RequiredError="@TranslationService.GetTranslation("validation.priceRequired", "Il prezzo è obbligatorio")"
+                                     Min="0"
+                                     Format="N2"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Outlined.Euro"
+                                     HelperText="@TranslationService.GetTranslation("products.priceHelper", "Prezzo di vendita (IVA inclusa)")" />
+                </MudItem>
+
+                <!-- VAT Rate Field -->
+                <MudItem xs="12" md="6">
+                    <MudSelect @bind-Value="_model.VatRateId"
+                               Label="@($"{TranslationService.GetTranslation("field.vatRate", "Aliquota IVA")} *")"
+                               Variant="Variant.Outlined"
+                               Required="true"
+                               RequiredError="@TranslationService.GetTranslation("validation.vatRateRequired", "L'aliquota IVA è obbligatoria")"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Outlined.Percent"
+                               HelperText="@TranslationService.GetTranslation("products.vatRateHelper", "Aliquota IVA applicabile")">
+                        @if (_vatRates != null)
+                        {
+                            @foreach (var vat in _vatRates)
+                            {
+                                <MudSelectItem Value="@((Guid?)vat.Id)">@($"{vat.Name} ({vat.Percentage}%)")</MudSelectItem>
+                            }
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <!-- Base Unit of Measure -->
+                <MudItem xs="12">
+                    <MudSelect @bind-Value="_model.UnitOfMeasureId"
+                               Label="@TranslationService.GetTranslation("field.baseUoM", "Unità di Misura Base")"
+                               Variant="Variant.Outlined"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Outlined.Straighten"
+                               HelperText="@TranslationService.GetTranslation("products.baseUoMHelper", "Unità di misura principale del prodotto")">
+                        @if (_unitsOfMeasure != null)
+                        {
+                            @foreach (var um in _unitsOfMeasure)
+                            {
+                                <MudSelectItem Value="@((Guid?)um.Id)">@($"{um.Name} ({um.Symbol})")</MudSelectItem>
+                            }
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+
+        <!-- Alternative Codes/UoMs Section -->
+        <MudExpansionPanels Class="mt-4" MultiExpansion="true">
+            <MudExpansionPanel Text="@TranslationService.GetTranslation("products.alternativeCodesUoMs", "Codici a Barre e Unità Alternative")" 
+                               IsInitiallyExpanded="@(_codesWithUnits.Any())">
+                <MudText Typo="Typo.body2" Class="mb-3">
+                    @TranslationService.GetTranslation("products.alternativeCodesHint", "Aggiungi codici a barre per unità di misura alternative (es. confezione da 12 pezzi)")
+                </MudText>
+
+                @foreach (var (codeUnit, index) in _codesWithUnits.Select((cu, i) => (cu, i)))
+                {
+                    <MudPaper Elevation="2" Class="pa-3 mb-3">
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <MudText Typo="Typo.subtitle2">Codice #@(index + 1)</MudText>
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
+                                                   Color="Color.Error" 
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => RemoveCodeWithUnit(index))" />
+                                </MudStack>
+                            </MudItem>
+
+                            <!-- Code Type -->
+                            <MudItem xs="12" md="4">
+                                <MudSelect @bind-Value="codeUnit.CodeType"
+                                           Label="@TranslationService.GetTranslation("products.codeType", "Tipo Codice")"
+                                           Variant="Variant.Outlined"
+                                           Dense="true">
+                                    <MudSelectItem Value="@("EAN")">EAN</MudSelectItem>
+                                    <MudSelectItem Value="@("UPC")">UPC</MudSelectItem>
+                                    <MudSelectItem Value="@("SKU")">SKU</MudSelectItem>
+                                    <MudSelectItem Value="@("Barcode")">Barcode</MudSelectItem>
+                                    <MudSelectItem Value="@("Other")">@TranslationService.GetTranslation("products.other", "Altro")</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+
+                            <!-- Code Value -->
+                            <MudItem xs="12" md="8">
+                                <MudTextField @bind-Value="codeUnit.Code"
+                                              Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
+                                              Variant="Variant.Outlined"
+                                              Required="true"
+                                              Dense="true"
+                                              MaxLength="100" />
+                            </MudItem>
+
+                            <!-- Unit Type -->
+                            <MudItem xs="12" md="4">
+                                <MudTextField @bind-Value="codeUnit.UnitType"
+                                              Label="@TranslationService.GetTranslation("products.unitType", "Tipo Unità")"
+                                              Variant="Variant.Outlined"
+                                              Dense="true"
+                                              MaxLength="20"
+                                              HelperText="@TranslationService.GetTranslation("products.unitTypeHelper", "es. Pack, Pallet, Box")" />
+                            </MudItem>
+
+                            <!-- UoM Selection -->
+                            <MudItem xs="12" md="4">
+                                <MudSelect @bind-Value="codeUnit.UnitOfMeasureId"
+                                           Label="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")"
+                                           Variant="Variant.Outlined"
+                                           Dense="true">
+                                    <MudSelectItem Value="@((Guid?)null)">@TranslationService.GetTranslation("common.none", "Nessuna")</MudSelectItem>
+                                    @if (_unitsOfMeasure != null)
+                                    {
+                                        @foreach (var um in _unitsOfMeasure)
+                                        {
+                                            <MudSelectItem Value="@((Guid?)um.Id)">@($"{um.Name} ({um.Symbol})")</MudSelectItem>
+                                        }
+                                    }
+                                </MudSelect>
+                            </MudItem>
+
+                            <!-- Conversion Factor -->
+                            <MudItem xs="12" md="4">
+                                <MudNumericField @bind-Value="codeUnit.ConversionFactor"
+                                                 Label="@($"{TranslationService.GetTranslation("products.conversionFactor", "Fattore di Conversione")} *")"
+                                                 Variant="Variant.Outlined"
+                                                 Dense="true"
+                                                 Min="0.001m"
+                                                 Format="N3"
+                                                 HelperText="@TranslationService.GetTranslation("products.conversionFactorHelper", "> 0.001")" />
+                            </MudItem>
+
+                            <!-- Alternative Description -->
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="codeUnit.AlternativeDescription"
+                                              Label="@TranslationService.GetTranslation("products.alternativeDescription", "Descrizione Alternativa")"
+                                              Variant="Variant.Outlined"
+                                              Dense="true"
+                                              MaxLength="200"
+                                              HelperText="@TranslationService.GetTranslation("products.descriptionHelper", "Descrizione opzionale")" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+                }
+
+                <MudButton StartIcon="@Icons.Material.Outlined.Add"
+                           Color="Color.Primary"
+                           Variant="Variant.Outlined"
+                           OnClick="AddCodeWithUnit"
+                           FullWidth="true">
+                    @TranslationService.GetTranslation("products.addCodeUnit", "Aggiungi Codice/UoM")
+                </MudButton>
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" 
+                   Color="Color.Default" 
+                   Variant="Variant.Outlined">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        
+        <MudButton StartIcon="@Icons.Material.Outlined.Save"
+                   Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="CreateProduct"
+                   Disabled="@(!_isFormValid || _isLoading)">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public string PrefilledCode { get; set; } = string.Empty;
+
+    private bool _isLoading = false;
+    private bool _isFormValid = false;
+    private MudForm? _form;
+    private CreateProductWithCodesAndUnitsDto _model = new();
+    private List<ProductCodeWithUnitDto> _codesWithUnits = new();
+    private IEnumerable<VatRateDto>? _vatRates;
+    private IEnumerable<UMDto>? _unitsOfMeasure;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadVatRates(), LoadUnitsOfMeasure());
+        
+        // Pre-fill the code if provided
+        if (!string.IsNullOrWhiteSpace(PrefilledCode))
+        {
+            _model.Code = PrefilledCode;
+            
+            // Also add it as a default barcode entry
+            AddCodeWithUnit();
+            if (_codesWithUnits.Any())
+            {
+                _codesWithUnits[0].Code = PrefilledCode;
+                _codesWithUnits[0].CodeType = "Barcode";
+            }
+        }
+
+        // Set defaults
+        _model.Status = ProductStatus.Active;
+        _model.IsVatIncluded = true; // Always VAT included
+        _model.Name = string.Empty; // Will use Description as Name
+    }
+
+    private async Task LoadVatRates()
+    {
+        _isLoading = true;
+        try
+        {
+            _vatRates = await FinancialService.GetVatRatesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading VAT rates");
+            Snackbar.Add(
+                TranslationService.GetTranslation("products.vatRatesLoadError", "Errore nel caricamento delle aliquote IVA"), 
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadUnitsOfMeasure()
+    {
+        _isLoading = true;
+        try
+        {
+            _unitsOfMeasure = await UMService.GetUnitsOfMeasureAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading units of measure");
+            Snackbar.Add(
+                TranslationService.GetTranslation("products.uomLoadError", "Errore nel caricamento unità di misura"), 
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void AddCodeWithUnit()
+    {
+        _codesWithUnits.Add(new ProductCodeWithUnitDto
+        {
+            CodeType = "Barcode",
+            UnitType = "Pack",
+            ConversionFactor = 1m
+        });
+        StateHasChanged();
+    }
+
+    private void RemoveCodeWithUnit(int index)
+    {
+        if (index >= 0 && index < _codesWithUnits.Count)
+        {
+            _codesWithUnits.RemoveAt(index);
+            StateHasChanged();
+        }
+    }
+
+    private async Task CreateProduct()
+    {
+        _isLoading = true;
+        
+        try
+        {
+            // Validate form
+            if (_form != null)
+            {
+                await _form.Validate();
+                if (!_isFormValid)
+                {
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("validation.formInvalid", "Compila tutti i campi obbligatori"), 
+                        Severity.Warning
+                    );
+                    return;
+                }
+            }
+
+            // Validate codes with units
+            if (_codesWithUnits.Any())
+            {
+                foreach (var codeUnit in _codesWithUnits)
+                {
+                    if (string.IsNullOrWhiteSpace(codeUnit.Code))
+                    {
+                        Snackbar.Add(
+                            TranslationService.GetTranslation("validation.codeRequired", "Tutti i codici devono avere un valore"), 
+                            Severity.Warning
+                        );
+                        return;
+                    }
+
+                    if (codeUnit.ConversionFactor < 0.001m)
+                    {
+                        Snackbar.Add(
+                            TranslationService.GetTranslation("validation.conversionFactorInvalid", "Il fattore di conversione deve essere >= 0.001"), 
+                            Severity.Warning
+                        );
+                        return;
+                    }
+                }
+            }
+
+            // Use Description as Name if Name is empty (simplified creation)
+            if (string.IsNullOrWhiteSpace(_model.Name))
+            {
+                _model.Name = _model.Description?.Length > 100 
+                    ? _model.Description.Substring(0, 100) 
+                    : _model.Description ?? "Prodotto";
+            }
+
+            // Set the codes and units
+            _model.CodesWithUnits = _codesWithUnits;
+
+            // Create the product via API
+            var createdProduct = await ProductService.CreateProductWithCodesAndUnitsAsync(_model);
+            
+            if (createdProduct != null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("products.createSuccess", "Prodotto creato con successo con {0} codici/UoM", _codesWithUnits.Count), 
+                    Severity.Success
+                );
+                
+                // Close dialog and return the created product as ProductDto
+                var productDto = new ProductDto
+                {
+                    Id = createdProduct.Id,
+                    Name = createdProduct.Name,
+                    Code = createdProduct.Code,
+                    Description = createdProduct.Description,
+                    ShortDescription = createdProduct.ShortDescription,
+                    Status = createdProduct.Status,
+                    DefaultPrice = createdProduct.DefaultPrice,
+                    IsVatIncluded = createdProduct.IsVatIncluded,
+                    VatRateId = createdProduct.VatRateId,
+                    UnitOfMeasureId = createdProduct.UnitOfMeasureId
+                };
+                
+                MudDialog.Close(DialogResult.Ok(productDto));
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("products.createError", "Errore nella creazione del prodotto"), 
+                    Severity.Error
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating product with codes and units");
+            Snackbar.Add(
+                TranslationService.GetTranslation("products.createError", "Errore nella creazione del prodotto: {0}", ex.Message), 
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

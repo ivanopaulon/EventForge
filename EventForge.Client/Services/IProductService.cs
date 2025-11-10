@@ -21,6 +21,7 @@ public interface IProductService
 
     Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20);
     Task<ProductDto?> CreateProductAsync(CreateProductDto createDto);
+    Task<ProductDetailDto?> CreateProductWithCodesAndUnitsAsync(CreateProductWithCodesAndUnitsDto createDto);
     Task<ProductDto?> UpdateProductAsync(Guid id, UpdateProductDto updateDto);
 
     // Added: delete product (returns true on success)

@@ -1119,22 +1119,21 @@
 
     private async Task CreateNewProduct()
     {
-        // Show the quick create product dialog with auto-code-assignment enabled
+        // Show the advanced quick create product dialog with support for codes and UoMs
         var parameters = new DialogParameters
         {
-            { "PrefilledCode", _scannedBarcode },
-            { "AutoAssignCode", true }
+            { "PrefilledCode", _scannedBarcode }
         };
 
         var options = new DialogOptions
         {
             CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Medium,
+            MaxWidth = MaxWidth.Large,
             FullWidth = true
         };
 
-        var dialog = await DialogService.ShowAsync<QuickCreateProductDialog>(
-            TranslationService.GetTranslation("warehouse.quickCreateProduct", "Creazione Rapida Prodotto"),
+        var dialog = await DialogService.ShowAsync<AdvancedQuickCreateProductDialog>(
+            TranslationService.GetTranslation("warehouse.advancedQuickCreateProduct", "Creazione Rapida Prodotto con UoM"),
             parameters,
             options
         );
@@ -1143,18 +1142,18 @@
 
         if (!result.Canceled && result.Data is ProductDto createdProduct)
         {
-            // Product created successfully with code auto-assigned
+            // Product created successfully with codes and units
             // Set the current product and show the inventory entry dialog directly
             _currentProduct = createdProduct;
             
             Snackbar.Add(
-                TranslationService.GetTranslation("products.productCreatedAndCodeAssigned", "Prodotto creato e codice assegnato: {0}", createdProduct.Name),
+                TranslationService.GetTranslation("products.productCreatedWithCodesUnits", "Prodotto creato con codici e UoM: {0}", createdProduct.Name),
                 Severity.Success
             );
             
             AddOperationLog(
                 TranslationService.GetTranslation("products.productCreated", "Prodotto creato"),
-                $"{createdProduct.Name} - Codice: {_scannedBarcode} assegnato automaticamente",
+                $"{createdProduct.Name} - Codice: {_scannedBarcode} con unità alternative",
                 "Success"
             );
             
