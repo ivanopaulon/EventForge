@@ -388,12 +388,6 @@
     }
 </MudContainer>
 
-<ProductDrawer @bind-IsOpen="_productDrawerOpen"
-               @bind-Mode="_productDrawerMode"
-               OriginalProduct="_productForDrawer"
-               AllowEdit="false"
-               OnProductCreated="@HandleProductCreated" />
-
 @code {
     private bool _isLoading = false;
     private string _scannedBarcode = string.Empty;
@@ -412,11 +406,6 @@
     
     // Operation log for audit trail
     private List<OperationLogEntry> _operationLog = new();
-    
-    // ProductDrawer related fields
-    private bool _productDrawerOpen = false;
-    private EntityDrawerMode _productDrawerMode = EntityDrawerMode.Create;
-    private ProductDto? _productForDrawer;
 
     // Helper class for operation logging
     private class OperationLogEntry
@@ -1080,11 +1069,12 @@
         var options = new DialogOptions
         {
             CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
+            MaxWidth = MaxWidth.ExtraExtraLarge,
+            FullWidth = true,
+            FullScreen = true
         };
 
-        // Show a simple dialog to ask what the user wants to do
+        // Show a fullscreen dialog to ask what the user wants to do
         var dialog = await DialogService.ShowAsync<ProductNotFoundDialog>(
             TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato"),
             parameters,
@@ -1100,7 +1090,7 @@
             {
                 if (action == "create")
                 {
-                    CreateNewProduct();
+                    await CreateNewProduct();
                 }
                 else if (action == "skip")
                 {
@@ -1128,18 +1118,34 @@
         }
     }
 
-    private void CreateNewProduct()
+    private async Task CreateNewProduct()
     {
-        // Create a new ProductDto with the scanned barcode as Code
-        _productForDrawer = new ProductDto
+        // Show the quick create product dialog
+        var parameters = new DialogParameters
         {
-            Code = _scannedBarcode,
-            Name = string.Empty,
-            Status = ProductStatus.Active
+            { "PrefilledCode", _scannedBarcode }
         };
-        
-        _productDrawerMode = EntityDrawerMode.Create;
-        _productDrawerOpen = true;
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<QuickCreateProductDialog>(
+            TranslationService.GetTranslation("warehouse.quickCreateProduct", "Creazione Rapida Prodotto"),
+            parameters,
+            options
+        );
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is ProductDto createdProduct)
+        {
+            // Product created successfully, re-open ProductNotFoundDialog with the product pre-selected
+            await ShowProductNotFoundDialogWithProduct(createdProduct);
+        }
     }
     
     private async Task HandleProductCreated(ProductDto createdProduct)
@@ -1160,8 +1166,9 @@
         var options = new DialogOptions
         {
             CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
+            MaxWidth = MaxWidth.ExtraExtraLarge,
+            FullWidth = true,
+            FullScreen = true
         };
 
         var dialog = await DialogService.ShowAsync<ProductNotFoundDialog>(

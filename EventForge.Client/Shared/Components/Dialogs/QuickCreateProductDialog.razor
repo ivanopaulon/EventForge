@@ -1,0 +1,250 @@
+@using EventForge.DTOs.Common
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.VatRates
+@inject ITranslationService TranslationService
+@inject IProductService ProductService
+@inject IFinancialService FinancialService
+@inject ISnackbar Snackbar
+@inject ILogger<QuickCreateProductDialog> Logger
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.Add" Class="mr-2" />
+            @TranslationService.GetTranslation("warehouse.quickCreateProduct", "Creazione Rapida Prodotto")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Class="mb-4" />
+        }
+
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            @TranslationService.GetTranslation("warehouse.quickCreateHint", "Compila i campi essenziali per creare velocemente un nuovo prodotto durante l'inventario.")
+        </MudAlert>
+
+        <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
+            <MudGrid Spacing="3">
+                <!-- Code Field -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Code"
+                                  Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="@TranslationService.GetTranslation("validation.codeRequired", "Il codice è obbligatorio")"
+                                  MaxLength="100"
+                                  Counter="100"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.QrCode"
+                                  HelperText="@TranslationService.GetTranslation("products.codeHelper", "Codice identificativo del prodotto")"
+                                  Disabled="@(!string.IsNullOrWhiteSpace(PrefilledCode))" />
+                </MudItem>
+
+                <!-- Description Field -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Description"
+                                  Label="@($"{TranslationService.GetTranslation("field.description", "Descrizione")} *")"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="@TranslationService.GetTranslation("validation.descriptionRequired", "La descrizione è obbligatoria")"
+                                  Lines="3"
+                                  MaxLength="500"
+                                  Counter="500"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Description"
+                                  HelperText="@TranslationService.GetTranslation("products.descriptionHelper", "Descrizione del prodotto")" />
+                </MudItem>
+
+                <!-- Sale Price Field -->
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_model.DefaultPrice"
+                                     Label="@($"{TranslationService.GetTranslation("field.salePrice", "Prezzo di Vendita")} *")"
+                                     Variant="Variant.Outlined"
+                                     Required="true"
+                                     RequiredError="@TranslationService.GetTranslation("validation.priceRequired", "Il prezzo è obbligatorio")"
+                                     Min="0"
+                                     Format="N2"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Outlined.Euro"
+                                     HelperText="@TranslationService.GetTranslation("products.priceHelper", "Prezzo di vendita (IVA inclusa)")" />
+                </MudItem>
+
+                <!-- VAT Rate Field -->
+                <MudItem xs="12" md="6">
+                    <MudSelect @bind-Value="_model.VatRateId"
+                               Label="@($"{TranslationService.GetTranslation("field.vatRate", "Aliquota IVA")} *")"
+                               Variant="Variant.Outlined"
+                               Required="true"
+                               RequiredError="@TranslationService.GetTranslation("validation.vatRateRequired", "L'aliquota IVA è obbligatoria")"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Outlined.Percent"
+                               HelperText="@TranslationService.GetTranslation("products.vatRateHelper", "Aliquota IVA applicabile")">
+                        @if (_vatRates != null)
+                        {
+                            @foreach (var vat in _vatRates)
+                            {
+                                <MudSelectItem Value="@((Guid?)vat.Id)">@($"{vat.Name} ({vat.Percentage}%)")</MudSelectItem>
+                            }
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <!-- VAT Included Checkbox (Hidden but set to true) -->
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Normal" Dense="true">
+                        <MudText Typo="Typo.body2">
+                            <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Class="mr-1" />
+                            @TranslationService.GetTranslation("products.vatIncludedInfo", "Il prezzo inserito è considerato IVA inclusa")
+                        </MudText>
+                    </MudAlert>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" 
+                   Color="Color.Default" 
+                   Variant="Variant.Outlined">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        
+        <MudButton StartIcon="@Icons.Material.Outlined.Save"
+                   Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="CreateProduct"
+                   Disabled="@(!_isFormValid || _isLoading)">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public string PrefilledCode { get; set; } = string.Empty;
+
+    private bool _isLoading = false;
+    private bool _isFormValid = false;
+    private MudForm? _form;
+    private ProductDto _model = new();
+    private IEnumerable<VatRateDto>? _vatRates;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadVatRates();
+        
+        // Pre-fill the code if provided
+        if (!string.IsNullOrWhiteSpace(PrefilledCode))
+        {
+            _model.Code = PrefilledCode;
+        }
+
+        // Set defaults
+        _model.Status = ProductStatus.Active;
+        _model.IsVatIncluded = true; // Always VAT included as per requirements
+        _model.Name = string.Empty; // Will use Description as Name initially
+    }
+
+    private async Task LoadVatRates()
+    {
+        _isLoading = true;
+        try
+        {
+            _vatRates = await FinancialService.GetVatRatesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading VAT rates");
+            Snackbar.Add(
+                TranslationService.GetTranslation("products.vatRatesLoadError", "Errore nel caricamento delle aliquote IVA"), 
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task CreateProduct()
+    {
+        _isLoading = true;
+        
+        try
+        {
+            // Validate form
+            if (_form != null)
+            {
+                await _form.Validate();
+                if (!_isFormValid)
+                {
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("validation.formInvalid", "Compila tutti i campi obbligatori"), 
+                        Severity.Warning
+                    );
+                    return;
+                }
+            }
+
+            // Use Description as Name if Name is empty (simplified creation)
+            if (string.IsNullOrWhiteSpace(_model.Name))
+            {
+                _model.Name = _model.Description?.Length > 100 
+                    ? _model.Description.Substring(0, 100) 
+                    : _model.Description ?? "Prodotto";
+            }
+
+            // Create the product via API
+            var createDto = new CreateProductDto
+            {
+                Code = _model.Code,
+                Name = _model.Name,
+                Description = _model.Description,
+                DefaultPrice = _model.DefaultPrice,
+                VatRateId = _model.VatRateId,
+                IsVatIncluded = true, // Always true as per requirements
+                Status = ProductStatus.Active
+            };
+
+            var createdProduct = await ProductService.CreateProductAsync(createDto);
+            
+            if (createdProduct != null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("products.createSuccess", "Prodotto creato con successo"), 
+                    Severity.Success
+                );
+                
+                // Close dialog and return the created product
+                MudDialog.Close(DialogResult.Ok(createdProduct));
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("products.createError", "Errore nella creazione del prodotto"), 
+                    Severity.Error
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating product");
+            Snackbar.Add(
+                TranslationService.GetTranslation("products.createError", "Errore nella creazione del prodotto: {0}", ex.Message), 
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}
