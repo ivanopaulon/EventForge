@@ -4,13 +4,8 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
-using Syncfusion.Blazor;
-using Syncfusion.Licensing;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
-
-// Add optional Syncfusion configuration file (ignored by git - developers create locally)
-builder.Configuration.AddJsonFile("appsettings.Syncfusion.Development.json", optional: true, reloadOnChange: false);
 
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
@@ -51,16 +46,6 @@ builder.Services.AddMudServices(config =>
     config.SnackbarConfiguration.ShowTransitionDuration = 500;
 });
 
-// Register Syncfusion license from configuration (if provided)
-var sfKey = builder.Configuration["Syncfusion:LicenseKey"];
-if (!string.IsNullOrWhiteSpace(sfKey))
-{
-    SyncfusionLicenseProvider.RegisterLicense(sfKey);
-}
-
-// Add Syncfusion Blazor services
-builder.Services.AddSyncfusionBlazor();
-
 // Add memory cache for performance optimization
 builder.Services.AddMemoryCache(options =>
 {
@@ -95,7 +80,6 @@ builder.Services.AddScoped<IPrintingService, PrintingService>();
 builder.Services.AddScoped<ILotService, LotService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IInventoryFastService, InventoryFastService>();
-builder.Services.AddScoped<ISfInventoryStateManager, SfInventoryStateManager>();
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 builder.Services.AddScoped<IStorageLocationService, StorageLocationService>();
 builder.Services.AddScoped<IStockService, StockService>();
