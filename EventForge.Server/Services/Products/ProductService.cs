@@ -963,6 +963,7 @@ public class ProductService : IProductService
             productUnit.ConversionFactor = updateProductUnitDto.ConversionFactor;
             productUnit.UnitType = updateProductUnitDto.UnitType;
             productUnit.Description = updateProductUnitDto.Description;
+            productUnit.Status = (Data.Entities.Products.ProductUnitStatus)updateProductUnitDto.Status;
             productUnit.ModifiedBy = currentUser;
             productUnit.ModifiedAt = DateTime.UtcNow;
 
@@ -1560,6 +1561,7 @@ public class ProductService : IProductService
             ConversionFactor = productUnit.ConversionFactor,
             UnitType = productUnit.UnitType,
             Description = productUnit.Description,
+            Status = (DTOs.Common.ProductUnitStatus)productUnit.Status,
             CreatedAt = productUnit.CreatedAt,
             CreatedBy = productUnit.CreatedBy,
             ModifiedAt = productUnit.ModifiedAt,

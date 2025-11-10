@@ -392,6 +392,7 @@
     private bool _isLoading = false;
     private string _scannedBarcode = string.Empty;
     private ProductDto? _currentProduct;
+    private ProductCodeDto? _currentProductCode;
     private List<StorageLocationDto> _locations = new();
     private List<StorageFacilityDto> _storageFacilities = new();
     private Guid? _selectedLocationId;
@@ -780,6 +781,7 @@
 
         _isLoading = true;
         _currentProduct = null;
+        _currentProductCode = null;
 
         try
         {
@@ -789,7 +791,10 @@
                 "Info"
             );
 
-            _currentProduct = await ProductService.GetProductByCodeAsync(_scannedBarcode);
+            // Use GetProductWithCodeByCodeAsync to get both product and code context
+            var productWithCode = await ProductService.GetProductWithCodeByCodeAsync(_scannedBarcode);
+            _currentProduct = productWithCode?.Product;
+            _currentProductCode = productWithCode?.Code;
 
             if (_currentProduct != null)
             {
@@ -884,11 +889,31 @@
             var location = _locations.FirstOrDefault(l => l.Id == _selectedLocationId.Value);
             var locationName = location?.Code ?? "N/A";
 
+            // Determine UnitOfMeasureId: use from ProductCode if available (for alternative units),
+            // otherwise fall back to product's default UnitOfMeasureId
+            Guid? unitOfMeasureId = null;
+            if (_currentProductCode?.ProductUnitId.HasValue == true)
+            {
+                // Get ProductUnit to retrieve UnitOfMeasureId
+                var productUnits = await ProductService.GetProductUnitsAsync(_currentProduct.Id);
+                var productUnit = productUnits?.FirstOrDefault(pu => pu.Id == _currentProductCode.ProductUnitId.Value);
+                if (productUnit != null)
+                {
+                    unitOfMeasureId = productUnit.UnitOfMeasureId;
+                }
+            }
+            else
+            {
+                // Use product's default UnitOfMeasureId
+                unitOfMeasureId = _currentProduct.UnitOfMeasureId;
+            }
+
             var rowDto = new AddInventoryDocumentRowDto
             {
                 ProductId = _currentProduct.Id,
                 LocationId = _selectedLocationId.Value,
                 Quantity = _quantity,
+                UnitOfMeasureId = unitOfMeasureId,
                 Notes = _notes
             };
 
@@ -943,6 +968,7 @@
     {
         _scannedBarcode = string.Empty;
         _currentProduct = null;
+        _currentProductCode = null;
         _selectedLocationId = null;
         _quantity = 0;
         _notes = string.Empty;
