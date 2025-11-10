@@ -90,7 +90,7 @@
                                Adornment="Adornment.Start"
                                AdornmentIcon="@Icons.Material.Outlined.Percent"
                                HelperText="@TranslationService.GetTranslation("products.vatRateHelper", "Aliquota IVA applicabile")">
-                        @if (_vatRates != null)
+                        @if (_vatRates != null && _vatRates.Any())
                         {
                             @foreach (var vat in _vatRates)
                             {

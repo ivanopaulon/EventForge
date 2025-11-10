@@ -33,9 +33,12 @@
                                Variant="Variant.Outlined"
                                Required="true"
                                RequiredError="@TranslationService.GetTranslation("validation.unitOfMeasureRequired", "L'unità di misura è obbligatoria")">
-                        @foreach (var um in UnitOfMeasures)
+                        @if (UnitOfMeasures != null && UnitOfMeasures.Any())
                         {
-                            <MudSelectItem Value="@um.Id">@um.Name (@um.Symbol)</MudSelectItem>
+                            @foreach (var um in UnitOfMeasures)
+                            {
+                                <MudSelectItem Value="@um.Id">@um.Name (@um.Symbol)</MudSelectItem>
+                            }
                         }
                     </MudSelect>
                 </MudItem>
@@ -96,7 +99,7 @@
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
     
-    [Parameter] public ProductUnitDto Unit { get; set; } = new();
+    [Parameter] public ProductUnitDto ProductUnit { get; set; } = new();
     [Parameter] public IEnumerable<UMDto> UnitOfMeasures { get; set; } = new List<UMDto>();
     
     private MudForm _form = null!;
@@ -110,13 +113,13 @@
         // Clone the unit for editing
         _model = new ProductUnitDto
         {
-            Id = Unit.Id,
-            ProductId = Unit.ProductId,
-            UnitOfMeasureId = Unit.UnitOfMeasureId,
-            ConversionFactor = Unit.ConversionFactor,
-            UnitType = Unit.UnitType,
-            Description = Unit.Description,
-            Status = Unit.Status
+            Id = ProductUnit.Id,
+            ProductId = ProductUnit.ProductId,
+            UnitOfMeasureId = ProductUnit.UnitOfMeasureId,
+            ConversionFactor = ProductUnit.ConversionFactor,
+            UnitType = ProductUnit.UnitType,
+            Description = ProductUnit.Description,
+            Status = ProductUnit.Status
         };
     }
     
