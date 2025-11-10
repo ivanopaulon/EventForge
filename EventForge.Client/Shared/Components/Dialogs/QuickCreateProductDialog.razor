@@ -126,6 +126,9 @@
     [Parameter]
     public string PrefilledCode { get; set; } = string.Empty;
 
+    [Parameter]
+    public bool AutoAssignCode { get; set; } = false;
+
     private bool _isLoading = false;
     private bool _isFormValid = false;
     private MudForm? _form;
@@ -213,6 +216,34 @@
             
             if (createdProduct != null)
             {
+                // If AutoAssignCode is enabled, also create the product code
+                if (AutoAssignCode && !string.IsNullOrWhiteSpace(PrefilledCode))
+                {
+                    try
+                    {
+                        var codeDto = new CreateProductCodeDto
+                        {
+                            ProductId = createdProduct.Id,
+                            Code = PrefilledCode,
+                            CodeType = "Barcode", // Default to Barcode for scanned codes
+                            Status = ProductCodeStatus.Active
+                        };
+                        
+                        await ProductService.CreateProductCodeAsync(codeDto);
+                        
+                        Logger.LogInformation("Auto-assigned code {Code} to product {ProductId}", PrefilledCode, createdProduct.Id);
+                    }
+                    catch (Exception codeEx)
+                    {
+                        Logger.LogError(codeEx, "Error auto-assigning code to product");
+                        // Don't fail the whole operation if code assignment fails
+                        Snackbar.Add(
+                            TranslationService.GetTranslation("products.codeAssignmentWarning", "Prodotto creato ma codice non assegnato automaticamente"), 
+                            Severity.Warning
+                        );
+                    }
+                }
+                
                 Snackbar.Add(
                     TranslationService.GetTranslation("products.createSuccess", "Prodotto creato con successo"), 
                     Severity.Success
