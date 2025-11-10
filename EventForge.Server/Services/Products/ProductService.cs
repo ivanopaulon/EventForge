@@ -1,4 +1,6 @@
 using EventForge.DTOs.Products;
+using EventForge.Server.Services.CodeGeneration;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Products;
@@ -12,20 +14,26 @@ public class ProductService : IProductService
     private readonly IAuditLogService _auditLogService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<ProductService> _logger;
+    private readonly IDailyCodeGenerator _codeGenerator;
 
     // Default currency for product transactions
     private const string DefaultCurrency = "EUR";
+
+    // Maximum retry attempts for unique constraint violations
+    private const int MaxRetryAttempts = 3;
 
     public ProductService(
         EventForgeDbContext context,
         IAuditLogService auditLogService,
         ITenantContext tenantContext,
-        ILogger<ProductService> logger)
+        ILogger<ProductService> logger,
+        IDailyCodeGenerator codeGenerator)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _codeGenerator = codeGenerator ?? throw new ArgumentNullException(nameof(codeGenerator));
     }
 
     // Product CRUD operations
@@ -158,47 +166,81 @@ public class ProductService : IProductService
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var product = new Product
+            // Generate code if not provided
+            if (string.IsNullOrWhiteSpace(createProductDto.Code))
             {
-                TenantId = currentTenantId.Value,
-                Name = createProductDto.Name,
-                ShortDescription = createProductDto.ShortDescription,
-                Description = createProductDto.Description,
-                Code = createProductDto.Code,
+                createProductDto.Code = await _codeGenerator.GenerateDailyCodeAsync(cancellationToken);
+                _logger.LogInformation("Auto-generated product code: {Code}", createProductDto.Code);
+            }
+
+            // Retry logic for unique constraint violations
+            for (int attempt = 1; attempt <= MaxRetryAttempts; attempt++)
+            {
+                try
+                {
+                    var product = new Product
+                    {
+                        TenantId = currentTenantId.Value,
+                        Name = createProductDto.Name,
+                        ShortDescription = createProductDto.ShortDescription,
+                        Description = createProductDto.Description,
+                        Code = createProductDto.Code,
 #pragma warning disable CS0618 // Type or member is obsolete
-                ImageUrl = createProductDto.ImageUrl,
+                        ImageUrl = createProductDto.ImageUrl,
 #pragma warning restore CS0618 // Type or member is obsolete
-                ImageDocumentId = createProductDto.ImageDocumentId,
-                Status = (EventForge.Server.Data.Entities.Products.ProductStatus)createProductDto.Status,
-                IsVatIncluded = createProductDto.IsVatIncluded,
-                DefaultPrice = createProductDto.DefaultPrice,
-                VatRateId = createProductDto.VatRateId,
-                UnitOfMeasureId = createProductDto.CategoryNodeId,
-                CategoryNodeId = createProductDto.CategoryNodeId,
-                FamilyNodeId = createProductDto.FamilyNodeId,
-                GroupNodeId = createProductDto.GroupNodeId,
-                StationId = createProductDto.StationId,
-                IsBundle = createProductDto.IsBundle,
-                BrandId = createProductDto.BrandId,
-                ModelId = createProductDto.ModelId,
-                PreferredSupplierId = createProductDto.PreferredSupplierId,
-                ReorderPoint = createProductDto.ReorderPoint,
-                SafetyStock = createProductDto.SafetyStock,
-                TargetStockLevel = createProductDto.TargetStockLevel,
-                AverageDailyDemand = createProductDto.AverageDailyDemand,
-                CreatedBy = currentUser,
-                CreatedAt = DateTime.UtcNow
-            };
+                        ImageDocumentId = createProductDto.ImageDocumentId,
+                        Status = (EventForge.Server.Data.Entities.Products.ProductStatus)createProductDto.Status,
+                        IsVatIncluded = createProductDto.IsVatIncluded,
+                        DefaultPrice = createProductDto.DefaultPrice,
+                        VatRateId = createProductDto.VatRateId,
+                        UnitOfMeasureId = createProductDto.CategoryNodeId,
+                        CategoryNodeId = createProductDto.CategoryNodeId,
+                        FamilyNodeId = createProductDto.FamilyNodeId,
+                        GroupNodeId = createProductDto.GroupNodeId,
+                        StationId = createProductDto.StationId,
+                        IsBundle = createProductDto.IsBundle,
+                        BrandId = createProductDto.BrandId,
+                        ModelId = createProductDto.ModelId,
+                        PreferredSupplierId = createProductDto.PreferredSupplierId,
+                        ReorderPoint = createProductDto.ReorderPoint,
+                        SafetyStock = createProductDto.SafetyStock,
+                        TargetStockLevel = createProductDto.TargetStockLevel,
+                        AverageDailyDemand = createProductDto.AverageDailyDemand,
+                        CreatedBy = currentUser,
+                        CreatedAt = DateTime.UtcNow
+                    };
 
-            _ = _context.Products.Add(product);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+                    _ = _context.Products.Add(product);
+                    _ = await _context.SaveChangesAsync(cancellationToken);
 
-            // Audit log for the created product
-            _ = await _auditLogService.TrackEntityChangesAsync(product, "Create", currentUser, null, cancellationToken);
+                    // Audit log for the created product
+                    _ = await _auditLogService.TrackEntityChangesAsync(product, "Create", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Product created with ID {ProductId} by user {User}.", product.Id, currentUser);
+                    _logger.LogInformation("Product created with ID {ProductId} and Code {Code} by user {User}.", product.Id, product.Code, currentUser);
 
-            return MapToProductDto(product);
+                    return MapToProductDto(product);
+                }
+                catch (DbUpdateException ex) when (ex.InnerException is SqlException sqlEx && (sqlEx.Number == 2627 || sqlEx.Number == 2601))
+                {
+                    // Unique constraint violation - regenerate code and retry
+                    if (attempt < MaxRetryAttempts)
+                    {
+                        _logger.LogWarning("Unique constraint violation on attempt {Attempt} for code {Code}. Retrying...", attempt, createProductDto.Code);
+                        createProductDto.Code = await _codeGenerator.GenerateDailyCodeAsync(cancellationToken);
+                        
+                        // Reset the context to clear tracked entities
+                        _context.ChangeTracker.Clear();
+                    }
+                    else
+                    {
+                        _logger.LogError(ex, "Failed to create product after {MaxRetryAttempts} attempts due to unique constraint violations.", MaxRetryAttempts);
+                        throw new InvalidOperationException($"Unable to generate a unique product code after {MaxRetryAttempts} attempts. Please try again.", ex);
+                    }
+                }
+            }
+
+            // This should never be reached
+            throw new InvalidOperationException("Unexpected error in product creation retry logic.");
         }
         catch (Exception ex)
         {
