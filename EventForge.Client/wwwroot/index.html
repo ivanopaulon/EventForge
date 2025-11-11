@@ -85,8 +85,8 @@
                 if (window.qzSetup && typeof window.qzSetup.init === 'function') {
                     // Initialize QZ Tray with server base URL
                     // This sets up certificate and signature promises to use EventForge server endpoints
-                    // Use window.location.origin for automatic base URL detection
-                    window.qzSetup.init({ baseUrl: window.location.origin });
+                    // Uses window.__apiBaseUrl which matches the server's port (7241)
+                    window.qzSetup.init({ baseUrl: window.__apiBaseUrl });
                 } else {
                     console.warn('QZ Tray setup module not available. Printing features will be disabled.');
                 }
