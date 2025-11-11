@@ -43,6 +43,18 @@
                 </MudPaper>
             }
 
+            <!-- Alternative Unit Notice -->
+            @if (ConversionFactor > 1)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined">
+                    <MudText Typo="Typo.caption">
+                        <MudIcon Icon="@Icons.Material.Outlined.SwapHoriz" Size="Size.Small" Class="mr-1" />
+                        <strong>Unità alternativa rilevata:</strong> 
+                        Fattore di conversione @ConversionFactor.ToString("0.##") - Le quantità sono già convertite in unità base
+                    </MudText>
+                </MudAlert>
+            }
+
             <!-- Keyboard Shortcuts Helper -->
             <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
                 <MudText Typo="Typo.caption">
@@ -78,7 +90,7 @@
 
                     <MudNumericField T="decimal"
                                     @bind-Value="_quantity"
-                                    Label="@TranslationService.GetTranslation("warehouse.quantity", "Quantità")"
+                                    Label="@(ConversionFactor > 1 ? TranslationService.GetTranslation("warehouse.quantity", "Quantità") + " (unità base)" : TranslationService.GetTranslation("warehouse.quantity", "Quantità"))"
                                     Variant="Variant.Outlined"
                                     Min="0"
                                     Required="true"
@@ -125,6 +137,9 @@
     [Parameter]
     public List<StorageLocationDto>? Locations { get; set; }
 
+    [Parameter]
+    public decimal ConversionFactor { get; set; } = 1m;
+
     private MudForm? _form;
     private MudSelect<Guid?>? _locationSelect;
     private MudNumericField<decimal>? _quantityField;
@@ -135,8 +150,9 @@
 
     protected override void OnInitialized()
     {
-        // Initialize quantity to 1 as default for faster input
-        _quantity = 1;
+        // Initialize quantity with conversion factor for alternative units
+        // This converts 1 alternative unit to base units
+        _quantity = ConversionFactor;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

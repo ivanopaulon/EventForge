@@ -393,6 +393,7 @@
     private string _scannedBarcode = string.Empty;
     private ProductDto? _currentProduct;
     private ProductCodeDto? _currentProductCode;
+    private decimal _currentConversionFactor = 1m;
     private List<StorageLocationDto> _locations = new();
     private List<StorageFacilityDto> _storageFacilities = new();
     private Guid? _selectedLocationId;
@@ -798,6 +799,23 @@
 
             if (_currentProduct != null)
             {
+                // Get conversion factor if ProductCode has a ProductUnitId (alternative unit)
+                _currentConversionFactor = 1m;
+                if (_currentProductCode?.ProductUnitId.HasValue == true)
+                {
+                    var productUnit = await ProductService.GetProductUnitByIdAsync(_currentProductCode.ProductUnitId.Value);
+                    if (productUnit != null)
+                    {
+                        _currentConversionFactor = productUnit.ConversionFactor;
+                        Logger.LogInformation("Product unit found with conversion factor: {Factor}", _currentConversionFactor);
+                        AddOperationLog(
+                            "Unità alternativa rilevata",
+                            $"Fattore di conversione: {_currentConversionFactor} (le quantità saranno in unità base)",
+                            "Info"
+                        );
+                    }
+                }
+
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato: {0}", _currentProduct.Name), Severity.Success);
                 AddOperationLog(
                     TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato"),
@@ -844,7 +862,8 @@
         var parameters = new DialogParameters
         {
             { "Product", _currentProduct },
-            { "Locations", _locations }
+            { "Locations", _locations },
+            { "ConversionFactor", _currentConversionFactor }
         };
 
         var options = new DialogOptions
@@ -969,6 +988,7 @@
         _scannedBarcode = string.Empty;
         _currentProduct = null;
         _currentProductCode = null;
+        _currentConversionFactor = 1m;
         _selectedLocationId = null;
         _quantity = 0;
         _notes = string.Empty;
