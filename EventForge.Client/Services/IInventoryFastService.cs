@@ -15,15 +15,17 @@ public interface IInventoryFastService
     /// <param name="scannedCode">The scanned barcode</param>
     /// <param name="currentProduct">Currently selected product (if any)</param>
     /// <param name="selectedLocationId">Currently selected location (if any)</param>
-    /// <param name="currentQuantity">Current quantity value</param>
+    /// <param name="currentQuantity">Current quantity value in base units</param>
     /// <param name="fastConfirmEnabled">Whether fast confirm mode is enabled</param>
-    /// <returns>Scan result indicating action to take</returns>
+    /// <param name="conversionFactor">Conversion factor for alternative units (default: 1 for base unit)</param>
+    /// <returns>Scan result indicating action to take with quantity in base units</returns>
     BarcodeScanResult HandleBarcodeScanned(
         string scannedCode,
         ProductDto? currentProduct,
         Guid? selectedLocationId,
         decimal? currentQuantity,
-        bool fastConfirmEnabled);
+        bool fastConfirmEnabled,
+        decimal conversionFactor = 1m);
 
     /// <summary>
     /// Determines if a row should be merged or created, and prepares the appropriate DTO.

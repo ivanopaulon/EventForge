@@ -526,26 +526,28 @@
         try
         {
             // Use service to check if this is a repeated scan
+            // Pass conversion factor so service can calculate base unit quantities
             var scanResult = InventoryFastService.HandleBarcodeScanned(
                 _scannedBarcode, 
                 _currentProduct, 
                 _selectedLocationId, 
                 _quantity, 
-                _fastConfirmEnabled);
+                _fastConfirmEnabled,
+                _currentConversionFactor);
 
             // Handle repeated scan scenarios
             if (scanResult.Action == BarcodeScanAction.IncrementAndConfirm)
             {
-                // Apply conversion factor when incrementing
-                _quantity = scanResult.NewQuantity * _currentConversionFactor;
+                // Quantity is already in base units from the service
+                _quantity = scanResult.NewQuantity;
                 Logger.LogInformation(scanResult.LogMessage);
                 await ConfirmAndNext();
                 return;
             }
             else if (scanResult.Action == BarcodeScanAction.IncrementAndFocusQuantity)
             {
-                // Apply conversion factor when incrementing
-                _quantity = scanResult.NewQuantity * _currentConversionFactor;
+                // Quantity is already in base units from the service
+                _quantity = scanResult.NewQuantity;
                 Logger.LogInformation(scanResult.LogMessage);
                 StateHasChanged();
                 if (_productEntryComponent != null)
