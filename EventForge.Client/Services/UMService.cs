@@ -36,8 +36,8 @@ public class UMService : IUMService
     {
         try
         {
-            // Get all active units (use large page size)
-            var result = await GetUMsAsync(1, 100);
+            // Get all active units (use large page size to reduce incomplete lists)
+            var result = await GetUMsAsync(1, 1000);
             return result?.Items?.Where(um => um.IsActive) ?? Enumerable.Empty<UMDto>();
         }
         catch (Exception ex)
