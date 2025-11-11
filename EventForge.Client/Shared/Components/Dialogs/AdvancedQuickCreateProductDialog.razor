@@ -440,14 +440,9 @@
         {
             UnitType = "Pack",
             ConversionFactor = 1m,
-            Status = "Active"
+            Status = "Active",
+            UnitOfMeasureId = null // User must explicitly select UoM
         };
-        
-        // Set default UoM to first available if exists
-        if (_unitsOfMeasure != null && _unitsOfMeasure.Any())
-        {
-            unit.UnitOfMeasureId = _unitsOfMeasure.First().Id;
-        }
         
         _alternativeUnits.Add(unit);
         StateHasChanged();
@@ -606,8 +601,13 @@
             }
 
             // Add units that don't have codes associated yet
+            // Only include units with a valid UnitOfMeasureId to prevent empty ProductUnit creation
             foreach (var unit in _alternativeUnits)
             {
+                // Skip units without a UnitOfMeasureId
+                if (!unit.UnitOfMeasureId.HasValue)
+                    continue;
+                
                 // Only add unit if no code is already referencing it
                 var hasCodeReference = _alternativeCodes.Any(c => 
                     c.AssociatedUnitIndex.HasValue && 
