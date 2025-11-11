@@ -205,10 +205,10 @@ app.UseHttpsRedirection();
 // Enable routing BEFORE static files
 app.UseRouting();
 
-// Explicitly disable default files middleware to prevent index.html fallback
-// app.UseDefaultFiles(); // NOT USING THIS
-
-// Serve static files (for uploaded images) but don't use default files
+// Serve default document (index.html) and static files from wwwroot
+// UseDefaultFiles enables serving index.html when requesting the site root.
+// MapFallbackToFile below ensures client-side routes are handled by index.html.
+app.UseDefaultFiles();
 app.UseStaticFiles();
 
 // Enable session support for tenant context
@@ -225,7 +225,7 @@ app.UseAuthorizationLogging();
 // Map API Controllers
 app.MapControllers();
 
-// Map Health Checks endpoints
+// Map Health Checks endpoints (preserve existing ResponseWriter logic)
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
     ResponseWriter = async (context, report) =>
@@ -257,11 +257,14 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions
     Predicate = _ => false
 });
 
-// Map SignalR hubs
+// Map SignalR hubs (preserve existing mappings)
 app.MapHub<AuditLogHub>("/hubs/audit-log");
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<DocumentCollaborationHub>("/hubs/document-collaboration");
+
+// FALLBACK: serve index.html for any non-file, non-API route (SPA)
+app.MapFallbackToFile("index.html");
 
 app.Run();
 
