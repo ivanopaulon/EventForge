@@ -113,6 +113,108 @@ public class InventoryFastServiceTests
         Assert.Equal(BarcodeScanAction.LookupProduct, result.Action);
     }
 
+    [Fact]
+    public void HandleBarcodeScanned_WithAlternativeUnit_FirstScan_ConvertsToBaseUnits()
+    {
+        // Arrange - Scanning "Pack of 6" barcode for the first time
+        var scannedCode = "PACK001";
+        ProductDto? currentProduct = null;
+        Guid? selectedLocationId = null;
+        decimal? currentQuantity = null;
+        bool fastConfirmEnabled = false;
+        decimal conversionFactor = 6m; // Pack contains 6 base units
+
+        // Act
+        var result = _service.HandleBarcodeScanned(
+            scannedCode, 
+            currentProduct, 
+            selectedLocationId, 
+            currentQuantity, 
+            fastConfirmEnabled,
+            conversionFactor);
+
+        // Assert
+        Assert.Equal(BarcodeScanAction.LookupProduct, result.Action);
+        Assert.Equal(6m, result.NewQuantity); // Should be 6 base units, not 1
+    }
+
+    [Fact]
+    public void HandleBarcodeScanned_WithAlternativeUnit_RepeatedScan_IncrementsCorrectly()
+    {
+        // Arrange - Repeated scan of "Pack of 6" barcode
+        var scannedCode = "PACK001";
+        var currentProduct = new ProductDto { Id = Guid.NewGuid(), Name = "Test Product" };
+        var selectedLocationId = Guid.NewGuid();
+        decimal? currentQuantity = 6m; // Currently 6 base units (1 pack)
+        bool fastConfirmEnabled = true;
+        decimal conversionFactor = 6m; // Pack contains 6 base units
+
+        // Act
+        var result = _service.HandleBarcodeScanned(
+            scannedCode, 
+            currentProduct, 
+            selectedLocationId, 
+            currentQuantity, 
+            fastConfirmEnabled,
+            conversionFactor);
+
+        // Assert
+        Assert.Equal(BarcodeScanAction.IncrementAndConfirm, result.Action);
+        Assert.Equal(12m, result.NewQuantity); // Should be 12 base units (2 packs), not 7 or 42
+        Assert.Contains("Repeated scan", result.LogMessage);
+    }
+
+    [Fact]
+    public void HandleBarcodeScanned_WithAlternativeUnit_ThirdScan_IncrementsCorrectly()
+    {
+        // Arrange - Third scan of "Pack of 6" barcode
+        var scannedCode = "PACK001";
+        var currentProduct = new ProductDto { Id = Guid.NewGuid(), Name = "Test Product" };
+        var selectedLocationId = Guid.NewGuid();
+        decimal? currentQuantity = 12m; // Currently 12 base units (2 packs)
+        bool fastConfirmEnabled = false;
+        decimal conversionFactor = 6m; // Pack contains 6 base units
+
+        // Act
+        var result = _service.HandleBarcodeScanned(
+            scannedCode, 
+            currentProduct, 
+            selectedLocationId, 
+            currentQuantity, 
+            fastConfirmEnabled,
+            conversionFactor);
+
+        // Assert
+        Assert.Equal(BarcodeScanAction.IncrementAndFocusQuantity, result.Action);
+        Assert.Equal(18m, result.NewQuantity); // Should be 18 base units (3 packs)
+        Assert.Contains("Repeated scan", result.LogMessage);
+    }
+
+    [Fact]
+    public void HandleBarcodeScanned_WithBaseUnit_BehavesAsExpected()
+    {
+        // Arrange - Using base unit (conversion factor = 1)
+        var scannedCode = "SINGLE001";
+        var currentProduct = new ProductDto { Id = Guid.NewGuid(), Name = "Test Product" };
+        var selectedLocationId = Guid.NewGuid();
+        decimal? currentQuantity = 5m;
+        bool fastConfirmEnabled = true;
+        decimal conversionFactor = 1m; // Base unit
+
+        // Act
+        var result = _service.HandleBarcodeScanned(
+            scannedCode, 
+            currentProduct, 
+            selectedLocationId, 
+            currentQuantity, 
+            fastConfirmEnabled,
+            conversionFactor);
+
+        // Assert
+        Assert.Equal(BarcodeScanAction.IncrementAndConfirm, result.Action);
+        Assert.Equal(6m, result.NewQuantity); // Should increment by 1 (base unit)
+    }
+
     #endregion
 
     #region DetermineRowOperation Tests

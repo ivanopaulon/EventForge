@@ -23,16 +23,18 @@ public class InventoryFastService : IInventoryFastService
         ProductDto? currentProduct,
         Guid? selectedLocationId,
         decimal? currentQuantity,
-        bool fastConfirmEnabled)
+        bool fastConfirmEnabled,
+        decimal conversionFactor = 1m)
     {
-        _logger.LogInformation("HandleBarcodeScanned called: code={Code}, currentProduct={ProductId}, location={LocationId}, quantity={Quantity}, fastConfirm={FastConfirm}",
-            scannedCode, currentProduct?.Id, selectedLocationId, currentQuantity, fastConfirmEnabled);
+        _logger.LogInformation("HandleBarcodeScanned called: code={Code}, currentProduct={ProductId}, location={LocationId}, quantity={Quantity}, fastConfirm={FastConfirm}, conversionFactor={ConversionFactor}",
+            scannedCode, currentProduct?.Id, selectedLocationId, currentQuantity, fastConfirmEnabled, conversionFactor);
 
         // Check if scanning the same product again with location already selected
         if (currentProduct != null && selectedLocationId.HasValue && currentQuantity.HasValue)
         {
             // This is a repeated scan of the same product
-            var newQuantity = currentQuantity.Value + 1;
+            // Increment by the conversion factor (always work in base units)
+            var newQuantity = currentQuantity.Value + conversionFactor;
             
             var action = fastConfirmEnabled 
                 ? BarcodeScanAction.IncrementAndConfirm 
@@ -42,7 +44,7 @@ public class InventoryFastService : IInventoryFastService
             {
                 Action = action,
                 NewQuantity = newQuantity,
-                LogMessage = $"Repeated scan detected. Quantity incremented to {newQuantity}. FastConfirm: {fastConfirmEnabled}"
+                LogMessage = $"Repeated scan detected. Quantity incremented by {conversionFactor} to {newQuantity} (base units). FastConfirm: {fastConfirmEnabled}"
             };
         }
 
@@ -50,7 +52,7 @@ public class InventoryFastService : IInventoryFastService
         return new BarcodeScanResult
         {
             Action = BarcodeScanAction.LookupProduct,
-            NewQuantity = currentQuantity ?? 1,
+            NewQuantity = currentQuantity ?? conversionFactor,
             LogMessage = "Product lookup required"
         };
     }
