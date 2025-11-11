@@ -212,6 +212,8 @@
     private bool _isLoading = false;
     private string _scannedBarcode = string.Empty;
     private ProductDto? _currentProduct;
+    private ProductCodeDto? _currentProductCode;
+    private decimal _currentConversionFactor = 1;
     private List<StorageLocationDto> _locations = new();
     private List<StorageFacilityDto> _storageFacilities = new();
     private Guid? _selectedLocationId;
@@ -534,14 +536,16 @@
             // Handle repeated scan scenarios
             if (scanResult.Action == BarcodeScanAction.IncrementAndConfirm)
             {
-                _quantity = scanResult.NewQuantity;
+                // Apply conversion factor when incrementing
+                _quantity = scanResult.NewQuantity * _currentConversionFactor;
                 Logger.LogInformation(scanResult.LogMessage);
                 await ConfirmAndNext();
                 return;
             }
             else if (scanResult.Action == BarcodeScanAction.IncrementAndFocusQuantity)
             {
-                _quantity = scanResult.NewQuantity;
+                // Apply conversion factor when incrementing
+                _quantity = scanResult.NewQuantity * _currentConversionFactor;
                 Logger.LogInformation(scanResult.LogMessage);
                 StateHasChanged();
                 if (_productEntryComponent != null)
@@ -552,12 +556,29 @@
                 return;
             }
 
-            // Lookup product if not a repeated scan
-            var foundProduct = await ProductService.GetProductByCodeAsync(_scannedBarcode);
+            // Lookup product if not a repeated scan - use GetProductWithCodeByCodeAsync to get ProductCode info
+            var productWithCode = await ProductService.GetProductWithCodeByCodeAsync(_scannedBarcode);
 
-            if (foundProduct != null)
+            if (productWithCode?.Product != null)
             {
-                _currentProduct = foundProduct;
+                _currentProduct = productWithCode.Product;
+                _currentProductCode = productWithCode.Code;
+                
+                // Get conversion factor if ProductCode has a ProductUnitId
+                _currentConversionFactor = 1m;
+                if (_currentProductCode?.ProductUnitId.HasValue == true)
+                {
+                    var productUnit = await ProductService.GetProductUnitByIdAsync(_currentProductCode.ProductUnitId.Value);
+                    if (productUnit != null)
+                    {
+                        _currentConversionFactor = productUnit.ConversionFactor;
+                        Logger.LogInformation("Product unit found with conversion factor: {Factor}", _currentConversionFactor);
+                    }
+                }
+                
+                // Set initial quantity with conversion factor
+                _quantity = 1m * _currentConversionFactor;
+                
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato: {0}", _currentProduct.Name), Severity.Success);
 
                 if (_locations?.Count == 1)
@@ -585,6 +606,8 @@
             else
             {
                 _currentProduct = null;
+                _currentProductCode = null;
+                _currentConversionFactor = 1m;
                 ShowAssignPanel(_scannedBarcode);
             }
         }
@@ -785,6 +808,8 @@
         
         _scannedBarcode = clearedState.ScannedBarcode;
         _currentProduct = clearedState.CurrentProduct;
+        _currentProductCode = null;
+        _currentConversionFactor = 1m;
         _selectedLocationId = clearedState.SelectedLocationId;
         _selectedLocation = clearedState.SelectedLocation;
         _quantity = clearedState.Quantity;
