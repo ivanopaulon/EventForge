@@ -78,13 +78,20 @@
         };
 
         // Initialize QZ Tray when DOM is ready (non-blocking)
+        // Optional: Comment out or remove this block if you don't want automatic QZ initialization
         document.addEventListener('DOMContentLoaded', function() {
             try {
-                // Initialize QZ Tray with server base URL
-                // This sets up certificate and signature promises to use EventForge server endpoints
-                window.qzSetup.init({ baseUrl: window.__apiBaseUrl });
+                // Check if qzSetup is available before attempting initialization
+                if (window.qzSetup && typeof window.qzSetup.init === 'function') {
+                    // Initialize QZ Tray with server base URL
+                    // This sets up certificate and signature promises to use EventForge server endpoints
+                    // Use window.location.origin for automatic base URL detection
+                    window.qzSetup.init({ baseUrl: window.location.origin });
+                } else {
+                    console.warn('QZ Tray setup module not available. Printing features will be disabled.');
+                }
             } catch (error) {
-                console.error('Failed to initialize QZ Tray:', error);
+                console.warn('Failed to initialize QZ Tray (non-blocking):', error);
             }
         });
     </script>
