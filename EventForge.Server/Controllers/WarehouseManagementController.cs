@@ -1739,6 +1739,7 @@ public class WarehouseManagementController : BaseApiController
                     LocationId = rowDto.LocationId,
                     Description = product.Name, // Clean product name only
                     UnitOfMeasure = unitOfMeasure,
+                    UnitOfMeasureId = rowDto.UnitOfMeasureId, // Pass UnitOfMeasureId to enable conversion
                     Quantity = rowDto.Quantity,
                     UnitPrice = 0, // Purchase price - skipped for now per requirements
                     VatRate = vatRate,

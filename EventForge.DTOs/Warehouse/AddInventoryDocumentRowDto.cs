@@ -34,6 +34,12 @@ namespace EventForge.DTOs.Warehouse
         public Guid? LotId { get; set; }
 
         /// <summary>
+        /// Unit of measure identifier (optional).
+        /// When provided, enables proper quantity conversion for alternative units.
+        /// </summary>
+        public Guid? UnitOfMeasureId { get; set; }
+
+        /// <summary>
         /// Notes for this inventory row.
         /// </summary>
         [StringLength(200)]
