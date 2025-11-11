@@ -25,7 +25,8 @@
         }
 
         if (typeof qz === 'undefined' || !qz.api) {
-            throw new Error('QZ Tray library not loaded or qz.api not available');
+            console.warn('QZ Tray library not loaded or qz.api not available. Printing features will be disabled.');
+            return;
         }
 
         const baseUrl = options.baseUrl.replace(/\/$/, ''); // Remove trailing slash
