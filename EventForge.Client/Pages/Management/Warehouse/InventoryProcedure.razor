@@ -803,7 +803,19 @@
                 _currentConversionFactor = 1m;
                 if (_currentProductCode?.ProductUnitId.HasValue == true)
                 {
+                    // Prova prima a leggere l'unità singola (endpoint corretto dopo la correzione in ProductService)
                     var productUnit = await ProductService.GetProductUnitByIdAsync(_currentProductCode.ProductUnitId.Value);
+                    if (productUnit == null)
+                    {
+                        // Fallback: ottieni tutte le unità del prodotto e cerca per id (tollerante a differenze di routing/server)
+                        var units = await ProductService.GetProductUnitsAsync(_currentProduct.Id);
+                        productUnit = units?.FirstOrDefault(u => u.Id == _currentProductCode.ProductUnitId.Value);
+                        if (productUnit != null)
+                        {
+                            Logger.LogWarning("ProductUnit retrieved via fallback GetProductUnitsAsync for ProductUnitId {Id}", _currentProductCode.ProductUnitId.Value);
+                        }
+                    }
+
                     if (productUnit != null)
                     {
                         _currentConversionFactor = productUnit.ConversionFactor;
@@ -813,6 +825,10 @@
                             $"Fattore di conversione: {_currentConversionFactor} (le quantità saranno in unità base)",
                             "Info"
                         );
+                    }
+                    else
+                    {
+                        Logger.LogWarning("Product unit NOT found for ProductUnitId {Id}", _currentProductCode.ProductUnitId.Value);
                     }
                 }
 

@@ -453,7 +453,8 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.GetAsync<ProductUnitDto>($"api/v1/product-management/product-units/{id}");
+            // Endpoint corretto (coerente con Update/Delete che usano "products/units/{id}")
+            return await _httpClientService.GetAsync<ProductUnitDto>($"api/v1/product-management/products/units/{id}");
         }
         catch (Exception ex)
         {
