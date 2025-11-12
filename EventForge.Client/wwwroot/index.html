@@ -55,36 +55,9 @@
     <!-- Runtime helper to apply ef-* classes -->
     <script src="js/apply-mud-classes.js"></script>
 
-    <!-- QZ Tray dynamic loader (resilient to CDN failures) -->
-    <script>
-        // Dynamic loader for QZ Tray - gracefully handles CDN unavailability
-        // Related issue: Make QZ Tray loading resilient and non-blocking
-        // Loads qz-setup.js after QZ Tray library is loaded or failed to avoid race conditions
-        (function() {
-            var qzScript = document.createElement('script');
-            qzScript.src = 'https://cdn.jsdelivr.net/npm/qz-tray@2.1.0/dist/qz-tray.js';
-            
-            // Helper function to load qz-setup.js after QZ Tray library attempt
-            function loadQzSetup() {
-                var setupScript = document.createElement('script');
-                setupScript.src = 'js/qz-setup.js';
-                document.head.appendChild(setupScript);
-            }
-            
-            qzScript.onload = function() {
-                console.info('QZ Tray caricato correttamente dal CDN');
-                loadQzSetup();
-            };
-            
-            qzScript.onerror = function() {
-                console.warn('QZ Tray non disponibile dal CDN - le funzionalità di stampa saranno disabilitate');
-                window.qzLoadFailed = true;
-                loadQzSetup(); // Load setup script anyway for graceful degradation
-            };
-            
-            document.head.appendChild(qzScript);
-        })();
-    </script>
+    <!-- QZ Tray library (installed via npm) -->
+    <script src="js/qz-tray.js"></script>
+    <script src="js/qz-setup.js"></script>
     
     <!-- Application scripts -->
     <script src="js/help-system.js"></script>

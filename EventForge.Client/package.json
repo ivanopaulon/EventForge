@@ -1,0 +1,13 @@
+{
+  "name": "eventforge.client",
+  "version": "1.0.0",
+  "description": "EventForge Client - Blazor WebAssembly Application",
+  "scripts": {
+    "postinstall": "cp node_modules/qz-tray/qz-tray.js wwwroot/js/"
+  },
+  "dependencies": {
+    "qz-tray": "2.1.0"
+  },
+  "author": "",
+  "license": "ISC"
+}
