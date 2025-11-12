@@ -10,11 +10,14 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
+// Load API base URL from configuration (appsettings.json)
+var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7241/";
+
 // Configure HttpClient instances using best practices for performance
 // Note: WebAssembly uses BrowserHttpHandler which doesn't support HttpClientHandler configuration
 builder.Services.AddHttpClient("ApiClient", client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7241/");
+    client.BaseAddress = new Uri(apiBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(30);
     // Add default headers for API requests
     client.DefaultRequestHeaders.Add("Accept", "application/json");
