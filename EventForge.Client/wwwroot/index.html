@@ -55,8 +55,27 @@
     <!-- Runtime helper to apply ef-* classes -->
     <script src="js/apply-mud-classes.js"></script>
 
-    <!-- QZ Tray library from CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.1.0/dist/qz-tray.js"></script>
+    <!-- QZ Tray dynamic loader (resilient to CDN failures) -->
+    <script>
+        // Dynamic loader for QZ Tray - gracefully handles CDN unavailability
+        // Related issue: Make QZ Tray loading resilient and non-blocking
+        (function() {
+            var script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/qz-tray@2.1.0/dist/qz-tray.js';
+            script.async = false; // Load synchronously to ensure it's available before qz-setup.js
+            
+            script.onload = function() {
+                console.info('QZ Tray caricato correttamente dal CDN');
+            };
+            
+            script.onerror = function() {
+                console.warn('QZ Tray non disponibile dal CDN - le funzionalità di stampa saranno disabilitate');
+                window.qzLoadFailed = true;
+            };
+            
+            document.head.appendChild(script);
+        })();
+    </script>
     
     <!-- QZ Tray setup helper -->
     <script src="js/qz-setup.js"></script>
@@ -86,12 +105,19 @@
                     // Initialize QZ Tray with server base URL
                     // This sets up certificate and signature promises to use EventForge server endpoints
                     // Uses window.__apiBaseUrl which matches the server's port (7241)
-                    window.qzSetup.init({ baseUrl: window.__apiBaseUrl });
+                    // init() returns a Promise that resolves whether QZ is available or not
+                    window.qzSetup.init({ baseUrl: window.__apiBaseUrl })
+                        .then(function() {
+                            // Initialization complete (or gracefully skipped if QZ unavailable)
+                        })
+                        .catch(function(error) {
+                            console.warn('Errore durante inizializzazione QZ Tray (non-blocking):', error);
+                        });
                 } else {
-                    console.warn('QZ Tray setup module not available. Printing features will be disabled.');
+                    console.warn('Modulo QZ Tray setup non disponibile. Le funzionalità di stampa saranno disabilitate.');
                 }
             } catch (error) {
-                console.warn('Failed to initialize QZ Tray (non-blocking):', error);
+                console.warn('Eccezione durante inizializzazione QZ Tray (non-blocking):', error);
             }
         });
     </script>

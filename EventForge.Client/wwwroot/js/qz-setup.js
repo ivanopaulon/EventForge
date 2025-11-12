@@ -4,8 +4,14 @@
  * Configures QZ Tray certificate and signature promises to use EventForge server endpoints.
  * Supports both cookie-based authentication (default) and optional Bearer token authentication.
  * 
+ * RESILIENT LOADING (PR: Make QZ Tray loading resilient):
+ * - Does not throw exceptions if QZ Tray library is unavailable
+ * - Returns Promise.resolve() for graceful degradation
+ * - Logs warnings but does not block application startup
+ * 
  * Usage:
- *   window.qzSetup.init({ baseUrl: 'https://localhost:7241' });
+ *   window.qzSetup.init({ baseUrl: 'https://localhost:7241' })
+ *     .then(() => console.log('QZ Tray ready or gracefully skipped'));
  * 
  * Optional Bearer token support:
  *   Define window.getAuthToken() to return a Bearer token, otherwise cookies are used.
@@ -18,15 +24,18 @@
      * Initialize QZ Tray promises with EventForge server endpoints
      * @param {Object} options - Configuration options
      * @param {string} options.baseUrl - Base URL for API endpoints (e.g., 'https://localhost:7241')
+     * @returns {Promise} - Resolves when initialization is complete or skipped
      */
     function init(options) {
         if (!options || !options.baseUrl) {
-            throw new Error('baseUrl is required for QZ setup');
+            console.warn('QZ Tray setup: baseUrl is required but not provided. Initialization skipped.');
+            return Promise.resolve();
         }
 
+        // Check if QZ Tray library is available (graceful degradation)
         if (typeof qz === 'undefined' || !qz.api) {
-            console.warn('QZ Tray library not loaded or qz.api not available. Printing features will be disabled.');
-            return;
+            console.warn('QZ Tray non disponibile - inizializzazione saltata. Le funzionalità di stampa saranno disabilitate.');
+            return Promise.resolve();
         }
 
         const baseUrl = options.baseUrl.replace(/\/$/, ''); // Remove trailing slash
@@ -100,7 +109,8 @@
             .then(response => response.text());
         });
 
-        console.log('QZ Tray promises configured for base URL:', baseUrl);
+        console.info('QZ Tray configurato correttamente per base URL:', baseUrl);
+        return Promise.resolve();
     }
 
     // Expose the setup function globally
