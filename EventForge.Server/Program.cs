@@ -147,7 +147,7 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         _ = policy
-            .WithOrigins("https://localhost:7241", "https://localhost:5000", "https://localhost:7009") // aggiungi qui le porte del client Blazor se diverse
+            .WithOrigins("https://localhost:7241", "http://localhost:7240", "https://localhost:5000", "https://localhost:7009") // aggiungi qui le porte del client Blazor se diverse
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials(); // Required for SignalR WebSocket connections

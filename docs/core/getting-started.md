@@ -57,9 +57,60 @@ echo "Build Status: $?"
 dotnet run --project EventForge.Server
 
 # L'applicazione sarà disponibile su:
-# https://localhost:7001 (HTTPS)
-# http://localhost:5000 (HTTP)
+# https://localhost:7241 (HTTPS - porta predefinita)
+# http://localhost:7240 (HTTP - porta predefinita)
 ```
+
+### 5. Configurazione Porte
+
+#### Porte Server (EventForge.Server)
+
+**Porte predefinite:**
+- HTTPS: `7241`
+- HTTP: `7240`
+
+**Modifica porte in sviluppo:**
+Edita `EventForge.Server/Properties/launchSettings.json`:
+```json
+{
+  "profiles": {
+    "https": {
+      "applicationUrl": "https://localhost:7241;http://localhost:7240"
+    }
+  }
+}
+```
+
+**Modifica porte in produzione/IIS:**
+```bash
+# Variabile d'ambiente
+export ASPNETCORE_URLS="https://localhost:7241;http://localhost:7240"
+
+# Parametro da riga di comando
+dotnet run --project EventForge.Server --urls "https://localhost:7241;http://localhost:7240"
+```
+
+#### Porte Client (EventForge.Client)
+
+**Porta predefinita server API:** `https://localhost:7241/`
+
+**Modifica porta API del client:**
+Edita `EventForge.Client/wwwroot/appsettings.json`:
+```json
+{
+  "ApiSettings": {
+    "BaseUrl": "https://localhost:7241/"
+  }
+}
+```
+
+Per ambienti diversi, crea file specifici:
+- `appsettings.Development.json` - per sviluppo locale
+- `appsettings.Production.json` - per produzione
+
+**Importante:** Se modifichi la porta del server, aggiorna anche:
+1. Il file `appsettings.json` del client con la nuova porta
+2. La configurazione CORS in `EventForge.Server/Program.cs`
 
 ## 🎯 Prima Configurazione
 
@@ -197,11 +248,20 @@ dotnet ef database update --project EventForge.Server
 ```
 
 ### Port Conflicts
+Se le porte predefinite (7241/7240) sono già in uso:
+
+**Opzione 1 - Modifica launchSettings.json:**
 ```bash
-# Cambia porte in launchSettings.json
-# O usa porte diverse:
-dotnet run --project EventForge.Server --urls "https://localhost:7002"
+# Edita EventForge.Server/Properties/launchSettings.json
+# Cambia applicationUrl con le tue porte
 ```
+
+**Opzione 2 - Usa parametro da riga di comando:**
+```bash
+dotnet run --project EventForge.Server --urls "https://localhost:TUA_PORTA"
+```
+
+**Importante:** Ricorda di aggiornare anche il file `EventForge.Client/wwwroot/appsettings.json` con la nuova porta del server!
 
 ### Permission Issues
 - Verifica ruoli utente nel database

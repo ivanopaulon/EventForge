@@ -203,7 +203,78 @@ Always provide translated tooltips for better accessibility:
 1. **Prerequisites**: .NET 8.0 SDK
 2. **Build**: `dotnet build`
 3. **Run**: `dotnet run --project EventForge.Server`
-4. **Browse**: Navigate to the displayed localhost URL
+4. **Browse**: Navigate to `https://localhost:7241` (HTTPS) or `http://localhost:7240` (HTTP)
+
+### Configurazione Porte Server
+
+Il server EventForge è configurato per ascoltare su:
+- **HTTPS**: `https://localhost:7241` (porta predefinita)
+- **HTTP**: `http://localhost:7240` (porta predefinita)
+
+#### Modifica Porte in Sviluppo
+
+Per modificare le porte durante lo sviluppo locale, edita il file `EventForge.Server/Properties/launchSettings.json`:
+
+```json
+{
+  "profiles": {
+    "https": {
+      "applicationUrl": "https://localhost:TUA_PORTA_HTTPS;http://localhost:TUA_PORTA_HTTP"
+    }
+  }
+}
+```
+
+#### Configurazione Porte in Produzione/IIS
+
+Per configurare le porte in produzione o con IIS, utilizza una delle seguenti opzioni:
+
+**Opzione 1 - Variabile d'ambiente:**
+```bash
+# Linux/macOS
+export ASPNETCORE_URLS="https://localhost:7241;http://localhost:7240"
+
+# Windows PowerShell
+$env:ASPNETCORE_URLS="https://localhost:7241;http://localhost:7240"
+
+# Windows CMD
+set ASPNETCORE_URLS=https://localhost:7241;http://localhost:7240
+```
+
+**Opzione 2 - Parametro da riga di comando:**
+```bash
+dotnet run --project EventForge.Server --urls "https://localhost:7241;http://localhost:7240"
+```
+
+**Opzione 3 - Configurazione IIS:**
+IIS gestisce automaticamente le porte tramite i binding configurati nel sito web. ASP.NET Core riceve le informazioni sulla porta da IIS e non richiede configurazione aggiuntiva nel codice.
+
+#### Configurazione Porte Client
+
+Il client Blazor WebAssembly è configurato per comunicare con il server tramite il file `EventForge.Client/wwwroot/appsettings.json`:
+
+```json
+{
+  "ApiSettings": {
+    "BaseUrl": "https://localhost:7241/"
+  }
+}
+```
+
+Per modificare la porta API del client:
+1. Edita `EventForge.Client/wwwroot/appsettings.json` (o il file specifico per ambiente)
+2. Cambia il valore di `ApiSettings:BaseUrl` con la nuova porta
+3. Ricompila il progetto client
+
+**File di configurazione disponibili:**
+- `appsettings.json` - configurazione base
+- `appsettings.Development.json` - sovrascrive le impostazioni in sviluppo
+- `appsettings.Production.json` - sovrascrive le impostazioni in produzione
+
+**Note importanti:**
+- Se modifichi la porta del server, aggiorna anche `appsettings.json` del client
+- Se modifichi la porta del server, aggiorna anche la configurazione CORS in `EventForge.Server/Program.cs`
+- Per retrocompatibilità, è disponibile il profilo "Legacy" con le porte `7001` (HTTPS) e `5000` (HTTP)
 
 ## 🔍 Route Conflict Detection & Swagger Maintenance
 
