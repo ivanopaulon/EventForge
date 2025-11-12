@@ -59,26 +59,32 @@
     <script>
         // Dynamic loader for QZ Tray - gracefully handles CDN unavailability
         // Related issue: Make QZ Tray loading resilient and non-blocking
+        // Loads qz-setup.js after QZ Tray library is loaded or failed to avoid race conditions
         (function() {
-            var script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/qz-tray@2.1.0/dist/qz-tray.js';
-            script.async = false; // Load synchronously to ensure it's available before qz-setup.js
+            var qzScript = document.createElement('script');
+            qzScript.src = 'https://cdn.jsdelivr.net/npm/qz-tray@2.1.0/dist/qz-tray.js';
             
-            script.onload = function() {
+            // Helper function to load qz-setup.js after QZ Tray library attempt
+            function loadQzSetup() {
+                var setupScript = document.createElement('script');
+                setupScript.src = 'js/qz-setup.js';
+                document.head.appendChild(setupScript);
+            }
+            
+            qzScript.onload = function() {
                 console.info('QZ Tray caricato correttamente dal CDN');
+                loadQzSetup();
             };
             
-            script.onerror = function() {
+            qzScript.onerror = function() {
                 console.warn('QZ Tray non disponibile dal CDN - le funzionalità di stampa saranno disabilitate');
                 window.qzLoadFailed = true;
+                loadQzSetup(); // Load setup script anyway for graceful degradation
             };
             
-            document.head.appendChild(script);
+            document.head.appendChild(qzScript);
         })();
     </script>
-    
-    <!-- QZ Tray setup helper -->
-    <script src="js/qz-setup.js"></script>
     
     <!-- Application scripts -->
     <script src="js/help-system.js"></script>
