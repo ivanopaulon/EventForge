@@ -33,8 +33,18 @@
         }
 
         // Check if QZ Tray library is available (graceful degradation)
-        if (typeof qz === 'undefined' || !qz.api) {
+        if (typeof qz === 'undefined') {
             console.warn('QZ Tray non disponibile - inizializzazione saltata. Le funzionalità di stampa saranno disabilitate.');
+            return Promise.resolve();
+        }
+
+        // Detect QZ Tray version and API structure
+        // QZ Tray 2.1.x uses qz.api.setCertificatePromise
+        // QZ Tray 2.2.x+ uses qz.security.setCertificatePromise
+        const securityApi = qz.security || qz.api;
+        
+        if (!securityApi || typeof securityApi.setCertificatePromise !== 'function') {
+            console.warn('QZ Tray API non compatibile - inizializzazione saltata. Le funzionalità di stampa saranno disabilitate.');
             return Promise.resolve();
         }
 
@@ -78,35 +88,41 @@
         }
 
         // Set certificate promise to fetch from server endpoint
-        qz.api.setCertificatePromise(function() {
+        securityApi.setCertificatePromise(function(resolve, reject) {
             const headers = {
                 ...getAuthHeaders()
             };
 
-            return fetch(`${baseUrl}/api/printing/qz/certificate`, {
+            fetch(`${baseUrl}/api/printing/qz/certificate`, {
                 method: 'GET',
                 credentials: 'include', // Send cookies for authentication
                 headers: headers
             })
             .then(handleResponse)
-            .then(response => response.text());
+            .then(response => response.text())
+            .then(resolve)
+            .catch(reject);
         });
 
         // Set signature promise to POST challenge to server endpoint
-        qz.api.setSignaturePromise(function(toSign) {
-            const headers = {
-                'Content-Type': 'text/plain',
-                ...getAuthHeaders()
-            };
+        securityApi.setSignaturePromise(function(toSign) {
+            return function(resolve, reject) {
+                const headers = {
+                    'Content-Type': 'text/plain',
+                    ...getAuthHeaders()
+                };
 
-            return fetch(`${baseUrl}/api/printing/qz/sign`, {
-                method: 'POST',
-                credentials: 'include', // Send cookies for authentication
-                headers: headers,
-                body: toSign
-            })
-            .then(handleResponse)
-            .then(response => response.text());
+                fetch(`${baseUrl}/api/printing/qz/sign`, {
+                    method: 'POST',
+                    credentials: 'include', // Send cookies for authentication
+                    headers: headers,
+                    body: toSign
+                })
+                .then(handleResponse)
+                .then(response => response.text())
+                .then(resolve)
+                .catch(reject);
+            };
         });
 
         console.info('QZ Tray configurato correttamente per base URL:', baseUrl);
