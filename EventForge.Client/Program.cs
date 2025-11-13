@@ -63,6 +63,7 @@ builder.Services.AddScoped<IHttpClientService, HttpClientService>();
 // Add custom services
 builder.Services.AddScoped<IHealthService, HealthService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAuthenticationDialogService, AuthenticationDialogService>();
 builder.Services.AddScoped<SignalRService>();
 builder.Services.AddScoped<IPerformanceOptimizationService, PerformanceOptimizationService>();
 builder.Services.AddScoped<OptimizedSignalRService>();

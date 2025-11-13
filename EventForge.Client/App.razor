@@ -8,6 +8,7 @@
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject IServiceProvider ServiceProvider
+@inject IDialogService DialogService
 @implements IDisposable
 
 <MudThemeProvider />
@@ -36,7 +37,7 @@
                                         <MudButton Variant="Variant.Filled" 
                                                    Color="Color.Primary" 
                                                    StartIcon="Icons.Material.Filled.Login"
-                                                   OnClick="@(() => NavigationManager.NavigateTo("/login"))">
+                                                   OnClick="@ShowLoginDialog">
                                             Go to Login
                                         </MudButton>
                                     </div>
@@ -64,7 +65,7 @@
                                     <MudButton Variant="Variant.Filled" 
                                                Color="Color.Primary" 
                                                StartIcon="Icons.Material.Filled.Home"
-                                               OnClick="@(() => NavigationManager.NavigateTo("/login"))">
+                                               OnClick="@ShowLoginDialog">
                                         Return to Login
                                     </MudButton>
                                 </div>
@@ -98,14 +99,35 @@
         var isAuthenticated = await AuthService.IsAuthenticatedAsync();
         var currentUri = NavigationManager.Uri;
         
-        // Redirect to login if not authenticated and not already on login page
+        // Show login dialog if not authenticated and not already on login page
         // This ensures all pages except login require authentication
         if (!isAuthenticated && !currentUri.Contains("/login"))
         {
-            await InvokeAsync(() => NavigationManager.NavigateTo("/login"));
+            await InvokeAsync(ShowLoginDialog);
         }
         
         Console.WriteLine($"Auth state changed - Authenticated: {isAuthenticated}, URI: {currentUri}");
+    }
+
+    private async Task ShowLoginDialog()
+    {
+        var options = new DialogOptions 
+        { 
+            CloseButton = false,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            BackdropClick = false,
+            NoHeader = false
+        };
+
+        var dialog = await DialogService.ShowAsync<Shared.Components.Dialogs.LoginDialog>("", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            // Refresh the page state after successful login
+            StateHasChanged();
+        }
     }
 
     public void Dispose()
