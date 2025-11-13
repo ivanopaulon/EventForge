@@ -15,13 +15,9 @@
         </MudStack>
     </TitleContent>
     <DialogContent>
-        @if (_isLoading)
-        {
-            <MudProgressLinear Color="Color.Primary"
-                               Indeterminate="true"
-                               Class="mb-3"
-                               aria-label="Accesso in corso" />
-        }
+        <PageLoadingOverlay IsVisible="_isLoading"
+                            Message="@TranslationService.GetTranslation("auth.loginInProgress", "Logging in...")" />
+
 
         <MudForm @ref="form"
                  @bind-IsValid="@_isFormValid"
@@ -96,18 +92,7 @@
                    OnClick="HandleLogin"
                    Disabled="@(!_isFormValid || _isLoading)"
                    aria-label="Accedi al sistema">
-            @if (_isLoading)
-            {
-                <MudProgressCircular Class="ms-n1"
-                                     Size="Size.Small"
-                                     Indeterminate="true"
-                                     aria-hidden="true" />
-                <MudText Class="ms-2">@TranslationService.GetTranslation("auth.loginInProgress", "Logging in...")</MudText>
-            }
-            else
-            {
-                @TranslationService.GetTranslation("auth.login", "Login")
-            }
+            @TranslationService.GetTranslation("auth.login", "Login")
         </MudButton>
     </DialogActions>
 </MudDialog>

@@ -17,10 +17,8 @@
         </MudText>
     </TitleContent>
     <DialogContent>
-        @if (_isLoading)
-        {
-            <MudProgressLinear Indeterminate="true" Class="mb-4" />
-        }
+        <PageLoadingOverlay IsVisible="_isLoading"
+                            Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
         <MudAlert Severity="Severity.Info" Class="mb-4">
             @TranslationService.GetTranslation("warehouse.advancedQuickCreateHint", "Crea un prodotto con codici a barre e unità di misura alternative in un'unica operazione.")

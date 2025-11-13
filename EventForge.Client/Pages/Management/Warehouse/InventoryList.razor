@@ -13,6 +13,8 @@
 @inject IDialogService DialogService
 
 <PageTitle>@TranslationService.GetTranslation("warehouse.inventoryDocuments", "Documenti di Inventario")</PageTitle>
+<PageLoadingOverlay IsVisible="_isLoading"
+                    Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudGrid Class="mb-4">
@@ -45,11 +47,6 @@
             </MudStack>
         </MudItem>
     </MudGrid>
-
-    @if (_isLoading)
-    {
-        <MudProgressLinear Indeterminate="true" Class="mb-4" />
-    }
 
     <MudCard Elevation="2">
         <MudCardHeader>

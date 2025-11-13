@@ -13,10 +13,8 @@
         </MudText>
     </TitleContent>
     <DialogContent>
-        @if (_isLoading)
-        {
-            <MudProgressLinear Indeterminate="true" Class="mb-4" />
-        }
+        <PageLoadingOverlay IsVisible="_isLoading"
+                            Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
         <MudText Typo="Typo.body1" Class="mb-3">
             @TranslationService.GetTranslation("warehouse.searchOrCreatePrompt", "Cerca un prodotto esistente per assegnare questo codice, oppure crea un nuovo prodotto.")

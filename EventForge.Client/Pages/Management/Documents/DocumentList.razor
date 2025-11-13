@@ -33,10 +33,9 @@
         </MudItem>
     </MudGrid>
 
-    @if (_isLoading)
-    {
-        <MudProgressLinear Indeterminate="true" Class="mb-4" />
-    }
+    <PageLoadingOverlay IsVisible="_isLoading"
+                        Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+
 
     <!-- Filters -->
     <MudPaper Elevation="2" Class="pa-4 mb-4">

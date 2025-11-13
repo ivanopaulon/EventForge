@@ -18,6 +18,8 @@
 @inject IInventorySessionService InventorySessionService
 
 <PageTitle>@TranslationService.GetTranslation("warehouse.inventoryProcedure", "Procedura Inventario")</PageTitle>
+<PageLoadingOverlay IsVisible="_isLoading"
+                    Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4 px-0" Style="width:100%; min-height:100vh; display:flex; flex-direction:column;">
     <MudGrid Class="mb-4">
@@ -44,11 +46,6 @@
             </MudStack>
         </MudItem>
     </MudGrid>
-
-    @if (_isLoading)
-    {
-        <MudProgressLinear Indeterminate="true" Class="mb-4" />
-    }
 
     <!-- Session Status Banner with Enhanced Statistics -->
     @if (_currentDocument != null)

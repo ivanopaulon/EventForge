@@ -51,11 +51,8 @@
         </MudItem>
     </MudGrid>
 
-    @if (_isLoading)
-    {
-        <MudProgressLinear Indeterminate="true" Class="mb-4" />
-    }
-
+    <PageLoadingOverlay IsVisible="_isLoading"
+                        Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
     <!-- Inventory Header Component (session banner, stats, confirmations) -->
     <FastInventoryHeader 
         CurrentDocument="@_currentDocument"
