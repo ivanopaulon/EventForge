@@ -2,7 +2,7 @@
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize]
 @inject IAuthService AuthService
-@inject NavigationManager NavigationManager
+@inject IAuthenticationDialogService AuthenticationDialogService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
 
@@ -27,7 +27,7 @@ else if (!_isAuthenticated)
                         <MudButton Variant="Variant.Filled" 
                                    Color="Color.Primary" 
                                    StartIcon="Icons.Material.Filled.Login"
-                                   OnClick="@(() => NavigationManager.NavigateTo("/login"))">
+                                   OnClick="ShowLoginDialog">
                             @TranslationService.GetTranslation("auth.goToLogin", "Go to Login")
                         </MudButton>
                     </div>
@@ -132,6 +132,10 @@ else
             {
                 _currentUser = await AuthService.GetCurrentUserAsync();
             }
+            else
+            {
+                await ShowLoginDialog();
+            }
         }
         catch (Exception ex)
         {
@@ -140,6 +144,16 @@ else
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    private async Task ShowLoginDialog()
+    {
+        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+        if (result)
+        {
+            // Reload the page after successful login
+            await OnInitializedAsync();
         }
     }
 
