@@ -3,6 +3,7 @@
 @inject IAuthService AuthService
 @inject IThemeService ThemeService
 @inject NavigationManager NavigationManager
+@inject IAuthenticationDialogService AuthenticationDialogService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
 @implements IDisposable
@@ -44,7 +45,7 @@
             <MudButton Variant="Variant.Text" 
                        Color="Color.Inherit" 
                        StartIcon="Icons.Material.Filled.Login"
-                       OnClick="@(() => NavigationManager.NavigateTo("/login"))"
+                       OnClick="@ShowLoginDialogAsync"
                        aria-label="@TranslationService.GetTranslation("auth.loginDescription", "Login to system")">
                 @TranslationService.GetTranslation("auth.login", "Login")
             </MudButton>
@@ -267,6 +268,16 @@
         // This method is called from UserAccountMenu component
         // Default behavior is handled by the component itself
         await Task.CompletedTask;
+    }
+
+    private async Task ShowLoginDialogAsync()
+    {
+        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+        if (result)
+        {
+            // Reload authentication state after successful login
+            await CheckAuthenticationState();
+        }
     }
 
     public void Dispose()

@@ -1,6 +1,7 @@
 @using EventForge.DTOs.Auth
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
+@inject IAuthenticationDialogService AuthenticationDialogService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
 @inject IThemeService ThemeService
@@ -222,8 +223,8 @@
             }
             else
             {
-                // Default behavior: navigate to login
-                NavigationManager.NavigateTo("/login");
+                // Default behavior: show login dialog
+                await ShowLoginDialogAsync();
             }
         }
         catch (Exception ex)
@@ -355,6 +356,17 @@
         catch (Exception ex)
         {
             Snackbar.Add(TranslationService.GetTranslation("language.changeError", "Error changing language: {0}", ex.Message), Severity.Error);
+        }
+    }
+
+    private async Task ShowLoginDialogAsync()
+    {
+        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+        if (result)
+        {
+            // Reload current user after successful login
+            _currentUser = await AuthService.GetCurrentUserAsync();
+            StateHasChanged();
         }
     }
 

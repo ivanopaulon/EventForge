@@ -6,6 +6,7 @@
 @inject IAuthService AuthService
 @inject IEntityManagementService EntityManagementService
 @inject NavigationManager NavigationManager
+@inject IAuthenticationDialogService AuthenticationDialogService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
@@ -226,7 +227,7 @@
         {
             if (!await AuthService.IsAuthenticatedAsync())
             {
-                NavigationManager.NavigateTo("/login");
+                await ShowLoginDialogAsync();
                 return;
             }
             await LoadNodesAsync();
@@ -589,6 +590,16 @@
                     "Errore nell'eliminazione dei nodi: {0}", ex.Message), Severity.Error);
                 Logger.LogError(ex, "Error deleting selected classification nodes");
             }
+        }
+    }
+
+    private async Task ShowLoginDialogAsync()
+    {
+        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+        if (result)
+        {
+            // Reload the page after successful login
+            await OnInitializedAsync();
         }
     }
 }
