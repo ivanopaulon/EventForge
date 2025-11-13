@@ -2,7 +2,7 @@
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "Admin,SuperAdmin")]
 @inject IAuthService AuthService
-@inject NavigationManager NavigationManager
+@inject IAuthenticationDialogService AuthenticationDialogService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
 
@@ -27,7 +27,7 @@ else if (!_isAuthorized)
                         <MudButton Variant="Variant.Filled" 
                                    Color="Color.Primary" 
                                    StartIcon="Icons.Material.Filled.ArrowBack"
-                                   OnClick="@(() => NavigationManager.NavigateTo("/login"))">
+                                   OnClick="ShowLoginDialog">
                             @TranslationService.GetTranslation("common.returnToLogin", "Return to Login")
                         </MudButton>
                     </div>
@@ -161,7 +161,7 @@ else
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
             if (!isAuthenticated)
             {
-                NavigationManager.NavigateTo("/login");
+                await ShowLoginDialog();
                 return;
             }
 
@@ -182,11 +182,21 @@ else
         catch (Exception ex)
         {
             Snackbar.Add(TranslationService.GetTranslation("admin.loadError", "Error loading admin page: {0}", ex.Message), Severity.Error);
-            NavigationManager.NavigateTo("/login");
+            await ShowLoginDialog();
         }
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    private async Task ShowLoginDialog()
+    {
+        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+        if (result)
+        {
+            // Reload the page after successful login
+            await OnInitializedAsync();
         }
     }
 }
