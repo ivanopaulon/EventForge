@@ -7,6 +7,7 @@
 @inject IAuthService AuthService
 @inject IWarehouseService WarehouseService
 @inject NavigationManager NavigationManager
+@inject IAuthenticationDialogService AuthenticationDialogService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
@@ -240,7 +241,7 @@
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
             if (!isAuthenticated)
             {
-                NavigationManager.NavigateTo("/login");
+                await ShowLoginDialogAsync();
                 return;
             }
 
@@ -483,6 +484,16 @@
                     "Errore nell'eliminazione dei magazzini: {0}", ex.Message), Severity.Error);
                 Logger.LogError(ex, "Error deleting selected storage facilities");
             }
+        }
+    }
+
+    private async Task ShowLoginDialogAsync()
+    {
+        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+        if (result)
+        {
+            // Reload the page after successful login
+            await OnInitializedAsync();
         }
     }
 }

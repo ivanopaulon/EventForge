@@ -7,6 +7,7 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
 @inject IAuthService AuthService
+@inject IAuthenticationDialogService AuthenticationDialogService
 @attribute [Authorize(Roles = "SuperAdmin")]
 
 <PageTitle>@TranslationService.GetTranslation("superAdmin.pageTitle", "{0} - EventForge Super Admin", TranslationService.GetTranslation("superAdmin.translationManagement", "Translation Management"))</PageTitle>
@@ -287,7 +288,7 @@ else
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
             if (!isAuthenticated)
             {
-                Navigation.NavigateTo("/login");
+                await ShowLoginDialogAsync();
                 return;
             }
 
@@ -452,5 +453,15 @@ else
         }
 
         return mockData.OrderBy(t => t.Language).ThenBy(t => t.Key).ToList();
+    }
+
+    private async Task ShowLoginDialogAsync()
+    {
+        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+        if (result)
+        {
+            // Reload the page after successful login
+            await OnInitializedAsync();
+        }
     }
 }

@@ -6,6 +6,7 @@
 @inject IAuthService AuthService
 @inject ILogsService LogsService
 @inject NavigationManager NavigationManager
+@inject IAuthenticationDialogService AuthenticationDialogService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
@@ -265,7 +266,7 @@
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
             if (!isAuthenticated)
             {
-                NavigationManager.NavigateTo("/login");
+                await ShowLoginDialogAsync();
                 return;
             }
 
@@ -320,5 +321,15 @@
     {
         // Feature under development
         Snackbar.Add(TranslationService.GetTranslation("superAdmin.featureInDevelopment", "Funzionalità in sviluppo"), Severity.Info);
+    }
+
+    private async Task ShowLoginDialogAsync()
+    {
+        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+        if (result)
+        {
+            // Reload the page after successful login
+            await OnInitializedAsync();
+        }
     }
 }
