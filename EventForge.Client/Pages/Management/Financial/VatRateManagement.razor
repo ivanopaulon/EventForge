@@ -20,87 +20,69 @@
     @if (!_isLoading)
     {
         <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4">
-            <div class="d-flex justify-space-between align-center mb-4">
-                <div>
-                    <MudText Typo="Typo.h4">
-                        <MudIcon Icon="@Icons.Material.Outlined.Percent" Class="mr-2" />
-                        @TranslationService.GetTranslation("financial.vatRateManagement", "Gestione Aliquote IVA")
-                    </MudText>
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
-                        @TranslationService.GetTranslation("financial.vatRateManagementDescription", "Gestisci le aliquote IVA per la tua organizzazione")
-                    </MudText>
-                </div>
-            </div>
-
-            <!-- Filters Section -->
-            <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
-                <div class="d-flex gap-3 align-center flex-wrap">
-                    <MudTextField @bind-Value="_searchTerm"
-                                  @bind-Value:after="OnSearchChanged"
-                                  Label="@TranslationService.GetTranslation("financial.searchVatRates", "Cerca aliquote IVA")"
-                                  Placeholder="@TranslationService.GetTranslation("financial.searchPlaceholder", "Inserisci nome...")"
-                                  Variant="Variant.Outlined"
-                                  Adornment="Adornment.End"
-                                  AdornmentIcon="@Icons.Material.Outlined.Search"
-                                  Clearable="true"
-                                  Style="flex:2;" />
-                    <MudSelect T="string" @bind-Value="_statusFilter" @bind-Value:after="OnStatusFilterChanged" 
-                               Label="@TranslationService.GetTranslation("field.status", "Stato")" 
-                               Placeholder="@TranslationService.GetTranslation("financial.selectStatus", "Seleziona stato...")"
-                               Variant="Variant.Outlined"
-                               Clearable="true"
-                               Style="flex:1;">
-                        <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
-                        <MudSelectItem Value="@("active")">@TranslationService.GetTranslation("field.active", "Attivo")</MudSelectItem>
-                        <MudSelectItem Value="@("suspended")">@TranslationService.GetTranslation("field.suspended", "Sospeso")</MudSelectItem>
-                        <MudSelectItem Value="@("deleted")">@TranslationService.GetTranslation("field.deleted", "Eliminato")</MudSelectItem>
-                    </MudSelect>
-                </div>
-            </MudPaper>
-
-            <!-- VAT Rates Data Table -->
-            <MudPaper Elevation="1" Class="border-rounded">
-                <div class="pa-2">
-                    <MudText Typo="Typo.h6" Class="mb-2">
-                        <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
-                        @TranslationService.GetTranslation("financial.vatRateList", "Lista Aliquote IVA")
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
-                            (@_filteredVatRates.Count() @TranslationService.GetTranslation("financial.itemsFound", "elementi trovati"))
+            <MudTable T="VatRateDto" 
+                      Items="_filteredVatRates"
+                      MultiSelection="true"
+                      @bind-SelectedItems="_selectedVatRates"
+                      Hover="true" 
+                      Striped="true"
+                      SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
+                      AllowUnsorted="false"
+                      Dense="false"
+                      Breakpoint="Breakpoint.Sm">
+                <ToolBarContent>
+                    <!-- Title and Description -->
+                    <div class="d-flex flex-column mb-4" style="width: 100%;">
+                        <MudText Typo="Typo.h4">
+                            <MudIcon Icon="@Icons.Material.Outlined.Percent" Class="mr-2" />
+                            @TranslationService.GetTranslation("financial.vatRateManagement", "Gestione Aliquote IVA")
                         </MudText>
-                    </MudText>
-                    
-                    <ManagementTableToolbar ShowSelectionBadge="true"
-                                            SelectedCount="@_selectedVatRates.Count"
-                                            ShowRefresh="true"
-                                            ShowCreate="true"
-                                            ShowDelete="true"
-                                            CreateLabel="financial.createVatRate"
-                                            CreateTooltip="financial.createNewVatRate"
-                                            IsDisabled="_isLoadingVatRates"
-                                            OnRefresh="@LoadVatRatesAsync"
-                                            OnCreate="@CreateVatRate"
-                                            OnDelete="@DeleteSelectedVatRates" />
-                </div>
-                <MudCardContent Class="pa-1">
-                    @if (_isLoadingVatRates)
-                    {
-                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
-                    }
-                    else
-                    {
-                        <MudTable T="VatRateDto" 
-                                  Items="_filteredVatRates"
-                                  MultiSelection="true"
-                                  @bind-SelectedItems="_selectedVatRates"
-                                  Hover="true" 
-                                  Striped="true"
-                                  Loading="_isLoadingVatRates"
-                                  LoadingProgressColor="Color.Info"
-                                  SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
-                                  AllowUnsorted="false"
-                                  Dense="false"
-                                  Breakpoint="Breakpoint.Sm">
-                            <HeaderContent>
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+                            @TranslationService.GetTranslation("financial.vatRateManagementDescription", "Gestisci le aliquote IVA per la tua organizzazione")
+                        </MudText>
+                    </div>
+
+                    <!-- Filters Section -->
+                    <div class="d-flex gap-3 align-center flex-wrap mb-4" style="width: 100%;">
+                        <MudTextField @bind-Value="_searchTerm"
+                                      @bind-Value:after="OnSearchChanged"
+                                      Label="@TranslationService.GetTranslation("financial.searchVatRates", "Cerca aliquote IVA")"
+                                      Placeholder="@TranslationService.GetTranslation("financial.searchPlaceholder", "Inserisci nome...")"
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="@Icons.Material.Outlined.Search"
+                                      Clearable="true"
+                                      Style="flex:2;" />
+                        <MudSelect T="string" @bind-Value="_statusFilter" @bind-Value:after="OnStatusFilterChanged" 
+                                   Label="@TranslationService.GetTranslation("field.status", "Stato")" 
+                                   Placeholder="@TranslationService.GetTranslation("financial.selectStatus", "Seleziona stato...")"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   Style="flex:1;">
+                            <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
+                            <MudSelectItem Value="@("active")">@TranslationService.GetTranslation("field.active", "Attivo")</MudSelectItem>
+                            <MudSelectItem Value="@("suspended")">@TranslationService.GetTranslation("field.suspended", "Sospeso")</MudSelectItem>
+                            <MudSelectItem Value="@("deleted")">@TranslationService.GetTranslation("field.deleted", "Eliminato")</MudSelectItem>
+                        </MudSelect>
+                    </div>
+
+                    <!-- Toolbar Actions -->
+                    <div style="width: 100%;">
+                        <ManagementTableToolbar ShowSelectionBadge="true"
+                                                SelectedCount="@_selectedVatRates.Count"
+                                                ShowRefresh="true"
+                                                ShowCreate="true"
+                                                ShowDelete="true"
+                                                IconButtonsOnly="true"
+                                                CreateLabel="financial.createVatRate"
+                                                CreateTooltip="financial.createNewVatRate"
+                                                IsDisabled="_isLoadingVatRates"
+                                                OnRefresh="@LoadVatRatesAsync"
+                                                OnCreate="@CreateVatRate"
+                                                OnDelete="@DeleteSelectedVatRates" />
+                    </div>
+                </ToolBarContent>
+                <HeaderContent>
                                 <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
                                 <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Percentage))">@TranslationService.GetTranslation("field.percentage", "Percentuale")</MudTableSortLabel></MudTh>
                                 <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Status))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel></MudTh>
@@ -177,9 +159,6 @@
                                 </div>
                             </NoRecordsContent>
                         </MudTable>
-                    }
-                </MudCardContent>
-            </MudPaper>
         </MudPaper>
     }
 </MudContainer>
