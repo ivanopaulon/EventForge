@@ -1,20 +1,32 @@
 /*
- EventForge - MudBlazor Components Stylesheet (Consolidato)
+ EventForge - MudBlazor Components Stylesheet (Consolidated)
  Path: wwwroot/css/components/mud-components.css
  
- Scopo:
- - CENTRALIZZARE TUTTE le personalizzazioni dei componenti MudBlazor
- - Fornire helper classes per allineare al design system
- - Gestire override theme-scoped (carbon-neon-light/dark)
- - Supportare modalità dark, high-contrast e prefers-reduced-motion
- - Migliorare accessibilità, focus management e touch target
+ Purpose:
+ - CENTRALIZE ALL MudBlazor component customizations
+ - Provide helper classes aligned with the design system
+ - Manage theme-scoped overrides (carbon-neon-light/dark)
+ - Support dark mode, high-contrast mode and prefers-reduced-motion
+ - Improve accessibility, focus management and touch targets
  
- Consolidato da:
- - mud-overrides.css (theme-scoped overrides)
- - components.css (LoadingDialog, EnhancedMessage, NotificationCard, etc.)
- - app.css (MudBlazor-specific overrides)
+ Consolidated from:
+ - css/components/mud-overrides.css (theme-scoped button overrides, input focus, table hover)
+ - css/components/components.css (LoadingDialog, InteractiveWalkthrough, LazyAttachment, Login styles)
+ - css/app.css (MudBlazor-specific overrides: table pagination, mobile touch targets, accessibility)
  
- Nota: Il file carbon-neon-theme.css gestisce SOLO le variabili colore del tema.
+ Content Sections:
+ - Height normalization for inputs, selects, buttons
+ - Generic spacing and layout helpers (ef-* classes)
+ - Theme-scoped overrides (carbon-neon button styles)
+ - Input focus outline rules
+ - Table pagination visibility fixes
+ - Accessibility & focus rules (consolidated :focus-visible implementation)
+ - Screen reader support (.sr-only helper)
+ - Mobile touch targets (min 44px)
+ - Component-specific styles (LoadingDialog, Walkthrough, etc.)
+ 
+ Note: The carbon-neon-theme.css file manages ONLY theme color variables.
+       This file manages structural and behavioral MudBlazor overrides.
 */
 
 :root {
@@ -419,12 +431,16 @@ button:disabled,
 }
 
 /* -------------------------
- Focus styles & accessibility helpers
+ Focus styles & accessibility helpers (consolidated from app.css and mud-components.css)
  ------------------------- */
+
+/* Remove default focus outline - use :focus-visible instead for better UX */
 :focus {
     outline: none;
 }
 
+/* Modern focus-visible implementation with consistent box-shadow
+   Applied to MudBlazor buttons and inputs for WCAG 2.1/2.2 compliance */
 :focus-visible,
 .mud-button-root:focus-visible,
 .mud-icon-button:focus-visible,
@@ -433,7 +449,7 @@ button:disabled,
     border-radius: 6px;
 }
 
-/* Visually hidden helper for accessibility */
+/* Visually hidden helper for screen readers (single definition - removed duplicate from app.css) */
 .sr-only {
     position: absolute !important;
     width: 1px !important;

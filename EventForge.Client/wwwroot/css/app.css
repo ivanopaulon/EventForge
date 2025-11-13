@@ -34,18 +34,7 @@ body {
     padding-bottom: 80px; /* Additional padding for content */
 }
 
-/* Accessibility improvements */
-.sr-only {
-    position: absolute !important;
-    width: 1px !important;
-    height: 1px !important;
-    padding: 0 !important;
-    margin: -1px !important;
-    overflow: hidden !important;
-    clip: rect(0, 0, 0, 0) !important;
-    white-space: nowrap !important;
-    border: 0 !important;
-}
+/* Accessibility improvements - .sr-only defined in mud-components.css */
 
 /* Enhanced focus styles for better accessibility */
 .sr-only-focusable:focus {
@@ -61,22 +50,6 @@ body {
     color: var(--button-primary-text) !important;
     text-decoration: none !important;
     border-radius: var(--radius-sm) !important;
-}
-
-/* Focus improvements for better accessibility */
-*:focus {
-    outline: 2px solid var(--form-focus-border) !important;
-    outline-offset: 2px !important;
-}
-
-/* Enhanced focus for interactive elements */
-.mud-button:focus,
-.mud-icon-button:focus,
-.mud-input:focus-within,
-.mud-select:focus-within {
-    outline: 3px solid var(--form-focus-border) !important;
-    outline-offset: 2px !important;
-    box-shadow: 0 0 0 2px var(--background-secondary), 0 0 0 4px var(--form-focus-border) !important;
 }
 
 /* Skip link for keyboard navigation */
