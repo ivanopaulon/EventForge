@@ -22,7 +22,7 @@
    NOTE: Avoid defining colors directly here - use custom theme variables instead.
 */
 
-@import url("./components/components.css");
+
 
 /* Global body padding for universal footer */
 body {
@@ -96,10 +96,7 @@ body {
     top: 0;
 }
 
-/* Improve contrast for disabled elements */
-.mud-disabled {
-    opacity: 0.6 !important;
-}
+
 
 /* Responsive text sizing */
 @media (max-width: 768px) {
@@ -112,25 +109,9 @@ body {
     }
 }
 
-/* Mobile-friendly touch targets */
-@media (max-width: 768px) {
-    .mud-button,
-    .mud-icon-button {
-        min-height: 44px !important;
-        min-width: 44px !important;
-    }
-}
 
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-    .mud-paper {
-        border: 1px solid !important;
-    }
-    
-    .mud-button {
-        border: 1px solid !important;
-    }
-}
+
+
 
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -241,33 +222,7 @@ code {
     border-radius: var(--radius-sm);
 }
 
-/* ===== TABLE PAGINATION VISIBILITY FIX ===== */
-/* 
-   Ensures table pagination controls are always visible
-   with proper contrast and color
-*/
-.mud-table-pagination {
-    color: var(--text-primary) !important;
-}
 
-.mud-table-pagination .mud-table-pagination-caption,
-.mud-table-pagination .mud-select,
-.mud-table-pagination .mud-icon-button {
-    color: var(--text-primary) !important;
-}
-
-.mud-table-pagination .mud-select-input {
-    color: var(--text-primary) !important;
-}
-
-.mud-table-pagination .mud-icon-button {
-    color: var(--primary) !important;
-}
-
-.mud-table-pagination .mud-icon-button.mud-disabled {
-    color: var(--text-disabled) !important;
-    opacity: 0.5;
-}
 
 /* ===== EVENTFORGE COMPACT TILE STYLES ===== */
 /* 
