@@ -3,6 +3,7 @@
 @attribute [Authorize(Roles = "SuperAdmin")]
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
+@inject IAuthenticationDialogService AuthenticationDialogService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
 
@@ -367,7 +368,7 @@ else
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
             if (!isAuthenticated)
             {
-                NavigationManager.NavigateTo("/login");
+                await ShowLoginDialogAsync();
                 return;
             }
 
@@ -428,5 +429,15 @@ else
     {
         // TODO: Implement alert configuration
         Snackbar.Add(TranslationService.GetTranslation("superAdmin.implementSetupAlerts", "TODO: Configurazione alert audit implementata"), Severity.Info);
+    }
+
+    private async Task ShowLoginDialogAsync()
+    {
+        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+        if (result)
+        {
+            // Reload the page after successful login
+            await OnInitializedAsync();
+        }
     }
 }

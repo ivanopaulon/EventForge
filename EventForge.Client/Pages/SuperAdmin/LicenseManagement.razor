@@ -6,6 +6,7 @@
 @inject IAuthService AuthService
 @inject ILicenseService LicenseService
 @inject NavigationManager NavigationManager
+@inject IAuthenticationDialogService AuthenticationDialogService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
@@ -272,7 +273,7 @@
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
             if (!isAuthenticated)
             {
-                NavigationManager.NavigateTo("/login");
+                await ShowLoginDialogAsync();
                 return;
             }
 
@@ -431,5 +432,15 @@
         // TODO: Implement export functionality
         Snackbar.Add(TranslationService.GetTranslation("superAdmin.exportFunctionalityComingSoon", "La funzionalità di esportazione sarà implementata presto."), Severity.Info);
         await Task.CompletedTask;
+    }
+
+    private async Task ShowLoginDialogAsync()
+    {
+        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+        if (result)
+        {
+            // Reload the page after successful login
+            await OnInitializedAsync();
+        }
     }
 }
