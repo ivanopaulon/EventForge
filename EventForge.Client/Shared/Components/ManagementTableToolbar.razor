@@ -18,14 +18,27 @@
             
             @if (ShowDelete && SelectedCount > 0)
             {
-                <MudButton Variant="Variant.Text"
-                           Color="Color.Error"
-                           StartIcon="@Icons.Material.Outlined.Delete"
-                           OnClick="@OnDeleteAsync"
-                           Disabled="@IsDisabled"
-                           Size="Size.Small">
-                    @TranslationService.GetTranslation("button.delete", "Elimina")
-                </MudButton>
+                @if (IconButtonsOnly)
+                {
+                    <MudTooltip Text="@TranslationService.GetTranslation("button.delete", "Elimina")">
+                        <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                                       Color="Color.Error"
+                                       OnClick="@OnDeleteAsync"
+                                       Disabled="@IsDisabled"
+                                       Size="Size.Small" />
+                    </MudTooltip>
+                }
+                else
+                {
+                    <MudButton Variant="Variant.Text"
+                               Color="Color.Error"
+                               StartIcon="@Icons.Material.Outlined.Delete"
+                               OnClick="@OnDeleteAsync"
+                               Disabled="@IsDisabled"
+                               Size="Size.Small">
+                        @TranslationService.GetTranslation("button.delete", "Elimina")
+                    </MudButton>
+                }
             }
         }
     </div>
@@ -45,16 +58,29 @@
         
         @if (ShowCreate)
         {
-            <MudTooltip Text="@TranslationService.GetTranslation(CreateTooltip, "Crea nuovo elemento")">
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           StartIcon="@(string.IsNullOrEmpty(CreateIcon) ? Icons.Material.Outlined.Add : CreateIcon)"
-                           OnClick="@OnCreateAsync"
-                           Disabled="@IsDisabled"
-                           Size="Size.Small">
-                    @TranslationService.GetTranslation(CreateLabel, "Crea")
-                </MudButton>
-            </MudTooltip>
+            @if (IconButtonsOnly)
+            {
+                <MudTooltip Text="@TranslationService.GetTranslation(CreateTooltip, "Crea nuovo elemento")">
+                    <MudIconButton Icon="@(string.IsNullOrEmpty(CreateIcon) ? Icons.Material.Outlined.Add : CreateIcon)"
+                                   Color="Color.Primary"
+                                   OnClick="@OnCreateAsync"
+                                   Disabled="@IsDisabled"
+                                   Size="Size.Small" />
+                </MudTooltip>
+            }
+            else
+            {
+                <MudTooltip Text="@TranslationService.GetTranslation(CreateTooltip, "Crea nuovo elemento")">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@(string.IsNullOrEmpty(CreateIcon) ? Icons.Material.Outlined.Add : CreateIcon)"
+                               OnClick="@OnCreateAsync"
+                               Disabled="@IsDisabled"
+                               Size="Size.Small">
+                        @TranslationService.GetTranslation(CreateLabel, "Crea")
+                    </MudButton>
+                </MudTooltip>
+            }
         }
         
         @if (AdditionalActions != null)
@@ -100,6 +126,13 @@
     /// </summary>
     [Parameter]
     public bool IsDisabled { get; set; } = false;
+    
+    /// <summary>
+    /// When true, renders all buttons as icon-only buttons with tooltips.
+    /// When false (default), maintains existing button style.
+    /// </summary>
+    [Parameter]
+    public bool IconButtonsOnly { get; set; } = false;
     
     /// <summary>
     /// Translation key for the refresh button tooltip.
