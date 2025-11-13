@@ -2,6 +2,7 @@
 @layout LoginLayout
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Tenants
+@using EventForge.Client.Shared.Components
 @attribute [AllowAnonymous]
 @inject IAuthService AuthService
 @inject ISnackbar Snackbar
@@ -11,23 +12,24 @@
 <PageTitle>@TranslationService.GetTranslation("auth.login", "Login") - EventForge</PageTitle>
 
 <MudContainer Fixed>
-    <MudPaper Class="login-paper" Elevation="1" role="main">
+    <!-- Page-level loading overlay -->
+    <PageLoadingOverlay IsVisible="_isLoading"
+                        Message="@TranslationService.GetTranslation("auth.loginInProgress", "Accesso in corso...")" />
+
+    <!-- MudPaper reso invisibile durante il caricamento -->
+    <MudPaper Class="login-paper"
+              Elevation="1"
+              role="main"
+              Style="@PaperStyle"
+              aria-hidden="@_isLoading">
         <MudStack Row>
-            <MudImage Src="/eventforge.ico" Width="32" Height="32" Class="login-favicon"></MudImage>
+            <MudImage Src="/trace.svg" Width="48" Height="48"></MudImage>
             <MudText Typo="Typo.h5"
-                     Align="Align.Center"
-                     Class="mb-3">
+                     Align="Align.Center">
                 @TranslationService.GetTranslation("auth.login", "EventForge Login")
             </MudText>
+            <MudSpacer/>
         </MudStack>
-
-        @if (_isLoading)
-        {
-            <MudProgressLinear Color="Color.Primary"
-                               Indeterminate="true"
-                               Class="mb-3"
-                               aria-label="Accesso in corso" />
-        }
 
         <!-- Compact login form with improved accessibility -->
         <MudForm @ref="form"
@@ -160,13 +162,17 @@
     private List<TenantResponseDto> _tenants = new();
     private string? _selectedTenantId;
 
+    // Style per nascondere il MudPaper quando _isLoading è true.
+    // Uso visibility:hidden invece di display:none per mantenere layout e ridurre flicker.
+    private string PaperStyle => _isLoading ? "visibility:hidden;pointer-events:none;" : string.Empty;
+
     protected override async Task OnInitializedAsync()
     {
         // Load available tenants for selection (call should be lightweight, cached by browser/service if needed)
         await LoadTenantsAsync();
 
         // Check if already authenticated (kept as before)
-        try 
+        try
         {
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
             if (isAuthenticated)
@@ -226,6 +232,8 @@
         _loginRequest.TenantCode = _selectedTenantId;
 
         _isLoading = true;
+        StateHasChanged(); // forza render dell'overlay e della paper-style immediatamente
+
         try
         {
             var result = await AuthService.LoginAsync(_loginRequest);
@@ -248,6 +256,7 @@
         finally
         {
             _isLoading = false;
+            StateHasChanged();
         }
     }
 }

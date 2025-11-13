@@ -2,45 +2,99 @@
 
 @if (IsVisible)
 {
- <div class="page-loading-overlay" role="status" aria-live="polite" aria-label="Caricamento in corso">
- <div class="page-loading-content">
- <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
- @if (!string.IsNullOrEmpty(Message))
- {
- <MudText Typo="Typo.body1" Class="mt-3 mud-text-secondary">@Message</MudText>
- }
- </div>
- </div>
+    <MudOverlay @bind-Visible="IsVisible" DarkBackground AutoClose="false">
+        <MudStack AlignItems="AlignItems.Center">
+            <MudImage Src="@IconPath" Width="@Size" Height="@Size" Class="anim-pulse"></MudImage>
+            <MudText Typo="Typo.h3" Style="color:white; font-weight:bold">
+                EventForge
+            </MudText>
+            @if (!string.IsNullOrEmpty(Message))
+            {
+                <MudText Typo="Typo.h5" Style="color:white; font-weight:bold">@Message</MudText>
+            }
+        </MudStack>
+    </MudOverlay>
+
 }
 
 @code {
- [Parameter] public bool IsVisible { get; set; }
- [Parameter] public string? Message { get; set; }
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public string? Message { get; set; }
+
+    // New customizable parameters
+    [Parameter] public string IconPath { get; set; } = "trace.svg"; // put in wwwroot
+    [Parameter] public int Size { get; set; } = 256; // px
+    [Parameter] public LoadingAnimationType Animation { get; set; } = LoadingAnimationType.Blink;
+
+    private string AnimationClass => Animation switch
+    {
+        LoadingAnimationType.Blink => "anim-blink",
+        LoadingAnimationType.Pulse => "anim-pulse",
+        LoadingAnimationType.None => string.Empty,
+        _ => "anim-blink"
+    };
+
+    public enum LoadingAnimationType
+    {
+        Blink,
+        Pulse,
+        None
+    }
 }
 
 <style>
-.page-loading-overlay {
- position: fixed;
- inset:0;
- background: rgba(0,0,0,0.35);
- display: flex;
- align-items: center;
- justify-content: center;
- z-index:9998; /* below dialogs but above page content */
-}
+    .page-loading-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9998; /* below dialogs but above page content */
+    }
 
-.page-loading-content {
- display: flex;
- flex-direction: column;
- align-items: center;
- justify-content: center;
- gap:8px;
- padding: 16px 24px;
- border-radius:8px;
- backdrop-filter: blur(2px);
-}
+    .page-loading-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 16px 24px;
+        border-radius: 8px;
+        backdrop-filter: blur(2px);
+    }
 
-@@media (prefers-reduced-motion: reduce) {
- .page-loading-content { transition: none; }
-}
+    .loading-icon {
+        display: block;
+        object-fit: contain;
+    }
+
+    /* Blink animation: quick on/off visibility */
+    .anim-blink {
+        animation: blink 1.2s infinite ease-in-out;
+    }
+
+    @@keyframes blink {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.15; transform: scale(0.98); }
+    }
+
+    /* Pulse animation: soft scale + glow */
+    .anim-pulse {
+        animation: pulse 1.6s infinite ease-in-out;
+        filter: drop-shadow(0 0 6px rgba(0,0,0,0.15));
+    }
+
+    @@keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.06); opacity: 0.9; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .anim-blink, .anim-pulse {
+            animation: none !important;
+            transition: none !important;
+        }
+    }
 </style>

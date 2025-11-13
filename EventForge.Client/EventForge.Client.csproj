@@ -26,9 +26,6 @@
     <Content Update="wwwroot\EventForge.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Update="wwwroot\favicon.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <Content Update="wwwroot\trace.svg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
