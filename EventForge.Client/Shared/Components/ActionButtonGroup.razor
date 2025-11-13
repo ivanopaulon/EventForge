@@ -2,7 +2,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
-<!-- 
+<!--
     Consolidated ActionButtonGroup Component
     Replaces ActionToolbar, SuperAdminRowActions, and SuperAdminToolbar
     Provides a flexible, reusable component for all action button scenarios
@@ -47,6 +47,7 @@
 {
     <MudTooltip Text="@TranslationService.GetTranslation("tooltip.edit", "Modifica")">
         <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                       OnClick="@OnEditAsync"
                        Disabled="@IsDisabled"
                        Class="ef-row-actionbutton"
                        data-action="edit"
@@ -166,7 +167,7 @@
     private string GetContainerClass()
     {
         var classes = new List<string> { "action-button-group" };
-        
+
         switch (Mode)
         {
             case ActionButtonGroupMode.Row:
@@ -179,7 +180,7 @@
                 classes.Add("d-flex flex-column gap-1");
                 break;
         }
-        
+
         return string.Join(" ", classes);
     }
 
@@ -251,13 +252,13 @@
 
     private async Task<bool> ShowDeleteConfirmationAsync()
     {
-        var title = DeleteConfirmationTitle ?? 
+        var title = DeleteConfirmationTitle ??
                    TranslationService.GetTranslation("dialog.confirmDelete", "Conferma Eliminazione");
-        
-        var message = DeleteConfirmationMessage ?? 
+
+        var message = DeleteConfirmationMessage ??
                      TranslationService.GetTranslationFormatted(
-                         "dialog.confirmDeleteMessage", 
-                         "Sei sicuro di voler eliminare {0}? Questa azione non può essere annullata.", 
+                         "dialog.confirmDeleteMessage",
+                         "Sei sicuro di voler eliminare {0}? Questa azione non può essere annullata.",
                          ItemDisplayName ?? TranslationService.GetTranslation("common.thisItem", "questo elemento"));
 
         var result = await DialogService.ShowMessageBox(
