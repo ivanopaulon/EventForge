@@ -1,258 +1,73 @@
-/* ========================================
-   EventForge Carbon/Neon Theme System
-   Modern theming with CSS variables
-   ======================================== */
+/* carbon-neon-theme.css
+   Conserva SOLO le variabili di tema. Non inserire qui override globali su .mud-*.
+*/
 
-/* ========================================
-   CARBON NEON DARK THEME
-   ======================================== */
 [data-theme="carbon-neon-dark"] {
-    /* Core Colors - Aligned with MudBlazor palette spec */
-    --primary: #00F5FF; /* Neon Cyan */
-    --secondary: #FF006E; /* Vivid Magenta */
-    --accent: #00E5FF; /* Action Default / Info */
-    /* Backgrounds */
-    --background: #121212; /* Pure MD dark */
+    --primary: #00F5FF;
+    --secondary: #FF006E;
+    --accent: #00E5FF;
+
+    --background: #121212;
     --surface: #262626;
-    --surface-2: #262626; /* Elevated Surface */
+    --surface-2: #262626;
     --card-background: #262626;
     --card-border: rgba(255,255,255,0.1);
-    /* AppBar & Drawer */
+
     --appbar-background: #000000;
     --appbar-text: #FFFFFF;
     --drawer-background: #1A1A1A;
     --drawer-text: #F5F5F5;
-    /* Text Colors */
+
     --text-primary: #FFFFFF;
     --text-secondary: #B3B3B3;
     --text-muted: #B3B3B3;
-    /* Interactive Elements */
+
     --button-primary-bg: #2B677A;
     --button-primary-text: #F1F3F5;
     --button-primary-hover: #3E97B3;
+
     --link: #2B677A;
     --link-hover: #3E97B3;
-    --action-default: #00E5FF;
-    /* Borders & Dividers */
+
     --border: rgba(255,255,255,0.1);
     --divider: rgba(255,255,255,0.1);
-    /* Effects */
-    --shadow-neon: 0 0 10px rgba(0, 245, 255, 0.3);
+
+    --shadow-neon: 0 0 10px rgba(0,245,255,0.3);
 }
 
-/* ========================================
-   CARBON NEON LIGHT THEME
-   ======================================== */
 [data-theme="carbon-neon-light"] {
-    /* Core Colors */
-    --primary: #3E97B3; /* Bright Cyan */
-    --secondary: #00D9FF; /* Electric Blue */
-    --accent: #7B68EE; /* Medium Slate Blue */
-    /* Backgrounds */
-    --background: #F5F5F5; /* Light Gray */
-    --surface: #FFFFFF; /* White */
-    --surface-2: #FAFAFA; /* Elevated Surface */
-    --card-background: #FFFFFF; /* Card Background */
-    --card-border: #E0E0E0; /* Card Border */
-    /* AppBar & Drawer */
+    --primary: #3E97B3;
+    --secondary: #00D9FF;
+    --accent: #7B68EE;
+
+    --background: #F5F5F5;
+    --surface: #FFFFFF;
+    --surface-2: #FAFAFA;
+    --card-background: #FFFFFF;
+    --card-border: #E0E0E0;
+
     --appbar-background: #92A0AD;
     --appbar-text: #F1F3F5;
     --drawer-background: #FFFFFF;
     --drawer-text: #1A1A1A;
-    /* Text Colors */
-    --text-primary: #1A1A1A; /* Near Black */
-    --text-secondary: #6B6B6B; /* Medium Gray */
-    --text-muted: #9E9E9E; /* Muted Gray */
-    /* Interactive Elements */
+
+    --text-primary: #1A1A1A;
+    --text-secondary: #6B6B6B;
+    --text-muted: #9E9E9E;
+
     --button-primary-bg: #2B677A;
     --button-primary-text: #F1F3F5;
     --button-primary-hover: #3E97B3;
+
     --link: #2B677A;
     --link-hover: #3E97B3;
-    --action-default: #00E5FF;
-    /* Borders & Dividers */
+
     --border: #E0E0E0;
     --divider: #F0F0F0;
-    /* Effects */
-    --shadow-neon: 0 0 10px rgba(0, 153, 204, 0.2);
+
+    --shadow-neon: 0 0 10px rgba(0,153,204,0.2);
 }
 
-/* ========================================
-   MUDBLAZOR COMPONENT OVERRIDES
-   Non-destructive styling using variables
-   
-   Note: !important is used intentionally here
-   to override MudBlazor and Syncfusion default
-   styles without modifying their source CSS.
-   This is the recommended approach for theme
-   customization in component libraries.
-   ======================================== */
-
-/* Cards */
-.mud-card {
-    background-color: var(--card-background) !important;
-    border: 1px solid var(--card-border) !important;
-}
-
-.mud-card-header {
-    background-color: var(--surface) !important;
-    border-bottom: 1px solid var(--card-border) !important;
-    color: var(--text-primary) !important;
-}
-
-.mud-card-content {
-    color: var(--text-primary) !important;
-}
-
-/* Buttons */
-.mud-button-root.mud-button-filled.mud-button-filled-primary {
-    background-color: var(--button-primary-bg) !important;
-    color: var(--button-primary-text) !important;
-}
-
-    .mud-button-root.mud-button-filled.mud-button-filled-primary:hover {
-        background-color: var(--button-primary-hover) !important;
-    }
-
-.mud-button-root.mud-button-outlined {
-    border-color: var(--border) !important;
-    color: var(--primary) !important;
-}
-
-.mud-button-root {
-    color: var(--button-primary-bg) !important;
-}
-
-/* Input Fields */
-.mud-input {
-    color: var(--text-primary) !important;
-}
-
-.mud-input-root {
-    background-color: var(--surface) !important;
-}
-
-.mud-input-outlined .mud-input-outlined-border {
-    border-color: var(--border) !important;
-}
-
-.mud-input-outlined:hover .mud-input-outlined-border {
-    border-color: var(--primary) !important;
-}
-
-/* Dividers */
-.mud-divider {
-    border-color: var(--divider) !important;
-}
-
-/* Drawer */
-.mud-drawer {
-    background-color: #92A0AD !important;
-    border-right: 1px solid var(--border) !important;
-}
-
-.mud-drawer-content {
-    color: #ADB8C2 !important;
-}
-
-/* AppBar */
-/* Modifica per colori fissi per tutti i temi, Ivano 31/10/2025 */
-.mud-appbar {
-    background-color: #4B5258 !important;
-    color: #F1F3F5 !important;
-    font-weight: bold !important;
-}
-
-
-/* Paper */
-.mud-paper {
-    background-color: var(--surface) !important;
-}
-
-/* Tables */
-.mud-table {
-    background-color: var(--surface) !important;
-}
-
-.mud-table-head {
-    background-color: #F1F3F5 !important;
-    color: #ADB8C2 !important;
-}
-
-
-.mud-table-cell {
-    color: var(--text-primary) !important;
-    border-bottom-color: var(--border) !important;
-}
-
-.mud-table-row:hover {
-    background-color: var(--surface-2) ;
-}
-
-/* Dialogs */
-.mud-dialog {
-    background-color: var(--card-background) !important;
-}
-
-.mud-dialog-title {
-    color: var(--text-primary) !important;
-}
-
-.mud-dialog-content {
-    color: var(--text-primary) !important;
-}
-
-/* Chips */
-.mud-chip {
-    background-color: var(--surface-2) !important;
-    color: var(--text-primary) !important;
-}
-
-/* Lists */
-.mud-list-item {
-    color: var(--text-primary) !important;
-}
-
-    .mud-list-item:hover {
-        background-color: var(--surface-2) !important;
-    }
-
-.mud-list-item-text {
-    color: var(--text-primary) !important;
-    width: max-content !important;
-}
-
-/* Navigation Menu */
-.mud-nav-link {
-    color: #778899 !important;
-    background-color: #F1F3F5 !important;
-}
-
-    .mud-nav-link:hover {
-        color: #F1F3F5 !important;
-        background-color: #ADB8C2 !important;
-    }
-        .mud-nav-link:hover .mud-nav-link-icon {
-            color: #F1F3F5 !important;
-        }
-
-    .mud-nav-link.active {
-        color: #F1F3F5 !important;
-        background-color: #BBC4CC !important;
-    }
-    .mud-nav-link.active .mud-icon-root {
-        color: #778899 !important;
-    }
-
-    .mud-nav-link .mud-nav-link-icon {
-        color: #778899 !important;
-    }
-
-    .mud-nav-link .mud-icon-root {
-        color: #778899 !important;
-    }
-
-
-
-
-}
+/* NOTE: non aggiungere override globali per .mud-* in questo file.
+   Gli override strutturali e comportamentali vanno in mud-components.css
+   e quelli mirati, theme-scoped, in mud-overrides.css. */

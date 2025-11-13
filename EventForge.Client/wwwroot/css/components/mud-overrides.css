@@ -1,0 +1,49 @@
+/* mud-overrides.css
+   Override mirati e scoping theme-aware. Evitare !important se possibile.
+*/
+
+/* Theme-scoped primary filled button */
+html[data-theme="carbon-neon-dark"] .mud-button-root.mud-button-filled.mud-button-filled-primary {
+  background-color: var(--button-primary-bg);
+  color: var(--button-primary-text);
+}
+html[data-theme="carbon-neon-dark"] .mud-button-root.mud-button-filled.mud-button-filled-primary:hover {
+  background-color: var(--button-primary-hover);
+}
+
+/* Light theme counterpart */
+html[data-theme="carbon-neon-light"] .mud-button-root.mud-button-filled.mud-button-filled-primary {
+  background-color: var(--button-primary-bg);
+  color: var(--button-primary-text);
+}
+html[data-theme="carbon-neon-light"] .mud-button-root.mud-button-filled.mud-button-filled-primary:hover {
+  background-color: var(--button-primary-hover);
+}
+
+/* Input focus outline (scoped, non invasive) */
+.mud-input-root.mud-input-outlined:focus-within .mud-input-outlined-border,
+.mud-input-root.mud-input-outlined.mud-input-focused .mud-input-outlined-border {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.04);
+}
+
+/* Table row hover: simple, non-global */
+.mud-table-row:hover {
+  background-color: var(--surface-2);
+}
+
+/* Scope action-button-group semantic colors to that container only */
+.action-button-group .mud-icon-button.mud-error .mud-icon-root {
+  color: var(--mud-palette-error);
+}
+
+/* Focus-visible consistency for interactive elements */
+:focus-visible,
+.mud-button-root:focus-visible,
+.mud-icon-button:focus-visible,
+.mud-input-root:focus-within {
+  box-shadow: 0 0 0 3px rgba(36,123,255,0.12);
+  border-radius: 6px;
+}
+
+/* Keep overrides minimal: aggiungere qui solo ciò che non è possibile raggiungere con classi ef-* */

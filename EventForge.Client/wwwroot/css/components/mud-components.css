@@ -1,49 +1,45 @@
 /*
- EventForge - MudBlazor components stylesheet
+ EventForge - MudBlazor components stylesheet (aggiornato)
  Path: wwwroot/css/components/mud-components.css
 
  Scopo:
  - Centralizzare classi riutilizzabili per i componenti MudBlazor usati nel client
  - Fornire helper classes per allineare al design system: altezze uniformi, spacing, toolbar/action groups, drawer/dialogs
- - Supportare modalit� dark, high-contrast e prefer-reduced-motion
+ - Supportare modalità dark, high-contrast e prefers-reduced-motion
+ - Migliorare accessibilità, focus management e touch target
 
- Uso:
- - Applicare la classe EF corrispondente al componente Blazor, es:
- <MudButton Class="ef-btn">...</MudButton>
- <MudTextField Class="ef-input">...</MudTextField>
- <MudSelect Class="ef-select">...</MudSelect>
- <MudNumericField Class="ef-numeric">...</MudNumericField>
- <MudDatePicker Class="ef-datepicker">...</MudDatePicker>
- <MudTimePicker Class="ef-timepicker">...</MudTimePicker>
- <MudAutocomplete Class="ef-autocomplete">...</MudAutocomplete>
- - Le classi non sovrascrivono il comportamento di MudBlazor ma garantiscono coerenza visiva
+ Nota: riferimenti a Syncfusion rimossi/assenti.
 */
 
 :root {
-    --ef-input-height: 40px; /* target height for main form fields */
+    --ef-input-height: 20px; /* target height for main form fields */
     --ef-button-height: 40px; /* primary and toolbar buttons */
     --ef-icon-size-small: 20px;
     --ef-icon-size-medium: 24px;
     --ef-gap: 16px; /* gap-2 baseline */
     --ef-gap-lg: 24px; /* gap-3 */
     --ef-field-height: 40px; /* unified field height for consistency */
+    /* Focus / accessibility */
+    --ef-focus-ring: 3px;
+    --ef-focus-color: rgba(36,123,255,0.28);
+    /* Touch */
+    --ef-touch-min: 44px; /* WCAG recommended minimum touch target */
 }
 
 /* -------------------------
-Height Normalization
-Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
+Height Normalization (MudBlazor inputs, selects, buttons)
 ------------------------- */
 
 /* Inputs and Selects - height normalization using ef-* helper classes */
-/* Use min-height instead of fixed height for better flexibility */
 .ef-input .mud-input-root,
 .ef-select .mud-input-root,
 .ef-numeric .mud-input-root,
 .ef-datepicker .mud-input-root,
 .ef-timepicker .mud-input-root,
 .ef-autocomplete .mud-input-root {
-    min-height: var(--ef-field-height) !important;
     box-sizing: border-box !important;
+    font-size: 0.85rem !important;
+    text-anchor: start !important;
 }
 
 /* Ensure internal elements flex to fit without adding extra height */
@@ -54,22 +50,36 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
 .ef-timepicker .mud-input-slot,
 .ef-autocomplete .mud-input-slot {
     min-height: unset !important;
-    height: 90%;
+    height: 80%;
+    font-size: 0.85rem !important;
 }
 
 /* Select input internal styling */
 .ef-select .mud-select-input {
-    height: auto;
-    padding: 6px 0;
+    height: 80%;
+    padding: 0px 0px 16px 0px;
     display: flex;
     align-items: center;
     box-sizing: border-box !important;
 }
 
+.ef-datepicker .mud-input-root-outlined {
+    padding-bottom: 0px !important;
+}
+
+.ef-input .mud-input-input-root .mud-input-root-outlined {
+    height: 80%;
+    padding: 16px 0;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box !important;
+    font-size: 0.85rem !important;
+}
+
 /* Numeric field input internal styling */
 .ef-numeric .mud-input-input-control {
-    height: auto;
-    padding: 6px 0;
+    height: 80%;
+    padding: 16px 0;
     display: flex;
     align-items: center;
     box-sizing: border-box !important;
@@ -78,8 +88,8 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
 /* DatePicker and TimePicker input internal styling */
 .ef-datepicker .mud-input-input-control,
 .ef-timepicker .mud-input-input-control {
-    height: auto;
-    padding: 6px 0;
+    height: 80%;
+    padding: 0px 0px 16px 0px;
     display: flex;
     align-items: center;
     box-sizing: border-box !important;
@@ -87,21 +97,61 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
 
 /* Autocomplete input internal styling */
 .ef-autocomplete .mud-input-control {
-    height: auto;
+    height: 80%;
     padding: 6px 0;
     display: flex;
     align-items: center;
     box-sizing: border-box !important;
 }
 
+/* Fix alignment for adornments/icons inside all input types */
+.ef-input .mud-input-adornment,
+.ef-select .mud-input-adornment,
+.ef-numeric .mud-input-adornment,
+.ef-datepicker .mud-input-adornment,
+.ef-timepicker .mud-input-adornment,
+.ef-autocomplete .mud-input-adornment {
+    height: 80%;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* Textarea */
+.ef-textarea .mud-input-root {
+    min-height: var(--ef-input-height);
+    box-sizing: border-box;
+}
+
 /* Buttons - standardize height excluding icon-only buttons */
 .mud-button-root:not(.mud-icon-button) {
     min-height: var(--ef-button-height) !important;
+    height: var(--ef-button-height) !important;
+    padding: 0 12px !important;
+    box-sizing: border-box;
 }
 
-/* Icon buttons preserve their compact size */
-.mud-icon-button {
-    /* No height override - keep default compact size */
+/* Icon buttons: ensure a comfortable circular hit area (touch devices) */
+.mud-icon-button,
+.ef-icon-btn,
+.mud-icon-button .mud-icon {
+    min-width: var(--ef-button-height);
+    min-height: var(--ef-button-height);
+    width: var(--ef-button-height);
+    height: var(--ef-button-height);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px; /* softer radius */
+}
+
+    /* Ensure icon sizes are consistent */
+    .mud-icon-button .mud-icon,
+    .ef-icon-md {
+        font-size: var(--ef-icon-size-medium) !important;
+    }
+
+.ef-icon-sm {
+    font-size: var(--ef-icon-size-small) !important;
 }
 
 /* -------------------------
@@ -137,7 +187,9 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
     min-height: var(--ef-button-height);
     height: var(--ef-button-height);
     padding: 0 12px;
+    transition: background-color 120ms ease, transform 80ms ease;
 }
+
 /* Small variant for table rows / compact toolbars */
 .ef-btn-small {
     min-height: 36px;
@@ -145,42 +197,23 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
     padding: 0 8px;
 }
 
-/* Ensure icon buttons preserve circular hit area */
-.ef-icon-btn {
-    min-width: var(--ef-button-height);
-    min-height: var(--ef-button-height);
-    width: var(--ef-button-height);
-    height: var(--ef-button-height);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
+/* Visual states for better affordance */
+.ef-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+/* Disabled state consistent */
+button:disabled,
+.mud-button-root[disabled],
+.mud-icon-button[disabled] {
+    opacity: 0.6;
+    cursor: default;
+    pointer-events: none;
 }
 
 /* -------------------------
- Inputs / Selects / Textareas
- Apply to root element of MudTextField/MudSelect/MudNumericField/MudDatePicker/MudTimePicker/MudAutocomplete using Class="ef-*"
- All non-multiline input components use consistent height normalization
+ Inputs / Selects / Textareas helpers (already above)
  ------------------------- */
-.ef-textarea .mud-input-root {
-    min-height: var(--ef-input-height);
-    box-sizing: border-box;
-}
-
-/* All other input types (ef-input, ef-select, ef-numeric, ef-datepicker, ef-timepicker, ef-autocomplete) 
-   are handled in the Height Normalization section above */
-
-/* Fix alignment for adornments/icons inside all input types */
-.ef-input .mud-input-adornment,
-.ef-select .mud-input-adornment,
-.ef-numeric .mud-input-adornment,
-.ef-datepicker .mud-input-adornment,
-.ef-timepicker .mud-input-adornment,
-.ef-autocomplete .mud-input-adornment {
-    height: 100%;
-    display: inline-flex;
-    align-items: center;
-}
 
 /* Helper for helper text styling (consistent across drawers and forms) */
 .ef-helper-text {
@@ -331,17 +364,6 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
 }
 
 /* -------------------------
- Icons
- ------------------------- */
-.ef-icon-sm {
-    font-size: var(--ef-icon-size-small);
-}
-
-.ef-icon-md {
-    font-size: var(--ef-icon-size-medium);
-}
-
-/* -------------------------
  Tooltip / Help
  ------------------------- */
 .ef-help-tooltip .mud-tooltip {
@@ -365,8 +387,16 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
     .ef-drawer {
         width: 100vw !important;
     }
+
+    /* Ensure icon buttons not too small for touch */
+    .mud-icon-button,
+    .ef-icon-btn {
+        min-width: var(--ef-touch-min);
+        min-height: var(--ef-touch-min);
+    }
 }
 
+/* Reduce motion preference */
 @media (prefers-reduced-motion: reduce) {
     * {
         transition: none !important;
@@ -374,6 +404,7 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
     }
 }
 
+/* High contrast mode */
 @media (prefers-contrast: high) {
     .ef-drawer .ef-drawer-header,
     .ef-drawer .ef-drawer-actions {
@@ -382,7 +413,53 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
 }
 
 /* -------------------------
- Migration helpers - utility classes to apply quickly
+ Focus styles & accessibility helpers
+ ------------------------- */
+:focus {
+    outline: none;
+}
+
+:focus-visible,
+.mud-button-root:focus-visible,
+.mud-icon-button:focus-visible,
+.mud-input-root:focus-within {
+    box-shadow: 0 0 0 var(--ef-focus-ring) var(--ef-focus-color);
+    border-radius: 6px;
+}
+
+/* Visually hidden helper for accessibility */
+.sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+/* -------------------------
+ Dark theme adjustments (MudBlazor) - complements Mud theme variables
+------------------------- */
+.mud-theme-dark .ef-card,
+.mud-theme-dark .ef-card-compact {
+    background-color: var(--mud-palette-surface);
+    color: var(--mud-palette-text-primary);
+}
+
+.mud-theme-dark .ef-helper-text {
+    color: var(--mud-palette-text-secondary);
+}
+
+/* Subtle elevation */
+.ef-elevated {
+    box-shadow: 0 4px 12px rgba(16,24,40,0.06);
+}
+
+/* -------------------------
+ Utilities
  ------------------------- */
 .ef-full-width {
     width: 100%;
@@ -399,6 +476,12 @@ Apply to all MudBlazor inputs, selects, and buttons for consistent 40px height
     gap: 16px;
     align-items: center;
     flex-wrap: wrap;
+}
+
+/* Ensure media & icons are responsive */
+.ef-media {
+    max-width: 100%;
+    height: auto;
 }
 
 /* End of EventForge MudBlazor component styles */

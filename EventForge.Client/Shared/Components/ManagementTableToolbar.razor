@@ -1,50 +1,38 @@
 @using MudBlazor
 @inject ITranslationService TranslationService
 
-<div class="management-toolbar d-flex align-center justify-space-between gap-2 pa-2">
+<MudStack Row AlignItems="AlignItems.Center" JustifyContent="SpaceBetween" Spacing="2" Class="management-toolbar pa-2">
     <!-- Left section: Selection badge and bulk actions -->
-    <div class="d-flex align-center gap-2">
+    <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
         @if (ShowSelectionBadge && SelectedCount > 0)
         {
-            <MudBadge Content="@SelectedCount" 
-                      Color="Color.Primary" 
-                      Overlap="true" 
+            <MudBadge Content="@SelectedCount"
+                      Color="Color.Primary"
+                      Overlap="true"
                       Class="mr-2">
                 <MudIcon Icon="@Icons.Material.Outlined.CheckBox" />
             </MudBadge>
+
             <MudText Typo="Typo.body2" Class="mud-text-secondary">
                 @TranslationService.GetTranslationFormatted("toolbar.itemsSelected", "{0} elementi selezionati", SelectedCount)
             </MudText>
-            
+
             @if (ShowDelete && SelectedCount > 0)
             {
-                @if (IconButtonsOnly)
-                {
-                    <MudTooltip Text="@TranslationService.GetTranslation("button.delete", "Elimina")">
-                        <MudIconButton Icon="@Icons.Material.Outlined.Delete"
-                                       Color="Color.Error"
-                                       OnClick="@OnDeleteAsync"
-                                       Disabled="@IsDisabled"
-                                       Size="Size.Small" />
-                    </MudTooltip>
-                }
-                else
-                {
-                    <MudButton Variant="Variant.Text"
-                               Color="Color.Error"
-                               StartIcon="@Icons.Material.Outlined.Delete"
-                               OnClick="@OnDeleteAsync"
-                               Disabled="@IsDisabled"
-                               Size="Size.Small">
-                        @TranslationService.GetTranslation("button.delete", "Elimina")
-                    </MudButton>
-                }
+                <MudTooltip Text="@TranslationService.GetTranslation("button.delete", "Elimina")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                                   Color="Color.Error"
+                                   OnClick="@OnDeleteAsync"
+                                   Disabled="@IsDisabled"
+                                   Size="Size.Small"
+                                   AriaLabel="@TranslationService.GetTranslation("button.delete", "Elimina")" />
+                </MudTooltip>
             }
         }
-    </div>
-    
-    <!-- Right section: Action buttons -->
-    <div class="d-flex align-center gap-2">
+    </MudStack>
+
+    <!-- Right section: Action buttons (icon-only with tooltip) -->
+    <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
         @if (ShowRefresh)
         {
             <MudTooltip Text="@TranslationService.GetTranslation(RefreshTooltip, "Aggiorna dati")">
@@ -52,43 +40,31 @@
                                Color="Color.Primary"
                                OnClick="@OnRefreshAsync"
                                Disabled="@IsDisabled"
-                               Size="Size.Small" />
+                               Variant="Variant.Outlined"
+                               Size="Size.Small"
+                               AriaLabel="@TranslationService.GetTranslation(RefreshTooltip, "Aggiorna dati")" />
             </MudTooltip>
         }
-        
+
         @if (ShowCreate)
         {
-            @if (IconButtonsOnly)
-            {
-                <MudTooltip Text="@TranslationService.GetTranslation(CreateTooltip, "Crea nuovo elemento")">
-                    <MudIconButton Icon="@(string.IsNullOrEmpty(CreateIcon) ? Icons.Material.Outlined.Add : CreateIcon)"
-                                   Color="Color.Primary"
-                                   OnClick="@OnCreateAsync"
-                                   Disabled="@IsDisabled"
-                                   Size="Size.Small" />
-                </MudTooltip>
-            }
-            else
-            {
-                <MudTooltip Text="@TranslationService.GetTranslation(CreateTooltip, "Crea nuovo elemento")">
-                    <MudButton Variant="Variant.Filled"
+            <MudTooltip Text="@TranslationService.GetTranslation(CreateTooltip, "Crea nuovo elemento")">
+                <MudIconButton Icon="@(string.IsNullOrEmpty(CreateIcon) ? Icons.Material.Outlined.Add : CreateIcon)"
                                Color="Color.Primary"
-                               StartIcon="@(string.IsNullOrEmpty(CreateIcon) ? Icons.Material.Outlined.Add : CreateIcon)"
                                OnClick="@OnCreateAsync"
                                Disabled="@IsDisabled"
-                               Size="Size.Small">
-                        @TranslationService.GetTranslation(CreateLabel, "Crea")
-                    </MudButton>
-                </MudTooltip>
-            }
+                               Variant="Variant.Filled"
+                               Size="Size.Small"
+                               AriaLabel="@TranslationService.GetTranslation(CreateTooltip, "Crea nuovo elemento")" />
+            </MudTooltip>
         }
-        
+
         @if (AdditionalActions != null)
         {
             @AdditionalActions
         }
-    </div>
-</div>
+    </MudStack>
+</MudStack>
 
 @code {
     /// <summary>
@@ -96,92 +72,79 @@
     /// </summary>
     [Parameter]
     public bool ShowSelectionBadge { get; set; } = false;
-    
+
     /// <summary>
     /// Number of selected items to display in the badge.
     /// </summary>
     [Parameter]
     public int SelectedCount { get; set; } = 0;
-    
+
     /// <summary>
     /// Shows the refresh button.
     /// </summary>
     [Parameter]
     public bool ShowRefresh { get; set; } = true;
-    
+
     /// <summary>
     /// Shows the create button.
     /// </summary>
     [Parameter]
     public bool ShowCreate { get; set; } = true;
-    
+
     /// <summary>
     /// Shows the delete button when items are selected.
     /// </summary>
     [Parameter]
     public bool ShowDelete { get; set; } = true;
-    
+
     /// <summary>
     /// Disables all toolbar buttons.
     /// </summary>
     [Parameter]
     public bool IsDisabled { get; set; } = false;
-    
-    /// <summary>
-    /// When true, renders all buttons as icon-only buttons with tooltips.
-    /// When false (default), maintains existing button style.
-    /// </summary>
-    [Parameter]
-    public bool IconButtonsOnly { get; set; } = false;
-    
+
     /// <summary>
     /// Translation key for the refresh button tooltip.
     /// </summary>
     [Parameter]
     public string RefreshTooltip { get; set; } = "tooltip.refresh";
-    
+
     /// <summary>
     /// Translation key for the create button tooltip.
     /// </summary>
     [Parameter]
     public string CreateTooltip { get; set; } = "tooltip.create";
-    
-    /// <summary>
-    /// Translation key for the create button label.
-    /// </summary>
-    [Parameter]
-    public string CreateLabel { get; set; } = "button.create";
-    
+
     /// <summary>
     /// Icon for the create button. Default is Add icon.
     /// </summary>
     [Parameter]
     public string CreateIcon { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Callback invoked when the refresh button is clicked.
     /// </summary>
     [Parameter]
     public EventCallback OnRefresh { get; set; }
-    
+
     /// <summary>
     /// Callback invoked when the create button is clicked.
     /// </summary>
     [Parameter]
     public EventCallback OnCreate { get; set; }
-    
+
     /// <summary>
     /// Callback invoked when the delete button is clicked.
     /// </summary>
     [Parameter]
     public EventCallback OnDelete { get; set; }
-    
+
     /// <summary>
     /// Additional custom actions to render in the toolbar.
     /// </summary>
     [Parameter]
     public RenderFragment? AdditionalActions { get; set; }
-    
+
     private async Task OnRefreshAsync()
     {
         if (OnRefresh.HasDelegate)
@@ -189,7 +152,7 @@
             await OnRefresh.InvokeAsync();
         }
     }
-    
+
     private async Task OnCreateAsync()
     {
         if (OnCreate.HasDelegate)
@@ -197,7 +160,7 @@
             await OnCreate.InvokeAsync();
         }
     }
-    
+
     private async Task OnDeleteAsync()
     {
         if (OnDelete.HasDelegate)

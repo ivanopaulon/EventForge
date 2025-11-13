@@ -66,16 +66,7 @@
     
     <!-- Main content area with proper semantic structure -->
     <MudMainContent Class="mt-16 pa-2 pa-sm-4 main-content-with-footer" role="main">
-        <!-- Skip link for accessibility -->
-        <a href="#main-content" 
-           class="sr-only sr-only-focusable position-absolute" 
-           style="top: 1rem; left: 1rem; z-index: 9999;">
-            @TranslationService.GetTranslation("accessibility.skipToContent", "Skip to main content")
-        </a>
-        
-        <div id="main-content" tabindex="-1">
-            @Body
-        </div>
+        @Body
     </MudMainContent>
 </MudLayout>
 
