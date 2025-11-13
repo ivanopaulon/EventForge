@@ -29,30 +29,29 @@
                   Dense="true"
                   Breakpoint="Breakpoint.Sm">
             <ToolBarContent>
-                <MudText Typo="Typo.h5">
-                    @TranslationService.GetTranslation("financial.vatRateManagement", "Gestione Aliquote IVA")
-                </MudText>
-                <MudSpacer />
-                <MudTextField @bind-Value="_searchTerm"
-                              @bind-Value:after="OnSearchChanged"
-                              Label="@TranslationService.GetTranslation("financial.searchVatRates", "Cerca aliquote IVA")"
-                              Placeholder="@TranslationService.GetTranslation("financial.searchPlaceholder", "Inserisci nome...")"
-                              Variant="Variant.Outlined"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@Icons.Material.Outlined.Search"
-                              Clearable="true"
-                              Class="mt-0"
-                              Style="width:500px !important" />
-                <ManagementTableToolbar ShowSelectionBadge="true"
-                                        SelectedCount="@_selectedVatRates.Count"
-                                        ShowRefresh="true"
-                                        ShowCreate="true"
-                                        ShowDelete="true"
-                                        CreateTooltip="financial.createNewVatRate"
-                                        IsDisabled="_isLoadingVatRates"
-                                        OnRefresh="@LoadVatRatesAsync"
-                                        OnCreate="@CreateVatRate"
-                                        OnDelete="@DeleteSelectedVatRates" />
+                    <MudText Typo="Typo.h5">
+                        @TranslationService.GetTranslation("financial.vatRateManagement", "Gestione Aliquote IVA")
+                    </MudText>
+                    <MudSpacer />
+                    <MudTextField @bind-Value="_searchTerm"
+                                  @bind-Value:after="OnSearchChanged"
+                                  Label="@TranslationService.GetTranslation("financial.searchVatRates", "Cerca aliquote IVA")"
+                                  Placeholder="@TranslationService.GetTranslation("financial.searchPlaceholder", "Inserisci nome...")"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@Icons.Material.Outlined.Search"
+                                  Clearable="true"
+                                  Class="ef-input" />
+                    <ManagementTableToolbar ShowSelectionBadge="true"
+                                            SelectedCount="@_selectedVatRates.Count"
+                                            ShowRefresh="true"
+                                            ShowCreate="true"
+                                            ShowDelete="true"
+                                            CreateTooltip="financial.createNewVatRate"
+                                            IsDisabled="_isLoadingVatRates"
+                                            OnRefresh="@LoadVatRatesAsync"
+                                            OnCreate="@CreateVatRate"
+                                            OnDelete="@DeleteSelectedVatRates" />
             </ToolBarContent>
             <HeaderContent>
                 <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
@@ -101,7 +100,7 @@
                                        ShowView="false"
                                        ShowEdit="true"
                                        ShowAuditLog="true"
-                                       ShowToggleStatus="true"
+                                       ShowToggleStatus="false"
                                        ShowDelete="true"
                                        IsActive="@context.IsActive"
                                        OnEdit="@(() => EditVatRate(context.Id))"

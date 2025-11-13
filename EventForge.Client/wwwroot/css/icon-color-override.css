@@ -16,111 +16,111 @@
    ================================================== */
 
 /* Scope white icons to AppBar for consistent dark header styling */
-.mud-appbar .mud-icon-root {
+/*.mud-appbar .mud-icon-root {
     color: white !important;
-}
+}*/
 
 /* Scope white icons to Drawer and Navigation for dark sidebar styling */
-.mud-drawer .mud-icon-root,
+/*.mud-drawer .mud-icon-root,
 .mud-nav-link .mud-icon-root {
     color: white !important;
-}
+}*/
 
 /* Exclude health-related icons that need status-based coloring */
-.health-footer-container .mud-icon-root,
+/*.health-footer-container .mud-icon-root,
 .health-indicator-icon,
 .health-section .mud-icon-root,
 .health-drawer-content .mud-icon-root,
 .health-tab .mud-icon-root {
     color: inherit !important;
-}
+}*/
 
 /* Exclude icons with explicit semantic colors */
-.mud-icon-root.mud-success-text,
+/*.mud-icon-root.mud-success-text,
 .mud-icon-root.mud-warning-text,
 .mud-icon-root.mud-error-text,
 .mud-icon-root.mud-info-text {
     color: inherit !important;
-}
+}*/
 
 /* Exclude icons in components where color is functionally important */
-.mud-icon-root[data-semantic="true"],
+/*.mud-icon-root[data-semantic="true"],
 .mud-chip .mud-icon-root,
 .mud-alert .mud-icon-root,
 .mud-badge .mud-icon-root {
     color: inherit !important;
-}
+}*/
 
 /* Exclude health status icons specifically */
-.mud-icon-root[title*="Health"],
+/*.mud-icon-root[title*="Health"],
 .mud-icon-root[title*="health"],
 .mud-icon-root[aria-label*="Health"],
 .mud-icon-root[aria-label*="health"] {
     color: inherit !important;
-}
+}*/
 
 /* ActionButtonGroup icons should maintain their semantic colors */
-.action-button-group .mud-icon-button .mud-icon-root {
+/*.action-button-group .mud-icon-button .mud-icon-root {
     color: inherit !important;
-}
+}*/
 
 /* Expansion panel header icons should maintain their colors */
-.mud-expand-panel-header .mud-icon-root {
+/*.mud-expand-panel-header .mud-icon-root {
     color: inherit !important;
-}
+}*/
 
 /* Table action buttons (in tbody) should maintain their semantic colors */
-.mud-table tbody .mud-icon-button .mud-icon-root {
+/*.mud-table tbody .mud-icon-button .mud-icon-root {
     color: inherit !important;
-}
+}*/
 
 /* Table toolbar buttons should maintain their colors */
-.mud-table-toolbar .mud-icon-button .mud-icon-root {
+/*.mud-table-toolbar .mud-icon-button .mud-icon-root {
     color: inherit !important;
-}
+}*/
 
 /* Menu and dropdown icons should maintain their colors in content areas */
-.mud-menu .mud-icon-root,
+/*.mud-menu .mud-icon-root,
 .mud-popover .mud-icon-root {
     color: inherit !important;
-}
+}*/
 
 /* Select icons inherit theme colors */
-.mud-select .mud-icon-root {
+/*.mud-select .mud-icon-root {
     color: inherit !important;
-}
+}*/
 
 /* Form field icons inherit theme colors */
-.mud-input .mud-icon-root,
+/*.mud-input .mud-icon-root,
 .mud-field .mud-icon-root {
     color: inherit !important;
-}
+}*/
 
 /* Pagination and navigation icons should maintain their colors for better visibility */
-.mud-pagination .mud-icon-root,
+/*.mud-pagination .mud-icon-root,
 .mud-table-pager .mud-icon-root,
 .mud-breadcrumbs .mud-icon-root {
     color: inherit !important;
-}
+}*/
 
 /* Dialog and modal icons should maintain their colors */
-.mud-dialog .mud-icon-root:not(.health-indicator-icon) {
+/*.mud-dialog .mud-icon-root:not(.health-indicator-icon) {
     color: inherit !important;
-}
+}*/
 
 /* Snackbar icons should be white for contrast */
-.mud-snackbar .mud-icon-root {
+/*.mud-snackbar .mud-icon-root {
     color: white !important;
-}
+}*/
 
 /* High contrast mode adjustments */
-@media (prefers-contrast: high) {
+/*@media (prefers-contrast: high) {
     .mud-icon-root {
         filter: contrast(1.2);
     }
-}
+}*/
 
 /* Ensure loading dialog icons are properly styled */
-.loading-dialog-content .mud-icon-root {
+/*.loading-dialog-content .mud-icon-root {
     color: var(--secondary) !important;
-}
+}*/

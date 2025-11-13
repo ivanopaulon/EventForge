@@ -8,123 +8,102 @@
     Provides a flexible, reusable component for all action button scenarios
     Features standardized color scheme and accessibility support
 -->
+@if (ShowRefresh && CanRefresh)
+{
+    <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")">
+        <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
+                       Disabled="@IsDisabled"
+                       Class="ef-row-actionbutton"
+                       data-action="refresh"
+                       aria-label="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")" />
+    </MudTooltip>
+}
 
-<div class="action-button-group ef-action-group @GetContainerClass()">
-    @if (ShowRefresh && CanRefresh)
-    {
-        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")">
-            <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
-                           Color="Color.Primary"
-                           Size="@EffectiveButtonSize"
-                           OnClick="@OnRefreshAsync"
-                           Disabled="@IsDisabled"
-                           Class="@ButtonClass"
-                           data-action="refresh"
-                           aria-label="@TranslationService.GetTranslation("tooltip.refreshData", "Aggiorna dati")" />
-        </MudTooltip>
-    }
+@if (ShowView && CanView)
+{
+    <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewDetails", "Visualizza dettagli")">
+        <MudIconButton Icon="@Icons.Material.Outlined.Visibility"
+                       OnClick="@OnViewAsync"
+                       Disabled="@IsDisabled"
+                       Class="ef-row-actionbutton"
+                       data-action="view"
+                       aria-label="@TranslationService.GetTranslationFormatted("tooltip.viewItem", "Visualizza {0}", ItemDisplayName ?? "elemento")" />
+    </MudTooltip>
+}
 
-    @if (ShowView && CanView)
-    {
-        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.viewDetails", "Visualizza dettagli")">
-            <MudIconButton Icon="@Icons.Material.Outlined.Visibility"
-                           Color="Color.Info"
-                           Size="@EffectiveButtonSize"
-                           OnClick="@OnViewAsync"
-                           Disabled="@IsDisabled"
-                           Class="@ButtonClass"
-                           data-action="view"
-                           aria-label="@TranslationService.GetTranslationFormatted("tooltip.viewItem", "Visualizza {0}", ItemDisplayName ?? "elemento")" />
-        </MudTooltip>
-    }
+@if (ShowCreate && CanCreate)
+{
+    <MudTooltip Text="@(CreateTooltip ?? TranslationService.GetTranslation("tooltip.createNew", "Crea nuovo"))">
+        <MudIconButton Icon="@(CreateIcon ?? Icons.Material.Outlined.Add)"
+                       OnClick="@OnCreateAsync"
+                       Disabled="@IsDisabled"
+                       Class="ef-row-actionbutton"
+                       data-action="create"
+                       aria-label="@(CreateTooltip ?? TranslationService.GetTranslationFormatted("tooltip.createNew", "Crea nuovo {0}", EntityName ?? "elemento"))" />
+    </MudTooltip>
+}
 
-    @if (ShowCreate && CanCreate)
-    {
-        <MudTooltip Text="@(CreateTooltip ?? TranslationService.GetTranslation("tooltip.createNew", "Crea nuovo"))">
-            <MudIconButton Icon="@(CreateIcon ?? Icons.Material.Outlined.Add)"
-                           Color="Color.Success"
-                           Size="@EffectiveButtonSize"
-                           OnClick="@OnCreateAsync"
-                           Disabled="@IsDisabled"
-                           Class="@ButtonClass"
-                           data-action="create"
-                           aria-label="@(CreateTooltip ?? TranslationService.GetTranslationFormatted("tooltip.createNew", "Crea nuovo {0}", EntityName ?? "elemento"))" />
-        </MudTooltip>
-    }
+@if (ShowEdit && CanEdit)
+{
+    <MudTooltip Text="@TranslationService.GetTranslation("tooltip.edit", "Modifica")">
+        <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                       Disabled="@IsDisabled"
+                       Class="ef-row-actionbutton"
+                       data-action="edit"
+                       aria-label="@TranslationService.GetTranslationFormatted("tooltip.editItem", "Modifica {0}", ItemDisplayName ?? "elemento")" />
+    </MudTooltip>
+}
 
-    @if (ShowEdit && CanEdit)
-    {
-        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.edit", "Modifica")">
-            <MudIconButton Icon="@Icons.Material.Outlined.Edit"
-                           Color="Color.Warning"
-                           Size="@EffectiveButtonSize"
-                           OnClick="@OnEditAsync"
-                           Disabled="@IsDisabled"
-                           Class="@ButtonClass"
-                           data-action="edit"
-                           aria-label="@TranslationService.GetTranslationFormatted("tooltip.editItem", "Modifica {0}", ItemDisplayName ?? "elemento")" />
-        </MudTooltip>
-    }
+@if (ShowDelete && CanDelete)
+{
+    <MudTooltip Text="@TranslationService.GetTranslation("tooltip.delete", "Elimina")">
+        <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                       OnClick="@OnDeleteAsync"
+                       Disabled="@IsDisabled"
+                       Class="ef-row-actionbutton"
+                       data-action="delete"
+                       aria-label="@TranslationService.GetTranslationFormatted("tooltip.deleteItem", "Elimina {0}", ItemDisplayName ?? "elemento")" />
+    </MudTooltip>
+}
 
-    @if (ShowDelete && CanDelete)
-    {
-        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.delete", "Elimina")">
-            <MudIconButton Icon="@Icons.Material.Outlined.Delete"
-                           Color="Color.Error"
-                           Size="@EffectiveButtonSize"
-                           OnClick="@OnDeleteAsync"
-                           Disabled="@IsDisabled"
-                           Class="@ButtonClass"
-                           data-action="delete"
-                           aria-label="@TranslationService.GetTranslationFormatted("tooltip.deleteItem", "Elimina {0}", ItemDisplayName ?? "elemento")" />
-        </MudTooltip>
-    }
+@if (ShowToggleStatus && CanToggleStatus)
+{
+    <MudTooltip Text="@(IsActive? TranslationService.GetTranslation("tooltip.deactivate", "Disattiva") : TranslationService.GetTranslation("tooltip.activate", "Attiva"))">
+        <MudIconButton Icon="@(IsActive? Icons.Material.Outlined.Block : Icons.Material.Outlined.CheckCircle)"
+                       OnClick="@OnToggleStatusAsync"
+                       Disabled="@IsDisabled"
+                       Class="ef-row-actionbutton"
+                       data-action="@(IsActive ? "warning" : "success")"
+                       aria-label="@(IsActive? TranslationService.GetTranslationFormatted("tooltip.deactivateItem", "Disattiva {0}", ItemDisplayName ?? "elemento") : TranslationService.GetTranslationFormatted("tooltip.activateItem", "Attiva {0}", ItemDisplayName ?? "elemento"))" />
+    </MudTooltip>
+}
 
-    @if (ShowToggleStatus && CanToggleStatus)
-    {
-        <MudTooltip Text="@(IsActive ? TranslationService.GetTranslation("tooltip.deactivate", "Disattiva") : TranslationService.GetTranslation("tooltip.activate", "Attiva"))">
-            <MudIconButton Icon="@(IsActive ? Icons.Material.Outlined.Block : Icons.Material.Outlined.CheckCircle)"
-                           Color="@(IsActive ? Color.Warning : Color.Success)"
-                           Size="@EffectiveButtonSize"
-                           OnClick="@OnToggleStatusAsync"
-                           Disabled="@IsDisabled"
-                           Class="@ButtonClass"
-                           data-action="@(IsActive ? "warning" : "success")"
-                           aria-label="@(IsActive ? TranslationService.GetTranslationFormatted("tooltip.deactivateItem", "Disattiva {0}", ItemDisplayName ?? "elemento") : TranslationService.GetTranslationFormatted("tooltip.activateItem", "Attiva {0}", ItemDisplayName ?? "elemento"))" />
-        </MudTooltip>
-    }
+@if (ShowAuditLog && CanViewAuditLog)
+{
+    <MudTooltip Text="@TranslationService.GetTranslation("tooltip.auditLog", "Cronologia modifiche")">
+        <MudIconButton Icon="@Icons.Material.Outlined.History"
+                       OnClick="@OnAuditLogAsync"
+                       Disabled="@IsDisabled"
+                       Class="ef-row-actionbutton"
+                       data-action="audit"
+                       aria-label="@TranslationService.GetTranslationFormatted("tooltip.viewAuditLog", "Visualizza cronologia {0}", ItemDisplayName ?? "elemento")" />
+    </MudTooltip>
+}
 
-    @if (ShowAuditLog && CanViewAuditLog)
-    {
-        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.auditLog", "Cronologia modifiche")">
-            <MudIconButton Icon="@Icons.Material.Outlined.History"
-                           Color="Color.Secondary"
-                           Size="@EffectiveButtonSize"
-                           OnClick="@OnAuditLogAsync"
-                           Disabled="@IsDisabled"
-                           Class="@ButtonClass"
-                           data-action="audit"
-                           aria-label="@TranslationService.GetTranslationFormatted("tooltip.viewAuditLog", "Visualizza cronologia {0}", ItemDisplayName ?? "elemento")" />
-        </MudTooltip>
-    }
+@if (ShowExport && CanExport)
+{
+    <MudTooltip Text="@TranslationService.GetTranslation("tooltip.export", "Esporta")">
+        <MudIconButton Icon="@Icons.Material.Outlined.Download"
+                       OnClick="@OnExportAsync"
+                       Disabled="@IsDisabled"
+                       Class="ef-row-actionbutton"
+                       data-action="export"
+                       aria-label="@TranslationService.GetTranslationFormatted("tooltip.exportItem", "Esporta {0}", ItemDisplayName ?? "elemento")" />
+    </MudTooltip>
+}
 
-    @if (ShowExport && CanExport)
-    {
-        <MudTooltip Text="@TranslationService.GetTranslation("tooltip.export", "Esporta")">
-            <MudIconButton Icon="@Icons.Material.Outlined.Download"
-                           Color="Color.Tertiary"
-                           Size="@EffectiveButtonSize"
-                           OnClick="@OnExportAsync"
-                           Disabled="@IsDisabled"
-                           Class="@ButtonClass"
-                           data-action="export"
-                           aria-label="@TranslationService.GetTranslationFormatted("tooltip.exportItem", "Esporta {0}", ItemDisplayName ?? "elemento")" />
-        </MudTooltip>
-    }
-
-    <!-- Custom additional actions -->
-    @AdditionalActions
-</div>
+<!-- Custom additional actions -->
+@AdditionalActions
 
 @code {
     // Display Configuration
@@ -191,7 +170,7 @@
         switch (Mode)
         {
             case ActionButtonGroupMode.Row:
-                classes.Add("d-flex gap-1 align-center");
+                classes.Add("ef-actionbutton-row");
                 break;
             case ActionButtonGroupMode.Toolbar:
                 classes.Add("mud-toolbar-content");

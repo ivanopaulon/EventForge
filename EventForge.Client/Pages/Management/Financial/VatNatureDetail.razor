@@ -26,45 +26,37 @@
     {
         <!-- Page Header -->
         <MudPaper Elevation="2" Class="pa-4 mb-4">
-            <div class="d-flex justify-space-between align-center">
-                <div>
-                    <div class="d-flex align-center gap-2 mb-2">
-                        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
-                                       Color="Color.Primary"
-                                       OnClick="@(() => TryNavigateAway("/financial/vat-natures"))"
-                                       Size="Size.Small" />
-                        <MudText Typo="Typo.h4">
-                            <MudIcon Icon="@Icons.Material.Outlined.Category" Class="mr-2" />
-                            @(_isCreateMode 
-                                ? TranslationService.GetTranslation("drawer.title.creaNaturaIva", "Crea Nuova Natura IVA") 
-                                : _vatNature?.Name)
-                        </MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                           Color="Color.Primary"
+                           OnClick="@(() => TryNavigateAway("/financial/vat-natures"))"
+                           Size="Size.Small" />
+            <MudText Typo="Typo.h4">
+                <MudIcon Icon="@Icons.Material.Outlined.Category" Class="mr-2" />
+                @(_isCreateMode
+                            ? TranslationService.GetTranslation("drawer.title.creaNaturaIva", "Crea Nuova Natura IVA")
+                            : _vatNature?.Name)
+            </MudText>
 
-                        @if (HasUnsavedChanges())
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">
-                                @TranslationService.GetTranslation("vatNature.unsavedChanges", "Modifiche non salvate")
-                            </MudChip>
-                        }
-                    </div>
-                    @if (!_isCreateMode && _vatNature != null)
-                    {
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                            @TranslationService.GetTranslation("field.createdAt", "Creato il"): @_vatNature.CreatedAt.ToString("dd/MM/yyyy HH:mm")
-                        </MudText>
-                    }
-                </div>
-                <div class="d-flex gap-2">
-                    <MudButton Variant="Variant.Filled" 
-                               Color="Color.Primary" 
-                               StartIcon="@Icons.Material.Filled.Save"
-                               OnClick="SaveVatNatureAsync"
-                               Disabled="_isSaving"
-                               Size="Size.Small">
-                        @TranslationService.GetTranslation("common.save", "Salva")
-                    </MudButton>
-                </div>
-            </div>
+            @if (HasUnsavedChanges())
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">
+                    @TranslationService.GetTranslation("vatNature.unsavedChanges", "Modifiche non salvate")
+                </MudChip>
+            }
+            @if (!_isCreateMode && _vatNature != null)
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    @TranslationService.GetTranslation("field.createdAt", "Creato il"): @_vatNature.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                </MudText>
+            }
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       OnClick="SaveVatNatureAsync"
+                       Disabled="_isSaving"
+                       Size="Size.Small">
+                @TranslationService.GetTranslation("common.save", "Salva")
+            </MudButton>
         </MudPaper>
 
         <!-- Form Section -->

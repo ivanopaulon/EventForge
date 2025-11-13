@@ -3,9 +3,9 @@
 
 <MudStack Row AlignItems="AlignItems.Center" JustifyContent="SpaceBetween" Spacing="2" Class="management-toolbar pa-2">
     <!-- Left section: Selection badge and bulk actions -->
-    <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
-        @if (ShowSelectionBadge && SelectedCount > 0)
-        {
+    @if (ShowSelectionBadge && SelectedCount > 0)
+    {
+        <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
             <MudBadge Content="@SelectedCount"
                       Color="Color.Primary"
                       Overlap="true"
@@ -28,8 +28,8 @@
                                    AriaLabel="@TranslationService.GetTranslation("button.delete", "Elimina")" />
                 </MudTooltip>
             }
-        }
     </MudStack>
+    }
 
     <!-- Right section: Action buttons (icon-only with tooltip) -->
     <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
@@ -42,7 +42,8 @@
                                Disabled="@IsDisabled"
                                Variant="Variant.Outlined"
                                Size="Size.Small"
-                               AriaLabel="@TranslationService.GetTranslation(RefreshTooltip, "Aggiorna dati")" />
+                               AriaLabel="@TranslationService.GetTranslation(RefreshTooltip, "Aggiorna dati")" 
+                               Class="ef-toolbar-button"/>
             </MudTooltip>
         }
 
@@ -55,7 +56,8 @@
                                Disabled="@IsDisabled"
                                Variant="Variant.Filled"
                                Size="Size.Small"
-                               AriaLabel="@TranslationService.GetTranslation(CreateTooltip, "Crea nuovo elemento")" />
+                               AriaLabel="@TranslationService.GetTranslation(CreateTooltip, "Crea nuovo elemento")"
+                               Class="ef-toolbar-button" />
             </MudTooltip>
         }
 

@@ -1,3 +1,33 @@
+.ef-input {
+    margin-top: 16px;
+}
+    .ef-input .mud-input-root {
+        box-sizing: border-box !important;
+        height: 38px !important;
+        font-size: 0.90rem !important;
+        padding: 8px 0px 0px 16px !important;
+    }
+    .ef-input .mud-input-slot {
+        min-height: unset !important;
+        height: 80%;
+    }
+
+.ef-toolbar-button {
+    min-height: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    width: 38px !important;
+    margin: 4px 0px 0px 0px !important;
+}
+
+.ef-row-actionbutton {
+    min-height: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    width: 24px !important;
+    margin-right: 6px !important;
+}
+
 /*
  EventForge - MudBlazor Components Stylesheet (Consolidated)
  Path: wwwroot/css/components/mud-components.css
@@ -29,27 +59,27 @@
        This file manages structural and behavioral MudBlazor overrides.
 */
 
-:root {
-    --ef-input-height: 20px; /* target height for main form fields */
-    --ef-button-height: 40px; /* primary and toolbar buttons */
-    --ef-icon-size-small: 20px;
+/*:root {
+    --ef-input-height: 20px;*/ /* target height for main form fields */
+    /*--ef-button-height: 40px;*/ /* primary and toolbar buttons */
+    /*--ef-icon-size-small: 20px;
     --ef-icon-size-medium: 24px;
-    --ef-gap: 16px; /* gap-2 baseline */
-    --ef-gap-lg: 24px; /* gap-3 */
-    --ef-field-height: 40px; /* unified field height for consistency */
+    --ef-gap: 16px;*/ /* gap-2 baseline */
+    /*--ef-gap-lg: 24px;*/ /* gap-3 */
+    /*--ef-field-height: 40px;*/ /* unified field height for consistency */
     /* Focus / accessibility */
-    --ef-focus-ring: 3px;
-    --ef-focus-color: rgba(36,123,255,0.28);
+    /*--ef-focus-ring: 3px;
+    --ef-focus-color: rgba(36,123,255,0.28);*/
     /* Touch */
-    --ef-touch-min: 44px; /* WCAG recommended minimum touch target */
-}
+    /*--ef-touch-min: 44px;*/ /* WCAG recommended minimum touch target */
+/*}*/
 
 /* -------------------------
 Height Normalization (MudBlazor inputs, selects, buttons)
 ------------------------- */
 
 /* Inputs and Selects - height normalization using ef-* helper classes */
-.ef-input .mud-input-root,
+/*.ef-input .mud-input-root,
 .ef-select .mud-input-root,
 .ef-numeric .mud-input-root,
 .ef-datepicker .mud-input-root,
@@ -58,10 +88,10 @@ Height Normalization (MudBlazor inputs, selects, buttons)
     box-sizing: border-box !important;
     font-size: 0.85rem !important;
     text-anchor: start !important;
-}
+}*/
 
 /* Ensure internal elements flex to fit without adding extra height */
-.ef-input .mud-input-slot,
+/*.ef-input .mud-input-slot,
 .ef-select .mud-input-slot,
 .ef-numeric .mud-input-slot,
 .ef-datepicker .mud-input-slot,
@@ -70,10 +100,10 @@ Height Normalization (MudBlazor inputs, selects, buttons)
     min-height: unset !important;
     height: 80%;
     font-size: 0.85rem !important;
-}
+}*/
 
 /* Select input internal styling */
-.ef-select .mud-select-input {
+/*.ef-select .mud-select-input {
     height: 80%;
     padding: 0px 0px 16px 0px;
     display: flex;
@@ -92,38 +122,38 @@ Height Normalization (MudBlazor inputs, selects, buttons)
     align-items: center;
     box-sizing: border-box !important;
     font-size: 0.85rem !important;
-}
+}*/
 
 /* Numeric field input internal styling */
-.ef-numeric .mud-input-input-control {
+/*.ef-numeric .mud-input-input-control {
     height: 80%;
     padding: 16px 0;
     display: flex;
     align-items: center;
     box-sizing: border-box !important;
-}
+}*/
 
 /* DatePicker and TimePicker input internal styling */
-.ef-datepicker .mud-input-input-control,
+/*.ef-datepicker .mud-input-input-control,
 .ef-timepicker .mud-input-input-control {
     height: 80%;
     padding: 0px 0px 16px 0px;
     display: flex;
     align-items: center;
     box-sizing: border-box !important;
-}
+}*/
 
 /* Autocomplete input internal styling */
-.ef-autocomplete .mud-input-control {
+/*.ef-autocomplete .mud-input-control {
     height: 80%;
     padding: 6px 0;
     display: flex;
     align-items: center;
     box-sizing: border-box !important;
-}
+}*/
 
 /* Fix alignment for adornments/icons inside all input types */
-.ef-input .mud-input-adornment,
+/*.ef-input .mud-input-adornment,
 .ef-select .mud-input-adornment,
 .ef-numeric .mud-input-adornment,
 .ef-datepicker .mud-input-adornment,
@@ -132,24 +162,24 @@ Height Normalization (MudBlazor inputs, selects, buttons)
     height: 80%;
     display: inline-flex;
     align-items: center;
-}
+}*/
 
 /* Textarea */
-.ef-textarea .mud-input-root {
+/*.ef-textarea .mud-input-root {
     min-height: var(--ef-input-height);
     box-sizing: border-box;
-}
+}*/
 
 /* Buttons - standardize height excluding icon-only buttons */
-.mud-button-root:not(.mud-icon-button) {
+/*.mud-button-root:not(.mud-icon-button) {
     min-height: var(--ef-button-height) !important;
     height: var(--ef-button-height) !important;
     padding: 0 12px !important;
     box-sizing: border-box;
-}
+}*/
 
 /* Icon buttons: ensure a comfortable circular hit area (touch devices) */
-.mud-icon-button,
+/*.mud-icon-button,
 .ef-icon-btn,
 .mud-icon-button .mud-icon {
     min-width: var(--ef-button-height);
@@ -159,23 +189,23 @@ Height Normalization (MudBlazor inputs, selects, buttons)
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px; /* softer radius */
-}
+    border-radius: 8px;*/ /* softer radius */
+/*}*/
 
     /* Ensure icon sizes are consistent */
-    .mud-icon-button .mud-icon,
+    /*.mud-icon-button .mud-icon,
     .ef-icon-md {
         font-size: var(--ef-icon-size-medium) !important;
     }
 
 .ef-icon-sm {
     font-size: var(--ef-icon-size-small) !important;
-}
+}*/
 
 /* -------------------------
  Generic spacing helpers
  ------------------------- */
-.ef-pa-standard {
+/*.ef-pa-standard {
     padding: 16px;
 }
 
@@ -193,12 +223,12 @@ Height Normalization (MudBlazor inputs, selects, buttons)
 
 .ef-gap-lg {
     gap: var(--ef-gap-lg);
-}
+}*/
 
 /* -------------------------
  Buttons
  ------------------------- */
-.ef-btn {
+/*.ef-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -206,44 +236,44 @@ Height Normalization (MudBlazor inputs, selects, buttons)
     height: var(--ef-button-height);
     padding: 0 12px;
     transition: background-color 120ms ease, transform 80ms ease;
-}
+}*/
 
 /* Small variant for table rows / compact toolbars */
-.ef-btn-small {
+/*.ef-btn-small {
     min-height: 36px;
     height: 36px;
     padding: 0 8px;
-}
+}*/
 
 /* Visual states for better affordance */
-.ef-btn:hover:not(:disabled) {
+/*.ef-btn:hover:not(:disabled) {
     transform: translateY(-1px);
-}
+}*/
 
 /* Disabled state consistent */
-button:disabled,
+/*button:disabled,
 .mud-button-root[disabled],
 .mud-icon-button[disabled] {
     opacity: 0.6;
     cursor: default;
     pointer-events: none;
-}
+}*/
 
 /* -------------------------
  Inputs / Selects / Textareas helpers (already above)
  ------------------------- */
 
 /* Helper for helper text styling (consistent across drawers and forms) */
-.ef-helper-text {
+/*.ef-helper-text {
     font-size: 0.75rem;
     margin-top: 4px;
     color: var(--mud-palette-text-secondary);
-}
+}*/
 
 /* -------------------------
  Cards and containers
  ------------------------- */
-.ef-card {
+/*.ef-card {
     padding: 16px;
     border-radius: 8px;
 }
@@ -257,17 +287,17 @@ button:disabled,
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-}
+}*/
 
 /* Standardized card spacing for full-width sections */
-.ef-section {
+/*.ef-section {
     margin-bottom: 16px;
-}
+}*/
 
 /* -------------------------
  Tables
  ------------------------- */
-.ef-table .mud-table-container {
+/*.ef-table .mud-table-container {
     width: 100%;
 }
 
@@ -280,20 +310,20 @@ button:disabled,
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
+}*/
 
 /* Table toolbar and pager alignment */
-.ef-table-toolbar {
+/*.ef-table-toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-}
+}*/
 
 /* -------------------------
  Drawer / Dialog
  ------------------------- */
-.ef-drawer {
+/*.ef-drawer {
     display: flex;
     flex-direction: column;
 }
@@ -314,18 +344,18 @@ button:disabled,
         display: flex;
         justify-content: flex-end;
         gap: 12px;
-    }
+    }*/
 
 /* Dialog actions consistent sizing */
-.ef-dialog-action .mud-button {
+/*.ef-dialog-action .mud-button {
     min-height: var(--ef-button-height);
     height: var(--ef-button-height);
-}
+}*/
 
 /* -------------------------
  Action button groups / toolbars
  ------------------------- */
-.ef-action-group {
+/*.ef-action-group {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -337,19 +367,19 @@ button:disabled,
 
     .ef-action-group .mud-icon-button {
         padding: 6px;
-    }
+    }*/
 
     /* Ensure toolbar mode uses medium-size buttons by default */
-    .ef-action-group.toolbar .ef-btn,
+    /*.ef-action-group.toolbar .ef-btn,
     .ef-action-group.toolbar .mud-icon-button {
         min-height: var(--ef-button-height);
         height: var(--ef-button-height);
-    }
+    }*/
 
 /* -------------------------
  Chips / Badges / Avatars
  ------------------------- */
-.ef-chip-small .mud-chip {
+/*.ef-chip-small .mud-chip {
     height: 28px;
     min-height: 28px;
 }
@@ -379,23 +409,23 @@ button:disabled,
     width: 56px;
     height: 56px;
     font-size: 1.25rem;
-}
+}*/
 
 /* -------------------------
  Tooltip / Help
  ------------------------- */
-.ef-help-tooltip .mud-tooltip {
+/*.ef-help-tooltip .mud-tooltip {
     max-width: 300px;
 }
 
     .ef-help-tooltip .mud-tooltip .mud-text {
         line-height: 1.3;
-    }
+    }*/
 
 /* -------------------------
  Responsive & Accessibility
  ------------------------- */
-@media (max-width:768px) {
+/*@media (max-width:768px) {
     :root {
         --ef-input-height: 36px;
         --ef-button-height: 36px;
@@ -404,53 +434,53 @@ button:disabled,
 
     .ef-drawer {
         width: 100vw !important;
-    }
+    }*/
 
     /* Ensure icon buttons not too small for touch */
-    .mud-icon-button,
+    /*.mud-icon-button,
     .ef-icon-btn {
         min-width: var(--ef-touch-min);
         min-height: var(--ef-touch-min);
     }
-}
+}*/
 
 /* Reduce motion preference */
-@media (prefers-reduced-motion: reduce) {
+/*@media (prefers-reduced-motion: reduce) {
     * {
         transition: none !important;
         animation: none !important;
     }
-}
+}*/
 
 /* High contrast mode */
-@media (prefers-contrast: high) {
+/*@media (prefers-contrast: high) {
     .ef-drawer .ef-drawer-header,
     .ef-drawer .ef-drawer-actions {
         border-color: var(--mud-palette-text-primary);
     }
-}
+}*/
 
 /* -------------------------
  Focus styles & accessibility helpers (consolidated from app.css and mud-components.css)
  ------------------------- */
 
 /* Remove default focus outline - use :focus-visible instead for better UX */
-:focus {
+/*:focus {
     outline: none;
-}
+}*/
 
 /* Modern focus-visible implementation with consistent box-shadow
    Applied to MudBlazor buttons and inputs for WCAG 2.1/2.2 compliance */
-:focus-visible,
+/*:focus-visible,
 .mud-button-root:focus-visible,
 .mud-icon-button:focus-visible,
 .mud-input-root:focus-within {
     box-shadow: 0 0 0 var(--ef-focus-ring) var(--ef-focus-color);
     border-radius: 6px;
-}
+}*/
 
 /* Visually hidden helper for screen readers (single definition - removed duplicate from app.css) */
-.sr-only {
+/*.sr-only {
     position: absolute !important;
     width: 1px !important;
     height: 1px !important;
@@ -460,12 +490,12 @@ button:disabled,
     clip: rect(0, 0, 0, 0) !important;
     white-space: nowrap !important;
     border: 0 !important;
-}
+}*/
 
 /* -------------------------
  Dark theme adjustments (MudBlazor) - complements Mud theme variables
 ------------------------- */
-.mud-theme-dark .ef-card,
+/*.mud-theme-dark .ef-card,
 .mud-theme-dark .ef-card-compact {
     background-color: var(--mud-palette-surface);
     color: var(--mud-palette-text-primary);
@@ -473,17 +503,17 @@ button:disabled,
 
 .mud-theme-dark .ef-helper-text {
     color: var(--mud-palette-text-secondary);
-}
+}*/
 
 /* Subtle elevation */
-.ef-elevated {
+/*.ef-elevated {
     box-shadow: 0 4px 12px rgba(16,24,40,0.06);
-}
+}*/
 
 /* -------------------------
  Utilities
  ------------------------- */
-.ef-full-width {
+/*.ef-full-width {
     width: 100%;
 }
 
@@ -498,20 +528,20 @@ button:disabled,
     gap: 16px;
     align-items: center;
     flex-wrap: wrap;
-}
+}*/
 
 /* Ensure media & icons are responsive */
-.ef-media {
+/*.ef-media {
     max-width: 100%;
     height: auto;
-}
+}*/
 
 /* -------------------------
  Theme-scoped overrides (from mud-overrides.css)
  ------------------------- */
 
 /* Theme-scoped primary filled button */
-html[data-theme="carbon-neon-dark"] .mud-button-root.mud-button-filled.mud-button-filled-primary {
+/*html[data-theme="carbon-neon-dark"] .mud-button-root.mud-button-filled.mud-button-filled-primary {
   background-color: var(--button-primary-bg);
   color: var(--button-primary-text);
 }
@@ -525,40 +555,40 @@ html[data-theme="carbon-neon-light"] .mud-button-root.mud-button-filled.mud-butt
 }
 html[data-theme="carbon-neon-light"] .mud-button-root.mud-button-filled.mud-button-filled-primary:hover {
   background-color: var(--button-primary-hover);
-}
+}*/
 
 /* Input focus outline (scoped, non invasive) */
-.mud-input-root.mud-input-outlined:focus-within .mud-input-outlined-border,
+/*.mud-input-root.mud-input-outlined:focus-within .mud-input-outlined-border,
 .mud-input-root.mud-input-outlined.mud-input-focused .mud-input-outlined-border {
   border-color: var(--primary);
   box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.04);
-}
+}*/
 
 /* Table row hover: simple, non-global */
-.mud-table-row:hover {
+/*.mud-table-row:hover {
   background-color: var(--surface-2);
-}
+}*/
 
 /* -------------------------
  MudBlazor accessibility and mobile improvements (from app.css)
  ------------------------- */
 
 /* Improve contrast for disabled elements */
-.mud-disabled {
+/*.mud-disabled {
     opacity: 0.6 !important;
-}
+}*/
 
 /* Mobile-friendly touch targets */
-@media (max-width: 768px) {
+/*@media (max-width: 768px) {
     .mud-button,
     .mud-icon-button {
         min-height: 44px !important;
         min-width: 44px !important;
     }
-}
+}*/
 
 /* High contrast mode support */
-@media (prefers-contrast: high) {
+/*@media (prefers-contrast: high) {
     .mud-paper {
         border: 1px solid !important;
     }
@@ -566,10 +596,10 @@ html[data-theme="carbon-neon-light"] .mud-button-root.mud-button-filled.mud-butt
     .mud-button {
         border: 1px solid !important;
     }
-}
+}*/
 
 /* ===== TABLE PAGINATION VISIBILITY FIX ===== */
-.mud-table-pagination {
+/*.mud-table-pagination {
     color: var(--text-primary) !important;
 }
 
@@ -590,14 +620,14 @@ html[data-theme="carbon-neon-light"] .mud-button-root.mud-button-filled.mud-butt
 .mud-table-pagination .mud-icon-button.mud-disabled {
     color: var(--text-disabled) !important;
     opacity: 0.5;
-}
+}*/
 
 /* -------------------------
  Component-specific styles (from components.css)
  ------------------------- */
 
 /* LoadingDialog styles */
-.loading-overlay {
+/*.loading-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -773,10 +803,10 @@ html[data-theme="carbon-neon-light"] .mud-button-root.mud-button-filled.mud-butt
     .loading-dialog {
         animation: none;
     }
-}
+}*/
 
 /* InteractiveWalkthrough styles */
-.walkthrough-overlay {
+/*.walkthrough-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -819,10 +849,10 @@ html[data-theme="carbon-neon-light"] .mud-button-root.mud-button-filled.mud-butt
         max-width: 90vw;
         min-width: 280px;
     }
-}
+}*/
 
 /* LazyAttachmentComponent styles */
-.attachment-container {
+/*.attachment-container {
     display: inline-block;
     margin: 2px;
     border-radius: 4px;
@@ -897,10 +927,10 @@ html[data-theme="carbon-neon-light"] .mud-button-root.mud-button-filled.mud-butt
     .file-attachment {
         font-size: 0.85rem;
     }
-}
+}*/
 
 /* NotificationOnboarding small tweaks */
-.notification-onboarding .mud-card {
+/*.notification-onboarding .mud-card {
     transition: transform 0.2s ease-in-out;
 }
 
@@ -914,10 +944,10 @@ html[data-theme="carbon-neon-light"] .mud-button-root.mud-button-filled.mud-butt
 
 .notification-onboarding .mud-alert {
     border-radius: 8px;
-}
+}*/
 
 /* LoginLayout helpers */
-.login-container {
+/*.login-container {
     background: url(login_background.jpg) content-box no-repeat;
     background-size: cover;
     max-width: 100vw;
@@ -926,10 +956,10 @@ html[data-theme="carbon-neon-light"] .mud-button-root.mud-button-filled.mud-butt
     align-items: center !important;
     justify-content: center !important;
     opacity: 0.95 !important;
-}
+}*/
 
 /* Centralized login styles moved from inline LoginLayout/Login page */
-.compact-login-container {
+/*.compact-login-container {
     background: url('/login_background.jpg') content-box no-repeat;
     background-size: cover;
     max-width: 100vw;
@@ -956,21 +986,21 @@ html[data-theme="carbon-neon-light"] .mud-button-root.mud-button-filled.mud-butt
     object-fit: contain;
     margin-right: 12px;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-}
+}*/
 
 /* Responsive: allow vertical scrolling on small screens */
-@media (max-width: 767px) {
+/*@media (max-width: 767px) {
     .login-container-centered {
         min-height: auto;
         background-attachment: scroll;
-        padding: 12px 8px 72px 8px; /* leave space for fixed footer */
-    }
+        padding: 12px 8px 72px 8px;*/ /* leave space for fixed footer */
+    /*}
 
     .login-favicon {
         width: 28px;
         height: 28px;
         margin-right: 8px;
     }
-}
+}*/
 
 /* End of EventForge MudBlazor component styles */
