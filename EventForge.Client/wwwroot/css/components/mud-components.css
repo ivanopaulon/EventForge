@@ -117,55 +117,60 @@
     color: whitesmoke !important;
     border-radius: 4px;
 }
-    /* ----------- MENU TRIGGER (il bottone del menu) ----------- */
-    .ef-account-menu .mud-button-root {
-        color: white; /* testo trigger */
-        transition: background-color .2s;
-    }
 
-        .ef-account-menu .mud-button-root:hover {
-            background-color: #384048 !important;
-        }
+/* ----------- MENU TRIGGER (il bottone del menu) ----------- */
+.ef-account-menu .mud-button-root {
+    color: white !important;
+    border-radius: 6px !important;
+    padding: 4px 12px !important;
+    transition: background-color .2s;
+}
 
-    .ef-account-menu .mud-button-root {
-        color: white;
-        border-radius: 6px;
-        padding: 4px 12px;
-    }
+.ef-account-menu .mud-button-root:hover {
+    background-color: #384048 !important;
+    cursor: pointer !important;
+}
 
-        .ef-account-menu .mud-button-root:hover {
-            background-color: #384048 !important;
-            cursor: pointer !important;
-        }
+/* ----------- POPOVER (il contenitore del menu a discesa) ----------- */
+/* ATTENZIONE: il popover NON è dentro .ef-account-menu, quindi usa attributo data o classe globale */
+.mud-popover-open.ef-account-menu-popover {
+    background-color: #f9f9f9 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
+    min-width: 250px !important;
+}
 
-/* MENU ➜ nella realtà è dentro .mud-popover */
-    .ef-account-menu .mud-popover .mud-menu {
-        background-color: #f9f9f9;
-        border-radius: 8px !important;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-        padding: 4px 0;
-    }
+/* ----------- LISTA MENU ----------- */
+.mud-popover-open.ef-account-menu-popover .mud-list {
+    padding: 4px 0 !important;
+    background-color: transparent !important;
+}
 
-/* ITEM */
-    .ef-account-menu .mud-popover .mud-menu-item {
-        color: #333;
-        padding: 10px 16px;
-        font-size: 0.95rem;
-    }
+/* ----------- ITEM DEL MENU ----------- */
+.mud-popover-open.ef-account-menu-popover .mud-list-item {
+    color: #333 !important;
+    padding: 10px 16px !important;
+    font-size: 0.95rem !important;
+}
 
-        .ef-account-menu .mud-popover .mud-menu-item:hover {
-            background-color: #e3f0ff;
-            color: #003c80;
-        }
+.mud-popover-open.ef-account-menu-popover .mud-list-item:hover {
+    background-color: #e3f0ff !important;
+    color: #003c80 !important;
+}
 
-    /* Disabilitati */
-        .ef-account-menu .mud-popover .mud-menu-item.mud-disabled {
-            color: #999 !important;
-            background-color: transparent !important;
-        }
+/* Disabilitati */
+.mud-popover-open.ef-account-menu-popover .mud-list-item.mud-disabled {
+    color: #999 !important;
+    background-color: transparent !important;
+}
 
-.ef-account-menu .mud-popover .mud-divider {
-    border-color: #ddd;
-    margin: 4px 0;
+.mud-popover-open.ef-account-menu-popover .mud-list-item.mud-disabled:hover {
+    background-color: transparent !important;
+}
+
+/* ----------- DIVIDER ----------- */
+.mud-popover-open.ef-account-menu-popover .mud-divider {
+    border-color: #ddd !important;
+    margin: 4px 0 !important;
 }
 
