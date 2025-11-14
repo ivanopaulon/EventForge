@@ -4,30 +4,25 @@
 @inject IAuthenticationDialogService AuthenticationDialogService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
-@inject IThemeService ThemeService
 @implements IDisposable
 
 @if (_currentUser != null)
 {
-    <MudMenu Icon="@Icons.Material.Filled.AccountCircle"
-             Color="Color.Inherit"
-             Dense="true">
+    <MudMenu Class="ef-account-menu">
         <ActivatorContent>
             <MudIconButton Icon="@Icons.Material.Outlined.AccountCircle"
-                           Edge="Edge.Start"
-                           Class="ef-account-menu">
+                           Edge="Edge.Start">
                 @GetUserInitials()
             </MudIconButton>
         </ActivatorContent>
         <ChildContent>
             <MudMenuItem Icon="@Icons.Material.Filled.Person"
-                         OnClick="@(() => NavigationManager.NavigateTo("/profile"))"
+                         OnClick="@NavigateToProfile"
                          aria-label="@TranslationService.GetTranslation("profile.viewProfile", "View profile")">
                 @TranslationService.GetTranslation("navigation.profile", "Profile")
             </MudMenuItem>
             <MudDivider />
 
-            <!-- Logout Action -->
             <MudMenuItem Icon="@Icons.Material.Filled.Logout"
                          OnClick="@HandleLogout"
                          aria-label="@TranslationService.GetTranslation("auth.logoutDescription", "Logout from system")">
@@ -48,29 +43,19 @@
     protected override async Task OnInitializedAsync()
     {
         AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
-        ThemeService.OnThemeChanged += OnThemeChanged;
-        TranslationService.LanguageChanged += OnLanguageChanged;
         await CheckAuthenticationState();
     }
 
     private async Task CheckAuthenticationState()
     {
         var isAuthenticated = await AuthService.IsAuthenticatedAsync();
-        if (isAuthenticated)
-        {
-            _currentUser = await AuthService.GetCurrentUserAsync();
-        }
-        else
-        {
-            _currentUser = null;
-        }
-        StateHasChanged();
+        _currentUser = isAuthenticated ? await AuthService.GetCurrentUserAsync() : null;
+        await InvokeAsync(StateHasChanged);
     }
 
-    private async void OnAuthenticationStateChanged()
-    {
-        await CheckAuthenticationState();
-    }
+    // Avoid async void: schedule async work on the renderer
+    private void OnAuthenticationStateChanged()
+        => _ = InvokeAsync(CheckAuthenticationState);
 
     private async Task HandleLogout()
     {
@@ -96,6 +81,9 @@
         }
     }
 
+    private void NavigateToProfile()
+        => NavigationManager.NavigateTo("/profile");
+
     /// <summary>
     /// Generates user initials from first and last name, falling back to username if names are not available.
     /// This provides a consistent visual identity for users in the avatar.
@@ -104,16 +92,19 @@
     {
         if (_currentUser == null) return "?";
 
-        var firstName = _currentUser.FirstName?.Trim();
-        var lastName = _currentUser.LastName?.Trim();
+        var first = string.IsNullOrWhiteSpace(_currentUser.FirstName) ? null : _currentUser.FirstName!.Trim();
+        var last = string.IsNullOrWhiteSpace(_currentUser.LastName) ? null : _currentUser.LastName!.Trim();
 
-        if (string.IsNullOrEmpty(firstName) && string.IsNullOrEmpty(lastName))
-            return _currentUser.Username?.Substring(0, 1).ToUpper() ?? "?";
+        if (string.IsNullOrEmpty(first) && string.IsNullOrEmpty(last))
+        {
+            var uname = _currentUser.Username ?? string.Empty;
+            return !string.IsNullOrEmpty(uname) ? char.ToUpperInvariant(uname[0]).ToString() : "?";
+        }
 
-        var firstInitial = !string.IsNullOrEmpty(firstName) ? firstName.Substring(0, 1).ToUpper() : "";
-        var lastInitial = !string.IsNullOrEmpty(lastName) ? lastName.Substring(0, 1).ToUpper() : "";
+        var fi = !string.IsNullOrEmpty(first) ? char.ToUpperInvariant(first![0]).ToString() : "";
+        var li = !string.IsNullOrEmpty(last) ? char.ToUpperInvariant(last![0]).ToString() : "";
 
-        return $"{firstInitial}{lastInitial}";
+        return $"{fi}{li}";
     }
 
     /// <summary>
@@ -123,7 +114,7 @@
     private string GetRolesDisplayText()
     {
         if (_currentUser?.Roles == null || !_currentUser.Roles.Any())
-            return "No Role";
+            return TranslationService.GetTranslation("auth.noRole", "No Role");
 
         if (_currentUser.Roles.Count == 1)
             return _currentUser.Roles.First();
@@ -132,298 +123,21 @@
     }
 
     /// <summary>
-    /// Gets the status badge content for the user avatar.
-    /// Currently shows a simple online indicator, but can be extended for more complex status.
+    /// Shows the login dialog and handles the result.
+    /// Refreshes the user data upon successful login.
     /// </summary>
-    private string GetStatusBadgeContent()
-    {
-        // For now, show a simple online indicator
-        // This can be extended to include actual user status from the backend
-        return "●";
-    }
-
-    /// <summary>
-    /// Gets the color for the status badge based on user state.
-    /// </summary>
-    private Color GetStatusBadgeColor()
-    {
-        // For authenticated users, show success (green) to indicate "online"
-        // This can be extended to reflect actual user status
-        return Color.Success;
-    }
-
-    /// <summary>
-    /// Gets the current language display name.
-    /// </summary>
-    private string GetCurrentLanguageName()
-    {
-        var languages = TranslationService.GetAvailableLanguages();
-        return languages.ContainsKey(TranslationService.CurrentLanguage)
-         ? languages[TranslationService.CurrentLanguage]
-         : TranslationService.CurrentLanguage;
-    }
-
-    /// <summary>
-    /// Gets the CSS class for language flags.
-    /// </summary>
-    private string GetFlagClass(string languageCode)
-    {
-        return languageCode switch
-        {
-            "it" => "flag-it",
-            "en" => "flag-en",
-            _ => "flag-default"
-        };
-    }
-
-    /// <summary>
-    /// Handles theme change events from the theme service.
-    /// </summary>
-    private void OnThemeChanged()
-    {
-        InvokeAsync(StateHasChanged);
-    }
-
-    /// <summary>
-    /// Handles language change events from the translation service.
-    /// </summary>
-    private void OnLanguageChanged(object? sender, string newLanguage)
-    {
-        InvokeAsync(StateHasChanged);
-    }
-
-    /// <summary>
-    /// Handles theme selection from the submenu.
-    /// </summary>
-    private async Task HandleThemeSelection(string themeKey)
-    {
-        try
-        {
-            await ThemeService.SetThemeAsync(themeKey);
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add(TranslationService.GetTranslation("theme.changeError", "Error changing theme: {0}", ex.Message), Severity.Error);
-        }
-    }
-
-    /// <summary>
-    /// Handles language selection from the submenu.
-    /// </summary>
-    private async Task HandleLanguageSelection(string languageKey)
-    {
-        try
-        {
-            await TranslationService.SetLanguageAsync(languageKey);
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add(TranslationService.GetTranslation("language.changeError", "Error changing language: {0}", ex.Message), Severity.Error);
-        }
-    }
-
     private async Task ShowLoginDialogAsync()
     {
         var result = await AuthenticationDialogService.ShowLoginDialogAsync();
         if (result)
         {
-            // Reload current user after successful login
             _currentUser = await AuthService.GetCurrentUserAsync();
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
     }
 
     public void Dispose()
     {
         AuthService.OnAuthenticationStateChanged -= OnAuthenticationStateChanged;
-        ThemeService.OnThemeChanged -= OnThemeChanged;
-        TranslationService.LanguageChanged -= OnLanguageChanged;
     }
 }
-
-<style>
-    /* Modern User Account Menu Styling */
-    .user-account-menu {
-        transition: all 0.2s ease-in-out;
-    }
-
-    /* Activator styling for modern compact look */
-    .user-menu-activator {
-        padding: 4px 8px;
-        border-radius: 24px;
-        transition: all 0.2s ease-in-out;
-        cursor: pointer;
-    }
-
-        .user-menu-activator:hover {
-            background-color: rgba(255, 255, 255, 0.08);
-        }
-
-    /* User avatar with improved styling */
-    .user-avatar {
-        font-weight: 600;
-        font-size: 0.875rem;
-        border: 2px solid rgba(255, 255, 255, 0.2);
-        transition: all 0.2s ease-in-out;
-    }
-
-    /* Status badge styling */
-    .status-badge .mud-badge-badge {
-        font-size: 8px;
-        min-width: 12px;
-        height: 12px;
-        border: 2px solid var(--mud-palette-surface);
-    }
-
-    /* Compact user info */
-    .user-info-compact {
-        max-width: 150px;
-        overflow: hidden;
-    }
-
-    .user-name-compact {
-        font-weight: 500;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        line-height: 1.2;
-        margin: 0;
-    }
-
-    /* Dropdown icon animation */
-    .dropdown-icon {
-        transition: transform 0.2s ease-in-out;
-        opacity: 0.7;
-    }
-
-    .user-menu-activator:hover .dropdown-icon {
-        opacity: 1;
-    }
-
-    /* Menu header styling */
-    .user-menu-header {
-        background: linear-gradient(135deg, var(--mud-palette-primary-lighten) 0%, var(--mud-palette-primary) 100%);
-        color: white;
-        margin: -8px -8px 0 -8px;
-        border-radius: 8px 8px 0 0;
-    }
-
-    .user-fullname {
-        font-weight: 600;
-        margin: 0;
-        color: white;
-    }
-
-    .user-email {
-        font-size: 0.75rem;
-        opacity: 0.9;
-        margin: 0;
-        color: rgba(255, 255, 255, 0.8);
-    }
-
-    /* Role display chip in menu */
-    .role-display-chip {
-        background-color: rgba(255, 255, 255, 0.15) !important;
-        color: white !important;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        font-size: 0.7rem;
-        height: 20px;
-        pointer-events: none;
-    }
-
-    /* Logout item styling */
-    .logout-item {
-        color: var(--mud-palette-error) !important;
-    }
-
-        .logout-item:hover {
-            background-color: rgba(var(--mud-palette-error-rgb), 0.1) !important;
-        }
-
-    /* Responsive adjustments */
-    @@media (max-width: 600px) {
-        .user-info-compact {
-            display: none !important;
-        }
-
-        .user-menu-activator {
-            padding: 6px;
-        }
-    }
-
-    /* High contrast mode */
-    @@media (prefers-contrast: high) {
-        .user-avatar {
-            border: 3px solid var(--mud-palette-text-primary);
-        }
-
-        .user-menu-header {
-            border: 2px solid var(--mud-palette-primary);
-        }
-    }
-
-    /* Reduced motion support */
-    @@media (prefers-reduced-motion: reduce) {
-        .user-menu-activator,
-        .user-avatar,
-        .dropdown-icon {
-            transition: none;
-        }
-    }
-
-    /* Dark theme adjustments */
-    .mud-theme-dark .user-menu-activator:hover {
-        background-color: rgba(255, 255, 255, 0.05);
-    }
-
-    /* Focus indicators for accessibility */
-    .user-menu-activator:focus-within {
-        outline: 2px solid var(--mud-palette-primary);
-        outline-offset: 2px;
-    }
-
-    /* Theme and Language submenu styling */
-    .theme-submenu .mud-menu,
-    .language-submenu .mud-menu {
-        min-width: 200px;
-    }
-
-    /* Flag icons using CSS - matching LanguageSelector design */
-    .flag-icon {
-        width: 20px;
-        height: 14px;
-        border-radius: 2px;
-        display: inline-block;
-        margin-right: 8px;
-        background-size: cover;
-        background-position: center;
-        border: 1px solid rgba(0, 0, 0, 0.1);
-        flex-shrink: 0;
-    }
-
-    .flag-it {
-        background: linear-gradient(to right, #009246 33.33%, #ffffff 33.33%, #ffffff 66.66%, #ce2b37 66.66%);
-    }
-
-    .flag-en {
-        background: linear-gradient(to bottom, #012169 25%, #ffffff 25%, #ffffff 75%, #c8102e 75%), linear-gradient(to right, #012169 25%, #ffffff 25%, #ffffff 75%, #c8102e 75%);
-        background-size: 100% 33.33%, 33.33% 100%;
-        background-position: 0 0, 0 0;
-        background-repeat: no-repeat;
-    }
-
-    .flag-default {
-        background: #cccccc;
-    }
-
-    /* Selected submenu item styling */
-    .mud-selected {
-        background-color: rgba(var(--mud-palette-primary-rgb), 0.08);
-    }
-
-    /* Improved submenu item alignment */
-    .mud-menu-item .d-flex.align-center.ga-2 {
-        width: 100%;
-        min-width: 180px;
-    }
-</style>

@@ -23,16 +23,7 @@
                            Class="ef-menu-button">
             </MudIconButton>
         </MudTooltip>
-
         <MudImage Src="/eventforgetitle.svg" Alt="EventForge Logo"></MudImage>
-
-        <!-- Dynamic Page Title -->
-        <MudText Typo="Typo.h3" 
-                 Class="ml-4 d-none d-md-block"
-                 Color="Color.Inherit">
-            @GetPageTitle()
-        </MudText>
-        
         <MudSpacer />
         
         @if (_isAuthenticated)
