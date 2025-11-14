@@ -7,166 +7,29 @@
 @inject IThemeService ThemeService
 @implements IDisposable
 
-<!--
-    User Account Menu Component
-    
-    This component provides a centralized user account menu that handles user authentication state,
-    displays user information, and provides access to profile, settings, and logout functionality.
-    
-    Responsive Design Strategy:
-    - On desktop: Shows user avatar, name, and role information alongside menu trigger
-    - On mobile: Shows only avatar and dropdown arrow to conserve space
-    - Language and theme controls are conditionally included based on device size
-    
-    UX Design Decisions:
-    - Avatar with user initials provides visual identity
-    - Role badge shows current user permissions at a glance
-    - Dropdown menu groups related actions logically
-    - Mobile-specific controls reduce duplication while maintaining functionality
-    - Responsive visibility ensures optimal experience across screen sizes
--->
-
 @if (_currentUser != null)
 {
-    <MudMenu Icon="@Icons.Material.Filled.AccountCircle" 
-             Color="Color.Inherit" 
-             Direction="Origin.BottomLeft"
-             OffsetX="true"
-             Dense="true"
-             Class="user-account-menu"
-             aria-label="@TranslationService.GetTranslation("userMenu.ariaLabel", "User menu")">
+    <MudMenu Icon="@Icons.Material.Filled.AccountCircle"
+             Color="Color.Inherit"
+             Dense="true">
         <ActivatorContent>
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="user-menu-activator">
-                <!-- Avatar with status badge -->
-                <MudBadge Content="@GetStatusBadgeContent()" 
-                          Color="@GetStatusBadgeColor()" 
-                          Overlap="true" 
-                          Bordered="true"
-                          Class="status-badge">
-                    <MudAvatar Color="Color.Primary" 
-                               Size="Size.Small"
-                               Class="user-avatar"
-                               aria-label="@TranslationService.GetTranslation("userMenu.avatarLabel", "User avatar")">
-                        @GetUserInitials()
-                    </MudAvatar>
-                </MudBadge>
-                <!-- Compact user info - single line -->
-                <div class="d-none d-sm-flex user-info-compact">
-                    <MudText Typo="Typo.body2" Class="user-name-compact">
-                        @_currentUser.FullName
-                    </MudText>
-                </div>
-                <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" 
-                         Size="Size.Small" 
-                         Class="dropdown-icon" 
-                         aria-hidden="true" />
-            </MudStack>
+            <MudIconButton Icon="@Icons.Material.Outlined.AccountCircle"
+                           Edge="Edge.Start"
+                           Class="ef-account-menu">
+                @GetUserInitials()
+            </MudIconButton>
         </ActivatorContent>
         <ChildContent>
-            <!-- User Information Section (non-clickable) -->
-            <div class="user-menu-header">
-                <MudStack Row="false" Spacing="1" Class="pa-3">
-                    <MudText Typo="Typo.subtitle2" Class="user-fullname">
-                        @_currentUser.FullName
-                    </MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="user-email">
-                        @_currentUser.Email
-                    </MudText>
-                    @if (_currentUser.Roles?.Any() == true)
-                    {
-                        <MudChip T="string"
-                                 Size="Size.Small" 
-                                 Color="Color.Info" 
-                                 Variant="Variant.Text"
-                                 Icon="@Icons.Material.Filled.Badge"
-                                 Class="role-display-chip"
-                                 Text="@GetRolesDisplayText()" />
-                    }
-                </MudStack>
-            </div>
-            
-            <MudDivider Class="my-1" />
-            
-            <!-- Profile and Settings Actions -->
-            <MudMenuItem Icon="@Icons.Material.Filled.Person" 
+            <MudMenuItem Icon="@Icons.Material.Filled.Person"
                          OnClick="@(() => NavigationManager.NavigateTo("/profile"))"
                          aria-label="@TranslationService.GetTranslation("profile.viewProfile", "View profile")">
                 @TranslationService.GetTranslation("navigation.profile", "Profile")
             </MudMenuItem>
-            <MudMenuItem Icon="@Icons.Material.Filled.Settings" 
-                         OnClick="@(() => NavigationManager.NavigateTo("/settings"))"
-                         aria-label="@TranslationService.GetTranslation("navigation.settingsDescription", "Go to settings")">
-                @TranslationService.GetTranslation("navigation.settings", "Settings")
-            </MudMenuItem>
-            
-            <!-- Future ready: Placeholder for notifications -->
-            <MudMenuItem Icon="@Icons.Material.Filled.Notifications" 
-                         OnClick="@(() => NavigationManager.NavigateTo("/notifications"))"
-                         aria-label="@TranslationService.GetTranslation("navigation.notificationsDescription", "View notifications")">
-                @TranslationService.GetTranslation("navigation.notifications", "Notifications")
-            </MudMenuItem>
-            
-            <MudDivider Class="my-1" />
-            
-            <!-- Theme Selection: simplified -->
-            <MudMenuItem>
-                <ThemeSelector />
-            </MudMenuItem>
-            
-            <!-- Language Selection -->
-            <MudMenuItem Icon="@Icons.Material.Filled.Language" 
-                         aria-label="@TranslationService.GetTranslation("accessibility.selectLanguage", "Select language")">
-                <div class="d-flex align-center" style="width: 100%;">
-                    <MudIcon Icon="@Icons.Material.Filled.Language" Style="margin-right: 12px;" />
-                    <div class="flex-grow-1">
-                        <MudText Typo="Typo.body2">
-                            @TranslationService.GetTranslation("common.language", "Language")
-                        </MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            @GetCurrentLanguageName()
-                        </MudText>
-                    </div>
-                    <MudMenu Icon="@Icons.Material.Filled.KeyboardArrowRight"
-                             Color="Color.Inherit"
-                             Direction="Origin.CenterLeft"
-                             Dense="true"
-                             Class="language-submenu">
-                        <ActivatorContent>
-                            <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowRight" 
-                                           Size="Size.Small" 
-                                           Color="Color.Inherit" />
-                        </ActivatorContent>
-                        <ChildContent>
-                            @foreach (var language in TranslationService.GetAvailableLanguages())
-                            {
-                                <MudMenuItem OnClick="@(() => HandleLanguageSelection(language.Key))"
-                                             Class="@(language.Key == TranslationService.CurrentLanguage ? "mud-selected" : "")">
-                                    <div class="d-flex align-center ga-2">
-                                        <div class="flag-icon @GetFlagClass(language.Key)" 
-                                             aria-hidden="true" 
-                                             title="@language.Value"></div>
-                                        <span>@language.Value</span>
-                                        @if (language.Key == TranslationService.CurrentLanguage)
-                                        {
-                                            <MudIcon Icon="@Icons.Material.Filled.Check" 
-                                                     Color="Color.Primary" 
-                                                     Size="Size.Small" 
-                                                     Style="margin-left: auto;" />
-                                        }
-                                    </div>
-                                </MudMenuItem>
-                            }
-                        </ChildContent>
-                    </MudMenu>
-                </div>
-            </MudMenuItem>
-            
-            <MudDivider Class="my-1" />
-            
+            <MudDivider />
+
             <!-- Logout Action -->
-            <MudMenuItem Icon="@Icons.Material.Filled.Logout" 
+            <MudMenuItem Icon="@Icons.Material.Filled.Logout"
                          OnClick="@HandleLogout"
-                         Class="logout-item"
                          aria-label="@TranslationService.GetTranslation("auth.logoutDescription", "Logout from system")">
                 @TranslationService.GetTranslation("auth.logout", "Logout")
             </MudMenuItem>
@@ -215,7 +78,7 @@
         {
             await AuthService.LogoutAsync();
             Snackbar.Add(TranslationService.GetTranslation("auth.logoutSuccess", "Successfully logged out"), Severity.Success);
-            
+
             // Trigger the logout callback if provided
             if (OnLogout.HasDelegate)
             {
@@ -240,16 +103,16 @@
     private string GetUserInitials()
     {
         if (_currentUser == null) return "?";
-        
+
         var firstName = _currentUser.FirstName?.Trim();
         var lastName = _currentUser.LastName?.Trim();
-        
+
         if (string.IsNullOrEmpty(firstName) && string.IsNullOrEmpty(lastName))
             return _currentUser.Username?.Substring(0, 1).ToUpper() ?? "?";
-        
+
         var firstInitial = !string.IsNullOrEmpty(firstName) ? firstName.Substring(0, 1).ToUpper() : "";
         var lastInitial = !string.IsNullOrEmpty(lastName) ? lastName.Substring(0, 1).ToUpper() : "";
-        
+
         return $"{firstInitial}{lastInitial}";
     }
 
@@ -261,10 +124,10 @@
     {
         if (_currentUser?.Roles == null || !_currentUser.Roles.Any())
             return "No Role";
-        
+
         if (_currentUser.Roles.Count == 1)
             return _currentUser.Roles.First();
-        
+
         return $"{_currentUser.Roles.Count} Roles";
     }
 
@@ -299,7 +162,7 @@
          ? languages[TranslationService.CurrentLanguage]
          : TranslationService.CurrentLanguage;
     }
-    
+
     /// <summary>
     /// Gets the CSS class for language flags.
     /// </summary>
@@ -392,9 +255,9 @@
         cursor: pointer;
     }
 
-    .user-menu-activator:hover {
-        background-color: rgba(255, 255, 255, 0.08);
-    }
+        .user-menu-activator:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
 
     /* User avatar with improved styling */
     .user-avatar {
@@ -473,16 +336,16 @@
         color: var(--mud-palette-error) !important;
     }
 
-    .logout-item:hover {
-        background-color: rgba(var(--mud-palette-error-rgb), 0.1) !important;
-    }
+        .logout-item:hover {
+            background-color: rgba(var(--mud-palette-error-rgb), 0.1) !important;
+        }
 
     /* Responsive adjustments */
     @@media (max-width: 600px) {
         .user-info-compact {
             display: none !important;
         }
-        
+
         .user-menu-activator {
             padding: 6px;
         }
@@ -493,7 +356,7 @@
         .user-avatar {
             border: 3px solid var(--mud-palette-text-primary);
         }
-        
+
         .user-menu-header {
             border: 2px solid var(--mud-palette-primary);
         }
@@ -543,8 +406,7 @@
     }
 
     .flag-en {
-        background: linear-gradient(to bottom, #012169 25%, #ffffff 25%, #ffffff 75%, #c8102e 75%),
-                    linear-gradient(to right, #012169 25%, #ffffff 25%, #ffffff 75%, #c8102e 75%);
+        background: linear-gradient(to bottom, #012169 25%, #ffffff 25%, #ffffff 75%, #c8102e 75%), linear-gradient(to right, #012169 25%, #ffffff 25%, #ffffff 75%, #c8102e 75%);
         background-size: 100% 33.33%, 33.33% 100%;
         background-position: 0 0, 0 0;
         background-repeat: no-repeat;

@@ -12,17 +12,20 @@
 
 <MudLayout>
     <!-- Improved AppBar with accessibility enhancements and dynamic title -->
-    <MudAppBar Elevation="1" role="banner">
-        <MudIconButton Color="Color.Surface"
-                       Edge="Edge.Start"
-                       OnClick="@(() => _drawerOpen = !_drawerOpen)"
-                       aria-label="@TranslationService.GetTranslation("navigation.openMenu", "Open navigation menu")"
-                       aria-expanded="@_drawerOpen"
-                       aria-controls="navigation-drawer"
-                       Class="menu-toggle-button">
-            <img src="trace.svg" alt="EventForge" style="height:48px;width:48px;" />
-        </MudIconButton>
-        
+    <MudAppBar Elevation="1" role="banner" Class="ef-appbar">
+        <MudTooltip Text="@TranslationService.GetTranslation("button.delete", "Elimina")">
+            <MudIconButton Icon="@Icons.Material.Outlined.Menu"
+                           Edge="Edge.Start"
+                           OnClick="@(() => _drawerOpen = !_drawerOpen)"
+                           aria-label="@TranslationService.GetTranslation("navigation.openMenu", "Open navigation menu")"
+                           aria-expanded="@_drawerOpen"
+                           aria-controls="navigation-drawer"
+                           Class="ef-menu-button">
+            </MudIconButton>
+        </MudTooltip>
+
+        <MudImage Src="/eventforgetitle.svg" Alt="EventForge Logo"></MudImage>
+
         <!-- Dynamic Page Title -->
         <MudText Typo="Typo.h3" 
                  Class="ml-4 d-none d-md-block"
@@ -34,10 +37,7 @@
         
         @if (_isAuthenticated)
         {
-            <!-- User Account Menu - no longer includes theme/language controls -->
-            <nav class="d-flex align-center ga-2" role="navigation" aria-label="User controls">
-                <UserAccountMenu OnLogout="@HandleLogout" />
-            </nav>
+            <UserAccountMenu OnLogout="@HandleLogout" />
         }
         else
         {

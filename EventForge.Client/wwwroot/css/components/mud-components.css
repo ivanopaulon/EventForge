@@ -56,15 +56,72 @@
     margin-right: 6px !important;
 }
 
+.ef-appbar {
+    background-color: slategray !important;
+    padding: 0px !important;
+    color: white !important;
+    min-height: 48px !important;
+    height: 48px !important;
+}
+    .ef-appbar .mud-image {
+        height: 32px !important;
+        margin: -2px 0px 0px -8px !important;
+    }
+    .ef-appbar .mud-image.hover{
+                cursor: pointer !important;
+    }
+    
+
+
 .ef-dialog {
     background-color: whitesmoke !important;
+    padding: 0px !important;
 }
 
     .ef-dialog .mud-dialog-title {
         background-color: slategray !important;
         color: white !important;
-        align-items: center !important;
+        align-items: flex-end !important;
+        min-height: 48px !important;
+        height: 48px !important;
+        padding: 0px !important;
     }
+    .ef-dialog .mud-image{
+        height: 32px !important;
+        margin: 8px 0px 0px 8px !important;
+    }
+
+.ef-menu-button {
+    min-height: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    width: 36px !important;
+    margin: -2px 16px 0px -18px !important;
+    box-sizing: border-box !important;
+    color: whitesmoke !important;
+    border-radius: 4px;
+}
+
+    .ef-menu-button:hover {
+        background-color: #384048 !important;
+        cursor: pointer !important;
+    }
+
+.ef-account-menu {
+    min-height: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    width: 36px !important;
+    margin: -2px -36px 0px -18px !important;
+    box-sizing: border-box !important;
+    color: whitesmoke !important;
+    border-radius: 4px;
+}
+    .ef-account-menu:hover {
+        background-color: #384048 !important;
+        cursor: pointer !important;
+    }
+
 
 /*
  EventForge - MudBlazor Components Stylesheet (Consolidated)
