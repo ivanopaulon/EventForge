@@ -56,6 +56,16 @@
     margin-right: 6px !important;
 }
 
+.ef-dialog {
+    background-color: whitesmoke !important;
+}
+
+    .ef-dialog .mud-dialog-title {
+        background-color: slategray !important;
+        color: white !important;
+        align-items: center !important;
+    }
+
 /*
  EventForge - MudBlazor Components Stylesheet (Consolidated)
  Path: wwwroot/css/components/mud-components.css
