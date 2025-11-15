@@ -1967,12 +1967,29 @@ public class WarehouseManagementController : BaseApiController
                 });
             }
 
-            // Update the row quantity, location, and notes
+            // Update the row product, quantity, location, and notes
+            if (rowDto.ProductId.HasValue)
+            {
+                rowEntity.ProductId = rowDto.ProductId.Value;
+                
+                // Update product code and description from the new product
+                var product = await _context.Products
+                    .FirstOrDefaultAsync(p => p.Id == rowDto.ProductId.Value && !p.IsDeleted, cancellationToken);
+                
+                if (product != null)
+                {
+                    rowEntity.ProductCode = product.Code;
+                    rowEntity.Description = product.Name;
+                }
+            }
+            
             rowEntity.Quantity = rowDto.Quantity;
+            
             if (rowDto.LocationId.HasValue)
             {
                 rowEntity.LocationId = rowDto.LocationId.Value;
             }
+            
             rowEntity.Notes = rowDto.Notes;
             rowEntity.ModifiedAt = DateTime.UtcNow;
             rowEntity.ModifiedBy = GetCurrentUser();

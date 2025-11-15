@@ -4,7 +4,7 @@
 
 <MudPaper Elevation="3" Class="pa-4 mb-4 product-entry-inline" Style="border: 2px solid var(--mud-palette-success); background-color: var(--mud-palette-background-grey);">
     <MudStack Spacing="2">
-        <!-- Product Information Display with Undo Button -->
+        <!-- Product Information Display with Action Buttons -->
         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
             <MudAlert Severity="Severity.Success" Dense="true" NoIcon="false" Variant="Variant.Text" Style="flex: 1;">
                 <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
@@ -15,16 +15,24 @@
                     </div>
                 </MudStack>
             </MudAlert>
-            @if (ShowUndo && LastAddedRow != null)
-            {
-                <MudButton StartIcon="@Icons.Material.Outlined.Undo"
-                          Color="Color.Warning"
-                          Variant="Variant.Outlined"
-                          Size="Size.Small"
-                          OnClick="@(() => OnUndo.InvokeAsync())">
-                    @TranslationService.GetTranslation("warehouse.undoLast", "Annulla ultima")
-                </MudButton>
-            }
+            <MudStack Row="true" Spacing="1">
+                <MudTooltip Text="@TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica prodotto rapida")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.EditNote"
+                                  Color="Color.Info"
+                                  Size="Size.Small"
+                                  OnClick="@(() => OnQuickEditProduct.InvokeAsync(CurrentProduct?.Id ?? Guid.Empty))" />
+                </MudTooltip>
+                @if (ShowUndo && LastAddedRow != null)
+                {
+                    <MudButton StartIcon="@Icons.Material.Outlined.Undo"
+                              Color="Color.Warning"
+                              Variant="Variant.Outlined"
+                              Size="Size.Small"
+                              OnClick="@(() => OnUndo.InvokeAsync())">
+                        @TranslationService.GetTranslation("warehouse.undoLast", "Annulla ultima")
+                    </MudButton>
+                }
+            </MudStack>
         </MudStack>
 
         <!-- Entry Form -->
@@ -117,6 +125,7 @@
     [Parameter] public Func<string, CancellationToken, Task<IEnumerable<StorageLocationDto>>>? OnSearchLocations { get; set; }
     [Parameter] public EventCallback OnConfirm { get; set; }
     [Parameter] public EventCallback OnUndo { get; set; }
+    [Parameter] public EventCallback<Guid> OnQuickEditProduct { get; set; }
     
     public async Task FocusLocationAsync()
     {

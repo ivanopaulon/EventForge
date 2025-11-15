@@ -10,8 +10,10 @@
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Outlined.Add" Class="mr-2" />
-            @TranslationService.GetTranslation("warehouse.quickCreateProduct", "Creazione Rapida Prodotto")
+            <MudIcon Icon="@(IsEditMode ? Icons.Material.Outlined.Edit : Icons.Material.Outlined.Add)" Class="mr-2" />
+            @(IsEditMode 
+                ? TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica Rapida Prodotto")
+                : TranslationService.GetTranslation("warehouse.quickCreateProduct", "Creazione Rapida Prodotto"))
         </MudText>
     </TitleContent>
     <DialogContent>
@@ -137,6 +139,15 @@
     [Parameter]
     public bool AutoAssignCode { get; set; } = false;
 
+    [Parameter]
+    public bool IsEditMode { get; set; } = false;
+
+    [Parameter]
+    public Guid? ProductId { get; set; }
+
+    [Parameter]
+    public ProductDto? ExistingProduct { get; set; }
+
     private bool _isLoading = false;
     private bool _isFormValid = false;
     private MudForm? _form;
@@ -147,16 +158,34 @@
     {
         await LoadVatRates();
         
-        // Pre-fill the code if provided
-        if (!string.IsNullOrWhiteSpace(PrefilledCode))
+        if (IsEditMode && ExistingProduct != null)
         {
-            _model.Code = PrefilledCode;
+            // Load existing product data
+            _model = new ProductDto
+            {
+                Id = ExistingProduct.Id,
+                Code = ExistingProduct.Code,
+                Name = ExistingProduct.Name,
+                Description = ExistingProduct.Description,
+                DefaultPrice = ExistingProduct.DefaultPrice,
+                VatRateId = ExistingProduct.VatRateId,
+                IsVatIncluded = ExistingProduct.IsVatIncluded,
+                Status = ExistingProduct.Status
+            };
         }
+        else
+        {
+            // Pre-fill the code if provided
+            if (!string.IsNullOrWhiteSpace(PrefilledCode))
+            {
+                _model.Code = PrefilledCode;
+            }
 
-        // Set defaults
-        _model.Status = ProductStatus.Active;
-        _model.IsVatIncluded = true; // Always VAT included as per requirements
-        _model.Name = string.Empty; // Will use Description as Name initially
+            // Set defaults
+            _model.Status = ProductStatus.Active;
+            _model.IsVatIncluded = true; // Always VAT included as per requirements
+            _model.Name = string.Empty; // Will use Description as Name initially
+        }
     }
 
     private async Task LoadVatRates()
@@ -181,6 +210,91 @@
     }
 
     private async Task CreateProduct()
+    {
+        if (IsEditMode)
+        {
+            await UpdateProduct();
+        }
+        else
+        {
+            await CreateNewProduct();
+        }
+    }
+
+    private async Task UpdateProduct()
+    {
+        _isLoading = true;
+        
+        try
+        {
+            // Validate form
+            if (_form != null)
+            {
+                await _form.Validate();
+                if (!_isFormValid)
+                {
+                    Snackbar.Add(
+                        TranslationService.GetTranslation("validation.formInvalid", "Compila tutti i campi obbligatori"), 
+                        Severity.Warning
+                    );
+                    return;
+                }
+            }
+
+            // Use Description as Name if Name is empty (simplified creation)
+            if (string.IsNullOrWhiteSpace(_model.Name))
+            {
+                _model.Name = _model.Description?.Length > 100 
+                    ? _model.Description.Substring(0, 100) 
+                    : _model.Description ?? "Prodotto";
+            }
+
+            // Update the product via API
+            var updateDto = new UpdateProductDto
+            {
+                Name = _model.Name,
+                Description = _model.Description,
+                DefaultPrice = _model.DefaultPrice,
+                VatRateId = _model.VatRateId,
+                IsVatIncluded = true, // Always true as per requirements
+                Status = _model.Status
+            };
+
+            var updatedProduct = await ProductService.UpdateProductAsync(ProductId!.Value, updateDto);
+            
+            if (updatedProduct != null)
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"), 
+                    Severity.Success
+                );
+                
+                // Close dialog and return the updated product
+                MudDialog.Close(DialogResult.Ok(updatedProduct));
+            }
+            else
+            {
+                Snackbar.Add(
+                    TranslationService.GetTranslation("products.updateError", "Errore nell'aggiornamento del prodotto"), 
+                    Severity.Error
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating product");
+            Snackbar.Add(
+                TranslationService.GetTranslation("products.updateError", "Errore nell'aggiornamento del prodotto: {0}", ex.Message), 
+                Severity.Error
+            );
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task CreateNewProduct()
     {
         _isLoading = true;
         

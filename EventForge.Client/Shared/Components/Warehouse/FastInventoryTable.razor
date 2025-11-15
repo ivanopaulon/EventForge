@@ -122,17 +122,23 @@
                     </MudTd>
                     <MudTd DataLabel="Actions">
                         <MudStack Row="true" Spacing="1">
-                            <MudTooltip Text="@TranslationService.GetTranslation("common.quickEdit", "Modifica rapida")">
+                            <MudTooltip Text="@TranslationService.GetTranslation("common.quickEdit", "Modifica rapida quantità")">
                                 <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
                                                Size="Size.Small" 
                                                Color="Color.Primary"
                                                OnClick="@(() => OnBeginEdit.InvokeAsync(context.Id))" />
                             </MudTooltip>
-                            <MudTooltip Text="@TranslationService.GetTranslation("common.editDetails", "Modifica dettagli")">
+                            <MudTooltip Text="@TranslationService.GetTranslation("warehouse.editRowDetails", "Modifica riga (prodotto, ubicazione, note)")">
                                 <MudIconButton Icon="@Icons.Material.Outlined.EditNote" 
                                                Size="Size.Small" 
                                                Color="Color.Info"
                                                OnClick="@(() => OnOpenEditDialog.InvokeAsync(context.Id))" />
+                            </MudTooltip>
+                            <MudTooltip Text="@TranslationService.GetTranslation("warehouse.editProductQuick", "Modifica prodotto veloce")">
+                                <MudIconButton Icon="@Icons.Material.Outlined.Inventory2" 
+                                               Size="Size.Small" 
+                                               Color="Color.Secondary"
+                                               OnClick="@(() => OnOpenQuickEditProduct.InvokeAsync(context.ProductId))" />
                             </MudTooltip>
                             <MudTooltip Text="@TranslationService.GetTranslation("common.delete", "Elimina")">
                                 <MudIconButton Icon="@Icons.Material.Outlined.Delete" 
@@ -162,6 +168,7 @@
     [Parameter] public EventCallback<Guid> OnSaveEdit { get; set; }
     [Parameter] public EventCallback OnCancelEdit { get; set; }
     [Parameter] public EventCallback<Guid> OnOpenEditDialog { get; set; }
+    [Parameter] public EventCallback<Guid> OnOpenQuickEditProduct { get; set; }
     [Parameter] public EventCallback<Guid> OnRequestDelete { get; set; }
     [Parameter] public EventCallback<Guid> OnConfirmDelete { get; set; }
     [Parameter] public EventCallback OnCancelDelete { get; set; }

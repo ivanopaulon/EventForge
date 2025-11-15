@@ -170,7 +170,8 @@
                         LastAddedRow="@_lastAddedRow"
                         OnSearchLocations="@SearchLocations"
                         OnConfirm="@ConfirmAndNext"
-                        OnUndo="@UndoLastAsync" />
+                        OnUndo="@UndoLastAsync"
+                        OnQuickEditProduct="@OpenQuickEditProductAsync" />
                 }
             </MudItem>
         </MudGrid>
@@ -189,6 +190,7 @@
             OnSaveEdit="@SaveEditRowAsync"
             OnCancelEdit="@CancelEdit"
             OnOpenEditDialog="@OpenEditDialogAsync"
+            OnOpenQuickEditProduct="@OpenQuickEditProductAsync"
             OnRequestDelete="@StartDeleteConfirm"
             OnConfirmDelete="@ConfirmDeleteAsync"
             OnCancelDelete="@CancelDelete" />
@@ -1011,16 +1013,17 @@
 
         var parameters = new DialogParameters
         {
+            { "ProductId", row.ProductId },
             { "Quantity", row.Quantity },
             { "LocationId", row.LocationId },
             { "Notes", row.Notes },
-            { "ProductName", row.ProductName },
+            { "AvailableProducts", _allProducts },
             { "AvailableLocations", _locations }
         };
 
         var options = new DialogOptions
         {
-            MaxWidth = MaxWidth.Small,
+            MaxWidth = MaxWidth.Medium,
             FullWidth = true,
             CloseButton = true,
             CloseOnEscapeKey = true
@@ -1040,6 +1043,7 @@
             {
                 var updateDto = new UpdateInventoryDocumentRowDto
                 {
+                    ProductId = editResult.ProductId,
                     Quantity = editResult.Quantity,
                     LocationId = editResult.LocationId,
                     Notes = editResult.Notes
@@ -1067,6 +1071,66 @@
             {
                 _isLoading = false;
             }
+        }
+    }
+
+    private async Task OpenQuickEditProductAsync(Guid productId)
+    {
+        try
+        {
+            // Load the product details
+            var product = await ProductService.GetProductByIdAsync(productId);
+            if (product == null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"), Severity.Error);
+                return;
+            }
+
+            var parameters = new DialogParameters
+            {
+                { "IsEditMode", true },
+                { "ProductId", productId },
+                { "ExistingProduct", product }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true,
+                CloseOnEscapeKey = true
+            };
+
+            var dialog = await DialogService.ShowAsync<QuickCreateProductDialog>(
+                TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica Rapida Prodotto"),
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (!result.Canceled && result.Data is ProductDto updatedProduct)
+            {
+                // Reload products list
+                await LoadProducts();
+                
+                // Update the current document to reflect product changes
+                if (_currentDocument != null)
+                {
+                    var refreshedDocument = await InventoryService.GetInventoryDocumentAsync(_currentDocument.Id);
+                    if (refreshedDocument != null)
+                    {
+                        _currentDocument = refreshedDocument;
+                        StateHasChanged();
+                    }
+                }
+                
+                Snackbar.Add(TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"), Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening quick edit product dialog for product {ProductId}", productId);
+            Snackbar.Add(TranslationService.GetTranslation("products.loadError", "Errore nel caricamento del prodotto"), Severity.Error);
         }
     }
     
