@@ -5,6 +5,7 @@
 @using EventForge.DTOs.Products
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Warehouse
+@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @inject IProductService ProductService
 @inject IInventoryService InventoryService
@@ -17,6 +18,7 @@
 @inject IJSRuntime JSRuntime
 @inject IInventorySessionService InventorySessionService
 @inject IInventoryFastService InventoryFastService
+@inject IDialogService DialogService
 
 <PageTitle>@TranslationService.GetTranslation("warehouse.inventoryProcedureFast", "Procedura Inventario Rapida")</PageTitle>
 
@@ -168,7 +170,8 @@
                         LastAddedRow="@_lastAddedRow"
                         OnSearchLocations="@SearchLocations"
                         OnConfirm="@ConfirmAndNext"
-                        OnUndo="@UndoLastAsync" />
+                        OnUndo="@UndoLastAsync"
+                        OnQuickEditProduct="@OpenQuickEditProductAsync" />
                 }
             </MudItem>
         </MudGrid>
@@ -186,6 +189,8 @@
             OnBeginEdit="@BeginEditRow"
             OnSaveEdit="@SaveEditRowAsync"
             OnCancelEdit="@CancelEdit"
+            OnOpenEditDialog="@OpenEditDialogAsync"
+            OnOpenQuickEditProduct="@OpenQuickEditProductAsync"
             OnRequestDelete="@StartDeleteConfirm"
             OnConfirmDelete="@ConfirmDeleteAsync"
             OnCancelDelete="@CancelDelete" />
@@ -997,6 +1002,136 @@
     {
         _confirmDeleteRowId = null;
         StateHasChanged();
+    }
+
+    private async Task OpenEditDialogAsync(Guid rowId)
+    {
+        if (_currentDocument == null) return;
+
+        var row = _currentDocument.Rows?.FirstOrDefault(r => r.Id == rowId);
+        if (row == null) return;
+
+        var parameters = new DialogParameters
+        {
+            { "ProductId", row.ProductId },
+            { "Quantity", row.Quantity },
+            { "LocationId", row.LocationId },
+            { "Notes", row.Notes },
+            { "AvailableProducts", _allProducts },
+            { "AvailableLocations", _locations }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = await DialogService.ShowAsync<EditInventoryRowDialog>(
+            TranslationService.GetTranslation("warehouse.editInventoryRow", "Modifica Riga Inventario"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is EditInventoryRowDialog.EditInventoryRowResult editResult)
+        {
+            _isLoading = true;
+            try
+            {
+                var updateDto = new UpdateInventoryDocumentRowDto
+                {
+                    ProductId = editResult.ProductId,
+                    Quantity = editResult.Quantity,
+                    LocationId = editResult.LocationId,
+                    Notes = editResult.Notes
+                };
+
+                var updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(_currentDocument.Id, row.Id, updateDto);
+
+                if (updatedDocument != null)
+                {
+                    _currentDocument = updatedDocument;
+                    Snackbar.Add(TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata con successo"), Severity.Success);
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"), Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error updating inventory row {RowId} via dialog", rowId);
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"), Severity.Error);
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
+    }
+
+    private async Task OpenQuickEditProductAsync(Guid productId)
+    {
+        try
+        {
+            // Load the product details
+            var product = await ProductService.GetProductByIdAsync(productId);
+            if (product == null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"), Severity.Error);
+                return;
+            }
+
+            var parameters = new DialogParameters
+            {
+                { "IsEditMode", true },
+                { "ProductId", productId },
+                { "ExistingProduct", product }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true,
+                CloseOnEscapeKey = true
+            };
+
+            var dialog = await DialogService.ShowAsync<QuickCreateProductDialog>(
+                TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica Rapida Prodotto"),
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (!result.Canceled && result.Data is ProductDto updatedProduct)
+            {
+                // Reload products list
+                await LoadProducts();
+                
+                // Update the current document to reflect product changes
+                if (_currentDocument != null)
+                {
+                    var refreshedDocument = await InventoryService.GetInventoryDocumentAsync(_currentDocument.Id);
+                    if (refreshedDocument != null)
+                    {
+                        _currentDocument = refreshedDocument;
+                        StateHasChanged();
+                    }
+                }
+                
+                Snackbar.Add(TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"), Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening quick edit product dialog for product {ProductId}", productId);
+            Snackbar.Add(TranslationService.GetTranslation("products.loadError", "Errore nel caricamento del prodotto"), Severity.Error);
+        }
     }
     
     private async Task UndoLastAsync()

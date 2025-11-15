@@ -1,26 +1,68 @@
+@using EventForge.DTOs.Warehouse
+@using EventForge.DTOs.Products
 @inject ITranslationService TranslationService
 
 <MudDialog>
     <DialogContent>
         <MudStack Spacing="3">
-            <!-- Product Information Display -->
-            @if (!string.IsNullOrEmpty(ProductName))
-            {
-                <MudPaper Elevation="0" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
-                    <div>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            @TranslationService.GetTranslation("warehouse.productName", "Nome Prodotto")
-                        </MudText>
-                        <MudText Typo="Typo.body1" Style="font-weight: 600;">
-                            @ProductName
-                        </MudText>
-                    </div>
-                </MudPaper>
-            }
-
             <!-- Edit Form -->
             <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
                 <MudStack Spacing="3">
+                    <!-- Product Selection -->
+                    <MudAutocomplete T="ProductDto"
+                                    @bind-Value="_selectedProduct"
+                                    Label="@TranslationService.GetTranslation("products.product", "Prodotto")"
+                                    Variant="Variant.Outlined"
+                                    SearchFunc="@SearchProducts"
+                                    ToStringFunc="@(p => p?.Name ?? string.Empty)"
+                                    Immediate="true"
+                                    ResetValueOnEmptyText="true"
+                                    CoerceText="true"
+                                    CoerceValue="false"
+                                    Required="true"
+                                    RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                                    Adornment="Adornment.Start"
+                                    AdornmentIcon="@Icons.Material.Outlined.Inventory"
+                                    HelperText="@TranslationService.GetTranslation("products.searchByCodeOrName", "Cerca per codice o nome")">
+                        <ItemTemplate Context="product">
+                            <MudText Typo="Typo.body2">@product.Name</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@product.Code @(!string.IsNullOrEmpty(product.ShortDescription) ? " - " + product.ShortDescription : "")</MudText>
+                        </ItemTemplate>
+                        <NoItemsTemplate>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @TranslationService.GetTranslation("products.noProductsFound", "Nessun prodotto trovato")
+                            </MudText>
+                        </NoItemsTemplate>
+                    </MudAutocomplete>
+
+                    <!-- Location Selection -->
+                    <MudAutocomplete T="StorageLocationDto"
+                                    @bind-Value="_selectedLocation"
+                                    Label="@TranslationService.GetTranslation("warehouse.location", "Ubicazione")"
+                                    Variant="Variant.Outlined"
+                                    SearchFunc="@SearchLocations"
+                                    ToStringFunc="@(l => l?.Code ?? string.Empty)"
+                                    Immediate="true"
+                                    ResetValueOnEmptyText="true"
+                                    CoerceText="true"
+                                    CoerceValue="false"
+                                    Adornment="Adornment.Start"
+                                    AdornmentIcon="@Icons.Material.Outlined.LocationOn"
+                                    HelperText="@TranslationService.GetTranslation("warehouse.selectLocation", "Seleziona ubicazione")">
+                        <ItemTemplate Context="location">
+                            <MudText Typo="Typo.body2">@location.Code</MudText>
+                            @if (!string.IsNullOrEmpty(location.Description))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@location.Description</MudText>
+                            }
+                        </ItemTemplate>
+                        <NoItemsTemplate>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @TranslationService.GetTranslation("warehouse.noLocationsFound", "Nessuna ubicazione trovata")
+                            </MudText>
+                        </NoItemsTemplate>
+                    </MudAutocomplete>
+
                     <MudNumericField T="decimal"
                                     @bind-Value="_quantity"
                                     Label="@TranslationService.GetTranslation("warehouse.quantity", "Quantità")"
@@ -61,19 +103,74 @@
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
 
+    [Parameter] public Guid? ProductId { get; set; }
     [Parameter] public decimal Quantity { get; set; }
+    [Parameter] public Guid? LocationId { get; set; }
     [Parameter] public string? Notes { get; set; }
-    [Parameter] public string? ProductName { get; set; }
+    [Parameter] public List<ProductDto>? AvailableProducts { get; set; }
+    [Parameter] public List<StorageLocationDto>? AvailableLocations { get; set; }
 
     private MudForm? _form;
     private bool _isFormValid;
+    private Guid? _productId;
+    private ProductDto? _selectedProduct;
     private decimal _quantity;
+    private Guid? _locationId;
+    private StorageLocationDto? _selectedLocation;
     private string? _notes;
+    private const int MaxSearchResults = 20;
 
     protected override void OnInitialized()
     {
+        _productId = ProductId;
         _quantity = Quantity;
+        _locationId = LocationId;
         _notes = Notes;
+        
+        // Set the selected product if ProductId is provided
+        if (_productId.HasValue && AvailableProducts != null)
+        {
+            _selectedProduct = AvailableProducts.FirstOrDefault(p => p.Id == _productId.Value);
+        }
+        
+        // Set the selected location if LocationId is provided
+        if (_locationId.HasValue && AvailableLocations != null)
+        {
+            _selectedLocation = AvailableLocations.FirstOrDefault(l => l.Id == _locationId.Value);
+        }
+    }
+
+    private Task<IEnumerable<ProductDto>> SearchProducts(string value, CancellationToken token)
+    {
+        if (AvailableProducts == null)
+            return Task.FromResult(Enumerable.Empty<ProductDto>());
+
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult(AvailableProducts.Take(MaxSearchResults));
+        
+        var results = AvailableProducts
+            .Where(p => p.Name.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+                       p.Code.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+                       (!string.IsNullOrEmpty(p.ShortDescription) && p.ShortDescription.Contains(value, StringComparison.OrdinalIgnoreCase)))
+            .Take(MaxSearchResults);
+        
+        return Task.FromResult(results);
+    }
+
+    private Task<IEnumerable<StorageLocationDto>> SearchLocations(string value, CancellationToken token)
+    {
+        if (AvailableLocations == null)
+            return Task.FromResult(Enumerable.Empty<StorageLocationDto>());
+
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult(AvailableLocations.Take(MaxSearchResults));
+        
+        var results = AvailableLocations
+            .Where(l => l.Code.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+                       (l.Description?.Contains(value, StringComparison.OrdinalIgnoreCase) ?? false))
+            .Take(MaxSearchResults);
+        
+        return Task.FromResult(results);
     }
 
     private void Cancel()
@@ -87,7 +184,9 @@
         {
             var result = new EditInventoryRowResult
             {
+                ProductId = _selectedProduct?.Id,
                 Quantity = _quantity,
+                LocationId = _selectedLocation?.Id,
                 Notes = _notes
             };
             MudDialog.Close(DialogResult.Ok(result));
@@ -96,7 +195,9 @@
 
     public class EditInventoryRowResult
     {
+        public Guid? ProductId { get; set; }
         public decimal Quantity { get; set; }
+        public Guid? LocationId { get; set; }
         public string? Notes { get; set; }
     }
 }
