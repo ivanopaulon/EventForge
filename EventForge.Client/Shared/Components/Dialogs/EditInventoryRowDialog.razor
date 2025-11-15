@@ -1,3 +1,4 @@
+@using EventForge.DTOs.Warehouse
 @inject ITranslationService TranslationService
 
 <MudDialog>
@@ -21,6 +22,33 @@
             <!-- Edit Form -->
             <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
                 <MudStack Spacing="3">
+                    <MudAutocomplete T="StorageLocationDto"
+                                    @bind-Value="_selectedLocation"
+                                    Label="@TranslationService.GetTranslation("warehouse.location", "Ubicazione")"
+                                    Variant="Variant.Outlined"
+                                    SearchFunc="@SearchLocations"
+                                    ToStringFunc="@(l => l?.Code ?? string.Empty)"
+                                    Immediate="true"
+                                    ResetValueOnEmptyText="true"
+                                    CoerceText="true"
+                                    CoerceValue="false"
+                                    Adornment="Adornment.Start"
+                                    AdornmentIcon="@Icons.Material.Outlined.LocationOn"
+                                    HelperText="@TranslationService.GetTranslation("warehouse.selectLocation", "Seleziona ubicazione")">
+                        <ItemTemplate Context="location">
+                            <MudText Typo="Typo.body2">@location.Code</MudText>
+                            @if (!string.IsNullOrEmpty(location.Description))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@location.Description</MudText>
+                            }
+                        </ItemTemplate>
+                        <NoItemsTemplate>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @TranslationService.GetTranslation("warehouse.noLocationsFound", "Nessuna ubicazione trovata")
+                            </MudText>
+                        </NoItemsTemplate>
+                    </MudAutocomplete>
+
                     <MudNumericField T="decimal"
                                     @bind-Value="_quantity"
                                     Label="@TranslationService.GetTranslation("warehouse.quantity", "Quantità")"
@@ -62,18 +90,46 @@
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
 
     [Parameter] public decimal Quantity { get; set; }
+    [Parameter] public Guid? LocationId { get; set; }
     [Parameter] public string? Notes { get; set; }
     [Parameter] public string? ProductName { get; set; }
+    [Parameter] public List<StorageLocationDto>? AvailableLocations { get; set; }
 
     private MudForm? _form;
     private bool _isFormValid;
     private decimal _quantity;
+    private Guid? _locationId;
+    private StorageLocationDto? _selectedLocation;
     private string? _notes;
+    private const int MaxLocationSearchResults = 20;
 
     protected override void OnInitialized()
     {
         _quantity = Quantity;
+        _locationId = LocationId;
         _notes = Notes;
+        
+        // Set the selected location if LocationId is provided
+        if (_locationId.HasValue && AvailableLocations != null)
+        {
+            _selectedLocation = AvailableLocations.FirstOrDefault(l => l.Id == _locationId.Value);
+        }
+    }
+
+    private Task<IEnumerable<StorageLocationDto>> SearchLocations(string value, CancellationToken token)
+    {
+        if (AvailableLocations == null)
+            return Task.FromResult(Enumerable.Empty<StorageLocationDto>());
+
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult(AvailableLocations.Take(MaxLocationSearchResults));
+        
+        var results = AvailableLocations
+            .Where(l => l.Code.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+                       (l.Description?.Contains(value, StringComparison.OrdinalIgnoreCase) ?? false))
+            .Take(MaxLocationSearchResults);
+        
+        return Task.FromResult(results);
     }
 
     private void Cancel()
@@ -88,6 +144,7 @@
             var result = new EditInventoryRowResult
             {
                 Quantity = _quantity,
+                LocationId = _selectedLocation?.Id,
                 Notes = _notes
             };
             MudDialog.Close(DialogResult.Ok(result));
@@ -97,6 +154,7 @@
     public class EditInventoryRowResult
     {
         public decimal Quantity { get; set; }
+        public Guid? LocationId { get; set; }
         public string? Notes { get; set; }
     }
 }

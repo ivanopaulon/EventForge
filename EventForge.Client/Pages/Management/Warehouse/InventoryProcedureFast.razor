@@ -5,6 +5,7 @@
 @using EventForge.DTOs.Products
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Warehouse
+@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @inject IProductService ProductService
 @inject IInventoryService InventoryService
@@ -17,6 +18,7 @@
 @inject IJSRuntime JSRuntime
 @inject IInventorySessionService InventorySessionService
 @inject IInventoryFastService InventoryFastService
+@inject IDialogService DialogService
 
 <PageTitle>@TranslationService.GetTranslation("warehouse.inventoryProcedureFast", "Procedura Inventario Rapida")</PageTitle>
 
@@ -186,6 +188,7 @@
             OnBeginEdit="@BeginEditRow"
             OnSaveEdit="@SaveEditRowAsync"
             OnCancelEdit="@CancelEdit"
+            OnOpenEditDialog="@OpenEditDialogAsync"
             OnRequestDelete="@StartDeleteConfirm"
             OnConfirmDelete="@ConfirmDeleteAsync"
             OnCancelDelete="@CancelDelete" />
@@ -997,6 +1000,74 @@
     {
         _confirmDeleteRowId = null;
         StateHasChanged();
+    }
+
+    private async Task OpenEditDialogAsync(Guid rowId)
+    {
+        if (_currentDocument == null) return;
+
+        var row = _currentDocument.Rows?.FirstOrDefault(r => r.Id == rowId);
+        if (row == null) return;
+
+        var parameters = new DialogParameters
+        {
+            { "Quantity", row.Quantity },
+            { "LocationId", row.LocationId },
+            { "Notes", row.Notes },
+            { "ProductName", row.ProductName },
+            { "AvailableLocations", _locations }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = await DialogService.ShowAsync<EditInventoryRowDialog>(
+            TranslationService.GetTranslation("warehouse.editInventoryRow", "Modifica Riga Inventario"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is EditInventoryRowDialog.EditInventoryRowResult editResult)
+        {
+            _isLoading = true;
+            try
+            {
+                var updateDto = new UpdateInventoryDocumentRowDto
+                {
+                    Quantity = editResult.Quantity,
+                    LocationId = editResult.LocationId,
+                    Notes = editResult.Notes
+                };
+
+                var updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(_currentDocument.Id, row.Id, updateDto);
+
+                if (updatedDocument != null)
+                {
+                    _currentDocument = updatedDocument;
+                    Snackbar.Add(TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata con successo"), Severity.Success);
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"), Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error updating inventory row {RowId} via dialog", rowId);
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"), Severity.Error);
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
     }
     
     private async Task UndoLastAsync()

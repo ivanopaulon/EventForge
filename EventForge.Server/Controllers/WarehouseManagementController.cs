@@ -1967,8 +1967,12 @@ public class WarehouseManagementController : BaseApiController
                 });
             }
 
-            // Update the row quantity and notes
+            // Update the row quantity, location, and notes
             rowEntity.Quantity = rowDto.Quantity;
+            if (rowDto.LocationId.HasValue)
+            {
+                rowEntity.LocationId = rowDto.LocationId.Value;
+            }
             rowEntity.Notes = rowDto.Notes;
             rowEntity.ModifiedAt = DateTime.UtcNow;
             rowEntity.ModifiedBy = GetCurrentUser();

@@ -5,7 +5,7 @@ namespace EventForge.DTOs.Warehouse
 {
     /// <summary>
     /// DTO for updating an inventory document row.
-    /// Allows modification of quantity and notes for a counted item.
+    /// Allows modification of quantity, location, and notes for a counted item.
     /// </summary>
     public class UpdateInventoryDocumentRowDto
     {
@@ -15,6 +15,11 @@ namespace EventForge.DTOs.Warehouse
         [Required]
         [Range(0, double.MaxValue)]
         public decimal Quantity { get; set; }
+
+        /// <summary>
+        /// Storage location identifier for the inventory row.
+        /// </summary>
+        public Guid? LocationId { get; set; }
 
         /// <summary>
         /// Notes for this inventory row.
