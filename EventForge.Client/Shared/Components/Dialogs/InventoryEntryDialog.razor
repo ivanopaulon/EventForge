@@ -1,6 +1,9 @@
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.Warehouse
 @inject ITranslationService TranslationService
+@inject IProductService ProductService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 <MudDialog>
     <TitleContent>
@@ -8,12 +11,12 @@
             <MudText Typo="Typo.h6">
                 <MudIcon Icon="@Icons.Material.Outlined.Inventory" Class="mr-2" />
                 @TranslationService.GetTranslation("warehouse.inventoryEntry", "Inserimento Inventario") 
-                @if (Product != null)
+                @if (_localProduct != null)
                 {
-                    <span>- @Product.Name</span>
+                    <span>- @_localProduct.Name</span>
                 }
             </MudText>
-            @if (Product != null)
+            @if (_localProduct != null)
             {
                 <MudTooltip Text="@TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica prodotto rapida")">
                     <MudIconButton Icon="@Icons.Material.Outlined.EditNote"
@@ -27,7 +30,7 @@
     <DialogContent>
         <MudStack Spacing="3">
             <!-- Product Information Display -->
-            @if (Product != null)
+            @if (_localProduct != null)
             {
                 <MudPaper Elevation="0" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
                     <MudGrid Spacing="2">
@@ -36,17 +39,17 @@
                                 @TranslationService.GetTranslation("warehouse.productCode", "Codice Prodotto")
                             </MudText>
                             <MudText Typo="Typo.body2" Style="font-weight: 600;">
-                                @Product.Code
+                                @_localProduct.Code
                             </MudText>
                         </MudItem>
-                        @if (!string.IsNullOrEmpty(Product.Description))
+                        @if (!string.IsNullOrEmpty(_localProduct.Description))
                         {
                             <MudItem xs="12">
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                                     @TranslationService.GetTranslation("warehouse.description", "Descrizione")
                                 </MudText>
                                 <MudText Typo="Typo.body2">
-                                    @Product.Description
+                                    @_localProduct.Description
                                 </MudText>
                             </MudItem>
                         }
@@ -161,12 +164,22 @@
     private Guid? _selectedLocationId;
     private decimal _quantity;
     private string _notes = string.Empty;
+    private ProductDto? _localProduct;
 
     protected override void OnInitialized()
     {
         // Initialize quantity with conversion factor for alternative units
         // This converts 1 alternative unit to base units
         _quantity = ConversionFactor;
+        
+        // Keep a local copy of the product that can be updated
+        _localProduct = Product;
+    }
+    
+    protected override void OnParametersSet()
+    {
+        // Update local product if the parameter changes
+        _localProduct = Product;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -245,9 +258,55 @@
 
     private async Task OpenQuickEditProduct()
     {
-        if (Product?.Id != null && OnQuickEditProduct.HasDelegate)
+        if (_localProduct?.Id == null)
+            return;
+
+        try
         {
-            await OnQuickEditProduct.InvokeAsync(Product.Id);
+            // Load the product details
+            var product = await ProductService.GetProductByIdAsync(_localProduct.Id);
+            if (product == null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"), Severity.Error);
+                return;
+            }
+
+            var parameters = new DialogParameters
+            {
+                { "IsEditMode", true },
+                { "ProductId", _localProduct.Id },
+                { "ExistingProduct", product }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true,
+                CloseOnEscapeKey = true
+            };
+
+            var dialog = await DialogService.ShowAsync<QuickCreateProductDialog>(
+                TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica Rapida Prodotto"),
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (!result.Canceled && result.Data is ProductDto updatedProduct)
+            {
+                // Update the local product reference
+                _localProduct = updatedProduct;
+                
+                Snackbar.Add(TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"), Severity.Success);
+                
+                // Trigger a re-render to show the updated product information
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("products.loadError", "Errore nel caricamento del prodotto"), Severity.Error);
         }
     }
 

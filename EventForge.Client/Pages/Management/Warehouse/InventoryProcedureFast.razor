@@ -1013,17 +1013,14 @@
 
         var parameters = new DialogParameters
         {
-            { "ProductId", row.ProductId },
             { "Quantity", row.Quantity },
-            { "LocationId", row.LocationId },
             { "Notes", row.Notes },
-            { "AvailableProducts", _allProducts },
-            { "AvailableLocations", _locations }
+            { "ProductName", row.ProductName }
         };
 
         var options = new DialogOptions
         {
-            MaxWidth = MaxWidth.Medium,
+            MaxWidth = MaxWidth.Small,
             FullWidth = true,
             CloseButton = true,
             CloseOnEscapeKey = true
@@ -1043,9 +1040,7 @@
             {
                 var updateDto = new UpdateInventoryDocumentRowDto
                 {
-                    ProductId = editResult.ProductId,
                     Quantity = editResult.Quantity,
-                    LocationId = editResult.LocationId,
                     Notes = editResult.Notes
                 };
 
