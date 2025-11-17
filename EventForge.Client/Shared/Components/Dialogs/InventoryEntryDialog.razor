@@ -4,14 +4,25 @@
 
 <MudDialog>
     <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Outlined.Inventory" Class="mr-2" />
-            @TranslationService.GetTranslation("warehouse.inventoryEntry", "Inserimento Inventario") 
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Outlined.Inventory" Class="mr-2" />
+                @TranslationService.GetTranslation("warehouse.inventoryEntry", "Inserimento Inventario") 
+                @if (Product != null)
+                {
+                    <span>- @Product.Name</span>
+                }
+            </MudText>
             @if (Product != null)
             {
-                <span>- @Product.Name</span>
+                <MudTooltip Text="@TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica prodotto rapida")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.EditNote"
+                                   Color="Color.Info"
+                                   Size="Size.Small"
+                                   OnClick="@(() => OpenQuickEditProduct())" />
+                </MudTooltip>
             }
-        </MudText>
+        </MudStack>
     </TitleContent>
     <DialogContent>
         <MudStack Spacing="3">
@@ -140,6 +151,9 @@
     [Parameter]
     public decimal ConversionFactor { get; set; } = 1m;
 
+    [Parameter]
+    public EventCallback<Guid> OnQuickEditProduct { get; set; }
+
     private MudForm? _form;
     private MudSelect<Guid?>? _locationSelect;
     private MudNumericField<decimal>? _quantityField;
@@ -227,6 +241,14 @@
         };
 
         MudDialog.Close(DialogResult.Ok(result));
+    }
+
+    private async Task OpenQuickEditProduct()
+    {
+        if (Product?.Id != null && OnQuickEditProduct.HasDelegate)
+        {
+            await OnQuickEditProduct.InvokeAsync(Product.Id);
+        }
     }
 
     public class InventoryEntryResult

@@ -876,7 +876,8 @@
         {
             { "Product", _currentProduct },
             { "Locations", _locations },
-            { "ConversionFactor", _currentConversionFactor }
+            { "ConversionFactor", _currentConversionFactor },
+            { "OnQuickEditProduct", EventCallback.Factory.Create<Guid>(this, OpenQuickEditProductAsync) }
         };
 
         var options = new DialogOptions
@@ -907,6 +908,77 @@
         {
             // User canceled, just clear the barcode and refocus
             ClearProductForm();
+        }
+    }
+
+    private async Task OpenQuickEditProductAsync(Guid productId)
+    {
+        try
+        {
+            // Load the product details
+            var product = await ProductService.GetProductByIdAsync(productId);
+            if (product == null)
+            {
+                Snackbar.Add(TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"), Severity.Error);
+                return;
+            }
+
+            var parameters = new DialogParameters
+            {
+                { "IsEditMode", true },
+                { "ProductId", productId },
+                { "ExistingProduct", product }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true,
+                CloseOnEscapeKey = true
+            };
+
+            var dialog = await DialogService.ShowAsync<QuickCreateProductDialog>(
+                TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica Rapida Prodotto"),
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (!result.Canceled && result.Data is ProductDto updatedProduct)
+            {
+                // Update the current product to reflect changes
+                _currentProduct = updatedProduct;
+                
+                // Update the current document to reflect product changes
+                if (_currentDocument != null)
+                {
+                    var refreshedDocument = await InventoryService.GetInventoryDocumentAsync(_currentDocument.Id);
+                    if (refreshedDocument != null)
+                    {
+                        _currentDocument = refreshedDocument;
+                        StateHasChanged();
+                    }
+                }
+                
+                AddOperationLog(
+                    TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"),
+                    $"{updatedProduct.Name} - {updatedProduct.Code}",
+                    "Success"
+                );
+                
+                Snackbar.Add(TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"), Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening quick edit product dialog for product {ProductId}", productId);
+            Snackbar.Add(TranslationService.GetTranslation("products.loadError", "Errore nel caricamento del prodotto"), Severity.Error);
+            AddOperationLog(
+                TranslationService.GetTranslation("products.loadError", "Errore nel caricamento del prodotto"),
+                ex.Message,
+                "Error"
+            );
         }
     }
 
