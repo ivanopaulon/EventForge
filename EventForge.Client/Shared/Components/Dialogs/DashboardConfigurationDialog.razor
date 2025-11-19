@@ -52,8 +52,15 @@
                     <MudPaper Elevation="0" Class="pa-2" Style="border: 1px solid var(--mud-palette-lines-default);">
                         @foreach (var (metric, index) in _metrics.Select((m, i) => (m, i)))
                         {
-                            <MudPaper Elevation="1" Class="pa-2 mb-2">
-                                <div class="d-flex align-center gap-2">
+                            <MudPaper Elevation="1" Class="pa-2 mb-2 metric-card"
+                                      draggable="true" 
+                                      @ondragstart="@(() => _draggedMetricIndex = index)"
+                                      @ondragover:preventDefault
+                                      @ondrop="@(() => HandleDrop(index))"
+                                      @onmouseenter="@(() => _hoveredMetricIndex = index)"
+                                      @onmouseleave="@(() => _hoveredMetricIndex = null)">
+                                <div class="d-flex align-center gap-3">
+                                    <MudIcon Icon="@Icons.Material.Outlined.DragIndicator" Style="cursor: move;" />
                                     <MudChip T="string" Size="Size.Small" Color="Color.Primary">@(index + 1)</MudChip>
                                     <div class="flex-grow-1">
                                         <MudText Typo="Typo.body1">@metric.Title</MudText>
@@ -61,22 +68,22 @@
                                             Tipo: @GetMetricTypeLabel(metric.Type)
                                         </MudText>
                                     </div>
-                                    <MudIconButton Icon="@Icons.Material.Outlined.ArrowUpward"
-                                                  Size="Size.Small"
-                                                  Disabled="@(index == 0)"
-                                                  OnClick="@(() => MoveMetricUp(index))" />
-                                    <MudIconButton Icon="@Icons.Material.Outlined.ArrowDownward"
-                                                  Size="Size.Small"
-                                                  Disabled="@(index == _metrics.Count - 1)"
-                                                  OnClick="@(() => MoveMetricDown(index))" />
-                                    <MudIconButton Icon="@Icons.Material.Outlined.Edit"
-                                                  Size="Size.Small"
-                                                  Color="Color.Primary"
-                                                  OnClick="@(async () => await EditMetric(index))" />
-                                    <MudIconButton Icon="@Icons.Material.Outlined.Delete"
-                                                  Size="Size.Small"
-                                                  Color="Color.Error"
-                                                  OnClick="@(() => RemoveMetric(index))" />
+                                    
+                                    @if (_hoveredMetricIndex == index)
+                                    {
+                                        <MudMenu Icon="@Icons.Material.Outlined.MoreVert" Size="Size.Small">
+                                            <MudMenuItem Icon="@Icons.Material.Outlined.Edit" OnClick="@(async () => await EditMetric(index))">
+                                                Modifica
+                                            </MudMenuItem>
+                                            <MudMenuItem Icon="@Icons.Material.Outlined.ContentCopy" OnClick="@(() => DuplicateMetric(index))">
+                                                Duplica
+                                            </MudMenuItem>
+                                            <MudDivider />
+                                            <MudMenuItem Icon="@Icons.Material.Outlined.Delete" IconColor="Color.Error" OnClick="@(() => RemoveMetric(index))">
+                                                Elimina
+                                            </MudMenuItem>
+                                        </MudMenu>
+                                    }
                                 </div>
                             </MudPaper>
                         }
@@ -179,6 +186,8 @@
     private List<DashboardMetricConfigDto> _metrics = new();
     private List<DashboardConfigurationDto> _configurations = new();
     private Guid? _editingConfigurationId = null;
+    private int? _hoveredMetricIndex;
+    private int? _draggedMetricIndex;
 
     protected override async Task OnInitializedAsync()
     {
@@ -312,6 +321,38 @@
             _metrics[index].Order = index;
             _metrics[index + 1].Order = index + 1;
         }
+    }
+
+    private void HandleDrop(int targetIndex)
+    {
+        if (_draggedMetricIndex.HasValue && _draggedMetricIndex != targetIndex)
+        {
+            var metric = _metrics[_draggedMetricIndex.Value];
+            _metrics.RemoveAt(_draggedMetricIndex.Value);
+            if (_draggedMetricIndex < targetIndex) targetIndex--;
+            _metrics.Insert(targetIndex, metric);
+            for (int i = 0; i < _metrics.Count; i++) _metrics[i].Order = i;
+            StateHasChanged();
+        }
+        _draggedMetricIndex = null;
+    }
+
+    private void DuplicateMetric(int index)
+    {
+        var original = _metrics[index];
+        var duplicate = new DashboardMetricConfigDto
+        {
+            Title = $"{original.Title} (Copia)",
+            Description = original.Description,
+            Type = original.Type,
+            FieldName = original.FieldName,
+            Format = original.Format,
+            Icon = original.Icon,
+            Color = original.Color,
+            Order = _metrics.Count
+        };
+        _metrics.Add(duplicate);
+        Snackbar.Add("Metrica duplicata", Severity.Success);
     }
 
     private string GetMetricTypeLabel(MetricType type)
