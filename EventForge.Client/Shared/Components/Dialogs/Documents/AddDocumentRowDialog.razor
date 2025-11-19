@@ -398,8 +398,8 @@
         // Load all VAT rates
         try
         {
-            var vatRates = await FinancialService.GetVatRatesAsync();
-            _allVatRates = vatRates?.Where(v => v.IsActive).ToList() ?? new List<VatRateDto>();
+            var vatRatesResult = await FinancialService.GetVatRatesAsync();
+            _allVatRates = vatRatesResult?.Items?.Where(v => v.IsActive).ToList() ?? new List<VatRateDto>();
         }
         catch (Exception ex)
         {

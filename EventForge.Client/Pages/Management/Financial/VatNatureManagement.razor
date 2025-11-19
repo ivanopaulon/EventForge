@@ -314,7 +314,7 @@
         {
             _isLoadingVatNatures = true;
             var result = await FinancialService.GetVatNaturesAsync();
-            _vatNatures = result.ToList();
+            _vatNatures = result?.Items?.ToList() ?? new List<VatNatureDto>();
         }
         catch (Exception ex)
         {

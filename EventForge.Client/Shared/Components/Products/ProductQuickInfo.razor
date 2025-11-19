@@ -241,7 +241,8 @@
             await Task.WhenAll(unitsTask, vatRatesTask);
 
             _availableUnits = await unitsTask;
-            _availableVatRates = await vatRatesTask;
+            var vatRatesResult = await vatRatesTask;
+            _availableVatRates = vatRatesResult?.Items ?? Enumerable.Empty<VatRateDto>();
         }
         catch (Exception ex)
         {
