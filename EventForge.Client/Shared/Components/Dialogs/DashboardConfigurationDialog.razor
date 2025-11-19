@@ -3,6 +3,7 @@
 @inject IDashboardConfigurationService DashboardConfigurationService
 @inject ISnackbar Snackbar
 @inject ILogger<DashboardConfigurationDialog> Logger
+@inject IDialogService DialogService
 
 <MudDialog>
     <DialogContent>
@@ -71,7 +72,7 @@
                                     <MudIconButton Icon="@Icons.Material.Outlined.Edit"
                                                   Size="Size.Small"
                                                   Color="Color.Primary"
-                                                  OnClick="@(() => EditMetric(index))" />
+                                                  OnClick="@(async () => await EditMetric(index))" />
                                     <MudIconButton Icon="@Icons.Material.Outlined.Delete"
                                                   Size="Size.Small"
                                                   Color="Color.Error"
@@ -82,7 +83,7 @@
                     </MudPaper>
                 }
                 
-                <MudButton OnClick="@AddNewMetric"
+                <MudButton OnClick="@(async () => await AddNewMetric())"
                           StartIcon="@Icons.Material.Outlined.Add"
                           Color="Color.Primary"
                           Variant="Variant.Outlined"
@@ -207,9 +208,9 @@
         }
     }
 
-    private void AddNewMetric()
+    private async Task AddNewMetric()
     {
-        _metrics.Add(new DashboardMetricConfigDto
+        var newMetric = new DashboardMetricConfigDto
         {
             Title = $"Metrica {_metrics.Count + 1}",
             Type = MetricType.Count,
@@ -217,14 +218,66 @@
             Icon = Icons.Material.Outlined.Analytics,
             Color = "primary",
             Format = "N0"
-        });
-        _isEditingMetric = true;
+        };
+
+        var parameters = new DialogParameters<MetricEditorDialog>
+        {
+            { x => x.Metric, newMetric },
+            { x => x.IsNewMetric, true }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<MetricEditorDialog>(
+            "Crea Nuova Metrica",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is DashboardMetricConfigDto createdMetric)
+        {
+            createdMetric.Order = _metrics.Count;
+            _metrics.Add(createdMetric);
+            _isEditingMetric = true;
+            Snackbar.Add("Metrica aggiunta con successo", Severity.Success);
+        }
     }
 
-    private void EditMetric(int index)
+    private async Task EditMetric(int index)
     {
-        // In a full implementation, this would open a detailed metric editor
-        Snackbar.Add("Funzionalità di modifica metrica in sviluppo", Severity.Info);
+        var metricToEdit = _metrics[index];
+        var parameters = new DialogParameters<MetricEditorDialog>
+        {
+            { x => x.Metric, metricToEdit },
+            { x => x.IsNewMetric, false }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<MetricEditorDialog>(
+            "Modifica Metrica",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is DashboardMetricConfigDto editedMetric)
+        {
+            _metrics[index] = editedMetric;
+            _metrics[index].Order = index; // Preserve order
+            Snackbar.Add("Metrica modificata con successo", Severity.Success);
+        }
     }
 
     private void RemoveMetric(int index)
