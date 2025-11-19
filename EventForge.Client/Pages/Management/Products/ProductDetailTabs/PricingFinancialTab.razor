@@ -84,7 +84,8 @@
     {
         try
         {
-            _vatRates = await FinancialService.GetVatRatesAsync();
+            var result = await FinancialService.GetVatRatesAsync();
+            _vatRates = result?.Items ?? Enumerable.Empty<VatRateDto>();
         }
         catch (Exception ex)
         {
@@ -99,7 +100,8 @@
         {
             try
             {
-                _vatRates = await FinancialService.GetVatRatesAsync();
+                var result = await FinancialService.GetVatRatesAsync();
+                _vatRates = result?.Items ?? Enumerable.Empty<VatRateDto>();
             }
             catch (Exception ex)
             {

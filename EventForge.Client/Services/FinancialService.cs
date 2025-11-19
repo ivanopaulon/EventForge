@@ -8,28 +8,28 @@ namespace EventForge.Client.Services
     public interface IFinancialService
     {
         // Bank Management
-        Task<IEnumerable<BankDto>> GetBanksAsync();
+        Task<PagedResult<BankDto>> GetBanksAsync(int page = 1, int pageSize = 20);
         Task<BankDto?> GetBankAsync(Guid id);
         Task<BankDto> CreateBankAsync(CreateBankDto createDto);
         Task<BankDto> UpdateBankAsync(Guid id, UpdateBankDto updateDto);
         Task DeleteBankAsync(Guid id);
 
         // VAT Rate Management
-        Task<IEnumerable<VatRateDto>> GetVatRatesAsync();
+        Task<PagedResult<VatRateDto>> GetVatRatesAsync(int page = 1, int pageSize = 20);
         Task<VatRateDto?> GetVatRateAsync(Guid id);
         Task<VatRateDto> CreateVatRateAsync(CreateVatRateDto createDto);
         Task<VatRateDto> UpdateVatRateAsync(Guid id, UpdateVatRateDto updateDto);
         Task DeleteVatRateAsync(Guid id);
 
         // VAT Nature Management
-        Task<IEnumerable<VatNatureDto>> GetVatNaturesAsync();
+        Task<PagedResult<VatNatureDto>> GetVatNaturesAsync(int page = 1, int pageSize = 20);
         Task<VatNatureDto?> GetVatNatureAsync(Guid id);
         Task<VatNatureDto> CreateVatNatureAsync(CreateVatNatureDto createDto);
         Task<VatNatureDto> UpdateVatNatureAsync(Guid id, UpdateVatNatureDto updateDto);
         Task DeleteVatNatureAsync(Guid id);
 
         // Payment Term Management
-        Task<IEnumerable<PaymentTermDto>> GetPaymentTermsAsync();
+        Task<PagedResult<PaymentTermDto>> GetPaymentTermsAsync(int page = 1, int pageSize = 20);
         Task<PaymentTermDto?> GetPaymentTermAsync(Guid id);
         Task<PaymentTermDto> CreatePaymentTermAsync(CreatePaymentTermDto createDto);
         Task<PaymentTermDto> UpdatePaymentTermAsync(Guid id, UpdatePaymentTermDto updateDto);
@@ -51,10 +51,17 @@ namespace EventForge.Client.Services
 
         #region Bank Management
 
-        public async Task<IEnumerable<BankDto>> GetBanksAsync()
+        public async Task<PagedResult<BankDto>> GetBanksAsync(int page = 1, int pageSize = 20)
         {
-            var pagedResult = await _httpClientService.GetAsync<PagedResult<BankDto>>("api/v1/financial/banks");
-            return pagedResult?.Items ?? new List<BankDto>();
+            var result = await _httpClientService.GetAsync<PagedResult<BankDto>>(
+                $"api/v1/financial/banks?page={page}&pageSize={pageSize}");
+            return result ?? new PagedResult<BankDto>
+            {
+                Items = new List<BankDto>(),
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = 0
+            };
         }
 
         public async Task<BankDto?> GetBankAsync(Guid id)
@@ -105,10 +112,17 @@ namespace EventForge.Client.Services
 
         #region VAT Rate Management
 
-        public async Task<IEnumerable<VatRateDto>> GetVatRatesAsync()
+        public async Task<PagedResult<VatRateDto>> GetVatRatesAsync(int page = 1, int pageSize = 20)
         {
-            var pagedResult = await _httpClientService.GetAsync<PagedResult<VatRateDto>>("api/v1/financial/vat-rates");
-            return pagedResult?.Items ?? new List<VatRateDto>();
+            var result = await _httpClientService.GetAsync<PagedResult<VatRateDto>>(
+                $"api/v1/financial/vat-rates?page={page}&pageSize={pageSize}");
+            return result ?? new PagedResult<VatRateDto>
+            {
+                Items = new List<VatRateDto>(),
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = 0
+            };
         }
 
         public async Task<VatRateDto?> GetVatRateAsync(Guid id)
@@ -137,10 +151,17 @@ namespace EventForge.Client.Services
 
         #region VAT Nature Management
 
-        public async Task<IEnumerable<VatNatureDto>> GetVatNaturesAsync()
+        public async Task<PagedResult<VatNatureDto>> GetVatNaturesAsync(int page = 1, int pageSize = 20)
         {
-            var pagedResult = await _httpClientService.GetAsync<PagedResult<VatNatureDto>>("api/v1/financial/vat-natures");
-            return pagedResult?.Items ?? new List<VatNatureDto>();
+            var result = await _httpClientService.GetAsync<PagedResult<VatNatureDto>>(
+                $"api/v1/financial/vat-natures?page={page}&pageSize={pageSize}");
+            return result ?? new PagedResult<VatNatureDto>
+            {
+                Items = new List<VatNatureDto>(),
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = 0
+            };
         }
 
         public async Task<VatNatureDto?> GetVatNatureAsync(Guid id)
@@ -169,10 +190,17 @@ namespace EventForge.Client.Services
 
         #region Payment Term Management
 
-        public async Task<IEnumerable<PaymentTermDto>> GetPaymentTermsAsync()
+        public async Task<PagedResult<PaymentTermDto>> GetPaymentTermsAsync(int page = 1, int pageSize = 20)
         {
-            var pagedResult = await _httpClientService.GetAsync<PagedResult<PaymentTermDto>>("api/v1/financial/payment-terms");
-            return pagedResult?.Items ?? new List<PaymentTermDto>();
+            var result = await _httpClientService.GetAsync<PagedResult<PaymentTermDto>>(
+                $"api/v1/financial/payment-terms?page={page}&pageSize={pageSize}");
+            return result ?? new PagedResult<PaymentTermDto>
+            {
+                Items = new List<PaymentTermDto>(),
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = 0
+            };
         }
 
         public async Task<PaymentTermDto?> GetPaymentTermAsync(Guid id)
