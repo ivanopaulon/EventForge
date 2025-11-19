@@ -3,6 +3,7 @@
 @using EventForge.DTOs.UnitOfMeasures
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IUMService UMService
@@ -13,202 +14,196 @@
 @inject ITranslationService TranslationService
 @inject ILogger<UnitOfMeasureManagement> Logger
 
-<MudContainer MaxWidth="MaxWidth.False" Class="mt-4 px-0" Style="width:100%; min-height:100vh; display:flex; flex-direction:column;">
-    <PageLoadingOverlay Visible="_isLoading || _isLoadingUMs"
-                         Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+<PageLoadingOverlay Visible="_isLoading || _isLoadingUMs"
+                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-    @if (!_isLoading)
-    {
-        <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4">
-            <div class="d-flex justify-space-between align-center mb-4">
-                <div>
-                    <MudText Typo="Typo.h4">
-                        <MudIcon Icon="@Icons.Material.Outlined.Straighten" Class="mr-2" />
-                        @TranslationService.GetTranslation("um.management", "Gestione Unità di Misura")
-                    </MudText>
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
-                        @TranslationService.GetTranslation("um.managementDescription", "Gestisci le unità di misura per i prodotti")
-                    </MudText>
-                </div>
-            </div>
+@if (!_isLoading)
+{
+    <div class="um-page-root">
+        <div class="um-top">
+            <ManagementDashboard TItem="UMDto"
+                                 Items="_filteredUMs"
+                                 Metrics="_dashboardMetrics"
+                                 EntityType="UnitOfMeasure"
+                                 AllowConfiguration="true"
+                                 UseServerSide="false" />
+        </div>
 
-            <!-- Filters Section -->
-            <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
-                <div class="d-flex gap-3 align-center flex-wrap">
-                    <MudTextField @bind-Value="_searchTerm"
-                                  @bind-Value:after="OnSearchChanged"
-                                  Label="@TranslationService.GetTranslation("um.search", "Cerca unità di misura")"
-                                  Placeholder="@TranslationService.GetTranslation("um.searchPlaceholder", "Inserisci nome o simbolo...")"
-                                  Variant="Variant.Outlined"
-                                  Adornment="Adornment.End"
-                                  AdornmentIcon="@Icons.Material.Outlined.Search"
-                                  Clearable="true"
-                                  Style="flex:2;" />
-                    <MudSelect T="string" @bind-Value="_defaultFilter" @bind-Value:after="OnDefaultFilterChanged" 
-                               Label="@TranslationService.GetTranslation("field.filter", "Filtro")" 
-                               Placeholder="@TranslationService.GetTranslation("um.selectFilter", "Seleziona filtro...")"
-                               Variant="Variant.Outlined"
-                               Clearable="true"
-                               Style="flex:1;">
-                        <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
-                        <MudSelectItem Value="@("default")">@TranslationService.GetTranslation("um.defaultOnly", "Solo Predefinite")</MudSelectItem>
-                        <MudSelectItem Value="@("standard")">@TranslationService.GetTranslation("um.standardOnly", "Solo Standard")</MudSelectItem>
-                    </MudSelect>
-                </div>
-            </MudPaper>
-
-            <!-- Units of Measure Data Table -->
-            <MudPaper Elevation="1" Class="border-rounded">
-                <div class="pa-2">
-                    <MudText Typo="Typo.h6" Class="mb-2">
-                        <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
-                        @TranslationService.GetTranslation("um.list", "Lista Unità di Misura")
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
-                            (@_filteredUMs.Count() @TranslationService.GetTranslation("um.itemsFound", "elementi trovati"))
-                        </MudText>
-                    </MudText>
-                    
-                    <ManagementTableToolbar ShowSelectionBadge="true"
-                                            SelectedCount="@_selectedUMs.Count"
-                                            ShowRefresh="true"
-                                            ShowCreate="true"
-                                            ShowDelete="true"
-                                            CreateLabel="um.create"
-                                            CreateTooltip="um.createNew"
-                                            IsDisabled="_isLoadingUMs"
-                                            OnRefresh="@LoadUMsAsync"
-                                            OnCreate="@CreateUM"
-                                            OnDelete="@DeleteSelectedUMs" />
-                </div>
-                <MudCardContent Class="pa-1">
-                    @if (_isLoadingUMs)
+        <div class="eftable-wrapper">
+            <EFTable @ref="_efTable"
+                 TItem="UMDto"
+                 Items="_filteredUMs"
+                 MultiSelection="true"
+                 SelectedItems="_selectedUMs"
+                 SelectedItemsChanged="_selectedItemsChangedCallback"
+                 IsLoading="_isLoadingUMs"
+                 ComponentKey="UnitOfMeasureManagement"
+                 InitialColumnConfigurations="_initialColumns"
+                 AllowDragDropGrouping="true">
+            <ToolBarContent>
+                <MudText Typo="Typo.h5">
+                    @TranslationService.GetTranslation("um.management", "Gestione Unità di Misura")
+                </MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="_searchTerm"
+                              @bind-Value:after="OnSearchChanged"
+                              Label="@TranslationService.GetTranslation("um.search", "Cerca unità di misura")"
+                              Placeholder="@TranslationService.GetTranslation("um.searchPlaceholder", "Inserisci nome o simbolo...")"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              Clearable="true"
+                              Class="ef-input" />
+                <MudSelect T="string" @bind-Value="_defaultFilter" @bind-Value:after="OnDefaultFilterChanged" 
+                           Label="@TranslationService.GetTranslation("field.filter", "Filtro")"
+                           Variant="Variant.Outlined"
+                           Class="ef-select"
+                           Style="min-width:150px;">
+                    <MudSelectItem Value="@("all")">@TranslationService.GetTranslation("common.selectAll", "Tutti")</MudSelectItem>
+                    <MudSelectItem Value="@("default")">@TranslationService.GetTranslation("um.defaultOnly", "Solo Predefinite")</MudSelectItem>
+                    <MudSelectItem Value="@("standard")">@TranslationService.GetTranslation("um.standardOnly", "Solo Standard")</MudSelectItem>
+                </MudSelect>
+                <ManagementTableToolbar ShowSelectionBadge="true"
+                                        SelectedCount="@_selectedUMs.Count"
+                                        ShowRefresh="true"
+                                        ShowCreate="true"
+                                        ShowDelete="true"
+                                        CreateTooltip="um.createNew"
+                                        IsDisabled="_isLoadingUMs"
+                                        OnRefresh="@LoadUMsAsync"
+                                        OnCreate="@CreateUM"
+                                        OnDelete="@DeleteSelectedUMs" />
+            </ToolBarContent>
+            <HeaderContent Context="columnConfigurations">
+                @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                {
+                    @if (column.PropertyName == "Name")
                     {
-                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+                        <EFTableColumnHeader TItem="UMDto" PropertyName="Name" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<UMDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                        </EFTableColumnHeader>
                     }
-                    else
+                    else if (column.PropertyName == "Symbol")
                     {
-                        <MudTable T="UMDto" 
-                                  Items="_filteredUMs"
-                                  MultiSelection="true"
-                                  @bind-SelectedItems="_selectedUMs"
-                                  Hover="true" 
-                                  Striped="true"
-                                  Loading="_isLoadingUMs"
-                                  LoadingProgressColor="Color.Info"
-                                  SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
-                                  AllowUnsorted="false"
-                                  Dense="false"
-                                  Breakpoint="Breakpoint.Sm">
-                            <HeaderContent>
-                                <MudTh>
-                                    <MudTableSortLabel SortBy="new Func<UMDto, object>(x => x.Name)">
-                                        @TranslationService.GetTranslation("field.name", "Nome")
-                                    </MudTableSortLabel>
-                                </MudTh>
-                                <MudTh>
-                                    <MudTableSortLabel SortBy="new Func<UMDto, object>(x => x.Symbol)">
-                                        @TranslationService.GetTranslation("field.symbol", "Simbolo")
-                                    </MudTableSortLabel>
-                                </MudTh>
-                                <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
-                                <MudTh>
-                                    <MudTableSortLabel SortBy="new Func<UMDto, object>(x => x.IsDefault)">
-                                        @TranslationService.GetTranslation("field.status", "Stato")
-                                    </MudTableSortLabel>
-                                </MudTh>
-                                <MudTh>
-                                    <MudTableSortLabel SortBy="new Func<UMDto, object>(x => x.CreatedAt)">
-                                        @TranslationService.GetTranslation("field.createdAt", "Data Creazione")
-                                    </MudTableSortLabel>
-                                </MudTh>
-                                <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
-                            </HeaderContent>
-                            <RowTemplate>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
-                                    <MudText Typo="Typo.body2">@context.Name</MudText>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.symbol", "Simbolo")">
-                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">
-                                        @context.Symbol
-                                    </MudChip>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
-                                    <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:300px;">
-                                        @(string.IsNullOrEmpty(context.Description) ? "-" : context.Description)
-                                    </MudText>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
-                                    @if (context.IsDefault)
-                                    {
-                                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">
-                                            @TranslationService.GetTranslation("status.defaultUnit", "Predefinita")
-                                        </MudChip>
-                                    }
-                                    else
-                                    {
-                                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
-                                            @TranslationService.GetTranslation("status.standardUnit", "Standard")
-                                        </MudChip>
-                                    }
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Data Creazione")">
-                                    <MudText Typo="Typo.body2">@context.CreatedAt.ToString("dd/MM/yyyy")</MudText>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
-                                    <ActionButtonGroup EntityName="@context.Name"
-                                                      ItemDisplayName="@context.Name"
-                                                      ShowView="false"
-                                                      ShowEdit="true"
-                                                      ShowAuditLog="true"
-                                                      ShowToggleStatus="true"
-                                                      ShowDelete="true"
-                                                      IsActive="@context.IsActive"
-                                                      OnEdit="@(() => EditUM(context))"
-                                                      OnAuditLog="@(() => ViewUMAuditLog(context))"
-                                                      OnToggleStatus="@(() => ToggleUMStatus(context))"
-                                                      OnDelete="@(() => DeleteUM(context))" />
-                                </MudTd>
-                            </RowTemplate>
+                        <EFTableColumnHeader TItem="UMDto" PropertyName="Symbol" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<UMDto, object>(x => x.Symbol))">@TranslationService.GetTranslation("field.symbol", "Simbolo")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Description")
+                    {
+                        <EFTableColumnHeader TItem="UMDto" PropertyName="Description" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<UMDto, object>(x => x.Description ?? string.Empty))">@TranslationService.GetTranslation("field.description", "Descrizione")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "IsDefault")
+                    {
+                        <EFTableColumnHeader TItem="UMDto" PropertyName="IsDefault" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<UMDto, object>(x => x.IsDefault))">@TranslationService.GetTranslation("field.default", "Predefinita")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "CreatedAt")
+                    {
+                        <EFTableColumnHeader TItem="UMDto" PropertyName="CreatedAt" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<UMDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                }
+                <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+            </HeaderContent>
 
-                            <NoRecordsContent>
-                                <div class="text-center pa-2 pa-sm-3 pa-md-4">
-                                    <MudIcon Icon="@Icons.Material.Outlined.Straighten" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
-                                    <MudText Typo="Typo.h6" Class="mb-2">
-                                        @(_unitOfMeasures.Any() ? 
-                                            TranslationService.GetTranslation("um.noMatchFilters", "Nessuna unità di misura corrisponde ai filtri applicati") : 
-                                            TranslationService.GetTranslation("um.noFound", "Nessuna unità di misura trovata"))
-                                    </MudText>
-                                    @if (_unitOfMeasures.Any())
-                                    {
-                                        <MudButton Variant="Variant.Text" 
-                                                   Color="Color.Primary" 
-                                                   OnClick="@ClearFilters">
-                                            @TranslationService.GetTranslation("button.clearFilters", "Cancella Filtri")
-                                        </MudButton>
-                                    }
-                                    else
-                                    {
-                                        <MudButton Variant="Variant.Filled" 
-                                                   Color="Color.Primary" 
-                                                   StartIcon="@Icons.Material.Outlined.Add"
-                                                   OnClick="@CreateUM">
-                                            @TranslationService.GetTranslation("um.createFirst", "Crea la prima unità di misura")
-                                        </MudButton>
-                                    }
+            <RowTemplate Context="item">
+                @{
+                    var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                }
+                @foreach (var column in visibleColumns)
+                {
+                    @if (column.PropertyName == "Name")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                            <div class="d-flex align-center">
+                                <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Straighten" />
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.body2">@item.Name</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @item.Id.ToString().Substring(0, 8)...</MudText>
                                 </div>
-                            </NoRecordsContent>
-
-                            <PagerContent>
-                                <MudTablePager PageSizeOptions="new[] {10,25,50,100 }" />
-                            </PagerContent>
-                        </MudTable>
+                            </div>
+                        </MudTd>
                     }
-                </MudCardContent>
-            </MudPaper>
-        </MudPaper>
+                    else if (column.PropertyName == "Symbol")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.symbol", "Simbolo")">
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@item.Symbol</MudChip>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Description")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
+                            <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:400px;">
+                                @(string.IsNullOrEmpty(item.Description) ? "-" : item.Description)
+                            </MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "IsDefault")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.default", "Predefinita")">
+                            @if (item.IsDefault)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Outlined.Star">
+                                    @TranslationService.GetTranslation("field.default", "Predefinita")
+                                </MudChip>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2">-</MudText>
+                            }
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "CreatedAt")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
+                            <MudText Typo="Typo.body2">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
+                        </MudTd>
+                    }
+                }
+                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                    <ActionButtonGroup EntityName="@item.Name"
+                                       ItemDisplayName="@item.Name"
+                                       ShowView="false"
+                                       ShowEdit="true"
+                                       ShowAuditLog="true"
+                                       ShowToggleStatus="false"
+                                       ShowDelete="true"
+                                       OnEdit="@(() => EditUM(item.Id))"
+                                       OnAuditLog="@(() => ViewUMAuditLog(item))"
+                                       OnDelete="@(() => DeleteUM(item))" />
+                </MudTd>
+            </RowTemplate>
 
-    }
-</MudContainer>
+            <NoRecordsContent>
+                <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                    <MudIcon Icon="@Icons.Material.Outlined.Straighten" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        @(_unitOfMeasures.Any() ?
+                                            TranslationService.GetTranslation("um.noUMsMatchFilters", "Nessuna unità di misura corrisponde ai filtri applicati") :
+                                            TranslationService.GetTranslation("um.noUMsFound", "Nessuna unità di misura trovata"))
+                    </MudText>
+                    @if (_unitOfMeasures.Any())
+                    {
+                        <MudButton Variant="Variant.Text"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Outlined.Clear"
+                                   OnClick="@ClearFilters">
+                            @TranslationService.GetTranslation("um.clearFilters", "Cancella filtri")
+                        </MudButton>
+                    }
+                </div>
+            </NoRecordsContent>
+            </EFTable>
+        </div>
+    </div>
+}
 
 @code {
     // Dialog options for fullscreen audit dialog
@@ -230,6 +225,74 @@
     // Data collections
     private List<UMDto> _unitOfMeasures = new();
     private HashSet<UMDto> _selectedUMs = new();
+
+    // EFTable reference
+    private EFTable<UMDto> _efTable = null!;
+
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _initialColumns = new()
+    {
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0 },
+        new() { PropertyName = "Symbol", DisplayName = "Simbolo", IsVisible = true, Order = 1 },
+        new() { PropertyName = "Description", DisplayName = "Descrizione", IsVisible = true, Order = 2 },
+        new() { PropertyName = "IsDefault", DisplayName = "Predefinita", IsVisible = true, Order = 3 },
+        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 4 }
+    };
+
+    // Dashboard configuration
+    private List<DashboardMetric<UMDto>> _dashboardMetrics = new()
+    {
+        new()
+        {
+            Title = "Totale Unità",
+            Type = MetricType.Count,
+            Icon = Icons.Material.Outlined.Straighten,
+            Color = "primary",
+            Description = "Numero totale di unità di misura",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Unità Predefinite",
+            Type = MetricType.Count,
+            Filter = um => um.IsDefault,
+            Icon = Icons.Material.Outlined.Star,
+            Color = "success",
+            Description = "Unità di misura predefinite",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Unità Attive",
+            Type = MetricType.Count,
+            Filter = um => um.IsActive,
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Color = "info",
+            Description = "Unità di misura attive",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Ultime Aggiunte",
+            Type = MetricType.Count,
+            Filter = um => um.CreatedAt >= DateTime.Now.AddDays(-30),
+            Icon = Icons.Material.Outlined.NewReleases,
+            Color = "warning",
+            Description = "Unità aggiunte negli ultimi 30 giorni",
+            Format = "N0"
+        }
+    };
+
+    private EventCallback<HashSet<UMDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<UMDto>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Handles selection changes from EFTable
+    /// </summary>
+    private void OnSelectedItemsChanged(HashSet<UMDto> items)
+    {
+        _selectedUMs = items;
+        StateHasChanged();
+    }
 
     /// <summary>
     /// Computed property for filtered units of measure based on search criteria.
@@ -325,9 +388,9 @@
         NavigationManager.NavigateTo("/settings/unit-of-measures/new");
     }
 
-    private void EditUM(UMDto um)
+    private void EditUM(Guid id)
     {
-        NavigationManager.NavigateTo($"/settings/unit-of-measures/{um.Id}");
+        NavigationManager.NavigateTo($"/settings/unit-of-measures/{id}");
     }
 
     private async Task DeleteUM(UMDto um)
