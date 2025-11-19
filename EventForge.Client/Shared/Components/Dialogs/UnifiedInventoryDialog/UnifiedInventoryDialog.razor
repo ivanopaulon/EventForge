@@ -98,13 +98,36 @@
                 }
                 else if (State.CurrentView == InventoryDialogView.Edit)
                 {
-                    <MudButton OnClick="@(() => NavigateToView(InventoryDialogView.Confirm))" 
-                               Color="Color.Primary" 
-                               Variant="Variant.Filled"
-                               StartIcon="@Icons.Material.Outlined.CheckCircle"
-                               Disabled="@(!IsEditFormValid())">
-                        @TranslationService.GetTranslation("warehouse.review", "Rivedi")
-                    </MudButton>
+                    @if (StartInEditMode)
+                    {
+                        <!-- Fast inventory mode: Save directly without confirmation -->
+                        <MudButton OnClick="@HandleConfirmSave" 
+                                   Color="Color.Success" 
+                                   Variant="Variant.Filled"
+                                   StartIcon="@Icons.Material.Outlined.Save"
+                                   Disabled="@(!IsEditFormValid() || State.IsSaving)">
+                            @if (State.IsSaving)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                @TranslationService.GetTranslation("common.saving", "Salvataggio...")
+                            }
+                            else
+                            {
+                                @TranslationService.GetTranslation("common.save", "Salva")
+                            }
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <!-- Normal mode: Go to confirmation step -->
+                        <MudButton OnClick="@(() => NavigateToView(InventoryDialogView.Confirm))" 
+                                   Color="Color.Primary" 
+                                   Variant="Variant.Filled"
+                                   StartIcon="@Icons.Material.Outlined.CheckCircle"
+                                   Disabled="@(!IsEditFormValid())">
+                            @TranslationService.GetTranslation("warehouse.review", "Rivedi")
+                        </MudButton>
+                    }
                 }
                 else if (State.CurrentView == InventoryDialogView.Confirm)
                 {
@@ -157,6 +180,9 @@
     [Parameter]
     public EventCallback<InventoryRowResult> OnSave { get; set; }
 
+    [Parameter]
+    public bool StartInEditMode { get; set; } = false;
+
     private InventoryDialogState State { get; set; } = new();
     private List<ViewItem> _viewItems = new();
 
@@ -166,7 +192,9 @@
         State.Product = InitialProduct;
         State.ConversionFactor = ConversionFactor;
         State.IsEditMode = IsEditMode;
-        State.CurrentView = InventoryDialogView.View;
+        
+        // Start in Edit mode if requested (for fast inventory entry)
+        State.CurrentView = StartInEditMode ? InventoryDialogView.Edit : InventoryDialogView.View;
 
         if (IsEditMode)
         {
