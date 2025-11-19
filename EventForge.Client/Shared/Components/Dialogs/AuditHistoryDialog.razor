@@ -37,7 +37,7 @@
     </TitleContent>
     <DialogContent>
             <div class="audit-dialog-content">
-                <PageLoadingOverlay IsVisible="@_isLoading"
+                <PageLoadingOverlay Visible="@_isLoading"
                                     Message="@TranslationService.GetTranslation("audit.loadingHistory", "Caricamento cronologia...")" />
             
             @if (!_isLoading)

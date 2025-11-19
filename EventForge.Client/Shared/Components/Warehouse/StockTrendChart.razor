@@ -3,7 +3,7 @@
 @inject ITranslationService TranslationService
 
 <CommonTrendWrapper Icon="@Icons.Material.Outlined.ShowChart" 
-                   Title="@TranslationService.GetTranslation("product.stockTrend","Andamento Giacenza")" 
+                   title="@TranslationService.GetTranslation("product.stockTrend","Andamento Giacenza")" 
                    Subtitle="@GetSubtitle()" 
                    ProductId="@ProductId">
     @if (IsLoading)

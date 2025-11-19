@@ -448,7 +448,7 @@
                 // Store the ProductUnitId from the barcode if available
                 _barcodeProductUnitId = productWithCode.Code?.ProductUnitId;
                 
-                OnProductSelected(productWithCode.Product);
+                await OnProductSelected(productWithCode.Product);
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato: {0}", productWithCode.Product.Name), Severity.Success);
                 
                 // Focus on quantity field after product is found

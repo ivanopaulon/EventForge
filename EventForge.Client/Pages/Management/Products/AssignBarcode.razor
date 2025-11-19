@@ -19,7 +19,7 @@
         @TranslationService.GetTranslation("products.assignBarcode", "Assegna Codice a Barre")
     </MudText>
 
-    <PageLoadingOverlay IsVisible="_isLoading"
+    <PageLoadingOverlay Visible="_isLoading"
                         Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
     <MudPaper Elevation="2" Class="pa-4 mb-4">

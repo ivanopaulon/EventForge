@@ -13,7 +13,7 @@
 @inject ILogger<UnitOfMeasureDetail> Logger
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <PageLoadingOverlay IsVisible="_isLoading || _isSaving"
+    <PageLoadingOverlay Visible="_isLoading || _isSaving"
                         Message="@(_isSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
     @if (!_isLoading && _unit == null && !_isCreateMode)

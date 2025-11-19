@@ -33,7 +33,7 @@
         </MudItem>
     </MudGrid>
 
-    <PageLoadingOverlay IsVisible="_isLoading"
+    <PageLoadingOverlay Visible="_isLoading"
                         Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
 
@@ -137,19 +137,19 @@
                                Size="Size.Small"
                                Color="Color.Primary"
                                OnClick="@(() => ViewDocument(context.Id))"
-                               Title="@TranslationService.GetTranslation("common.view", "Visualizza")" />
+                               title="@TranslationService.GetTranslation("common.view", "Visualizza")" />
                 @if (context.Status == DocumentStatus.Draft)
                 {
                     <MudIconButton Icon="@Icons.Material.Outlined.Edit"
                                    Size="Size.Small"
                                    Color="Color.Info"
                                    OnClick="@(() => EditDocument(context.Id))"
-                                   Title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
+                                   title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
                     <MudIconButton Icon="@Icons.Material.Outlined.Delete"
                                    Size="Size.Small"
                                    Color="Color.Error"
                                    OnClick="@(() => DeleteDocument(context.Id))"
-                                   Title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
+                                   title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
                 }
                 @if (context.Status == DocumentStatus.Approved)
                 {
@@ -157,7 +157,7 @@
                                    Size="Size.Small"
                                    Color="Color.Warning"
                                    OnClick="@(() => CloseDocument(context.Id))"
-                                   Title="@TranslationService.GetTranslation("documents.close", "Chiudi")" />
+                                   title="@TranslationService.GetTranslation("documents.close", "Chiudi")" />
                 }
             </MudTd>
         </RowTemplate>

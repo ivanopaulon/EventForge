@@ -3,7 +3,7 @@
 @inject IDialogService DialogService
 
 @* Onboarding modal with step-by-step guidance *@
-<MudDialog @bind-IsVisible="@IsVisible" 
+<MudDialog @bind-Visible="@IsVisible" 
            MaxWidth="MaxWidth.Medium" 
            FullWidth="true"
            DisableBackdropClick="false"
@@ -110,7 +110,7 @@
 
             <!-- Option to not show again -->
             <div class="mt-3 pt-3 border-t">
-                <MudCheckBox T="bool" @bind-Checked="@DontShowAgain" 
+                <MudCheckBox T="bool" @bind-Value="@DontShowAgain" 
                              Label="@TranslationService.GetTranslation("onboarding.dontShowAgain", "Don't show this onboarding again")"
                              Color="Color.Primary"
                              aria-describedby="dont-show-help" />

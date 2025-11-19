@@ -13,7 +13,7 @@
         </MudText>
     </TitleContent>
     <DialogContent>
-        <PageLoadingOverlay IsVisible="_isLoading"
+        <PageLoadingOverlay Visible="_isLoading"
                             Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
         <MudText Typo="Typo.body1" Class="mb-3">

@@ -18,7 +18,7 @@
 @inject IInventorySessionService InventorySessionService
 
 <PageTitle>@TranslationService.GetTranslation("warehouse.inventoryProcedure", "Procedura Inventario")</PageTitle>
-<PageLoadingOverlay IsVisible="_isLoading"
+<PageLoadingOverlay Visible="_isLoading"
                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4 px-0" Style="width:100%; min-height:100vh; display:flex; flex-direction:column;">
@@ -187,7 +187,7 @@
                     </div>
                     <MudStack Row="true" Spacing="2">
                         <MudTooltip Text="@TranslationService.GetTranslation("warehouse.filterAdjustments", "Mostra solo articoli con differenze")">
-                            <MudSwitch T="bool" @bind-Checked="_showOnlyAdjustments" 
+                            <MudSwitch T="bool" @bind-Value="_showOnlyAdjustments" 
                                       Color="Color.Primary" 
                                       Label="@TranslationService.GetTranslation("warehouse.onlyAdjustments", "Solo Differenze")" />
                         </MudTooltip>

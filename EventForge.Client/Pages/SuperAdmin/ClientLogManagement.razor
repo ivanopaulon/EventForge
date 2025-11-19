@@ -142,8 +142,8 @@
             </ToolBarContent>
 
             <Columns>
-                <PropertyColumn Property="x => x.Timestamp" Title="Time" Format="HH:mm:ss" Sortable="true" />
-                <PropertyColumn Property="x => x.Level" Title="Level">
+                <PropertyColumn Property="x => x.Timestamp" title="Time" Format="HH:mm:ss" Sortable="true" />
+                <PropertyColumn Property="x => x.Level" title="Level">
                     <CellTemplate>
                         @{
                             var color = context.Item.Level switch
@@ -159,10 +159,10 @@
                                 <MudChip Color="color" Size="Size.Small">@context.Item.Level</MudChip>
                             </CellTemplate>
                         </PropertyColumn>
-                        <PropertyColumn Property="x => x.Category" Title="Category" Sortable="true" />
-                        <PropertyColumn Property="x => x.Message" Title="Message" />
-                        <PropertyColumn Property="x => x.Page" Title="Page" />
-                    <TemplateColumn Title="Actions" Sortable="false">
+                        <PropertyColumn Property="x => x.Category" title="Category" Sortable="true" />
+                        <PropertyColumn Property="x => x.Message" title="Message" />
+                        <PropertyColumn Property="x => x.Page" title="Page" />
+                    <TemplateColumn title="Actions" Sortable="false">
                         <CellTemplate>
                             <MudIconButton Icon="@Icons.Material.Outlined.Visibility" 
                                            Size="Size.Small" 
@@ -176,7 +176,7 @@
 </SuperAdminPageLayout>
 
 <!-- Log Details Dialog -->
-<MudDialog @bind-IsVisible="_showDetailsDialog" Options="_dialogOptions">
+<MudDialog @bind-Visible="_showDetailsDialog" Options="_dialogOptions">
     <DialogContent>
         @if (_selectedLog != null)
         {

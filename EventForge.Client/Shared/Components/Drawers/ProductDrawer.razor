@@ -1032,7 +1032,7 @@
                 {
                     <MudItem xs="12" Class="mt-4">
                         <MudExpansionPanels>
-                            <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.productCodes", "Codici Alternativi")} ({_productCodes.Count()})")" IsInitiallyExpanded="false">
+                            <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.productCodes", "Codici Alternativi")} ({_productCodes.Count()})")" Expanded="false">
                                 <MudTable Items="_productCodes" Hover="true" Dense="true" Striped="true">
                                     <HeaderContent>
                                         <MudTh>@TranslationService.GetTranslation("field.codeType", "Tipo Codice")</MudTh>
@@ -1070,7 +1070,7 @@
                 {
                     <MudItem xs="12" Class="mt-4">
                         <MudExpansionPanels>
-                            <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.productUnits", "Unità di Misura Alternative")} ({_productUnits.Count()})")" IsInitiallyExpanded="false">
+                            <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.productUnits", "Unità di Misura Alternative")} ({_productUnits.Count()})")" Expanded="false">
                                 <MudTable Items="_productUnits" Hover="true" Dense="true" Striped="true">
                                     <HeaderContent>
                                         <MudTh>@TranslationService.GetTranslation("field.unitType", "Tipo Unità")</MudTh>
@@ -1110,7 +1110,7 @@
                     {
                         <MudItem xs="12" Class="mt-4">
                             <MudExpansionPanels>
-                                <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.bundleComponents", "Componenti Bundle")} ({_bundleItems.Count()})")" IsInitiallyExpanded="false">
+                                <MudExpansionPanel Text="@($"{TranslationService.GetTranslation("field.bundleComponents", "Componenti Bundle")} ({_bundleItems.Count()})")" Expanded="false">
                                     <MudTable Items="_bundleItems" Hover="true" Dense="true" Striped="true">
                                         <HeaderContent>
                                             <MudTh>@TranslationService.GetTranslation("field.componentProduct", "Prodotto Componente")</MudTh>

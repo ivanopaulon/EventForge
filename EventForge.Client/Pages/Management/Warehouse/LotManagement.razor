@@ -14,7 +14,7 @@
 <PageTitle>@TranslationService.GetTranslation("warehouse.lotManagement", "Gestione Lotti")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <PageLoadingOverlay IsVisible="_isLoading"
+    <PageLoadingOverlay Visible="_isLoading"
                         Message="@TranslationService.GetTranslation("common.loading", "Caricamento...")" />
 
     @if (!_isLoading)
