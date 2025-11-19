@@ -119,7 +119,7 @@
                                 </MudAvatar>
                                 <div>
                                     <MudText Typo="Typo.body2">@item.Name</MudText>
-                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @item.Id.ToString().Substring(0, 8)...</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(item.Id.ToString()[..Math.Min(8, item.Id.ToString().Length)])...</MudText>
                                 </div>
                             </div>
                         </MudTd>
@@ -192,6 +192,7 @@
 
     // Filter and search state
     private string _searchTerm = string.Empty;
+    private CancellationTokenSource? _searchDebounceCts;
 
     // Data collections
     private List<VatNatureDto> _vatNatures = new();
@@ -225,7 +226,7 @@
         {
             Title = "Codici N1-N7",
             Type = MetricType.Count,
-            Filter = v => v.Code.StartsWith("N") && v.Code.Length == 2,
+            Filter = v => v.Code != null && v.Code.StartsWith("N") && v.Code.Length == 2,
             Icon = Icons.Material.Outlined.CheckCircle,
             Color = "success",
             Description = "Codici natura standard (N1-N7)",
@@ -329,17 +330,31 @@
     /// <summary>
     /// Clears all active filters.
     /// </summary>
-    private async Task ClearFilters()
+    private void ClearFilters()
     {
         _searchTerm = string.Empty;
-        await Task.CompletedTask;
         StateHasChanged();
     }
 
     private async Task OnSearchChanged()
     {
-        await Task.Delay(300); // Debounce
-        StateHasChanged();
+        // Cancel previous debounce if any
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+        var token = _searchDebounceCts.Token;
+        
+        try
+        {
+            await Task.Delay(300, token); // Debounce with cancellation
+            if (!token.IsCancellationRequested)
+            {
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Swallow cancellation
+        }
     }
 
     private void CreateVatNature()

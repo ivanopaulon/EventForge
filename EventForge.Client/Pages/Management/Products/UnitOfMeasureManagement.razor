@@ -126,7 +126,7 @@
                                 </MudAvatar>
                                 <div>
                                     <MudText Typo="Typo.body2">@item.Name</MudText>
-                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @item.Id.ToString().Substring(0, 8)...</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(item.Id.ToString()[..Math.Min(8, item.Id.ToString().Length)])...</MudText>
                                 </div>
                             </div>
                         </MudTd>
@@ -221,6 +221,7 @@
     // Filter and search state
     private string _searchTerm = string.Empty;
     private string _defaultFilter = "all";
+    private CancellationTokenSource? _searchDebounceCts;
     
     // Data collections
     private List<UMDto> _unitOfMeasures = new();
@@ -363,23 +364,36 @@
     /// <summary>
     /// Clears all active filters.
     /// </summary>
-    private async Task ClearFilters()
+    private void ClearFilters()
     {
         _searchTerm = string.Empty;
         _defaultFilter = "all";
-        await Task.CompletedTask;
         StateHasChanged();
     }
 
     private async Task OnSearchChanged()
     {
-        await Task.Delay(300); // Debounce
-        StateHasChanged();
+        // Cancel previous debounce if any
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+        var token = _searchDebounceCts.Token;
+        
+        try
+        {
+            await Task.Delay(300, token); // Debounce with cancellation
+            if (!token.IsCancellationRequested)
+            {
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Swallow cancellation
+        }
     }
 
-    private async Task OnDefaultFilterChanged()
+    private void OnDefaultFilterChanged()
     {
-        await Task.CompletedTask;
         StateHasChanged();
     }
 

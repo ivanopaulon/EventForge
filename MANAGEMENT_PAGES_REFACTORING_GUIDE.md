@@ -3,11 +3,12 @@
 ## Overview
 This guide documents the standardization of all management pages to use the VatRateManagement.razor template structure with EFTable and ManagementDashboard components.
 
-## Completed Pages (2/11)
+## Completed Pages (3/11)
 - ✅ VatNatureManagement.razor
 - ✅ BrandManagement.razor
+- ✅ UnitOfMeasureManagement.razor
 
-## Remaining Pages (9/11)
+## Remaining Pages (8/11)
 
 ### Business Management
 1. **CustomerManagement.razor** (`/home/runner/work/EventForge/EventForge/EventForge.Client/Pages/Management/Business/CustomerManagement.razor`)
@@ -21,12 +22,7 @@ This guide documents the standardization of all management pages to use the VatR
    - Metrics: Total Suppliers, Active, With VAT Number, Recent (last 30 days)
 
 ### Products Management
-3. **UnitOfMeasureManagement.razor** (`/home/runner/work/EventForge/EventForge/EventForge.Client/Pages/Management/Products/UnitOfMeasureManagement.razor`)
-   - DTO: `UMDto`
-   - Icon: `Icons.Material.Outlined.Straighten`
-   - Metrics: Total Units, Default Units, Standard Units, Recent (last 30 days)
-
-4. **ClassificationNodeManagement.razor** (`/home/runner/work/EventForge/EventForge/EventForge.Client/Pages/Management/Products/ClassificationNodeManagement.razor`)
+3. **ClassificationNodeManagement.razor** (`/home/runner/work/EventForge/EventForge/EventForge.Client/Pages/Management/Products/ClassificationNodeManagement.razor`)
    - DTO: `ClassificationNodeDto`
    - Icon: `Icons.Material.Outlined.AccountTree`
    - Metrics: Total Nodes, Root Nodes, Leaf Nodes, Recent (last 30 days)
@@ -38,23 +34,23 @@ This guide documents the standardization of all management pages to use the VatR
    - Metrics: Total Products, Active, With Images, Recent (last 30 days)
 
 ### Documents Management
-6. **DocumentTypeManagement.razor** (`/home/runner/work/EventForge/EventForge/EventForge.Client/Pages/Management/Documents/DocumentTypeManagement.razor`)
+5. **DocumentTypeManagement.razor** (`/home/runner/work/EventForge/EventForge/EventForge.Client/Pages/Management/Documents/DocumentTypeManagement.razor`)
    - DTO: `DocumentTypeDto`
    - Icon: `Icons.Material.Outlined.Category`
    - Metrics: Total Types, Fiscal Documents, Stock Increase Types, Recent (last 30 days)
 
-7. **DocumentCounterManagement.razor** (`/home/runner/work/EventForge/EventForge/EventForge.Client/Pages/Management/Documents/DocumentCounterManagement.razor`)
+6. **DocumentCounterManagement.razor** (`/home/runner/work/EventForge/EventForge/EventForge.Client/Pages/Management/Documents/DocumentCounterManagement.razor`)
    - DTO: `DocumentCounterDto` (needs verification)
    - Icon: `Icons.Material.Outlined.Numbers`
    - Metrics: Total Counters, Active Counters, Current Year, Recent (last 30 days)
 
 ### Warehouse Management
-8. **WarehouseManagement.razor** (`/home/runner/work/EventForge/EventForge/EventForge.Client/Pages/Management/Warehouse/WarehouseManagement.razor`)
+7. **WarehouseManagement.razor** (`/home/runner/work/EventForge/EventForge/EventForge.Client/Pages/Management/Warehouse/WarehouseManagement.razor`)
    - DTO: `StorageFacilityDto`
    - Icon: `Icons.Material.Outlined.Warehouse`
    - Metrics: Total Warehouses, Fiscal Warehouses, Refrigerated, Recent (last 30 days)
 
-9. **LotManagement.razor** (`/home/runner/work/EventForge/EventForge/EventForge.Client/Pages/Management/Warehouse/LotManagement.razor`)
+8. **LotManagement.razor** (`/home/runner/work/EventForge/EventForge/EventForge.Client/Pages/Management/Warehouse/LotManagement.razor`)
    - DTO: `LotDto` (needs verification)
    - Icon: `Icons.Material.Outlined.QrCode`
    - Metrics: Total Lots, Active Lots, Expiring Soon, Recent (last 30 days)
@@ -216,6 +212,7 @@ This guide documents the standardization of all management pages to use the VatR
 
     // Filter and search state
     private string _searchTerm = string.Empty;
+    private CancellationTokenSource? _searchDebounceCts;
 
     // Data collections
     private List<[EntityDto]> _[entities] = new();
@@ -350,17 +347,31 @@ This guide documents the standardization of all management pages to use the VatR
     /// <summary>
     /// Clears all active filters.
     /// </summary>
-    private async Task ClearFilters()
+    private void ClearFilters()
     {
         _searchTerm = string.Empty;
-        await Task.CompletedTask;
         StateHasChanged();
     }
 
     private async Task OnSearchChanged()
     {
-        await Task.Delay(300); // Debounce
-        StateHasChanged();
+        // Cancel previous debounce if any
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+        var token = _searchDebounceCts.Token;
+        
+        try
+        {
+            await Task.Delay(300, token); // Debounce with cancellation
+            if (!token.IsCancellationRequested)
+            {
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Swallow cancellation
+        }
     }
 
     private void Create[Entity]()
