@@ -1,4 +1,4 @@
-@page "/product-management/products"
+@page "/product-management/brands"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.Common
@@ -6,13 +6,13 @@
 @using EventForge.Client.Shared.Components.Dashboard
 @attribute [Authorize]
 @inject IAuthService AuthService
-@inject IProductService ProductService
+@inject IBrandService BrandService
 @inject NavigationManager NavigationManager
 @inject IAuthenticationDialogService AuthenticationDialogService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
-@inject ILogger<ProductManagement> Logger
+@inject ILogger<BrandManagement> Logger
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingBrands"
                      Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
@@ -21,75 +21,81 @@
 {
     <div class="brand-page-root">
         <div class="brand-top">
-            <ManagementDashboard TItem="ProductDto"
+            <ManagementDashboard TItem="BrandDto"
                                  Items="_filteredBrands"
                                  Metrics="_dashboardMetrics"
-                                 EntityType="Product"
+                                 EntityType="Brand"
                                  AllowConfiguration="true"
                                  UseServerSide="false" />
         </div>
 
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
-                 TItem="ProductDto"
+                 TItem="BrandDto"
                  Items="_filteredBrands"
                  MultiSelection="true"
-                 SelectedItems="_selectedProducts"
+                 SelectedItems="_selectedBrands"
                  SelectedItemsChanged="_selectedItemsChangedCallback"
                  IsLoading="_isLoadingBrands"
-                 ComponentKey="ProductManagement"
+                 ComponentKey="BrandManagement"
                  InitialColumnConfigurations="_initialColumns"
                  AllowDragDropGrouping="true">
             <ToolBarContent>
                 <MudText Typo="Typo.h5">
-                    @TranslationService.GetTranslation("product.management", "Gestione Prodotti")
+                    @TranslationService.GetTranslation("brand.management", "Gestione Marchi")
                 </MudText>
                 <MudSpacer />
                 <MudTextField @bind-Value="_searchTerm"
                               @bind-Value:after="OnSearchChanged"
-                              Label="@TranslationService.GetTranslation("product.search", "Cerca prodotti")"
-                              Placeholder="@TranslationService.GetTranslation("product.searchPlaceholder", "Inserisci nome...")"
+                              Label="@TranslationService.GetTranslation("brand.search", "Cerca marchi")"
+                              Placeholder="@TranslationService.GetTranslation("brand.searchPlaceholder", "Inserisci nome...")"
                               Variant="Variant.Outlined"
                               Adornment="Adornment.End"
                               AdornmentIcon="@Icons.Material.Outlined.Search"
                               Clearable="true"
                               Class="ef-input" />
                 <ManagementTableToolbar ShowSelectionBadge="true"
-                                        SelectedCount="@_selectedProducts.Count"
+                                        SelectedCount="@_selectedBrands.Count"
                                         ShowRefresh="true"
                                         ShowCreate="true"
                                         ShowDelete="true"
-                                        CreateTooltip="product.createNew"
+                                        CreateTooltip="brand.createNew"
                                         IsDisabled="_isLoadingBrands"
                                         OnRefresh="@LoadBrandsAsync"
-                                        OnCreate="@CreateProduct"
+                                        OnCreate="@CreateBrand"
                                         OnDelete="@DeleteSelectedBrands" />
             </ToolBarContent>
             <HeaderContent Context="columnConfigurations">
                 @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
                 {
-                    @if (column.PropertyName == "Code")
+                    @if (column.PropertyName == "Name")
                     {
-                        <EFTableColumnHeader TItem="ProductDto" PropertyName="Code" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                            <MudTableSortLabel SortBy="@(new Func<ProductDto, object>(x => x.Code))">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel>
+                        <EFTableColumnHeader TItem="BrandDto" PropertyName="Name" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BrandDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
                         </EFTableColumnHeader>
                     }
-                    else if (column.PropertyName == "Name")
+                    else if (column.PropertyName == "Description")
                     {
-                        <EFTableColumnHeader TItem="ProductDto" PropertyName="Name" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                            <MudTableSortLabel SortBy="@(new Func<ProductDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                        <EFTableColumnHeader TItem="BrandDto" PropertyName="Description" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BrandDto, object>(x => x.Description ?? string.Empty))">@TranslationService.GetTranslation("field.description", "Descrizione")</MudTableSortLabel>
                         </EFTableColumnHeader>
                     }
-                    else if (column.PropertyName == "ShortDescription")
+                    else if (column.PropertyName == "Country")
                     {
-                        <EFTableColumnHeader TItem="ProductDto" PropertyName="ShortDescription" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                            <MudTableSortLabel SortBy="@(new Func<ProductDto, object>(x => x.ShortDescription ?? string.Empty))">@TranslationService.GetTranslation("field.description", "Descrizione")</MudTableSortLabel>
+                        <EFTableColumnHeader TItem="BrandDto" PropertyName="Country" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BrandDto, object>(x => x.Country ?? string.Empty))">@TranslationService.GetTranslation("field.country", "Paese")</MudTableSortLabel>
                         </EFTableColumnHeader>
                     }
-                    else if (column.PropertyName == "DefaultPrice")
+                    else if (column.PropertyName == "Website")
                     {
-                        <EFTableColumnHeader TItem="ProductDto" PropertyName="DefaultPrice" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                            <MudTableSortLabel SortBy="@(new Func<ProductDto, object>(x => x.DefaultPrice ?? 0))">@TranslationService.GetTranslation("field.price", "Prezzo")</MudTableSortLabel>
+                        <EFTableColumnHeader TItem="BrandDto" PropertyName="Website" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BrandDto, object>(x => x.Website ?? string.Empty))">@TranslationService.GetTranslation("field.website", "Sito Web")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "CreatedAt")
+                    {
+                        <EFTableColumnHeader TItem="BrandDto" PropertyName="CreatedAt" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<BrandDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel>
                         </EFTableColumnHeader>
                     }
                 }
@@ -102,20 +108,12 @@
                 }
                 @foreach (var column in visibleColumns)
                 {
-                    @if (column.PropertyName == "Code")
-                    {
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">
-                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">
-                                @item.Code
-                            </MudChip>
-                        </MudTd>
-                    }
-                    else if (column.PropertyName == "Name")
+                    @if (column.PropertyName == "Name")
                     {
                         <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
                             <div class="d-flex align-center">
                                 <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
-                                    <MudIcon Icon="@Icons.Material.Outlined.Inventory2" />
+                                    <MudIcon Icon="@Icons.Material.Outlined.Sell" />
                                 </MudAvatar>
                                 <div>
                                     <MudText Typo="Typo.body2">@item.Name</MudText>
@@ -124,25 +122,37 @@
                             </div>
                         </MudTd>
                     }
-                    else if (column.PropertyName == "ShortDescription")
+                    else if (column.PropertyName == "Description")
                     {
                         <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
                             <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:400px;">
-                                @(string.IsNullOrEmpty(item.ShortDescription) ? "-" : item.ShortDescription)
+                                @(string.IsNullOrEmpty(item.Description) ? "-" : item.Description)
                             </MudText>
                         </MudTd>
                     }
-                    else if (column.PropertyName == "DefaultPrice")
+                    else if (column.PropertyName == "Country")
                     {
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.price", "Prezzo")" Style="text-align:right;">
-                            @if (item.DefaultPrice.HasValue)
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.country", "Paese")">
+                            <MudText Typo="Typo.body2">@(item.Country ?? "-")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Website")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.website", "Sito Web")">
+                            @if (!string.IsNullOrWhiteSpace(item.Website))
                             {
-                                <MudText Typo="Typo.body2" Style="font-weight:600;">@item.DefaultPrice.Value.ToString("C2")</MudText>
+                                <MudLink Href="@item.Website" Target="_blank">@TranslationService.GetTranslation("action.visit", "Visita")</MudLink>
                             }
                             else
                             {
                                 <MudText Typo="Typo.body2">-</MudText>
                             }
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "CreatedAt")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
+                            <MudText Typo="Typo.body2">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
                         </MudTd>
                     }
                 }
@@ -162,13 +172,13 @@
 
             <NoRecordsContent>
                 <div class="text-center pa-2 pa-sm-3 pa-md-4">
-                    <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                    <MudIcon Icon="@Icons.Material.Outlined.Sell" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
                     <MudText Typo="Typo.h6" Class="mb-2">
-                        @(_products.Any() ?
-                                            TranslationService.GetTranslation("product.noBrandsMatchFilters", "Nessun prodottio corrisponde ai filtri applicati") :
-                                            TranslationService.GetTranslation("product.noBrandsFound", "Nessun prodottio trovato"))
+                        @(_brands.Any() ?
+                                            TranslationService.GetTranslation("brand.noBrandsMatchFilters", "Nessun marchio corrisponde ai filtri applicati") :
+                                            TranslationService.GetTranslation("brand.noBrandsFound", "Nessun marchio trovato"))
                     </MudText>
-                    @if (_products.Any())
+                    @if (_brands.Any())
                     {
                         <MudButton Variant="Variant.Text"
                                    Color="Color.Primary"
@@ -202,72 +212,73 @@
     private CancellationTokenSource? _searchDebounceCts;
 
     // Data collections
-    private List<ProductDto> _products = new();
-    private HashSet<ProductDto> _selectedProducts = new();
+    private List<BrandDto> _brands = new();
+    private HashSet<BrandDto> _selectedBrands = new();
 
     // EFTable reference
-    private EFTable<ProductDto> _efTable = null!;
+    private EFTable<BrandDto> _efTable = null!;
 
     // Column configuration for EFTable
     private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 0 },
-        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1 },
-        new() { PropertyName = "ShortDescription", DisplayName = "Descrizione", IsVisible = true, Order = 2 },
-        new() { PropertyName = "DefaultPrice", DisplayName = "Prezzo", IsVisible = true, Order = 3 }
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0 },
+        new() { PropertyName = "Description", DisplayName = "Descrizione", IsVisible = true, Order = 1 },
+        new() { PropertyName = "Country", DisplayName = "Paese", IsVisible = true, Order = 2 },
+        new() { PropertyName = "Website", DisplayName = "Sito Web", IsVisible = true, Order = 3 },
+        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 4 }
     };
 
     // Dashboard configuration
-    private List<DashboardMetric<ProductDto>> _dashboardMetrics = new()
+    private List<DashboardMetric<BrandDto>> _dashboardMetrics = new()
     {
         new()
         {
-            Title = "Totale Prodotti",
+            Title = "Totale Marchi",
             Type = MetricType.Count,
-            Icon = Icons.Material.Outlined.Inventory2,
+            Icon = Icons.Material.Outlined.Sell,
             Color = "primary",
-            Description = "Numero totale di prodotti",
+            Description = "Numero totale di marchi",
             Format = "N0"
         },
         new()
         {
-            Title = "Prodotti Attivi",
+            Title = "Con Sito Web",
             Type = MetricType.Count,
-            Filter = p => p.Status == ProductStatus.Active,
-            Icon = Icons.Material.Outlined.CheckCircle,
+            Filter = b => !string.IsNullOrEmpty(b.Website),
+            Icon = Icons.Material.Outlined.Language,
             Color = "success",
-            Description = "Prodotti attivi",
+            Description = "Marchi con sito web",
             Format = "N0"
         },
         new()
         {
-            Title = "Con Immagini",
+            Title = "Con Descrizione",
             Type = MetricType.Count,
-            Filter = p => p.ImageDocumentId != null,
-            Icon = Icons.Material.Outlined.Image,
+            Filter = b => !string.IsNullOrEmpty(b.Description),
+            Icon = Icons.Material.Outlined.Description,
             Color = "info",
-            Description = "Prodotti con immagini",
+            Description = "Marchi con descrizione",
             Format = "N0"
         },
         new()
         {
             Title = "Ultimi Aggiunti",
             Type = MetricType.Count,
-            Filter = p => p.CreatedAt >= DateTime.Now.AddDays(-30),
+            Filter = b => b.CreatedAt >= DateTime.Now.AddDays(-30),
             Icon = Icons.Material.Outlined.NewReleases,
             Color = "warning",
-            Description = "Prodotti aggiunti negli ultimi 30 giorni",
+            Description = "Marchi aggiunti negli ultimi 30 giorni",
             Format = "N0"
         }
     };
 
-    private EventCallback<HashSet<ProductDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<ProductDto>>(this, OnSelectedItemsChanged);
+    private EventCallback<HashSet<BrandDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<BrandDto>>(this, OnSelectedItemsChanged);
 
     /// <summary>
     /// Computed property for filtered brands based on search criteria.
     /// </summary>
-    private IEnumerable<ProductDto> _filteredBrands => 
-        _products.Where(b => 
+    private IEnumerable<BrandDto> _filteredBrands => 
+        _brands.Where(b => 
             // Search filter: check name, description, and country
             (string.IsNullOrEmpty(_searchTerm) || 
              b.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
@@ -277,9 +288,9 @@
     /// <summary>
     /// Handles selection changes from EFTable
     /// </summary>
-    private void OnSelectedItemsChanged(HashSet<ProductDto> items)
+    private void OnSelectedItemsChanged(HashSet<BrandDto> items)
     {
-        _selectedProducts = items;
+        _selectedBrands = items;
         StateHasChanged();
     }
 
@@ -303,7 +314,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("product.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            Snackbar.Add(TranslationService.GetTranslation("brand.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
             Logger.LogError(ex, "Error loading brands page");
         }
         finally
@@ -320,12 +331,12 @@
         try
         {
             _isLoadingBrands = true;
-            var result = await ProductService.GetBrandsAsync(page: 1, pageSize: 100);
-            _products = result.Items?.ToList() ?? new List<ProductDto>();
+            var result = await BrandService.GetBrandsAsync(page: 1, pageSize: 100);
+            _brands = result.Items?.ToList() ?? new List<BrandDto>();
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("product.loadingBrandsError", "Errore nel caricamento dei prodotti: {0}", ex.Message), Severity.Error);
+            Snackbar.Add(TranslationService.GetTranslation("brand.loadingBrandsError", "Errore nel caricamento dei marchi: {0}", ex.Message), Severity.Error);
             Logger.LogError(ex, "Error loading brands");
         }
         finally
@@ -374,12 +385,12 @@
         NavigationManager.NavigateTo($"/product-management/brands/{id}");
     }
 
-    private async Task DeleteBrand(ProductDto brand)
+    private async Task DeleteBrand(BrandDto brand)
     {
         var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
-        var confirmMessage = TranslationService.GetTranslation("product.confirmDelete", 
-            "Sei sicuro di voler eliminare il prodottio '{0}'? Questa azione non può essere annullata.", 
-            product.Name);
+        var confirmMessage = TranslationService.GetTranslation("brand.confirmDelete", 
+            "Sei sicuro di voler eliminare il marchio '{0}'? Questa azione non può essere annullata.", 
+            brand.Name);
 
         var confirm = await DialogService.ShowMessageBox(
             confirmTitle,
@@ -391,16 +402,16 @@
         {
             try
             {
-                await ProductService.DeleteBrandAsync(product.Id);
-                _products.Remove(brand);
-                Snackbar.Add(TranslationService.GetTranslation("product.brandDeleted", "Prodottio eliminato con successo!"), Severity.Success);
+                await BrandService.DeleteBrandAsync(brand.Id);
+                _brands.Remove(brand);
+                Snackbar.Add(TranslationService.GetTranslation("brand.brandDeleted", "Marchio eliminato con successo!"), Severity.Success);
                 StateHasChanged();
             }
             catch (Exception ex)
             {
-                Snackbar.Add(TranslationService.GetTranslation("product.deleteBrandError", 
-                    "Errore nell'eliminazione del prodottio: {0}", ex.Message), Severity.Error);
-                Logger.LogError(ex, "Error deleting brand {BrandId}", product.Id);
+                Snackbar.Add(TranslationService.GetTranslation("brand.deleteBrandError", 
+                    "Errore nell'eliminazione del marchio: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting brand {BrandId}", brand.Id);
             }
         }
     }
@@ -408,13 +419,13 @@
     /// <summary>
     /// Opens the audit log dialog for a brand using IDialogService.
     /// </summary>
-    private async Task ViewBrandAuditLog(ProductDto brand)
+    private async Task ViewBrandAuditLog(BrandDto brand)
     {
         var parameters = new DialogParameters<AuditHistoryDialog>
         {
-            { x => x.EntityType, "Product" },
-            { x => x.EntityId, product.Id },
-            { x => x.EntityName, product.Name }
+            { x => x.EntityType, "Brand" },
+            { x => x.EntityId, brand.Id },
+            { x => x.EntityName, brand.Name }
         };
 
         await DialogService.ShowAsync<AuditHistoryDialog>(
@@ -428,13 +439,13 @@
     /// </summary>
     private async Task DeleteSelectedBrands()
     {
-        if (_selectedProducts.Count == 0)
+        if (_selectedBrands.Count == 0)
             return;
 
         var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
-        var confirmMessage = TranslationService.GetTranslationFormatted("product.confirmDeleteMultiple", 
-            "Sei sicuro di voler eliminare {0} prodotti selezionati? Questa azione non può essere annullata.", 
-            _selectedProducts.Count);
+        var confirmMessage = TranslationService.GetTranslationFormatted("brand.confirmDeleteMultiple", 
+            "Sei sicuro di voler eliminare {0} marchi selezionati? Questa azione non può essere annullata.", 
+            _selectedBrands.Count);
 
         var confirm = await DialogService.ShowMessageBox(
             confirmTitle,
@@ -449,40 +460,40 @@
                 var deletedCount = 0;
                 var failedCount = 0;
                 
-                foreach (var brand in _selectedProducts.ToList())
+                foreach (var brand in _selectedBrands.ToList())
                 {
                     try
                     {
-                        await ProductService.DeleteBrandAsync(product.Id);
-                        _products.RemoveAll(b => b.Id == product.Id);
+                        await BrandService.DeleteBrandAsync(brand.Id);
+                        _brands.RemoveAll(b => b.Id == brand.Id);
                         deletedCount++;
                     }
                     catch (Exception ex)
                     {
                         failedCount++;
-                        Logger.LogError(ex, "Error deleting brand {BrandId}", product.Id);
+                        Logger.LogError(ex, "Error deleting brand {BrandId}", brand.Id);
                     }
                 }
                 
-                _selectedProducts.Clear();
+                _selectedBrands.Clear();
                 
                 if (failedCount == 0)
                 {
-                    Snackbar.Add(TranslationService.GetTranslationFormatted("product.deletedMultiple", 
-                        "{0} prodotti eliminati con successo!", deletedCount), Severity.Success);
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("brand.deletedMultiple", 
+                        "{0} marchi eliminati con successo!", deletedCount), Severity.Success);
                 }
                 else
                 {
-                    Snackbar.Add(TranslationService.GetTranslationFormatted("product.deletedMultiplePartial", 
-                        "{0} prodotti eliminati, {1} falliti", deletedCount, failedCount), Severity.Warning);
+                    Snackbar.Add(TranslationService.GetTranslationFormatted("brand.deletedMultiplePartial", 
+                        "{0} marchi eliminati, {1} falliti", deletedCount, failedCount), Severity.Warning);
                 }
                 
                 StateHasChanged();
             }
             catch (Exception ex)
             {
-                Snackbar.Add(TranslationService.GetTranslationFormatted("product.deleteError", 
-                    "Errore nell'eliminazione dei prodotti: {0}", ex.Message), Severity.Error);
+                Snackbar.Add(TranslationService.GetTranslationFormatted("brand.deleteError", 
+                    "Errore nell'eliminazione dei marchi: {0}", ex.Message), Severity.Error);
                 Logger.LogError(ex, "Error deleting selected brands");
             }
         }
