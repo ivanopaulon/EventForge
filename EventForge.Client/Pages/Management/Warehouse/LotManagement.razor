@@ -225,16 +225,35 @@
         </MudTable>
 
         <!-- Pagination -->
-        @if (_pagedResult != null && _pagedResult.TotalPages > 1)
+        @if (_pagedResult != null)
         {
             <MudDivider Class="my-4" />
-            <MudPagination Count="_pagedResult.TotalPages" 
-                           Selected="_currentPage" 
-                           Color="Color.Primary"
-                           Size="Size.Medium"
-                           ShowFirstButton="true"
-                           ShowLastButton="true"
-                           SelectedChanged="@OnPageChanged" />
+            <div class="d-flex justify-center align-center flex-wrap gap-4">
+                @if (_pagedResult.TotalPages > 1)
+                {
+                    <MudPagination Count="_pagedResult.TotalPages" 
+                                   Selected="_currentPage" 
+                                   Color="Color.Primary"
+                                   Size="Size.Medium"
+                                   ShowFirstButton="true"
+                                   ShowLastButton="true"
+                                   SelectedChanged="@OnPageChanged" />
+                }
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @if (_pagedResult.TotalPages > 1)
+                    {
+                        @TranslationService.GetTranslation("pagination.info", 
+                            "Pagina {0} di {1} - Totale: {2} lotti", 
+                            _currentPage, _pagedResult.TotalPages, _pagedResult.TotalCount)
+                    }
+                    else
+                    {
+                        @TranslationService.GetTranslation("pagination.singlePage", 
+                            "Totale: {0} lotti", 
+                            _pagedResult.TotalCount)
+                    }
+                </MudText>
+            </div>
         }
     </MudPaper>
     }
