@@ -161,6 +161,16 @@
     [Parameter] public bool IsVisible { get; set; } = false;
 
     /// <summary>
+    /// Alias for IsVisible to support legacy usage. Use IsVisible instead.
+    /// </summary>
+    [Parameter] 
+    public bool Visible 
+    { 
+        get => IsVisible; 
+        set => IsVisible = value; 
+    }
+
+    /// <summary>
     /// Callback when visibility changes
     /// </summary>
     [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
