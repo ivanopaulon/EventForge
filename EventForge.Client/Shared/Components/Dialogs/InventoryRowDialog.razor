@@ -9,8 +9,10 @@
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Outlined.Inventory" Class="mr-2" />
-            @TranslationService.GetTranslation("warehouse.inventoryEntry", "Inserimento Inventario") 
+            <MudIcon Icon="@(IsEditMode ? Icons.Material.Outlined.Edit : Icons.Material.Outlined.Inventory)" Class="mr-2" />
+            @(IsEditMode 
+                ? TranslationService.GetTranslation("warehouse.editRow", "Modifica Riga Inventario")
+                : TranslationService.GetTranslation("warehouse.inventoryEntry", "Inserimento Inventario"))
             @if (_localProduct != null)
             {
                 <span>- @_localProduct.Name</span>
@@ -53,26 +55,40 @@
             <!-- Entry Form -->
             <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
                 <MudStack Spacing="3">
-                    <MudSelect T="Guid?"
-                               @bind-Value="@_selectedLocationId"
-                               Label="@TranslationService.GetTranslation("warehouse.storageLocation", "Ubicazione")"
-                               Variant="Variant.Outlined"
-                               Required="true"
-                               RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
-                               Adornment="Adornment.Start"
-                               AdornmentIcon="@Icons.Material.Outlined.LocationOn"
-                               @ref="_locationSelect"
-                               @onkeydown="@OnLocationKeyDown">
-                        @if (Locations != null)
-                        {
-                            @foreach (var location in Locations)
+                    @if (IsEditMode)
+                    {
+                        <!-- In edit mode, show location as read-only -->
+                        <MudTextField Value="@_locationDisplayText"
+                                     Label="@TranslationService.GetTranslation("warehouse.storageLocation", "Ubicazione")"
+                                     Variant="Variant.Outlined"
+                                     ReadOnly="true"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Outlined.LocationOn" />
+                    }
+                    else
+                    {
+                        <!-- In insert mode, allow location selection -->
+                        <MudSelect T="Guid?"
+                                   @bind-Value="@_selectedLocationId"
+                                   Label="@TranslationService.GetTranslation("warehouse.storageLocation", "Ubicazione")"
+                                   Variant="Variant.Outlined"
+                                   Required="true"
+                                   RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                                   Adornment="Adornment.Start"
+                                   AdornmentIcon="@Icons.Material.Outlined.LocationOn"
+                                   @ref="_locationSelect"
+                                   @onkeydown="@OnLocationKeyDown">
+                            @if (Locations != null)
                             {
-                                <MudSelectItem Value="@((Guid?)location.Id)">
-                                    @location.Code - @location.Description
-                                </MudSelectItem>
+                                @foreach (var location in Locations)
+                                {
+                                    <MudSelectItem Value="@((Guid?)location.Id)">
+                                        @location.Code - @location.Description
+                                    </MudSelectItem>
+                                }
                             }
-                        }
-                    </MudSelect>
+                        </MudSelect>
+                    }
 
                     <MudNumericField T="decimal"
                                     @bind-Value="_quantity"
@@ -104,11 +120,13 @@
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
         <MudButton OnClick="Submit" 
-                   Color="Color.Success" 
+                   Color="@(IsEditMode ? Color.Primary : Color.Success)" 
                    Variant="Variant.Filled"
-                   StartIcon="@Icons.Material.Outlined.Add"
+                   StartIcon="@(IsEditMode ? Icons.Material.Outlined.Save : Icons.Material.Outlined.Add)"
                    Disabled="@(!_isFormValid)">
-            @TranslationService.GetTranslation("warehouse.addToInventory", "Aggiungi al Documento")
+            @(IsEditMode 
+                ? TranslationService.GetTranslation("common.save", "Salva")
+                : TranslationService.GetTranslation("warehouse.addToInventory", "Aggiungi al Documento"))
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -116,6 +134,9 @@
 @code {
     [CascadingParameter]
     IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public bool IsEditMode { get; set; } = false;
 
     [Parameter]
     public ProductDto? Product { get; set; }
@@ -129,6 +150,19 @@
     [Parameter]
     public EventCallback<Guid> OnQuickEditProduct { get; set; }
 
+    // Edit mode specific parameters
+    [Parameter]
+    public Guid? ExistingLocationId { get; set; }
+
+    [Parameter]
+    public string? ExistingLocationName { get; set; }
+
+    [Parameter]
+    public decimal Quantity { get; set; }
+
+    [Parameter]
+    public string? Notes { get; set; }
+
     private MudForm? _form;
     private MudSelect<Guid?>? _locationSelect;
     private MudNumericField<decimal>? _quantityField;
@@ -138,12 +172,24 @@
     private decimal _quantity;
     private string _notes = string.Empty;
     private ProductDto? _localProduct;
+    private string _locationDisplayText = string.Empty;
 
     protected override void OnInitialized()
     {
-        // Initialize quantity with conversion factor for alternative units
-        // This converts 1 alternative unit to base units
-        _quantity = ConversionFactor;
+        if (IsEditMode)
+        {
+            // Edit mode: use existing values
+            _selectedLocationId = ExistingLocationId;
+            _locationDisplayText = ExistingLocationName ?? string.Empty;
+            _quantity = Quantity;
+            _notes = Notes ?? string.Empty;
+        }
+        else
+        {
+            // Insert mode: Initialize quantity with conversion factor for alternative units
+            // This converts 1 alternative unit to base units
+            _quantity = ConversionFactor;
+        }
         
         // Keep a local copy of the product that can be updated
         _localProduct = Product;
@@ -153,27 +199,43 @@
     {
         // Update local product if the parameter changes
         _localProduct = Product;
+        
+        if (IsEditMode)
+        {
+            _locationDisplayText = ExistingLocationName ?? string.Empty;
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            // Auto-select location if only one exists
-            if (Locations?.Count == 1)
+            if (IsEditMode)
             {
-                _selectedLocationId = Locations[0].Id;
-                StateHasChanged();
-                // Focus on quantity field since location is auto-selected
+                // In edit mode, focus on quantity field
                 if (_quantityField != null)
                 {
                     await _quantityField.FocusAsync();
                 }
             }
-            else if (_locationSelect != null)
+            else
             {
-                // Focus on location select if multiple locations
-                await _locationSelect.FocusAsync();
+                // Insert mode: Auto-select location if only one exists
+                if (Locations?.Count == 1)
+                {
+                    _selectedLocationId = Locations[0].Id;
+                    StateHasChanged();
+                    // Focus on quantity field since location is auto-selected
+                    if (_quantityField != null)
+                    {
+                        await _quantityField.FocusAsync();
+                    }
+                }
+                else if (_locationSelect != null)
+                {
+                    // Focus on location select if multiple locations
+                    await _locationSelect.FocusAsync();
+                }
             }
         }
     }
@@ -223,17 +285,35 @@
 
     private void Submit()
     {
-        if (!_isFormValid || !_selectedLocationId.HasValue)
+        if (!_isFormValid)
             return;
 
-        var result = new InventoryEntryResult
+        if (IsEditMode)
         {
-            LocationId = _selectedLocationId.Value,
-            Quantity = _quantity,
-            Notes = _notes
-        };
+            // Edit mode: return only quantity and notes
+            var editResult = new InventoryRowResult
+            {
+                IsEditMode = true,
+                Quantity = _quantity,
+                Notes = _notes
+            };
+            MudDialog.Close(DialogResult.Ok(editResult));
+        }
+        else
+        {
+            // Insert mode: return location, quantity and notes
+            if (!_selectedLocationId.HasValue)
+                return;
 
-        MudDialog.Close(DialogResult.Ok(result));
+            var insertResult = new InventoryRowResult
+            {
+                IsEditMode = false,
+                LocationId = _selectedLocationId.Value,
+                Quantity = _quantity,
+                Notes = _notes
+            };
+            MudDialog.Close(DialogResult.Ok(insertResult));
+        }
     }
 
     private async Task OnProductUpdatedAsync()
@@ -250,8 +330,9 @@
         }
     }
 
-    public class InventoryEntryResult
+    public class InventoryRowResult
     {
+        public bool IsEditMode { get; set; }
         public Guid LocationId { get; set; }
         public decimal Quantity { get; set; }
         public string Notes { get; set; } = string.Empty;

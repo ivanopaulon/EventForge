@@ -716,6 +716,7 @@
 
         var parameters = new DialogParameters
         {
+            { "IsEditMode", false },
             { "Product", _currentProduct },
             { "Locations", _locations },
             { "ConversionFactor", _currentConversionFactor },
@@ -729,7 +730,7 @@
             FullWidth = true
         };
 
-        var dialog = await DialogService.ShowAsync<InventoryEntryDialog>(
+        var dialog = await DialogService.ShowAsync<InventoryRowDialog>(
             TranslationService.GetTranslation("warehouse.inventoryEntry", "Inserimento Inventario"),
             parameters,
             options
@@ -737,7 +738,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is InventoryEntryDialog.InventoryEntryResult entryResult)
+        if (!result.Canceled && result.Data is InventoryRowDialog.InventoryRowResult entryResult)
         {
             // Set the values and add the row
             _selectedLocationId = entryResult.LocationId;
@@ -1132,11 +1133,23 @@
         if (_currentDocument == null)
             return;
 
+        // Load the product to display in ProductQuickInfo
+        var product = await ProductService.GetProductByIdAsync(row.ProductId);
+        if (product == null)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"), Severity.Error);
+            return;
+        }
+
         var parameters = new DialogParameters
         {
+            { "IsEditMode", true },
+            { "Product", product },
             { "Quantity", row.Quantity },
             { "Notes", row.Notes ?? string.Empty },
-            { "ProductName", row.ProductName }
+            { "ExistingLocationId", row.LocationId },
+            { "ExistingLocationName", row.LocationName },
+            { "OnQuickEditProduct", EventCallback.Factory.Create<Guid>(this, OpenQuickEditProductAsync) }
         };
 
         var options = new DialogOptions
@@ -1146,7 +1159,7 @@
             FullWidth = true
         };
 
-        var dialog = await DialogService.ShowAsync<EditInventoryRowDialog>(
+        var dialog = await DialogService.ShowAsync<InventoryRowDialog>(
             TranslationService.GetTranslation("warehouse.editRow", "Modifica Riga Inventario"),
             parameters,
             options
@@ -1154,7 +1167,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is EditInventoryRowDialog.EditInventoryRowResult editResult)
+        if (!result.Canceled && result.Data is InventoryRowDialog.InventoryRowResult editResult)
         {
             _isLoading = true;
             try
