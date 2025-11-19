@@ -289,17 +289,36 @@
 
         try
         {
-            var createDto = new CreateDashboardConfigurationDto
+            if (_editingConfigurationId.HasValue)
             {
-                Name = _configurationName,
-                Description = _configurationDescription,
-                EntityType = EntityType,
-                IsDefault = _setAsDefault,
-                Metrics = _metrics
-            };
+                // Update existing configuration
+                var updateDto = new UpdateDashboardConfigurationDto
+                {
+                    Name = _configurationName,
+                    Description = _configurationDescription,
+                    IsDefault = _setAsDefault,
+                    Metrics = _metrics
+                };
 
-            await DashboardConfigurationService.CreateConfigurationAsync(createDto);
-            Snackbar.Add("Configurazione salvata con successo!", Severity.Success);
+                await DashboardConfigurationService.UpdateConfigurationAsync(_editingConfigurationId.Value, updateDto);
+                Snackbar.Add("Configurazione aggiornata con successo!", Severity.Success);
+            }
+            else
+            {
+                // Create new configuration
+                var createDto = new CreateDashboardConfigurationDto
+                {
+                    Name = _configurationName,
+                    Description = _configurationDescription,
+                    EntityType = EntityType,
+                    IsDefault = _setAsDefault,
+                    Metrics = _metrics
+                };
+
+                await DashboardConfigurationService.CreateConfigurationAsync(createDto);
+                Snackbar.Add("Configurazione salvata con successo!", Severity.Success);
+            }
+
             MudDialog.Close(DialogResult.Ok(true));
         }
         catch (Exception ex)
