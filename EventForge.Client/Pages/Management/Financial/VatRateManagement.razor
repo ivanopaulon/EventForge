@@ -54,8 +54,8 @@
                                         OnCreate="@CreateVatRate"
                                         OnDelete="@DeleteSelectedVatRates" />
             </ToolBarContent>
-            <HeaderContent Context="columnsContext">
-                @foreach (var column in columnsContext.Where(c => c.IsVisible).OrderBy(c => c.Order))
+            <HeaderContent Context="columnConfigurations">
+                @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
                 {
                     @if (column.PropertyName == "Name")
                     {
@@ -99,7 +99,7 @@
 
             <RowTemplate Context="item">
                 @{
-                    var visibleColumns = _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                    var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
                 }
                 @foreach (var column in visibleColumns)
                 {

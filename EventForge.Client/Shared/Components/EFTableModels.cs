@@ -18,7 +18,7 @@ public class EFTablePreferences
 {
     public Dictionary<string, int> ColumnOrders { get; set; } = new();
     public Dictionary<string, bool> ColumnVisibility { get; set; } = new();
-    public string? GroupByProperty { get; set; }
+    public List<string> GroupByProperties { get; set; } = new();
 }
 
 /// <summary>
@@ -27,5 +27,5 @@ public class EFTablePreferences
 public class EFTableColumnConfigurationResult
 {
     public List<EFTableColumnConfiguration> Columns { get; set; } = new();
-    public string? GroupByProperty { get; set; }
+    public List<string> GroupByProperties { get; set; } = new();
 }

@@ -13,7 +13,7 @@
              @ondrop="@HandleGroupPanelDrop"
              @ondrop:preventDefault="true"
              style="min-height: 40px;">
-            @if (string.IsNullOrEmpty(_groupByProperty))
+            @if (_groupByProperties.Count == 0)
             {
                 <div class="d-flex align-center justify-center" style="height: 40px;">
                     <MudIcon Icon="@Icons.Material.Outlined.DragIndicator" Size="Size.Small" Class="mr-2 mud-text-secondary" />
@@ -24,13 +24,24 @@
             }
             else
             {
-                <MudChip T="string"
-                         Color="Color.Primary"
-                         OnClose="@RemoveGrouping"
-                         Size="Size.Medium">
-                    <MudIcon Icon="@Icons.Material.Outlined.Category" Size="Size.Small" Class="mr-1" />
-                    @GetColumnDisplayName(_groupByProperty)
-                </MudChip>
+                <div class="d-flex align-center gap-2 flex-wrap">
+                    @foreach (var (groupProperty, index) in _groupByProperties.Select((prop, idx) => (prop, idx)))
+                    {
+                        <MudChip T="string"
+                                 Color="@(index == 0 ? Color.Primary : Color.Secondary)"
+                                 OnClose="@(() => RemoveGrouping(groupProperty))"
+                                 Size="Size.Medium">
+                            <MudIcon Icon="@Icons.Material.Outlined.Category" Size="Size.Small" Class="mr-1" />
+                            @GetColumnDisplayName(groupProperty)
+                            @if (_groupByProperties.Count > 1)
+                            {
+                                <MudChip T="string" Size="Size.Small" Class="ml-1" Style="height: 20px; font-size: 0.7rem;">
+                                    @(index + 1)
+                                </MudChip>
+                            }
+                        </MudChip>
+                    }
+                </div>
             }
         </div>
     </MudPaper>
@@ -84,26 +95,40 @@
     <RowTemplate>
         @if (RowTemplate != null)
         {
-            if (!string.IsNullOrEmpty(_groupByProperty))
+            if (_groupByProperties.Count > 0)
             {
-                // Client-side grouping enabled
-                var currentGroupValue = GetPropertyValue(context, _groupByProperty);
-                if (!Equals(currentGroupValue, _lastGroupValue))
+                // Client-side multi-level grouping enabled
+                @for (int level = 0; level < _groupByProperties.Count; level++)
                 {
-                    _lastGroupValue = currentGroupValue;
-                    var groupItems = GetDisplayItems().Where(item => Equals(GetPropertyValue(item, _groupByProperty), currentGroupValue)).ToList();
+                    var groupProperty = _groupByProperties[level];
+                    var currentGroupValue = GetPropertyValue(context, groupProperty);
                     
-                    <tr style="background-color: var(--mud-palette-table-lines); font-weight: 600;">
-                        <td colspan="100" style="padding: 12px;">
-                            <div class="d-flex align-center">
-                                <MudIcon Icon="@Icons.Material.Outlined.Category" Size="Size.Small" Class="mr-2" />
-                                <MudText Typo="Typo.body2">
-                                    @(currentGroupValue?.ToString() ?? TranslationService.GetTranslation("table.noGroup", "(Nessun gruppo)"))
-                                    <MudChip T="string" Size="Size.Small" Class="ml-2">@groupItems.Count</MudChip>
-                                </MudText>
-                            </div>
-                        </td>
-                    </tr>
+                    if (!_lastGroupValues.ContainsKey(level) || !Equals(currentGroupValue, _lastGroupValues[level]))
+                    {
+                        _lastGroupValues[level] = currentGroupValue;
+                        
+                        // Clear deeper level values when a parent level changes
+                        for (int deeperLevel = level + 1; deeperLevel < _groupByProperties.Count; deeperLevel++)
+                        {
+                            _lastGroupValues.Remove(deeperLevel);
+                        }
+                        
+                        var groupItems = GetDisplayItems()
+                            .Where(item => GroupItemsMatch(item, level))
+                            .ToList();
+                        
+                        <tr style="background-color: var(--mud-palette-table-lines); font-weight: 600;">
+                            <td colspan="100" style="@GetGroupRowStyle(level)">
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Category" Size="Size.Small" Class="mr-2" />
+                                    <MudText Typo="Typo.body2">
+                                        @GetColumnDisplayName(groupProperty): @(currentGroupValue?.ToString() ?? TranslationService.GetTranslation("table.noGroup", "(Nessun gruppo)"))
+                                        <MudChip T="string" Size="Size.Small" Class="ml-2">@groupItems.Count</MudChip>
+                                    </MudText>
+                                </div>
+                            </td>
+                        </tr>
+                    }
                 }
             }
             @RowTemplate(context)
@@ -128,6 +153,16 @@
             @PagerContent
         }
     </PagerContent>
+    <FooterContent>
+        @if (ShowFooter)
+        {
+            <MudTh colspan="100" Style="text-align: center; background-color: var(--mud-palette-background-grey); font-weight: 500;">
+                <MudText Typo="Typo.body2">
+                    @TranslationService.GetTranslation("table.totalRecords", "Totale"): @GetTotalCount()
+                </MudText>
+            </MudTh>
+        }
+    </FooterContent>
 </MudTable>
 
 @code {
@@ -156,6 +191,9 @@
     // Pager parameters
     [Parameter] public bool ShowInternalPager { get; set; } = false;
     [Parameter] public RenderFragment? PagerContent { get; set; }
+    
+    // Footer parameters
+    [Parameter] public bool ShowFooter { get; set; } = true;
 
     // Column configuration
     [Parameter] public bool ShowColumnConfiguration { get; set; } = true;
@@ -169,14 +207,17 @@
     [Parameter] public RenderFragment? NoRecordsContent { get; set; }
 
     // Grouping
-    [Parameter] public string? GroupByProperty { get; set; }
+    [Parameter] public List<string> GroupByProperties { get; set; } = new();
     [Parameter] public bool AllowDragDropGrouping { get; set; } = true;
+
+    // Public property to expose current column configurations
+    public List<EFTableColumnConfiguration> ColumnConfigurations => _columnConfigurations;
 
     // Internal state
     private List<EFTableColumnConfiguration> _columnConfigurations = new();
     private EFTablePreferences? _preferences;
-    private string? _groupByProperty;
-    private object? _lastGroupValue;
+    private List<string> _groupByProperties = new();
+    private Dictionary<int, object?> _lastGroupValues = new();
     private string? _draggedColumnProperty;
 
     protected override async Task OnInitializedAsync()
@@ -196,11 +237,11 @@
 
     protected override void OnParametersSet()
     {
-        // Reset grouping state when GroupByProperty changes
-        if (_groupByProperty != GroupByProperty)
+        // Reset grouping state when GroupByProperties changes
+        if (!_groupByProperties.SequenceEqual(GroupByProperties))
         {
-            _groupByProperty = GroupByProperty;
-            _lastGroupValue = null;
+            _groupByProperties = new List<string>(GroupByProperties);
+            _lastGroupValues.Clear();
         }
     }
 
@@ -238,9 +279,9 @@
                 }
 
                 // Apply grouping
-                if (!string.IsNullOrEmpty(_preferences.GroupByProperty) && ServerData == null)
+                if (_preferences.GroupByProperties != null && _preferences.GroupByProperties.Any() && ServerData == null)
                 {
-                    _groupByProperty = _preferences.GroupByProperty;
+                    _groupByProperties = new List<string>(_preferences.GroupByProperties);
                 }
 
                 Logger.LogDebug("Loaded table preferences for {ComponentKey}", ComponentKey);
@@ -260,7 +301,7 @@
             {
                 ColumnOrders = _columnConfigurations.ToDictionary(c => c.PropertyName, c => c.Order),
                 ColumnVisibility = _columnConfigurations.ToDictionary(c => c.PropertyName, c => c.IsVisible),
-                GroupByProperty = _groupByProperty
+                GroupByProperties = new List<string>(_groupByProperties)
             };
 
             await TablePreferencesService.SavePreferencesAsync(ComponentKey, preferences);
@@ -287,8 +328,8 @@
                 Order = c.Order
             }).ToList();
             
-            _groupByProperty = GroupByProperty;
-            _lastGroupValue = null;
+            _groupByProperties = new List<string>(GroupByProperties);
+            _lastGroupValues.Clear();
             
             StateHasChanged();
             Logger.LogInformation("Reset table preferences for {ComponentKey}", ComponentKey);
@@ -304,7 +345,7 @@
         var parameters = new DialogParameters
         {
             { "Columns", _columnConfigurations },
-            { "GroupByProperty", _groupByProperty },
+            { "GroupByProperties", _groupByProperties },
             { "AvailableGroupProperties", _columnConfigurations.Select(c => c.PropertyName).ToList() },
             { "AllowGrouping", ServerData == null && Items != null } // Only allow grouping for client-side data
         };
@@ -326,8 +367,8 @@
         if (!result.Canceled && result.Data is EFTableColumnConfigurationResult configResult)
         {
             _columnConfigurations = configResult.Columns;
-            _groupByProperty = configResult.GroupByProperty;
-            _lastGroupValue = null;
+            _groupByProperties = new List<string>(configResult.GroupByProperties);
+            _lastGroupValues.Clear();
             
             await SavePreferencesAsync();
             StateHasChanged();
@@ -341,10 +382,25 @@
 
         var items = Items;
 
-        // Apply grouping sort if needed
-        if (!string.IsNullOrEmpty(_groupByProperty))
+        // Apply multi-level grouping sort if needed
+        if (_groupByProperties.Count > 0)
         {
-            items = items.OrderBy(item => GetPropertyValue(item, _groupByProperty));
+            IOrderedEnumerable<TItem>? orderedItems = null;
+            
+            for (int i = 0; i < _groupByProperties.Count; i++)
+            {
+                var groupProperty = _groupByProperties[i];
+                if (i == 0)
+                {
+                    orderedItems = items.OrderBy(item => GetPropertyValue(item, groupProperty));
+                }
+                else
+                {
+                    orderedItems = orderedItems!.ThenBy(item => GetPropertyValue(item, groupProperty));
+                }
+            }
+            
+            items = orderedItems ?? items;
         }
 
         return items;
@@ -391,19 +447,32 @@
     {
         if (!string.IsNullOrEmpty(_draggedColumnProperty) && ServerData == null)
         {
-            _groupByProperty = _draggedColumnProperty;
-            _lastGroupValue = null;
-            _draggedColumnProperty = null;
+            // Add to grouping if not already present
+            if (!_groupByProperties.Contains(_draggedColumnProperty))
+            {
+                _groupByProperties.Add(_draggedColumnProperty);
+                _lastGroupValues.Clear();
+                
+                await SavePreferencesAsync();
+                StateHasChanged();
+            }
             
-            await SavePreferencesAsync();
-            StateHasChanged();
+            _draggedColumnProperty = null;
         }
     }
 
-    private async Task RemoveGrouping()
+    private async Task RemoveGrouping(string? propertyName = null)
     {
-        _groupByProperty = null;
-        _lastGroupValue = null;
+        if (propertyName != null)
+        {
+            _groupByProperties.Remove(propertyName);
+        }
+        else
+        {
+            _groupByProperties.Clear();
+        }
+        
+        _lastGroupValues.Clear();
         
         await SavePreferencesAsync();
         StateHasChanged();
@@ -413,5 +482,39 @@
     {
         var column = _columnConfigurations.FirstOrDefault(c => c.PropertyName == propertyName);
         return column?.DisplayName ?? propertyName;
+    }
+
+    private bool GroupItemsMatch(TItem item, int upToLevel)
+    {
+        for (int i = 0; i <= upToLevel; i++)
+        {
+            if (i >= _groupByProperties.Count)
+                return false;
+                
+            var groupProperty = _groupByProperties[i];
+            var itemValue = GetPropertyValue(item, groupProperty);
+            
+            if (!_lastGroupValues.ContainsKey(i))
+                return false;
+                
+            if (!Equals(itemValue, _lastGroupValues[i]))
+                return false;
+        }
+        return true;
+    }
+
+    private string GetGroupRowStyle(int level)
+    {
+        var paddingLeft = 12 + (level * 20);
+        return $"padding: 12px 12px 12px {paddingLeft}px;";
+    }
+
+    private int GetTotalCount()
+    {
+        if (Items != null)
+        {
+            return Items.Count();
+        }
+        return 0;
     }
 }

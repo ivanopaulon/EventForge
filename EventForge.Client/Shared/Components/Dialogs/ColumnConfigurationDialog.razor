@@ -5,22 +5,62 @@
         <MudStack Spacing="3">
             @if (AllowGrouping)
             {
-                <MudSelect T="string"
-                           @bind-Value="_selectedGroupProperty"
-                           Label="@TranslationService.GetTranslation("table.groupBy", "Raggruppa per")"
-                           Variant="Variant.Outlined"
-                           Clearable="true">
-                    <MudSelectItem T="string" Value="@((string?)null)">
-                        @TranslationService.GetTranslation("table.noGrouping", "Nessun raggruppamento")
-                    </MudSelectItem>
-                    @foreach (var prop in AvailableGroupProperties)
+                <MudText Typo="Typo.h6">@TranslationService.GetTranslation("table.groupBy", "Raggruppa per")</MudText>
+                
+                <MudPaper Elevation="0" Class="pa-2" Style="border: 1px solid var(--mud-palette-lines-default);">
+                    @if (_selectedGroupProperties.Count == 0)
                     {
-                        var column = Columns.FirstOrDefault(c => c.PropertyName == prop);
-                        <MudSelectItem T="string" Value="@prop">
-                            @(column?.DisplayName ?? prop)
-                        </MudSelectItem>
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary pa-2">
+                            @TranslationService.GetTranslation("table.noGrouping", "Nessun raggruppamento")
+                        </MudText>
                     }
-                </MudSelect>
+                    else
+                    {
+                        @foreach (var (groupProperty, index) in _selectedGroupProperties.Select((prop, idx) => (prop, idx)))
+                        {
+                            var column = Columns.FirstOrDefault(c => c.PropertyName == groupProperty);
+                            <MudPaper Elevation="1" Class="pa-2 mb-2">
+                                <div class="d-flex align-center gap-2">
+                                    <MudChip T="string" Size="Size.Small" Color="@(index == 0 ? Color.Primary : Color.Secondary)">
+                                        @(index + 1)
+                                    </MudChip>
+                                    <MudText Typo="Typo.body1" Class="flex-grow-1">
+                                        @(column?.DisplayName ?? groupProperty)
+                                    </MudText>
+                                    <MudIconButton Icon="@Icons.Material.Outlined.ArrowUpward"
+                                                  Size="Size.Small"
+                                                  Color="Color.Default"
+                                                  Disabled="@(index == 0)"
+                                                  OnClick="@(() => MoveGroupUp(index))" />
+                                    <MudIconButton Icon="@Icons.Material.Outlined.ArrowDownward"
+                                                  Size="Size.Small"
+                                                  Color="Color.Default"
+                                                  Disabled="@(index == _selectedGroupProperties.Count - 1)"
+                                                  OnClick="@(() => MoveGroupDown(index))" />
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                                                  Size="Size.Small"
+                                                  Color="Color.Error"
+                                                  OnClick="@(() => RemoveGroup(groupProperty))" />
+                                </div>
+                            </MudPaper>
+                        }
+                    }
+                    
+                    <MudSelect T="string"
+                               Label="@TranslationService.GetTranslation("table.addGroupLevel", "Aggiungi livello raggruppamento")"
+                               Variant="Variant.Outlined"
+                               Value="@((string?)null)"
+                               ValueChanged="@AddGroup"
+                               Class="mt-2">
+                        @foreach (var prop in AvailableGroupProperties.Where(p => !_selectedGroupProperties.Contains(p)))
+                        {
+                            var column = Columns.FirstOrDefault(c => c.PropertyName == prop);
+                            <MudSelectItem T="string" Value="@prop">
+                                @(column?.DisplayName ?? prop)
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudPaper>
             }
 
             <MudText Typo="Typo.h6">@TranslationService.GetTranslation("table.columnOrder", "Ordine colonne")</MudText>
@@ -71,12 +111,12 @@
     [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
 
     [Parameter] public List<EFTableColumnConfiguration> Columns { get; set; } = new();
-    [Parameter] public string? GroupByProperty { get; set; }
+    [Parameter] public List<string> GroupByProperties { get; set; } = new();
     [Parameter] public List<string> AvailableGroupProperties { get; set; } = new();
     [Parameter] public bool AllowGrouping { get; set; } = true;
 
     private List<EFTableColumnConfiguration> _workingColumns = new();
-    private string? _selectedGroupProperty;
+    private List<string> _selectedGroupProperties = new();
 
     protected override void OnInitialized()
     {
@@ -89,7 +129,7 @@
             Order = c.Order
         }).ToList();
 
-        _selectedGroupProperty = GroupByProperty;
+        _selectedGroupProperties = new List<string>(GroupByProperties);
     }
 
     private void MoveColumnUp(EFTableColumnConfiguration column)
@@ -144,7 +184,7 @@
         var result = new EFTableColumnConfigurationResult
         {
             Columns = orderedColumns,
-            GroupByProperty = _selectedGroupProperty
+            GroupByProperties = new List<string>(_selectedGroupProperties)
         };
 
         MudDialog?.Close(DialogResult.Ok(result));
@@ -153,5 +193,42 @@
     private void Cancel()
     {
         MudDialog?.Cancel();
+    }
+
+    private void AddGroup(string? propertyName)
+    {
+        if (!string.IsNullOrEmpty(propertyName) && !_selectedGroupProperties.Contains(propertyName))
+        {
+            _selectedGroupProperties.Add(propertyName);
+            StateHasChanged();
+        }
+    }
+
+    private void RemoveGroup(string propertyName)
+    {
+        _selectedGroupProperties.Remove(propertyName);
+        StateHasChanged();
+    }
+
+    private void MoveGroupUp(int index)
+    {
+        if (index > 0 && index < _selectedGroupProperties.Count)
+        {
+            var temp = _selectedGroupProperties[index];
+            _selectedGroupProperties[index] = _selectedGroupProperties[index - 1];
+            _selectedGroupProperties[index - 1] = temp;
+            StateHasChanged();
+        }
+    }
+
+    private void MoveGroupDown(int index)
+    {
+        if (index >= 0 && index < _selectedGroupProperties.Count - 1)
+        {
+            var temp = _selectedGroupProperties[index];
+            _selectedGroupProperties[index] = _selectedGroupProperties[index + 1];
+            _selectedGroupProperties[index + 1] = temp;
+            StateHasChanged();
+        }
     }
 }
