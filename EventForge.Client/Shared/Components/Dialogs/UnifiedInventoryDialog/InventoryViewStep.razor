@@ -10,8 +10,9 @@
     {
         <ProductQuickInfo @ref="_productQuickInfo"
                           Product="@State.Product"
-                          AllowEdit="false"
-                          ShowCurrentStock="false" />
+                          AllowEdit="true"
+                          ShowCurrentStock="false"
+                          OnProductUpdated="@OnProductUpdatedAsync" />
         
         <!-- Action Buttons -->
         <MudStack Row="true" Justify="Justify.Center" Spacing="2">
@@ -60,4 +61,18 @@
     public EventCallback OnViewHistory { get; set; }
 
     private ProductQuickInfo? _productQuickInfo;
+
+    private async Task OnProductUpdatedAsync()
+    {
+        // Refresh product data after update
+        if (State.Product?.Id != null)
+        {
+            var refreshedProduct = await ProductService.GetProductByIdAsync(State.Product.Id);
+            if (refreshedProduct != null)
+            {
+                State.Product = refreshedProduct;
+                StateHasChanged();
+            }
+        }
+    }
 }

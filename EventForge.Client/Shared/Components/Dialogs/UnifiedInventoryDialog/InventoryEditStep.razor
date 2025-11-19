@@ -1,20 +1,19 @@
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.Warehouse
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components.Products
 @inject ITranslationService TranslationService
+@inject IProductService ProductService
 
 <MudStack Spacing="3">
-    <!-- Product Summary -->
+    <!-- Product Quick Info with inline editing -->
     @if (State.Product != null)
     {
-        <MudPaper Elevation="0" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
-            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                <div>
-                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@State.Product.Name</MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">@State.Product.Code</MudText>
-                </div>
-            </MudStack>
-        </MudPaper>
+        <ProductQuickInfo @ref="_productQuickInfo"
+                          Product="@State.Product"
+                          AllowEdit="true"
+                          ShowCurrentStock="false"
+                          OnProductUpdated="@OnProductUpdatedAsync" />
     }
 
     <!-- Edit Form -->
@@ -109,6 +108,7 @@
     private MudForm? _form;
     private MudSelect<Guid?>? _locationSelect;
     private MudNumericField<decimal>? _quantityField;
+    private ProductQuickInfo? _productQuickInfo;
     private bool _isFormValid;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -200,6 +200,20 @@
         if (OnDraftChanged.HasDelegate)
         {
             await OnDraftChanged.InvokeAsync();
+        }
+    }
+
+    private async Task OnProductUpdatedAsync()
+    {
+        // Refresh product data after update
+        if (State.Product?.Id != null)
+        {
+            var refreshedProduct = await ProductService.GetProductByIdAsync(State.Product.Id);
+            if (refreshedProduct != null)
+            {
+                State.Product = refreshedProduct;
+                StateHasChanged();
+            }
         }
     }
 }
