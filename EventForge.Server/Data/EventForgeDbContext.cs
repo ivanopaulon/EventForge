@@ -1,5 +1,6 @@
 ﻿using EventForge.Server.Data.Entities;
 using EventForge.Server.Data.Entities.Chat;
+using EventForge.Server.Data.Entities.Dashboard;
 using EventForge.Server.Data.Entities.Notifications;
 using EventForge.Server.Data.Entities.Sales;
 using Microsoft.EntityFrameworkCore;
@@ -156,6 +157,10 @@ public partial class EventForgeDbContext : DbContext
 
     // Code Generation Entities
     public DbSet<DailySequence> DailySequences { get; set; }
+
+    // Dashboard Entities
+    public DbSet<Entities.Dashboard.DashboardConfiguration> DashboardConfigurations { get; set; }
+    public DbSet<Entities.Dashboard.DashboardMetricConfig> DashboardMetricConfigs { get; set; }
 
     #endregion
 

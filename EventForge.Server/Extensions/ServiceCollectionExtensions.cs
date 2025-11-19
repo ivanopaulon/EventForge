@@ -4,6 +4,7 @@ using EventForge.Server.Services.Business;
 using EventForge.Server.Services.Chat;
 using EventForge.Server.Services.CodeGeneration;
 using EventForge.Server.Services.Common;
+using EventForge.Server.Services.Dashboard;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Events;
 using EventForge.Server.Services.Licensing;
@@ -270,6 +271,9 @@ public static class ServiceCollectionExtensions
 
         // Register document facade for unified API access
         _ = services.AddScoped<IDocumentFacade, DocumentFacade>();
+
+        // Register dashboard configuration services
+        _ = services.AddScoped<IDashboardConfigurationService, DashboardConfigurationService>();
 
         // TODO: Complete implementation for:
         // - Document services: DocumentRow, DocumentSummaryLink (create implementations)

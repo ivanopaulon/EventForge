@@ -23,9 +23,8 @@
         <ManagementDashboard TItem="VatRateDto"
                              Items="_filteredVatRates"
                              Metrics="_dashboardMetrics"
-                             FilterDefinitions="_dashboardFilterDefinitions"
-                             @bind-Filters="_dashboardFilters"
-                             ShowFilters="true"
+                             EntityType="VatRate"
+                             AllowConfiguration="true"
                              UseServerSide="false" />
 
         <EFTable @ref="_efTable"
@@ -236,26 +235,6 @@
     };
 
     // Dashboard configuration
-    private DashboardFilters _dashboardFilters = new();
-    
-    private List<DashboardFilterDefinition> _dashboardFilterDefinitions = new()
-    {
-        new()
-        {
-            Id = "status",
-            Label = "Stato",
-            Type = FilterType.Select,
-            Options = new List<FilterOption>
-            {
-                new() { Value = "all", Label = "Tutti" },
-                new() { Value = "active", Label = "Attivo" },
-                new() { Value = "suspended", Label = "Sospeso" },
-                new() { Value = "deleted", Label = "Eliminato" }
-            },
-            DefaultValue = "all"
-        }
-    };
-
     private List<DashboardMetric<VatRateDto>> _dashboardMetrics = new()
     {
         new()
@@ -311,22 +290,11 @@
             // Search filter: check name
             (string.IsNullOrEmpty(_searchTerm) || 
              v.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) &&
-            // Status filter (synced with dashboard)
-            (GetActiveStatusFilter() == "all" || 
-             (GetActiveStatusFilter() == "active" && v.Status == VatRateStatus.Active) ||
-             (GetActiveStatusFilter() == "suspended" && v.Status == VatRateStatus.Suspended) ||
-             (GetActiveStatusFilter() == "deleted" && v.Status == VatRateStatus.Deleted)));
-
-    private string GetActiveStatusFilter()
-    {
-        // Dashboard filters take precedence
-        var dashboardStatus = _dashboardFilters?.GetValue<string>("status");
-        if (!string.IsNullOrEmpty(dashboardStatus))
-        {
-            return dashboardStatus;
-        }
-        return _statusFilter;
-    }
+            // Status filter
+            (_statusFilter == "all" || 
+             (_statusFilter == "active" && v.Status == VatRateStatus.Active) ||
+             (_statusFilter == "suspended" && v.Status == VatRateStatus.Suspended) ||
+             (_statusFilter == "deleted" && v.Status == VatRateStatus.Deleted)));
 
     /// <summary>
     /// Handles selection changes from EFTable
