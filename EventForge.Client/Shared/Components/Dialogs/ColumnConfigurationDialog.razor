@@ -70,18 +70,18 @@
 @code {
     [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
 
-    [Parameter] public List<EFTable<object>.ColumnConfiguration> Columns { get; set; } = new();
+    [Parameter] public List<EFTableColumnConfiguration> Columns { get; set; } = new();
     [Parameter] public string? GroupByProperty { get; set; }
     [Parameter] public List<string> AvailableGroupProperties { get; set; } = new();
     [Parameter] public bool AllowGrouping { get; set; } = true;
 
-    private List<EFTable<object>.ColumnConfiguration> _workingColumns = new();
+    private List<EFTableColumnConfiguration> _workingColumns = new();
     private string? _selectedGroupProperty;
 
     protected override void OnInitialized()
     {
         // Create working copies of columns
-        _workingColumns = Columns.Select(c => new EFTable<object>.ColumnConfiguration
+        _workingColumns = Columns.Select(c => new EFTableColumnConfiguration
         {
             PropertyName = c.PropertyName,
             DisplayName = c.DisplayName,
@@ -92,7 +92,7 @@
         _selectedGroupProperty = GroupByProperty;
     }
 
-    private void MoveColumnUp(EFTable<object>.ColumnConfiguration column)
+    private void MoveColumnUp(EFTableColumnConfiguration column)
     {
         var currentIndex = _workingColumns.FindIndex(c => c.PropertyName == column.PropertyName);
         if (currentIndex > 0)
@@ -107,7 +107,7 @@
         }
     }
 
-    private void MoveColumnDown(EFTable<object>.ColumnConfiguration column)
+    private void MoveColumnDown(EFTableColumnConfiguration column)
     {
         var currentIndex = _workingColumns.FindIndex(c => c.PropertyName == column.PropertyName);
         if (currentIndex < _workingColumns.Count - 1)
@@ -122,12 +122,12 @@
         }
     }
 
-    private bool IsFirstColumn(EFTable<object>.ColumnConfiguration column)
+    private bool IsFirstColumn(EFTableColumnConfiguration column)
     {
         return _workingColumns.OrderBy(c => c.Order).First().PropertyName == column.PropertyName;
     }
 
-    private bool IsLastColumn(EFTable<object>.ColumnConfiguration column)
+    private bool IsLastColumn(EFTableColumnConfiguration column)
     {
         return _workingColumns.OrderBy(c => c.Order).Last().PropertyName == column.PropertyName;
     }
@@ -141,7 +141,7 @@
             orderedColumns[i].Order = i;
         }
 
-        var result = new EFTable<object>.ColumnConfigurationResult
+        var result = new EFTableColumnConfigurationResult
         {
             Columns = orderedColumns,
             GroupByProperty = _selectedGroupProperty

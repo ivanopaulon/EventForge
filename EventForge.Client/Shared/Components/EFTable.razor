@@ -59,16 +59,20 @@
         }
         @if (ShowColumnConfiguration)
         {
-            <MudTooltip Text="@TranslationService.GetTranslation("table.columns", "Configura colonne")">
-                <MudIconButton Icon="@Icons.Material.Outlined.ViewColumn"
-                               Color="Color.Default"
-                               OnClick="@OpenColumnConfigurationDialog" />
-            </MudTooltip>
-            <MudTooltip Text="@TranslationService.GetTranslation("table.resetPreferences", "Ripristina impostazioni")">
-                <MudIconButton Icon="@Icons.Material.Outlined.RestartAlt"
-                               Color="Color.Default"
-                               OnClick="@ResetPreferences" />
-            </MudTooltip>
+            <MudMenu Icon="@Icons.Material.Outlined.Settings"
+                     Color="Color.Default"
+                     AnchorOrigin="Origin.BottomRight"
+                     TransformOrigin="Origin.TopRight"
+                     Dense="true">
+                <MudMenuItem Icon="@Icons.Material.Outlined.ViewColumn"
+                           OnClick="@OpenColumnConfigurationDialog">
+                    @TranslationService.GetTranslation("table.configuration", "Configurazione")
+                </MudMenuItem>
+                <MudMenuItem Icon="@Icons.Material.Outlined.RestartAlt"
+                           OnClick="@ResetPreferences">
+                    @TranslationService.GetTranslation("table.resetPreferences", "Ripristina impostazioni")
+                </MudMenuItem>
+            </MudMenu>
         }
     </ToolBarContent>
     <HeaderContent>
@@ -156,10 +160,10 @@
     // Column configuration
     [Parameter] public bool ShowColumnConfiguration { get; set; } = true;
     [Parameter] public string ComponentKey { get; set; } = "DefaultTable";
-    [Parameter] public List<ColumnConfiguration> InitialColumnConfigurations { get; set; } = new();
+    [Parameter] public List<EFTableColumnConfiguration> InitialColumnConfigurations { get; set; } = new();
 
     // Content parameters
-    [Parameter] public RenderFragment<List<ColumnConfiguration>>? HeaderContent { get; set; }
+    [Parameter] public RenderFragment<List<EFTableColumnConfiguration>>? HeaderContent { get; set; }
     [Parameter] public RenderFragment<TItem>? RowTemplate { get; set; }
     [Parameter] public RenderFragment? ToolBarContent { get; set; }
     [Parameter] public RenderFragment? NoRecordsContent { get; set; }
@@ -169,8 +173,8 @@
     [Parameter] public bool AllowDragDropGrouping { get; set; } = true;
 
     // Internal state
-    private List<ColumnConfiguration> _columnConfigurations = new();
-    private TablePreferences? _preferences;
+    private List<EFTableColumnConfiguration> _columnConfigurations = new();
+    private EFTablePreferences? _preferences;
     private string? _groupByProperty;
     private object? _lastGroupValue;
     private string? _draggedColumnProperty;
@@ -178,7 +182,7 @@
     protected override async Task OnInitializedAsync()
     {
         // Initialize column configurations
-        _columnConfigurations = InitialColumnConfigurations.Select(c => new ColumnConfiguration
+        _columnConfigurations = InitialColumnConfigurations.Select(c => new EFTableColumnConfiguration
         {
             PropertyName = c.PropertyName,
             DisplayName = c.DisplayName,
@@ -204,7 +208,7 @@
     {
         try
         {
-            _preferences = await TablePreferencesService.GetPreferencesAsync<TablePreferences>(ComponentKey);
+            _preferences = await TablePreferencesService.GetPreferencesAsync<EFTablePreferences>(ComponentKey);
             
             if (_preferences != null)
             {
@@ -252,7 +256,7 @@
     {
         try
         {
-            var preferences = new TablePreferences
+            var preferences = new EFTablePreferences
             {
                 ColumnOrders = _columnConfigurations.ToDictionary(c => c.PropertyName, c => c.Order),
                 ColumnVisibility = _columnConfigurations.ToDictionary(c => c.PropertyName, c => c.IsVisible),
@@ -275,7 +279,7 @@
             await TablePreferencesService.ClearPreferencesAsync(ComponentKey);
             
             // Reset to initial state
-            _columnConfigurations = InitialColumnConfigurations.Select(c => new ColumnConfiguration
+            _columnConfigurations = InitialColumnConfigurations.Select(c => new EFTableColumnConfiguration
             {
                 PropertyName = c.PropertyName,
                 DisplayName = c.DisplayName,
@@ -319,7 +323,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is ColumnConfigurationResult configResult)
+        if (!result.Canceled && result.Data is EFTableColumnConfigurationResult configResult)
         {
             _columnConfigurations = configResult.Columns;
             _groupByProperty = configResult.GroupByProperty;
@@ -409,27 +413,5 @@
     {
         var column = _columnConfigurations.FirstOrDefault(c => c.PropertyName == propertyName);
         return column?.DisplayName ?? propertyName;
-    }
-
-    // Helper classes
-    public class ColumnConfiguration
-    {
-        public string PropertyName { get; set; } = string.Empty;
-        public string DisplayName { get; set; } = string.Empty;
-        public bool IsVisible { get; set; } = true;
-        public int Order { get; set; }
-    }
-
-    public class TablePreferences
-    {
-        public Dictionary<string, int> ColumnOrders { get; set; } = new();
-        public Dictionary<string, bool> ColumnVisibility { get; set; } = new();
-        public string? GroupByProperty { get; set; }
-    }
-
-    public class ColumnConfigurationResult
-    {
-        public List<ColumnConfiguration> Columns { get; set; } = new();
-        public string? GroupByProperty { get; set; }
     }
 }
