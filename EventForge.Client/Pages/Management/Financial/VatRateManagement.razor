@@ -19,14 +19,16 @@
 
     @if (!_isLoading)
     {
-        <EFTable T="VatRateDto"
+        <EFTable @ref="_efTable"
+                 T="VatRateDto"
                  Items="_filteredVatRates"
                  MultiSelection="true"
                  SelectedItems="_selectedVatRates"
                  SelectedItemsChanged="_selectedItemsChangedCallback"
                  IsLoading="_isLoadingVatRates"
                  ComponentKey="VatRateManagement"
-                 InitialColumnConfigurations="_initialColumns">
+                 InitialColumnConfigurations="_initialColumns"
+                 AllowDragDropGrouping="true">
             <ToolBarContent>
                 <MudText Typo="Typo.h5">
                     @TranslationService.GetTranslation("financial.vatRateManagement", "Gestione Aliquote IVA")
@@ -52,32 +54,44 @@
                                         OnCreate="@CreateVatRate"
                                         OnDelete="@DeleteSelectedVatRates" />
             </ToolBarContent>
-            <HeaderContent Context="columns">
-                @foreach (var column in columns.Where(c => c.IsVisible).OrderBy(c => c.Order))
+            <HeaderContent Context="columnsContext">
+                @foreach (var column in columnsContext.Where(c => c.IsVisible).OrderBy(c => c.Order))
                 {
                     @if (column.PropertyName == "Name")
                     {
-                        <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
+                        <EFTableColumnHeader TItem="VatRateDto" PropertyName="Name" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                        </EFTableColumnHeader>
                     }
                     else if (column.PropertyName == "Percentage")
                     {
-                        <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Percentage))">@TranslationService.GetTranslation("field.percentage", "Percentuale")</MudTableSortLabel></MudTh>
+                        <EFTableColumnHeader TItem="VatRateDto" PropertyName="Percentage" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Percentage))">@TranslationService.GetTranslation("field.percentage", "Percentuale")</MudTableSortLabel>
+                        </EFTableColumnHeader>
                     }
                     else if (column.PropertyName == "Status")
                     {
-                        <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Status))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel></MudTh>
+                        <EFTableColumnHeader TItem="VatRateDto" PropertyName="Status" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Status))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel>
+                        </EFTableColumnHeader>
                     }
                     else if (column.PropertyName == "ValidFrom")
                     {
-                        <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.ValidFrom ?? DateTime.MinValue))">@TranslationService.GetTranslation("field.validFrom", "Valido Da")</MudTableSortLabel></MudTh>
+                        <EFTableColumnHeader TItem="VatRateDto" PropertyName="ValidFrom" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.ValidFrom ?? DateTime.MinValue))">@TranslationService.GetTranslation("field.validFrom", "Valido Da")</MudTableSortLabel>
+                        </EFTableColumnHeader>
                     }
                     else if (column.PropertyName == "ValidTo")
                     {
-                        <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.ValidTo ?? DateTime.MaxValue))">@TranslationService.GetTranslation("field.validTo", "Valido A")</MudTableSortLabel></MudTh>
+                        <EFTableColumnHeader TItem="VatRateDto" PropertyName="ValidTo" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.ValidTo ?? DateTime.MaxValue))">@TranslationService.GetTranslation("field.validTo", "Valido A")</MudTableSortLabel>
+                        </EFTableColumnHeader>
                     }
                     else if (column.PropertyName == "CreatedAt")
                     {
-                        <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<VatRateDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel></MudTh>
+                        <EFTableColumnHeader TItem="VatRateDto" PropertyName="CreatedAt" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<VatRateDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel>
+                        </EFTableColumnHeader>
                     }
                 }
                 <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
@@ -197,6 +211,9 @@
     // Data collections
     private List<VatRateDto> _vatRates = new();
     private HashSet<VatRateDto> _selectedVatRates = new();
+
+    // EFTable reference
+    private EFTable<VatRateDto> _efTable = null!;
 
     // Column configuration for EFTable
     private List<EFTable<VatRateDto>.ColumnConfiguration> _initialColumns = new()

@@ -3,6 +3,38 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<EFTable<TItem>> Logger
+@inject IJSRuntime JSRuntime
+
+@if (AllowDragDropGrouping && ServerData == null)
+{
+    <MudPaper Elevation="0" Class="mb-2 pa-3" Style="border: 2px dashed var(--mud-palette-lines-default); min-height: 50px; background-color: var(--mud-palette-surface);">
+        <div @ondragover="@HandleGroupPanelDragOver"
+             @ondragover:preventDefault="true"
+             @ondrop="@HandleGroupPanelDrop"
+             @ondrop:preventDefault="true"
+             style="min-height: 40px;">
+            @if (string.IsNullOrEmpty(_groupByProperty))
+            {
+                <div class="d-flex align-center justify-center" style="height: 40px;">
+                    <MudIcon Icon="@Icons.Material.Outlined.DragIndicator" Size="Size.Small" Class="mr-2 mud-text-secondary" />
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        @TranslationService.GetTranslation("table.dragColumnToGroup", "Trascina qui un'intestazione di colonna per raggruppare")
+                    </MudText>
+                </div>
+            }
+            else
+            {
+                <MudChip T="string"
+                         Color="Color.Primary"
+                         OnClose="@RemoveGrouping"
+                         Size="Size.Medium">
+                    <MudIcon Icon="@Icons.Material.Outlined.Category" Size="Size.Small" Class="mr-1" />
+                    @GetColumnDisplayName(_groupByProperty)
+                </MudChip>
+            }
+        </div>
+    </MudPaper>
+}
 
 <MudTable @ref="_tableRef"
           T="TItem"
@@ -134,12 +166,14 @@
 
     // Grouping
     [Parameter] public string? GroupByProperty { get; set; }
+    [Parameter] public bool AllowDragDropGrouping { get; set; } = true;
 
     // Internal state
     private List<ColumnConfiguration> _columnConfigurations = new();
     private TablePreferences? _preferences;
     private string? _groupByProperty;
     private object? _lastGroupValue;
+    private string? _draggedColumnProperty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -335,6 +369,46 @@
         {
             await _tableRef.ReloadServerData();
         }
+    }
+
+    // Drag & Drop methods
+    public void HandleColumnDragStart(string propertyName)
+    {
+        _draggedColumnProperty = propertyName;
+    }
+
+    private void HandleGroupPanelDragOver(DragEventArgs e)
+    {
+        // Allow drop
+        e.DataTransfer.DropEffect = "move";
+    }
+
+    private async Task HandleGroupPanelDrop(DragEventArgs e)
+    {
+        if (!string.IsNullOrEmpty(_draggedColumnProperty) && ServerData == null)
+        {
+            _groupByProperty = _draggedColumnProperty;
+            _lastGroupValue = null;
+            _draggedColumnProperty = null;
+            
+            await SavePreferencesAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task RemoveGrouping()
+    {
+        _groupByProperty = null;
+        _lastGroupValue = null;
+        
+        await SavePreferencesAsync();
+        StateHasChanged();
+    }
+
+    private string GetColumnDisplayName(string propertyName)
+    {
+        var column = _columnConfigurations.FirstOrDefault(c => c.PropertyName == propertyName);
+        return column?.DisplayName ?? propertyName;
     }
 
     // Helper classes
