@@ -1,0 +1,24 @@
+@typeparam TItem
+
+<MudTh draggable="@IsDraggable"
+       @ondragstart="@OnDragStart"
+       Style="@_cursorStyle">
+    @ChildContent
+</MudTh>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string PropertyName { get; set; } = string.Empty;
+    [Parameter] public bool IsDraggable { get; set; } = true;
+    [Parameter] public EventCallback<string> OnDragStartCallback { get; set; }
+
+    private string _cursorStyle => IsDraggable ? "cursor: grab;" : "cursor: default;";
+
+    private async Task OnDragStart(DragEventArgs e)
+    {
+        if (IsDraggable && !string.IsNullOrEmpty(PropertyName))
+        {
+            await OnDragStartCallback.InvokeAsync(PropertyName);
+        }
+    }
+}
