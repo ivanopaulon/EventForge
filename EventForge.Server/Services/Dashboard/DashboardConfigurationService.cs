@@ -1,8 +1,6 @@
 using EventForge.DTOs.Dashboard;
-using EventForge.Server.Data;
-using EntityDashboard = EventForge.Server.Data.Entities.Dashboard;
-using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
+using EntityDashboard = EventForge.Server.Data.Entities.Dashboard;
 
 namespace EventForge.Server.Services.Dashboard;
 
@@ -35,9 +33,9 @@ public class DashboardConfigurationService : IDashboardConfigurationService
 
         var configurations = await _context.DashboardConfigurations
             .Include(c => c.Metrics)
-            .Where(c => c.TenantId == tenantId 
-                && c.UserId == userId 
-                && c.EntityType == entityType 
+            .Where(c => c.TenantId == tenantId
+                && c.UserId == userId
+                && c.EntityType == entityType
                 && !c.IsDeleted)
             .OrderByDescending(c => c.IsDefault)
             .ThenBy(c => c.Name)
@@ -53,9 +51,9 @@ public class DashboardConfigurationService : IDashboardConfigurationService
 
         var configuration = await _context.DashboardConfigurations
             .Include(c => c.Metrics)
-            .FirstOrDefaultAsync(c => c.Id == id 
-                && c.TenantId == tenantId 
-                && c.UserId == userId 
+            .FirstOrDefaultAsync(c => c.Id == id
+                && c.TenantId == tenantId
+                && c.UserId == userId
                 && !c.IsDeleted);
 
         return configuration != null ? MapToDto(configuration) : null;
@@ -68,10 +66,10 @@ public class DashboardConfigurationService : IDashboardConfigurationService
 
         var configuration = await _context.DashboardConfigurations
             .Include(c => c.Metrics)
-            .FirstOrDefaultAsync(c => c.TenantId == tenantId 
-                && c.UserId == userId 
-                && c.EntityType == entityType 
-                && c.IsDefault 
+            .FirstOrDefaultAsync(c => c.TenantId == tenantId
+                && c.UserId == userId
+                && c.EntityType == entityType
+                && c.IsDefault
                 && !c.IsDeleted);
 
         return configuration != null ? MapToDto(configuration) : null;
@@ -125,7 +123,7 @@ public class DashboardConfigurationService : IDashboardConfigurationService
         _context.DashboardConfigurations.Add(configuration);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Dashboard configuration created: {ConfigurationId} for user {UserId}", 
+        _logger.LogInformation("Dashboard configuration created: {ConfigurationId} for user {UserId}",
             configuration.Id, userId);
 
         return MapToDto(configuration);
@@ -139,9 +137,9 @@ public class DashboardConfigurationService : IDashboardConfigurationService
 
         var configuration = await _context.DashboardConfigurations
             .Include(c => c.Metrics)
-            .FirstOrDefaultAsync(c => c.Id == id 
-                && c.TenantId == tenantId 
-                && c.UserId == userId 
+            .FirstOrDefaultAsync(c => c.Id == id
+                && c.TenantId == tenantId
+                && c.UserId == userId
                 && !c.IsDeleted);
 
         if (configuration == null)
@@ -200,9 +198,9 @@ public class DashboardConfigurationService : IDashboardConfigurationService
         var username = GetCurrentUsername();
 
         var configuration = await _context.DashboardConfigurations
-            .FirstOrDefaultAsync(c => c.Id == id 
-                && c.TenantId == tenantId 
-                && c.UserId == userId 
+            .FirstOrDefaultAsync(c => c.Id == id
+                && c.TenantId == tenantId
+                && c.UserId == userId
                 && !c.IsDeleted);
 
         if (configuration == null)
@@ -225,9 +223,9 @@ public class DashboardConfigurationService : IDashboardConfigurationService
         var tenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context is required");
 
         var configuration = await _context.DashboardConfigurations
-            .FirstOrDefaultAsync(c => c.Id == id 
-                && c.TenantId == tenantId 
-                && c.UserId == userId 
+            .FirstOrDefaultAsync(c => c.Id == id
+                && c.TenantId == tenantId
+                && c.UserId == userId
                 && !c.IsDeleted);
 
         if (configuration == null)
@@ -253,10 +251,10 @@ public class DashboardConfigurationService : IDashboardConfigurationService
         var username = GetCurrentUsername();
 
         var defaultConfigs = await _context.DashboardConfigurations
-            .Where(c => c.TenantId == tenantId 
-                && c.UserId == userId 
-                && c.EntityType == entityType 
-                && c.IsDefault 
+            .Where(c => c.TenantId == tenantId
+                && c.UserId == userId
+                && c.EntityType == entityType
+                && c.IsDefault
                 && !c.IsDeleted)
             .ToListAsync();
 

@@ -1,6 +1,6 @@
 using EventForge.Client.Shared.Components.Dashboard;
-using EventForge.DTOs.VatRates;
 using EventForge.DTOs.Common;
+using EventForge.DTOs.VatRates;
 
 namespace EventForge.Tests.Components.Dashboard;
 

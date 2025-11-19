@@ -1,5 +1,4 @@
 using EventForge.DTOs.Dashboard;
-using EventForge.Server;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;

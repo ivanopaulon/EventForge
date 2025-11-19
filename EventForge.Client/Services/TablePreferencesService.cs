@@ -1,7 +1,5 @@
 using Microsoft.JSInterop;
-using System;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace EventForge.Client.Services
 {
@@ -16,8 +14,8 @@ namespace EventForge.Client.Services
         private const string PREFIX = "ef.tableprefs";
 
         public TablePreferencesService(
-            IJSRuntime jsRuntime, 
-            IAuthService authService, 
+            IJSRuntime jsRuntime,
+            IAuthService authService,
             ILogger<TablePreferencesService> logger)
         {
             _jsRuntime = jsRuntime;
@@ -98,7 +96,7 @@ namespace EventForge.Client.Services
         private async Task<string> BuildStorageKeyAsync(string componentKey)
         {
             var userId = "anonymous";
-            
+
             try
             {
                 var currentUser = await _authService.GetCurrentUserAsync();

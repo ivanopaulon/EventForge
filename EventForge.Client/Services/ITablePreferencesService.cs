@@ -1,5 +1,3 @@
-using System.Threading.Tasks;
-
 namespace EventForge.Client.Services
 {
     /// <summary>

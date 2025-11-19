@@ -9,17 +9,17 @@ public enum InventoryDialogView
     /// View mode - displays product information
     /// </summary>
     View,
-    
+
     /// <summary>
     /// Edit mode - allows editing quantity and location
     /// </summary>
     Edit,
-    
+
     /// <summary>
     /// Confirm mode - reviews changes before saving
     /// </summary>
     Confirm,
-    
+
     /// <summary>
     /// History mode - shows inventory history for the product
     /// </summary>

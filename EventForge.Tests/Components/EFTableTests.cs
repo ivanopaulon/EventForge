@@ -1,5 +1,4 @@
 using EventForge.Client.Shared.Components;
-using Xunit;
 
 namespace EventForge.Tests.Components;
 
@@ -371,7 +370,7 @@ public class EFTableTests
             new() { Id = "delete", Label = "Delete", RequiresSelection = true },
             new() { Id = "export", Label = "Export", RequiresSelection = false }
         };
-        
+
         bool hasSelection = false;
 
         // Act - Filter actions when no items are selected
