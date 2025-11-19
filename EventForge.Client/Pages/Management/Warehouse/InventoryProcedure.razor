@@ -738,7 +738,8 @@
             { "InitialProduct", _currentProduct },
             { "Locations", _locations },
             { "ConversionFactor", _currentConversionFactor },
-            { "IsEditMode", false }
+            { "IsEditMode", false },
+            { "StartInEditMode", true }  // Go directly to quantity input for fast inventory
         };
 
         var options = new DialogOptions
@@ -1224,7 +1225,8 @@
             { "IsEditMode", true },
             { "ExistingQuantity", row.Quantity },
             { "ExistingNotes", row.Notes ?? string.Empty },
-            { "ExistingLocationId", row.LocationId }
+            { "ExistingLocationId", row.LocationId },
+            { "StartInEditMode", true }  // Go directly to quantity editing
         };
 
         var options = new DialogOptions
