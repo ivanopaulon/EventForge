@@ -17,7 +17,7 @@
         </MudText>
     </TitleContent>
     <DialogContent>
-        <PageLoadingOverlay IsVisible="_isLoading"
+        <PageLoadingOverlay Visible="_isLoading"
                             Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
         <MudAlert Severity="Severity.Info" Class="mb-4">
@@ -113,7 +113,7 @@
         <!-- Alternative Units Section -->
         <MudExpansionPanels Class="mt-4" MultiExpansion="true">
             <MudExpansionPanel Text="@TranslationService.GetTranslation("product.alternativeUnits", "Unità Alternative")" 
-                               IsInitiallyExpanded="@(_alternativeUnits.Any())">
+                               Expanded="@(_alternativeUnits.Any())">
                 <MudText Typo="Typo.body2" Class="mb-3">
                     @TranslationService.GetTranslation("products.alternativeUnitsHint", "Configura unità di misura alternative (es. confezione da 12 pezzi, scatola da 6 confezioni)")
                 </MudText>
@@ -211,7 +211,7 @@
             </MudExpansionPanel>
 
             <MudExpansionPanel Text="@TranslationService.GetTranslation("product.alternativeCodes", "Codici Alternativi")" 
-                               IsInitiallyExpanded="@(_alternativeCodes.Any())">
+                               Expanded="@(_alternativeCodes.Any())">
                 <MudText Typo="Typo.body2" Class="mb-3">
                     @TranslationService.GetTranslation("products.alternativeCodesHint", "Aggiungi codici a barre alternativi e associali alle unità di misura")
                 </MudText>

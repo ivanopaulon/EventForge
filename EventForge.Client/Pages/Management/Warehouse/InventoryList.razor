@@ -13,7 +13,7 @@
 @inject IDialogService DialogService
 
 <PageTitle>@TranslationService.GetTranslation("warehouse.inventoryDocuments", "Documenti di Inventario")</PageTitle>
-<PageLoadingOverlay IsVisible="_isLoading"
+<PageLoadingOverlay Visible="_isLoading"
                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">

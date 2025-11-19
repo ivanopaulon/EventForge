@@ -15,7 +15,7 @@
 @inject ILogger<WarehouseDetail> Logger
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <PageLoadingOverlay IsVisible="_isLoading || _isSaving"
+    <PageLoadingOverlay Visible="_isLoading || _isSaving"
                          Message="@(_isSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
     @if (_facility == null && !_isCreateMode && !_isLoading)
@@ -290,12 +290,12 @@
                                                            Size="Size.Small"
                                                            Color="Color.Primary"
                                                            OnClick="@(() => OpenEditLocationDialog(context))"
-                                                           Title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
+                                                           title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
                                             <MudIconButton Icon="@Icons.Material.Outlined.Delete"
                                                            Size="Size.Small"
                                                            Color="Color.Error"
                                                            OnClick="@(() => DeleteLocationAsync(context))"
-                                                           Title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
+                                                           title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
                                         </MudTd>
                                     </RowTemplate>
                                     <PagerContent>

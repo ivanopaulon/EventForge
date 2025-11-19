@@ -39,7 +39,7 @@
                     HeaderTextView="HeaderTextView.All">
 
             <!-- Step 1: Authentication -->
-            <MudStep Title="Autenticazione">
+            <MudStep title="Autenticazione">
                 <div class="pa-4">
                     <MudText Typo="Typo.h6" Class="mb-4">Identificazione Operatore</MudText>
                     <MudAlert Severity="Severity.Info" Class="mb-4">
@@ -62,7 +62,7 @@
             </MudStep>
 
             <!-- Step 2: Sale Type -->
-            <MudStep Title="Tipo Vendita">
+            <MudStep title="Tipo Vendita">
                 <div class="pa-4">
                     <MudText Typo="Typo.h6" Class="mb-4">Seleziona Tipo di Vendita</MudText>
                     
@@ -101,7 +101,7 @@
             </MudStep>
 
             <!-- Step 3: Products -->
-            <MudStep Title="Prodotti">
+            <MudStep title="Prodotti">
                 <div class="pa-4">
                     <MudText Typo="Typo.h6" Class="mb-4">Aggiungi Prodotti al Carrello</MudText>
                     
@@ -124,7 +124,7 @@
             </MudStep>
             
             <!-- Step 4: Table Management (conditional for BAR/RESTAURANT) -->
-            <MudStep Title="Tavolo">
+            <MudStep title="Tavolo">
                 <div class="pa-4">
                     <TableManagementStep SaleType="@_saleType" 
                                         @bind-SelectedTableId="@_selectedTableId" />
@@ -132,7 +132,7 @@
             </MudStep>
 
             <!-- Step 5: Payment -->
-            <MudStep Title="Pagamento">
+            <MudStep title="Pagamento">
                 <div class="pa-4">
                     <MudText Typo="Typo.h6" Class="mb-4">Metodo di Pagamento</MudText>
                     
@@ -157,7 +157,7 @@
             </MudStep>
 
             <!-- Step 6: Complete -->
-            <MudStep Title="Completa">
+            <MudStep title="Completa">
                 <div class="pa-4">
                     <div class="text-center mb-4">
                         <MudIcon Icon="@Icons.Material.Filled.CheckCircle" 

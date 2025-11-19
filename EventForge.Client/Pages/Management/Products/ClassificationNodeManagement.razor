@@ -18,7 +18,7 @@
 </style>
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <PageLoadingOverlay IsVisible="_isLoading || _isLoadingNodes"
+    <PageLoadingOverlay Visible="_isLoading || _isLoadingNodes"
                          Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
     @if (!_isLoading)
@@ -110,7 +110,7 @@
                                                         </div>
                                                         <div class="d-flex gap-1">
                                                             <MudIconButton Icon="@Icons.Material.Outlined.Add" Size="Size.Small" Color="Color.Success"
-                                                                           OnClick="@(() => OpenCreateChildPage(nodeItem.Node))" Title="@TranslationService.GetTranslation("classificationNode.addChild","Aggiungi nodo figlio")" />
+                                                                           OnClick="@(() => OpenCreateChildPage(nodeItem.Node))" title="@TranslationService.GetTranslation("classificationNode.addChild","Aggiungi nodo figlio")" />
                                                             <ActionButtonGroup EntityName="@nodeItem.Text" ItemDisplayName="@nodeItem.Text"
                                                                               ShowView="false" ShowEdit="true" ShowAuditLog="true" ShowToggleStatus="true" ShowDelete="true"
                                                                               IsActive="@(nodeItem.Node?.IsActive ?? false)"

@@ -16,7 +16,7 @@
 <PageTitle>@TranslationService.GetTranslation("documentCounter.management", "Gestione Contatori Documenti")</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <PageLoadingOverlay IsVisible="_isLoading"
+    <PageLoadingOverlay Visible="_isLoading"
                         Message="@TranslationService.GetTranslation("common.loading", "Caricamento...")" />
 
     <MudGrid Class="mb-4">
@@ -130,12 +130,12 @@
                                Size="Size.Small"
                                Color="Color.Info"
                                OnClick="@(() => OpenEditDialog(context))"
-                               Title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
+                               title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
                 <MudIconButton Icon="@Icons.Material.Outlined.Delete"
                                Size="Size.Small"
                                Color="Color.Error"
                                OnClick="@(() => DeleteCounter(context))"
-                               Title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
+                               title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
             </MudTd>
         </RowTemplate>
         <NoRecordsContent>

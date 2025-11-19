@@ -57,12 +57,12 @@
                                    Size="Size.Small" 
                                    Color="Color.Primary"
                                    OnClick="@(() => OpenEditDialog(context))"
-                                   Title="@TranslationService.GetTranslation("button.edit", "Modifica")" />
+                                   title="@TranslationService.GetTranslation("button.edit", "Modifica")" />
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" 
                                    Size="Size.Small" 
                                    Color="Color.Error"
                                    OnClick="@(() => DeleteAddressAsync(context))"
-                                   Title="@TranslationService.GetTranslation("button.delete", "Elimina")" />
+                                   title="@TranslationService.GetTranslation("button.delete", "Elimina")" />
                 </MudTd>
             </RowTemplate>
         </MudTable>

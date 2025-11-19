@@ -6,6 +6,8 @@
     <NuGetAudit>True</NuGetAudit>
     <ApplicationIcon>wwwroot\EventForge.ico</ApplicationIcon>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- MudBlazor Analyzer Configuration: Disable strict attribute pattern checking -->
+    <MudAllowedAttributePattern>Any</MudAllowedAttributePattern>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />

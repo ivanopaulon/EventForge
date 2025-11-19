@@ -130,7 +130,7 @@
 </SuperAdminPageLayout>
 
 <!-- Dialog for creating/editing configuration -->
-<MudDialog @bind-IsVisible="_showConfigDialog" Options="_dialogOptions">
+<MudDialog @bind-Visible="_showConfigDialog" Options="_dialogOptions">
     <DialogContent>
         <MudText Typo="Typo.h6" Class="mb-4">
             @(_editingConfiguration != null ? TranslationService.GetTranslation("superAdmin.editConfiguration", "Modifica Configurazione") : TranslationService.GetTranslation("superAdmin.newConfiguration", "Nuova Configurazione"))
@@ -169,11 +169,11 @@
                               Lines="2" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudCheckBox T="bool" @bind-Checked="_configForm.IsEncrypted" 
+                <MudCheckBox T="bool" @bind-Value="_configForm.IsEncrypted" 
                              Label="@TranslationService.GetTranslation("superAdmin.encryptedValue", "Valore Crittografato")" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudCheckBox T="bool" @bind-Checked="_configForm.RequiresRestart" 
+                <MudCheckBox T="bool" @bind-Value="_configForm.RequiresRestart" 
                              Label="@TranslationService.GetTranslation("superAdmin.requiresRestart", "Richiede Riavvio")" />
             </MudItem>
         </MudGrid>

@@ -15,7 +15,7 @@
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4 px-0" Style="width:100%; min-height:100vh; display:flex; flex-direction:column;">
     <!-- Page loading overlay -->
-    <PageLoadingOverlay IsVisible="_isLoading || _isLoadingSuppliers" 
+    <PageLoadingOverlay Visible="_isLoading || _isLoadingSuppliers" 
                          Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
     <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4">
