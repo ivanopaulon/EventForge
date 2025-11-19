@@ -1,0 +1,169 @@
+@using EventForge.DTOs.Warehouse
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+@inject IInventoryService InventoryService
+@inject ILogger<InventoryHistoryStep> Logger
+
+<MudStack Spacing="3">
+    <!-- History Header -->
+    <MudText Typo="Typo.h6">
+        <MudIcon Icon="@Icons.Material.Outlined.History" Class="mr-2" />
+        @TranslationService.GetTranslation("warehouse.inventoryHistory", "Storico Inventario")
+    </MudText>
+
+    @if (_isLoading)
+    {
+        <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="py-4">
+            <MudProgressCircular Size="Size.Large" Indeterminate="true" />
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @TranslationService.GetTranslation("common.loading", "Caricamento...")
+            </MudText>
+        </MudStack>
+    }
+    else if (_errorMessage != null)
+    {
+        <MudAlert Severity="Severity.Error">
+            @_errorMessage
+        </MudAlert>
+    }
+    else if (_historyRows != null && _historyRows.Any())
+    {
+        <MudTable Items="@_historyRows" Hover="true" Dense="true" Elevation="2" Height="400px" FixedHeader="true">
+            <HeaderContent>
+                <MudTh>@TranslationService.GetTranslation("warehouse.date", "Data")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("warehouse.location", "Ubicazione")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("warehouse.quantity", "Quantità")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("warehouse.adjustment", "Aggiustamento")</MudTh>
+                <MudTh>@TranslationService.GetTranslation("warehouse.notes", "Note")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Date">
+                    <MudText Typo="Typo.body2">@context.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
+                </MudTd>
+                <MudTd DataLabel="Location">
+                    <MudText Typo="Typo.body2">@context.LocationName</MudText>
+                </MudTd>
+                <MudTd DataLabel="Quantity">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.Quantity.ToString("N2")</MudChip>
+                </MudTd>
+                <MudTd DataLabel="Adjustment">
+                    @if (context.AdjustmentQuantity.HasValue)
+                    {
+                        var adjColor = context.AdjustmentQuantity > 0 ? Color.Success : 
+                                       context.AdjustmentQuantity < 0 ? Color.Warning : Color.Default;
+                        var adjIcon = context.AdjustmentQuantity > 0 ? Icons.Material.Filled.TrendingUp : 
+                                      context.AdjustmentQuantity < 0 ? Icons.Material.Filled.TrendingDown : 
+                                      Icons.Material.Filled.Remove;
+                        
+                        <MudChip T="string" Size="Size.Small" Color="@adjColor" Icon="@adjIcon">
+                            @(context.AdjustmentQuantity > 0 ? "+" : "")@context.AdjustmentQuantity.Value.ToString("N2")
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">-</MudText>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Notes">
+                    @if (!string.IsNullOrEmpty(context.Notes))
+                    {
+                        <MudTooltip Text="@context.Notes">
+                            <MudIcon Icon="@Icons.Material.Filled.Comment" Size="Size.Small" Color="Color.Info" />
+                        </MudTooltip>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">-</MudText>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+            @TranslationService.GetTranslation("warehouse.noHistoryFound", "Nessuno storico disponibile per questo prodotto")
+        </MudAlert>
+    }
+
+    <!-- Action Buttons -->
+    <MudStack Row="true" Justify="Justify.Center" Spacing="2">
+        <MudButton StartIcon="@Icons.Material.Outlined.ArrowBack" 
+                   Color="Color.Default" 
+                   Variant="Variant.Outlined"
+                   OnClick="@OnBack">
+            @TranslationService.GetTranslation("common.back", "Indietro")
+        </MudButton>
+    </MudStack>
+</MudStack>
+
+@code {
+    [Parameter]
+    public Guid ProductId { get; set; }
+
+    [Parameter]
+    public EventCallback OnBack { get; set; }
+
+    private bool _isLoading = false;
+    private string? _errorMessage;
+    private List<InventoryDocumentRowDto>? _historyRows;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadHistoryAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Reload history if ProductId changes
+        if (ProductId != Guid.Empty && _historyRows == null)
+        {
+            await LoadHistoryAsync();
+        }
+    }
+
+    private async Task LoadHistoryAsync()
+    {
+        if (ProductId == Guid.Empty)
+        {
+            _errorMessage = TranslationService.GetTranslation("warehouse.invalidProduct", "Prodotto non valido");
+            return;
+        }
+
+        _isLoading = true;
+        _errorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            // Load recent inventory documents and filter by product
+            // Note: This loads all documents and filters client-side, which may not be optimal for large datasets
+            // Consider adding a server-side endpoint for product-specific history in the future
+            var documentsResult = await InventoryService.GetInventoryDocumentsAsync(1, 100, "Closed");
+            
+            if (documentsResult?.Items != null && documentsResult.Items.Any())
+            {
+                _historyRows = documentsResult.Items
+                    .SelectMany(d => d.Rows ?? Enumerable.Empty<InventoryDocumentRowDto>())
+                    .Where(r => r.ProductId == ProductId)
+                    .OrderByDescending(r => r.CreatedAt)
+                    .Take(50) // Limit to last 50 entries
+                    .ToList();
+            }
+            else
+            {
+                _historyRows = new List<InventoryDocumentRowDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading inventory history for product {ProductId}", ProductId);
+            _errorMessage = TranslationService.GetTranslation("warehouse.historyLoadError", "Errore nel caricamento dello storico");
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+}

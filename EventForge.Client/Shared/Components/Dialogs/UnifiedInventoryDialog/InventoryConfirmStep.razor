@@ -1,0 +1,175 @@
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.Warehouse
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+
+<MudStack Spacing="3">
+    <!-- Confirmation Header -->
+    <MudAlert Severity="Severity.Info" Variant="Variant.Filled">
+        <MudText Typo="Typo.subtitle1">
+            <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Class="mr-2" />
+            @TranslationService.GetTranslation("warehouse.reviewChangesBeforeSaving", "Rivedi le modifiche prima di salvare")
+        </MudText>
+    </MudAlert>
+
+    <!-- Product Summary -->
+    @if (State.Product != null)
+    {
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.h6">
+                    <MudIcon Icon="@Icons.Material.Outlined.Inventory" Class="mr-2" />
+                    @TranslationService.GetTranslation("warehouse.inventoryData", "Dati Inventario")
+                </MudText>
+                
+                <MudDivider />
+                
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @TranslationService.GetTranslation("products.product", "Prodotto")
+                        </MudText>
+                        <MudText Typo="Typo.body1" Style="font-weight: 600;">
+                            @State.Product.Name
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @State.Product.Code
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @TranslationService.GetTranslation("warehouse.storageLocation", "Ubicazione")
+                        </MudText>
+                        <MudText Typo="Typo.body1" Style="font-weight: 600;">
+                            @GetLocationDisplayText()
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @TranslationService.GetTranslation("warehouse.quantity", "Quantità")
+                        </MudText>
+                        <MudChip T="string" Color="Color.Primary" Size="Size.Medium">
+                            @State.DraftQuantity.ToString("N2")
+                        </MudChip>
+                        @if (State.ConversionFactor > 1)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                                (@TranslationService.GetTranslation("warehouse.baseUnit", "unità base"))
+                            </MudText>
+                        }
+                    </MudItem>
+
+                    @if (!string.IsNullOrWhiteSpace(State.DraftNotes))
+                    {
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @TranslationService.GetTranslation("warehouse.notes", "Note")
+                            </MudText>
+                            <MudPaper Elevation="0" Class="pa-2" Style="background-color: var(--mud-palette-background-grey);">
+                                <MudText Typo="Typo.body2">
+                                    @State.DraftNotes
+                                </MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudStack>
+        </MudPaper>
+    }
+
+    <!-- Changes Summary (for edit mode) -->
+    @if (State.IsEditMode && HasChanges())
+    {
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.subtitle1" Color="Color.Warning">
+                    <MudIcon Icon="@Icons.Material.Outlined.CompareArrows" Class="mr-2" />
+                    @TranslationService.GetTranslation("warehouse.changesSummary", "Riepilogo Modifiche")
+                </MudText>
+                
+                <MudDivider />
+                
+                <MudStack Spacing="1">
+                    @if (State.DraftQuantity != State.OriginalQuantity)
+                    {
+                        <MudText Typo="Typo.body2">
+                            <MudIcon Icon="@Icons.Material.Outlined.Numbers" Size="Size.Small" Class="mr-1" />
+                            @TranslationService.GetTranslation("warehouse.quantity", "Quantità"): 
+                            <span style="text-decoration: line-through; color: var(--mud-palette-text-secondary);">
+                                @(State.OriginalQuantity?.ToString("N2") ?? "0")
+                            </span>
+                            → <strong>@State.DraftQuantity.ToString("N2")</strong>
+                        </MudText>
+                    }
+                    
+                    @if (State.DraftNotes != State.OriginalNotes)
+                    {
+                        <MudText Typo="Typo.body2">
+                            <MudIcon Icon="@Icons.Material.Outlined.Comment" Size="Size.Small" Class="mr-1" />
+                            @TranslationService.GetTranslation("warehouse.notes", "Note"): 
+                            @if (string.IsNullOrWhiteSpace(State.OriginalNotes))
+                            {
+                                <strong>@TranslationService.GetTranslation("common.added", "Aggiunte")</strong>
+                            }
+                            else if (string.IsNullOrWhiteSpace(State.DraftNotes))
+                            {
+                                <strong>@TranslationService.GetTranslation("common.removed", "Rimosse")</strong>
+                            }
+                            else
+                            {
+                                <strong>@TranslationService.GetTranslation("common.modified", "Modificate")</strong>
+                            }
+                        </MudText>
+                    }
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    }
+
+    <!-- Action Buttons -->
+    <MudStack Row="true" Justify="Justify.Center" Spacing="2">
+        <MudButton StartIcon="@Icons.Material.Outlined.ArrowBack" 
+                   Color="Color.Default" 
+                   Variant="Variant.Outlined"
+                   OnClick="@OnBack">
+            @TranslationService.GetTranslation("common.back", "Indietro")
+        </MudButton>
+        <MudButton StartIcon="@Icons.Material.Outlined.Save" 
+                   Color="Color.Success" 
+                   Variant="Variant.Filled"
+                   OnClick="@OnConfirm">
+            @TranslationService.GetTranslation("common.confirm", "Conferma e Salva")
+        </MudButton>
+    </MudStack>
+</MudStack>
+
+@code {
+    [Parameter]
+    public InventoryDialogState State { get; set; } = new();
+
+    [Parameter]
+    public List<StorageLocationDto>? Locations { get; set; }
+
+    [Parameter]
+    public EventCallback OnBack { get; set; }
+
+    [Parameter]
+    public EventCallback OnConfirm { get; set; }
+
+    private string GetLocationDisplayText()
+    {
+        if (!State.DraftLocationId.HasValue || Locations == null)
+            return "-";
+
+        var location = Locations.FirstOrDefault(l => l.Id == State.DraftLocationId.Value);
+        return location != null ? $"{location.Code} - {location.Description}" : "-";
+    }
+
+    private bool HasChanges()
+    {
+        return State.DraftQuantity != State.OriginalQuantity ||
+               State.DraftNotes != State.OriginalNotes;
+    }
+}
