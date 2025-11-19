@@ -1,6 +1,6 @@
 @typeparam TItem
 
-<MudTh draggable="@IsDraggable"
+<MudTh draggable="@(IsDraggable ? "true" : "false")"
        @ondragstart="@OnDragStart"
        Style="@_cursorStyle">
     @ChildContent

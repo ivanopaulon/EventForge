@@ -216,7 +216,7 @@
     private EFTable<VatRateDto> _efTable = null!;
 
     // Column configuration for EFTable
-    private List<EFTable<VatRateDto>.ColumnConfiguration> _initialColumns = new()
+    private List<EFTableColumnConfiguration> _initialColumns = new()
     {
         new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0 },
         new() { PropertyName = "Percentage", DisplayName = "Percentuale", IsVisible = true, Order = 1 },
