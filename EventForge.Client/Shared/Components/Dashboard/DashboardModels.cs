@@ -36,6 +36,42 @@ namespace EventForge.Client.Shared.Components.Dashboard
     }
 
     /// <summary>
+    /// Represents the type of filter input control.
+    /// </summary>
+    public enum FilterType
+    {
+        /// <summary>
+        /// Text input field.
+        /// </summary>
+        Text,
+
+        /// <summary>
+        /// Select dropdown.
+        /// </summary>
+        Select,
+
+        /// <summary>
+        /// Date picker.
+        /// </summary>
+        Date,
+
+        /// <summary>
+        /// Date range picker.
+        /// </summary>
+        DateRange,
+
+        /// <summary>
+        /// Checkbox.
+        /// </summary>
+        Checkbox,
+
+        /// <summary>
+        /// Number input.
+        /// </summary>
+        Number
+    }
+
+    /// <summary>
     /// Represents a metric configuration for the dashboard.
     /// </summary>
     /// <typeparam name="TItem">The type of items being measured.</typeparam>
@@ -189,5 +225,92 @@ namespace EventForge.Client.Shared.Components.Dashboard
         /// Calculated metrics.
         /// </summary>
         public List<MetricResult> Metrics { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Represents a filter definition for the dashboard.
+    /// </summary>
+    public class DashboardFilterDefinition
+    {
+        /// <summary>
+        /// Unique identifier for the filter.
+        /// </summary>
+        public string Id { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Display label for the filter.
+        /// </summary>
+        public string Label { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Type of filter control.
+        /// </summary>
+        public FilterType Type { get; set; }
+
+        /// <summary>
+        /// Options for select filters.
+        /// </summary>
+        public List<FilterOption>? Options { get; set; }
+
+        /// <summary>
+        /// Default value for the filter.
+        /// </summary>
+        public string? DefaultValue { get; set; }
+    }
+
+    /// <summary>
+    /// Represents an option in a select filter.
+    /// </summary>
+    public class FilterOption
+    {
+        /// <summary>
+        /// Value of the option.
+        /// </summary>
+        public string Value { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Display label of the option.
+        /// </summary>
+        public string Label { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Represents a collection of filter values.
+    /// </summary>
+    public class DashboardFilters
+    {
+        private readonly Dictionary<string, object?> _filters = new();
+
+        /// <summary>
+        /// Sets a filter value.
+        /// </summary>
+        public void SetValue(string key, object? value)
+        {
+            _filters[key] = value;
+        }
+
+        /// <summary>
+        /// Gets a filter value with type conversion.
+        /// </summary>
+        public T? GetValue<T>(string key)
+        {
+            if (!_filters.TryGetValue(key, out var value))
+                return default;
+
+            if (value == null)
+                return default;
+
+            try
+            {
+                if (value is T typedValue)
+                    return typedValue;
+
+                return (T)Convert.ChangeType(value, typeof(T));
+            }
+            catch
+            {
+                return default;
+            }
+        }
     }
 }

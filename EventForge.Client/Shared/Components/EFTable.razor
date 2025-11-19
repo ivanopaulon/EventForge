@@ -1,4 +1,5 @@
 @typeparam TItem
+@implements IDisposable
 @inject ITablePreferencesService TablePreferencesService
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
@@ -47,6 +48,13 @@
     </MudPaper>
 }
 
+@if (ShowFilters && _filtersExpanded && FiltersPanel != null)
+{
+    <MudPaper Elevation="1" Class="mb-2 pa-3">
+        @FiltersPanel
+    </MudPaper>
+}
+
 <MudTable @ref="_tableRef"
           T="TItem"
           Items="@GetDisplayItems()"
@@ -68,13 +76,83 @@
         {
             @ToolBarContent
         }
+        else
+        {
+            @* Built-in toolbar when no custom toolbar is provided *@
+            @if (!string.IsNullOrEmpty(Title))
+            {
+                <MudStack Row="false" Spacing="0">
+                    <MudText Typo="Typo.h5">@Title</MudText>
+                    @if (!string.IsNullOrEmpty(Subtitle))
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">@Subtitle</MudText>
+                    }
+                </MudStack>
+            }
+            <MudSpacer />
+            @if (ShowSearch)
+            {
+                <MudTextField @bind-Value="_searchTerm"
+                              @bind-Value:after="@(async () => await OnSearchTermChanged(_searchTerm))"
+                              Label="@(SearchPlaceholder ?? TranslationService.GetTranslation("table.search", "Cerca"))"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              Clearable="true"
+                              Dense="true"
+                              Class="mr-2"
+                              Style="max-width: 300px;" />
+            }
+            @if (ShowFilters)
+            {
+                <MudIconButton Icon="@Icons.Material.Outlined.FilterList"
+                               Color="@(_filtersExpanded ? Color.Primary : Color.Default)"
+                               OnClick="@ToggleFilters"
+                               Size="Size.Small" />
+            }
+            @if (ShowExport && ExportFormats.Any())
+            {
+                <MudMenu Icon="@Icons.Material.Outlined.Download"
+                         Color="Color.Default"
+                         Dense="true"
+                         Size="Size.Small">
+                    @foreach (var format in ExportFormats)
+                    {
+                        <MudMenuItem OnClick="@(async () => await HandleExport(format))">
+                            @format
+                        </MudMenuItem>
+                    }
+                </MudMenu>
+            }
+            @if (UseDefaultActions && OnAdd.HasDelegate)
+            {
+                <MudIconButton Icon="@Icons.Material.Outlined.Add"
+                               Color="Color.Primary"
+                               OnClick="@HandleAdd"
+                               Size="Size.Small" />
+            }
+            @if (Actions != null && Actions.Any())
+            {
+                @foreach (var action in Actions.Where(a => a.IsEnabled))
+                {
+                    <MudTooltip Text="@(action.Tooltip ?? action.Label)">
+                        <MudIconButton Icon="@(action.Icon ?? Icons.Material.Outlined.MoreVert)"
+                                       Color="@(Enum.Parse<Color>(action.Color ?? "Default"))"
+                                       OnClick="@(async () => await HandleCustomAction(action.Id))"
+                                       Size="Size.Small"
+                                       Disabled="@(action.RequiresSelection && !SelectedItems.Any())" />
+                    </MudTooltip>
+                }
+            }
+        }
         @if (ShowColumnConfiguration)
         {
             <MudMenu Icon="@Icons.Material.Outlined.Settings"
                      Color="Color.Default"
                      AnchorOrigin="Origin.BottomRight"
                      TransformOrigin="Origin.TopRight"
-                     Dense="true">
+                     Dense="true"
+                     Size="Size.Small">
                 <MudMenuItem Icon="@Icons.Material.Outlined.ViewColumn"
                            OnClick="@OpenColumnConfigurationDialog">
                     @TranslationService.GetTranslation("table.configuration", "Configurazione")
@@ -169,6 +247,10 @@
     // Table reference
     private MudTable<TItem>? _tableRef;
 
+    // Header parameters
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Subtitle { get; set; }
+    
     // Data parameters
     [Parameter] public IEnumerable<TItem>? Items { get; set; }
     [Parameter] public Func<TableState, CancellationToken, Task<TableData<TItem>>>? ServerData { get; set; }
@@ -177,6 +259,31 @@
     [Parameter] public bool MultiSelection { get; set; }
     [Parameter] public HashSet<TItem> SelectedItems { get; set; } = new();
     [Parameter] public EventCallback<HashSet<TItem>> SelectedItemsChanged { get; set; }
+    
+    // Search parameters
+    [Parameter] public bool ShowSearch { get; set; } = false;
+    [Parameter] public string? SearchPlaceholder { get; set; }
+    [Parameter] public int SearchDebounce { get; set; } = 300;
+    [Parameter] public EventCallback<string> OnSearch { get; set; }
+    
+    // Filter parameters
+    [Parameter] public bool ShowFilters { get; set; } = false;
+    [Parameter] public RenderFragment? FiltersPanel { get; set; }
+    [Parameter] public EventCallback OnToggleFilters { get; set; }
+    
+    // Export parameters
+    [Parameter] public bool ShowExport { get; set; } = false;
+    [Parameter] public List<string> ExportFormats { get; set; } = new() { "CSV", "Excel" };
+    [Parameter] public EventCallback<string> OnExport { get; set; }
+    
+    // Action parameters
+    [Parameter] public List<EFTableAction>? Actions { get; set; }
+    [Parameter] public bool UseDefaultActions { get; set; } = true;
+    [Parameter] public EventCallback OnAdd { get; set; }
+    [Parameter] public EventCallback<TItem> OnEdit { get; set; }
+    [Parameter] public EventCallback<TItem> OnDelete { get; set; }
+    [Parameter] public EventCallback<TItem> OnView { get; set; }
+    [Parameter] public EventCallback<EFTableActionEventArgs> OnAction { get; set; }
 
     // Appearance parameters
     [Parameter] public bool Hover { get; set; } = true;
@@ -219,6 +326,11 @@
     private List<string> _groupByProperties = new();
     private Dictionary<int, object?> _lastGroupValues = new();
     private string? _draggedColumnProperty;
+    
+    // Search state
+    private string _searchTerm = string.Empty;
+    private System.Threading.Timer? _searchTimer;
+    private bool _filtersExpanded = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -519,5 +631,105 @@
             return Items.Count();
         }
         return 0;
+    }
+
+    // Search methods
+    private async Task OnSearchTermChanged(string value)
+    {
+        _searchTerm = value;
+        
+        // Cancel previous timer if exists
+        _searchTimer?.Dispose();
+        
+        // Create new timer for debounce
+        if (SearchDebounce > 0)
+        {
+            _searchTimer = new System.Threading.Timer(async _ =>
+            {
+                await InvokeAsync(async () =>
+                {
+                    if (OnSearch.HasDelegate)
+                    {
+                        await OnSearch.InvokeAsync(_searchTerm);
+                    }
+                    StateHasChanged();
+                });
+            }, null, SearchDebounce, Timeout.Infinite);
+        }
+        else
+        {
+            if (OnSearch.HasDelegate)
+            {
+                await OnSearch.InvokeAsync(_searchTerm);
+            }
+        }
+    }
+
+    private async Task ToggleFilters()
+    {
+        _filtersExpanded = !_filtersExpanded;
+        if (OnToggleFilters.HasDelegate)
+        {
+            await OnToggleFilters.InvokeAsync();
+        }
+        StateHasChanged();
+    }
+
+    private async Task HandleExport(string format)
+    {
+        if (OnExport.HasDelegate)
+        {
+            await OnExport.InvokeAsync(format);
+        }
+    }
+
+    private async Task HandleAdd()
+    {
+        if (OnAdd.HasDelegate)
+        {
+            await OnAdd.InvokeAsync();
+        }
+    }
+
+    private async Task HandleEdit(TItem item)
+    {
+        if (OnEdit.HasDelegate)
+        {
+            await OnEdit.InvokeAsync(item);
+        }
+    }
+
+    private async Task HandleDelete(TItem item)
+    {
+        if (OnDelete.HasDelegate)
+        {
+            await OnDelete.InvokeAsync(item);
+        }
+    }
+
+    private async Task HandleView(TItem item)
+    {
+        if (OnView.HasDelegate)
+        {
+            await OnView.InvokeAsync(item);
+        }
+    }
+
+    private async Task HandleCustomAction(string actionId, object? payload = null)
+    {
+        if (OnAction.HasDelegate)
+        {
+            var args = new EFTableActionEventArgs
+            {
+                ActionId = actionId,
+                Payload = payload
+            };
+            await OnAction.InvokeAsync(args);
+        }
+    }
+
+    public void Dispose()
+    {
+        _searchTimer?.Dispose();
     }
 }

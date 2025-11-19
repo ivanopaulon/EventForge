@@ -29,3 +29,60 @@ public class EFTableColumnConfigurationResult
     public List<EFTableColumnConfiguration> Columns { get; set; } = new();
     public List<string> GroupByProperties { get; set; } = new();
 }
+
+/// <summary>
+/// Represents a custom action in EFTable
+/// </summary>
+public class EFTableAction
+{
+    /// <summary>
+    /// Unique identifier for the action
+    /// </summary>
+    public string Id { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Display label for the action
+    /// </summary>
+    public string Label { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Icon to display
+    /// </summary>
+    public string? Icon { get; set; }
+
+    /// <summary>
+    /// Color of the action button
+    /// </summary>
+    public string? Color { get; set; }
+
+    /// <summary>
+    /// Whether this action requires items to be selected
+    /// </summary>
+    public bool RequiresSelection { get; set; } = false;
+
+    /// <summary>
+    /// Whether this action is enabled
+    /// </summary>
+    public bool IsEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Tooltip text
+    /// </summary>
+    public string? Tooltip { get; set; }
+}
+
+/// <summary>
+/// Event args for custom actions
+/// </summary>
+public class EFTableActionEventArgs
+{
+    /// <summary>
+    /// Action identifier
+    /// </summary>
+    public string ActionId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Selected items if any
+    /// </summary>
+    public object? Payload { get; set; }
+}
