@@ -1,0 +1,414 @@
+@typeparam TItem
+@using EventForge.Client.Shared.Components.Dashboard
+@using System.Linq.Expressions
+@inject ILogger<ManagementDashboard<TItem>> Logger
+
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+    @if (ShowFilters && FilterDefinitions?.Any() == true)
+    {
+        <MudGrid Class="mb-4">
+            @foreach (var filterDef in FilterDefinitions)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    @if (filterDef.Type == FilterType.Text)
+                    {
+                        <MudTextField T="string"
+                                      Label="@filterDef.Label"
+                                      Placeholder="@filterDef.Placeholder"
+                                      Value="@(Filters?.GetValue<string>(filterDef.Id))"
+                                      ValueChanged="@(value => OnFilterChanged(filterDef.Id, value))"
+                                      Variant="Variant.Outlined"
+                                      Clearable="true"
+                                      Class="ef-input" />
+                    }
+                    else if (filterDef.Type == FilterType.Select && filterDef.Options != null)
+                    {
+                        <MudSelect T="string"
+                                   Label="@filterDef.Label"
+                                   Value="@(Filters?.GetValue<string>(filterDef.Id))"
+                                   ValueChanged="@(value => OnFilterChanged(filterDef.Id, value))"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   Class="ef-input">
+                            @foreach (var option in filterDef.Options)
+                            {
+                                <MudSelectItem T="string" Value="@option.Value">@option.Label</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                    else if (filterDef.Type == FilterType.Date)
+                    {
+                        <MudDatePicker Label="@filterDef.Label"
+                                       Date="@(Filters?.GetValue<DateTime?>(filterDef.Id))"
+                                       DateChanged="@(value => OnFilterChanged(filterDef.Id, value))"
+                                       Variant="Variant.Outlined"
+                                       Clearable="true"
+                                       Class="ef-input" />
+                    }
+                    else if (filterDef.Type == FilterType.Checkbox)
+                    {
+                        <MudCheckBox T="bool"
+                                     Label="@filterDef.Label"
+                                     Checked="@(Filters?.GetValue<bool>(filterDef.Id))"
+                                     CheckedChanged="@((bool value) => OnFilterChanged(filterDef.Id, value))"
+                                     Color="Color.Primary" />
+                    }
+                    else if (filterDef.Type == FilterType.Number)
+                    {
+                        <MudNumericField T="decimal?"
+                                         Label="@filterDef.Label"
+                                         Placeholder="@filterDef.Placeholder"
+                                         Value="@(Filters?.GetValue<decimal?>(filterDef.Id))"
+                                         ValueChanged="@(value => OnFilterChanged(filterDef.Id, value))"
+                                         Variant="Variant.Outlined"
+                                         Clearable="true"
+                                         Class="ef-input" />
+                    }
+                </MudItem>
+            }
+        </MudGrid>
+        <MudDivider Class="mb-4" />
+    }
+
+    @if (_metricResults?.Any() == true)
+    {
+        <MudGrid>
+            @foreach (var metric in _metricResults)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    <MudCard>
+                        <MudCardContent>
+                            <div class="d-flex align-center mb-2">
+                                @if (!string.IsNullOrEmpty(metric.Icon))
+                                {
+                                    <MudIcon Icon="@metric.Icon" 
+                                             Color="@GetMudColor(metric.Color)" 
+                                             Class="mr-2" />
+                                }
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    @metric.Title
+                                </MudText>
+                                @if (!string.IsNullOrEmpty(metric.Description))
+                                {
+                                    <MudTooltip Text="@metric.Description">
+                                        <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Class="ml-1" />
+                                    </MudTooltip>
+                                }
+                            </div>
+                            <MudText Typo="Typo.h4" Color="@GetMudColor(metric.Color)">
+                                @metric.FormattedValue
+                            </MudText>
+                            @if (!string.IsNullOrEmpty(metric.GroupLabel))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                                    @metric.GroupLabel
+                                </MudText>
+                            }
+                            @if (metric.ShowChart && metric.ChartData?.Any() == true)
+                            {
+                                <div class="mt-3">
+                                    <MudChart ChartType="ChartType.Bar"
+                                              ChartSeries="@GetChartSeries(metric.ChartData)"
+                                              XAxisLabels="@GetChartLabels(metric.ChartData)"
+                                              Width="100%"
+                                              Height="120px" />
+                                </div>
+                            }
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+    else if (_isCalculating)
+    {
+        <div class="d-flex justify-center align-center pa-4">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            <MudText Class="ml-3">Calcolo metriche...</MudText>
+        </div>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info">
+            Nessuna metrica disponibile. Configurare le metriche per visualizzare i dati del dashboard.
+        </MudAlert>
+    }
+</MudPaper>
+
+@code {
+    /// <summary>
+    /// Items to calculate metrics from (client-side).
+    /// </summary>
+    [Parameter]
+    public IEnumerable<TItem>? Items { get; set; }
+
+    /// <summary>
+    /// Metric definitions for the dashboard.
+    /// </summary>
+    [Parameter]
+    public List<DashboardMetric<TItem>>? Metrics { get; set; }
+
+    /// <summary>
+    /// Filter definitions for the dashboard.
+    /// </summary>
+    [Parameter]
+    public List<DashboardFilterDefinition>? FilterDefinitions { get; set; }
+
+    /// <summary>
+    /// Current filter values (two-way binding).
+    /// </summary>
+    [Parameter]
+    public DashboardFilters? Filters { get; set; }
+
+    /// <summary>
+    /// Event callback for filter changes (two-way binding).
+    /// </summary>
+    [Parameter]
+    public EventCallback<DashboardFilters> FiltersChanged { get; set; }
+
+    /// <summary>
+    /// Optional server-side metric provider.
+    /// </summary>
+    [Parameter]
+    public Func<ServerMetricRequest, Task<ServerMetricResponse>>? ServerMetricProvider { get; set; }
+
+    /// <summary>
+    /// Whether to show filters.
+    /// </summary>
+    [Parameter]
+    public bool ShowFilters { get; set; } = true;
+
+    /// <summary>
+    /// Whether to use server-side calculation.
+    /// </summary>
+    [Parameter]
+    public bool UseServerSide { get; set; } = false;
+
+    private List<MetricResult>? _metricResults;
+    private bool _isCalculating = false;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await CalculateMetricsAsync();
+    }
+
+    private async Task OnFilterChanged(string filterId, object? value)
+    {
+        if (Filters == null)
+        {
+            Filters = new DashboardFilters();
+        }
+
+        Filters.SetValue(filterId, value);
+        await FiltersChanged.InvokeAsync(Filters);
+        await CalculateMetricsAsync();
+    }
+
+    private async Task CalculateMetricsAsync()
+    {
+        if (Metrics == null || !Metrics.Any())
+        {
+            _metricResults = null;
+            return;
+        }
+
+        try
+        {
+            _isCalculating = true;
+            StateHasChanged();
+
+            if (UseServerSide && ServerMetricProvider != null)
+            {
+                await CalculateServerSideMetricsAsync();
+            }
+            else
+            {
+                CalculateClientSideMetrics();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error calculating dashboard metrics");
+            _metricResults = null;
+        }
+        finally
+        {
+            _isCalculating = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CalculateClientSideMetrics()
+    {
+        if (Items == null || Metrics == null)
+        {
+            _metricResults = null;
+            return;
+        }
+
+        _metricResults = new List<MetricResult>();
+
+        foreach (var metric in Metrics)
+        {
+            try
+            {
+                var filteredItems = Items;
+
+                // Apply metric-specific filter
+                if (metric.Filter != null)
+                {
+                    filteredItems = filteredItems.Where(metric.Filter);
+                }
+
+                if (metric.GroupBySelector == null)
+                {
+                    // Simple metric without grouping
+                    var result = CalculateSingleMetric(metric, filteredItems);
+                    if (result != null)
+                    {
+                        _metricResults.Add(result);
+                    }
+                }
+                else
+                {
+                    // Grouped metric
+                    var compiledGroupBy = metric.GroupBySelector.Compile();
+                    var groups = filteredItems.GroupBy(compiledGroupBy);
+
+                    var topGroups = metric.TopN > 0 
+                        ? groups.Take(metric.TopN) 
+                        : groups;
+
+                    foreach (var group in topGroups)
+                    {
+                        var result = CalculateSingleMetric(metric, group);
+                        if (result != null)
+                        {
+                            result.GroupLabel = group.Key?.ToString() ?? "N/A";
+                            _metricResults.Add(result);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error calculating metric: {MetricTitle}", metric.Title);
+            }
+        }
+    }
+
+    private MetricResult? CalculateSingleMetric(DashboardMetric<TItem> metric, IEnumerable<TItem> items)
+    {
+        if (!items.Any())
+        {
+            return null;
+        }
+
+        decimal value = 0;
+
+        switch (metric.Type)
+        {
+            case MetricType.Count:
+                value = items.Count();
+                break;
+
+            case MetricType.Sum:
+                if (metric.ValueSelector != null)
+                {
+                    var compiledSelector = metric.ValueSelector.Compile();
+                    value = items.Sum(compiledSelector);
+                }
+                break;
+
+            case MetricType.Average:
+                if (metric.ValueSelector != null)
+                {
+                    var compiledSelector = metric.ValueSelector.Compile();
+                    value = items.Average(compiledSelector);
+                }
+                break;
+
+            case MetricType.Min:
+                if (metric.ValueSelector != null)
+                {
+                    var compiledSelector = metric.ValueSelector.Compile();
+                    value = items.Min(compiledSelector);
+                }
+                break;
+
+            case MetricType.Max:
+                if (metric.ValueSelector != null)
+                {
+                    var compiledSelector = metric.ValueSelector.Compile();
+                    value = items.Max(compiledSelector);
+                }
+                break;
+        }
+
+        var formattedValue = metric.Format != null 
+            ? value.ToString(metric.Format) 
+            : value.ToString("N0");
+
+        return new MetricResult
+        {
+            Title = metric.Title,
+            Value = value,
+            FormattedValue = formattedValue,
+            Icon = metric.Icon,
+            Color = metric.Color,
+            Description = metric.Description,
+            ShowChart = metric.ShowChart
+        };
+    }
+
+    private async Task CalculateServerSideMetricsAsync()
+    {
+        if (ServerMetricProvider == null || Metrics == null)
+        {
+            _metricResults = null;
+            return;
+        }
+
+        var request = new ServerMetricRequest
+        {
+            MetricIds = Metrics.Select((m, i) => $"metric_{i}").ToList(),
+            Filters = Filters?.Values ?? new Dictionary<string, object?>()
+        };
+
+        var response = await ServerMetricProvider(request);
+        _metricResults = response.Metrics;
+    }
+
+    private Color GetMudColor(string? color)
+    {
+        return color?.ToLowerInvariant() switch
+        {
+            "primary" => Color.Primary,
+            "secondary" => Color.Secondary,
+            "success" => Color.Success,
+            "info" => Color.Info,
+            "warning" => Color.Warning,
+            "error" => Color.Error,
+            "dark" => Color.Dark,
+            "tertiary" => Color.Tertiary,
+            _ => Color.Default
+        };
+    }
+
+    private List<ChartSeries> GetChartSeries(List<ChartDataPoint> chartData)
+    {
+        return new List<ChartSeries>
+        {
+            new ChartSeries
+            {
+                Name = "Value",
+                Data = chartData.Select(d => d.Value).ToArray()
+            }
+        };
+    }
+
+    private string[] GetChartLabels(List<ChartDataPoint> chartData)
+    {
+        return chartData.Select(d => d.Label).ToArray();
+    }
+}
