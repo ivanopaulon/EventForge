@@ -3,6 +3,7 @@
 @using EventForge.DTOs.Business
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IBusinessPartyService BusinessPartyService
@@ -13,198 +14,206 @@
 @inject ITranslationService TranslationService
 @inject ILogger<CustomerManagement> Logger
 
-<MudContainer MaxWidth="MaxWidth.False" Class="mt-4 px-0" Style="width:100%; min-height:100vh; display:flex; flex-direction:column;">
-    <PageLoadingOverlay Visible="_isLoading || _isLoadingCustomers"
-                         Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+<PageLoadingOverlay Visible="_isLoading || _isLoadingCustomers"
+                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-    @if (!_isLoading)
-    {
-        <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4">
-            <div class="d-flex justify-space-between align-center mb-4">
-                <div>
-                    <MudText Typo="Typo.h4">
-                        <MudIcon Icon="@Icons.Material.Outlined.People" Class="mr-2" />
-                        @TranslationService.GetTranslation("customer.management", "Gestione Clienti")
-                    </MudText>
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
-                        @TranslationService.GetTranslation("customer.managementDescription", "Gestisci i clienti per la tua organizzazione")
-                    </MudText>
-                </div>
-            </div>
+@if (!_isLoading)
+{
+    <div class="customer-page-root">
+        <div class="customer-top">
+            <ManagementDashboard TItem="BusinessPartyDto"
+                                 Items="_filteredCustomers"
+                                 Metrics="_dashboardMetrics"
+                                 EntityType="Customer"
+                                 AllowConfiguration="true"
+                                 UseServerSide="false" />
+        </div>
 
-            <!-- Filters Section -->
-            <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
-                <div class="d-flex gap-3 align-center flex-wrap">
-                    <MudTextField @bind-Value="_searchTerm"
-                                  @bind-Value:after="OnSearchChanged"
-                                  Label="@TranslationService.GetTranslation("customer.search", "Cerca clienti")"
-                                  Placeholder="@TranslationService.GetTranslation("customer.searchPlaceholder", "Inserisci nome, P.IVA o codice fiscale...")"
-                                  Variant="Variant.Outlined"
-                                  Adornment="Adornment.End"
-                                  AdornmentIcon="@Icons.Material.Outlined.Search"
-                                  Clearable="true"
-                                  Style="flex: 2;" />
-                </div>
-            </MudPaper>
-
-            <!-- Customers Data Table -->
-            <MudPaper Elevation="1" Class="border-rounded">
-                <div class="pa-2">
-                    <MudText Typo="Typo.h6" Class="mb-2">
-                        <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
-                        @TranslationService.GetTranslation("customer.list", "Lista Clienti")
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
-                            (@_filteredCustomers.Count() @TranslationService.GetTranslation("customer.itemsFound", "elementi trovati"))
-                        </MudText>
-                    </MudText>
-                    
-                    <ManagementTableToolbar ShowSelectionBadge="true"
-                                            SelectedCount="@_selectedCustomers.Count"
-                                            ShowRefresh="true"
-                                            ShowCreate="true"
-                                            ShowDelete="true"
-                                            CreateLabel="customer.create"
-                                            CreateTooltip="customer.createNew"
-                                            IsDisabled="_isLoadingCustomers"
-                                            OnRefresh="@LoadCustomersAsync"
-                                            OnCreate="@CreateCustomer"
-                                            OnDelete="@DeleteSelectedCustomers" />
-                </div>
-                <MudCardContent Class="pa-1">
-                    @if (_isLoadingCustomers)
+        <div class="eftable-wrapper">
+            <EFTable @ref="_efTable"
+                 TItem="BusinessPartyDto"
+                 Items="_filteredCustomers"
+                 MultiSelection="true"
+                 SelectedItems="_selectedCustomers"
+                 SelectedItemsChanged="_selectedItemsChangedCallback"
+                 IsLoading="_isLoadingCustomers"
+                 ComponentKey="CustomerManagement"
+                 InitialColumnConfigurations="_initialColumns"
+                 AllowDragDropGrouping="true">
+            <ToolBarContent>
+                <MudText Typo="Typo.h5">
+                    @TranslationService.GetTranslation("customer.management", "Gestione Clienti")
+                </MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="_searchTerm"
+                              @bind-Value:after="OnSearchChanged"
+                              Label="@TranslationService.GetTranslation("customer.search", "Cerca clienti")"
+                              Placeholder="@TranslationService.GetTranslation("customer.searchPlaceholder", "Inserisci nome, P.IVA o codice fiscale...")"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              Clearable="true"
+                              Class="ef-input" />
+                <ManagementTableToolbar ShowSelectionBadge="true"
+                                        SelectedCount="@_selectedCustomers.Count"
+                                        ShowRefresh="true"
+                                        ShowCreate="true"
+                                        ShowDelete="true"
+                                        CreateTooltip="customer.createNew"
+                                        IsDisabled="_isLoadingCustomers"
+                                        OnRefresh="@LoadCustomersAsync"
+                                        OnCreate="@CreateCustomer"
+                                        OnDelete="@DeleteSelectedCustomers" />
+            </ToolBarContent>
+            <HeaderContent Context="columnConfigurations">
+                @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                {
+                    @if (column.PropertyName == "Name")
                     {
-                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+                        <EFTableColumnHeader TItem="BusinessPartyDto" PropertyName="Name" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                        </EFTableColumnHeader>
                     }
-                    else
+                    else if (column.PropertyName == "VatNumber")
                     {
-                        <MudTable T="BusinessPartyDto" 
-                                  Items="_filteredCustomers"
-                                  MultiSelection="true"
-                                  @bind-SelectedItems="_selectedCustomers"
-                                  Hover="true" 
-                                  Striped="true"
-                                  Loading="_isLoadingCustomers"
-                                  LoadingProgressColor="Color.Info"
-                                  SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
-                                  AllowUnsorted="false"
-                                  Dense="false"
-                                  Breakpoint="Breakpoint.Sm">
-                            <HeaderContent>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.VatNumber ?? ""))">@TranslationService.GetTranslation("field.vatNumber", "P.IVA")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.TaxCode ?? ""))">@TranslationService.GetTranslation("field.taxCode", "C.F.")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.City ?? ""))">@TranslationService.GetTranslation("field.city", "Località")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.Province ?? ""))">@TranslationService.GetTranslation("field.province", "Provincia")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.Country ?? ""))">@TranslationService.GetTranslation("field.country", "Nazione")</MudTableSortLabel></MudTh>
-                                <MudTh>@TranslationService.GetTranslation("field.contacts", "Contatti")</MudTh>
-                                <MudTh Class="text-center" Style="min-width: 120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                        <EFTableColumnHeader TItem="BusinessPartyDto" PropertyName="VatNumber" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.VatNumber ?? string.Empty))">@TranslationService.GetTranslation("field.vatNumber", "P.IVA")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "TaxCode")
+                    {
+                        <EFTableColumnHeader TItem="BusinessPartyDto" PropertyName="TaxCode" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.TaxCode ?? string.Empty))">@TranslationService.GetTranslation("field.taxCode", "C.F.")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "City")
+                    {
+                        <EFTableColumnHeader TItem="BusinessPartyDto" PropertyName="City" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.City ?? string.Empty))">@TranslationService.GetTranslation("field.city", "Località")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Province")
+                    {
+                        <EFTableColumnHeader TItem="BusinessPartyDto" PropertyName="Province" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.Province ?? string.Empty))">@TranslationService.GetTranslation("field.province", "Provincia")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Country")
+                    {
+                        <EFTableColumnHeader TItem="BusinessPartyDto" PropertyName="Country" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BusinessPartyDto, object>(x => x.Country ?? string.Empty))">@TranslationService.GetTranslation("field.country", "Nazione")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Contacts")
+                    {
+                        <EFTableColumnHeader TItem="BusinessPartyDto" PropertyName="Contacts" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTh>@TranslationService.GetTranslation("field.contacts", "Contatti")</MudTh>
+                        </EFTableColumnHeader>
+                    }
+                }
+                <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                             </HeaderContent>
 
-                            <RowTemplate>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
-                                    <MudTooltip>
-                                        <ChildContent>
-                                            <div class="d-flex align-center">
-                                                <MudAvatar Color="Color.Info" Size="Size.Small" Class="mr-2">
-                                                    <MudIcon Icon="@Icons.Material.Outlined.Person" />
-                                                </MudAvatar>
-                                                <div>
-                                                    <MudText Typo="Typo.body2">@context.Name</MudText>
-                                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @context.Id.ToString().Substring(0, 8)...</MudText>
-                                                </div>
-                                            </div>
-                                        </ChildContent>
-                                        <TooltipContent>
-                                            @if (context.Contacts.Any())
-                                            {
-                                                <div style="padding: 8px;">
-                                                    <MudText Typo="Typo.subtitle2" Class="mb-2"><strong>@TranslationService.GetTranslation("field.contacts", "Contatti"):</strong></MudText>
-                                                    @foreach (var contact in context.Contacts)
-                                                    {
-                                                        <div class="mb-1">
-                                                            <MudText Typo="Typo.body2">
-                                                                <MudIcon Icon="@GetContactIcon(contact.ContactType)" Size="Size.Small" Class="mr-1" />
-                                                                @contact.Value
-                                                                @if (contact.IsPrimary)
-                                                                {
-                                                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Style="height: 18px; font-size: 0.7rem;">@TranslationService.GetTranslation("common.primary", "Primario")</MudChip>
-                                                                }
-                                                            </MudText>
-                                                        </div>
-                                                    }
-                                                </div>
-                                            }
-                                            else
-                                            {
-                                                <MudText Typo="Typo.body2">@TranslationService.GetTranslation("customer.noContactsAvailable", "Nessun contatto disponibile")</MudText>
-                                            }
-                                        </TooltipContent>
-                                    </MudTooltip>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.vatNumber", "P.IVA")">
-                                    <MudText Typo="Typo.body2">@(context.VatNumber ?? "-")</MudText>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.taxCode", "C.F.")">
-                                    <MudText Typo="Typo.body2">@(context.TaxCode ?? "-")</MudText>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.city", "Località")">
-                                    <MudText Typo="Typo.body2">@(context.City ?? "-")</MudText>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.province", "Provincia")">
-                                    <MudText Typo="Typo.body2">@(context.Province ?? "-")</MudText>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.country", "Nazione")">
-                                    <MudText Typo="Typo.body2">@(context.Country ?? "-")</MudText>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.contacts", "Contatti")">
-                                    <div class="d-flex gap-2">
-                                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.LocationOn">@context.AddressCount</MudChip>
-                                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Phone">@context.ContactCount</MudChip>
-                                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Person">@context.ReferenceCount</MudChip>
-                                    </div>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
-                                    <ActionButtonGroup EntityName="@context.Name"
-                                                      ItemDisplayName="@context.Name"
-                                                      ShowView="false"
-                                                      ShowEdit="true"
-                                                      ShowAuditLog="true"
-                                                      ShowToggleStatus="true"
-                                                      ShowDelete="true"
-                                                      IsActive="@context.IsActive"
-                                                      OnEdit="@(() => EditCustomer(context))"
-                                                      OnAuditLog="@(() => ViewCustomerAuditLog(context))"
-                                                      OnToggleStatus="@(() => ToggleCustomerStatus(context))"
-                                                      OnDelete="@(() => DeleteCustomer(context))" />
-                                </MudTd>
-                            </RowTemplate>
-
-                            <NoRecordsContent>
-                                <div class="text-center pa-2 pa-sm-3 pa-md-4">
-                                    <MudIcon Icon="@Icons.Material.Outlined.People" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
-                                    <MudText Typo="Typo.h6" Class="mb-2">
-                                        @(_customers.Any() ? 
-                                            TranslationService.GetTranslation("customer.noMatchFilters", "Nessun cliente corrisponde ai filtri applicati") : 
-                                            TranslationService.GetTranslation("customer.noFound", "Nessun cliente trovato"))
-                                    </MudText>
-                                    @if (_customers.Any())
-                                    {
-                                        <MudButton Variant="Variant.Text" 
-                                                   Color="Color.Primary" 
-                                                   StartIcon="@Icons.Material.Outlined.Clear"
-                                                   OnClick="@ClearFilters">
-                                            @TranslationService.GetTranslation("customer.clearFilters", "Cancella filtri")
-                                        </MudButton>
-                                    }
+            <RowTemplate Context="item">
+                @{
+                    var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                }
+                @foreach (var column in visibleColumns)
+                {
+                    @if (column.PropertyName == "Name")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                            <div class="d-flex align-center">
+                                <MudAvatar Color="Color.Info" Size="Size.Small" Class="mr-2">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Person" />
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.body2">@item.Name</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(item.Id.ToString()[..Math.Min(8, item.Id.ToString().Length)])...</MudText>
                                 </div>
-                            </NoRecordsContent>
-                        </MudTable>
+                            </div>
+                        </MudTd>
                     }
-                </MudCardContent>
-            </MudPaper>
-        </MudPaper>
-    }
-</MudContainer>
+                    else if (column.PropertyName == "VatNumber")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.vatNumber", "P.IVA")">
+                            <MudText Typo="Typo.body2">@(item.VatNumber ?? "-")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "TaxCode")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.taxCode", "C.F.")">
+                            <MudText Typo="Typo.body2">@(item.TaxCode ?? "-")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "City")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.city", "Località")">
+                            <MudText Typo="Typo.body2">@(item.City ?? "-")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Province")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.province", "Provincia")">
+                            <MudText Typo="Typo.body2">@(item.Province ?? "-")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Country")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.country", "Nazione")">
+                            <MudText Typo="Typo.body2">@(item.Country ?? "-")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Contacts")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.contacts", "Contatti")">
+                            <div class="d-flex gap-2">
+                                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.LocationOn">@item.AddressCount</MudChip>
+                                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Phone">@item.ContactCount</MudChip>
+                                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Person">@item.ReferenceCount</MudChip>
+                            </div>
+                        </MudTd>
+                    }
+                }
+                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                    <ActionButtonGroup EntityName="@item.Name"
+                                       ItemDisplayName="@item.Name"
+                                       ShowView="false"
+                                       ShowEdit="true"
+                                       ShowAuditLog="true"
+                                       ShowToggleStatus="true"
+                                       ShowDelete="true"
+                                       IsActive="@item.IsActive"
+                                       OnEdit="@(() => EditCustomer(item))"
+                                       OnAuditLog="@(() => ViewCustomerAuditLog(item))"
+                                       OnToggleStatus="@(() => ToggleCustomerStatus(item))"
+                                       OnDelete="@(() => DeleteCustomer(item))" />
+                </MudTd>
+            </RowTemplate>
+
+            <NoRecordsContent>
+                <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                    <MudIcon Icon="@Icons.Material.Outlined.People" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        @(_customers.Any() ? 
+                            TranslationService.GetTranslation("customer.noMatchFilters", "Nessun cliente corrisponde ai filtri applicati") : 
+                            TranslationService.GetTranslation("customer.noFound", "Nessun cliente trovato"))
+                    </MudText>
+                    @if (_customers.Any())
+                    {
+                        <MudButton Variant="Variant.Text" 
+                                   Color="Color.Primary" 
+                                   StartIcon="@Icons.Material.Outlined.Clear"
+                                   OnClick="@ClearFilters">
+                            @TranslationService.GetTranslation("customer.clearFilters", "Cancella filtri")
+                        </MudButton>
+                    }
+                </div>
+            </NoRecordsContent>
+            </EFTable>
+        </div>
+    </div>
+}
 
 @code {
     // Dialog options for fullscreen audit dialog
@@ -218,15 +227,75 @@
     // UI State Management
     private bool _isLoading = true;
     private bool _isLoadingCustomers = false;
-    
-    // Selection management
-    private HashSet<BusinessPartyDto> _selectedCustomers = new();
-    
+
     // Filter and search state
     private string _searchTerm = string.Empty;
-    
+    private CancellationTokenSource? _searchDebounceCts;
+
     // Data collections
     private List<BusinessPartyDto> _customers = new();
+    private HashSet<BusinessPartyDto> _selectedCustomers = new();
+
+    // EFTable reference
+    private EFTable<BusinessPartyDto> _efTable = null!;
+
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _initialColumns = new()
+    {
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0 },
+        new() { PropertyName = "VatNumber", DisplayName = "P.IVA", IsVisible = true, Order = 1 },
+        new() { PropertyName = "TaxCode", DisplayName = "C.F.", IsVisible = true, Order = 2 },
+        new() { PropertyName = "City", DisplayName = "Località", IsVisible = true, Order = 3 },
+        new() { PropertyName = "Province", DisplayName = "Provincia", IsVisible = true, Order = 4 },
+        new() { PropertyName = "Country", DisplayName = "Nazione", IsVisible = true, Order = 5 },
+        new() { PropertyName = "Contacts", DisplayName = "Contatti", IsVisible = true, Order = 6 }
+    };
+
+    // Dashboard configuration
+    private List<DashboardMetric<BusinessPartyDto>> _dashboardMetrics = new()
+    {
+        new()
+        {
+            Title = "Totale Clienti",
+            Type = MetricType.Count,
+            Icon = Icons.Material.Outlined.People,
+            Color = "primary",
+            Description = "Numero totale di clienti",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Clienti Attivi",
+            Type = MetricType.Count,
+            Filter = c => c.IsActive,
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Color = "success",
+            Description = "Clienti attivi",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Con P.IVA",
+            Type = MetricType.Count,
+            Filter = c => !string.IsNullOrEmpty(c.VatNumber),
+            Icon = Icons.Material.Outlined.Badge,
+            Color = "info",
+            Description = "Clienti con partita IVA",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Ultimi Aggiunti",
+            Type = MetricType.Count,
+            Filter = c => c.CreatedAt >= DateTime.Now.AddDays(-30),
+            Icon = Icons.Material.Outlined.NewReleases,
+            Color = "warning",
+            Description = "Clienti aggiunti negli ultimi 30 giorni",
+            Format = "N0"
+        }
+    };
+
+    private EventCallback<HashSet<BusinessPartyDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<BusinessPartyDto>>(this, OnSelectedItemsChanged);
 
     /// <summary>
     /// Computed property for filtered customers based on search criteria.
@@ -238,6 +307,15 @@
             c.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
             (c.VatNumber != null && c.VatNumber.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
             (c.TaxCode != null && c.TaxCode.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)));
+
+    /// <summary>
+    /// Handles selection changes from EFTable
+    /// </summary>
+    private void OnSelectedItemsChanged(HashSet<BusinessPartyDto> items)
+    {
+        _selectedCustomers = items;
+        StateHasChanged();
+    }
 
     /// <summary>
     /// Component initialization.
@@ -300,17 +378,31 @@
     /// <summary>
     /// Clears all active filters.
     /// </summary>
-    private async Task ClearFilters()
+    private void ClearFilters()
     {
         _searchTerm = string.Empty;
-        await Task.CompletedTask;
         StateHasChanged();
     }
 
     private async Task OnSearchChanged()
     {
-        await Task.Delay(300); // Debounce
-        StateHasChanged();
+        // Cancel previous debounce if any
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+        var token = _searchDebounceCts.Token;
+        
+        try
+        {
+            await Task.Delay(300, token); // Debounce with cancellation
+            if (!token.IsCancellationRequested)
+            {
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Swallow cancellation
+        }
     }
 
     private void CreateCustomer()
