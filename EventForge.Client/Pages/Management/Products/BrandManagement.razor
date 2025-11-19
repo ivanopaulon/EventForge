@@ -3,165 +3,196 @@
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IBrandService BrandService
 @inject NavigationManager NavigationManager
+@inject IAuthenticationDialogService AuthenticationDialogService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<BrandManagement> Logger
 
-<MudContainer MaxWidth="MaxWidth.False" Class="mt-4 px-0" Style="width:100%; min-height:100vh; display:flex; flex-direction:column;">
-    <PageLoadingOverlay Visible="_isLoading || _isLoadingBrands"
-                        Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+<PageLoadingOverlay Visible="_isLoading || _isLoadingBrands"
+                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-    @if (!_isLoading)
-    {
-        <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4">
-            <div class="d-flex justify-space-between align-center mb-4">
-                <div>
-                    <MudText Typo="Typo.h4">
-                        <MudIcon Icon="@Icons.Material.Outlined.Sell" Class="mr-2" />
-                        @TranslationService.GetTranslation("brand.management", "Gestione Marchi")
-                    </MudText>
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
-                        @TranslationService.GetTranslation("brand.managementDescription", "Gestisci i marchi dei prodotti")
-                    </MudText>
-                </div>
-            </div>
+@if (!_isLoading)
+{
+    <div class="brand-page-root">
+        <div class="brand-top">
+            <ManagementDashboard TItem="BrandDto"
+                                 Items="_filteredBrands"
+                                 Metrics="_dashboardMetrics"
+                                 EntityType="Brand"
+                                 AllowConfiguration="true"
+                                 UseServerSide="false" />
+        </div>
 
-            <!-- Filters Section -->
-            <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
-                <div class="d-flex gap-3 align-center flex-wrap">
-                    <MudTextField @bind-Value="_searchTerm"
-                                  @bind-Value:after="OnSearchChanged"
-                                  Label="@TranslationService.GetTranslation("brand.search", "Cerca marchi")"
-                                  Placeholder="@TranslationService.GetTranslation("brand.searchPlaceholder", "Inserisci nome...")"
-                                  Variant="Variant.Outlined"
-                                  Adornment="Adornment.End"
-                                  AdornmentIcon="@Icons.Material.Outlined.Search"
-                                  Clearable="true"
-                                  Style="flex: 2;" />
-                </div>
-            </MudPaper>
-
-            <!-- Brands Data Table -->
-            <MudPaper Elevation="1" Class="border-rounded">
-                <div class="pa-2">
-                    <MudText Typo="Typo.h6" Class="mb-2">
-                        <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
-                        @TranslationService.GetTranslation("brand.list", "Lista Marchi")
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
-                            (@_filteredBrands.Count() @TranslationService.GetTranslation("common.itemsFound", "elementi trovati"))
-                        </MudText>
-                    </MudText>
-                    
-                    <ManagementTableToolbar ShowSelectionBadge="true"
-                                            SelectedCount="@_selectedBrands.Count"
-                                            ShowRefresh="true"
-                                            ShowCreate="true"
-                                            ShowDelete="true"
-                                            CreateLabel="brand.create"
-                                            CreateTooltip="brand.createNew"
-                                            IsDisabled="_isLoadingBrands"
-                                            OnRefresh="@LoadBrandsAsync"
-                                            OnCreate="@CreateBrand"
-                                            OnDelete="@DeleteSelectedBrands" />
-                </div>
-                <MudCardContent Class="pa-1">
-                    @if (_isLoadingBrands)
+        <div class="eftable-wrapper">
+            <EFTable @ref="_efTable"
+                 TItem="BrandDto"
+                 Items="_filteredBrands"
+                 MultiSelection="true"
+                 SelectedItems="_selectedBrands"
+                 SelectedItemsChanged="_selectedItemsChangedCallback"
+                 IsLoading="_isLoadingBrands"
+                 ComponentKey="BrandManagement"
+                 InitialColumnConfigurations="_initialColumns"
+                 AllowDragDropGrouping="true">
+            <ToolBarContent>
+                <MudText Typo="Typo.h5">
+                    @TranslationService.GetTranslation("brand.management", "Gestione Marchi")
+                </MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="_searchTerm"
+                              @bind-Value:after="OnSearchChanged"
+                              Label="@TranslationService.GetTranslation("brand.search", "Cerca marchi")"
+                              Placeholder="@TranslationService.GetTranslation("brand.searchPlaceholder", "Inserisci nome...")"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              Clearable="true"
+                              Class="ef-input" />
+                <ManagementTableToolbar ShowSelectionBadge="true"
+                                        SelectedCount="@_selectedBrands.Count"
+                                        ShowRefresh="true"
+                                        ShowCreate="true"
+                                        ShowDelete="true"
+                                        CreateTooltip="brand.createNew"
+                                        IsDisabled="_isLoadingBrands"
+                                        OnRefresh="@LoadBrandsAsync"
+                                        OnCreate="@CreateBrand"
+                                        OnDelete="@DeleteSelectedBrands" />
+            </ToolBarContent>
+            <HeaderContent Context="columnConfigurations">
+                @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                {
+                    @if (column.PropertyName == "Name")
                     {
-                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+                        <EFTableColumnHeader TItem="BrandDto" PropertyName="Name" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BrandDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                        </EFTableColumnHeader>
                     }
-                    else
+                    else if (column.PropertyName == "Description")
                     {
-                        <MudTable T="BrandDto" 
-                                  Items="_filteredBrands"
-                                  MultiSelection="true"
-                                  @bind-SelectedItems="_selectedBrands"
-                                  Hover="true" 
-                                  Striped="true"
-                                  Loading="_isLoadingBrands"
-                                  LoadingProgressColor="Color.Info"
-                                  SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
-                                  AllowUnsorted="false"
-                                  FixedHeader="true"
-                                  Height="60vh">
-                            <HeaderContent>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<BrandDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<BrandDto, object>(x => x.Description ?? string.Empty))">@TranslationService.GetTranslation("field.description", "Descrizione")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<BrandDto, object>(x => x.Country ?? string.Empty))">@TranslationService.GetTranslation("field.country", "Paese")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<BrandDto, object>(x => x.Website ?? string.Empty))">@TranslationService.GetTranslation("field.website", "Sito Web")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="@(new Func<BrandDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel></MudTh>
-                                <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
-                            </HeaderContent>
-                            <RowTemplate>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
-                                    <strong>@context.Name</strong>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
-                                    @if (!string.IsNullOrWhiteSpace(context.Description))
-                                    {
-                                        <span>@(context.Description.Length > 50 ? context.Description.Substring(0, 50) + "..." : context.Description)</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="mud-text-secondary">-</span>
-                                    }
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.country", "Paese")">
-                                    @(context.Country ?? "-")
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.website", "Sito Web")">
-                                    @if (!string.IsNullOrWhiteSpace(context.Website))
-                                    {
-                                        <MudLink Href="@context.Website" Target="_blank">@TranslationService.GetTranslation("action.visit", "Visita")</MudLink>
-                                    }
-                                    else
-                                    {
-                                        <span class="mud-text-secondary">-</span>
-                                    }
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
-                                    @context.CreatedAt.ToString("dd/MM/yyyy")
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
-                                    <ActionButtonGroup EntityName="@context.Name"
-                                                       ItemDisplayName="@context.Name"
-                                                       ShowView="false"
-                                                       ShowEdit="true"
-                                                       ShowAuditLog="true"
-                                                       ShowDelete="true"
-                                                       OnEdit="@(() => EditBrand(context.Id))"
-                                                       OnAuditLog="@(() => ViewBrandAuditLog(context))"
-                                                       OnDelete="@(() => DeleteBrand(context))" />
-                                </MudTd>
-                            </RowTemplate>
-                            <NoRecordsContent>
-                                <div class="pa-4 text-center">
-                                    <MudIcon Icon="@Icons.Material.Outlined.SearchOff" Size="Size.Large" Class="mb-2" />
-                                    <MudText Typo="Typo.body1">
-                                        @TranslationService.GetTranslation("brand.noBrandsFound", "Nessun marchio trovato")
-                                    </MudText>
-                                    @if (!string.IsNullOrWhiteSpace(_searchTerm))
-                                    {
-                                        <MudButton Variant="Variant.Text"
-                                                   Color="Color.Primary"
-                                                   OnClick="ClearFilters"
-                                                   Class="mt-2">
-                                            @TranslationService.GetTranslation("action.clearFilters", "Cancella filtri")
-                                        </MudButton>
-                                    }
+                        <EFTableColumnHeader TItem="BrandDto" PropertyName="Description" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BrandDto, object>(x => x.Description ?? string.Empty))">@TranslationService.GetTranslation("field.description", "Descrizione")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Country")
+                    {
+                        <EFTableColumnHeader TItem="BrandDto" PropertyName="Country" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BrandDto, object>(x => x.Country ?? string.Empty))">@TranslationService.GetTranslation("field.country", "Paese")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Website")
+                    {
+                        <EFTableColumnHeader TItem="BrandDto" PropertyName="Website" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<BrandDto, object>(x => x.Website ?? string.Empty))">@TranslationService.GetTranslation("field.website", "Sito Web")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "CreatedAt")
+                    {
+                        <EFTableColumnHeader TItem="BrandDto" PropertyName="CreatedAt" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<BrandDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                }
+                <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+            </HeaderContent>
+
+            <RowTemplate Context="item">
+                @{
+                    var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                }
+                @foreach (var column in visibleColumns)
+                {
+                    @if (column.PropertyName == "Name")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                            <div class="d-flex align-center">
+                                <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Sell" />
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.body2">@item.Name</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @item.Id.ToString().Substring(0, 8)...</MudText>
                                 </div>
-                            </NoRecordsContent>
-                        </MudTable>
+                            </div>
+                        </MudTd>
                     }
-                </MudCardContent>
-            </MudPaper>
-        </MudPaper>
-    }
-</MudContainer>
+                    else if (column.PropertyName == "Description")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
+                            <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:400px;">
+                                @(string.IsNullOrEmpty(item.Description) ? "-" : item.Description)
+                            </MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Country")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.country", "Paese")">
+                            <MudText Typo="Typo.body2">@(item.Country ?? "-")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Website")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.website", "Sito Web")">
+                            @if (!string.IsNullOrWhiteSpace(item.Website))
+                            {
+                                <MudLink Href="@item.Website" Target="_blank">@TranslationService.GetTranslation("action.visit", "Visita")</MudLink>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2">-</MudText>
+                            }
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "CreatedAt")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
+                            <MudText Typo="Typo.body2">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
+                        </MudTd>
+                    }
+                }
+                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                    <ActionButtonGroup EntityName="@item.Name"
+                                       ItemDisplayName="@item.Name"
+                                       ShowView="false"
+                                       ShowEdit="true"
+                                       ShowAuditLog="true"
+                                       ShowToggleStatus="false"
+                                       ShowDelete="true"
+                                       OnEdit="@(() => EditBrand(item.Id))"
+                                       OnAuditLog="@(() => ViewBrandAuditLog(item))"
+                                       OnDelete="@(() => DeleteBrand(item))" />
+                </MudTd>
+            </RowTemplate>
+
+            <NoRecordsContent>
+                <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                    <MudIcon Icon="@Icons.Material.Outlined.Sell" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        @(_brands.Any() ?
+                                            TranslationService.GetTranslation("brand.noBrandsMatchFilters", "Nessun marchio corrisponde ai filtri applicati") :
+                                            TranslationService.GetTranslation("brand.noBrandsFound", "Nessun marchio trovato"))
+                    </MudText>
+                    @if (_brands.Any())
+                    {
+                        <MudButton Variant="Variant.Text"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Outlined.Clear"
+                                   OnClick="@ClearFilters">
+                            @TranslationService.GetTranslation("action.clearFilters", "Cancella filtri")
+                        </MudButton>
+                    }
+                </div>
+            </NoRecordsContent>
+            </EFTable>
+        </div>
+    </div>
+}
 
 @code {
     // Dialog options for fullscreen audit dialog
@@ -172,70 +203,160 @@
         MaxWidth = MaxWidth.False
     };
     
-    private IEnumerable<BrandDto> _brands = new List<BrandDto>();
-    private IEnumerable<BrandDto> _filteredBrands = new List<BrandDto>();
-    private HashSet<BrandDto> _selectedBrands = new();
+    // UI State Management
     private bool _isLoading = true;
     private bool _isLoadingBrands = false;
+
+    // Filter and search state
     private string _searchTerm = string.Empty;
 
-    protected override async Task OnInitializedAsync()
+    // Data collections
+    private List<BrandDto> _brands = new();
+    private HashSet<BrandDto> _selectedBrands = new();
+
+    // EFTable reference
+    private EFTable<BrandDto> _efTable = null!;
+
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _initialColumns = new()
     {
-        await LoadBrandsAsync();
-        _isLoading = false;
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0 },
+        new() { PropertyName = "Description", DisplayName = "Descrizione", IsVisible = true, Order = 1 },
+        new() { PropertyName = "Country", DisplayName = "Paese", IsVisible = true, Order = 2 },
+        new() { PropertyName = "Website", DisplayName = "Sito Web", IsVisible = true, Order = 3 },
+        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 4 }
+    };
+
+    // Dashboard configuration
+    private List<DashboardMetric<BrandDto>> _dashboardMetrics = new()
+    {
+        new()
+        {
+            Title = "Totale Marchi",
+            Type = MetricType.Count,
+            Icon = Icons.Material.Outlined.Sell,
+            Color = "primary",
+            Description = "Numero totale di marchi",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Con Sito Web",
+            Type = MetricType.Count,
+            Filter = b => !string.IsNullOrEmpty(b.Website),
+            Icon = Icons.Material.Outlined.Language,
+            Color = "success",
+            Description = "Marchi con sito web",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Con Descrizione",
+            Type = MetricType.Count,
+            Filter = b => !string.IsNullOrEmpty(b.Description),
+            Icon = Icons.Material.Outlined.Description,
+            Color = "info",
+            Description = "Marchi con descrizione",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Ultimi Aggiunti",
+            Type = MetricType.Count,
+            Filter = b => b.CreatedAt >= DateTime.Now.AddDays(-30),
+            Icon = Icons.Material.Outlined.NewReleases,
+            Color = "warning",
+            Description = "Marchi aggiunti negli ultimi 30 giorni",
+            Format = "N0"
+        }
+    };
+
+    private EventCallback<HashSet<BrandDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<BrandDto>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Computed property for filtered brands based on search criteria.
+    /// </summary>
+    private IEnumerable<BrandDto> _filteredBrands => 
+        _brands.Where(b => 
+            // Search filter: check name, description, and country
+            (string.IsNullOrEmpty(_searchTerm) || 
+             b.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             (b.Description != null && b.Description.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+             (b.Country != null && b.Country.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))));
+
+    /// <summary>
+    /// Handles selection changes from EFTable
+    /// </summary>
+    private void OnSelectedItemsChanged(HashSet<BrandDto> items)
+    {
+        _selectedBrands = items;
+        StateHasChanged();
     }
 
+    /// <summary>
+    /// Component initialization.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Check authentication
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                await ShowLoginDialogAsync();
+                return;
+            }
+
+            // Load brands
+            await LoadBrandsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("brand.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading brands page");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Loads brand data.
+    /// </summary>
     private async Task LoadBrandsAsync()
     {
         try
         {
             _isLoadingBrands = true;
-            StateHasChanged();
-
-            // Use a reasonable pageSize (the API may reject very large pageSize values)
             var result = await BrandService.GetBrandsAsync(page: 1, pageSize: 100);
-            _brands = result.Items ?? new List<BrandDto>();
-            ApplyFilters();
+            _brands = result.Items?.ToList() ?? new List<BrandDto>();
         }
         catch (Exception ex)
         {
+            Snackbar.Add(TranslationService.GetTranslation("brand.loadingBrandsError", "Errore nel caricamento dei marchi: {0}", ex.Message), Severity.Error);
             Logger.LogError(ex, "Error loading brands");
-            // Show more informative message to the user to help debugging
-            Snackbar.Add(
-                $"{TranslationService.GetTranslation("brand.loadError", "Errore nel caricamento dei marchi")}: {ex.Message}",
-                Severity.Error);
         }
         finally
         {
             _isLoadingBrands = false;
-            StateHasChanged();
         }
     }
 
-    private void ApplyFilters()
+    /// <summary>
+    /// Clears all active filters.
+    /// </summary>
+    private async Task ClearFilters()
     {
-        _filteredBrands = _brands;
-
-        if (!string.IsNullOrWhiteSpace(_searchTerm))
-        {
-            var searchLower = _searchTerm.ToLower();
-            _filteredBrands = _filteredBrands.Where(b =>
-                (b.Name?.ToLower().Contains(searchLower) ?? false) ||
-                (b.Description?.ToLower().Contains(searchLower) ?? false) ||
-                (b.Country?.ToLower().Contains(searchLower) ?? false));
-        }
-    }
-
-    private void OnSearchChanged()
-    {
-        ApplyFilters();
+        _searchTerm = string.Empty;
+        await Task.CompletedTask;
         StateHasChanged();
     }
 
-    private void ClearFilters()
+    private async Task OnSearchChanged()
     {
-        _searchTerm = string.Empty;
-        ApplyFilters();
+        await Task.Delay(300); // Debounce
         StateHasChanged();
     }
 
@@ -251,32 +372,35 @@
 
     private async Task DeleteBrand(BrandDto brand)
     {
-        var confirmed = await DialogService.ShowMessageBox(
-            TranslationService.GetTranslation("action.confirm", "Conferma"),
-            TranslationService.GetTranslation("brand.confirmDelete", $"Sei sicuro di voler eliminare il marchio '{brand.Name}'?"),
-            yesText: TranslationService.GetTranslation("action.delete", "Elimina"),
-            cancelText: TranslationService.GetTranslation("action.cancel", "Annulla"));
+        var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
+        var confirmMessage = TranslationService.GetTranslation("brand.confirmDelete", 
+            "Sei sicuro di voler eliminare il marchio '{0}'? Questa azione non può essere annullata.", 
+            brand.Name);
 
-        if (confirmed == true)
+        var confirm = await DialogService.ShowMessageBox(
+            confirmTitle,
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm == true)
         {
             try
             {
                 await BrandService.DeleteBrandAsync(brand.Id);
-                Snackbar.Add(
-                    TranslationService.GetTranslation("brand.deleteSuccess", "Marchio eliminato con successo"),
-                    Severity.Success);
-                await LoadBrandsAsync();
+                _brands.Remove(brand);
+                Snackbar.Add(TranslationService.GetTranslation("brand.brandDeleted", "Marchio eliminato con successo!"), Severity.Success);
+                StateHasChanged();
             }
             catch (Exception ex)
             {
+                Snackbar.Add(TranslationService.GetTranslation("brand.deleteBrandError", 
+                    "Errore nell'eliminazione del marchio: {0}", ex.Message), Severity.Error);
                 Logger.LogError(ex, "Error deleting brand {BrandId}", brand.Id);
-                Snackbar.Add(
-                    TranslationService.GetTranslation("brand.deleteError", "Errore nell'eliminazione del marchio"),
-                    Severity.Error);
             }
         }
     }
-    
+
     /// <summary>
     /// Opens the audit log dialog for a brand using IDialogService.
     /// </summary>
@@ -326,6 +450,7 @@
                     try
                     {
                         await BrandService.DeleteBrandAsync(brand.Id);
+                        _brands.RemoveAll(b => b.Id == brand.Id);
                         deletedCount++;
                     }
                     catch (Exception ex)
@@ -348,7 +473,7 @@
                         "{0} marchi eliminati, {1} falliti", deletedCount, failedCount), Severity.Warning);
                 }
                 
-                await LoadBrandsAsync();
+                StateHasChanged();
             }
             catch (Exception ex)
             {
@@ -356,6 +481,16 @@
                     "Errore nell'eliminazione dei marchi: {0}", ex.Message), Severity.Error);
                 Logger.LogError(ex, "Error deleting selected brands");
             }
+        }
+    }
+
+    private async Task ShowLoginDialogAsync()
+    {
+        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+        if (result)
+        {
+            // Reload the page after successful login
+            await OnInitializedAsync();
         }
     }
 }
