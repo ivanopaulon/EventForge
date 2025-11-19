@@ -3,116 +3,52 @@
 @using System.Linq.Expressions
 @inject ILogger<ManagementDashboard<TItem>> Logger
 
-<MudPaper Class="pa-4 mb-4" Elevation="2">
-    @if (ShowFilters && FilterDefinitions?.Any() == true)
-    {
-        <MudGrid Class="mb-4">
-            @foreach (var filterDef in FilterDefinitions)
-            {
-                <MudItem xs="12" sm="6" md="4" lg="3">
-                    @if (filterDef.Type == FilterType.Text)
-                    {
-                        <MudTextField T="string"
-                                      Label="@filterDef.Label"
-                                      Placeholder="@filterDef.Placeholder"
-                                      Value="@(Filters?.GetValue<string>(filterDef.Id))"
-                                      ValueChanged="@(value => OnFilterChanged(filterDef.Id, value))"
-                                      Variant="Variant.Outlined"
-                                      Clearable="true"
-                                      Class="ef-input" />
-                    }
-                    else if (filterDef.Type == FilterType.Select && filterDef.Options != null)
-                    {
-                        <MudSelect T="string"
-                                   Label="@filterDef.Label"
-                                   Value="@(Filters?.GetValue<string>(filterDef.Id))"
-                                   ValueChanged="@(value => OnFilterChanged(filterDef.Id, value))"
-                                   Variant="Variant.Outlined"
-                                   Clearable="true"
-                                   Class="ef-input">
-                            @foreach (var option in filterDef.Options)
-                            {
-                                <MudSelectItem T="string" Value="@option.Value">@option.Label</MudSelectItem>
-                            }
-                        </MudSelect>
-                    }
-                    else if (filterDef.Type == FilterType.Date)
-                    {
-                        <MudDatePicker Label="@filterDef.Label"
-                                       Date="@(Filters?.GetValue<DateTime?>(filterDef.Id))"
-                                       DateChanged="@(value => OnFilterChanged(filterDef.Id, value))"
-                                       Variant="Variant.Outlined"
-                                       Clearable="true"
-                                       Class="ef-input" />
-                    }
-                    else if (filterDef.Type == FilterType.Checkbox)
-                    {
-                        <MudCheckBox T="bool"
-                                     Label="@filterDef.Label"
-                                     Checked="@(Filters?.GetValue<bool>(filterDef.Id))"
-                                     CheckedChanged="@((bool value) => OnFilterChanged(filterDef.Id, value))"
-                                     Color="Color.Primary" />
-                    }
-                    else if (filterDef.Type == FilterType.Number)
-                    {
-                        <MudNumericField T="decimal?"
-                                         Label="@filterDef.Label"
-                                         Placeholder="@filterDef.Placeholder"
-                                         Value="@(Filters?.GetValue<decimal?>(filterDef.Id))"
-                                         ValueChanged="@(value => OnFilterChanged(filterDef.Id, value))"
-                                         Variant="Variant.Outlined"
-                                         Clearable="true"
-                                         Class="ef-input" />
-                    }
-                </MudItem>
-            }
-        </MudGrid>
-        <MudDivider Class="mb-4" />
-    }
+<MudPaper Class="pa-2 mb-2" Elevation="1">
+    <div class="d-flex justify-space-between align-center mb-2">
+        <MudText Typo="Typo.subtitle2" Class="font-weight-bold">Dashboard</MudText>
+        @if (AllowConfiguration)
+        {
+            <MudIconButton Icon="@Icons.Material.Outlined.Settings" 
+                          Size="Size.Small" 
+                          OnClick="@OpenConfigurationDialog"
+                          Title="Configura Dashboard" />
+        }
+    </div>
 
     @if (_metricResults?.Any() == true)
     {
-        <MudGrid>
+        <MudGrid Spacing="1">
             @foreach (var metric in _metricResults)
             {
-                <MudItem xs="12" sm="6" md="4" lg="3">
-                    <MudCard>
-                        <MudCardContent>
-                            <div class="d-flex align-center mb-2">
+                <MudItem xs="12" sm="6" md="3" lg="2">
+                    <MudCard Elevation="0" Class="pa-2" Style="border: 1px solid var(--mud-palette-divider);">
+                        <MudCardContent Class="pa-1">
+                            <div class="d-flex align-center mb-1">
                                 @if (!string.IsNullOrEmpty(metric.Icon))
                                 {
                                     <MudIcon Icon="@metric.Icon" 
                                              Color="@GetMudColor(metric.Color)" 
-                                             Class="mr-2" />
+                                             Size="Size.Small"
+                                             Class="mr-1" />
                                 }
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Style="font-size: 0.7rem;">
                                     @metric.Title
                                 </MudText>
                                 @if (!string.IsNullOrEmpty(metric.Description))
                                 {
                                     <MudTooltip Text="@metric.Description">
-                                        <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Class="ml-1" />
+                                        <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Style="font-size: 0.8rem;" Class="ml-1" />
                                     </MudTooltip>
                                 }
                             </div>
-                            <MudText Typo="Typo.h4" Color="@GetMudColor(metric.Color)">
+                            <MudText Typo="Typo.h6" Color="@GetMudColor(metric.Color)" Style="font-size: 1.1rem;">
                                 @metric.FormattedValue
                             </MudText>
                             @if (!string.IsNullOrEmpty(metric.GroupLabel))
                             {
-                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Style="font-size: 0.65rem;">
                                     @metric.GroupLabel
                                 </MudText>
-                            }
-                            @if (metric.ShowChart && metric.ChartData?.Any() == true)
-                            {
-                                <div class="mt-3">
-                                    <MudChart ChartType="ChartType.Bar"
-                                              ChartSeries="@GetChartSeries(metric.ChartData)"
-                                              XAxisLabels="@GetChartLabels(metric.ChartData)"
-                                              Width="100%"
-                                              Height="120px" />
-                                </div>
                             }
                         </MudCardContent>
                     </MudCard>
@@ -149,40 +85,28 @@
     public List<DashboardMetric<TItem>>? Metrics { get; set; }
 
     /// <summary>
-    /// Filter definitions for the dashboard.
-    /// </summary>
-    [Parameter]
-    public List<DashboardFilterDefinition>? FilterDefinitions { get; set; }
-
-    /// <summary>
-    /// Current filter values (two-way binding).
-    /// </summary>
-    [Parameter]
-    public DashboardFilters? Filters { get; set; }
-
-    /// <summary>
-    /// Event callback for filter changes (two-way binding).
-    /// </summary>
-    [Parameter]
-    public EventCallback<DashboardFilters> FiltersChanged { get; set; }
-
-    /// <summary>
     /// Optional server-side metric provider.
     /// </summary>
     [Parameter]
     public Func<ServerMetricRequest, Task<ServerMetricResponse>>? ServerMetricProvider { get; set; }
 
     /// <summary>
-    /// Whether to show filters.
-    /// </summary>
-    [Parameter]
-    public bool ShowFilters { get; set; } = true;
-
-    /// <summary>
     /// Whether to use server-side calculation.
     /// </summary>
     [Parameter]
     public bool UseServerSide { get; set; } = false;
+
+    /// <summary>
+    /// Whether to allow configuration of the dashboard.
+    /// </summary>
+    [Parameter]
+    public bool AllowConfiguration { get; set; } = true;
+
+    /// <summary>
+    /// Entity type for configuration (e.g., "VatRate", "Product").
+    /// </summary>
+    [Parameter]
+    public string EntityType { get; set; } = string.Empty;
 
     private List<MetricResult>? _metricResults;
     private bool _isCalculating = false;
@@ -192,16 +116,10 @@
         await CalculateMetricsAsync();
     }
 
-    private async Task OnFilterChanged(string filterId, object? value)
+    private void OpenConfigurationDialog()
     {
-        if (Filters == null)
-        {
-            Filters = new DashboardFilters();
-        }
-
-        Filters.SetValue(filterId, value);
-        await FiltersChanged.InvokeAsync(Filters);
-        await CalculateMetricsAsync();
+        // TODO: Implement configuration dialog
+        Logger.LogInformation("Open configuration dialog for entity type: {EntityType}", EntityType);
     }
 
     private async Task CalculateMetricsAsync()
@@ -372,7 +290,7 @@
         var request = new ServerMetricRequest
         {
             MetricIds = Metrics.Select((m, i) => $"metric_{i}").ToList(),
-            Filters = Filters?.Values ?? new Dictionary<string, object?>()
+            Filters = new Dictionary<string, object?>()
         };
 
         var response = await ServerMetricProvider(request);
