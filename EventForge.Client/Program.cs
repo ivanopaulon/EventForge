@@ -97,6 +97,9 @@ builder.Services.AddScoped<IModelService, ModelService>();
 // Add dashboard configuration service
 builder.Services.AddScoped<IDashboardConfigurationService, DashboardConfigurationService>();
 
+// Add entity schema provider for dashboard metrics
+builder.Services.AddScoped<EventForge.Client.Services.Schema.IEntitySchemaProvider, EventForge.Client.Services.Schema.EntitySchemaProvider>();
+
 // Add document management services
 builder.Services.AddScoped<IDocumentHeaderService, DocumentHeaderService>();
 builder.Services.AddScoped<IDocumentTypeService, DocumentTypeService>();
