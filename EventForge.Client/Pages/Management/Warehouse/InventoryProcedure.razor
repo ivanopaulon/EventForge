@@ -4,6 +4,7 @@
 @using EventForge.DTOs.Warehouse
 @using EventForge.DTOs.Products
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dialogs.UnifiedInventoryDialog
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @inject IProductService ProductService
 @inject IInventoryService InventoryService
@@ -278,6 +279,9 @@
 </MudContainer>
 
 @code {
+    // Feature flag: Enable unified inventory dialog
+    private const bool UseUnifiedInventoryDialog = true;
+    
     private bool _isLoading = false;
     private string _scannedBarcode = string.Empty;
     private ProductDto? _currentProduct;
@@ -714,6 +718,65 @@
         if (_currentProduct == null)
             return;
 
+        if (UseUnifiedInventoryDialog)
+        {
+            await ShowUnifiedInventoryEntryDialog();
+        }
+        else
+        {
+            await ShowLegacyInventoryEntryDialog();
+        }
+    }
+
+    private async Task ShowUnifiedInventoryEntryDialog()
+    {
+        if (_currentProduct == null)
+            return;
+
+        var parameters = new DialogParameters
+        {
+            { "InitialProduct", _currentProduct },
+            { "Locations", _locations },
+            { "ConversionFactor", _currentConversionFactor },
+            { "IsEditMode", false }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<UnifiedInventoryDialog>(
+            TranslationService.GetTranslation("warehouse.inventoryEntry", "Inserimento Inventario"),
+            parameters,
+            options
+        );
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is UnifiedInventoryDialog.InventoryRowResult entryResult)
+        {
+            // Set the values and add the row
+            _selectedLocationId = entryResult.LocationId;
+            _quantity = entryResult.Quantity;
+            _notes = entryResult.Notes;
+
+            await AddInventoryRow();
+        }
+        else
+        {
+            // User canceled, just clear the barcode and refocus
+            ClearProductForm();
+        }
+    }
+
+    private async Task ShowLegacyInventoryEntryDialog()
+    {
+        if (_currentProduct == null)
+            return;
+
         var parameters = new DialogParameters
         {
             { "IsEditMode", false },
@@ -1141,6 +1204,100 @@
             return;
         }
 
+        if (UseUnifiedInventoryDialog)
+        {
+            await EditInventoryRowUnified(row, product);
+        }
+        else
+        {
+            await EditInventoryRowLegacy(row, product);
+        }
+    }
+
+    private async Task EditInventoryRowUnified(InventoryDocumentRowDto row, ProductDto product)
+    {
+        var parameters = new DialogParameters
+        {
+            { "InitialProduct", product },
+            { "Locations", _locations },
+            { "ConversionFactor", 1m },
+            { "IsEditMode", true },
+            { "ExistingQuantity", row.Quantity },
+            { "ExistingNotes", row.Notes ?? string.Empty },
+            { "ExistingLocationId", row.LocationId }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<UnifiedInventoryDialog>(
+            TranslationService.GetTranslation("warehouse.editRow", "Modifica Riga Inventario"),
+            parameters,
+            options
+        );
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is UnifiedInventoryDialog.InventoryRowResult editResult)
+        {
+            _isLoading = true;
+            try
+            {
+                var updateDto = new UpdateInventoryDocumentRowDto
+                {
+                    Quantity = editResult.Quantity,
+                    Notes = editResult.Notes
+                };
+
+                var updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(_currentDocument.Id, row.Id, updateDto);
+
+                if (updatedDocument != null)
+                {
+                    _currentDocument = updatedDocument;
+                    
+                    AddOperationLog(
+                        TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata"),
+                        $"{row.ProductName} - Nuova quantità: {editResult.Quantity}",
+                        "Success"
+                    );
+
+                    Snackbar.Add(TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata con successo"), Severity.Success);
+                    
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"), Severity.Error);
+                    AddOperationLog(
+                        TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"),
+                        "",
+                        "Error"
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error updating inventory row {RowId}", row.Id);
+                Snackbar.Add(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"), Severity.Error);
+                AddOperationLog(
+                    TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"),
+                    ex.Message,
+                    "Error"
+                );
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
+    }
+
+    private async Task EditInventoryRowLegacy(InventoryDocumentRowDto row, ProductDto product)
+    {
         var parameters = new DialogParameters
         {
             { "IsEditMode", true },

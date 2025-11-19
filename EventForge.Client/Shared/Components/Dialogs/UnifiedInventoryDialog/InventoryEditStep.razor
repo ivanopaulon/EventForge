@@ -1,0 +1,205 @@
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.Warehouse
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+
+<MudStack Spacing="3">
+    <!-- Product Summary -->
+    @if (State.Product != null)
+    {
+        <MudPaper Elevation="0" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <div>
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@State.Product.Name</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@State.Product.Code</MudText>
+                </div>
+            </MudStack>
+        </MudPaper>
+    }
+
+    <!-- Edit Form -->
+    <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
+        <MudStack Spacing="3">
+            @if (State.IsEditMode)
+            {
+                <!-- In edit mode, show location as read-only -->
+                <MudTextField Value="@GetLocationDisplayText()"
+                              Label="@TranslationService.GetTranslation("warehouse.storageLocation", "Ubicazione")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Outlined.LocationOn" />
+            }
+            else
+            {
+                <!-- In insert mode, allow location selection -->
+                <MudSelect T="Guid?"
+                           Value="@State.DraftLocationId"
+                           Label="@TranslationService.GetTranslation("warehouse.storageLocation", "Ubicazione")"
+                           Variant="Variant.Outlined"
+                           Required="true"
+                           RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                           Adornment="Adornment.Start"
+                           AdornmentIcon="@Icons.Material.Outlined.LocationOn"
+                           @ref="_locationSelect"
+                           ValueChanged="@_locationChangedCallback">
+                    @if (Locations != null)
+                    {
+                        @foreach (var location in Locations)
+                        {
+                            <MudSelectItem Value="@((Guid?)location.Id)">
+                                @location.Code - @location.Description
+                            </MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            }
+
+            <MudNumericField T="decimal"
+                            Value="@State.DraftQuantity"
+                            Label="@GetQuantityLabel()"
+                            Variant="Variant.Outlined"
+                            Min="0"
+                            Required="true"
+                            RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                            Adornment="Adornment.Start"
+                            AdornmentIcon="@Icons.Material.Outlined.Numbers"
+                            @ref="_quantityField"
+                            ValueChanged="@_quantityChangedCallback" />
+
+            <MudTextField Value="@State.DraftNotes"
+                         Label="@TranslationService.GetTranslation("warehouse.notes", "Note")"
+                         Variant="Variant.Outlined"
+                         Lines="3"
+                         MaxLength="200"
+                         Counter="200"
+                         Adornment="Adornment.Start"
+                         AdornmentIcon="@Icons.Material.Outlined.Comment"
+                         ValueChanged="@_notesChangedCallback" />
+        </MudStack>
+    </MudForm>
+
+    <!-- Keyboard Shortcuts Helper -->
+    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+        <MudText Typo="Typo.caption">
+            <MudIcon Icon="@Icons.Material.Outlined.Keyboard" Size="Size.Small" Class="mr-1" />
+            <strong>@TranslationService.GetTranslation("common.shortcuts", "Scorciatoie"):</strong> 
+            Tab = @TranslationService.GetTranslation("warehouse.nextField", "campo successivo") | 
+            Esc = @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudText>
+    </MudAlert>
+</MudStack>
+
+@code {
+    [Parameter]
+    public InventoryDialogState State { get; set; } = new();
+
+    [Parameter]
+    public List<StorageLocationDto>? Locations { get; set; }
+
+    [Parameter]
+    public EventCallback OnDraftChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    [Parameter]
+    public EventCallback OnNext { get; set; }
+
+    private MudForm? _form;
+    private MudSelect<Guid?>? _locationSelect;
+    private MudNumericField<decimal>? _quantityField;
+    private bool _isFormValid;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (State.IsEditMode)
+            {
+                // In edit mode, focus on quantity field
+                if (_quantityField != null)
+                {
+                    await _quantityField.FocusAsync();
+                }
+            }
+            else
+            {
+                // Insert mode: Auto-select location if only one exists
+                if (Locations?.Count == 1)
+                {
+                    State.DraftLocationId = Locations[0].Id;
+                    await NotifyDraftChanged();
+                    StateHasChanged();
+                    
+                    // Focus on quantity field since location is auto-selected
+                    if (_quantityField != null)
+                    {
+                        await _quantityField.FocusAsync();
+                    }
+                }
+                else if (_locationSelect != null)
+                {
+                    // Focus on location select if multiple locations
+                    await _locationSelect.FocusAsync();
+                }
+            }
+        }
+    }
+
+    private string GetLocationDisplayText()
+    {
+        if (!State.DraftLocationId.HasValue || Locations == null)
+            return "-";
+
+        var location = Locations.FirstOrDefault(l => l.Id == State.DraftLocationId.Value);
+        return location != null ? $"{location.Code} - {location.Description}" : "-";
+    }
+
+    private string GetQuantityLabel()
+    {
+        var baseLabel = TranslationService.GetTranslation("warehouse.quantity", "Quantità");
+        if (State.ConversionFactor > 1)
+        {
+            return $"{baseLabel} ({TranslationService.GetTranslation("warehouse.baseUnit", "unità base")})";
+        }
+        return baseLabel;
+    }
+
+    private EventCallback<Guid?> _locationChangedCallback;
+    private EventCallback<decimal> _quantityChangedCallback;
+    private EventCallback<string> _notesChangedCallback;
+
+    protected override void OnInitialized()
+    {
+        _locationChangedCallback = EventCallback.Factory.Create<Guid?>(this, HandleLocationChanged);
+        _quantityChangedCallback = EventCallback.Factory.Create<decimal>(this, HandleQuantityChanged);
+        _notesChangedCallback = EventCallback.Factory.Create<string>(this, HandleNotesChanged);
+    }
+
+    private async Task HandleLocationChanged(Guid? value)
+    {
+        State.DraftLocationId = value;
+        await NotifyDraftChanged();
+    }
+
+    private async Task HandleQuantityChanged(decimal value)
+    {
+        State.DraftQuantity = value;
+        await NotifyDraftChanged();
+    }
+
+    private async Task HandleNotesChanged(string value)
+    {
+        State.DraftNotes = value;
+        await NotifyDraftChanged();
+    }
+
+    private async Task NotifyDraftChanged()
+    {
+        if (OnDraftChanged.HasDelegate)
+        {
+            await OnDraftChanged.InvokeAsync();
+        }
+    }
+}
