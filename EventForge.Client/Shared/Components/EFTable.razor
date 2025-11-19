@@ -237,8 +237,11 @@
 
     protected override void OnParametersSet()
     {
-        // Reset grouping state when GroupByProperties changes
-        if (!_groupByProperties.SequenceEqual(GroupByProperties))
+        // Only update grouping from parameter if:
+        // 1. Preferences haven't been loaded yet (first initialization, _preferences is null)
+        // 2. OR the parameter has a non-empty value that differs from current state
+        // This ensures saved preferences take precedence over parameter defaults
+        if (_preferences == null || (GroupByProperties.Any() && !_groupByProperties.SequenceEqual(GroupByProperties)))
         {
             _groupByProperties = new List<string>(GroupByProperties);
             _lastGroupValues.Clear();
