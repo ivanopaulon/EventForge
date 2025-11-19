@@ -238,3 +238,23 @@ code {
         border: 2px solid var(--border-primary) !important;
     }
 }
+
+/* ===== DASHBOARD METRICS CARD ANIMATIONS ===== */
+/* 
+   Smooth animations for metric cards in dashboard configuration dialog
+   Provides visual feedback on hover and drag interactions
+*/
+
+.metric-card {
+    transition: all 0.2s ease-in-out;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.metric-card[draggable="true"]:active {
+    opacity: 0.6;
+    cursor: grabbing;
+}

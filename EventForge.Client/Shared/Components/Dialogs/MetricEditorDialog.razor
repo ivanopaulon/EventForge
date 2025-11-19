@@ -25,18 +25,6 @@
                                   Variant="Variant.Outlined"
                                   Lines="2"
                                   HelperText="Testo tooltip per spiegare la metrica" />
-                    
-                    <MudDivider />
-                    
-                    <div class="d-flex gap-2 justify-end">
-                        <MudButton OnClick="Cancel">Annulla</MudButton>
-                        <MudButton Variant="Variant.Filled" 
-                                   Color="Color.Primary" 
-                                   OnClick="NextStep"
-                                   Disabled="@(!IsStep1Valid())">
-                            Avanti
-                        </MudButton>
-                    </div>
                 </MudStack>
             </MudStep>
 
@@ -70,18 +58,6 @@
                             Il conteggio non richiede la selezione di un campo specifico.
                         </MudAlert>
                     }
-                    
-                    <MudDivider />
-                    
-                    <div class="d-flex gap-2 justify-end">
-                        <MudButton OnClick="PrevStep">Indietro</MudButton>
-                        <MudButton Variant="Variant.Filled" 
-                                   Color="Color.Primary" 
-                                   OnClick="NextStep"
-                                   Disabled="@(!IsStep2Valid())">
-                            Avanti
-                        </MudButton>
-                    </div>
                 </MudStack>
             </MudStep>
 
@@ -95,17 +71,6 @@
                     
                     <FilterBuilder EntityType="@EntityType"
                                   @bind-FilterCondition="Metric.FilterCondition" />
-                    
-                    <MudDivider />
-                    
-                    <div class="d-flex gap-2 justify-end">
-                        <MudButton OnClick="PrevStep">Indietro</MudButton>
-                        <MudButton Variant="Variant.Filled" 
-                                   Color="Color.Primary" 
-                                   OnClick="NextStep">
-                            Avanti
-                        </MudButton>
-                    </div>
                 </MudStack>
             </MudStep>
 
@@ -212,22 +177,44 @@
                             </div>
                         </MudPaper>
                     }
-                    
-                    <MudDivider />
-                    
-                    <div class="d-flex gap-2 justify-end">
-                        <MudButton OnClick="PrevStep">Indietro</MudButton>
-                        <MudButton Color="Color.Primary"
-                                   Variant="Variant.Filled"
-                                   OnClick="Save"
-                                   Disabled="@(!IsValid())">
-                            @(IsNewMetric ? "Crea Metrica" : "Salva Modifiche")
-                        </MudButton>
-                    </div>
                 </MudStack>
             </MudStep>
         </MudStepper>
     </DialogContent>
+    
+    <DialogActions>
+        <MudButton OnClick="Cancel" StartIcon="@Icons.Material.Outlined.Close">
+            Annulla
+        </MudButton>
+        <MudSpacer />
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mr-4">
+            Step @(_activeStepIndex + 1) di 4
+        </MudText>
+        
+        @if (_activeStepIndex > 0)
+        {
+            <MudButton OnClick="PrevStep" StartIcon="@Icons.Material.Outlined.ArrowBack">
+                Indietro
+            </MudButton>
+        }
+        
+        @if (_activeStepIndex < 3)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" 
+                       OnClick="NextStep" EndIcon="@Icons.Material.Outlined.ArrowForward"
+                       Disabled="@(!IsCurrentStepValid())">
+                Avanti
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                       OnClick="Save" StartIcon="@Icons.Material.Outlined.Save"
+                       Disabled="@(!IsValid())">
+                @(IsNewMetric ? "Crea Metrica" : "Salva")
+            </MudButton>
+        }
+    </DialogActions>
 </MudDialog>
 
 @code {
@@ -281,6 +268,16 @@
             return false;
 
         return true;
+    }
+
+    private bool IsCurrentStepValid()
+    {
+        return _activeStepIndex switch
+        {
+            0 => IsStep1Valid(),
+            1 => IsStep2Valid(),
+            _ => true
+        };
     }
 
     private bool IsValid()
