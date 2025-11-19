@@ -14,20 +14,23 @@
 @inject ITranslationService TranslationService
 @inject ILogger<VatRateManagement> Logger
 
-<MudContainer MaxWidth="MaxWidth.False" Class="mt-4 px-0" Style="width:100%; min-height:100vh; display:flex; flex-direction:column;">
-    <PageLoadingOverlay Visible="_isLoading || _isLoadingVatRates"
-                         Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+<PageLoadingOverlay Visible="_isLoading || _isLoadingVatRates"
+                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-    @if (!_isLoading)
-    {
-        <ManagementDashboard TItem="VatRateDto"
-                             Items="_filteredVatRates"
-                             Metrics="_dashboardMetrics"
-                             EntityType="VatRate"
-                             AllowConfiguration="true"
-                             UseServerSide="false" />
+@if (!_isLoading)
+{
+    <div class="vat-rate-page-root">
+        <div class="vat-rate-top">
+            <ManagementDashboard TItem="VatRateDto"
+                                 Items="_filteredVatRates"
+                                 Metrics="_dashboardMetrics"
+                                 EntityType="VatRate"
+                                 AllowConfiguration="true"
+                                 UseServerSide="false" />
+        </div>
 
-        <EFTable @ref="_efTable"
+        <div class="eftable-wrapper">
+            <EFTable @ref="_efTable"
                  TItem="VatRateDto"
                  Items="_filteredVatRates"
                  MultiSelection="true"
@@ -195,9 +198,10 @@
                     }
                 </div>
             </NoRecordsContent>
-        </EFTable>
-    }
-</MudContainer>
+            </EFTable>
+        </div>
+    </div>
+}
 
 @code {
     // Dialog options for fullscreen audit dialog
