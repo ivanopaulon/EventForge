@@ -26,17 +26,11 @@
         </MudItem>
         <MudItem xs="12" md="4">
             <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
-                <MudButton StartIcon="@Icons.Material.Outlined.FlashOn" 
-                           Color="Color.Primary" 
-                           Variant="Variant.Filled"
-                           OnClick="@(() => NavigationManager.NavigateTo("/warehouse/inventory-procedure-fast"))">
-                    @TranslationService.GetTranslation("warehouse.fastProcedure", "Procedura Rapida")
-                </MudButton>
                 <MudButton StartIcon="@Icons.Material.Outlined.Add" 
                            Color="Color.Primary" 
-                           Variant="Variant.Outlined"
+                           Variant="Variant.Filled"
                            OnClick="@(() => NavigationManager.NavigateTo("/warehouse/inventory-procedure"))">
-                    @TranslationService.GetTranslation("warehouse.classicProcedure", "Procedura Classica")
+                    @TranslationService.GetTranslation("warehouse.startProcedure", "Avvia Procedura")
                 </MudButton>
                 <MudButton StartIcon="@Icons.Material.Outlined.Refresh" 
                            Color="Color.Default" 
