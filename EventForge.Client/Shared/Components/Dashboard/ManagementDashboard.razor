@@ -1,7 +1,9 @@
 @typeparam TItem
 @using EventForge.Client.Shared.Components.Dashboard
+@using EventForge.Client.Shared.Components.Dialogs
 @using System.Linq.Expressions
 @inject ILogger<ManagementDashboard<TItem>> Logger
+@inject IDialogService DialogService
 
 <MudPaper Class="pa-2 mb-2" Elevation="1">
     <div class="d-flex justify-space-between align-center mb-2">
@@ -116,10 +118,39 @@
         await CalculateMetricsAsync();
     }
 
-    private void OpenConfigurationDialog()
+    private async Task OpenConfigurationDialog()
     {
-        // TODO: Implement configuration dialog
-        Logger.LogInformation("Open configuration dialog for entity type: {EntityType}", EntityType);
+        try
+        {
+            var parameters = new DialogParameters<DashboardConfigurationDialog>
+            {
+                { x => x.EntityType, EntityType }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true
+            };
+
+            var dialog = await DialogService.ShowAsync<DashboardConfigurationDialog>(
+                "Configurazione Dashboard",
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (!result.Canceled)
+            {
+                // Reload metrics after configuration change
+                await CalculateMetricsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening dashboard configuration dialog");
+        }
     }
 
     private async Task CalculateMetricsAsync()

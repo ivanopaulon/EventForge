@@ -94,6 +94,9 @@ builder.Services.AddScoped<IUMService, UMService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<IModelService, ModelService>();
 
+// Add dashboard configuration service
+builder.Services.AddScoped<IDashboardConfigurationService, DashboardConfigurationService>();
+
 // Add document management services
 builder.Services.AddScoped<IDocumentHeaderService, DocumentHeaderService>();
 builder.Services.AddScoped<IDocumentTypeService, DocumentTypeService>();
