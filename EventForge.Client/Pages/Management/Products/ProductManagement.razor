@@ -14,15 +14,15 @@
 @inject ITranslationService TranslationService
 @inject ILogger<ProductManagement> Logger
 
-<PageLoadingOverlay Visible="_isLoading || _isLoadingBrands"
+<PageLoadingOverlay Visible="_isLoading || _isLoadingProducts"
                      Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
 @if (!_isLoading)
 {
-    <div class="brand-page-root">
-        <div class="brand-top">
+    <div class="product-page-root">
+        <div class="product-top">
             <ManagementDashboard TItem="ProductDto"
-                                 Items="_filteredBrands"
+                                 Items="_filteredProducts"
                                  Metrics="_dashboardMetrics"
                                  EntityType="Product"
                                  AllowConfiguration="true"
@@ -32,11 +32,11 @@
         <div class="eftable-wrapper">
             <EFTable @ref="_efTable"
                  TItem="ProductDto"
-                 Items="_filteredBrands"
+                 Items="_filteredProducts"
                  MultiSelection="true"
                  SelectedItems="_selectedProducts"
                  SelectedItemsChanged="_selectedItemsChangedCallback"
-                 IsLoading="_isLoadingBrands"
+                 IsLoading="_isLoadingProducts"
                  ComponentKey="ProductManagement"
                  InitialColumnConfigurations="_initialColumns"
                  AllowDragDropGrouping="true">
@@ -60,10 +60,10 @@
                                         ShowCreate="true"
                                         ShowDelete="true"
                                         CreateTooltip="product.createNew"
-                                        IsDisabled="_isLoadingBrands"
-                                        OnRefresh="@LoadBrandsAsync"
+                                        IsDisabled="_isLoadingProducts"
+                                        OnRefresh="@LoadProductsAsync"
                                         OnCreate="@CreateProduct"
-                                        OnDelete="@DeleteSelectedBrands" />
+                                        OnDelete="@DeleteSelectedProducts" />
             </ToolBarContent>
             <HeaderContent Context="columnConfigurations">
                 @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
@@ -154,9 +154,9 @@
                                        ShowAuditLog="true"
                                        ShowToggleStatus="false"
                                        ShowDelete="true"
-                                       OnEdit="@(() => EditBrand(item.Id))"
-                                       OnAuditLog="@(() => ViewBrandAuditLog(item))"
-                                       OnDelete="@(() => DeleteBrand(item))" />
+                                       OnEdit="@(() => EditProduct(item.Id))"
+                                       OnAuditLog="@(() => ViewProductAuditLog(item))"
+                                       OnDelete="@(() => DeleteProduct(item))" />
                 </MudTd>
             </RowTemplate>
 
@@ -165,8 +165,8 @@
                     <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
                     <MudText Typo="Typo.h6" Class="mb-2">
                         @(_products.Any() ?
-                                            TranslationService.GetTranslation("product.noBrandsMatchFilters", "Nessun prodottio corrisponde ai filtri applicati") :
-                                            TranslationService.GetTranslation("product.noBrandsFound", "Nessun prodottio trovato"))
+                                            TranslationService.GetTranslation("product.noProductsMatchFilters", "Nessun prodotto corrisponde ai filtri applicati") :
+                                            TranslationService.GetTranslation("product.noProductsFound", "Nessun prodotto trovato"))
                     </MudText>
                     @if (_products.Any())
                     {
@@ -195,7 +195,7 @@
     
     // UI State Management
     private bool _isLoading = true;
-    private bool _isLoadingBrands = false;
+    private bool _isLoadingProducts = false;
 
     // Filter and search state
     private string _searchTerm = string.Empty;
@@ -264,15 +264,15 @@
     private EventCallback<HashSet<ProductDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<ProductDto>>(this, OnSelectedItemsChanged);
 
     /// <summary>
-    /// Computed property for filtered brands based on search criteria.
+    /// Computed property for filtered products based on search criteria.
     /// </summary>
-    private IEnumerable<ProductDto> _filteredBrands => 
-        _products.Where(b => 
-            // Search filter: check name, description, and country
+    private IEnumerable<ProductDto> _filteredProducts => 
+        _products.Where(p => 
+            // Search filter: check code, name, and description
             (string.IsNullOrEmpty(_searchTerm) || 
-             b.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-             (b.Description != null && b.Description.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) ||
-             (b.Country != null && b.Country.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))));
+             p.Code.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             p.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             (p.ShortDescription != null && p.ShortDescription.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))));
 
     /// <summary>
     /// Handles selection changes from EFTable
@@ -298,13 +298,13 @@
                 return;
             }
 
-            // Load brands
-            await LoadBrandsAsync();
+            // Load products
+            await LoadProductsAsync();
         }
         catch (Exception ex)
         {
             Snackbar.Add(TranslationService.GetTranslation("product.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
-            Logger.LogError(ex, "Error loading brands page");
+            Logger.LogError(ex, "Error loading products page");
         }
         finally
         {
@@ -313,24 +313,24 @@
     }
 
     /// <summary>
-    /// Loads brand data.
+    /// Loads product data.
     /// </summary>
-    private async Task LoadBrandsAsync()
+    private async Task LoadProductsAsync()
     {
         try
         {
-            _isLoadingBrands = true;
-            var result = await ProductService.GetBrandsAsync(page: 1, pageSize: 100);
-            _products = result.Items?.ToList() ?? new List<ProductDto>();
+            _isLoadingProducts = true;
+            var result = await ProductService.GetProductsAsync(page: 1, pageSize: 1000);
+            _products = result?.Items?.ToList() ?? new List<ProductDto>();
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("product.loadingBrandsError", "Errore nel caricamento dei prodotti: {0}", ex.Message), Severity.Error);
-            Logger.LogError(ex, "Error loading brands");
+            Snackbar.Add(TranslationService.GetTranslation("product.loadingProductsError", "Errore nel caricamento dei prodotti: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading products");
         }
         finally
         {
-            _isLoadingBrands = false;
+            _isLoadingProducts = false;
         }
     }
 
@@ -364,21 +364,21 @@
         }
     }
 
-    private void CreateBrand()
+    private void CreateProduct()
     {
-        NavigationManager.NavigateTo("/product-management/brands/new");
+        NavigationManager.NavigateTo("/product-management/products/new");
     }
 
-    private void EditBrand(Guid id)
+    private void EditProduct(Guid id)
     {
-        NavigationManager.NavigateTo($"/product-management/brands/{id}");
+        NavigationManager.NavigateTo($"/product-management/products/{id}");
     }
 
-    private async Task DeleteBrand(ProductDto brand)
+    private async Task DeleteProduct(ProductDto product)
     {
         var confirmTitle = TranslationService.GetTranslation("common.confirm", "Conferma");
         var confirmMessage = TranslationService.GetTranslation("product.confirmDelete", 
-            "Sei sicuro di voler eliminare il prodottio '{0}'? Questa azione non può essere annullata.", 
+            "Sei sicuro di voler eliminare il prodotto '{0}'? Questa azione non può essere annullata.", 
             product.Name);
 
         var confirm = await DialogService.ShowMessageBox(
@@ -391,24 +391,24 @@
         {
             try
             {
-                await ProductService.DeleteBrandAsync(product.Id);
-                _products.Remove(brand);
-                Snackbar.Add(TranslationService.GetTranslation("product.brandDeleted", "Prodottio eliminato con successo!"), Severity.Success);
+                await ProductService.DeleteProductAsync(product.Id);
+                _products.Remove(product);
+                Snackbar.Add(TranslationService.GetTranslation("product.productDeleted", "Prodotto eliminato con successo!"), Severity.Success);
                 StateHasChanged();
             }
             catch (Exception ex)
             {
-                Snackbar.Add(TranslationService.GetTranslation("product.deleteBrandError", 
-                    "Errore nell'eliminazione del prodottio: {0}", ex.Message), Severity.Error);
-                Logger.LogError(ex, "Error deleting brand {BrandId}", product.Id);
+                Snackbar.Add(TranslationService.GetTranslation("product.deleteProductError", 
+                    "Errore nell'eliminazione del prodotto: {0}", ex.Message), Severity.Error);
+                Logger.LogError(ex, "Error deleting product {ProductId}", product.Id);
             }
         }
     }
 
     /// <summary>
-    /// Opens the audit log dialog for a brand using IDialogService.
+    /// Opens the audit log dialog for a product using IDialogService.
     /// </summary>
-    private async Task ViewBrandAuditLog(ProductDto brand)
+    private async Task ViewProductAuditLog(ProductDto product)
     {
         var parameters = new DialogParameters<AuditHistoryDialog>
         {
@@ -424,9 +424,9 @@
     }
 
     /// <summary>
-    /// Deletes all selected brands.
+    /// Deletes all selected products.
     /// </summary>
-    private async Task DeleteSelectedBrands()
+    private async Task DeleteSelectedProducts()
     {
         if (_selectedProducts.Count == 0)
             return;
@@ -449,18 +449,18 @@
                 var deletedCount = 0;
                 var failedCount = 0;
                 
-                foreach (var brand in _selectedProducts.ToList())
+                foreach (var product in _selectedProducts.ToList())
                 {
                     try
                     {
-                        await ProductService.DeleteBrandAsync(product.Id);
-                        _products.RemoveAll(b => b.Id == product.Id);
+                        await ProductService.DeleteProductAsync(product.Id);
+                        _products.RemoveAll(p => p.Id == product.Id);
                         deletedCount++;
                     }
                     catch (Exception ex)
                     {
                         failedCount++;
-                        Logger.LogError(ex, "Error deleting brand {BrandId}", product.Id);
+                        Logger.LogError(ex, "Error deleting product {ProductId}", product.Id);
                     }
                 }
                 
@@ -483,7 +483,7 @@
             {
                 Snackbar.Add(TranslationService.GetTranslationFormatted("product.deleteError", 
                     "Errore nell'eliminazione dei prodotti: {0}", ex.Message), Severity.Error);
-                Logger.LogError(ex, "Error deleting selected brands");
+                Logger.LogError(ex, "Error deleting selected products");
             }
         }
     }
