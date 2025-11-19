@@ -3,6 +3,7 @@
 @using EventForge.DTOs.VatRates
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IFinancialService FinancialService
@@ -19,6 +20,14 @@
 
     @if (!_isLoading)
     {
+        <ManagementDashboard TItem="VatRateDto"
+                             Items="_filteredVatRates"
+                             Metrics="_dashboardMetrics"
+                             FilterDefinitions="_dashboardFilterDefinitions"
+                             @bind-Filters="_dashboardFilters"
+                             ShowFilters="true"
+                             UseServerSide="false" />
+
         <EFTable @ref="_efTable"
                  TItem="VatRateDto"
                  Items="_filteredVatRates"
@@ -226,6 +235,72 @@
         new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 5 }
     };
 
+    // Dashboard configuration
+    private DashboardFilters _dashboardFilters = new();
+    
+    private List<DashboardFilterDefinition> _dashboardFilterDefinitions = new()
+    {
+        new()
+        {
+            Id = "status",
+            Label = "Stato",
+            Type = FilterType.Select,
+            Options = new List<FilterOption>
+            {
+                new() { Value = "all", Label = "Tutti" },
+                new() { Value = "active", Label = "Attivo" },
+                new() { Value = "suspended", Label = "Sospeso" },
+                new() { Value = "deleted", Label = "Eliminato" }
+            },
+            DefaultValue = "all"
+        }
+    };
+
+    private List<DashboardMetric<VatRateDto>> _dashboardMetrics = new()
+    {
+        new()
+        {
+            Title = "Totale Aliquote",
+            Type = MetricType.Count,
+            Icon = Icons.Material.Outlined.Percent,
+            Color = "primary",
+            Description = "Numero totale di aliquote IVA",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Aliquote Attive",
+            Type = MetricType.Count,
+            Filter = v => v.Status == VatRateStatus.Active,
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Color = "success",
+            Description = "Numero di aliquote IVA attive",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Percentuale Media",
+            Type = MetricType.Average,
+            ValueSelector = v => v.Percentage,
+            Filter = v => v.Status == VatRateStatus.Active,
+            Icon = Icons.Material.Outlined.Analytics,
+            Color = "info",
+            Description = "Percentuale media delle aliquote IVA attive",
+            Format = "N2"
+        },
+        new()
+        {
+            Title = "Aliquota Massima",
+            Type = MetricType.Max,
+            ValueSelector = v => v.Percentage,
+            Filter = v => v.Status == VatRateStatus.Active,
+            Icon = Icons.Material.Outlined.TrendingUp,
+            Color = "warning",
+            Description = "Percentuale massima tra le aliquote attive",
+            Format = "N2"
+        }
+    };
+
     private EventCallback<HashSet<VatRateDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<VatRateDto>>(this, OnSelectedItemsChanged);
 
     /// <summary>
@@ -236,11 +311,22 @@
             // Search filter: check name
             (string.IsNullOrEmpty(_searchTerm) || 
              v.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) &&
-            // Status filter
-            (_statusFilter == "all" || 
-             (_statusFilter == "active" && v.Status == VatRateStatus.Active) ||
-             (_statusFilter == "suspended" && v.Status == VatRateStatus.Suspended) ||
-             (_statusFilter == "deleted" && v.Status == VatRateStatus.Deleted)));
+            // Status filter (synced with dashboard)
+            (GetActiveStatusFilter() == "all" || 
+             (GetActiveStatusFilter() == "active" && v.Status == VatRateStatus.Active) ||
+             (GetActiveStatusFilter() == "suspended" && v.Status == VatRateStatus.Suspended) ||
+             (GetActiveStatusFilter() == "deleted" && v.Status == VatRateStatus.Deleted)));
+
+    private string GetActiveStatusFilter()
+    {
+        // Dashboard filters take precedence
+        var dashboardStatus = _dashboardFilters?.GetValue<string>("status");
+        if (!string.IsNullOrEmpty(dashboardStatus))
+        {
+            return dashboardStatus;
+        }
+        return _statusFilter;
+    }
 
     /// <summary>
     /// Handles selection changes from EFTable
