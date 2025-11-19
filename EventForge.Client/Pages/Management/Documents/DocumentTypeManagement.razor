@@ -3,182 +3,226 @@
 @using EventForge.DTOs.Documents
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IDocumentTypeService DocumentTypeService
 @inject NavigationManager NavigationManager
+@inject IAuthenticationDialogService AuthenticationDialogService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<DocumentTypeManagement> Logger
 
-<MudContainer MaxWidth="MaxWidth.False" Class="mt-4 px-0" Style="width:100%; min-height:100vh; display:flex; flex-direction:column;">
-    <PageLoadingOverlay Visible="_isLoading || _isLoadingDocumentTypes"
-                        Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+<PageLoadingOverlay Visible="_isLoading || _isLoadingDocumentTypes"
+                    Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-    @if (!_isLoading)
-    {
-        <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4">
-            <div class="d-flex justify-space-between align-center mb-4">
-                <div>
-                    <MudText Typo="Typo.h4">
-                        <MudIcon Icon="@Icons.Material.Outlined.Category" Class="mr-2" />
-                        @TranslationService.GetTranslation("documentType.management", "Gestione Tipi Documento")
-                    </MudText>
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
-                        @TranslationService.GetTranslation("documentType.managementDescription", "Gestisci i tipi di documento utilizzati nel sistema")
-                    </MudText>
-                </div>
-            </div>
+@if (!_isLoading)
+{
+    <div class="document-type-page-root">
+        <div class="document-type-top">
+            <ManagementDashboard TItem="DocumentTypeDto"
+                                 Items="_filteredDocumentTypes"
+                                 Metrics="_dashboardMetrics"
+                                 EntityType="DocumentType"
+                                 AllowConfiguration="true"
+                                 UseServerSide="false" />
+        </div>
 
-            <!-- Filters Section -->
-            <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
-                <div class="d-flex gap-3 align-center flex-wrap">
-                    <MudTextField @bind-Value="_searchTerm"
-                                  @bind-Value:after="OnSearchChanged"
-                                  Class="ef-input"
-                                  Label="@TranslationService.GetTranslation("documentType.search", "Cerca tipi documento")"
-                                  Placeholder="@TranslationService.GetTranslation("documentType.searchPlaceholder", "Inserisci nome o codice...")"
-                                  Variant="Variant.Outlined"
-                                  Adornment="Adornment.End"
-                                  AdornmentIcon="@Icons.Material.Outlined.Search"
-                                  Clearable="true"
-                                  Style="flex: 2;" />
-                    <MudSwitch @bind-Value="_showOnlyFiscal"
-                               @bind-Value:after="OnFilterChanged"
-                               Label="@TranslationService.GetTranslation("documentType.onlyFiscal", "Solo fiscali")"
-                               Color="Color.Primary" />
-                    <MudSwitch @bind-Value="_showOnlyStockIncrease"
-                               @bind-Value:after="OnFilterChanged"
-                               Label="@TranslationService.GetTranslation("documentType.onlyStockIncrease", "Solo aumento stock")"
-                               Color="Color.Success" />
-                </div>
-            </MudPaper>
+        <div class="eftable-wrapper">
+            <EFTable @ref="_efTable"
+                 TItem="DocumentTypeDto"
+                 Items="_filteredDocumentTypes"
+                 MultiSelection="true"
+                 SelectedItems="_selectedDocumentTypes"
+                 SelectedItemsChanged="_selectedItemsChangedCallback"
+                 IsLoading="_isLoadingDocumentTypes"
+                 ComponentKey="DocumentTypeManagement"
+                 InitialColumnConfigurations="_initialColumns"
+                 AllowDragDropGrouping="true">
+            <ToolBarContent>
+                <MudText Typo="Typo.h5">
+                    @TranslationService.GetTranslation("documentType.management", "Gestione Tipi Documento")
+                </MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="_searchTerm"
+                              @bind-Value:after="OnSearchChanged"
+                              Label="@TranslationService.GetTranslation("documentType.search", "Cerca tipi documento")"
+                              Placeholder="@TranslationService.GetTranslation("documentType.searchPlaceholder", "Inserisci nome o codice...")"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              Clearable="true"
+                              Class="ef-input" />
+                <MudSwitch @bind-Value="_showOnlyFiscal"
+                           @bind-Value:after="OnFilterChanged"
+                           Label="@TranslationService.GetTranslation("documentType.onlyFiscal", "Solo fiscali")"
+                           Color="Color.Primary"
+                           Class="ml-2" />
+                <MudSwitch @bind-Value="_showOnlyStockIncrease"
+                           @bind-Value:after="OnFilterChanged"
+                           Label="@TranslationService.GetTranslation("documentType.onlyStockIncrease", "Solo aumento stock")"
+                           Color="Color.Success"
+                           Class="ml-2" />
+                <ManagementTableToolbar ShowSelectionBadge="true"
+                                        SelectedCount="@_selectedDocumentTypes.Count"
+                                        ShowRefresh="true"
+                                        ShowCreate="true"
+                                        ShowDelete="true"
+                                        CreateTooltip="documentType.createNew"
+                                        IsDisabled="_isLoadingDocumentTypes"
+                                        OnRefresh="@LoadDocumentTypesAsync"
+                                        OnCreate="@CreateDocumentType"
+                                        OnDelete="@DeleteSelectedDocumentTypes" />
+            </ToolBarContent>
+            <HeaderContent Context="columnConfigurations">
+                @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                {
+                    @if (column.PropertyName == "Code")
+                    {
+                        <EFTableColumnHeader TItem="DocumentTypeDto" PropertyName="Code" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<DocumentTypeDto, object>(x => x.Code))">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Name")
+                    {
+                        <EFTableColumnHeader TItem="DocumentTypeDto" PropertyName="Name" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<DocumentTypeDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "IsFiscal")
+                    {
+                        <EFTableColumnHeader TItem="DocumentTypeDto" PropertyName="IsFiscal" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTh>@TranslationService.GetTranslation("field.isFiscal", "Fiscale")</MudTh>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "IsStockIncrease")
+                    {
+                        <EFTableColumnHeader TItem="DocumentTypeDto" PropertyName="IsStockIncrease" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTh>@TranslationService.GetTranslation("field.isStockIncrease", "Aumento Stock")</MudTh>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "RequiredPartyType")
+                    {
+                        <EFTableColumnHeader TItem="DocumentTypeDto" PropertyName="RequiredPartyType" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTh>@TranslationService.GetTranslation("field.requiredPartyType", "Tipo Controparte")</MudTh>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "DefaultWarehouseName")
+                    {
+                        <EFTableColumnHeader TItem="DocumentTypeDto" PropertyName="DefaultWarehouseName" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTh>@TranslationService.GetTranslation("field.defaultWarehouse", "Magazzino Predefinito")</MudTh>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "CreatedAt")
+                    {
+                        <EFTableColumnHeader TItem="DocumentTypeDto" PropertyName="CreatedAt" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<DocumentTypeDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                }
+                <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+            </HeaderContent>
 
-            <!-- Document Types Data Table -->
-            <MudPaper Elevation="1" Class="border-rounded">
-                <div class="pa-2">
+            <RowTemplate Context="item">
+                @{
+                    var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                }
+                @foreach (var column in visibleColumns)
+                {
+                    @if (column.PropertyName == "Code")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary">@item.Code</MudChip>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Name")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                            <strong>@item.Name</strong>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "IsFiscal")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.isFiscal", "Fiscale")">
+                            @if (item.IsFiscal)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Default" Size="Size.Small" />
+                            }
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "IsStockIncrease")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.isStockIncrease", "Aumento Stock")">
+                            @if (item.IsStockIncrease)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Success" Size="Size.Small" />
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Color="Color.Error" Size="Size.Small" />
+                            }
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "RequiredPartyType")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.requiredPartyType", "Tipo Controparte")">
+                            @GetBusinessPartyTypeText(item.RequiredPartyType)
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "DefaultWarehouseName")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.defaultWarehouse", "Magazzino Predefinito")">
+                            @(item.DefaultWarehouseName ?? "-")
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "CreatedAt")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
+                            @item.CreatedAt.ToString("dd/MM/yyyy")
+                        </MudTd>
+                    }
+                }
+                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                    <ActionButtonGroup EntityName="@item.Name"
+                                       ItemDisplayName="@item.Name"
+                                       ShowView="false"
+                                       ShowEdit="true"
+                                       ShowAuditLog="true"
+                                       ShowDelete="true"
+                                       OnEdit="@(() => EditDocumentType(item.Id))"
+                                       OnAuditLog="@(() => ViewDocumentTypeAuditLog(item))"
+                                       OnDelete="@(() => DeleteDocumentType(item))" />
+                </MudTd>
+            </RowTemplate>
+
+            <NoRecordsContent>
+                <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                    <MudIcon Icon="@Icons.Material.Outlined.Category" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
                     <MudText Typo="Typo.h6" Class="mb-2">
-                        <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
-                        @TranslationService.GetTranslation("documentType.list", "Lista Tipi Documento")
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
-                            (@_filteredDocumentTypes.Count() @TranslationService.GetTranslation("common.itemsFound", "elementi trovati"))
-                        </MudText>
+                        @(_documentTypes.Any() ?
+                            TranslationService.GetTranslation("documentType.noMatchFilters", "Nessun tipo documento corrisponde ai filtri applicati") :
+                            TranslationService.GetTranslation("documentType.noDocumentTypesFound", "Nessun tipo documento trovato"))
                     </MudText>
-                    
-                    <ManagementTableToolbar ShowSelectionBadge="true"
-                                            SelectedCount="@_selectedDocumentTypes.Count"
-                                            ShowRefresh="true"
-                                            ShowCreate="true"
-                                            ShowDelete="true"
-                                            CreateLabel="documentType.create"
-                                            CreateTooltip="documentType.createNew"
-                                            IsDisabled="_isLoadingDocumentTypes"
-                                            OnRefresh="@LoadDocumentTypesAsync"
-                                            OnCreate="@CreateDocumentType"
-                                            OnDelete="@DeleteSelectedDocumentTypes" />
+                    @if (_documentTypes.Any())
+                    {
+                        <MudButton Variant="Variant.Text"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Outlined.Clear"
+                                   OnClick="@ClearFilters">
+                            @TranslationService.GetTranslation("documentType.clearFilters", "Cancella filtri")
+                        </MudButton>
+                    }
                 </div>
-                <MudCardContent Class="pa-1">
-                    @if (_isLoadingDocumentTypes)
-                    {
-                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
-                    }
-                    else
-                    {
-                        <MudTable T="DocumentTypeDto" 
-                                  Items="_filteredDocumentTypes"
-                                  MultiSelection="true"
-                                  @bind-SelectedItems="_selectedDocumentTypes"
-                                  Hover="true" 
-                                  Striped="true"
-                                  Loading="_isLoadingDocumentTypes"
-                                  LoadingProgressColor="Color.Info"
-                                  SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
-                                  AllowUnsorted="false"
-                                  FixedHeader="true"
-                                  Height="60vh">
-                            <HeaderContent>
-                                <MudTh><MudTableSortLabel SortBy="new Func<DocumentTypeDto, object>(x => x.Code)">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel></MudTh>
-                                <MudTh><MudTableSortLabel SortBy="new Func<DocumentTypeDto, object>(x => x.Name)">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
-                                <MudTh>@TranslationService.GetTranslation("field.isFiscal", "Fiscale")</MudTh>
-                                <MudTh>@TranslationService.GetTranslation("field.isStockIncrease", "Aumento Stock")</MudTh>
-                                <MudTh>@TranslationService.GetTranslation("field.requiredPartyType", "Tipo Controparte")</MudTh>
-                                <MudTh>@TranslationService.GetTranslation("field.defaultWarehouse", "Magazzino Predefinito")</MudTh>
-                                <MudTh><MudTableSortLabel SortBy="new Func<DocumentTypeDto, object>(x => x.CreatedAt)">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel></MudTh>
-                                <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
-                            </HeaderContent>
-                            <RowTemplate>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">
-                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary">@context.Code</MudChip>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
-                                    <strong>@context.Name</strong>
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.isFiscal", "Fiscale")">
-                                    @if (context.IsFiscal)
-                                    {
-                                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
-                                    }
-                                    else
-                                    {
-                                        <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Default" Size="Size.Small" />
-                                    }
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.isStockIncrease", "Aumento Stock")">
-                                    @if (context.IsStockIncrease)
-                                    {
-                                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Success" Size="Size.Small" />
-                                    }
-                                    else
-                                    {
-                                        <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Color="Color.Error" Size="Size.Small" />
-                                    }
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.requiredPartyType", "Tipo Controparte")">
-                                    @GetBusinessPartyTypeText(context.RequiredPartyType)
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.defaultWarehouse", "Magazzino Predefinito")">
-                                    @(context.DefaultWarehouseName ?? "-")
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
-                                    @context.CreatedAt.ToString("dd/MM/yyyy")
-                                </MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
-                                    <ActionButtonGroup EntityName="@context.Name"
-                                                       ItemDisplayName="@context.Name"
-                                                       ShowView="false"
-                                                       ShowEdit="true"
-                                                       ShowAuditLog="true"
-                                                       ShowDelete="true"
-                                                       OnEdit="@(() => EditDocumentType(context.Id))"
-                                                       OnAuditLog="@(() => ViewDocumentTypeAuditLog(context))"
-                                                       OnDelete="@(() => DeleteDocumentType(context))" />
-                                </MudTd>
-                            </RowTemplate>
-                            <NoRecordsContent>
-                                <div class="pa-4 text-center">
-                                    <MudIcon Icon="@Icons.Material.Outlined.SearchOff" Size="Size.Large" Class="mb-2" />
-                                    <MudText Typo="Typo.body1">
-                                        @TranslationService.GetTranslation("documentType.noDocumentTypesFound", "Nessun tipo documento trovato")
-                                    </MudText>
-                                    @if (!string.IsNullOrWhiteSpace(_searchTerm) || _showOnlyFiscal || _showOnlyStockIncrease)
-                                    {
-                                        <MudButton Variant="Variant.Text"
-                                                   Color="Color.Primary"
-                                                   OnClick="ClearFilters"
-                                                   Class="mt-2">
-                                            @TranslationService.GetTranslation("action.clearFilters", "Cancella filtri")
-                                        </MudButton>
-                                    }
-                                </div>
-                            </NoRecordsContent>
-                        </MudTable>
-                    }
-                </MudCardContent>
-            </MudPaper>
-        </MudPaper>
-    }
-</MudContainer>
+            </NoRecordsContent>
+            </EFTable>
+        </div>
+    </div>
+}
 
 @code {
     // Dialog options for fullscreen audit dialog
@@ -189,19 +233,124 @@
         MaxWidth = MaxWidth.False
     };
     
-    private IEnumerable<DocumentTypeDto> _documentTypes = new List<DocumentTypeDto>();
-    private IEnumerable<DocumentTypeDto> _filteredDocumentTypes = new List<DocumentTypeDto>();
-    private HashSet<DocumentTypeDto> _selectedDocumentTypes = new();
+    // UI State Management
     private bool _isLoading = true;
     private bool _isLoadingDocumentTypes = false;
+
+    // Filter and search state
     private string _searchTerm = string.Empty;
     private bool _showOnlyFiscal = false;
     private bool _showOnlyStockIncrease = false;
+    private CancellationTokenSource? _searchDebounceCts;
+
+    // Data collections
+    private List<DocumentTypeDto> _documentTypes = new();
+    private HashSet<DocumentTypeDto> _selectedDocumentTypes = new();
+
+    // EFTable reference
+    private EFTable<DocumentTypeDto> _efTable = null!;
+
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _initialColumns = new()
+    {
+        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 0 },
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1 },
+        new() { PropertyName = "IsFiscal", DisplayName = "Fiscale", IsVisible = true, Order = 2 },
+        new() { PropertyName = "IsStockIncrease", DisplayName = "Aumento Stock", IsVisible = true, Order = 3 },
+        new() { PropertyName = "RequiredPartyType", DisplayName = "Tipo Controparte", IsVisible = true, Order = 4 },
+        new() { PropertyName = "DefaultWarehouseName", DisplayName = "Magazzino Predefinito", IsVisible = true, Order = 5 },
+        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 6 }
+    };
+
+    // Dashboard configuration
+    private List<DashboardMetric<DocumentTypeDto>> _dashboardMetrics = new()
+    {
+        new()
+        {
+            Title = "Totale Tipi",
+            Type = MetricType.Count,
+            Icon = Icons.Material.Outlined.Category,
+            Color = "primary",
+            Description = "Numero totale di tipi documento",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Documenti Fiscali",
+            Type = MetricType.Count,
+            Filter = dt => dt.IsFiscal,
+            Icon = Icons.Material.Outlined.Receipt,
+            Color = "success",
+            Description = "Tipi documento fiscali",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Tipi Carico",
+            Type = MetricType.Count,
+            Filter = dt => dt.IsStockIncrease,
+            Icon = Icons.Material.Outlined.ArrowUpward,
+            Color = "info",
+            Description = "Tipi con movimento di carico",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Ultimi Aggiunti",
+            Type = MetricType.Count,
+            Filter = dt => dt.CreatedAt >= DateTime.Now.AddDays(-30),
+            Icon = Icons.Material.Outlined.NewReleases,
+            Color = "warning",
+            Description = "Tipi aggiunti negli ultimi 30 giorni",
+            Format = "N0"
+        }
+    };
+
+    private EventCallback<HashSet<DocumentTypeDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<DocumentTypeDto>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Computed property for filtered document types based on search criteria.
+    /// </summary>
+    private IEnumerable<DocumentTypeDto> _filteredDocumentTypes =>
+        _documentTypes.Where(dt =>
+            (string.IsNullOrEmpty(_searchTerm) ||
+             dt.Code.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             dt.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)) &&
+            (!_showOnlyFiscal || dt.IsFiscal) &&
+            (!_showOnlyStockIncrease || dt.IsStockIncrease));
+
+    /// <summary>
+    /// Handles selection changes from EFTable
+    /// </summary>
+    private void OnSelectedItemsChanged(HashSet<DocumentTypeDto> items)
+    {
+        _selectedDocumentTypes = items;
+        StateHasChanged();
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadDocumentTypesAsync();
-        _isLoading = false;
+        try
+        {
+            // Check authentication
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                await ShowLoginDialogAsync();
+                return;
+            }
+
+            await LoadDocumentTypesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(TranslationService.GetTranslation("documentType.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            Logger.LogError(ex, "Error loading document types page");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
     private async Task LoadDocumentTypesAsync()
@@ -209,59 +358,22 @@
         try
         {
             _isLoadingDocumentTypes = true;
-            StateHasChanged();
-
             var result = await DocumentTypeService.GetAllDocumentTypesAsync();
-            _documentTypes = result ?? new List<DocumentTypeDto>();
-            ApplyFilters();
+            _documentTypes = result?.ToList() ?? new List<DocumentTypeDto>();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading document types");
-            Snackbar.Add(
-                $"{TranslationService.GetTranslation("documentType.loadError", "Errore nel caricamento dei tipi documento")}: {ex.Message}",
-                Severity.Error);
+            Snackbar.Add(TranslationService.GetTranslation("documentType.loadError", "Errore nel caricamento dei tipi documento: {0}", ex.Message), Severity.Error);
         }
         finally
         {
             _isLoadingDocumentTypes = false;
-            StateHasChanged();
         }
-    }
-
-    private void ApplyFilters()
-    {
-        _filteredDocumentTypes = _documentTypes;
-
-        if (!string.IsNullOrWhiteSpace(_searchTerm))
-        {
-            var searchLower = _searchTerm.ToLower();
-            _filteredDocumentTypes = _filteredDocumentTypes.Where(dt =>
-                (dt.Name?.ToLower().Contains(searchLower) ?? false) ||
-                (dt.Code?.ToLower().Contains(searchLower) ?? false) ||
-                (dt.Notes?.ToLower().Contains(searchLower) ?? false));
-        }
-
-        if (_showOnlyFiscal)
-        {
-            _filteredDocumentTypes = _filteredDocumentTypes.Where(dt => dt.IsFiscal);
-        }
-
-        if (_showOnlyStockIncrease)
-        {
-            _filteredDocumentTypes = _filteredDocumentTypes.Where(dt => dt.IsStockIncrease);
-        }
-    }
-
-    private void OnSearchChanged()
-    {
-        ApplyFilters();
-        StateHasChanged();
     }
 
     private void OnFilterChanged()
     {
-        ApplyFilters();
         StateHasChanged();
     }
 
@@ -270,9 +382,40 @@
         _searchTerm = string.Empty;
         _showOnlyFiscal = false;
         _showOnlyStockIncrease = false;
-        ApplyFilters();
         StateHasChanged();
     }
+
+    private async Task OnSearchChanged()
+    {
+        // Cancel previous debounce if any
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+        var token = _searchDebounceCts.Token;
+        
+        try
+        {
+            await Task.Delay(300, token);
+            if (!token.IsCancellationRequested)
+            {
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Swallow cancellation
+        }
+    }
+
+    private async Task ShowLoginDialogAsync()
+    {
+        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+        if (result)
+        {
+            await OnInitializedAsync();
+        }
+    }
+
+
 
     private void CreateDocumentType()
     {
