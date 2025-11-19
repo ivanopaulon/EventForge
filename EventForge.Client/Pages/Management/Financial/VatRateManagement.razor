@@ -20,7 +20,7 @@
     @if (!_isLoading)
     {
         <EFTable @ref="_efTable"
-                 T="VatRateDto"
+                 TItem="VatRateDto"
                  Items="_filteredVatRates"
                  MultiSelection="true"
                  SelectedItems="_selectedVatRates"

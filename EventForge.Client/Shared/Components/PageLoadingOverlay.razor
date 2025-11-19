@@ -19,6 +19,17 @@
 
 @code {
     [Parameter] public bool IsVisible { get; set; }
+    
+    /// <summary>
+    /// Alias for IsVisible to support legacy usage. Use IsVisible instead.
+    /// </summary>
+    [Parameter] 
+    public bool Visible 
+    { 
+        get => IsVisible; 
+        set => IsVisible = value; 
+    }
+    
     [Parameter] public string? Message { get; set; }
 
     // New customizable parameters
