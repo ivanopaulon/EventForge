@@ -3,6 +3,7 @@
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IProductService ProductService
@@ -13,26 +14,37 @@
 @inject ITranslationService TranslationService
 @inject ILogger<ProductManagement> Logger
 
-<MudContainer MaxWidth="MaxWidth.False" Class="mt-4 px-0" Style="width:100%; min-height:100vh; display:flex; flex-direction:column;">
-    <PageLoadingOverlay Visible="_isLoading || _isLoadingProducts || _isLoadingStocks"
-                         Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+<PageLoadingOverlay Visible="_isLoading || _isLoadingProducts || _isLoadingStocks"
+                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-    <MudPaper Elevation="2" Class="pa-2 pa-sm-3 pa-md-4 mb-4 mx-0 d-flex flex-column">
-        <div class="d-flex justify-space-between align-center mb-4">
-            <div>
-                <MudText Typo="Typo.h4">
-                    <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Class="mr-2" />
-                    @TranslationService.GetTranslation("product.management", "Gestione Prodotti")
-                </MudText>
-                <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
-                    @TranslationService.GetTranslation("product.managementDescription", "Gestisci i prodotti e i loro fornitori")
-                </MudText>
-            </div>
+@if (!_isLoading)
+{
+    <div class="product-page-root">
+        <div class="product-top">
+            <ManagementDashboard TItem="ProductDto"
+                                 Items="_filteredProducts"
+                                 Metrics="_dashboardMetrics"
+                                 EntityType="Product"
+                                 AllowConfiguration="true"
+                                 UseServerSide="false" />
         </div>
 
-        <!-- Filters Section -->
-        <MudPaper Elevation="0" Class="pa-3 mb-4 mx-0">
-            <div class="d-flex gap-3 align-center flex-wrap">
+        <div class="eftable-wrapper">
+            <EFTable @ref="_efTable"
+                 TItem="ProductDto"
+                 Items="_filteredProducts"
+                 MultiSelection="true"
+                 SelectedItems="_selectedProducts"
+                 SelectedItemsChanged="_selectedItemsChangedCallback"
+                 IsLoading="_isLoadingProducts"
+                 ComponentKey="ProductManagement"
+                 InitialColumnConfigurations="_initialColumns"
+                 AllowDragDropGrouping="true">
+            <ToolBarContent>
+                <MudText Typo="Typo.h5">
+                    @TranslationService.GetTranslation("product.management", "Gestione Prodotti")
+                </MudText>
+                <MudSpacer />
                 <MudTextField @bind-Value="_searchTerm"
                               @bind-Value:after="OnSearchChanged"
                               Label="@TranslationService.GetTranslation("product.search", "Cerca prodotti")"
@@ -41,121 +53,164 @@
                               Adornment="Adornment.End"
                               AdornmentIcon="@Icons.Material.Outlined.Search"
                               Clearable="true"
-                              Style="flex:2;" />
-            </div>
-        </MudPaper>
-
-        <!-- Products Data Table -->
-        <MudPaper Elevation="1" Class="border-rounded mx-0 flex-grow-1 d-flex flex-column" Style="min-height:0;">
-            <div class="pa-2">
-                <MudText Typo="Typo.h6" Class="mb-2">
-                    <MudIcon Icon="@Icons.Material.Outlined.List" Class="mr-2" />
-                    @TranslationService.GetTranslation("product.list", "Lista Prodotti")
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary ml-2">
-                        (@_filteredProducts.Count() @TranslationService.GetTranslation("common.itemsFound", "elementi trovati"))
-                    </MudText>
-                </MudText>
-                
+                              Class="ef-input" />
                 <ManagementTableToolbar ShowSelectionBadge="true"
                                         SelectedCount="@_selectedProducts.Count"
                                         ShowRefresh="true"
                                         ShowCreate="true"
                                         ShowDelete="true"
-                                        CreateLabel="product.create"
                                         CreateTooltip="product.createNew"
                                         IsDisabled="_isLoadingProducts"
                                         OnRefresh="@LoadProductsAsync"
                                         OnCreate="@CreateProduct"
                                         OnDelete="@DeleteSelectedProducts" />
-            </div>
-
-            <MudCardContent Class="pa-1 flex-grow-1" Style="min-height:0;">
-                @if (_isLoadingProducts)
+            </ToolBarContent>
+            <HeaderContent Context="columnConfigurations">
+                @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
                 {
-                    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+                    @if (column.PropertyName == "Code")
+                    {
+                        <EFTableColumnHeader TItem="ProductDto" PropertyName="Code" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<ProductDto, object>(x => x.Code))">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "Name")
+                    {
+                        <EFTableColumnHeader TItem="ProductDto" PropertyName="Name" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<ProductDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "ShortDescription")
+                    {
+                        <EFTableColumnHeader TItem="ProductDto" PropertyName="ShortDescription" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<ProductDto, object>(x => x.ShortDescription ?? string.Empty))">@TranslationService.GetTranslation("field.description", "Descrizione")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "DefaultPrice")
+                    {
+                        <EFTableColumnHeader TItem="ProductDto" PropertyName="DefaultPrice" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<ProductDto, object>(x => x.DefaultPrice ?? 0))">@TranslationService.GetTranslation("field.price", "Prezzo")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
+                    else if (column.PropertyName == "AvailableQuantity")
+                    {
+                        <EFTableColumnHeader TItem="ProductDto" PropertyName="AvailableQuantity" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                            <MudTableSortLabel SortBy="@(new Func<ProductDto, object>(x => GetAvailableQuantityForSort(x.Id)))">@TranslationService.GetTranslation("warehouse.available", "Giacenza")</MudTableSortLabel>
+                        </EFTableColumnHeader>
+                    }
                 }
-                else
+                <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+            </HeaderContent>
+
+            <RowTemplate Context="item">
+                @{
+                    var visibleColumns = _efTable?.ColumnConfigurations?.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList() ?? _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                }
+                @foreach (var column in visibleColumns)
                 {
-                    <!-- Dynamic height calculation for responsive behavior -->
-                    <MudTable T="ProductDto" 
-                              Items="_filteredProducts"
-                              MultiSelection="true"
-                              @bind-SelectedItems="_selectedProducts"
-                              Hover="true" 
-                              Striped="true"
-                              Loading="_isLoadingProducts"
-                              LoadingProgressColor="Color.Info"
-                              SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
-                              AllowUnsorted="false"
-                              FixedHeader="true"
-                              Height="calc(100vh - 280px)">
-                        <HeaderContent>
-                            <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => x.Code)">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel></MudTh>
-                            <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => x.Name)">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
-                            <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
-                            <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => x.DefaultPrice ??0)">@TranslationService.GetTranslation("field.price", "Prezzo")</MudTableSortLabel></MudTh>
-                            <MudTh><MudTableSortLabel SortBy="new Func<ProductDto, object>(x => GetAvailableQuantityForSort(x.Id))">@TranslationService.GetTranslation("warehouse.available", "Giacenza")</MudTableSortLabel></MudTh>
-                            <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")" Style="width:12%;">@context.Code</MudTd>
-                            <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")" Style="width:28%;">
-                                <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:320px;">@context.Name</MudText>
-                            </MudTd>
-                            <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")" Style="width:30%;">
-                                <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:420px;">@(string.IsNullOrWhiteSpace(context.ShortDescription) ? "-" : context.ShortDescription)</MudText>
-                            </MudTd>
-                            <MudTd DataLabel="@TranslationService.GetTranslation("field.price", "Prezzo")" Style="text-align: right; width:10%;">
-                                @if (context.DefaultPrice.HasValue)
+                    @if (column.PropertyName == "Code")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">
+                                @item.Code
+                            </MudChip>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Name")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                            <div class="d-flex align-center">
+                                <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Inventory2" />
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.body2">@item.Name</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(item.Id.ToString()[..Math.Min(8, item.Id.ToString().Length)])...</MudText>
+                                </div>
+                            </div>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "ShortDescription")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
+                            <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:400px;">
+                                @(string.IsNullOrWhiteSpace(item.ShortDescription) ? "-" : item.ShortDescription)
+                            </MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "DefaultPrice")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.price", "Prezzo")" Style="text-align:right;">
+                            @if (item.DefaultPrice.HasValue)
+                            {
+                                <MudText Typo="Typo.body2" Style="font-weight:600;">@item.DefaultPrice.Value.ToString("C2")</MudText>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2">-</MudText>
+                            }
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "AvailableQuantity")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.available", "Giacenza")" Style="text-align:right;">
+                            @if (_isLoadingStocks)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                            }
+                            else
+                            {
+                                @if (_productAvailableQuantities.TryGetValue(item.Id, out var avail))
                                 {
-                                    <MudText Typo="Typo.body2" Style="font-weight:600;">@context.DefaultPrice.Value.ToString("C2")</MudText>
-                                }
-                            </MudTd>
-                            <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.available", "Giacenza")" Style="text-align: right; width:10%;">
-                                @if (_isLoadingStocks)
-                                {
-                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                                    <MudText Typo="Typo.body2" Style="font-weight:600;">@avail.ToString("N2")</MudText>
                                 }
                                 else
                                 {
-                                    @if (_productAvailableQuantities.TryGetValue(context.Id, out var avail))
-                                    {
-                                        <MudText Typo="Typo.body2" Style="font-weight:600;">@avail.ToString("N2")</MudText>
-                                    }
-                                    else
-                                    {
-                                        <span>-</span>
-                                    }
+                                    <MudText Typo="Typo.body2">-</MudText>
                                 }
-                            </MudTd>
-                            <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Style="text-align: right; width:10%;">
-                                <ActionButtonGroup EntityName="@TranslationService.GetTranslation("entity.product", "Prodotto")"
-                                                   ItemDisplayName="@context.Name"
-                                                   ShowView="false"
-                                                   ShowEdit="true"
-                                                   ShowAuditLog="true"
-                                                   ShowToggleStatus="true"
-                                                   ShowDelete="true"
-                                                   IsActive="@(context.Status != ProductStatus.Deleted)"
-                                                   OnEdit="@(() => EditProduct(context.Id))"
-                                                   OnAuditLog="@(() => ViewProductAuditLog(context))"
-                                                   OnToggleStatus="@(() => ToggleProductStatus(context))"
-                                                   OnDelete="@(() => DeleteProduct(context))" />
-                            </MudTd>
-                        </RowTemplate>
-                        <NoRecordsContent>
-                            <MudText>@TranslationService.GetTranslation("messages.noProducts", "Nessun prodotto trovato")</MudText>
-                        </NoRecordsContent>
-                        <LoadingContent>
-                            <MudText>@TranslationService.GetTranslation("common.loading", "Caricamento...")</MudText>
-                        </LoadingContent>
-                    </MudTable>
+                            }
+                        </MudTd>
+                    }
                 }
-            </MudCardContent>
-        </MudPaper>
-    </MudPaper>
+                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
+                    <ActionButtonGroup EntityName="@TranslationService.GetTranslation("entity.product", "Prodotto")"
+                                       ItemDisplayName="@item.Name"
+                                       ShowView="false"
+                                       ShowEdit="true"
+                                       ShowAuditLog="true"
+                                       ShowToggleStatus="true"
+                                       ShowDelete="true"
+                                       IsActive="@(item.Status != ProductStatus.Deleted)"
+                                       OnEdit="@(() => EditProduct(item.Id))"
+                                       OnAuditLog="@(() => ViewProductAuditLog(item))"
+                                       OnToggleStatus="@(() => ToggleProductStatus(item))"
+                                       OnDelete="@(() => DeleteProduct(item))" />
+                </MudTd>
+            </RowTemplate>
 
-</MudContainer>
+            <NoRecordsContent>
+                <div class="text-center pa-2 pa-sm-3 pa-md-4">
+                    <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Size="Size.Medium" Class="mb-4 mud-text-secondary" />
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        @(_products.Any() ?
+                                            TranslationService.GetTranslation("product.noProductsMatchFilters", "Nessun prodotto corrisponde ai filtri applicati") :
+                                            TranslationService.GetTranslation("product.noProductsFound", "Nessun prodotto trovato"))
+                    </MudText>
+                    @if (_products.Any())
+                    {
+                        <MudButton Variant="Variant.Text"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Outlined.Clear"
+                                   OnClick="@ClearFilters">
+                            @TranslationService.GetTranslation("product.clearFilters", "Cancella filtri")
+                        </MudButton>
+                    }
+                </div>
+            </NoRecordsContent>
+            </EFTable>
+        </div>
+    </div>
+}
 
 @code {
     // Dialog options for fullscreen audit dialog
@@ -166,19 +221,98 @@
         MaxWidth = MaxWidth.False
     };
     
+    // UI State Management
     private bool _isLoading = true;
     private bool _isLoadingProducts = false;
     private bool _isLoadingStocks = false;
-    private string _searchTerm = string.Empty;
     
-    // Selection management
+    // Filter and search state
+    private string _searchTerm = string.Empty;
+    private CancellationTokenSource? _searchDebounceCts;
+    
+    // Data collections
+    private List<ProductDto> _products = new();
     private HashSet<ProductDto> _selectedProducts = new();
     
-    private IEnumerable<ProductDto> _products = new List<ProductDto>();
-    private IEnumerable<ProductDto> _filteredProducts = new List<ProductDto>();
-
     // Stores available quantity (sum across locations) per product
     private readonly Dictionary<Guid, decimal> _productAvailableQuantities = new();
+
+    // EFTable reference
+    private EFTable<ProductDto> _efTable = null!;
+
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _initialColumns = new()
+    {
+        new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 0 },
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1 },
+        new() { PropertyName = "ShortDescription", DisplayName = "Descrizione", IsVisible = true, Order = 2 },
+        new() { PropertyName = "DefaultPrice", DisplayName = "Prezzo", IsVisible = true, Order = 3 },
+        new() { PropertyName = "AvailableQuantity", DisplayName = "Giacenza", IsVisible = true, Order = 4 }
+    };
+
+    // Dashboard configuration
+    private List<DashboardMetric<ProductDto>> _dashboardMetrics = new()
+    {
+        new()
+        {
+            Title = "Totale Prodotti",
+            Type = MetricType.Count,
+            Icon = Icons.Material.Outlined.Inventory2,
+            Color = "primary",
+            Description = "Numero totale di prodotti",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Prodotti Attivi",
+            Type = MetricType.Count,
+            Filter = p => p.Status != ProductStatus.Deleted && p.Status != ProductStatus.Discontinued,
+            Icon = Icons.Material.Outlined.CheckCircle,
+            Color = "success",
+            Description = "Prodotti attivi",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Con Immagini",
+            Type = MetricType.Count,
+            Filter = p => p.HasImages,
+            Icon = Icons.Material.Outlined.Image,
+            Color = "info",
+            Description = "Prodotti con immagini",
+            Format = "N0"
+        },
+        new()
+        {
+            Title = "Ultimi Aggiunti",
+            Type = MetricType.Count,
+            Filter = p => p.CreatedAt >= DateTime.Now.AddDays(-30),
+            Icon = Icons.Material.Outlined.NewReleases,
+            Color = "warning",
+            Description = "Prodotti aggiunti negli ultimi 30 giorni",
+            Format = "N0"
+        }
+    };
+
+    private EventCallback<HashSet<ProductDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<ProductDto>>(this, OnSelectedItemsChanged);
+
+    /// <summary>
+    /// Computed property for filtered products based on search criteria.
+    /// </summary>
+    private IEnumerable<ProductDto> _filteredProducts => 
+        _products.Where(p => 
+            string.IsNullOrEmpty(_searchTerm) || 
+            p.Code.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+            p.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Handles selection changes from EFTable
+    /// </summary>
+    private void OnSelectedItemsChanged(HashSet<ProductDto> items)
+    {
+        _selectedProducts = items;
+        StateHasChanged();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -206,8 +340,7 @@
             var result = await ProductService.GetProductsAsync(1, 100);
             if (result != null)
             {
-                _products = result.Items;
-                ApplyFilters();
+                _products = result.Items?.ToList() ?? new List<ProductDto>();
 
                 // Load stock levels for the loaded products
                 await LoadStockForProductsAsync(_products.Select(p => p.Id).ToList());
@@ -270,24 +403,31 @@
         }
     }
 
-    private void OnSearchChanged()
+    private async Task OnSearchChanged()
     {
-        ApplyFilters();
+        // Cancel previous debounce if any
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+        var token = _searchDebounceCts.Token;
+        
+        try
+        {
+            await Task.Delay(300, token); // Debounce with cancellation
+            if (!token.IsCancellationRequested)
+            {
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Swallow cancellation
+        }
     }
 
-    private void ApplyFilters()
+    private void ClearFilters()
     {
-        var filtered = _products.AsEnumerable();
-
-        if (!string.IsNullOrWhiteSpace(_searchTerm))
-        {
-            filtered = filtered.Where(p =>
-                p.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                p.Code.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                (p.ShortDescription?.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ?? false));
-        }
-
-        _filteredProducts = filtered.ToList();
+        _searchTerm = string.Empty;
+        StateHasChanged();
     }
 
     private void CreateProduct()
