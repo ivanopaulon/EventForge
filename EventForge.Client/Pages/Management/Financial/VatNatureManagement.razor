@@ -173,6 +173,26 @@
                 </div>
             </NoRecordsContent>
             </EFTable>
+            
+            <!-- Pagination -->
+            @if (_pagedResult != null && _pagedResult.TotalPages > 1)
+            {
+                <MudDivider Class="my-4" />
+                <div class="d-flex justify-center align-center flex-wrap gap-4">
+                    <MudPagination Count="@_pagedResult.TotalPages" 
+                                   Selected="@_currentPage" 
+                                   Color="Color.Primary"
+                                   Size="Size.Medium"
+                                   ShowFirstButton="true"
+                                   ShowLastButton="true"
+                                   SelectedChanged="@OnPageChanged" />
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @TranslationService.GetTranslation("pagination.info", 
+                            "Pagina {0} di {1} - Totale: {2} nature IVA", 
+                            _currentPage, _pagedResult.TotalPages, _pagedResult.TotalCount)
+                    </MudText>
+                </div>
+            }
         </div>
     </div>
 }
@@ -193,6 +213,11 @@
     // Filter and search state
     private string _searchTerm = string.Empty;
     private CancellationTokenSource? _searchDebounceCts;
+
+    // Pagination state
+    private PagedResult<VatNatureDto>? _pagedResult;
+    private int _currentPage = 1;
+    private int _pageSize = 20;
 
     // Data collections
     private List<VatNatureDto> _vatNatures = new();
@@ -313,8 +338,12 @@
         try
         {
             _isLoadingVatNatures = true;
-            var result = await FinancialService.GetVatNaturesAsync();
-            _vatNatures = result?.Items?.ToList() ?? new List<VatNatureDto>();
+            _pagedResult = await FinancialService.GetVatNaturesAsync(_currentPage, _pageSize);
+            
+            if (_pagedResult != null)
+            {
+                _vatNatures = _pagedResult.Items.ToList();
+            }
         }
         catch (Exception ex)
         {
@@ -338,6 +367,8 @@
 
     private async Task OnSearchChanged()
     {
+        _currentPage = 1; // Reset to page 1 when search changes
+        
         // Cancel previous debounce if any
         _searchDebounceCts?.Cancel();
         _searchDebounceCts = new CancellationTokenSource();
@@ -355,6 +386,12 @@
         {
             // Swallow cancellation
         }
+    }
+
+    private async Task OnPageChanged(int page)
+    {
+        _currentPage = page;
+        await LoadVatNaturesAsync();
     }
 
     private void CreateVatNature()
