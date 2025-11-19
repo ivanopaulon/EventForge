@@ -378,3 +378,4 @@ EventForge.Server/app.db*
 # Syncfusion license configuration (ignored - use sample file)
 EventForge.Client/appsettings.Syncfusion.Development.json
 /EventForge.Client/appsettings.Syncfusion.Development.json.sample
+*.bak

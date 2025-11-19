@@ -1,0 +1,297 @@
+@using EventForge.Client.Services.Schema
+@inject IEntitySchemaProvider SchemaProvider
+
+<MudStack Spacing="3">
+    <div class="d-flex justify-space-between align-center">
+        <MudText Typo="Typo.subtitle2">Condizioni di Filtro</MudText>
+        <MudButton OnClick="AddCondition" 
+                   StartIcon="@Icons.Material.Outlined.Add"
+                   Size="Size.Small"
+                   Variant="Variant.Outlined"
+                   Color="Color.Primary">
+            Aggiungi Condizione
+        </MudButton>
+    </div>
+
+    @if (!Conditions.Any())
+    {
+        <MudAlert Severity="Severity.Info" Dense="true">
+            Nessun filtro impostato. I dati non saranno filtrati.
+        </MudAlert>
+    }
+    else
+    {
+        @foreach (var condition in Conditions)
+        {
+            <MudCard Outlined="true" Class="pa-3">
+                <MudStack Spacing="2">
+                    <div class="d-flex gap-2 align-start">
+                        <MudSelect @bind-Value="condition.FieldPath"
+                                   Label="Campo"
+                                   Variant="Variant.Outlined"
+                                   Dense="true"
+                                   Style="flex: 1;"
+                                   T="string">
+                            @foreach (var field in AvailableFields)
+                            {
+                                <MudSelectItem Value="@field.Path">
+                                    <div class="d-flex align-center">
+                                        <MudIcon Icon="@GetIconForDataType(field.DataType)" 
+                                                 Size="Size.Small" 
+                                                 Class="mr-2" />
+                                        <span>@field.Name</span>
+                                    </div>
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+
+                        <MudSelect @bind-Value="condition.Operator"
+                                   Label="Operatore"
+                                   Variant="Variant.Outlined"
+                                   Dense="true"
+                                   Style="flex: 0 0 150px;"
+                                   T="string">
+                            @foreach (var op in GetOperatorsForField(condition.FieldPath))
+                            {
+                                <MudSelectItem Value="@op.Value">@op.Display</MudSelectItem>
+                            }
+                        </MudSelect>
+
+                        <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                                       Color="Color.Error"
+                                       Size="Size.Small"
+                                       OnClick="() => RemoveCondition(condition)"
+                                       Style="margin-top: 4px;" />
+                    </div>
+
+                    @{
+                        var field = GetFieldMetadata(condition.FieldPath);
+                    }
+                    
+                    @if (field != null)
+                    {
+                        <div>
+                            <MudTextField @bind-Value="condition.Value"
+                                          Label="Valore"
+                                          Variant="Variant.Outlined"
+                                          Dense="true"
+                                          HelperText="@GetValueHelperText(field.DataType)" />
+                        </div>
+                    }
+                </MudStack>
+            </MudCard>
+        }
+
+        <MudDivider />
+        
+        <MudCard Outlined="true" Class="pa-3">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                <strong>Condizione Generata:</strong>
+            </MudText>
+            <MudText Typo="Typo.body2" Class="mt-1" Style="font-family: monospace;">
+                @GenerateFilterExpression()
+            </MudText>
+        </MudCard>
+    }
+</MudStack>
+
+@code {
+    [Parameter]
+    public string EntityType { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? FilterCondition { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> FilterConditionChanged { get; set; }
+
+    private List<FieldMetadata> AvailableFields { get; set; } = new();
+    private List<MetricFilterCondition> Conditions { get; set; } = new();
+
+    public class MetricFilterCondition
+    {
+        public string FieldPath { get; set; } = string.Empty;
+        public string Operator { get; set; } = "==";
+        public string Value { get; set; } = string.Empty;
+    }
+
+    public class OperatorOption
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Display { get; set; } = string.Empty;
+    }
+
+    protected override void OnParametersSet()
+    {
+        LoadAvailableFields();
+        ParseFilterCondition();
+    }
+
+    private void LoadAvailableFields()
+    {
+        if (string.IsNullOrEmpty(EntityType))
+        {
+            AvailableFields = new List<FieldMetadata>();
+            return;
+        }
+
+        AvailableFields = SchemaProvider.GetAvailableFields(EntityType, false);
+    }
+
+    private void ParseFilterCondition()
+    {
+        // Simple parser for basic conditions (future enhancement)
+        // For now, start with empty conditions
+        if (Conditions.Count == 0 && !string.IsNullOrEmpty(FilterCondition))
+        {
+            // Basic parsing: Status == 'Active'
+            // This is a simplified implementation
+            Conditions = new List<MetricFilterCondition>();
+        }
+    }
+
+    private void AddCondition()
+    {
+        var firstField = AvailableFields.FirstOrDefault();
+        Conditions.Add(new MetricFilterCondition
+        {
+            FieldPath = firstField?.Path ?? string.Empty,
+            Operator = "==",
+            Value = string.Empty
+        });
+        UpdateFilterExpression();
+    }
+
+    private void RemoveCondition(MetricFilterCondition condition)
+    {
+        Conditions.Remove(condition);
+        UpdateFilterExpression();
+    }
+
+    private async void UpdateFilterExpression()
+    {
+        var expression = GenerateFilterExpression();
+        if (FilterConditionChanged.HasDelegate)
+        {
+            await FilterConditionChanged.InvokeAsync(expression);
+        }
+        StateHasChanged();
+    }
+
+    private string GenerateFilterExpression()
+    {
+        if (!Conditions.Any())
+        {
+            return string.Empty;
+        }
+
+        var expressions = new List<string>();
+        foreach (var condition in Conditions)
+        {
+            var field = GetFieldMetadata(condition.FieldPath);
+            if (field == null || string.IsNullOrEmpty(condition.FieldPath))
+                continue;
+
+            var value = condition.Value;
+            
+            // Format value based on type
+            if (field.DataType == FieldDataType.String && condition.Operator != "null" && condition.Operator != "!null")
+            {
+                value = $"'{value}'";
+            }
+            else if (field.DataType == FieldDataType.Boolean)
+            {
+                value = value.ToLower() == "true" ? "true" : "false";
+            }
+
+            if (condition.Operator == "null")
+            {
+                expressions.Add($"{condition.FieldPath} == null");
+            }
+            else if (condition.Operator == "!null")
+            {
+                expressions.Add($"{condition.FieldPath} != null");
+            }
+            else
+            {
+                expressions.Add($"{condition.FieldPath} {condition.Operator} {value}");
+            }
+        }
+
+        return string.Join(" && ", expressions);
+    }
+
+    private List<OperatorOption> GetOperatorsForField(string fieldPath)
+    {
+        var field = GetFieldMetadata(fieldPath);
+        if (field == null)
+        {
+            return new List<OperatorOption>
+            {
+                new() { Value = "==", Display = "Uguale" },
+                new() { Value = "!=", Display = "Diverso" }
+            };
+        }
+
+        var operators = new List<OperatorOption>
+        {
+            new() { Value = "==", Display = "Uguale" },
+            new() { Value = "!=", Display = "Diverso" }
+        };
+
+        if (field.DataType == FieldDataType.Integer || field.DataType == FieldDataType.Decimal)
+        {
+            operators.AddRange(new[]
+            {
+                new OperatorOption { Value = ">", Display = "Maggiore" },
+                new OperatorOption { Value = ">=", Display = "Maggiore o uguale" },
+                new OperatorOption { Value = "<", Display = "Minore" },
+                new OperatorOption { Value = "<=", Display = "Minore o uguale" }
+            });
+        }
+
+        if (field.IsNullable)
+        {
+            operators.AddRange(new[]
+            {
+                new OperatorOption { Value = "null", Display = "È nullo" },
+                new OperatorOption { Value = "!null", Display = "Non è nullo" }
+            });
+        }
+
+        return operators;
+    }
+
+    private FieldMetadata? GetFieldMetadata(string fieldPath)
+    {
+        return AvailableFields.FirstOrDefault(f => f.Path == fieldPath);
+    }
+
+    private string GetIconForDataType(FieldDataType dataType)
+    {
+        return dataType switch
+        {
+            FieldDataType.String => Icons.Material.Outlined.TextFields,
+            FieldDataType.Integer => Icons.Material.Outlined.Numbers,
+            FieldDataType.Decimal => Icons.Material.Outlined.MonetizationOn,
+            FieldDataType.Boolean => Icons.Material.Outlined.ToggleOn,
+            FieldDataType.DateTime => Icons.Material.Outlined.CalendarToday,
+            FieldDataType.Guid => Icons.Material.Outlined.Key,
+            FieldDataType.Enum => Icons.Material.Outlined.List,
+            _ => Icons.Material.Outlined.Help
+        };
+    }
+
+    private string GetValueHelperText(FieldDataType dataType)
+    {
+        return dataType switch
+        {
+            FieldDataType.Boolean => "Inserisci: true o false",
+            FieldDataType.DateTime => "Inserisci data (formato: YYYY-MM-DD)",
+            FieldDataType.Integer => "Inserisci un numero intero",
+            FieldDataType.Decimal => "Inserisci un numero decimale",
+            FieldDataType.String => "Inserisci del testo",
+            _ => "Inserisci un valore"
+        };
+    }
+}
