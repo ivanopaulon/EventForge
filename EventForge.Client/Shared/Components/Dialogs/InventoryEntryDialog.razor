@@ -1,5 +1,6 @@
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.Warehouse
+@using EventForge.Client.Shared.Components.Products
 @inject ITranslationService TranslationService
 @inject IProductService ProductService
 @inject ISnackbar Snackbar
@@ -7,54 +8,25 @@
 
 <MudDialog>
     <TitleContent>
-        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
-            <MudText Typo="Typo.h6">
-                <MudIcon Icon="@Icons.Material.Outlined.Inventory" Class="mr-2" />
-                @TranslationService.GetTranslation("warehouse.inventoryEntry", "Inserimento Inventario") 
-                @if (_localProduct != null)
-                {
-                    <span>- @_localProduct.Name</span>
-                }
-            </MudText>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Outlined.Inventory" Class="mr-2" />
+            @TranslationService.GetTranslation("warehouse.inventoryEntry", "Inserimento Inventario") 
             @if (_localProduct != null)
             {
-                <MudTooltip Text="@TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica prodotto rapida")">
-                    <MudIconButton Icon="@Icons.Material.Outlined.EditNote"
-                                   Color="Color.Info"
-                                   Size="Size.Small"
-                                   OnClick="@(() => OpenQuickEditProduct())" />
-                </MudTooltip>
+                <span>- @_localProduct.Name</span>
             }
-        </MudStack>
+        </MudText>
     </TitleContent>
     <DialogContent>
         <MudStack Spacing="3">
-            <!-- Product Information Display -->
+            <!-- Product Quick Info Component with inline editing -->
             @if (_localProduct != null)
             {
-                <MudPaper Elevation="0" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
-                    <MudGrid Spacing="2">
-                        <MudItem xs="12" md="6">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                @TranslationService.GetTranslation("warehouse.productCode", "Codice Prodotto")
-                            </MudText>
-                            <MudText Typo="Typo.body2" Style="font-weight: 600;">
-                                @_localProduct.Code
-                            </MudText>
-                        </MudItem>
-                        @if (!string.IsNullOrEmpty(_localProduct.Description))
-                        {
-                            <MudItem xs="12">
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                    @TranslationService.GetTranslation("warehouse.description", "Descrizione")
-                                </MudText>
-                                <MudText Typo="Typo.body2">
-                                    @_localProduct.Description
-                                </MudText>
-                            </MudItem>
-                        }
-                    </MudGrid>
-                </MudPaper>
+                <ProductQuickInfo @ref="_productQuickInfo"
+                                  Product="@_localProduct"
+                                  AllowEdit="true"
+                                  ShowCurrentStock="false"
+                                  OnProductUpdated="@OnProductUpdatedAsync" />
             }
 
             <!-- Alternative Unit Notice -->
@@ -160,6 +132,7 @@
     private MudForm? _form;
     private MudSelect<Guid?>? _locationSelect;
     private MudNumericField<decimal>? _quantityField;
+    private ProductQuickInfo? _productQuickInfo;
     private bool _isFormValid;
     private Guid? _selectedLocationId;
     private decimal _quantity;
@@ -220,6 +193,13 @@
 
     private async Task OnQuantityKeyDown(KeyboardEventArgs e)
     {
+        // Ctrl+E to edit product info
+        if (e.Key.ToLower() == "e" && e.CtrlKey && _productQuickInfo != null)
+        {
+            await _productQuickInfo.HandleKeyboardShortcut("e", true);
+            return;
+        }
+        
         // Enter to submit if form is valid (skip notes)
         if (e.Key == "Enter" && _isFormValid && !e.ShiftKey)
         {
@@ -256,57 +236,17 @@
         MudDialog.Close(DialogResult.Ok(result));
     }
 
-    private async Task OpenQuickEditProduct()
+    private async Task OnProductUpdatedAsync()
     {
-        if (_localProduct?.Id == null)
-            return;
-
-        try
+        // Refresh product data after update
+        if (_localProduct?.Id != null)
         {
-            // Load the product details
-            var product = await ProductService.GetProductByIdAsync(_localProduct.Id);
-            if (product == null)
+            var refreshedProduct = await ProductService.GetProductByIdAsync(_localProduct.Id);
+            if (refreshedProduct != null)
             {
-                Snackbar.Add(TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"), Severity.Error);
-                return;
-            }
-
-            var parameters = new DialogParameters
-            {
-                { "IsEditMode", true },
-                { "ProductId", _localProduct.Id },
-                { "ExistingProduct", product }
-            };
-
-            var options = new DialogOptions
-            {
-                MaxWidth = MaxWidth.Medium,
-                FullWidth = true,
-                CloseButton = true,
-                CloseOnEscapeKey = true
-            };
-
-            var dialog = await DialogService.ShowAsync<QuickCreateProductDialog>(
-                TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica Rapida Prodotto"),
-                parameters,
-                options);
-
-            var result = await dialog.Result;
-
-            if (!result.Canceled && result.Data is ProductDto updatedProduct)
-            {
-                // Update the local product reference
-                _localProduct = updatedProduct;
-                
-                Snackbar.Add(TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"), Severity.Success);
-                
-                // Trigger a re-render to show the updated product information
+                _localProduct = refreshedProduct;
                 StateHasChanged();
             }
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add(TranslationService.GetTranslation("products.loadError", "Errore nel caricamento del prodotto"), Severity.Error);
         }
     }
 

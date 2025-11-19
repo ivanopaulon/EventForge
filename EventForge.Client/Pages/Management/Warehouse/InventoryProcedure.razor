@@ -31,12 +31,6 @@
         </MudItem>
         <MudItem xs="12" md="4">
             <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
-                <MudButton StartIcon="@Icons.Material.Outlined.FlashOn" 
-                           Color="Color.Primary" 
-                           Variant="Variant.Outlined"
-                           OnClick="@(() => NavigationManager.NavigateTo("/warehouse/inventory-procedure-fast"))">
-                    @TranslationService.GetTranslation("warehouse.fastProcedure", "Procedura Rapida")
-                </MudButton>
                 <MudButton StartIcon="@Icons.Material.Outlined.List" 
                            Color="Color.Default" 
                            Variant="Variant.Outlined"
@@ -94,58 +88,6 @@
                 </MudStack>
             </MudStack>
         </MudAlert>
-
-        <!-- Real-time Statistics Panel -->
-        <MudGrid Class="mb-4">
-            <MudItem xs="12" md="3">
-                <MudPaper Elevation="2" Class="pa-3">
-                    <MudStack Spacing="1">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            @TranslationService.GetTranslation("warehouse.totalItems", "Totale Articoli")
-                        </MudText>
-                        <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 600;">
-                            @_currentDocument.TotalItems
-                        </MudText>
-                    </MudStack>
-                </MudPaper>
-            </MudItem>
-            <MudItem xs="12" md="3">
-                <MudPaper Elevation="2" Class="pa-3">
-                    <MudStack Spacing="1">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            @TranslationService.GetTranslation("warehouse.positiveAdjustments", "Eccedenze")
-                        </MudText>
-                        <MudText Typo="Typo.h5" Color="Color.Success" Style="font-weight: 600;">
-                            +@GetPositiveAdjustmentsCount()
-                        </MudText>
-                    </MudStack>
-                </MudPaper>
-            </MudItem>
-            <MudItem xs="12" md="3">
-                <MudPaper Elevation="2" Class="pa-3">
-                    <MudStack Spacing="1">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            @TranslationService.GetTranslation("warehouse.negativeAdjustments", "Mancanze")
-                        </MudText>
-                        <MudText Typo="Typo.h5" Color="Color.Warning" Style="font-weight: 600;">
-                            @GetNegativeAdjustmentsCount()
-                        </MudText>
-                    </MudStack>
-                </MudPaper>
-            </MudItem>
-            <MudItem xs="12" md="3">
-                <MudPaper Elevation="2" Class="pa-3">
-                    <MudStack Spacing="1">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            @TranslationService.GetTranslation("warehouse.sessionDuration", "Durata Sessione")
-                        </MudText>
-                        <MudText Typo="Typo.h5" Color="Color.Info" Style="font-weight: 600;">
-                            @GetSessionDuration()
-                        </MudText>
-                    </MudStack>
-                </MudPaper>
-            </MudItem>
-        </MudGrid>
     }
 
     <!-- Storage Facility Selection -->
@@ -324,56 +266,6 @@
                 </MudTable>
             </MudPaper>
         }
-
-        <!-- Operation Log / Activity Timeline - Collapsible -->
-        @if (_operationLog.Any())
-        {
-            <MudPaper Elevation="2" Class="pa-4">
-                <div style="cursor: pointer;" @onclick="@(() => _operationLogExpanded = !_operationLogExpanded)">
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-2">
-                        <div>
-                            <MudText Typo="Typo.h6">
-                                <MudIcon Icon="@Icons.Material.Outlined.History" Class="mr-2" />
-                                @TranslationService.GetTranslation("warehouse.operationLog", "Registro Operazioni")
-                                <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Class="ml-2">@_operationLog.Count</MudChip>
-                            </MudText>
-                        </div>
-                        <MudIconButton Icon="@(_operationLogExpanded ? Icons.Material.Outlined.ExpandLess : Icons.Material.Outlined.ExpandMore)"
-                                       Color="Color.Default"
-                                       Size="Size.Small" />
-                    </MudStack>
-                </div>
-
-                <MudCollapse Expanded="@_operationLogExpanded">
-                    <MudTimeline TimelineOrientation="TimelineOrientation.Vertical" TimelinePosition="TimelinePosition.Start" Class="mt-3">
-                        @foreach (var log in _operationLog.OrderByDescending(l => l.Timestamp).Take(20))
-                        {
-                            <MudTimelineItem Color="@GetLogColor(log.Type)" Size="Size.Small">
-                                <ItemContent>
-                                    <MudText Typo="Typo.body2" Style="font-weight: 600;">@log.Message</MudText>
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                        @log.Timestamp.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
-                                    </MudText>
-                                    @if (!string.IsNullOrEmpty(log.Details))
-                                    {
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
-                                            @log.Details
-                                        </MudText>
-                                    }
-                                </ItemContent>
-                            </MudTimelineItem>
-                        }
-                    </MudTimeline>
-
-                    @if (_operationLog.Count > 20)
-                    {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
-                            @TranslationService.GetTranslation("warehouse.showingRecent", "Mostrando le ultime 20 operazioni su {0} totali", _operationLog.Count)
-                        </MudText>
-                    }
-                </MudCollapse>
-            </MudPaper>
-        }
     }
     else
     {
@@ -390,6 +282,7 @@
     private string _scannedBarcode = string.Empty;
     private ProductDto? _currentProduct;
     private ProductCodeDto? _currentProductCode;
+    private ProductUnitDto? _currentProductUnit; // Cache for current product unit
     private decimal _currentConversionFactor = 1m;
     private List<StorageLocationDto> _locations = new();
     private List<StorageFacilityDto> _storageFacilities = new();
@@ -401,59 +294,40 @@
     private MudTextField<string>? _barcodeInput;
     private DateTime _sessionStartTime = DateTime.UtcNow;
     private bool _showOnlyAdjustments = false;
-    private bool _operationLogExpanded = false;
-    
-    // Operation log for audit trail
-    private List<OperationLogEntry> _operationLog = new();
 
-    // Helper class for operation logging
-    private class OperationLogEntry
-    {
-        public DateTime Timestamp { get; set; }
-        public string Message { get; set; } = string.Empty;
-        public string Details { get; set; } = string.Empty;
-        public string Type { get; set; } = "Info"; // Info, Success, Warning, Error
-    }
-
+    // Empty method to avoid breaking existing calls
     private void AddOperationLog(string message, string details = "", string type = "Info")
     {
-        _operationLog.Add(new OperationLogEntry
-        {
-            Timestamp = DateTime.UtcNow,
-            Message = message,
-            Details = details,
-            Type = type
-        });
-
+        // Log operations removed - no longer displayed in UI
         Logger.LogInformation("Inventory Operation: {Message} - {Details}", message, details);
     }
 
-    private Color GetLogColor(string type) => type switch
+    private async Task<decimal> GetConversionFactorAsync(Guid productId, Guid? productUnitId)
     {
-        "Success" => Color.Success,
-        "Warning" => Color.Warning,
-        "Error" => Color.Error,
-        _ => Color.Info
-    };
+        if (!productUnitId.HasValue)
+        {
+            _currentProductUnit = null;
+            return 1m;
+        }
 
-    private int GetPositiveAdjustmentsCount()
-    {
-        if (_currentDocument?.Rows == null) return 0;
-        return _currentDocument.Rows.Count(r => r.AdjustmentQuantity.HasValue && r.AdjustmentQuantity > 0);
-    }
-
-    private int GetNegativeAdjustmentsCount()
-    {
-        if (_currentDocument?.Rows == null) return 0;
-        return _currentDocument.Rows.Count(r => r.AdjustmentQuantity.HasValue && r.AdjustmentQuantity < 0);
-    }
-
-    private string GetSessionDuration()
-    {
-        if (_currentDocument == null) return "00:00";
+        try
+        {
+            _currentProductUnit = await ProductService.GetProductUnitByIdAsync(productUnitId.Value);
+            if (_currentProductUnit != null)
+            {
+                Logger.LogInformation("Product unit found with conversion factor: {Factor}", _currentProductUnit.ConversionFactor);
+                return _currentProductUnit.ConversionFactor;
+            }
+            
+            Logger.LogWarning("Product unit NOT found for ProductUnitId {Id}", productUnitId.Value);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error getting conversion factor for ProductUnitId {Id}", productUnitId.Value);
+        }
         
-        var duration = DateTime.UtcNow - _sessionStartTime;
-        return $"{(int)duration.TotalMinutes:D2}:{duration.Seconds:D2}";
+        _currentProductUnit = null;
+        return 1m;
     }
 
     private IEnumerable<InventoryDocumentRowDto> GetFilteredRows()
@@ -623,14 +497,23 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await Task.WhenAll(
-            LoadStorageFacilities(),
-            LoadLocations()
-        );
-        
-        // Try to restore active inventory session
-        await RestoreInventorySessionAsync();
-        StateHasChanged();
+        _isLoading = true;
+        try
+        {
+            // Load facilities and locations in parallel
+            await Task.WhenAll(
+                LoadStorageFacilitiesAsync(),
+                LoadLocationsAsync()
+            );
+            
+            // Try to restore active inventory session
+            await RestoreInventorySessionAsync();
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -641,9 +524,8 @@
         }
     }
 
-    private async Task LoadStorageFacilities()
+    private async Task LoadStorageFacilitiesAsync()
     {
-        _isLoading = true;
         try
         {
             var result = await WarehouseService.GetStorageFacilitiesAsync(1, 100);
@@ -663,15 +545,10 @@
             Logger.LogError(ex, "Error loading storage facilities");
             Snackbar.Add(TranslationService.GetTranslation("warehouse.loadFacilitiesError", "Errore nel caricamento dei magazzini"), Severity.Error);
         }
-        finally
-        {
-            _isLoading = false;
-        }
     }
 
-    private async Task LoadLocations()
+    private async Task LoadLocationsAsync()
     {
-        _isLoading = true;
         try
         {
             var result = await StorageLocationService.GetStorageLocationsAsync(1, 100);
@@ -684,10 +561,6 @@
         {
             Logger.LogError(ex, "Error loading storage locations");
             Snackbar.Add(TranslationService.GetTranslation("warehouse.loadLocationsError", "Errore nel caricamento ubicazioni"), Severity.Error);
-        }
-        finally
-        {
-            _isLoading = false;
         }
     }
 
@@ -711,7 +584,6 @@
             if (_currentDocument != null)
             {
                 _sessionStartTime = DateTime.UtcNow;
-                _operationLog.Clear();
                 
                 var facilityName = _storageFacilities.FirstOrDefault(f => f.Id == _selectedStorageFacilityId)?.Name ?? "N/A";
                 
@@ -797,37 +669,7 @@
             if (_currentProduct != null)
             {
                 // Get conversion factor if ProductCode has a ProductUnitId (alternative unit)
-                _currentConversionFactor = 1m;
-                if (_currentProductCode?.ProductUnitId.HasValue == true)
-                {
-                    // Prova prima a leggere l'unità singola (endpoint corretto dopo la correzione in ProductService)
-                    var productUnit = await ProductService.GetProductUnitByIdAsync(_currentProductCode.ProductUnitId.Value);
-                    if (productUnit == null)
-                    {
-                        // Fallback: ottieni tutte le unità del prodotto e cerca per id (tollerante a differenze di routing/server)
-                        var units = await ProductService.GetProductUnitsAsync(_currentProduct.Id);
-                        productUnit = units?.FirstOrDefault(u => u.Id == _currentProductCode.ProductUnitId.Value);
-                        if (productUnit != null)
-                        {
-                            Logger.LogWarning("ProductUnit retrieved via fallback GetProductUnitsAsync for ProductUnitId {Id}", _currentProductCode.ProductUnitId.Value);
-                        }
-                    }
-
-                    if (productUnit != null)
-                    {
-                        _currentConversionFactor = productUnit.ConversionFactor;
-                        Logger.LogInformation("Product unit found with conversion factor: {Factor}", _currentConversionFactor);
-                        AddOperationLog(
-                            "Unità alternativa rilevata",
-                            $"Fattore di conversione: {_currentConversionFactor} (le quantità saranno in unità base)",
-                            "Info"
-                        );
-                    }
-                    else
-                    {
-                        Logger.LogWarning("Product unit NOT found for ProductUnitId {Id}", _currentProductCode.ProductUnitId.Value);
-                    }
-                }
+                _currentConversionFactor = await GetConversionFactorAsync(_currentProduct.Id, _currentProductCode?.ProductUnitId);
 
                 Snackbar.Add(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato: {0}", _currentProduct.Name), Severity.Success);
                 AddOperationLog(
@@ -993,24 +835,9 @@
             var location = _locations.FirstOrDefault(l => l.Id == _selectedLocationId.Value);
             var locationName = location?.Code ?? "N/A";
 
-            // Determine UnitOfMeasureId: use from ProductCode if available (for alternative units),
+            // Determine UnitOfMeasureId: use cached ProductUnit if available (for alternative units),
             // otherwise fall back to product's default UnitOfMeasureId
-            Guid? unitOfMeasureId = null;
-            if (_currentProductCode?.ProductUnitId.HasValue == true)
-            {
-                // Get ProductUnit to retrieve UnitOfMeasureId
-                var productUnits = await ProductService.GetProductUnitsAsync(_currentProduct.Id);
-                var productUnit = productUnits?.FirstOrDefault(pu => pu.Id == _currentProductCode.ProductUnitId.Value);
-                if (productUnit != null)
-                {
-                    unitOfMeasureId = productUnit.UnitOfMeasureId;
-                }
-            }
-            else
-            {
-                // Use product's default UnitOfMeasureId
-                unitOfMeasureId = _currentProduct.UnitOfMeasureId;
-            }
+            Guid? unitOfMeasureId = _currentProductUnit?.UnitOfMeasureId ?? _currentProduct.UnitOfMeasureId;
 
             var rowDto = new AddInventoryDocumentRowDto
             {
@@ -1073,6 +900,7 @@
         _scannedBarcode = string.Empty;
         _currentProduct = null;
         _currentProductCode = null;
+        _currentProductUnit = null;
         _currentConversionFactor = 1m;
         _selectedLocationId = null;
         _quantity = 0;
