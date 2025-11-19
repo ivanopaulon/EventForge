@@ -19,94 +19,138 @@
 
     @if (!_isLoading)
     {
-        <MudTable T="VatRateDto"
-                  Items="_filteredVatRates"
-                  MultiSelection="true"
-                  @bind-SelectedItems="_selectedVatRates"
-                  Hover="true"
-                  Striped="true"
-                  SortLabel="@TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna")"
-                  Dense="true"
-                  Breakpoint="Breakpoint.Sm">
+        <EFTable T="VatRateDto"
+                 Items="_filteredVatRates"
+                 MultiSelection="true"
+                 SelectedItems="_selectedVatRates"
+                 SelectedItemsChanged="_selectedItemsChangedCallback"
+                 IsLoading="_isLoadingVatRates"
+                 ComponentKey="VatRateManagement"
+                 InitialColumnConfigurations="_initialColumns">
             <ToolBarContent>
-                    <MudText Typo="Typo.h5">
-                        @TranslationService.GetTranslation("financial.vatRateManagement", "Gestione Aliquote IVA")
-                    </MudText>
-                    <MudSpacer />
-                    <MudTextField @bind-Value="_searchTerm"
-                                  @bind-Value:after="OnSearchChanged"
-                                  Label="@TranslationService.GetTranslation("financial.searchVatRates", "Cerca aliquote IVA")"
-                                  Placeholder="@TranslationService.GetTranslation("financial.searchPlaceholder", "Inserisci nome...")"
-                                  Variant="Variant.Outlined"
-                                  Adornment="Adornment.End"
-                                  AdornmentIcon="@Icons.Material.Outlined.Search"
-                                  Clearable="true"
-                                  Class="ef-input" />
-                    <ManagementTableToolbar ShowSelectionBadge="true"
-                                            SelectedCount="@_selectedVatRates.Count"
-                                            ShowRefresh="true"
-                                            ShowCreate="true"
-                                            ShowDelete="true"
-                                            CreateTooltip="financial.createNewVatRate"
-                                            IsDisabled="_isLoadingVatRates"
-                                            OnRefresh="@LoadVatRatesAsync"
-                                            OnCreate="@CreateVatRate"
-                                            OnDelete="@DeleteSelectedVatRates" />
+                <MudText Typo="Typo.h5">
+                    @TranslationService.GetTranslation("financial.vatRateManagement", "Gestione Aliquote IVA")
+                </MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="_searchTerm"
+                              @bind-Value:after="OnSearchChanged"
+                              Label="@TranslationService.GetTranslation("financial.searchVatRates", "Cerca aliquote IVA")"
+                              Placeholder="@TranslationService.GetTranslation("financial.searchPlaceholder", "Inserisci nome...")"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              Clearable="true"
+                              Class="ef-input" />
+                <ManagementTableToolbar ShowSelectionBadge="true"
+                                        SelectedCount="@_selectedVatRates.Count"
+                                        ShowRefresh="true"
+                                        ShowCreate="true"
+                                        ShowDelete="true"
+                                        CreateTooltip="financial.createNewVatRate"
+                                        IsDisabled="_isLoadingVatRates"
+                                        OnRefresh="@LoadVatRatesAsync"
+                                        OnCreate="@CreateVatRate"
+                                        OnDelete="@DeleteSelectedVatRates" />
             </ToolBarContent>
-            <HeaderContent>
-                <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Percentage))">@TranslationService.GetTranslation("field.percentage", "Percentuale")</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Status))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.ValidFrom ?? DateTime.MinValue))">@TranslationService.GetTranslation("field.validFrom", "Valido Da")</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.ValidTo ?? DateTime.MaxValue))">@TranslationService.GetTranslation("field.validTo", "Valido A")</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<VatRateDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel></MudTh>
+            <HeaderContent Context="columns">
+                @foreach (var column in columns.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                {
+                    @if (column.PropertyName == "Name")
+                    {
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel></MudTh>
+                    }
+                    else if (column.PropertyName == "Percentage")
+                    {
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Percentage))">@TranslationService.GetTranslation("field.percentage", "Percentuale")</MudTableSortLabel></MudTh>
+                    }
+                    else if (column.PropertyName == "Status")
+                    {
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Status))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel></MudTh>
+                    }
+                    else if (column.PropertyName == "ValidFrom")
+                    {
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.ValidFrom ?? DateTime.MinValue))">@TranslationService.GetTranslation("field.validFrom", "Valido Da")</MudTableSortLabel></MudTh>
+                    }
+                    else if (column.PropertyName == "ValidTo")
+                    {
+                        <MudTh><MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.ValidTo ?? DateTime.MaxValue))">@TranslationService.GetTranslation("field.validTo", "Valido A")</MudTableSortLabel></MudTh>
+                    }
+                    else if (column.PropertyName == "CreatedAt")
+                    {
+                        <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<VatRateDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel></MudTh>
+                    }
+                }
                 <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
             </HeaderContent>
 
-            <RowTemplate>
-                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
-                    <div class="d-flex align-center">
-                        <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
-                            <MudIcon Icon="@Icons.Material.Outlined.Percent" />
-                        </MudAvatar>
-                        <div>
-                            <MudText Typo="Typo.body2">@context.Name</MudText>
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @context.Id.ToString().Substring(0, 8)...</MudText>
-                        </div>
-                    </div>
-                </MudTd>
-                <MudTd DataLabel="@TranslationService.GetTranslation("field.percentage", "Percentuale")">
-                    <MudChip T="string" Size="Size.Small" Color="Color.Info">@($"{context.Percentage}%")</MudChip>
-                </MudTd>
-                <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
-                    <MudChip T="string" Color="@GetStatusColor(context.Status)"
-                             Size="Size.Small"
-                             Icon="@GetStatusIcon(context.Status)">
-                        @GetStatusText(context.Status)
-                    </MudChip>
-                </MudTd>
-                <MudTd DataLabel="@TranslationService.GetTranslation("field.validFrom", "Valido Da")">
-                    <MudText Typo="Typo.body2">@(context.ValidFrom?.ToString("dd/MM/yyyy") ?? "-")</MudText>
-                </MudTd>
-                <MudTd DataLabel="@TranslationService.GetTranslation("field.validTo", "Valido A")">
-                    <MudText Typo="Typo.body2">@(context.ValidTo?.ToString("dd/MM/yyyy") ?? "-")</MudText>
-                </MudTd>
-                <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
-                    <MudText Typo="Typo.body2">@context.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
-                </MudTd>
+            <RowTemplate Context="item">
+                @{
+                    var visibleColumns = _initialColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+                }
+                @foreach (var column in visibleColumns)
+                {
+                    @if (column.PropertyName == "Name")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                            <div class="d-flex align-center">
+                                <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Percent" />
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.body2">@item.Name</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @item.Id.ToString().Substring(0, 8)...</MudText>
+                                </div>
+                            </div>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Percentage")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.percentage", "Percentuale")">
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@($"{item.Percentage}%")</MudChip>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "Status")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                            <MudChip T="string" Color="@GetStatusColor(item.Status)"
+                                     Size="Size.Small"
+                                     Icon="@GetStatusIcon(item.Status)">
+                                @GetStatusText(item.Status)
+                            </MudChip>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "ValidFrom")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.validFrom", "Valido Da")">
+                            <MudText Typo="Typo.body2">@(item.ValidFrom?.ToString("dd/MM/yyyy") ?? "-")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "ValidTo")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.validTo", "Valido A")">
+                            <MudText Typo="Typo.body2">@(item.ValidTo?.ToString("dd/MM/yyyy") ?? "-")</MudText>
+                        </MudTd>
+                    }
+                    else if (column.PropertyName == "CreatedAt")
+                    {
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
+                            <MudText Typo="Typo.body2">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
+                        </MudTd>
+                    }
+                }
                 <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Class="text-center">
-                    <ActionButtonGroup EntityName="@context.Name"
-                                       ItemDisplayName="@context.Name"
+                    <ActionButtonGroup EntityName="@item.Name"
+                                       ItemDisplayName="@item.Name"
                                        ShowView="false"
                                        ShowEdit="true"
                                        ShowAuditLog="true"
                                        ShowToggleStatus="false"
                                        ShowDelete="true"
-                                       IsActive="@context.IsActive"
-                                       OnEdit="@(() => EditVatRate(context.Id))"
-                                       OnAuditLog="@(() => ViewVatRateAuditLog(context))"
-                                       OnToggleStatus="@(() => ToggleVatRateStatus(context))"
-                                       OnDelete="@(() => DeleteVatRate(context))" />
+                                       IsActive="@item.IsActive"
+                                       OnEdit="@(() => EditVatRate(item.Id))"
+                                       OnAuditLog="@(() => ViewVatRateAuditLog(item))"
+                                       OnToggleStatus="@(() => ToggleVatRateStatus(item))"
+                                       OnDelete="@(() => DeleteVatRate(item))" />
                 </MudTd>
             </RowTemplate>
 
@@ -129,7 +173,7 @@
                     }
                 </div>
             </NoRecordsContent>
-        </MudTable>
+        </EFTable>
     }
 </MudContainer>
 
@@ -154,6 +198,19 @@
     private List<VatRateDto> _vatRates = new();
     private HashSet<VatRateDto> _selectedVatRates = new();
 
+    // Column configuration for EFTable
+    private List<EFTable<VatRateDto>.ColumnConfiguration> _initialColumns = new()
+    {
+        new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0 },
+        new() { PropertyName = "Percentage", DisplayName = "Percentuale", IsVisible = true, Order = 1 },
+        new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 2 },
+        new() { PropertyName = "ValidFrom", DisplayName = "Valido Da", IsVisible = true, Order = 3 },
+        new() { PropertyName = "ValidTo", DisplayName = "Valido A", IsVisible = true, Order = 4 },
+        new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 5 }
+    };
+
+    private EventCallback<HashSet<VatRateDto>> _selectedItemsChangedCallback => EventCallback.Factory.Create<HashSet<VatRateDto>>(this, OnSelectedItemsChanged);
+
     /// <summary>
     /// Computed property for filtered VAT rates based on search criteria.
     /// </summary>
@@ -167,6 +224,15 @@
              (_statusFilter == "active" && v.Status == VatRateStatus.Active) ||
              (_statusFilter == "suspended" && v.Status == VatRateStatus.Suspended) ||
              (_statusFilter == "deleted" && v.Status == VatRateStatus.Deleted)));
+
+    /// <summary>
+    /// Handles selection changes from EFTable
+    /// </summary>
+    private void OnSelectedItemsChanged(HashSet<VatRateDto> items)
+    {
+        _selectedVatRates = items;
+        StateHasChanged();
+    }
 
     /// <summary>
     /// Component initialization.
