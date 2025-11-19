@@ -1,0 +1,361 @@
+@typeparam TItem
+@inject ITablePreferencesService TablePreferencesService
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<EFTable<TItem>> Logger
+
+<MudTable @ref="_tableRef"
+          T="TItem"
+          Items="@GetDisplayItems()"
+          ServerData="@ServerData"
+          MultiSelection="@MultiSelection"
+          SelectedItems="@SelectedItems"
+          SelectedItemsChanged="@SelectedItemsChanged"
+          Hover="@Hover"
+          Striped="@Striped"
+          Dense="@Dense"
+          FixedHeader="@FixedHeader"
+          Height="@Height"
+          Loading="@IsLoading"
+          LoadingProgressColor="@LoadingProgressColor"
+          SortLabel="@(TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna"))"
+          Breakpoint="@Breakpoint">
+    <ToolBarContent>
+        @if (ToolBarContent != null)
+        {
+            @ToolBarContent
+        }
+        @if (ShowColumnConfiguration)
+        {
+            <MudTooltip Text="@TranslationService.GetTranslation("table.columns", "Configura colonne")">
+                <MudIconButton Icon="@Icons.Material.Outlined.ViewColumn"
+                               Color="Color.Default"
+                               OnClick="@OpenColumnConfigurationDialog" />
+            </MudTooltip>
+            <MudTooltip Text="@TranslationService.GetTranslation("table.resetPreferences", "Ripristina impostazioni")">
+                <MudIconButton Icon="@Icons.Material.Outlined.RestartAlt"
+                               Color="Color.Default"
+                               OnClick="@ResetPreferences" />
+            </MudTooltip>
+        }
+    </ToolBarContent>
+    <HeaderContent>
+        @if (HeaderContent != null)
+        {
+            @HeaderContent(_columnConfigurations)
+        }
+    </HeaderContent>
+    <RowTemplate>
+        @if (RowTemplate != null)
+        {
+            if (!string.IsNullOrEmpty(_groupByProperty))
+            {
+                // Client-side grouping enabled
+                var currentGroupValue = GetPropertyValue(context, _groupByProperty);
+                if (!Equals(currentGroupValue, _lastGroupValue))
+                {
+                    _lastGroupValue = currentGroupValue;
+                    var groupItems = GetDisplayItems().Where(item => Equals(GetPropertyValue(item, _groupByProperty), currentGroupValue)).ToList();
+                    
+                    <tr style="background-color: var(--mud-palette-table-lines); font-weight: 600;">
+                        <td colspan="100" style="padding: 12px;">
+                            <div class="d-flex align-center">
+                                <MudIcon Icon="@Icons.Material.Outlined.Category" Size="Size.Small" Class="mr-2" />
+                                <MudText Typo="Typo.body2">
+                                    @(currentGroupValue?.ToString() ?? TranslationService.GetTranslation("table.noGroup", "(Nessun gruppo)"))
+                                    <MudChip T="string" Size="Size.Small" Class="ml-2">@groupItems.Count</MudChip>
+                                </MudText>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+            @RowTemplate(context)
+        }
+    </RowTemplate>
+    <NoRecordsContent>
+        @if (NoRecordsContent != null)
+        {
+            @NoRecordsContent
+        }
+        else
+        {
+            <div class="text-center pa-4">
+                <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Medium" Class="mb-2 mud-text-secondary" />
+                <MudText Typo="Typo.h6">@TranslationService.GetTranslation("table.noRecords", "Nessun record trovato")</MudText>
+            </div>
+        }
+    </NoRecordsContent>
+    <PagerContent>
+        @if (ShowInternalPager && PagerContent != null)
+        {
+            @PagerContent
+        }
+    </PagerContent>
+</MudTable>
+
+@code {
+    // Table reference
+    private MudTable<TItem>? _tableRef;
+
+    // Data parameters
+    [Parameter] public IEnumerable<TItem>? Items { get; set; }
+    [Parameter] public Func<TableState, CancellationToken, Task<TableData<TItem>>>? ServerData { get; set; }
+
+    // Selection parameters
+    [Parameter] public bool MultiSelection { get; set; }
+    [Parameter] public HashSet<TItem> SelectedItems { get; set; } = new();
+    [Parameter] public EventCallback<HashSet<TItem>> SelectedItemsChanged { get; set; }
+
+    // Appearance parameters
+    [Parameter] public bool Hover { get; set; } = true;
+    [Parameter] public bool Striped { get; set; } = true;
+    [Parameter] public bool Dense { get; set; } = true;
+    [Parameter] public bool FixedHeader { get; set; } = true;
+    [Parameter] public string? Height { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public Color LoadingProgressColor { get; set; } = Color.Primary;
+    [Parameter] public Breakpoint Breakpoint { get; set; } = Breakpoint.Sm;
+
+    // Pager parameters
+    [Parameter] public bool ShowInternalPager { get; set; } = false;
+    [Parameter] public RenderFragment? PagerContent { get; set; }
+
+    // Column configuration
+    [Parameter] public bool ShowColumnConfiguration { get; set; } = true;
+    [Parameter] public string ComponentKey { get; set; } = "DefaultTable";
+    [Parameter] public List<ColumnConfiguration> InitialColumnConfigurations { get; set; } = new();
+
+    // Content parameters
+    [Parameter] public RenderFragment<List<ColumnConfiguration>>? HeaderContent { get; set; }
+    [Parameter] public RenderFragment<TItem>? RowTemplate { get; set; }
+    [Parameter] public RenderFragment? ToolBarContent { get; set; }
+    [Parameter] public RenderFragment? NoRecordsContent { get; set; }
+
+    // Grouping
+    [Parameter] public string? GroupByProperty { get; set; }
+
+    // Internal state
+    private List<ColumnConfiguration> _columnConfigurations = new();
+    private TablePreferences? _preferences;
+    private string? _groupByProperty;
+    private object? _lastGroupValue;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Initialize column configurations
+        _columnConfigurations = InitialColumnConfigurations.Select(c => new ColumnConfiguration
+        {
+            PropertyName = c.PropertyName,
+            DisplayName = c.DisplayName,
+            IsVisible = c.IsVisible,
+            Order = c.Order
+        }).ToList();
+
+        // Load preferences
+        await LoadPreferencesAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        // Reset grouping state when GroupByProperty changes
+        if (_groupByProperty != GroupByProperty)
+        {
+            _groupByProperty = GroupByProperty;
+            _lastGroupValue = null;
+        }
+    }
+
+    private async Task LoadPreferencesAsync()
+    {
+        try
+        {
+            _preferences = await TablePreferencesService.GetPreferencesAsync<TablePreferences>(ComponentKey);
+            
+            if (_preferences != null)
+            {
+                // Apply column order
+                if (_preferences.ColumnOrders != null && _preferences.ColumnOrders.Any())
+                {
+                    foreach (var col in _columnConfigurations)
+                    {
+                        if (_preferences.ColumnOrders.TryGetValue(col.PropertyName, out var order))
+                        {
+                            col.Order = order;
+                        }
+                    }
+                    _columnConfigurations = _columnConfigurations.OrderBy(c => c.Order).ToList();
+                }
+
+                // Apply visibility
+                if (_preferences.ColumnVisibility != null && _preferences.ColumnVisibility.Any())
+                {
+                    foreach (var col in _columnConfigurations)
+                    {
+                        if (_preferences.ColumnVisibility.TryGetValue(col.PropertyName, out var isVisible))
+                        {
+                            col.IsVisible = isVisible;
+                        }
+                    }
+                }
+
+                // Apply grouping
+                if (!string.IsNullOrEmpty(_preferences.GroupByProperty) && ServerData == null)
+                {
+                    _groupByProperty = _preferences.GroupByProperty;
+                }
+
+                Logger.LogDebug("Loaded table preferences for {ComponentKey}", ComponentKey);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading table preferences for {ComponentKey}", ComponentKey);
+        }
+    }
+
+    private async Task SavePreferencesAsync()
+    {
+        try
+        {
+            var preferences = new TablePreferences
+            {
+                ColumnOrders = _columnConfigurations.ToDictionary(c => c.PropertyName, c => c.Order),
+                ColumnVisibility = _columnConfigurations.ToDictionary(c => c.PropertyName, c => c.IsVisible),
+                GroupByProperty = _groupByProperty
+            };
+
+            await TablePreferencesService.SavePreferencesAsync(ComponentKey, preferences);
+            Logger.LogDebug("Saved table preferences for {ComponentKey}", ComponentKey);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving table preferences for {ComponentKey}", ComponentKey);
+        }
+    }
+
+    private async Task ResetPreferences()
+    {
+        try
+        {
+            await TablePreferencesService.ClearPreferencesAsync(ComponentKey);
+            
+            // Reset to initial state
+            _columnConfigurations = InitialColumnConfigurations.Select(c => new ColumnConfiguration
+            {
+                PropertyName = c.PropertyName,
+                DisplayName = c.DisplayName,
+                IsVisible = c.IsVisible,
+                Order = c.Order
+            }).ToList();
+            
+            _groupByProperty = GroupByProperty;
+            _lastGroupValue = null;
+            
+            StateHasChanged();
+            Logger.LogInformation("Reset table preferences for {ComponentKey}", ComponentKey);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error resetting table preferences for {ComponentKey}", ComponentKey);
+        }
+    }
+
+    private async Task OpenColumnConfigurationDialog()
+    {
+        var parameters = new DialogParameters
+        {
+            { "Columns", _columnConfigurations },
+            { "GroupByProperty", _groupByProperty },
+            { "AvailableGroupProperties", _columnConfigurations.Select(c => c.PropertyName).ToList() },
+            { "AllowGrouping", ServerData == null && Items != null } // Only allow grouping for client-side data
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ColumnConfigurationDialog>(
+            TranslationService.GetTranslation("table.columnConfiguration", "Configurazione colonne"),
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is ColumnConfigurationResult configResult)
+        {
+            _columnConfigurations = configResult.Columns;
+            _groupByProperty = configResult.GroupByProperty;
+            _lastGroupValue = null;
+            
+            await SavePreferencesAsync();
+            StateHasChanged();
+        }
+    }
+
+    private IEnumerable<TItem> GetDisplayItems()
+    {
+        if (Items == null)
+            return Enumerable.Empty<TItem>();
+
+        var items = Items;
+
+        // Apply grouping sort if needed
+        if (!string.IsNullOrEmpty(_groupByProperty))
+        {
+            items = items.OrderBy(item => GetPropertyValue(item, _groupByProperty));
+        }
+
+        return items;
+    }
+
+    private object? GetPropertyValue(TItem item, string propertyPath)
+    {
+        if (item == null || string.IsNullOrEmpty(propertyPath))
+            return null;
+
+        try
+        {
+            var property = typeof(TItem).GetProperty(propertyPath);
+            return property?.GetValue(item);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error getting property value for {PropertyPath}", propertyPath);
+            return null;
+        }
+    }
+
+    public async Task ReloadServerDataAsync()
+    {
+        if (_tableRef != null && ServerData != null)
+        {
+            await _tableRef.ReloadServerData();
+        }
+    }
+
+    // Helper classes
+    public class ColumnConfiguration
+    {
+        public string PropertyName { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public bool IsVisible { get; set; } = true;
+        public int Order { get; set; }
+    }
+
+    public class TablePreferences
+    {
+        public Dictionary<string, int> ColumnOrders { get; set; } = new();
+        public Dictionary<string, bool> ColumnVisibility { get; set; } = new();
+        public string? GroupByProperty { get; set; }
+    }
+
+    public class ColumnConfigurationResult
+    {
+        public List<ColumnConfiguration> Columns { get; set; } = new();
+        public string? GroupByProperty { get; set; }
+    }
+}

@@ -1,0 +1,157 @@
+@inject ITranslationService TranslationService
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            @if (AllowGrouping)
+            {
+                <MudSelect T="string"
+                           @bind-Value="_selectedGroupProperty"
+                           Label="@TranslationService.GetTranslation("table.groupBy", "Raggruppa per")"
+                           Variant="Variant.Outlined"
+                           Clearable="true">
+                    <MudSelectItem T="string" Value="@((string?)null)">
+                        @TranslationService.GetTranslation("table.noGrouping", "Nessun raggruppamento")
+                    </MudSelectItem>
+                    @foreach (var prop in AvailableGroupProperties)
+                    {
+                        var column = Columns.FirstOrDefault(c => c.PropertyName == prop);
+                        <MudSelectItem T="string" Value="@prop">
+                            @(column?.DisplayName ?? prop)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            }
+
+            <MudText Typo="Typo.h6">@TranslationService.GetTranslation("table.columnOrder", "Ordine colonne")</MudText>
+            
+            <MudPaper Elevation="0" Class="pa-2" Style="border: 1px solid var(--mud-palette-lines-default);">
+                @foreach (var column in _workingColumns.OrderBy(c => c.Order))
+                {
+                    <MudPaper Elevation="1" Class="pa-2 mb-2">
+                        <div class="d-flex align-center gap-2">
+                            <MudCheckBox @bind-Value="column.IsVisible"
+                                       Color="Color.Primary"
+                                       Dense="true" />
+                            <MudText Typo="Typo.body1" Class="flex-grow-1">
+                                @column.DisplayName
+                            </MudText>
+                            <MudIconButton Icon="@Icons.Material.Outlined.ArrowUpward"
+                                         Size="Size.Small"
+                                         Color="Color.Default"
+                                         Disabled="@IsFirstColumn(column)"
+                                         OnClick="@(() => MoveColumnUp(column))" />
+                            <MudIconButton Icon="@Icons.Material.Outlined.ArrowDownward"
+                                         Size="Size.Small"
+                                         Color="Color.Default"
+                                         Disabled="@IsLastColumn(column)"
+                                         OnClick="@(() => MoveColumnDown(column))" />
+                        </div>
+                    </MudPaper>
+                }
+            </MudPaper>
+
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                @TranslationService.GetTranslation("table.columnConfigHelp", 
+                    "Usa le frecce per riordinare le colonne. Deseleziona per nascondere una colonna.")
+            </MudText>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter] public List<EFTable<object>.ColumnConfiguration> Columns { get; set; } = new();
+    [Parameter] public string? GroupByProperty { get; set; }
+    [Parameter] public List<string> AvailableGroupProperties { get; set; } = new();
+    [Parameter] public bool AllowGrouping { get; set; } = true;
+
+    private List<EFTable<object>.ColumnConfiguration> _workingColumns = new();
+    private string? _selectedGroupProperty;
+
+    protected override void OnInitialized()
+    {
+        // Create working copies of columns
+        _workingColumns = Columns.Select(c => new EFTable<object>.ColumnConfiguration
+        {
+            PropertyName = c.PropertyName,
+            DisplayName = c.DisplayName,
+            IsVisible = c.IsVisible,
+            Order = c.Order
+        }).ToList();
+
+        _selectedGroupProperty = GroupByProperty;
+    }
+
+    private void MoveColumnUp(EFTable<object>.ColumnConfiguration column)
+    {
+        var currentIndex = _workingColumns.FindIndex(c => c.PropertyName == column.PropertyName);
+        if (currentIndex > 0)
+        {
+            var previousColumn = _workingColumns[currentIndex - 1];
+            var tempOrder = column.Order;
+            column.Order = previousColumn.Order;
+            previousColumn.Order = tempOrder;
+            
+            _workingColumns = _workingColumns.OrderBy(c => c.Order).ToList();
+            StateHasChanged();
+        }
+    }
+
+    private void MoveColumnDown(EFTable<object>.ColumnConfiguration column)
+    {
+        var currentIndex = _workingColumns.FindIndex(c => c.PropertyName == column.PropertyName);
+        if (currentIndex < _workingColumns.Count - 1)
+        {
+            var nextColumn = _workingColumns[currentIndex + 1];
+            var tempOrder = column.Order;
+            column.Order = nextColumn.Order;
+            nextColumn.Order = tempOrder;
+            
+            _workingColumns = _workingColumns.OrderBy(c => c.Order).ToList();
+            StateHasChanged();
+        }
+    }
+
+    private bool IsFirstColumn(EFTable<object>.ColumnConfiguration column)
+    {
+        return _workingColumns.OrderBy(c => c.Order).First().PropertyName == column.PropertyName;
+    }
+
+    private bool IsLastColumn(EFTable<object>.ColumnConfiguration column)
+    {
+        return _workingColumns.OrderBy(c => c.Order).Last().PropertyName == column.PropertyName;
+    }
+
+    private void Submit()
+    {
+        // Reorder based on final order values
+        var orderedColumns = _workingColumns.OrderBy(c => c.Order).ToList();
+        for (int i = 0; i < orderedColumns.Count; i++)
+        {
+            orderedColumns[i].Order = i;
+        }
+
+        var result = new EFTable<object>.ColumnConfigurationResult
+        {
+            Columns = orderedColumns,
+            GroupByProperty = _selectedGroupProperty
+        };
+
+        MudDialog?.Close(DialogResult.Ok(result));
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+}
