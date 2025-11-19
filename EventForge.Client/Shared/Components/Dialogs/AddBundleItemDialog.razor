@@ -63,7 +63,6 @@
     private MudForm _form = null!;
     private bool _isValid;
     private bool _isSaving;
-    private bool _isLoadingProducts;
     
     private CreateProductBundleItemDto _model = new()
     {
@@ -81,7 +80,6 @@
     
     private async Task LoadAvailableProductsAsync()
     {
-        _isLoadingProducts = true;
         try
         {
             // Load all active products (excluding the bundle itself)
@@ -97,10 +95,6 @@
         {
             Logger.LogError(ex, "Error loading available products");
             Snackbar.Add(TranslationService.GetTranslation("product.loadProductsError", "Errore nel caricamento dei prodotti"), Severity.Error);
-        }
-        finally
-        {
-            _isLoadingProducts = false;
         }
     }
     
