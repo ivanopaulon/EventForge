@@ -222,7 +222,7 @@ public class DocumentRow : AuditableEntity
         var discount = DiscountType == EventForge.DTOs.Common.DiscountType.Percentage
             ? subtotal * (LineDiscount / 100)
             : LineDiscountValue;
-        
+
         // Ensure discount doesn't exceed subtotal (prevent negative line totals)
         return Math.Min(discount, subtotal);
     }

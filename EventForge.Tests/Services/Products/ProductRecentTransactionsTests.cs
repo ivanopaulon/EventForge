@@ -213,11 +213,11 @@ public class ProductRecentTransactionsTests : IDisposable
         // Assert
         Assert.NotNull(transactions);
         Assert.Equal(3, transactions.Count);
-        
+
         // Verify they are ordered by date descending (most recent first)
         Assert.True(transactions[0].DocumentDate >= transactions[1].DocumentDate);
         Assert.True(transactions[1].DocumentDate >= transactions[2].DocumentDate);
-        
+
         // Verify effective unit price calculation (100 - 10% = 90, 90 - 10% = 81, 80 - 10% = 72)
         Assert.Equal(90m, transactions[0].EffectiveUnitPrice);
         Assert.Equal(81m, transactions[1].EffectiveUnitPrice);
@@ -239,7 +239,7 @@ public class ProductRecentTransactionsTests : IDisposable
         // Assert
         Assert.NotNull(transactions);
         Assert.Equal(2, transactions.Count); // Only 2 sales exist
-        
+
         // Verify effective unit price calculation (150 - 5% = 142.5, 170 - 5% = 161.5)
         Assert.Equal(142.5m, transactions[0].EffectiveUnitPrice);
         Assert.Equal(161.5m, transactions[1].EffectiveUnitPrice);
@@ -329,7 +329,7 @@ public class ProductRecentTransactionsTests : IDisposable
         // Assert
         Assert.NotNull(transactions);
         Assert.Single(transactions);
-        
+
         // Verify effective unit price calculation (100 - (50/10) = 95)
         Assert.Equal(95m, transactions[0].EffectiveUnitPrice);
     }

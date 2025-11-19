@@ -5,7 +5,6 @@ using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.CodeGeneration;
 using EventForge.Server.Services.Products;
 using EventForge.Server.Services.Tenants;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;

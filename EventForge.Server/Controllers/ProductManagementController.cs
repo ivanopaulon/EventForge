@@ -2414,10 +2414,10 @@ public class ProductManagementController : BaseApiController
                 {
                     // Normalize unit price to base unit if available
                     decimal unitPriceNormalized = row.BaseUnitPrice ?? row.UnitPrice;
-                    
+
                     // Weight quantity: prefer BaseQuantity if available
                     decimal weightQuantity = row.BaseQuantity ?? row.Quantity;
-                    
+
                     // Calculate discount per unit
                     decimal unitDiscount = 0m;
                     if (row.Quantity > 0)
@@ -2433,11 +2433,11 @@ public class ProductManagementController : BaseApiController
                         // Clamp to prevent negative unit price
                         unitDiscount = Math.Min(unitDiscount, unitPriceNormalized);
                     }
-                    
+
                     // Effective unit price after discount (net price)
                     // For purchase documents, this is considered VAT-exempt
                     decimal effectiveUnitPrice = unitPriceNormalized - unitDiscount;
-                    
+
                     // Skip if effective price is zero or negative
                     if (effectiveUnitPrice <= 0) continue;
 

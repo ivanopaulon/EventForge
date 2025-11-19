@@ -868,7 +868,7 @@ public class BusinessPartyService : IBusinessPartyService
                 .Include(r => r.DocumentHeader)
                     .ThenInclude(h => h!.DocumentType)
                 .Include(r => r.Product)
-                .Where(r => !r.IsDeleted && 
+                .Where(r => !r.IsDeleted &&
                            r.TenantId == currentTenantId.Value &&
                            r.DocumentHeader!.BusinessPartyId == businessPartyId &&
                            !r.DocumentHeader.IsDeleted &&
@@ -946,7 +946,7 @@ public class BusinessPartyService : IBusinessPartyService
             var sortByField = sortBy?.ToLowerInvariant() ?? "valuepurchased";
             analysisResults = sortByField switch
             {
-                "valuesold" => sortDescending 
+                "valuesold" => sortDescending
                     ? analysisResults.OrderByDescending(a => a.ValueSold).ToList()
                     : analysisResults.OrderBy(a => a.ValueSold).ToList(),
                 "quantitypurchased" => sortDescending

@@ -1,7 +1,6 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Documents;
 using EventForge.DTOs.Warehouse;
-using Xunit;
 
 namespace EventForge.Tests.Services.Documents;
 
@@ -37,7 +36,7 @@ public class PriceTrendCalculationTests
 
         // Assert
         Assert.Equal(90m, effectiveUnitPrice); // 100 - (100 * 0.10) = 90
-        
+
         // Verify it matches what LineTotal/Quantity would give us
         decimal expectedFromLineTotal = row.LineTotal / row.Quantity;
         Assert.Equal(expectedFromLineTotal, effectiveUnitPrice);
@@ -64,7 +63,7 @@ public class PriceTrendCalculationTests
 
         // Assert
         Assert.Equal(85m, effectiveUnitPrice); // 100 - (30 / 2) = 85
-        
+
         // Verify it matches what LineTotal/Quantity would give us
         decimal expectedFromLineTotal = row.LineTotal / row.Quantity;
         Assert.Equal(expectedFromLineTotal, effectiveUnitPrice);
@@ -198,19 +197,19 @@ public class PriceTrendCalculationTests
         // Arrange - Mix of percentage and value discounts
         var rows = new List<DocumentRowDto>
         {
-            new DocumentRowDto 
-            { 
-                UnitPrice = 100m, 
-                Quantity = 2m, 
-                LineDiscount = 10m, 
+            new DocumentRowDto
+            {
+                UnitPrice = 100m,
+                Quantity = 2m,
+                LineDiscount = 10m,
                 DiscountType = DiscountType.Percentage,
                 LineTotal = 180m
             },
-            new DocumentRowDto 
-            { 
-                UnitPrice = 100m, 
-                Quantity = 2m, 
-                LineDiscountValue = 30m, 
+            new DocumentRowDto
+            {
+                UnitPrice = 100m,
+                Quantity = 2m,
+                LineDiscountValue = 30m,
                 DiscountType = DiscountType.Value,
                 LineTotal = 170m
             }
@@ -222,7 +221,7 @@ public class PriceTrendCalculationTests
         {
             decimal unitPriceNormalized = row.BaseUnitPrice ?? row.UnitPrice;
             decimal unitDiscount = 0m;
-            
+
             if (row.Quantity > 0)
             {
                 if (row.DiscountType == DiscountType.Percentage)
@@ -235,7 +234,7 @@ public class PriceTrendCalculationTests
                 }
                 unitDiscount = Math.Min(unitDiscount, unitPriceNormalized);
             }
-            
+
             effectivePrices.Add(unitPriceNormalized - unitDiscount);
         }
 

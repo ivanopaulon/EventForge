@@ -66,8 +66,8 @@ public class InventorySessionState
     /// </summary>
     public bool IsValid()
     {
-        return DocumentId != Guid.Empty && 
-               WarehouseId.HasValue && 
+        return DocumentId != Guid.Empty &&
+               WarehouseId.HasValue &&
                !string.IsNullOrWhiteSpace(DocumentNumber);
     }
 

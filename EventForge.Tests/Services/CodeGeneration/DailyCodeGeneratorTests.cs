@@ -1,5 +1,4 @@
 using EventForge.Server.Data;
-using EventForge.Server.Data.Entities;
 using EventForge.Server.Services.CodeGeneration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -39,7 +38,7 @@ public class DailyCodeGeneratorTests : IDisposable
         // Assert
         Assert.NotNull(code);
         Assert.Equal(14, code.Length); // YYYYMMDDNNNNNN = 8 + 6 = 14
-        
+
         var dateString = DateTime.UtcNow.ToString("yyyyMMdd");
         Assert.StartsWith(dateString, code);
         Assert.EndsWith("000001", code); // First code should be 000001
@@ -55,7 +54,7 @@ public class DailyCodeGeneratorTests : IDisposable
 
         // Assert
         var dateString = DateTime.UtcNow.ToString("yyyyMMdd");
-        
+
         Assert.Equal($"{dateString}000001", code1);
         Assert.Equal($"{dateString}000002", code2);
         Assert.Equal($"{dateString}000003", code3);

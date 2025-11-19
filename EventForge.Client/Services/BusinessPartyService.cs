@@ -129,27 +129,27 @@ namespace EventForge.Client.Services
             int pageSize = 20)
         {
             var query = $"api/v1/businessparties/{businessPartyId}/documents?page={page}&pageSize={pageSize}";
-            
+
             if (fromDate.HasValue)
             {
                 query += $"&fromDate={fromDate.Value:yyyy-MM-dd}";
             }
-            
+
             if (toDate.HasValue)
             {
                 query += $"&toDate={toDate.Value:yyyy-MM-dd}";
             }
-            
+
             if (documentTypeId.HasValue)
             {
                 query += $"&documentTypeId={documentTypeId.Value}";
             }
-            
+
             if (!string.IsNullOrWhiteSpace(searchNumber))
             {
                 query += $"&searchNumber={Uri.EscapeDataString(searchNumber)}";
             }
-            
+
             if (approvalStatus.HasValue)
             {
                 query += $"&approvalStatus={approvalStatus.Value}";
@@ -174,27 +174,27 @@ namespace EventForge.Client.Services
             bool sortDescending = true)
         {
             var query = $"api/v1/businessparties/{businessPartyId}/product-analysis?page={page}&pageSize={pageSize}&sortDescending={sortDescending}";
-            
+
             if (fromDate.HasValue)
             {
                 query += $"&fromDate={fromDate.Value:yyyy-MM-dd}";
             }
-            
+
             if (toDate.HasValue)
             {
                 query += $"&toDate={toDate.Value:yyyy-MM-dd}";
             }
-            
+
             if (!string.IsNullOrWhiteSpace(type))
             {
                 query += $"&type={Uri.EscapeDataString(type)}";
             }
-            
+
             if (topN.HasValue)
             {
                 query += $"&topN={topN.Value}";
             }
-            
+
             if (!string.IsNullOrWhiteSpace(sortBy))
             {
                 query += $"&sortBy={Uri.EscapeDataString(sortBy)}";

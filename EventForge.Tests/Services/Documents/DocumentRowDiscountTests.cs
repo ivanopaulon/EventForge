@@ -1,6 +1,5 @@
 using EventForge.DTOs.Common;
 using EventForge.Server.Data.Entities.Documents;
-using Xunit;
 
 namespace EventForge.Tests.Services.Documents;
 

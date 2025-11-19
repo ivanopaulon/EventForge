@@ -555,7 +555,7 @@ public class BusinessPartiesController : BaseApiController
 
             var result = await _businessPartyService.GetBusinessPartyDocumentsAsync(
                 businessPartyId, fromDate, toDate, documentTypeId, searchNumber, approvalStatus, page, pageSize, cancellationToken);
-            
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -616,7 +616,7 @@ public class BusinessPartiesController : BaseApiController
 
             var result = await _businessPartyService.GetBusinessPartyProductAnalysisAsync(
                 businessPartyId, fromDate, toDate, type, topN, page, pageSize, sortBy, sortDescending, cancellationToken);
-            
+
             return Ok(result);
         }
         catch (Exception ex)

@@ -170,7 +170,7 @@ namespace EventForge.DTOs.Common
         /// Discount as percentage.
         /// </summary>
         Percentage,
-        
+
         /// <summary>
         /// Discount as absolute value.
         /// </summary>

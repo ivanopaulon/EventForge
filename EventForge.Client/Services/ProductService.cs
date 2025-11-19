@@ -116,7 +116,7 @@ public class ProductService : IProductService
         try
         {
             return await _httpClientService.PostAsync<CreateProductWithCodesAndUnitsDto, ProductDetailDto>(
-                $"{BaseUrl}/create-with-codes-units", 
+                $"{BaseUrl}/create-with-codes-units",
                 createDto);
         }
         catch (Exception ex)
@@ -640,9 +640,9 @@ public class ProductService : IProductService
     }
 
     public async Task<IEnumerable<RecentProductTransactionDto>?> GetRecentProductTransactionsAsync(
-        Guid productId, 
-        string type = "purchase", 
-        Guid? partyId = null, 
+        Guid productId,
+        string type = "purchase",
+        Guid? partyId = null,
         int top = 3)
     {
         try

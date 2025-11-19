@@ -227,7 +227,7 @@ public class ProductService : IProductService
                     {
                         _logger.LogWarning("Unique constraint violation on attempt {Attempt} for code {Code}. Retrying...", attempt, createProductDto.Code);
                         createProductDto.Code = await _codeGenerator.GenerateDailyCodeAsync(cancellationToken);
-                        
+
                         // Reset the context to clear tracked entities
                         _context.ChangeTracker.Clear();
                     }
@@ -271,7 +271,7 @@ public class ProductService : IProductService
 
             // Use transaction to ensure atomicity
             using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-            
+
             try
             {
                 // Create the product
@@ -319,8 +319,8 @@ public class ProductService : IProductService
                     {
                         // Check if a ProductUnit already exists for this product and UoM
                         productUnit = await _context.ProductUnits
-                            .Where(pu => pu.ProductId == product.Id && 
-                                   pu.UnitOfMeasureId == codeWithUnit.UnitOfMeasureId.Value && 
+                            .Where(pu => pu.ProductId == product.Id &&
+                                   pu.UnitOfMeasureId == codeWithUnit.UnitOfMeasureId.Value &&
                                    !pu.IsDeleted)
                             .FirstOrDefaultAsync(cancellationToken);
 
@@ -390,7 +390,7 @@ public class ProductService : IProductService
                     .Include(p => p.Model)
                     .FirstOrDefaultAsync(cancellationToken);
 
-                _logger.LogInformation("Product created successfully with {CodeCount} codes and {UnitCount} units.", 
+                _logger.LogInformation("Product created successfully with {CodeCount} codes and {UnitCount} units.",
                     createdCodes.Count, createdUnits.Count);
 
                 return MapToProductDetailDto(createdProduct!);
@@ -2109,10 +2109,10 @@ public class ProductService : IProductService
             var transactions = rows.Select(row =>
             {
                 var header = row.DocumentHeader!;
-                
+
                 // Calculate normalized unit price (use BaseUnitPrice if available, otherwise UnitPrice)
                 decimal unitPriceNormalized = row.BaseUnitPrice ?? row.UnitPrice;
-                
+
                 // Calculate unit discount
                 decimal unitDiscount = 0;
                 if (row.DiscountType == EventForge.DTOs.Common.DiscountType.Percentage)
@@ -2123,13 +2123,13 @@ public class ProductService : IProductService
                 {
                     unitDiscount = row.LineDiscountValue / row.Quantity;
                 }
-                
+
                 // Clamp discount to not exceed unit price
                 unitDiscount = Math.Min(unitDiscount, unitPriceNormalized);
-                
+
                 // Calculate effective unit price (after discount)
                 decimal effectiveUnitPrice = unitPriceNormalized - unitDiscount;
-                
+
                 // Use normalized quantity (BaseQuantity if available, otherwise Quantity)
                 decimal quantityNormalized = row.BaseQuantity ?? row.Quantity;
 
@@ -2149,8 +2149,8 @@ public class ProductService : IProductService
                     Currency = DefaultCurrency,
                     UnitOfMeasure = row.UnitOfMeasure,
                     DiscountType = row.DiscountType.ToString(),
-                    Discount = row.DiscountType == EventForge.DTOs.Common.DiscountType.Percentage 
-                        ? row.LineDiscount 
+                    Discount = row.DiscountType == EventForge.DTOs.Common.DiscountType.Percentage
+                        ? row.LineDiscount
                         : row.LineDiscountValue
                 };
             }).ToList();

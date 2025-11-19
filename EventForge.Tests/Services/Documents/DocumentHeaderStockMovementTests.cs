@@ -666,7 +666,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
 
         // Assert
         Assert.NotNull(result);
-        
+
         // Check that a stock movement was created immediately
         var movements = await _context.StockMovements
             .Where(sm => sm.DocumentHeaderId == documentHeader.Id && !sm.IsDeleted)
@@ -760,10 +760,10 @@ public class DocumentHeaderStockMovementTests : IDisposable
             .ToListAsync();
 
         Assert.Equal(2, movements.Count);
-        
+
         // First movement: original
         Assert.Equal(10, movements[0].Quantity);
-        
+
         // Second movement: compensating (+5)
         Assert.Equal(5, movements[1].Quantity);
         Assert.Equal(StockMovementType.Inbound, movements[1].MovementType);
@@ -850,11 +850,11 @@ public class DocumentHeaderStockMovementTests : IDisposable
             .ToListAsync();
 
         Assert.Equal(2, movements.Count);
-        
+
         // First movement: original inbound
         Assert.Equal(10, movements[0].Quantity);
         Assert.Equal(StockMovementType.Inbound, movements[0].MovementType);
-        
+
         // Second movement: compensating outbound (-3)
         Assert.Equal(3, movements[1].Quantity);
         Assert.Equal(StockMovementType.Outbound, movements[1].MovementType);
@@ -938,11 +938,11 @@ public class DocumentHeaderStockMovementTests : IDisposable
             .ToListAsync();
 
         Assert.Equal(2, movements.Count);
-        
+
         // First movement: original inbound
         Assert.Equal(10, movements[0].Quantity);
         Assert.Equal(StockMovementType.Inbound, movements[0].MovementType);
-        
+
         // Second movement: compensating outbound (reverse of inbound)
         Assert.Equal(10, movements[1].Quantity);
         Assert.Equal(StockMovementType.Outbound, movements[1].MovementType);

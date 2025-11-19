@@ -1674,40 +1674,40 @@ public class WarehouseManagementController : BaseApiController
             // Check if a row with the same ProductId + LocationId (+ LotId if present) already exists
             // This implements the row merging feature (accorpamento delle righe per articolo/ubicazione)
             var existingRow = documentHeader.Rows?
-                .FirstOrDefault(r => 
-                    r.ProductId == rowDto.ProductId && 
+                .FirstOrDefault(r =>
+                    r.ProductId == rowDto.ProductId &&
                     r.LocationId == rowDto.LocationId);
-            
+
             DocumentRowDto documentRow;
-            
+
             if (existingRow != null)
             {
                 // Row exists - merge by adding quantities together
                 var newQuantity = existingRow.Quantity + rowDto.Quantity;
-                
+
                 _logger.LogInformation(
                     "Merging inventory row for product {ProductId} at location {LocationId}: existing quantity {ExistingQty} + new quantity {NewQty} = {TotalQty}",
                     rowDto.ProductId, rowDto.LocationId, existingRow.Quantity, rowDto.Quantity, newQuantity);
-                
+
                 // Update the existing row directly in the database
                 var rowEntity = await _context.DocumentRows
                     .FirstOrDefaultAsync(r => r.Id == existingRow.Id && !r.IsDeleted, cancellationToken);
-                
+
                 if (rowEntity != null)
                 {
                     rowEntity.Quantity = newQuantity;
                     // Append notes if new notes are provided
                     if (!string.IsNullOrWhiteSpace(rowDto.Notes))
                     {
-                        rowEntity.Notes = string.IsNullOrWhiteSpace(rowEntity.Notes) 
-                            ? rowDto.Notes 
+                        rowEntity.Notes = string.IsNullOrWhiteSpace(rowEntity.Notes)
+                            ? rowDto.Notes
                             : $"{rowEntity.Notes}; {rowDto.Notes}";
                     }
                     rowEntity.ModifiedAt = DateTime.UtcNow;
                     rowEntity.ModifiedBy = GetCurrentUser();
-                    
+
                     await _context.SaveChangesAsync(cancellationToken);
-                    
+
                     // Map back to DocumentRowDto
                     documentRow = new DocumentRowDto
                     {
@@ -1971,25 +1971,25 @@ public class WarehouseManagementController : BaseApiController
             if (rowDto.ProductId.HasValue)
             {
                 rowEntity.ProductId = rowDto.ProductId.Value;
-                
+
                 // Update product code and description from the new product
                 var product = await _context.Products
                     .FirstOrDefaultAsync(p => p.Id == rowDto.ProductId.Value && !p.IsDeleted, cancellationToken);
-                
+
                 if (product != null)
                 {
                     rowEntity.ProductCode = product.Code;
                     rowEntity.Description = product.Name;
                 }
             }
-            
+
             rowEntity.Quantity = rowDto.Quantity;
-            
+
             if (rowDto.LocationId.HasValue)
             {
                 rowEntity.LocationId = rowDto.LocationId.Value;
             }
-            
+
             rowEntity.Notes = rowDto.Notes;
             rowEntity.ModifiedAt = DateTime.UtcNow;
             rowEntity.ModifiedBy = GetCurrentUser();

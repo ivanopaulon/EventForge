@@ -814,7 +814,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                                     currentUser: currentUser,
                                     movementDate: documentDateUtc,
                                     cancellationToken: cancellationToken);
-                                
+
                                 _logger.LogInformation("Created immediate inbound stock movement for approved document row {RowId}.", row.Id);
                             }
                             else
@@ -829,7 +829,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                                     currentUser: currentUser,
                                     movementDate: documentDateUtc,
                                     cancellationToken: cancellationToken);
-                                
+
                                 _logger.LogInformation("Created immediate outbound stock movement for approved document row {RowId}.", row.Id);
                             }
                         }
@@ -915,8 +915,8 @@ public class DocumentHeaderService : IDocumentHeaderService
             _logger.LogInformation("Document row {RowId} updated by {User}.", rowId, currentUser);
 
             // If document is approved and quantity changed, create compensating movement
-            if (row.DocumentHeader != null && 
-                row.DocumentHeader.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved && 
+            if (row.DocumentHeader != null &&
+                row.DocumentHeader.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved &&
                 row.ProductId.HasValue &&
                 row.ProductId == oldProductId)
             {
@@ -924,7 +924,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                 if (delta != 0)
                 {
                     var documentDateUtc = DateTime.SpecifyKind(row.DocumentHeader.Date, DateTimeKind.Utc);
-                    
+
                     // Determine warehouse location
                     Guid? warehouseLocationId = null;
                     if (row.DocumentHeader.DocumentType != null)
@@ -1054,7 +1054,7 @@ public class DocumentHeaderService : IDocumentHeaderService
             var currentUser = "System"; // Default, should be passed in ideally
 
             // If document is approved, create compensating movement before deleting row
-            if (row.DocumentHeader != null && 
+            if (row.DocumentHeader != null &&
                 row.DocumentHeader.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved &&
                 row.ProductId.HasValue)
             {
@@ -1065,7 +1065,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                 if (existingMovement != null && row.DocumentHeader.DocumentType != null)
                 {
                     var documentDateUtc = DateTime.SpecifyKind(row.DocumentHeader.Date, DateTimeKind.Utc);
-                    
+
                     // Determine warehouse location
                     Guid? warehouseLocationId = null;
                     if (row.DocumentHeader.DocumentType.IsStockIncrease)
