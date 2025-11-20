@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using EventForge.Server.Services.Logging;
+using EventForge.DTOs.Logging;
 
 namespace EventForge.Server.Controllers;
 
 /// <summary>
-/// API controller for receiving client-side logs and forwarding them to Serilog infrastructure.
+/// API controller for receiving client-side logs and forwarding them to the log ingestion pipeline.
 /// Allows both authenticated and anonymous clients to send logs for centralized monitoring.
 /// Anonymous access is required to capture errors during login/startup and authentication failures.
 /// </summary>
@@ -15,21 +17,25 @@ namespace EventForge.Server.Controllers;
 public class ClientLogsController : BaseApiController
 {
     private readonly ILogger<ClientLogsController> _logger;
+    private readonly ILogIngestionService _logIngestionService;
 
-    public ClientLogsController(ILogger<ClientLogsController> logger)
+    public ClientLogsController(
+        ILogger<ClientLogsController> logger,
+        ILogIngestionService logIngestionService)
     {
         _logger = logger;
+        _logIngestionService = logIngestionService;
     }
 
     /// <summary>
-    /// Receives a single client log entry and logs it via Serilog.
+    /// Receives a single client log entry and enqueues it for asynchronous processing.
     /// </summary>
     /// <param name="clientLog">The client log entry</param>
     /// <returns>Accepted response</returns>
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public IActionResult LogClientEntry([FromBody] ClientLogDto clientLog)
+    public async Task<IActionResult> LogClientEntry([FromBody] ClientLogDto clientLog)
     {
         if (!ModelState.IsValid)
         {
@@ -38,25 +44,32 @@ public class ClientLogsController : BaseApiController
 
         try
         {
-            LogClientLogEntry(clientLog);
+            var enqueued = await _logIngestionService.EnqueueAsync(clientLog);
+            if (!enqueued)
+            {
+                _logger.LogWarning("Failed to enqueue client log entry - queue may be full");
+            }
+            
             return Accepted();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to process client log entry");
-            return CreateInternalServerErrorProblem("Failed to process client log entry", ex);
+            _logger.LogError(ex, "Failed to enqueue client log entry");
+            return CreateInternalServerErrorProblem("Failed to enqueue client log entry", ex);
         }
     }
 
     /// <summary>
-    /// Receives a batch of client log entries and logs them via Serilog.
+    /// Receives a batch of client log entries and enqueues them for asynchronous processing.
     /// </summary>
     /// <param name="batchRequest">The batch of client log entries</param>
     /// <returns>Accepted response</returns>
     [HttpPost("batch")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("ClientLogs")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public IActionResult LogClientBatch([FromBody] ClientLogBatchDto batchRequest)
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> LogClientBatch([FromBody] ClientLogBatchDto batchRequest)
     {
         if (!ModelState.IsValid)
         {
@@ -75,110 +88,51 @@ public class ClientLogsController : BaseApiController
 
         try
         {
-            foreach (var clientLog in batchRequest.Logs)
+            var enqueuedCount = await _logIngestionService.EnqueueBatchAsync(batchRequest.Logs);
+            if (enqueuedCount < batchRequest.Logs.Count)
             {
-                LogClientLogEntry(clientLog);
+                _logger.LogWarning(
+                    "Only {EnqueuedCount} of {TotalCount} logs were enqueued",
+                    enqueuedCount, batchRequest.Logs.Count);
             }
 
             return Accepted();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to process client log batch");
-            return CreateInternalServerErrorProblem("Failed to process client log batch", ex);
+            _logger.LogError(ex, "Failed to enqueue client log batch");
+            return CreateInternalServerErrorProblem("Failed to enqueue client log batch", ex);
         }
     }
 
     /// <summary>
-    /// Logs a single client log entry to Serilog with enriched properties.
+    /// Gets the health status of the log ingestion pipeline.
     /// </summary>
-    private void LogClientLogEntry(ClientLogDto clientLog)
+    /// <returns>Health status information</returns>
+    [HttpGet("ingestion/health")]
+    [ProducesResponseType(typeof(LogIngestionHealthDto), StatusCodes.Status200OK)]
+    public IActionResult GetIngestionHealth()
     {
-        // Create enriched log context with client-specific properties
-        var properties = new Dictionary<string, object>
+        try
         {
-            ["Source"] = "Client",
-            ["Page"] = clientLog.Page ?? "Unknown",
-            ["UserAgent"] = clientLog.UserAgent ?? "Unknown",
-            ["ClientTimestamp"] = clientLog.Timestamp,
-            ["CorrelationId"] = clientLog.CorrelationId ?? Guid.NewGuid().ToString(),
-            ["Category"] = clientLog.Category ?? "ClientLog"
-        };
-
-        // Add UserId if available
-        if (clientLog.UserId.HasValue)
-        {
-            properties["UserId"] = clientLog.UserId.Value;
-        }
-
-        // Add custom properties if provided
-        if (!string.IsNullOrEmpty(clientLog.Properties))
-        {
-            properties["ClientProperties"] = clientLog.Properties;
-        }
-
-        // Add HTTP context information
-        properties["RemoteIpAddress"] = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
-        properties["RequestPath"] = HttpContext.Request.Path.ToString();
-
-        // Get username from authenticated user
-        if (User.Identity?.IsAuthenticated == true)
-        {
-            properties["UserName"] = User.Identity.Name ?? "Unknown";
-        }
-
-        // Log based on level with structured properties
-        using (_logger.BeginScope(properties))
-        {
-            switch (clientLog.Level.ToUpperInvariant())
+            var healthStatus = _logIngestionService.GetHealthStatus();
+            
+            var healthDto = new LogIngestionHealthDto
             {
-                case "DEBUG":
-                    _logger.LogDebug("{Message}", clientLog.Message);
-                    break;
+                Status = healthStatus.Status.ToString(),
+                BacklogSize = healthStatus.BacklogSize,
+                DroppedCount = healthStatus.DroppedCount,
+                AverageLatencyMs = healthStatus.AverageLatencyMs,
+                CircuitBreakerState = healthStatus.CircuitBreakerState,
+                LastProcessedAt = healthStatus.LastProcessedAt
+            };
 
-                case "INFORMATION":
-                case "INFO":
-                    _logger.LogInformation("{Message}", clientLog.Message);
-                    break;
-
-                case "WARNING":
-                case "WARN":
-                    if (!string.IsNullOrEmpty(clientLog.Exception))
-                    {
-                        _logger.LogWarning("{Message} | Exception: {Exception}", clientLog.Message, clientLog.Exception);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("{Message}", clientLog.Message);
-                    }
-                    break;
-
-                case "ERROR":
-                    if (!string.IsNullOrEmpty(clientLog.Exception))
-                    {
-                        _logger.LogError("{Message} | Exception: {Exception}", clientLog.Message, clientLog.Exception);
-                    }
-                    else
-                    {
-                        _logger.LogError("{Message}", clientLog.Message);
-                    }
-                    break;
-
-                case "CRITICAL":
-                    if (!string.IsNullOrEmpty(clientLog.Exception))
-                    {
-                        _logger.LogCritical("{Message} | Exception: {Exception}", clientLog.Message, clientLog.Exception);
-                    }
-                    else
-                    {
-                        _logger.LogCritical("{Message}", clientLog.Message);
-                    }
-                    break;
-
-                default:
-                    _logger.LogInformation("{Message}", clientLog.Message);
-                    break;
-            }
+            return Ok(healthDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve ingestion health status");
+            return CreateInternalServerErrorProblem("Failed to retrieve ingestion health status", ex);
         }
     }
 }

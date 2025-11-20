@@ -13,17 +13,23 @@ The centralized logging system captures client-side errors, warnings, and inform
 #### 1. ClientLogsController (`/api/ClientLogs`)
 
 **Endpoints:**
-- `POST /api/ClientLogs` - Accept single client log entry
-- `POST /api/ClientLogs/batch` - Accept multiple client log entries for efficient processing
-- `GET /api/ClientLogs/health` - Health check endpoint
+- `POST /api/ClientLogs` - Accept single client log entry (async, non-blocking)
+- `POST /api/ClientLogs/batch` - Accept multiple client log entries for efficient processing (rate-limited)
+- `GET /api/ClientLogs/ingestion/health` - Get ingestion pipeline health status
 
 **Features:**
+- **Resilient Log Ingestion Pipeline**: Logs are queued and processed asynchronously
+- **Non-blocking**: Controllers return 202 Accepted immediately
+- **Polly Resilience**: Automatic retry with exponential backoff and circuit breaker
+- **Fallback Logging**: Writes to file when database is unavailable
 - Integrates with existing Serilog infrastructure
 - No new database tables required
 - Structured logging with custom properties
 - **Anonymous access enabled** - Allows logging without authentication (critical for login/startup errors)
 - Captures authentication context when available (UserId, UserName)
-- Rate limiting ready (simplified implementation)
+- **Rate limiting**: Batch endpoint limited to 100 requests/minute per IP
+
+For detailed information about the log ingestion pipeline, see [LOGGING_INGESTION.md](../LOGGING_INGESTION.md).
 
 #### 2. ClientLogDto and ClientLogBatchDto
 
