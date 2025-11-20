@@ -206,7 +206,7 @@
         {
             try
             {
-                var brands = await LookupCacheService.GetBrandsAsync();
+                var brands = await LookupCacheService.GetBrandsRawAsync();
                 _brands = brands.ToList();
 
                 // Ensure selected brand is present
@@ -228,7 +228,7 @@
 
             try
             {
-                var models = await LookupCacheService.GetModelsAsync(Product?.BrandId);
+                var models = await LookupCacheService.GetModelsRawAsync(Product?.BrandId);
                 _models = models.ToList();
                 _currentBrandId = Product?.BrandId;
 
@@ -251,7 +251,7 @@
 
             try
             {
-                var units = await LookupCacheService.GetUnitsOfMeasureAsync();
+                var units = await LookupCacheService.GetUnitsOfMeasureRawAsync();
                 _unitsOfMeasure = units.ToList();
 
                 // Ensure selected unit is present
@@ -291,7 +291,7 @@
         _suppressBrandChange = true;
         try
         {
-            var models = await LookupCacheService.GetModelsAsync(Product?.BrandId);
+            var models = await LookupCacheService.GetModelsRawAsync(Product?.BrandId);
             _models = models.ToList();
 
             // Ensure selected model present
@@ -450,7 +450,7 @@
             {
                 try
                 {
-                    var models = await LookupCacheService.GetModelsAsync(Product.BrandId);
+                    var models = await LookupCacheService.GetModelsRawAsync(Product.BrandId);
                     _models = models.ToList();
                     _currentBrandId = Product.BrandId;
 

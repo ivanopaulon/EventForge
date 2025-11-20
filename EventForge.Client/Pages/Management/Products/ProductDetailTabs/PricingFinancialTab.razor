@@ -86,7 +86,7 @@
         _isLoading = true;
         try
         {
-            var vatRates = await LookupCacheService.GetVatRatesAsync();
+            var vatRates = await LookupCacheService.GetVatRatesRawAsync();
             _vatRates = vatRates.ToList();
         }
         catch (Exception ex)
@@ -108,7 +108,7 @@
         {
             try
             {
-                var vatRates = await LookupCacheService.GetVatRatesAsync();
+                var vatRates = await LookupCacheService.GetVatRatesRawAsync();
                 _vatRates = vatRates.ToList();
             }
             catch (Exception ex)

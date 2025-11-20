@@ -40,6 +40,8 @@
     <!-- Redis packages for distributed caching and sessions -->
     <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
+    <!-- Polly for resiliency and transient fault handling -->
+    <PackageVersion Include="Polly" Version="8.5.0" />
     <!-- Document Export packages -->
     <PackageVersion Include="QuestPDF" Version="2025.7.4" />
     <PackageVersion Include="EPPlus" Version="8.2.1" />
