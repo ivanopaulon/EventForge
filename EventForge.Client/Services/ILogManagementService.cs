@@ -36,5 +36,16 @@ namespace EventForge.Client.Services
         /// <returns>List of available log levels</returns>
         Task<IEnumerable<string>> GetAvailableLogLevelsAsync(
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets sanitized application logs for public (authenticated user) viewing.
+        /// Sensitive information is masked for security.
+        /// </summary>
+        /// <param name="queryParameters">Query parameters for filtering, sorting and pagination</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Paginated sanitized application logs</returns>
+        Task<PagedResult<SanitizedSystemLogDto>> GetPublicApplicationLogsAsync(
+            ApplicationLogQueryParameters queryParameters,
+            CancellationToken cancellationToken = default);
     }
 }

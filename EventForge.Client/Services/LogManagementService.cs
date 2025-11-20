@@ -79,6 +79,32 @@ namespace EventForge.Client.Services
             }
         }
 
+        /// <inheritdoc/>
+        public async Task<PagedResult<SanitizedSystemLogDto>> GetPublicApplicationLogsAsync(
+            ApplicationLogQueryParameters queryParameters,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var queryString = BuildQueryString(queryParameters);
+                var result = await _httpClientService.GetAsync<PagedResult<SanitizedSystemLogDto>>(
+                    $"api/v1/LogManagement/logs/public?{queryString}");
+
+                return result ?? new PagedResult<SanitizedSystemLogDto>
+                {
+                    Items = new List<SanitizedSystemLogDto>(),
+                    Page = queryParameters.Page,
+                    PageSize = queryParameters.PageSize,
+                    TotalCount = 0
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving public application logs with parameters: {@QueryParameters}", queryParameters);
+                throw;
+            }
+        }
+
         /// <summary>
         /// Builds a query string from the ApplicationLogQueryParameters object.
         /// </summary>
