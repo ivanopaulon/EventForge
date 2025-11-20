@@ -113,6 +113,7 @@ builder.Services.AddScoped<IDocumentCounterService, DocumentCounterService>();
 // Add SuperAdmin services
 builder.Services.AddScoped<ISuperAdminService, SuperAdminService>();
 builder.Services.AddScoped<ILogsService, LogsService>();
+builder.Services.AddScoped<ILogManagementService, LogManagementService>();
 builder.Services.AddScoped<IEntityManagementService, EntityManagementService>();
 builder.Services.AddScoped<IFinancialService, FinancialService>();
 builder.Services.AddScoped<IBusinessPartyService, BusinessPartyService>();
