@@ -64,20 +64,17 @@ public class LookupCacheService : ILookupCacheService
         var result = await _cache.GetOrCreateAsync(BrandsCacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = DefaultCacheExpiration;
-            try
-            {
-                var apiResult = await _brandService.GetBrandsAsync(1, 100);
-                var brands = apiResult?.Items?.ToList() ?? new List<BrandDto>();
-                _logger.LogInformation("Loaded {Count} brands from service (TotalCount: {TotalCount}, Page: {Page}, PageSize: {PageSize})", 
-                    brands.Count, apiResult?.TotalCount ?? 0, apiResult?.Page ?? 0, apiResult?.PageSize ?? 0);
-                return brands;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to load brands from service");
-                return new List<BrandDto>();
-            }
+            
+            // No try-catch - let exceptions propagate
+            var apiResult = await _brandService.GetBrandsAsync(1, 100);
+            var brands = apiResult?.Items?.ToList() ?? new List<BrandDto>();
+            
+            _logger.LogInformation("Loaded {Count} brands from service (TotalCount: {TotalCount}, Page: {Page}, PageSize: {PageSize})", 
+                brands.Count, apiResult?.TotalCount ?? 0, apiResult?.Page ?? 0, apiResult?.PageSize ?? 0);
+            
+            return brands;
         });
+        
         return result ?? new List<BrandDto>();
     }
 
@@ -95,31 +92,26 @@ public class LookupCacheService : ILookupCacheService
         var result = await _cache.GetOrCreateAsync(cacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = DefaultCacheExpiration;
-            try
+            
+            // No try-catch - let exceptions propagate
+            if (brandId.HasValue)
             {
-                if (brandId.HasValue)
-                {
-                    var apiResult = await _modelService.GetModelsByBrandIdAsync(brandId.Value, 1, 100);
-                    var models = apiResult?.Items?.ToList() ?? new List<ModelDto>();
-                    _logger.LogInformation("Loaded {Count} models from service for brand {BrandId} (TotalCount: {TotalCount}, Page: {Page}, PageSize: {PageSize})", 
-                        models.Count, brandId.Value, apiResult?.TotalCount ?? 0, apiResult?.Page ?? 0, apiResult?.PageSize ?? 0);
-                    return models;
-                }
-                else
-                {
-                    var apiResult = await _modelService.GetModelsAsync(1, 100);
-                    var models = apiResult?.Items?.ToList() ?? new List<ModelDto>();
-                    _logger.LogInformation("Loaded {Count} models from service (TotalCount: {TotalCount}, Page: {Page}, PageSize: {PageSize})", 
-                        models.Count, apiResult?.TotalCount ?? 0, apiResult?.Page ?? 0, apiResult?.PageSize ?? 0);
-                    return models;
-                }
+                var apiResult = await _modelService.GetModelsByBrandIdAsync(brandId.Value, 1, 100);
+                var models = apiResult?.Items?.ToList() ?? new List<ModelDto>();
+                _logger.LogInformation("Loaded {Count} models from service for brand {BrandId} (TotalCount: {TotalCount}, Page: {Page}, PageSize: {PageSize})", 
+                    models.Count, brandId.Value, apiResult?.TotalCount ?? 0, apiResult?.Page ?? 0, apiResult?.PageSize ?? 0);
+                return models;
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogWarning(ex, "Failed to load models from service (BrandId: {BrandId})", brandId);
-                return new List<ModelDto>();
+                var apiResult = await _modelService.GetModelsAsync(1, 100);
+                var models = apiResult?.Items?.ToList() ?? new List<ModelDto>();
+                _logger.LogInformation("Loaded {Count} models from service (TotalCount: {TotalCount}, Page: {Page}, PageSize: {PageSize})", 
+                    models.Count, apiResult?.TotalCount ?? 0, apiResult?.Page ?? 0, apiResult?.PageSize ?? 0);
+                return models;
             }
         });
+        
         return result ?? new List<ModelDto>();
     }
 
@@ -133,20 +125,17 @@ public class LookupCacheService : ILookupCacheService
         var result = await _cache.GetOrCreateAsync(VatRatesCacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = DefaultCacheExpiration;
-            try
-            {
-                var apiResult = await _financialService.GetVatRatesAsync(1, 100);
-                var vatRates = apiResult?.Items?.ToList() ?? new List<VatRateDto>();
-                _logger.LogInformation("Loaded {Count} VAT rates from service (TotalCount: {TotalCount}, Page: {Page}, PageSize: {PageSize})", 
-                    vatRates.Count, apiResult?.TotalCount ?? 0, apiResult?.Page ?? 0, apiResult?.PageSize ?? 0);
-                return vatRates;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to load VAT rates from service");
-                return new List<VatRateDto>();
-            }
+            
+            // No try-catch - let exceptions propagate
+            var apiResult = await _financialService.GetVatRatesAsync(1, 100);
+            var vatRates = apiResult?.Items?.ToList() ?? new List<VatRateDto>();
+            
+            _logger.LogInformation("Loaded {Count} VAT rates from service (TotalCount: {TotalCount}, Page: {Page}, PageSize: {PageSize})", 
+                vatRates.Count, apiResult?.TotalCount ?? 0, apiResult?.Page ?? 0, apiResult?.PageSize ?? 0);
+            
+            return vatRates;
         });
+        
         return result ?? new List<VatRateDto>();
     }
 
@@ -160,20 +149,17 @@ public class LookupCacheService : ILookupCacheService
         var result = await _cache.GetOrCreateAsync(UnitsCacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = DefaultCacheExpiration;
-            try
-            {
-                var apiResult = await _umService.GetUMsAsync(1, 100);
-                var units = apiResult?.Items?.ToList() ?? new List<UMDto>();
-                _logger.LogInformation("Loaded {Count} units of measure from service (TotalCount: {TotalCount}, Page: {Page}, PageSize: {PageSize})", 
-                    units.Count, apiResult?.TotalCount ?? 0, apiResult?.Page ?? 0, apiResult?.PageSize ?? 0);
-                return units;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to load units of measure from service");
-                return new List<UMDto>();
-            }
+            
+            // No try-catch - let exceptions propagate
+            var apiResult = await _umService.GetUMsAsync(1, 100);
+            var units = apiResult?.Items?.ToList() ?? new List<UMDto>();
+            
+            _logger.LogInformation("Loaded {Count} units of measure from service (TotalCount: {TotalCount}, Page: {Page}, PageSize: {PageSize})", 
+                units.Count, apiResult?.TotalCount ?? 0, apiResult?.Page ?? 0, apiResult?.PageSize ?? 0);
+            
+            return units;
         });
+        
         return result ?? new List<UMDto>();
     }
 
