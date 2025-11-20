@@ -12,6 +12,7 @@ public class LogManagementService : ILogManagementService
 {
     private readonly IApplicationLogService _applicationLogService;
     private readonly IAuditLogService _auditLogService;
+    private readonly ILogSanitizationService _logSanitizationService;
     private readonly ILogger<LogManagementService> _logger;
     private readonly IMemoryCache _cache;
     private readonly string _logDbConnectionString;
@@ -25,12 +26,14 @@ public class LogManagementService : ILogManagementService
     public LogManagementService(
         IApplicationLogService applicationLogService,
         IAuditLogService auditLogService,
+        ILogSanitizationService logSanitizationService,
         ILogger<LogManagementService> logger,
         IMemoryCache cache,
         IConfiguration configuration)
     {
         _applicationLogService = applicationLogService ?? throw new ArgumentNullException(nameof(applicationLogService));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
+        _logSanitizationService = logSanitizationService ?? throw new ArgumentNullException(nameof(logSanitizationService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
 
@@ -109,6 +112,35 @@ public class LogManagementService : ILogManagementService
         {
             _logger.LogError(ex, "Error retrieving log statistics from {FromDate} to {ToDate}", fromDate, toDate);
             throw new InvalidOperationException("Failed to retrieve log statistics", ex);
+        }
+    }
+
+    public async Task<PagedResult<SanitizedSystemLogDto>> GetPublicApplicationLogsAsync(
+        ApplicationLogQueryParameters queryParameters,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Get full logs using admin service
+            var adminLogs = await _applicationLogService.GetPagedLogsAsync(queryParameters, cancellationToken);
+
+            // Sanitize the logs for public viewing
+            var sanitizedLogs = _logSanitizationService.SanitizeLogs(adminLogs.Items).ToList();
+
+            // Return paginated result with sanitized data
+            return new PagedResult<SanitizedSystemLogDto>
+            {
+                Items = sanitizedLogs,
+                Page = adminLogs.Page,
+                PageSize = adminLogs.PageSize,
+                TotalCount = adminLogs.TotalCount,
+                TotalPages = adminLogs.TotalPages
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving public application logs with parameters: {@QueryParameters}", queryParameters);
+            throw new InvalidOperationException("Failed to retrieve public application logs", ex);
         }
     }
 

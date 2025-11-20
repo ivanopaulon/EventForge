@@ -175,6 +175,9 @@ public static class ServiceCollectionExtensions
         // Register application log services
         _ = services.AddScoped<IApplicationLogService, ApplicationLogService>();
 
+        // Register log sanitization service for public log viewing
+        _ = services.AddScoped<ILogSanitizationService, LogSanitizationService>();
+
         // Register unified log management service
         _ = services.AddScoped<ILogManagementService, LogManagementService>();
 

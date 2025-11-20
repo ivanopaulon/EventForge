@@ -209,6 +209,44 @@ public class LogManagementController : BaseApiController
         }
     }
 
+    /// <summary>
+    /// Gets sanitized application logs for authenticated users (public access).
+    /// Sensitive information is masked for security. No role restriction - available to all authenticated users.
+    /// </summary>
+    /// <param name="queryParameters">Query parameters for filtering, sorting and pagination</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated sanitized application logs</returns>
+    /// <response code="200">Returns the paginated sanitized application logs</response>
+    /// <response code="400">If the query parameters are invalid</response>
+    /// <response code="401">If the user is not authenticated</response>
+    /// <response code="500">If an error occurred while retrieving logs</response>
+    [HttpGet("logs/public")]
+    [Authorize] // Only authentication required, no role restriction
+    [ProducesResponseType(typeof(PagedResult<SanitizedSystemLogDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<PagedResult<SanitizedSystemLogDto>>> GetPublicApplicationLogs(
+        [FromQuery] ApplicationLogQueryParameters queryParameters,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        try
+        {
+            var result = await _logManagementService.GetPublicApplicationLogsAsync(queryParameters, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving public application logs with parameters: {@QueryParameters}", queryParameters);
+            return CreateInternalServerErrorProblem("Error retrieving application logs", ex);
+        }
+    }
+
     #endregion
 
     #region Client Logs

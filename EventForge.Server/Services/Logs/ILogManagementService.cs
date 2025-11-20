@@ -45,6 +45,17 @@ public interface ILogManagementService
         DateTime toDate,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Gets sanitized application logs for public (authenticated user) viewing.
+    /// Sensitive information is masked or removed.
+    /// </summary>
+    /// <param name="queryParameters">Query parameters for filtering, sorting and pagination</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated result of sanitized application logs</returns>
+    Task<PagedResult<SanitizedSystemLogDto>> GetPublicApplicationLogsAsync(
+        ApplicationLogQueryParameters queryParameters,
+        CancellationToken cancellationToken = default);
+
     #endregion
 
     #region Client Logs
