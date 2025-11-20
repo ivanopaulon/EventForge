@@ -20,11 +20,7 @@
             </MudItem>
 
             <MudItem xs="12">
-                @if (_isLoading)
-                {
-                    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-                }
-                else if (_productCodes == null || !_productCodes.Any())
+                @if (_productCodes == null || !_productCodes.Any())
                 {
                     <MudAlert Severity="Severity.Info">
                         @TranslationService.GetTranslation("product.noAlternativeCodes", "Nessun codice alternativo configurato")
@@ -75,7 +71,6 @@
     public bool IsEditMode { get; set; }
 
     private IEnumerable<ProductCodeDto>? _productCodes;
-    private bool _isLoading = true;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -87,7 +82,6 @@
 
     private async Task LoadCodesAsync()
     {
-        _isLoading = true;
         try
         {
             _productCodes = await ProductService.GetProductCodesAsync(Product.Id);
@@ -96,10 +90,6 @@
         {
             Logger.LogError(ex, "Error loading product codes for product {ProductId}", Product.Id);
             Snackbar.Add(TranslationService.GetTranslation("product.loadCodesError", "Errore nel caricamento dei codici"), Severity.Error);
-        }
-        finally
-        {
-            _isLoading = false;
         }
     }
 
