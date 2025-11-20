@@ -2,38 +2,29 @@
 @page "/product-management/products/{ProductIdString}"
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Products
-@using EventForge.DTOs.Common
-@using EventForge.DTOs.Business
-@using EventForge.DTOs.VatRates
-@using EventForge.DTOs.UnitOfMeasures
-@using EventForge.DTOs.Station
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Pages.Management.Products.ProductDetailTabs
+@using EventForge.Client.ViewModels
 @attribute [Authorize]
-@inject IProductService ProductService
-@inject IBusinessPartyService BusinessPartyService
-@inject IBrandService BrandService
-@inject IModelService ModelService
-@inject IFinancialService FinancialService
-@inject IUMService UMService
-@inject IEntityManagementService EntityManagementService
+@inject ProductDetailViewModel ViewModel
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<ProductDetail> Logger
+@implements IDisposable
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <PageLoadingOverlay Visible="_isLoading || _isSaving"
-                        Message="@(_isSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+    <PageLoadingOverlay Visible="ViewModel.IsLoading || ViewModel.IsSaving"
+                        Message="@(ViewModel.IsSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-    @if (!_isLoading && _product == null)
+    @if (!ViewModel.IsLoading && ViewModel.Entity == null)
     {
         <MudAlert Severity="Severity.Error">
             @TranslationService.GetTranslation("product.notFound", "Prodotto non trovato")
         </MudAlert>
     }
-    else if (!_isLoading)
+    else if (!ViewModel.IsLoading && ViewModel.Entity != null)
     {
         <!-- Page Header -->
         <MudPaper Elevation="2" Class="pa-4 mb-4">
@@ -46,23 +37,23 @@
                                        Size="Size.Small" />
                         <MudText Typo="Typo.h4">
                             <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Class="mr-2" />
-                            @(_isNewProduct ? TranslationService.GetTranslation("product.newProduct", "Nuovo Prodotto") : _product.Name)
+                            @(ViewModel.IsNewEntity ? TranslationService.GetTranslation("product.newProduct", "Nuovo Prodotto") : ViewModel.Entity.Name)
                         </MudText>
-                        <MudChip T="string" Size="Size.Small" Color="GetStatusColor(_product.Status)">
-                            @GetStatusText(_product.Status)
+                        <MudChip T="string" Size="Size.Small" Color="GetStatusColor(ViewModel.Entity.Status)">
+                            @GetStatusText(ViewModel.Entity.Status)
                         </MudChip>
 
-                        @if (HasUnsavedChanges())
+                        @if (ViewModel.HasUnsavedChanges())
                         {
                             <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">
                                 @TranslationService.GetTranslation("product.unsavedChanges", "Modifiche non salvate")
                             </MudChip>
                         }
                     </div>
-                    @if (!_isNewProduct)
+                    @if (!ViewModel.IsNewEntity)
                     {
                         <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                            @TranslationService.GetTranslation("field.code", "Codice"): @_product.Code
+                            @TranslationService.GetTranslation("field.code", "Codice"): @ViewModel.Entity.Code
                         </MudText>
                     }
                 </div>
@@ -72,7 +63,7 @@
                                Color="Color.Primary" 
                                StartIcon="@Icons.Material.Filled.Save"
                                OnClick="SaveProductAsync"
-                               Disabled="_isSaving"
+                               Disabled="ViewModel.IsSaving"
                                Size="Size.Small">
                         @TranslationService.GetTranslation("common.save", "Salva")
                     </MudButton>
@@ -84,41 +75,40 @@
         <MudPaper Elevation="2" Class="pa-2">
             <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" @bind-ActivePanelIndex="_activeTab" Color="Color.Primary">
                 <MudTabPanel Text="@TranslationService.GetTranslation("product.generalInfo", "Informazioni Generali")" Icon="@Icons.Material.Filled.Info">
-                    <GeneralInfoTab Product="@_product" IsEditMode="@_isEditMode"
+                    <GeneralInfoTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode"
                                     OnProductUpdated="@HandleProductLocallyChanged"
                                     OnProductUpdatedPersisted="@HandleProductPersistedChange" />
                 </MudTabPanel>
 
                 <MudTabPanel Text="@TranslationService.GetTranslation("product.pricingFinancial", "Prezzi e Finanza")" Icon="@Icons.Material.Filled.AttachMoney">
-                    <PricingFinancialTab Product="@_product" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" />
+                    <PricingFinancialTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" />
                 </MudTabPanel>
 
                 <MudTabPanel Text="@TranslationService.GetTranslation("product.classification", "Classificazione")" Icon="@Icons.Material.Filled.Category">
-                    <!-- Use detailed product payload so ClassificationTab gets full info -->
-                    <ClassificationTab Product="@_product" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" />
+                    <ClassificationTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" />
                 </MudTabPanel>
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.alternativeCodes", "Codici Alternativi")" Icon="@Icons.Material.Filled.QrCode2" BadgeData="@_productCodes?.Count()" BadgeDot="@(_productCodes?.Any() ?? false)">
-                    <ProductCodesTab Product="@_product" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.alternativeCodes", "Codici Alternativi")" Icon="@Icons.Material.Filled.QrCode2" BadgeData="@ViewModel.ProductCodes?.Count()" BadgeDot="@(ViewModel.ProductCodes?.Any() ?? false)">
+                    <ProductCodesTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
                 </MudTabPanel>
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.alternativeUnits", "Unità Alternative")" Icon="@Icons.Material.Filled.Straighten" BadgeData="@_productUnits?.Count()" BadgeDot="@(_productUnits?.Any() ?? false)">
-                    <ProductUnitsTab Product="@_product" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.alternativeUnits", "Unità Alternative")" Icon="@Icons.Material.Filled.Straighten" BadgeData="@ViewModel.ProductUnits?.Count()" BadgeDot="@(ViewModel.ProductUnits?.Any() ?? false)">
+                    <ProductUnitsTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
                 </MudTabPanel>
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.suppliers", "Fornitori")" Icon="@Icons.Material.Filled.LocalShipping" BadgeData="@_productSuppliers?.Count()" BadgeDot="@(_productSuppliers?.Any() ?? false)">
-                    <ProductSuppliersTab Product="@_product" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.suppliers", "Fornitori")" Icon="@Icons.Material.Filled.LocalShipping" BadgeData="@ViewModel.ProductSuppliers?.Count()" BadgeDot="@(ViewModel.ProductSuppliers?.Any() ?? false)">
+                    <ProductSuppliersTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
                 </MudTabPanel>
 
-                @if (_product.IsBundle)
+                @if (ViewModel.Entity.IsBundle)
                 {
-                    <MudTabPanel Text="@TranslationService.GetTranslation("product.bundleComponents", "Componenti Bundle")" Icon="@Icons.Material.Filled.Inventory" BadgeData="@_bundleItems?.Count()" BadgeDot="@(_bundleItems?.Any() ?? false)">
-                        <BundleItemsTab Product="@_product" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
+                    <MudTabPanel Text="@TranslationService.GetTranslation("product.bundleComponents", "Componenti Bundle")" Icon="@Icons.Material.Filled.Inventory" BadgeData="@ViewModel.BundleItems?.Count()" BadgeDot="@(ViewModel.BundleItems?.Any() ?? false)">
+                        <BundleItemsTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
                     </MudTabPanel>
                 }
 
                 <MudTabPanel Text="@TranslationService.GetTranslation("product.stockInventory", "Magazzino e Inventario")" Icon="@Icons.Material.Filled.Warehouse">
-                    <StockInventoryTab Product="@_product" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
+                    <StockInventoryTab Product="@ViewModel.Entity" IsEditMode="@_isEditMode" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
                 </MudTabPanel>
             </MudTabs>
         </MudPaper>
@@ -129,37 +119,19 @@
     [Parameter] public Guid? ProductId { get; set; }
     [Parameter] public string? ProductIdString { get; set; }
 
-    private ProductDto? _product;
-    private bool _isLoading = true;
     private bool _isEditMode = true;
-    private bool _isSaving = false;
     private int _activeTab = 0;
-    private bool _isNewProduct = false;
-
-    private IEnumerable<ProductCodeDto>? _productCodes;
-    private IEnumerable<ProductUnitDto>? _productUnits;
-    private IEnumerable<ProductSupplierDto>? _productSuppliers;
-    private IEnumerable<ProductBundleItemDto>? _bundleItems;
-
-    // snapshot for unsaved detection - use lightweight approach
-    private string _originalProductSnapshot = string.Empty;
-
-    // reuse options to avoid allocations
-    private static readonly System.Text.Json.JsonSerializerOptions _jsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-    };
 
     protected override async Task OnInitializedAsync()
     {
+        ViewModel.StateChanged += OnViewModelStateChanged;
         await LoadProductAsync();
     }
 
     protected override async Task OnParametersSetAsync()
     {
         var currentId = GetCurrentProductId();
-        if (_product?.Id != currentId || _isNewProduct)
+        if (ViewModel.Entity?.Id != currentId || (currentId == Guid.Empty && !ViewModel.IsNewEntity))
             await LoadProductAsync();
     }
 
@@ -182,210 +154,64 @@
 
     private async Task LoadProductAsync()
     {
-        _isLoading = true;
         try
         {
             var productId = GetCurrentProductId();
-            
-            // Check if this is a new product
-            if (productId == Guid.Empty)
-            {
-                _isNewProduct = true;
-                _product = new ProductDto
-                {
-                    Id = Guid.Empty,
-                    Code = string.Empty,
-                    Name = string.Empty,
-                    ShortDescription = string.Empty,
-                    Description = string.Empty,
-                    Status = ProductStatus.Active,
-                    IsVatIncluded = false,
-                    IsBundle = false,
-                    DefaultPrice = null
-                };
-                _originalProductSnapshot = SerializeProduct(_product);
-            }
-            else
-            {
-                _isNewProduct = false;
-                // Prefer detailed payload if available on client service
-                var productResult = await ProductService.GetProductDetailAsync(productId) ?? await ProductService.GetProductByIdAsync(productId);
-                _product = productResult;
-
-                if (_product != null)
-                {
-                    await LoadRelatedEntitiesAsync();
-                    _originalProductSnapshot = SerializeProduct(_product);
-                }
-            }
+            await ViewModel.LoadEntityAsync(productId);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading product {ProductId}", GetCurrentProductId());
             Snackbar.Add(TranslationService.GetTranslation("product.loadError", "Errore nel caricamento del prodotto"), Severity.Error);
         }
-        finally
-        {
-            _isLoading = false;
-        }
-    }
-
-    private async Task LoadRelatedEntitiesAsync()
-    {
-        if (_isNewProduct)
-        {
-            // Initialize empty collections for new product
-            _productCodes = new List<ProductCodeDto>();
-            _productUnits = new List<ProductUnitDto>();
-            _productSuppliers = new List<ProductSupplierDto>();
-            _bundleItems = new List<ProductBundleItemDto>();
-            return;
-        }
-
-        try
-        {
-            var productId = GetCurrentProductId();
-            var codesTask = ProductService.GetProductCodesAsync(productId);
-            var unitsTask = ProductService.GetProductUnitsAsync(productId);
-            var suppliersTask = ProductService.GetProductSuppliersAsync(productId);
-            await Task.WhenAll(codesTask, unitsTask, suppliersTask);
-            _productCodes = codesTask.Result;
-            _productUnits = unitsTask.Result;
-            _productSuppliers = suppliersTask.Result;
-            if (_product?.IsBundle == true)
-                _bundleItems = await ProductService.GetProductBundleItemsAsync(productId);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading related entities for product {ProductId}", GetCurrentProductId());
-        }
     }
 
     private async Task SaveProductAsync()
     {
-        if (_product == null) return;
-        _isSaving = true;
         try
         {
-            if (_isNewProduct)
+            var success = await ViewModel.SaveEntityAsync();
+            if (success)
             {
-                // Create new product
-                var createDto = new CreateProductDto
-                {
-                    Code = _product.Code,
-                    Name = _product.Name,
-                    ShortDescription = _product.ShortDescription,
-                    Description = _product.Description,
-                    Status = _product.Status,
-                    IsVatIncluded = _product.IsVatIncluded,
-                    DefaultPrice = _product.DefaultPrice,
-                    VatRateId = _product.VatRateId,
-                    UnitOfMeasureId = _product.UnitOfMeasureId,
-                    CategoryNodeId = _product.CategoryNodeId,
-                    FamilyNodeId = _product.FamilyNodeId,
-                    GroupNodeId = _product.GroupNodeId,
-                    StationId = _product.StationId,
-                    BrandId = _product.BrandId,
-                    ModelId = _product.ModelId,
-                    PreferredSupplierId = _product.PreferredSupplierId,
-                    ReorderPoint = _product.ReorderPoint,
-                    SafetyStock = _product.SafetyStock,
-                    TargetStockLevel = _product.TargetStockLevel,
-                    AverageDailyDemand = _product.AverageDailyDemand
-                };
+                var message = ViewModel.IsNewEntity 
+                    ? TranslationService.GetTranslation("product.createSuccess", "Prodotto creato con successo")
+                    : TranslationService.GetTranslation("product.saveSuccess", "Prodotto salvato con successo");
+                Snackbar.Add(message, Severity.Success);
 
-                var created = await ProductService.CreateProductAsync(createDto);
-                if (created != null)
+                // If it was a new product, navigate to its detail page
+                if (ViewModel.Entity?.Id != Guid.Empty && ProductIdString?.Equals("new", StringComparison.OrdinalIgnoreCase) == true)
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("product.createSuccess", "Prodotto creato con successo"), Severity.Success);
-                    // Navigate to the newly created product's detail page
-                    NavigationManager.NavigateTo($"/product-management/products/{created.Id}");
-                }
-                else
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("product.createError", "Errore nella creazione del prodotto"), Severity.Error);
+                    NavigationManager.NavigateTo($"/product-management/products/{ViewModel.Entity.Id}");
                 }
             }
             else
             {
-                // Update existing product
-                var updateDto = new UpdateProductDto
-                {
-                    Name = _product.Name,
-                    ShortDescription = _product.ShortDescription,
-                    Description = _product.Description,
-                    Status = _product.Status,
-                    IsVatIncluded = _product.IsVatIncluded,
-                    DefaultPrice = _product.DefaultPrice,
-                    VatRateId = _product.VatRateId,
-                    UnitOfMeasureId = _product.UnitOfMeasureId,
-                    CategoryNodeId = _product.CategoryNodeId,
-                    FamilyNodeId = _product.FamilyNodeId,
-                    GroupNodeId = _product.GroupNodeId,
-                    StationId = _product.StationId,
-                    BrandId = _product.BrandId,
-                    ModelId = _product.ModelId,
-                    PreferredSupplierId = _product.PreferredSupplierId,
-                    ReorderPoint = _product.ReorderPoint,
-                    SafetyStock = _product.SafetyStock,
-                    TargetStockLevel = _product.TargetStockLevel,
-                    AverageDailyDemand = _product.AverageDailyDemand,
-                    ImageDocumentId = _product.ImageDocumentId
-                };
-
-                var updated = await ProductService.UpdateProductAsync(GetCurrentProductId(), updateDto);
-                if (updated != null)
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("product.saveSuccess", "Prodotto salvato con successo"), Severity.Success);
-                    await LoadProductAsync(); // refresh and reset snapshot
-                }
-                else
-                {
-                    Snackbar.Add(TranslationService.GetTranslation("product.saveError", "Errore nel salvataggio del prodotto"), Severity.Error);
-                }
+                var message = ViewModel.IsNewEntity
+                    ? TranslationService.GetTranslation("product.createError", "Errore nella creazione del prodotto")
+                    : TranslationService.GetTranslation("product.saveError", "Errore nel salvataggio del prodotto");
+                Snackbar.Add(message, Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error saving product {ProductId}", GetCurrentProductId());
+            Logger.LogError(ex, "Error saving product");
             Snackbar.Add(TranslationService.GetTranslation("product.saveError", "Errore nel salvataggio del prodotto"), Severity.Error);
         }
-        finally
-        {
-            _isSaving = false;
-        }
     }
 
-    // Called by child tabs when they modify the product locally
     private void HandleProductLocallyChanged()
     {
-        // Product state updated - will be checked on save attempt
-        StateHasChanged();
+        ViewModel.NotifyEntityChanged();
     }
 
-    // Called by children when a change has already been persisted (ex: image uploaded)
     private async Task HandleProductPersistedChange()
     {
-        // Reload to get the latest state and refresh snapshot
-        await LoadProductAsync();
-    }
-
-    private string SerializeProduct(ProductDto? p)
-    {
-        if (p == null) return string.Empty;
-        return System.Text.Json.JsonSerializer.Serialize(p, _jsonOptions);
-    }
-
-    private bool HasUnsavedChanges()
-    {
-        if (_product == null) return false;
-        var current = SerializeProduct(_product);
-        return !string.Equals(current, _originalProductSnapshot, StringComparison.Ordinal);
+        await ViewModel.ReloadEntityAsync();
     }
 
     private async Task TryNavigateAway(string target)
     {
-        if (!HasUnsavedChanges())
+        if (!ViewModel.HasUnsavedChanges())
         {
             NavigationManager.NavigateTo(target);
             return;
@@ -406,13 +232,13 @@
         }
         else if (result == false)
         {
-            // discard - navigate without saving
             NavigationManager.NavigateTo(target);
         }
-        else
-        {
-            // canceled -> stay on page
-        }
+    }
+
+    private void OnViewModelStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
     }
 
     private Color GetStatusColor(ProductStatus status) => status switch
@@ -432,4 +258,9 @@
         ProductStatus.Deleted => TranslationService.GetTranslation("status.deleted", "Eliminato"),
         _ => status.ToString()
     };
+
+    public void Dispose()
+    {
+        ViewModel.StateChanged -= OnViewModelStateChanged;
+    }
 }

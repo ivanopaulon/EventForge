@@ -5,9 +5,7 @@
 @using EventForge.DTOs.Common
 @using MudBlazor
 @inject ITranslationService TranslationService
-@inject IBrandService BrandService
-@inject IModelService ModelService
-@inject IUMService UMService
+@inject ILookupCacheService LookupCacheService
 @inject IEntityManagementService EntityManagementService
 @inject ILogger<ClassificationTab> Logger
 @inject ISnackbar Snackbar
@@ -167,51 +165,30 @@
             // Brands
             if (Product?.BrandId.HasValue == true && !_brands.Any(b => b.Id == Product.BrandId.Value))
             {
-                try
+                var brand = await LookupCacheService.GetBrandByIdAsync(Product.BrandId.Value);
+                if (brand != null)
                 {
-                    var brand = await BrandService.GetBrandByIdAsync(Product.BrandId.Value);
-                    if (brand != null)
-                    {
-                        _brands.Add(brand);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogWarning(ex, "EnsureSelectedBrandAndModelPresent: failed to load brand {BrandId}", Product.BrandId);
+                    _brands.Add(brand);
                 }
             }
 
             // Models
             if (Product?.ModelId.HasValue == true && !_models.Any(m => m.Id == Product.ModelId.Value))
             {
-                try
+                var model = await LookupCacheService.GetModelByIdAsync(Product.ModelId.Value);
+                if (model != null)
                 {
-                    var model = await ModelService.GetModelByIdAsync(Product.ModelId.Value);
-                    if (model != null)
-                    {
-                        _models.Add(model);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogWarning(ex, "EnsureSelectedBrandAndModelPresent: failed to load model {ModelId}", Product.ModelId);
+                    _models.Add(model);
                 }
             }
 
             // Unit of Measure
             if (Product?.UnitOfMeasureId.HasValue == true && _unitsOfMeasure != null && !_unitsOfMeasure.Any(u => u.Id == Product.UnitOfMeasureId.Value))
             {
-                try
+                var um = await LookupCacheService.GetUnitOfMeasureByIdAsync(Product.UnitOfMeasureId.Value);
+                if (um != null)
                 {
-                    var um = await UMService.GetUMByIdAsync(Product.UnitOfMeasureId.Value);
-                    if (um != null)
-                    {
-                        _unitsOfMeasure = _unitsOfMeasure.Append(um).ToList();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogWarning(ex, "EnsureSelectedBrandAndModelPresent: failed to load unit of measure {UnitOfMeasureId}", Product.UnitOfMeasureId);
+                    _unitsOfMeasure = _unitsOfMeasure.Append(um).ToList();
                 }
             }
 
@@ -227,25 +204,16 @@
         {
             try
             {
-                var brandsResult = await BrandService.GetBrandsAsync(1,100);
-                _brands = (brandsResult?.Items ?? Enumerable.Empty<BrandDto>()).ToList();
+                var brands = await LookupCacheService.GetBrandsAsync();
+                _brands = brands.ToList();
 
-                // Ensure selected brand is present in the list so MudSelect can display the selected label
+                // Ensure selected brand is present
                 if (Product?.BrandId.HasValue == true && !_brands.Any(b => b.Id == Product.BrandId.Value))
                 {
-                    try
+                    var brand = await LookupCacheService.GetBrandByIdAsync(Product.BrandId.Value);
+                    if (brand != null)
                     {
-                        var brand = await BrandService.GetBrandByIdAsync(Product.BrandId.Value);
-                        if (brand != null)
-                        {
-                            var list = _brands.ToList();
-                            list.Add(brand);
-                            _brands = list;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogWarning(ex, "Failed to load specific brand {BrandId}", Product.BrandId);
+                        _brands.Add(brand);
                     }
                 }
             }
@@ -258,36 +226,18 @@
 
             try
             {
-                if (Product?.BrandId != null)
-                {
-                    var modelsByBrand = await ModelService.GetModelsByBrandIdAsync(Product.BrandId.Value,1,100);
-                    _models = (modelsByBrand?.Items ?? Enumerable.Empty<ModelDto>()).ToList();
-                    _currentBrandId = Product.BrandId;
+                var models = await LookupCacheService.GetModelsAsync(Product?.BrandId);
+                _models = models.ToList();
+                _currentBrandId = Product?.BrandId;
 
-                    // Ensure previously selected model is present in the list. If not, fetch it specifically and add.
-                    if (Product.ModelId.HasValue && !_models.Any(m => m.Id == Product.ModelId.Value))
-                    {
-                        try
-                        {
-                            var model = await ModelService.GetModelByIdAsync(Product.ModelId.Value);
-                            if (model != null)
-                            {
-                                var list = _models.ToList();
-                                list.Add(model);
-                                _models = list;
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.LogWarning(ex, "Failed to load specific model {ModelId}", Product.ModelId);
-                        }
-                    }
-                }
-                else
+                // Ensure selected model is present
+                if (Product?.ModelId.HasValue == true && !_models.Any(m => m.Id == Product.ModelId.Value))
                 {
-                    var modelsResult = await ModelService.GetModelsAsync(1,100);
-                    _models = (modelsResult?.Items ?? new List<ModelDto>()).ToList();
-                    _currentBrandId = null;
+                    var model = await LookupCacheService.GetModelByIdAsync(Product.ModelId.Value);
+                    if (model != null)
+                    {
+                        _models.Add(model);
+                    }
                 }
             }
             catch (Exception ex)
@@ -299,23 +249,16 @@
 
             try
             {
-                var umsResult = await UMService.GetUMsAsync(1, 100);
-                _unitsOfMeasure = umsResult?.Items ?? Enumerable.Empty<UMDto>();
+                var units = await LookupCacheService.GetUnitsOfMeasureAsync();
+                _unitsOfMeasure = units.ToList();
 
-                // Ensure selected unit of measure is present in the list so MudSelect can display the selected label
+                // Ensure selected unit is present
                 if (Product?.UnitOfMeasureId.HasValue == true && !_unitsOfMeasure.Any(u => u.Id == Product.UnitOfMeasureId.Value))
                 {
-                    try
+                    var um = await LookupCacheService.GetUnitOfMeasureByIdAsync(Product.UnitOfMeasureId.Value);
+                    if (um != null)
                     {
-                        var um = await UMService.GetUMByIdAsync(Product.UnitOfMeasureId.Value);
-                        if (um != null)
-                        {
-                            _unitsOfMeasure = _unitsOfMeasure.Append(um).ToList();
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogWarning(ex, "Failed to load specific unit of measure {UnitOfMeasureId}", Product.UnitOfMeasureId);
+                        _unitsOfMeasure = _unitsOfMeasure.Append(um).ToList();
                     }
                 }
             }
@@ -345,34 +288,17 @@
         _suppressBrandChange = true;
         try
         {
-            if (Product?.BrandId != null)
-            {
-                var modelsByBrand = await ModelService.GetModelsByBrandIdAsync(Product.BrandId.Value,1,100);
-                _models = (modelsByBrand?.Items ?? new List<ModelDto>()).ToList();
+            var models = await LookupCacheService.GetModelsAsync(Product?.BrandId);
+            _models = models.ToList();
 
-                // Ensure selected model present
-                if (Product.ModelId.HasValue && !_models.Any(m => m.Id == Product.ModelId.Value))
-                {
-                    try
-                    {
-                        var model = await ModelService.GetModelByIdAsync(Product.ModelId.Value);
-                        if (model != null)
-                        {
-                            var list = _models.ToList();
-                            list.Add(model);
-                            _models = list;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogWarning(ex, "Failed to load specific model {ModelId} during refresh", Product.ModelId);
-                    }
-                }
-            }
-            else
+            // Ensure selected model present
+            if (Product?.ModelId.HasValue == true && !_models.Any(m => m.Id == Product.ModelId.Value))
             {
-                var modelsResult = await ModelService.GetModelsAsync(1,100);
-                _models = (modelsResult?.Items ?? new List<ModelDto>()).ToList();
+                var model = await LookupCacheService.GetModelByIdAsync(Product.ModelId.Value);
+                if (model != null)
+                {
+                    _models.Add(model);
+                }
             }
         }
         catch (Exception ex)
@@ -521,25 +447,20 @@
             {
                 try
                 {
-                    var modelsByBrand = await ModelService.GetModelsByBrandIdAsync(Product.BrandId.Value, 1, 100);
-                    _models = (modelsByBrand?.Items ?? new List<ModelDto>()).ToList();
+                    var models = await LookupCacheService.GetModelsAsync(Product.BrandId);
+                    _models = models.ToList();
                     _currentBrandId = Product.BrandId;
 
-                    // If a model was previously selected and it's not in the page, fetch it explicitly and keep it selected
+                    // If a model was previously selected and it's not in the list, fetch it explicitly
                     if (Product.ModelId.HasValue && !_models.Any(m => m.Id == Product.ModelId.Value))
                     {
-                        try
+                        var model = await LookupCacheService.GetModelByIdAsync(Product.ModelId.Value);
+                        if (model != null)
                         {
-                            var model = await ModelService.GetModelByIdAsync(Product.ModelId.Value);
-                            if (model != null)
-                            {
-                                _models = _models.Append(model).ToList();
-                            }
+                            _models.Add(model);
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            Logger.LogWarning(ex, "Failed to load specific model {ModelId} during brand change", Product.ModelId);
-                            // If the model cannot be loaded, clear selection to avoid inconsistent state
                             Product.ModelId = null;
                         }
                     }
