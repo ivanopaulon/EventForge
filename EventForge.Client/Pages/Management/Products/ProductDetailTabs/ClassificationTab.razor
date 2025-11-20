@@ -134,6 +134,7 @@
     private bool _lookupsLoaded = false;
     private Guid? _currentBrandId;
     private bool _suppressBrandChange = false;
+    private bool _isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -156,6 +157,7 @@
         }
         // Always ensure that the currently selected Brand/Model are present in the lists
         await EnsureSelectedBrandAndModelPresent();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task EnsureSelectedBrandAndModelPresent()
@@ -270,6 +272,7 @@
             }
 
             _lookupsLoaded = true;
+            _isLoading = false;
         }
         catch (Exception ex)
         {
