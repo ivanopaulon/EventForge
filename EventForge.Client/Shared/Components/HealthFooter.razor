@@ -1,7 +1,9 @@
 @using EventForge.DTOs.Health
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components.Dialogs
 @inject IHealthService HealthService
 @inject ITranslationService TranslationService
+@inject IDialogService DialogService
 @implements IDisposable
 
 <!-- 
@@ -33,16 +35,10 @@
     </div>
 </div>
 
-<!-- Health Status Dialog -->
-<HealthStatusDialog @bind-Visible="_dialogOpen" 
-                    HealthData="_healthData" 
-                    LastUpdated="_lastUpdated" />
-
 @code {
     private DetailedHealthStatusDto? _healthData;
     private DateTime? _lastUpdated;
     private Timer? _refreshTimer;
-    private bool _dialogOpen = false;
 
     /// <summary>
     /// Refresh interval for health data in milliseconds. Default is 30 seconds.
@@ -85,7 +81,24 @@
         {
             await RefreshHealthData();
         }
-        _dialogOpen = true;
+
+        var parameters = new DialogParameters
+        {
+            { "HealthData", _healthData },
+            { "LastUpdated", _lastUpdated },
+            { "OnRefreshRequested", EventCallback.Factory.Create(this, RefreshHealthData) }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.ExtraExtraLarge,
+            FullWidth = true,
+            CloseButton = false,
+            CloseOnEscapeKey = true,
+            BackdropClick = false
+        };
+
+        await DialogService.ShowAsync<HealthStatusDialog>("", parameters, options);
     }
 
     private string GetHealthStatusTitle()
