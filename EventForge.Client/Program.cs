@@ -105,6 +105,8 @@ builder.Services.AddScoped<EventForge.Client.ViewModels.LotDetailViewModel>();
 
 // Onda 2: Documents & Financial ViewModels
 builder.Services.AddScoped<EventForge.Client.ViewModels.DocumentTypeDetailViewModel>();
+builder.Services.AddScoped<EventForge.Client.ViewModels.DocumentHeaderDetailViewModel>();
+builder.Services.AddScoped<EventForge.Client.ViewModels.DocumentCounterDetailViewModel>();
 
 // Add dashboard configuration service
 builder.Services.AddScoped<IDashboardConfigurationService, DashboardConfigurationService>();
