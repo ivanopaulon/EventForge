@@ -6,10 +6,10 @@ This document describes the organization and architecture of the EventForge Blaz
 ## Project Statistics
 - **Total Razor Components**: 147
 - **Total C# Files**: 69
-- **Total CSS Files**: 13
+- **Total CSS Files**: 16
 - **Total JavaScript Files**: 4
 - **Build Status**: ✅ 0 Errors
-- **Last Cleanup**: November 2025 - Removed Fast Inventory system and deprecated drawers
+- **Last Cleanup**: November 2025 - Phase 2 Client Optimization (removed obsolete assets, added BaseUrl constants)
 
 ## Folder Structure
 
@@ -211,23 +211,26 @@ Chart and trend visualization components:
 
 ### `/wwwroot` - Static Assets
 
-#### CSS (15 files)
+#### CSS (16 files)
 **Core Styles**:
 - `app.css` - Main application styles
 - `variables.css` - CSS custom properties
 
 **Feature Styles**:
 - `sales.css` - Sales module styles
-- `inventory-fast.css` - Fast inventory styles (dynamically loaded)
-- `inventory-syncfusion.css` - Syncfusion inventory styles (dynamically loaded)
 - `sidepanel.css` - Side panel styles
 - `help-system.css` - Help system styles
 - `icon-color-override.css` - Icon customization
+- `product.css` - Product management styles
+- `brand.css` - Brand management styles
+- `unit-of-measure.css` - Unit of measure styles
+- `vat-rate.css` - VAT rate management styles
 
 **Component Styles** (`css/components/`):
 - `entity-drawer.css` - Entity drawer styles
 - `action-button-group.css` - Action button group styles
 - `mud-components.css` - MudBlazor overrides
+- `language-selector.css` - Language selector styles
 
 **Theme** (`css/themes/`):
 - `carbon-neon-theme.css` - Custom theme implementation
@@ -237,9 +240,9 @@ Chart and trend visualization components:
 
 #### JavaScript (4 files)
 - `console-filter.js` - Console log filtering for Mono diagnostics
-- `apply-mud-classes.js` - MudBlazor CSS class helper
 - `help-system.js` - Help system interactivity
 - `qz-setup.js` - QZ Tray printer integration
+- `qz-tray.js` - QZ Tray library (installed via npm)
 
 #### Internationalization (`i18n/`)
 - `en.json` - English translations
@@ -345,8 +348,11 @@ These files are feature-rich and serve complex business needs. Refactoring shoul
 ### Adding New Services
 1. Create interface in `/Services` (e.g., `IMyService.cs`)
 2. Implement service (e.g., `MyService.cs`)
-3. Register in `Program.cs` using `AddScoped`
-4. Follow constructor injection pattern
+3. Add `private const string BaseUrl` at the top of the class (e.g., `"api/v1/myservice"`)
+4. Register in `Program.cs` using `AddScoped`
+5. Follow constructor injection pattern
+
+**Note**: All services now include `BaseUrl` constants for consistent API endpoint management.
 
 ### CSS Organization
 1. Feature-specific CSS in separate files
