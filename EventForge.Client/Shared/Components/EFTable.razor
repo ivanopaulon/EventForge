@@ -70,7 +70,9 @@
           Loading="@IsLoading"
           LoadingProgressColor="@LoadingProgressColor"
           SortLabel="@(TranslationService.GetTranslation("tooltip.sortColumn", "Ordina colonna"))"
-          Breakpoint="@Breakpoint">
+          Breakpoint="@Breakpoint"
+          RowsPerPage="@RowsPerPage"
+          AllowUnsorted="true">
     <ToolBarContent>
         @if (ToolBarContent != null)
         {
@@ -299,6 +301,10 @@
     // Pager parameters
     [Parameter] public bool ShowInternalPager { get; set; } = false;
     [Parameter] public RenderFragment? PagerContent { get; set; }
+
+    // Pagination control parameters
+    [Parameter] public int RowsPerPage { get; set; } = int.MaxValue;
+    [Parameter] public int[] PageSizeOptions { get; set; } = new[] { 10, 25, 50, 100 };
     
     // Footer parameters
     [Parameter] public bool ShowFooter { get; set; } = true;
