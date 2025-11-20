@@ -165,11 +165,6 @@
                             </MudChip>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">@FormatFileSize(SelectedFile.Size)</MudText>
                         }
-
-                        @if (_isUploadingImage)
-                        {
-                            <MudProgressLinear Indeterminate="true" />
-                        }
                     </MudStack>
 
                     <MudText Typo="Typo.caption" Class="mt-2 mud-text-secondary">

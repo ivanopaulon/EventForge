@@ -75,13 +75,7 @@
                         <MudIcon Icon="@Icons.Material.Outlined.Store" Class="mr-1" Size="Size.Small" />
                         @TranslationService.GetTranslation("product.availabilityStock", "Disponibilità e Giacenza")
                     </MudText>
-                    @if (_isLoadingStock)
-                    {
-                        <div class="d-flex justify-center pa-4">
-                            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-                        </div>
-                    }
-                    else if (_stockLevels?.Any() == true)
+                    @if (_stockLevels?.Any() == true)
                     {
                         <MudTable Items="@_stockLevels" Hover="true" Striped="true" Dense="true" Class="mb-0" GroupBy="@_groupDefinition">
                             <HeaderContent>
@@ -151,7 +145,6 @@
     [Parameter]
     public EventCallback OnProductUpdatedPersisted { get; set; }
 
-    private bool _isLoadingStock = false;
     private bool _isLoadingTrend = false;
     private bool _stockTrendLoaded = false;
     private IEnumerable<StockDto> _stockLevels = Enumerable.Empty<StockDto>();
@@ -186,7 +179,6 @@
 
     private async Task LoadStockLevelsAsync()
     {
-        _isLoadingStock = true;
         try
         {
             _stockLevels = await StockService.GetStockByProductIdAsync(Product.Id);
@@ -200,7 +192,6 @@
         }
         finally
         {
-            _isLoadingStock = false;
             StateHasChanged();
         }
     }

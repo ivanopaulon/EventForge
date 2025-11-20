@@ -18,11 +18,7 @@
     </Actions>
 
     <ChildContent>
-        @if (_isLoading)
-        {
-            <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-        }
-        else if (_productSuppliers == null || !_productSuppliers.Any())
+        @if (_productSuppliers == null || !_productSuppliers.Any())
         {
             <MudAlert Severity="Severity.Info">
                 @TranslationService.GetTranslation("product.noSuppliers", "Nessun fornitore configurato")
@@ -76,7 +72,6 @@
     public bool IsEditMode { get; set; }
 
     private IEnumerable<ProductSupplierDto>? _productSuppliers;
-    private bool _isLoading = true;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -88,7 +83,6 @@
 
     private async Task LoadSuppliersAsync()
     {
-        _isLoading = true;
         try
         {
             _productSuppliers = await ProductService.GetProductSuppliersAsync(Product.Id);
@@ -97,10 +91,6 @@
         {
             Logger.LogError(ex, "Error loading product suppliers for product {ProductId}", Product.Id);
             Snackbar.Add(TranslationService.GetTranslation("product.loadSuppliersError", "Errore nel caricamento dei fornitori"), Severity.Error);
-        }
-        finally
-        {
-            _isLoading = false;
         }
     }
 

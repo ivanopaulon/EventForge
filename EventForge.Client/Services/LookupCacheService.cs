@@ -132,7 +132,7 @@ public class LookupCacheService : ILookupCacheService
             entry.AbsoluteExpirationRelativeToNow = DefaultCacheExpiration;
             try
             {
-                var apiResult = await _financialService.GetVatRatesAsync();
+                var apiResult = await _financialService.GetVatRatesAsync(1, 100);
                 var vatRates = apiResult?.Items?.ToList() ?? new List<VatRateDto>();
                 _logger.LogInformation("Loaded {Count} VAT rates from service", vatRates.Count);
                 return vatRates;
