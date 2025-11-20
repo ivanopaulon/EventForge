@@ -335,6 +335,16 @@ public interface IProductService
     Task<int> BulkUpdateProductSupplierAssociationsAsync(Guid supplierId, IEnumerable<Guid> productIds, string currentUser, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets products by supplier with pagination, enriched with latest purchase data.
+    /// </summary>
+    /// <param name="supplierId">Supplier ID</param>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of product suppliers with enriched data</returns>
+    Task<PagedResult<ProductSupplierDto>> GetProductsBySupplierAsync(Guid supplierId, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets recent product transactions (purchases or sales) for price suggestions.
     /// </summary>
     /// <param name="productId">Product ID</param>
