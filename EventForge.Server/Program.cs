@@ -1,7 +1,8 @@
 using EventForge.Server.Middleware;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi.Any;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -65,6 +66,10 @@ builder.Services.AddSwaggerGen(c =>
     // Configure custom schema IDs to avoid conflicts between classes with the same name
     c.CustomSchemaIds(type => type.FullName);
 
+    // TODO: Re-enable ProblemDetails schema mapping with Microsoft.OpenApi 2.x compatible syntax
+    // The following MapType calls are commented out because they use Microsoft.OpenApi.Any types
+    // which have changed in version 2.x. Need to update to new syntax.
+    /*
     // Add ProblemDetails schema examples
     c.MapType<ProblemDetails>(() => new Microsoft.OpenApi.Models.OpenApiSchema
     {
@@ -112,6 +117,7 @@ builder.Services.AddSwaggerGen(c =>
             ["timestamp"] = new() { Type = "string", Example = new Microsoft.OpenApi.Any.OpenApiString("2024-01-01T12:00:00Z") }
         }
     });
+    */
 
     // Add JWT Authentication to Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -138,8 +144,8 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 
-    // Supporto per upload file
-    c.OperationFilter<FileUploadOperationFilter>();
+    // TODO: Re-enable when FileUploadOperationFilter is compatible with Microsoft.OpenApi 2.x
+    // c.OperationFilter<FileUploadOperationFilter>();
 });
 
 builder.Services.AddCors(options =>
