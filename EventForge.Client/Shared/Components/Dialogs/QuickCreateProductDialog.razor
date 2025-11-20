@@ -193,7 +193,7 @@
         _isLoading = true;
         try
         {
-            var result = await FinancialService.GetVatRatesAsync();
+            var result = await FinancialService.GetVatRatesAsync(1, 100);
             _vatRates = result?.Items ?? Enumerable.Empty<VatRateDto>();
         }
         catch (Exception ex)
