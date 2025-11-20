@@ -158,7 +158,7 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Annulla</MudButton>
-        @if (_isFirstTimeSetup || _isEditingMetric)
+        @if (_isFirstTimeSetup)
         {
             <MudButton Color="Color.Primary"
                       Variant="Variant.Filled"
@@ -179,7 +179,6 @@
 
     private bool _isLoading = true;
     private bool _isFirstTimeSetup = false;
-    private bool _isEditingMetric = false;
     private string _configurationName = "Configurazione Predefinita";
     private string _configurationDescription = string.Empty;
     private bool _setAsDefault = true;
@@ -253,7 +252,6 @@
         {
             createdMetric.Order = _metrics.Count;
             _metrics.Add(createdMetric);
-            _isEditingMetric = true;
             Snackbar.Add("Metrica aggiunta con successo", Severity.Success);
         }
     }
