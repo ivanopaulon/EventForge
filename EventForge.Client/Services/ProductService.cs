@@ -339,6 +339,11 @@ public class ProductService : IProductService
         }
     }
 
+    public async Task<bool> RemoveProductSupplierAsync(Guid id)
+    {
+        return await DeleteProductSupplierAsync(id);
+    }
+
     public async Task<IEnumerable<ProductWithAssociationDto>?> GetProductsWithSupplierAssociationAsync(Guid supplierId)
     {
         try
@@ -348,6 +353,19 @@ public class ProductService : IProductService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting products with supplier association for supplier {SupplierId}", supplierId);
+            return null;
+        }
+    }
+
+    public async Task<PagedResult<ProductSupplierDto>?> GetProductsBySupplierAsync(Guid supplierId, int page = 1, int pageSize = 20)
+    {
+        try
+        {
+            return await _httpClientService.GetAsync<PagedResult<ProductSupplierDto>>($"api/v1/product-management/suppliers/{supplierId}/supplied-products?page={page}&pageSize={pageSize}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting products by supplier {SupplierId}", supplierId);
             return null;
         }
     }

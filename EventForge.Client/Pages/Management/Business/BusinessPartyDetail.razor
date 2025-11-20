@@ -114,6 +114,14 @@
                     <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.products", "Prodotti")" Icon="@Icons.Material.Filled.Inventory">
                         <BusinessPartyProductsTab BusinessPartyId="@_party.Id" />
                     </MudTabPanel>
+
+                    <!-- Supplied Products Tab (only for suppliers) -->
+                    @if (_party.PartyType == BusinessPartyType.Supplier || _party.PartyType == BusinessPartyType.Both)
+                    {
+                        <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.suppliedProducts", "Prodotti Forniti")" Icon="@Icons.Material.Filled.LocalShipping">
+                            <BusinessPartySuppliedProductsTab BusinessPartyId="@_party.Id" />
+                        </MudTabPanel>
+                    }
                 }
             </MudTabs>
         </MudPaper>
