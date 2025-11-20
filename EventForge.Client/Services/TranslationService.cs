@@ -91,6 +91,7 @@ public interface ITranslationService
 /// </summary>
 public class TranslationService : ITranslationService
 {
+    private const string BaseUrl = "i18n";
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IJSRuntime _jsRuntime;
     private readonly ILogger<TranslationService> _logger;

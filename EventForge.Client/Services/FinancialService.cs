@@ -38,6 +38,7 @@ namespace EventForge.Client.Services
 
     public class FinancialService : IFinancialService
     {
+        private const string BaseUrl = "api/v1/financial";
         private readonly IHttpClientService _httpClientService;
         private readonly ILogger<FinancialService> _logger;
         private readonly ILoadingDialogService _loadingDialogService;

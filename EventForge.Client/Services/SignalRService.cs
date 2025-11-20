@@ -11,6 +11,7 @@ namespace EventForge.Client.Services;
 /// </summary>
 public class SignalRService : IAsyncDisposable
 {
+    private const string BaseUrl = "hubs";
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IAuthService _authService;
     private readonly ILogger<SignalRService> _logger;

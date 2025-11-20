@@ -37,6 +37,7 @@ namespace EventForge.Client.Services
     /// </summary>
     public class ClientLogService : IClientLogService, IDisposable
     {
+        private const string BaseUrl = "api/v1/logs/client";
         private readonly HttpClient _httpClient;
         private readonly IJSRuntime _jsRuntime;
         private readonly IAuthService _authService;

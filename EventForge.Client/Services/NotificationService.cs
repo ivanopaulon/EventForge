@@ -30,6 +30,7 @@ public interface INotificationService
 
 public class NotificationService : INotificationService
 {
+    private const string BaseUrl = "api/v1/notifications";
     private readonly IHttpClientService _httpClientService;
     private readonly SignalRService _signalRService;
     private readonly ILogger<NotificationService> _logger;

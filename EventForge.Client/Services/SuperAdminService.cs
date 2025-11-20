@@ -55,6 +55,7 @@ namespace EventForge.Client.Services
 
     public class SuperAdminService : ISuperAdminService
     {
+        private const string BaseUrl = "api/v1/superadmin";
         private readonly IHttpClientService _httpClientService;
         private readonly ILogger<SuperAdminService> _logger;
         private readonly ILoadingDialogService _loadingDialogService;

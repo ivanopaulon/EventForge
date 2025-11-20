@@ -17,6 +17,7 @@ public interface IBackupService
 
 public class BackupService : IBackupService
 {
+    private const string BaseUrl = "api/v1/backup";
     private readonly IHttpClientService _httpClientService;
     private readonly ILogger<BackupService> _logger;
     private readonly ILoadingDialogService _loadingDialogService;

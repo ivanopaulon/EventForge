@@ -11,6 +11,7 @@ namespace EventForge.Client.Services
 
     public class HealthService : IHealthService
     {
+        private const string BaseUrl = "health";
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<HealthService> _logger;
 
