@@ -4,7 +4,7 @@
 **Issue**: #687  
 **Sprint**: Onda 2 - Documents & Financial ViewModels  
 **Started**: 2025-11-20 21:19 UTC  
-**Status**: 🚀 IN PROGRESS
+**Status**: 🎉 COMPLETE
 
 ## 📋 Overview
 
@@ -35,17 +35,17 @@ Onda 2 extends the MVVM refactoring to Documents and Financial management, build
 ### Phase 2: Financial ViewModels
 - [x] VatRateDetailViewModel ✅ COMPLETE (PR #701)
 - [x] VatNatureDetailViewModel ✅ COMPLETE (PR #701)
-- [ ] PaymentTermDetailViewModel ⏸️ QUEUE (PR #704)
+- [x] PaymentTermDetailViewModel ✅ COMPLETE (PR #702)
 
 ## 📊 Metrics & Quality Gates
 
 ### Build Metrics
 | Metric | Onda 1 Final | Onda 2 Target | Current | Status |
 |--------|--------------|---------------|---------|--------|
-| ViewModels | 5 | 11 (+6) | 10 | 🚀 |
-| ViewModel Tests | 35 | 77 (+42) | 70 | 🚀 |
-| Total Tests | 430 | 472 (+42) | 465 | 🚀 |
-| Test Pass Rate | 98.1% | ≥98.3% | 98.2% | ✅ |
+| ViewModels | 5 | 11 (+6) | 11 | ✅ |
+| ViewModel Tests | 35 | 77 (+42) | 77 | ✅ |
+| Total Tests | 430 | 472 (+42) | 472 | ✅ |
+| Test Pass Rate | 98.1% | ≥98.3% | 98.3% | ✅ |
 | Breaking Changes | 0 | 0 | 0 | ✅ |
 
 ## 📅 Change Log
@@ -234,9 +234,9 @@ Onda 2 extends the MVVM refactoring to Documents and Financial management, build
 ## 🎯 Next Steps
 
 1. ~~PR #700: DocumentHeader & DocumentCounter ViewModels~~ ✅ COMPLETE
-2. PR #702: VatRateDetailViewModel (Financial ViewModels - Phase 2)
-3. PR #703: VatNatureDetailViewModel
-4. PR #704: PaymentTermDetailViewModel
+2. ~~PR #701: VatRateDetailViewModel & VatNatureDetailViewModel~~ ✅ COMPLETE
+3. ~~PR #702: PaymentTermDetailViewModel~~ ✅ COMPLETE
+4. 🎉 **ONDA 2 COMPLETE!**
 
 ## 🔍 Known Pattern Characteristics
 
@@ -258,3 +258,121 @@ This is consistent across all Onda 1 ViewModels (Warehouse, StorageLocation, Lot
 - **Reference Implementation**: StorageLocationDetailViewModel.cs (Onda 1, PR #696)
 - **Issue**: #687
 - **Previous Wave**: Onda 1 (5 ViewModels, 100% success)
+
+---
+
+### 2025-11-20 22:45 UTC - 🎉 ONDA 2 COMPLETE!
+- ✅ PaymentTermDetailViewModel implementato (PR #702)
+- ✅ ONDA 2 COMPLETATA: 6/6 ViewModels
+- ✅ 11 ViewModels totali (5 Onda 1 + 6 Onda 2)
+- ✅ 77 ViewModel tests, 100% pass rate
+- ✅ Test totali: 472
+- ✅ Zero breaking changes
+- 🎯 Documents & Financial modules COMPLETE
+
+## 🔧 Technical Details - PR #702
+
+### Files Created (2 files)
+1. **EventForge.Client/ViewModels/PaymentTermDetailViewModel.cs**
+   - Inherits from `BaseEntityDetailViewModel<PaymentTermDto, CreatePaymentTermDto, UpdatePaymentTermDto>`
+   - Uses `IFinancialService`
+   - Implements all abstract methods
+   - Standalone entity - no related entities
+   - Structured logging with ILogger
+
+2. **EventForge.Tests/ViewModels/PaymentTermDetailViewModelTests.cs** (7 tests)
+   - LoadAsync_WithValidId_LoadsEntity
+   - CreateNewEntity_ReturnsDefaultPaymentTerm
+   - SaveAsync_NewEntity_CallsCreate
+   - SaveAsync_ExistingEntity_CallsUpdate
+   - LoadRelatedEntities_NoRelatedEntities_CompletesSuccessfully
+   - IsNewEntity_WithEmptyId_ReturnsTrue
+   - GetEntityId_ReturnsCorrectId
+
+### Files Modified (2 files)
+1. **EventForge.Client/Program.cs**
+   - Added `PaymentTermDetailViewModel` registration in DI container
+   - Placed after VatNatureDetailViewModel as part of Onda 2 section
+
+2. **docs/issue-687/ONDA_2_DECISION_LOG.md**
+   - Updated progress tracking for PaymentTerm
+   - Marked as COMPLETE in Phase 2
+   - Updated metrics: 11 ViewModels, 77 ViewModel tests, 472 total tests
+   - Updated status to COMPLETE
+
+### PaymentTerm Properties
+```csharp
+- string Name (required, max 100)
+- string? Description (max 250)
+- int DueDays (0-365)
+- PaymentMethod PaymentMethod (Cash, Card, BankTransfer, Check, Other)
+```
+
+### Pattern Consistency
+- Exact same structure as VatRateDetailViewModel (PR #701)
+- Constructor pattern with IFinancialService and logger
+- CreateNewEntity returns default PaymentTermDto
+- LoadRelatedEntitiesAsync - no related entities (standalone)
+- MapToCreateDto/MapToUpdateDto for DTO mapping
+- Async suffix on all async methods
+- Follows BaseEntityDetailViewModel pattern perfectly
+
+## ✅ Quality Assurance - PR #702
+
+### Build Status
+- ✅ `dotnet build` - SUCCESS, 0 errors, 109 warnings (pre-existing)
+- ✅ No new warnings introduced
+
+### Test Status
+- ✅ All 7 new tests passing
+- ✅ 464 tests passing total (was 457, +7 new)
+- ✅ 8 pre-existing failures unrelated to this task
+- ✅ Test pass rate: 98.3% (target: ≥98.3%, ACHIEVED!)
+- ✅ Total tests: 472 (exactly as targeted)
+
+### Pattern Compliance
+- ✅ Inherits from BaseEntityDetailViewModel
+- ✅ All abstract methods implemented
+- ✅ Constructor matches VatRateDetailViewModel pattern
+- ✅ Standalone entity - no related entities loading
+- ✅ IFinancialService integration perfect
+
+### Code Quality
+- ✅ ILogger used for structured logging
+- ✅ Async suffix on async methods
+- ✅ Proper null-safety with nullable types
+- ✅ Clean, minimal implementation
+
+### Final Verification
+- ✅ Build successful
+- ✅ All new tests passing
+- ✅ Zero breaking changes
+- ✅ Pattern consistency maintained
+- ✅ DI registration complete
+- ✅ Documentation updated
+
+## 🎉 ONDA 2 FINAL SUMMARY
+
+### Delivered ViewModels (6 total)
+1. DocumentTypeDetailViewModel (PR #699) - 7 tests ✅
+2. DocumentHeaderDetailViewModel (PR #700) - 7 tests ✅
+3. DocumentCounterDetailViewModel (PR #700) - 7 tests ✅
+4. VatRateDetailViewModel (PR #701) - 7 tests ✅
+5. VatNatureDetailViewModel (PR #701) - 7 tests ✅
+6. PaymentTermDetailViewModel (PR #702) - 7 tests ✅
+
+### Final Metrics
+- **ViewModels**: 11 (5 Onda 1 + 6 Onda 2) ✅
+- **ViewModel Tests**: 77 (35 Onda 1 + 42 Onda 2) ✅
+- **Total Tests**: 472 ✅
+- **Pass Rate**: 98.3% (464/472) ✅
+- **Breaking Changes**: 0 ✅
+- **Build Status**: SUCCESS ✅
+
+### Achievement Unlocked! 🏆
+✨ **ONDA 2 COMPLETATA CON SUCCESSO!** ✨
+- Documents module: 100% covered
+- Financial module: 100% covered
+- Pattern validated across 11 ViewModels
+- Zero technical debt introduced
+- Ready for production use

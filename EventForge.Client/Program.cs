@@ -109,6 +109,7 @@ builder.Services.AddScoped<EventForge.Client.ViewModels.DocumentHeaderDetailView
 builder.Services.AddScoped<EventForge.Client.ViewModels.DocumentCounterDetailViewModel>();
 builder.Services.AddScoped<EventForge.Client.ViewModels.VatRateDetailViewModel>();
 builder.Services.AddScoped<EventForge.Client.ViewModels.VatNatureDetailViewModel>();
+builder.Services.AddScoped<EventForge.Client.ViewModels.PaymentTermDetailViewModel>();
 
 // Add dashboard configuration service
 builder.Services.AddScoped<IDashboardConfigurationService, DashboardConfigurationService>();
