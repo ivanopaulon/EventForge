@@ -4,15 +4,16 @@
 This document describes the organization and architecture of the EventForge Blazor WebAssembly client application.
 
 ## Project Statistics
-- **Total Razor Components**: 135
+- **Total Razor Components**: 147
 - **Total C# Files**: 69
-- **Total CSS Files**: 15
+- **Total CSS Files**: 13
 - **Total JavaScript Files**: 4
 - **Build Status**: ✅ 0 Errors
+- **Last Cleanup**: November 2025 - Removed Fast Inventory system and deprecated drawers
 
 ## Folder Structure
 
-### `/Pages` - Application Pages (62 pages)
+### `/Pages` - Application Pages (64 pages)
 Pages are organized by feature domain with nested categorization:
 
 #### Root Pages (5)
@@ -35,18 +36,16 @@ Administrative pages for system-level management:
 - `Configuration.razor` - System configuration
 - `TranslationManagement.razor` - I18n management
 
-#### Management/Warehouse (7 pages)
+#### Management/Warehouse (3 pages)
 Warehouse and inventory management:
 - `WarehouseManagement.razor` / `WarehouseDetail.razor` - Warehouse facilities
 - `LotManagement.razor` - Lot tracking
-- `InventoryProcedure.razor` - Standard inventory process (classic)
-- `InventoryProcedureFast.razor` - Optimized fast inventory (MudBlazor, to be archived)
-- `InventoryProcedureSyncfusion.razor` - **Fast Procedure (Syncfusion-based, consolidated)**
+- `InventoryProcedure.razor` - Inventory process (classic implementation)
 - `InventoryList.razor` - Inventory document listing
 
-**Note**: The Fast Procedure is now consolidated on Syncfusion components with business logic extracted to `InventoryFastService`. MudBlazor Fast components will be archived.
+**Note**: Fast Inventory implementations (MudBlazor and Syncfusion) have been removed. Use the classic `InventoryProcedure.razor` for all inventory operations.
 
-#### Management/Products (18 pages)
+#### Management/Products (17 pages)
 Product catalog and classification:
 - `ProductManagement.razor` / `ProductDetail.razor` - Product CRUD
 - `ProductDetailTabs/` - Tab components for product detail page:
@@ -61,8 +60,8 @@ Product catalog and classification:
 - `BrandManagement.razor` / `BrandDetail.razor` - Brand management
 - `UnitOfMeasureManagement.razor` / `UnitOfMeasureDetail.razor` - UOM management
 - `ClassificationNodeManagement.razor` / `ClassificationNodeDetail.razor` - Category tree
-- `CreateProduct.razor` - Product creation wizard (not in nav menu)
-- `AssignBarcode.razor` - Barcode assignment utility (not in nav menu)
+
+**Note**: `CreateProduct.razor` and `AssignBarcode.razor` pages have been removed. Use `ProductDetail.razor` with route `/products/new` for product creation. Barcode assignment is handled inline in `ProductNotFoundDialog.razor`.
 
 #### Management/Documents (5 pages)
 Document management system:
@@ -109,40 +108,33 @@ Modal dialogs for user interaction:
 - **Documents**: `AddDocumentRowDialog`, `DocumentCounterDialog`
 - **System**: `ConfirmationDialog`, `LoadingDialog`, `GlobalLoadingDialog`, `HealthStatusDialog`, `ModelDialog`, `ManageSupplierProductsDialog`
 
-#### Drawers (7 components)
-Side panel components:
-- `ProductDrawer.razor` (2075 lines) - Comprehensive product management
-- `BusinessPartyDrawer.razor` (1001 lines) - Business partner management
-- `BrandDrawer.razor` - Brand management
-- `EntityDrawer.razor` - Generic entity drawer
-- `StorageLocationDrawer.razor` - Storage location management
-- `AuditHistoryDrawer.razor` - Audit history viewer
-- `AuditLogDrawer.razor` - Audit log viewer
+#### Drawers (3 components)
+Side panel components (streamlined after deprecation cleanup):
+- `ProductDrawer.razor` (2075 lines) - Comprehensive product management (still used in InventoryProcedure)
+- `AuditLogDrawer.razor` - Audit log viewer (used in SuperAdmin pages)
+- `EntityDrawer.razor` - Generic entity drawer base component
+
+**Removed Deprecated Drawers** (November 2025):
+- ~~`BusinessPartyDrawer.razor`~~ → Replaced by `BusinessPartyDetail.razor` page
+- ~~`BrandDrawer.razor`~~ → Replaced by `BrandDetail.razor` page
+- ~~`StorageLocationDrawer.razor`~~ → Managed in `WarehouseDetail.razor`
+- ~~`AuditHistoryDrawer.razor`~~ → Replaced by `AuditHistoryDialog.razor` (fullscreen dialog)
 
 #### Sales Components (3)
 - `ProductSearch.razor` - Product search widget
 - `CartSummary.razor` - Shopping cart display
 - `PaymentPanel.razor` - Payment processing
 
-#### Warehouse Components (13)
-Two implementations: MudBlazor-based and Syncfusion-based
+#### Warehouse Components (3)
+Chart and trend visualization components:
+- `CommonTrendWrapper.razor` - Common wrapper for trend charts
+- `PriceTrendChart.razor` - Product price trend visualization
+- `StockTrendChart.razor` - Stock level trend visualization
 
-**MudBlazor Implementation**:
-- `FastInventoryHeader.razor` - Header controls
-- `FastInventoryTable.razor` - Data grid
-- `FastScanner.razor` - Barcode scanner
-- `FastProductEntryInline.razor` - Inline product entry
-- `FastNotFoundPanel.razor` - Product not found handler
-- `OperationLogPanel.razor` - Operation logging
-
-**Syncfusion Implementation** (`SyncfusionComponents/`):
-- `SfFastInventoryHeader.razor`
-- `SfFastInventoryGrid.razor`
-- `SfFastScanner.razor`
-- `SfFastProductEntryInline.razor`
-- `SfFastNotFoundPanel.razor`
-- `SfOperationLogPanel.razor`
-- `_Imports.razor` - Syncfusion-specific imports
+**Removed Fast Inventory Components** (November 2025):
+~~Two implementations (MudBlazor and Syncfusion) have been removed~~
+- Fast Inventory implementations were deprecated and removed
+- Use classic `InventoryProcedure.razor` for all inventory operations
 
 #### Other Shared Components (19)
 - **Navigation**: `UserAccountMenu.razor`, `LanguageSelector.razor`, `ThemeSelector.razor`
