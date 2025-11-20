@@ -150,6 +150,20 @@ Onda 2 extends the MVVM refactoring to Documents and Financial management, build
 4. PR #703: VatNatureDetailViewModel
 5. PR #704: PaymentTermDetailViewModel
 
+## 🔍 Known Pattern Characteristics
+
+### Related Entities Loading
+The current BaseEntityDetailViewModel pattern only calls `LoadRelatedEntitiesAsync` for existing entities (not new entities). This means:
+- For **existing** entities: Related entities (e.g., Warehouses) are loaded from the service
+- For **new** entities: Related entities are initialized as empty collections
+
+This is consistent across all Onda 1 ViewModels (Warehouse, StorageLocation, Lot, Product, Inventory). The pattern ensures:
+1. Performance optimization: No unnecessary API calls for new entities
+2. Consistency: All ViewModels behave the same way
+3. Simplicity: Clear separation between new and existing entity workflows
+
+**Note**: If dropdown population is needed for new entities, the UI layer should handle loading lookup data separately, or the base class pattern could be enhanced in a future refactoring to support this use case.
+
 ## 📚 References
 
 - **Base Pattern**: BaseEntityDetailViewModel.cs
