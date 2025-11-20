@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.DTOs.Dashboard
 {
@@ -144,6 +145,7 @@ namespace EventForge.DTOs.Dashboard
         /// <summary>
         /// Icon name (MudBlazor icon).
         /// </summary>
+        [MaxLength(1000, ErrorMessage = "Icon cannot exceed 1000 characters.")]
         public string? Icon { get; set; }
 
         /// <summary>
