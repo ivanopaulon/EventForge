@@ -1,7 +1,7 @@
+using EventForge.DTOs.Logging;
+using EventForge.Server.Services.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using EventForge.Server.Services.Logging;
-using EventForge.DTOs.Logging;
 
 namespace EventForge.Server.Controllers;
 
@@ -49,7 +49,7 @@ public class ClientLogsController : BaseApiController
             {
                 _logger.LogWarning("Failed to enqueue client log entry - queue may be full");
             }
-            
+
             return Accepted();
         }
         catch (Exception ex)
@@ -116,7 +116,7 @@ public class ClientLogsController : BaseApiController
         try
         {
             var healthStatus = _logIngestionService.GetHealthStatus();
-            
+
             var healthDto = new LogIngestionHealthDto
             {
                 Status = healthStatus.Status.ToString(),

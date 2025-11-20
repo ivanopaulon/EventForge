@@ -1,8 +1,6 @@
 using EventForge.Client.Services;
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.Warehouse;
-using Microsoft.Extensions.Logging;
 
 namespace EventForge.Client.ViewModels;
 
@@ -17,7 +15,7 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
     public LotDetailViewModel(
         ILotService lotService,
         IProductService productService,
-        ILogger<LotDetailViewModel> logger) 
+        ILogger<LotDetailViewModel> logger)
         : base(logger)
     {
         _lotService = lotService;
@@ -74,8 +72,8 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
             // Load products for dropdown selection
             var productsResult = await _productService.GetProductsAsync(1, 100);
             Products = productsResult?.Items ?? new List<ProductDto>();
-            
-            Logger.LogInformation("Loaded {Count} products for lot {Id}", 
+
+            Logger.LogInformation("Loaded {Count} products for lot {Id}",
                 Products.Count(), entityId);
         }
         catch (Exception ex)

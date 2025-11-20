@@ -1,4 +1,3 @@
-using EventForge.DTOs.Common;
 using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
@@ -16,7 +15,7 @@ public class LogIngestionBackgroundService : BackgroundService
 {
     private const int BatchSize = 200;
     private const string FallbackLogDirectory = "logs";
-    
+
     private readonly LogIngestionService _ingestionService;
     private readonly ILogger<LogIngestionBackgroundService> _logger;
     private readonly IServiceProvider _serviceProvider;
@@ -176,7 +175,7 @@ public class LogIngestionBackgroundService : BackgroundService
         // Create a new scope to get a scoped ILogger for writing client logs
         using var scope = _serviceProvider.CreateScope();
         var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
-        
+
         foreach (var clientLog in batch)
         {
             if (stoppingToken.IsCancellationRequested)
@@ -223,7 +222,7 @@ public class LogIngestionBackgroundService : BackgroundService
                     case "WARN":
                         if (!string.IsNullOrEmpty(clientLog.Exception))
                         {
-                            categoryLogger.LogWarning("{Message} | Exception: {Exception}", 
+                            categoryLogger.LogWarning("{Message} | Exception: {Exception}",
                                 clientLog.Message, clientLog.Exception);
                         }
                         else
@@ -235,7 +234,7 @@ public class LogIngestionBackgroundService : BackgroundService
                     case "ERROR":
                         if (!string.IsNullOrEmpty(clientLog.Exception))
                         {
-                            categoryLogger.LogError("{Message} | Exception: {Exception}", 
+                            categoryLogger.LogError("{Message} | Exception: {Exception}",
                                 clientLog.Message, clientLog.Exception);
                         }
                         else
@@ -247,7 +246,7 @@ public class LogIngestionBackgroundService : BackgroundService
                     case "CRITICAL":
                         if (!string.IsNullOrEmpty(clientLog.Exception))
                         {
-                            categoryLogger.LogCritical("{Message} | Exception: {Exception}", 
+                            categoryLogger.LogCritical("{Message} | Exception: {Exception}",
                                 clientLog.Message, clientLog.Exception);
                         }
                         else
@@ -269,8 +268,8 @@ public class LogIngestionBackgroundService : BackgroundService
     }
 
     private async Task WriteBatchToFallbackFileAsync(
-        List<ClientLogDto> batch, 
-        string reason, 
+        List<ClientLogDto> batch,
+        string reason,
         CancellationToken stoppingToken)
     {
         try

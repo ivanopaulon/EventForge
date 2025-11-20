@@ -4,7 +4,6 @@ using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 
 namespace EventForge.Tests.ViewModels;
 
@@ -110,13 +109,13 @@ public class ProductDetailViewModelTests : IDisposable
     {
         // Arrange
         await _viewModel.LoadEntityAsync(Guid.Empty);
-        
+
         _viewModel.Entity!.Code = "PROD-NEW";
         _viewModel.Entity.Name = "New Product";
         _viewModel.Entity.ShortDescription = "Short description";
         _viewModel.Entity.Description = "Full description";
         _viewModel.Entity.DefaultPrice = 50.00m;
-        
+
         var createdProduct = new ProductDto
         {
             Id = Guid.NewGuid(),

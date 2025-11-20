@@ -1,8 +1,6 @@
 using EventForge.Server.Middleware;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
-using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Reflection;
 
 // NOTE: Using Swashbuckle.AspNetCore 6.x with Microsoft.OpenApi 1.x for compatibility.
@@ -72,7 +70,7 @@ builder.Services.AddSwaggerGen(c =>
     // TODO: Re-enable ProblemDetails schema mapping with Microsoft.OpenApi 2.x compatible syntax
     // TODO: Re-enable JWT Authentication schema with Microsoft.OpenApi 2.x compatible syntax
     // TODO: Re-enable FileUploadOperationFilter with Microsoft.OpenApi 2.x compatible syntax
-    
+
     // All advanced Swagger configuration has been temporarily commented out due to
     // Microsoft.OpenApi 2.x breaking changes. Need to update to new API syntax.
 });
@@ -102,12 +100,12 @@ builder.Services.AddRateLimiter(options =>
                 SegmentsPerWindow = 6, // 6 segments of 10 seconds each
                 QueueLimit = 10 // queue up to 10 requests
             }));
-    
+
     options.OnRejected = async (context, cancellationToken) =>
     {
         context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
         await context.HttpContext.Response.WriteAsync(
-            "Rate limit exceeded for client logging. Please retry later.", 
+            "Rate limit exceeded for client logging. Please retry later.",
             cancellationToken);
     };
 });

@@ -1,7 +1,5 @@
 using EventForge.Client.Services;
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
-using Microsoft.Extensions.Logging;
 
 namespace EventForge.Client.ViewModels;
 
@@ -16,7 +14,7 @@ public class InventoryDetailViewModel : BaseEntityDetailViewModel<InventoryDocum
     public InventoryDetailViewModel(
         IInventoryService inventoryService,
         IWarehouseService warehouseService,
-        ILogger<InventoryDetailViewModel> logger) 
+        ILogger<InventoryDetailViewModel> logger)
         : base(logger)
     {
         _inventoryService = inventoryService;
@@ -64,12 +62,12 @@ public class InventoryDetailViewModel : BaseEntityDetailViewModel<InventoryDocum
         try
         {
             var warehousesTask = _warehouseService.GetStorageFacilitiesAsync(1, 100);
-            
+
             await Task.WhenAll(warehousesTask);
-            
+
             // Load warehouses for selection
             Warehouses = warehousesTask.Result?.Items ?? new List<StorageFacilityDto>();
-            
+
             // Rows are already loaded with the entity
             InventoryRows = Entity?.Rows ?? new List<InventoryDocumentRowDto>();
         }
@@ -133,7 +131,7 @@ public class InventoryDetailViewModel : BaseEntityDetailViewModel<InventoryDocum
         {
             var entityId = GetEntityId(Entity);
             var updated = await _inventoryService.AddInventoryDocumentRowAsync(entityId, rowDto);
-            
+
             if (updated != null)
             {
                 Entity = updated;
@@ -141,7 +139,7 @@ public class InventoryDetailViewModel : BaseEntityDetailViewModel<InventoryDocum
                 NotifyStateChanged();
                 return true;
             }
-            
+
             return false;
         }
         catch (Exception ex)
@@ -166,7 +164,7 @@ public class InventoryDetailViewModel : BaseEntityDetailViewModel<InventoryDocum
         {
             var entityId = GetEntityId(Entity);
             var updated = await _inventoryService.DeleteInventoryDocumentRowAsync(entityId, rowId);
-            
+
             if (updated != null)
             {
                 Entity = updated;
@@ -174,7 +172,7 @@ public class InventoryDetailViewModel : BaseEntityDetailViewModel<InventoryDocum
                 NotifyStateChanged();
                 return true;
             }
-            
+
             return false;
         }
         catch (Exception ex)

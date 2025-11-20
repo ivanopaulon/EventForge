@@ -2,7 +2,6 @@ using EventForge.DTOs.Common;
 using EventForge.Server.Services.Logging;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 
 namespace EventForge.Tests.Services.Logging;
 
@@ -163,10 +162,10 @@ public class LogIngestionServiceTests
 
         // Act
         await _service.EnqueueBatchAsync(logs);
-        
+
         // Give the channel a moment to update
         await Task.Delay(100);
-        
+
         var healthStatus = _service.GetHealthStatus();
 
         // Assert

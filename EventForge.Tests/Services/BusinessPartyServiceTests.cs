@@ -3,7 +3,6 @@ using EventForge.DTOs.Business;
 using EventForge.DTOs.Common;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 
 namespace EventForge.Tests.Services;
 
@@ -61,7 +60,7 @@ public class BusinessPartyServiceTests
         // Arrange
         var id = Guid.NewGuid();
         var expected = new BusinessPartyDto { Id = id, Name = "Test Party" };
-        
+
         _mockHttpClient.Setup(x => x.GetAsync<BusinessPartyDto>(
             It.IsAny<string>(),
             It.IsAny<CancellationToken>()
@@ -82,7 +81,7 @@ public class BusinessPartyServiceTests
         // Arrange
         var createDto = new CreateBusinessPartyDto { Name = "New Party" };
         var expected = new BusinessPartyDto { Id = Guid.NewGuid(), Name = "New Party" };
-        
+
         _mockHttpClient.Setup(x => x.PostAsync<CreateBusinessPartyDto, BusinessPartyDto>(
             It.IsAny<string>(),
             createDto,
@@ -107,7 +106,7 @@ public class BusinessPartyServiceTests
             new BusinessPartyDto { Id = Guid.NewGuid(), Name = "Customer 1", PartyType = partyType },
             new BusinessPartyDto { Id = Guid.NewGuid(), Name = "Customer 2", PartyType = partyType }
         };
-        
+
         _mockHttpClient.Setup(x => x.GetAsync<IEnumerable<BusinessPartyDto>>(
             It.IsAny<string>(),
             It.IsAny<CancellationToken>()
@@ -132,7 +131,7 @@ public class BusinessPartyServiceTests
             new BusinessPartyDto { Id = Guid.NewGuid(), Name = "Test Party 1" },
             new BusinessPartyDto { Id = Guid.NewGuid(), Name = "Test Party 2" }
         };
-        
+
         _mockHttpClient.Setup(x => x.GetAsync<IEnumerable<BusinessPartyDto>>(
             It.IsAny<string>(),
             It.IsAny<CancellationToken>()
@@ -153,7 +152,7 @@ public class BusinessPartyServiceTests
         var id = Guid.NewGuid();
         var updateDto = new UpdateBusinessPartyDto { Name = "Updated Party" };
         var expected = new BusinessPartyDto { Id = id, Name = "Updated Party" };
-        
+
         _mockHttpClient.Setup(x => x.PutAsync<UpdateBusinessPartyDto, BusinessPartyDto>(
             It.IsAny<string>(),
             updateDto,
@@ -174,7 +173,7 @@ public class BusinessPartyServiceTests
     {
         // Arrange
         var id = Guid.NewGuid();
-        
+
         _mockHttpClient.Setup(x => x.DeleteAsync(
             It.IsAny<string>(),
             It.IsAny<CancellationToken>()
@@ -182,7 +181,7 @@ public class BusinessPartyServiceTests
 
         // Act & Assert
         await _service.DeleteBusinessPartyAsync(id);
-        
+
         _mockHttpClient.Verify(x => x.DeleteAsync(
             It.Is<string>(url => url.Contains(id.ToString())),
             It.IsAny<CancellationToken>()
@@ -194,12 +193,12 @@ public class BusinessPartyServiceTests
     {
         // Arrange
         var businessPartyId = Guid.NewGuid();
-        var expected = new BusinessPartyAccountingDto 
-        { 
-            Id = Guid.NewGuid(), 
-            BusinessPartyId = businessPartyId 
+        var expected = new BusinessPartyAccountingDto
+        {
+            Id = Guid.NewGuid(),
+            BusinessPartyId = businessPartyId
         };
-        
+
         _mockHttpClient.Setup(x => x.GetAsync<BusinessPartyAccountingDto>(
             It.IsAny<string>(),
             It.IsAny<CancellationToken>()

@@ -1,6 +1,4 @@
-using EventForge.DTOs.Common;
 using System.Threading.Channels;
-using System.Diagnostics;
 
 namespace EventForge.Server.Services.Logging;
 
@@ -13,7 +11,7 @@ public class LogIngestionService : ILogIngestionService
     private const int DefaultChannelCapacity = 10000;
     private readonly Channel<ClientLogDto> _logChannel;
     private readonly ILogger<LogIngestionService> _logger;
-    
+
     // Metrics tracking
     private long _droppedCount;
     private readonly object _metricsLock = new();
@@ -24,7 +22,7 @@ public class LogIngestionService : ILogIngestionService
     public LogIngestionService(ILogger<LogIngestionService> logger)
     {
         _logger = logger;
-        
+
         // Create bounded channel with DropOldest behavior
         var options = new BoundedChannelOptions(DefaultChannelCapacity)
         {
@@ -32,9 +30,9 @@ public class LogIngestionService : ILogIngestionService
             SingleReader = true, // Only one background processor will read
             SingleWriter = false // Multiple API requests can write concurrently
         };
-        
+
         _logChannel = Channel.CreateBounded<ClientLogDto>(options);
-        
+
         _logger.LogInformation(
             "LogIngestionService initialized with channel capacity: {Capacity}",
             DefaultChannelCapacity);
@@ -111,11 +109,11 @@ public class LogIngestionService : ILogIngestionService
     {
         var backlogSize = _logChannel.Reader.Count;
         var droppedCount = Interlocked.Read(ref _droppedCount);
-        
+
         double averageLatency;
         DateTime? lastProcessed;
         string circuitState;
-        
+
         lock (_metricsLock)
         {
             averageLatency = _latencySamples.Count > 0 ? _latencySamples.Average() : 0;
@@ -125,7 +123,7 @@ public class LogIngestionService : ILogIngestionService
 
         // Determine health status based on metrics
         var status = HealthStatus.Healthy;
-        
+
         if (circuitState == "Open")
         {
             status = HealthStatus.Unhealthy;

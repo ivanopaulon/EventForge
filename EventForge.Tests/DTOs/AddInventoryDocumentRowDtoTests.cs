@@ -48,7 +48,7 @@ public class AddInventoryDocumentRowDtoTests
         // Business logic should handle empty Guids, not validation attributes
         var dto = new AddInventoryDocumentRowDto
         {
-            ProductId = Guid.Empty, 
+            ProductId = Guid.Empty,
             LocationId = Guid.Empty,
             Quantity = 0,
             MergeDuplicateProducts = true

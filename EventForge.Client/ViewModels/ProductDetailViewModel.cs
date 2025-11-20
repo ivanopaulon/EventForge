@@ -1,7 +1,6 @@
 using EventForge.Client.Services;
 using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
-using Microsoft.Extensions.Logging;
 
 namespace EventForge.Client.ViewModels;
 
@@ -14,7 +13,7 @@ public class ProductDetailViewModel : BaseEntityDetailViewModel<ProductDto, Crea
 
     public ProductDetailViewModel(
         IProductService productService,
-        ILogger<ProductDetailViewModel> logger) 
+        ILogger<ProductDetailViewModel> logger)
         : base(logger)
     {
         _productService = productService;
@@ -45,7 +44,7 @@ public class ProductDetailViewModel : BaseEntityDetailViewModel<ProductDto, Crea
     protected override async Task<ProductDto?> LoadEntityFromServiceAsync(Guid entityId)
     {
         // Prefer detailed payload if available
-        return await _productService.GetProductDetailAsync(entityId) 
+        return await _productService.GetProductDetailAsync(entityId)
             ?? await _productService.GetProductByIdAsync(entityId);
     }
 
@@ -65,9 +64,9 @@ public class ProductDetailViewModel : BaseEntityDetailViewModel<ProductDto, Crea
             var codesTask = _productService.GetProductCodesAsync(entityId);
             var unitsTask = _productService.GetProductUnitsAsync(entityId);
             var suppliersTask = _productService.GetProductSuppliersAsync(entityId);
-            
+
             await Task.WhenAll(codesTask, unitsTask, suppliersTask);
-            
+
             ProductCodes = codesTask.Result;
             ProductUnits = unitsTask.Result;
             ProductSuppliers = suppliersTask.Result;

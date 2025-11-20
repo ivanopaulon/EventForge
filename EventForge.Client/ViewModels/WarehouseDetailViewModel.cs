@@ -1,7 +1,5 @@
 using EventForge.Client.Services;
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
-using Microsoft.Extensions.Logging;
 
 namespace EventForge.Client.ViewModels;
 
@@ -16,7 +14,7 @@ public class WarehouseDetailViewModel : BaseEntityDetailViewModel<StorageFacilit
     public WarehouseDetailViewModel(
         IWarehouseService warehouseService,
         IStorageLocationService storageLocationService,
-        ILogger<WarehouseDetailViewModel> logger) 
+        ILogger<WarehouseDetailViewModel> logger)
         : base(logger)
     {
         _warehouseService = warehouseService;
@@ -69,7 +67,7 @@ public class WarehouseDetailViewModel : BaseEntityDetailViewModel<StorageFacilit
         {
             var locationsResult = await _storageLocationService.GetStorageLocationsByWarehouseAsync(entityId, 1, 100);
             StorageLocations = locationsResult?.Items ?? new List<StorageLocationDto>();
-            Logger.LogInformation("Loaded {Count} storage locations for warehouse {WarehouseId}", 
+            Logger.LogInformation("Loaded {Count} storage locations for warehouse {WarehouseId}",
                 StorageLocations.Count(), entityId);
         }
         catch (Exception ex)
@@ -143,16 +141,16 @@ public class WarehouseDetailViewModel : BaseEntityDetailViewModel<StorageFacilit
         try
         {
             var newLocation = await _storageLocationService.CreateStorageLocationAsync(locationDto);
-            
+
             if (newLocation != null)
             {
                 StorageLocations = StorageLocations?.Append(newLocation) ?? new List<StorageLocationDto> { newLocation };
                 NotifyStateChanged();
-                Logger.LogInformation("Added storage location {LocationId} to warehouse {WarehouseId}", 
+                Logger.LogInformation("Added storage location {LocationId} to warehouse {WarehouseId}",
                     newLocation.Id, Entity.Id);
                 return true;
             }
-            
+
             return false;
         }
         catch (Exception ex)
@@ -176,21 +174,21 @@ public class WarehouseDetailViewModel : BaseEntityDetailViewModel<StorageFacilit
         try
         {
             var result = await _storageLocationService.DeleteStorageLocationAsync(locationId);
-            
+
             if (result)
             {
                 StorageLocations = StorageLocations?.Where(l => l.Id != locationId) ?? new List<StorageLocationDto>();
                 NotifyStateChanged();
-                Logger.LogInformation("Deleted storage location {LocationId} from warehouse {WarehouseId}", 
+                Logger.LogInformation("Deleted storage location {LocationId} from warehouse {WarehouseId}",
                     locationId, Entity.Id);
                 return true;
             }
-            
+
             return false;
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error deleting storage location {LocationId} from warehouse {WarehouseId}", 
+            Logger.LogError(ex, "Error deleting storage location {LocationId} from warehouse {WarehouseId}",
                 locationId, Entity.Id);
             throw;
         }

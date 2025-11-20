@@ -5,7 +5,6 @@ using EventForge.DTOs.Products;
 using EventForge.DTOs.Warehouse;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 
 namespace EventForge.Tests.ViewModels;
 
@@ -118,14 +117,14 @@ public class LotDetailViewModelTests : IDisposable
     {
         // Arrange
         await _viewModel.LoadEntityAsync(Guid.Empty);
-        
+
         var productId = Guid.NewGuid();
         _viewModel.Entity!.Code = "LOT-NEW";
         _viewModel.Entity.ProductId = productId;
         _viewModel.Entity.OriginalQuantity = 100;
         _viewModel.Entity.ProductionDate = DateTime.UtcNow;
         _viewModel.Entity.ExpiryDate = DateTime.UtcNow.AddYears(1);
-        
+
         var createdLot = new LotDto
         {
             Id = Guid.NewGuid(),

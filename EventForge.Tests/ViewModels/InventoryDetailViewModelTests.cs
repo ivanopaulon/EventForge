@@ -4,7 +4,6 @@ using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 
 namespace EventForge.Tests.ViewModels;
 
@@ -96,7 +95,7 @@ public class InventoryDetailViewModelTests : IDisposable
     {
         // Arrange
         await _viewModel.LoadEntityAsync(Guid.Empty);
-        
+
         var createdInventory = new InventoryDocumentDto
         {
             Id = Guid.NewGuid(),

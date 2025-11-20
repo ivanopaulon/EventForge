@@ -4,7 +4,6 @@ using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 
 namespace EventForge.Tests.ViewModels;
 
@@ -108,13 +107,13 @@ public class StorageLocationDetailViewModelTests : IDisposable
     {
         // Arrange
         await _viewModel.LoadEntityAsync(Guid.Empty);
-        
+
         var warehouseId = Guid.NewGuid();
         _viewModel.Entity!.Code = "A-01";
         _viewModel.Entity.Description = "New Location";
         _viewModel.Entity.WarehouseId = warehouseId;
         _viewModel.Entity.Capacity = 100;
-        
+
         var createdLocation = new StorageLocationDto
         {
             Id = Guid.NewGuid(),

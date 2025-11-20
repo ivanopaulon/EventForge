@@ -1,7 +1,5 @@
 using EventForge.Client.Services;
-using EventForge.DTOs.Common;
 using EventForge.DTOs.Warehouse;
-using Microsoft.Extensions.Logging;
 
 namespace EventForge.Client.ViewModels;
 
@@ -16,7 +14,7 @@ public class StorageLocationDetailViewModel : BaseEntityDetailViewModel<StorageL
     public StorageLocationDetailViewModel(
         IStorageLocationService storageLocationService,
         IWarehouseService warehouseService,
-        ILogger<StorageLocationDetailViewModel> logger) 
+        ILogger<StorageLocationDetailViewModel> logger)
         : base(logger)
     {
         _storageLocationService = storageLocationService;
@@ -71,8 +69,8 @@ public class StorageLocationDetailViewModel : BaseEntityDetailViewModel<StorageL
             // Load warehouses for dropdown selection
             var warehousesResult = await _warehouseService.GetStorageFacilitiesAsync(1, 100);
             Warehouses = warehousesResult?.Items ?? new List<StorageFacilityDto>();
-            
-            Logger.LogInformation("Loaded {Count} warehouses for location {Id}", 
+
+            Logger.LogInformation("Loaded {Count} warehouses for location {Id}",
                 Warehouses.Count(), entityId);
         }
         catch (Exception ex)

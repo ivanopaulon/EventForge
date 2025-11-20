@@ -2,7 +2,6 @@ using EventForge.DTOs.Products;
 using EventForge.DTOs.UnitOfMeasures;
 using EventForge.DTOs.VatRates;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
 
@@ -35,19 +34,19 @@ public interface ILookupCacheService
     Task<LookupResult<ModelDto>> GetModelsAsync(Guid? brandId = null, bool forceRefresh = false);
     Task<LookupResult<VatRateDto>> GetVatRatesAsync(bool forceRefresh = false);
     Task<LookupResult<UMDto>> GetUnitsOfMeasureAsync(bool forceRefresh = false);
-    
+
     // Legacy raw methods for backward compatibility
     Task<IEnumerable<BrandDto>> GetBrandsRawAsync(bool forceRefresh = false);
     Task<IEnumerable<ModelDto>> GetModelsRawAsync(Guid? brandId = null, bool forceRefresh = false);
     Task<IEnumerable<VatRateDto>> GetVatRatesRawAsync(bool forceRefresh = false);
     Task<IEnumerable<UMDto>> GetUnitsOfMeasureRawAsync(bool forceRefresh = false);
-    
+
     // Direct lookup methods
     Task<BrandDto?> GetBrandByIdAsync(Guid brandId);
     Task<ModelDto?> GetModelByIdAsync(Guid modelId);
     Task<VatRateDto?> GetVatRateByIdAsync(Guid vatRateId);
     Task<UMDto?> GetUnitOfMeasureByIdAsync(Guid unitId);
-    
+
     void ClearCache();
 }
 
@@ -66,7 +65,7 @@ public class LookupCacheService : ILookupCacheService
     private const string VatRatesCacheKey = "lookup_vatrates";
     private const string UnitsCacheKey = "lookup_units";
     private static readonly TimeSpan DefaultCacheExpiration = TimeSpan.FromMinutes(10);
-    
+
     private readonly AsyncRetryPolicy _retryPolicy;
 
     public LookupCacheService(
@@ -83,15 +82,15 @@ public class LookupCacheService : ILookupCacheService
         _umService = umService;
         _cache = cache;
         _logger = logger;
-        
+
         // Configure Polly retry policy for transient errors with exponential backoff
         _retryPolicy = Policy
             .Handle<HttpRequestException>()
             .Or<TaskCanceledException>()
             .WaitAndRetryAsync(
                 new[] { TimeSpan.FromMilliseconds(200), TimeSpan.FromMilliseconds(500), TimeSpan.FromSeconds(1) },
-                (ex, delay, attempt, ctx) => 
-                    _logger.LogWarning(ex, "Transient lookup failure on attempt {Attempt} after {Delay}ms", 
+                (ex, delay, attempt, ctx) =>
+                    _logger.LogWarning(ex, "Transient lookup failure on attempt {Attempt} after {Delay}ms",
                         attempt, delay.TotalMilliseconds));
     }
 
@@ -121,21 +120,21 @@ public class LookupCacheService : ILookupCacheService
 
                 var items = api.Items?.ToList() ?? new List<BrandDto>();
                 _logger.LogInformation("Loaded {Count} brands (Total={Total})", items.Count, api.TotalCount);
-                
+
                 return LookupResult<BrandDto>.Ok(items);
             });
 
             // Only cache successful results
             if (result.Success)
             {
-                _cache.Set(BrandsCacheKey, result, new MemoryCacheEntryOptions 
-                { 
-                    AbsoluteExpirationRelativeToNow = DefaultCacheExpiration 
+                _cache.Set(BrandsCacheKey, result, new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = DefaultCacheExpiration
                 });
             }
             else
             {
-                _logger.LogWarning("Brands failure: {Msg} (Transient={Transient})", 
+                _logger.LogWarning("Brands failure: {Msg} (Transient={Transient})",
                     result.ErrorMessage, result.IsTransient);
             }
 
@@ -168,33 +167,33 @@ public class LookupCacheService : ILookupCacheService
         {
             var result = await _retryPolicy.ExecuteAsync(async () =>
             {
-                var api = brandId.HasValue 
-                    ? await _modelService.GetModelsByBrandIdAsync(brandId.Value, 1, 100) 
+                var api = brandId.HasValue
+                    ? await _modelService.GetModelsByBrandIdAsync(brandId.Value, 1, 100)
                     : await _modelService.GetModelsAsync(1, 100);
-                    
+
                 if (api == null)
                 {
                     return LookupResult<ModelDto>.Fail("Null API response models", "NULL_RESPONSE", true);
                 }
 
                 var items = api.Items?.ToList() ?? new List<ModelDto>();
-                _logger.LogInformation("Loaded {Count} models (Brand={Brand} Total={Total})", 
+                _logger.LogInformation("Loaded {Count} models (Brand={Brand} Total={Total})",
                     items.Count, brandId?.ToString() ?? "ALL", api.TotalCount);
-                
+
                 return LookupResult<ModelDto>.Ok(items);
             });
 
             // Only cache successful results
             if (result.Success)
             {
-                _cache.Set(key, result, new MemoryCacheEntryOptions 
-                { 
-                    AbsoluteExpirationRelativeToNow = DefaultCacheExpiration 
+                _cache.Set(key, result, new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = DefaultCacheExpiration
                 });
             }
             else
             {
-                _logger.LogWarning("Models failure: {Msg} (Transient={Transient})", 
+                _logger.LogWarning("Models failure: {Msg} (Transient={Transient})",
                     result.ErrorMessage, result.IsTransient);
             }
 
@@ -233,21 +232,21 @@ public class LookupCacheService : ILookupCacheService
 
                 var items = api.Items?.ToList() ?? new List<VatRateDto>();
                 _logger.LogInformation("Loaded {Count} VAT rates", items.Count);
-                
+
                 return LookupResult<VatRateDto>.Ok(items);
             });
 
             // Only cache successful results
             if (result.Success)
             {
-                _cache.Set(VatRatesCacheKey, result, new MemoryCacheEntryOptions 
-                { 
-                    AbsoluteExpirationRelativeToNow = DefaultCacheExpiration 
+                _cache.Set(VatRatesCacheKey, result, new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = DefaultCacheExpiration
                 });
             }
             else
             {
-                _logger.LogWarning("VAT rates failure: {Msg} (Transient={Transient})", 
+                _logger.LogWarning("VAT rates failure: {Msg} (Transient={Transient})",
                     result.ErrorMessage, result.IsTransient);
             }
 
@@ -286,21 +285,21 @@ public class LookupCacheService : ILookupCacheService
 
                 var items = api.Items?.ToList() ?? new List<UMDto>();
                 _logger.LogInformation("Loaded {Count} units of measure", items.Count);
-                
+
                 return LookupResult<UMDto>.Ok(items);
             });
 
             // Only cache successful results
             if (result.Success)
             {
-                _cache.Set(UnitsCacheKey, result, new MemoryCacheEntryOptions 
-                { 
-                    AbsoluteExpirationRelativeToNow = DefaultCacheExpiration 
+                _cache.Set(UnitsCacheKey, result, new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = DefaultCacheExpiration
                 });
             }
             else
             {
-                _logger.LogWarning("Units failure: {Msg} (Transient={Transient})", 
+                _logger.LogWarning("Units failure: {Msg} (Transient={Transient})",
                     result.ErrorMessage, result.IsTransient);
             }
 
@@ -314,16 +313,16 @@ public class LookupCacheService : ILookupCacheService
     }
 
     // Legacy raw methods for backward compatibility - unwrap Items from LookupResult
-    public async Task<IEnumerable<BrandDto>> GetBrandsRawAsync(bool forceRefresh = false) => 
+    public async Task<IEnumerable<BrandDto>> GetBrandsRawAsync(bool forceRefresh = false) =>
         (await GetBrandsAsync(forceRefresh)).Items;
 
-    public async Task<IEnumerable<ModelDto>> GetModelsRawAsync(Guid? brandId = null, bool forceRefresh = false) => 
+    public async Task<IEnumerable<ModelDto>> GetModelsRawAsync(Guid? brandId = null, bool forceRefresh = false) =>
         (await GetModelsAsync(brandId, forceRefresh)).Items;
 
-    public async Task<IEnumerable<VatRateDto>> GetVatRatesRawAsync(bool forceRefresh = false) => 
+    public async Task<IEnumerable<VatRateDto>> GetVatRatesRawAsync(bool forceRefresh = false) =>
         (await GetVatRatesAsync(forceRefresh)).Items;
 
-    public async Task<IEnumerable<UMDto>> GetUnitsOfMeasureRawAsync(bool forceRefresh = false) => 
+    public async Task<IEnumerable<UMDto>> GetUnitsOfMeasureRawAsync(bool forceRefresh = false) =>
         (await GetUnitsOfMeasureAsync(forceRefresh)).Items;
 
     public async Task<BrandDto?> GetBrandByIdAsync(Guid brandId)

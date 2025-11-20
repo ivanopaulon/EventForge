@@ -1,8 +1,8 @@
 using EventForge.Client.Services;
+using EventForge.DTOs.Common;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.UnitOfMeasures;
 using EventForge.DTOs.VatRates;
-using EventForge.DTOs.Common;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -300,11 +300,11 @@ public class LookupCacheServiceTests
         // Arrange
         var brandId = Guid.NewGuid();
         var brand = new BrandDto { Id = brandId, Name = "Brand1" };
-        
+
         // Empty cache
         _brandServiceMock.Setup(x => x.GetBrandsAsync(1, 100))
             .ReturnsAsync(new PagedResult<BrandDto> { Items = new List<BrandDto>(), TotalCount = 0, Page = 1, PageSize = 100 });
-        
+
         // Direct fetch returns the brand
         _brandServiceMock.Setup(x => x.GetBrandByIdAsync(brandId)).ReturnsAsync(brand);
 
